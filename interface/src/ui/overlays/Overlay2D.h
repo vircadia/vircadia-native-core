@@ -22,9 +22,9 @@ public:
     Overlay2D() {}
     Overlay2D(const Overlay2D* overlay2D);
     
-    virtual AABox getBounds() const;
+    virtual AABox getBounds() const override;
     
-    virtual bool is3D() const { return false; }
+    virtual bool is3D() const override { return false; }
 
     // getters
     int getX() const { return _bounds.x(); }
@@ -40,8 +40,8 @@ public:
     void setHeight(int height) { _bounds.setHeight(height); }
     void setBounds(const QRect& bounds) { _bounds = bounds; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
 protected:
     QRect _bounds; // where on the screen to draw

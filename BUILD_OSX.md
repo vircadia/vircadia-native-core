@@ -1,22 +1,31 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only OS X specific instructions are found in this file.
 
 ###Homebrew
-[Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all High Fidelity dependencies very simple.
+[Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of some High Fidelity dependencies very simple.
 
-    brew tap highfidelity/homebrew-formulas
+    brew tap homebrew/versions
     brew install cmake openssl
-    brew install highfidelity/formulas/qt5
-    brew link qt5 --force
 
-We have a [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) that you can use/tap to install some of the dependencies. In the code block above qt5 is installed from a formula in this repository.
+###OpenSSL
 
-*Our [qt5 homebrew formula](https://raw.github.com/highfidelity/homebrew-formulas/master/qt5.rb) is for a patched version of Qt 5.4.x stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
+Assuming you've installed OpenSSL using the homebrew instructions above, you'll need to set OPENSSL_ROOT_DIR so CMake can find your installations.
+For OpenSSL installed via homebrew, set OPENSSL_ROOT_DIR:
+
+    export OPENSSL_ROOT_DIR=/usr/local/Cellar/openssl/1.0.2h_1/
+
+Note that this uses the version from the homebrew formula at the time of this writing, and the version in the path will likely change.
 
 ###Qt
+You can use the online installer or the offline installer.
 
-Assuming you've installed Qt 5 using the homebrew instructions above, you'll need to set QT_CMAKE_PREFIX_PATH so CMake can find your installation of Qt. For Qt 5.4.1 installed via homebrew, set QT_CMAKE_PREFIX_PATH as follows.
+* [Download the online installer](http://www.qt.io/download-open-source/#section-2)
+    * When it asks you to select components, select the following:
+        * Qt > Qt 5.6
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.4.1/lib/cmake
+* [Download the offline installer](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-mac-x64-clang-5.6.1-1.dmg)
+
+Once Qt is installed, you need to manually configure the following:
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt5.6.1/5.6/clang_64/lib/cmake/` directory.
 
 ###Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.

@@ -13,9 +13,8 @@
 //
 
 <@include gpu/Inputs.slh@>
-
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 out vec3 varPosition;
@@ -25,12 +24,12 @@ out vec4 varColor;
 
 void main(void) {
     varTexCoord0 = inTexCoord0.st;
-    varColor = inColor;
+    varColor = colorToLinearRGBA(inColor);
     
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, inNormal.xyz, varNormal)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, varNormal)$>
     varPosition = inPosition.xyz;
 }

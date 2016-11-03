@@ -12,14 +12,13 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
-#include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
-#include <gpu/GLBackendShared.h>
 #include <FramebufferCache.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
 #include <CursorManager.h>
 #include <PerfStat.h>
+#include <gl/Config.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
@@ -29,6 +28,8 @@
 #include "Util.h"
 #include "ui/Stats.h"
 #include "ui/AvatarInputs.h"
+#include "OffscreenUi.h"
+#include <QQmlContext>
 
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
 static const float ORTHO_NEAR_CLIP = -1000.0f;
@@ -39,29 +40,24 @@ ApplicationOverlay::ApplicationOverlay()
     auto geometryCache = DependencyManager::get<GeometryCache>();
     _domainStatusBorder = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
-
-    // Once we move UI rendering and screen rendering to different
-    // threads, we need to use a sync object to deteremine when
-    // the current UI texture is no longer being read from, and only
-    // then release it back to the UI for re-use
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
-        _uiTexture = textureId;
-    });
+    _qmlGeometryId = geometryCache->allocateID();
+    _rearViewGeometryId = geometryCache->allocateID();
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_domainStatusBorder);
+        geometryCache->releaseID(_magnifierBorder);
+        geometryCache->releaseID(_qmlGeometryId);
+        geometryCache->releaseID(_rearViewGeometryId);
+    }
 }
 
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
-    CHECK_GL_ERROR();
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
-
-    // TODO move to Application::idle()?
-    Stats::getInstance()->updateStats();
-    AvatarInputs::getInstance()->update();
 
     buildFramebufferObject();
     
@@ -70,8 +66,10 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     }
 
     // Execute the batch into our framebuffer
-    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "ApplicationOverlayRender");
         renderArgs->_batch = &batch;
+        batch.enableStereo(false);
 
         int width = _overlayFramebuffer->getWidth();
         int height = _overlayFramebuffer->getHeight();
@@ -86,32 +84,42 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
         // Now render the overlay components together into a single texture
         renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
-        renderAudioScope(renderArgs); // audio scope in the very back
+        renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
         renderRearView(renderArgs); // renders the mirror view selfie
-        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
+        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderStatsAndLogs(renderArgs);  // currently renders nothing
     });
 
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
-
-    CHECK_GL_ERROR();
 }
 
 void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
-    if (_uiTexture) {
-        gpu::Batch& batch = *renderArgs->_batch;
-        auto geometryCache = DependencyManager::get<GeometryCache>();
 
-        geometryCache->useSimpleDrawPipeline(batch);
-        batch.setProjectionTransform(mat4());
-        batch.setModelTransform(Transform());
-        batch.setViewTransform(Transform());
-        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _uiTexture);
-
-        geometryCache->renderUnitQuad(batch, glm::vec4(1));
+    if (!_uiTexture) {
+        _uiTexture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
+        _uiTexture->setSource(__FUNCTION__);
     }
+    // Once we move UI rendering and screen rendering to different
+    // threads, we need to use a sync object to deteremine when
+    // the current UI texture is no longer being read from, and only
+    // then release it back to the UI for re-use
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+
+    OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    bool newTextureAvailable = offscreenUi->fetchTexture(newTextureAndFence);
+    if (newTextureAvailable) {
+        _uiTexture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
+    }
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    gpu::Batch& batch = *renderArgs->_batch;
+    geometryCache->useSimpleDrawPipeline(batch);
+    batch.setProjectionTransform(mat4());
+    batch.setModelTransform(Transform());
+    batch.resetViewTransform();
+    batch.setResourceTexture(0, _uiTexture);
+    geometryCache->renderUnitQuad(batch, glm::vec4(1), _qmlGeometryId);
 }
 
 void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
@@ -127,7 +135,7 @@ void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
+    batch.resetViewTransform();
 
     // Render the audio scope
     DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
@@ -146,7 +154,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
+    batch.resetViewTransform();
 
     // Render all of the Script based "HUD" aka 2D overlays.
     // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
@@ -158,7 +166,8 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror) &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         gpu::Batch& batch = *renderArgs->_batch;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -171,10 +180,10 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
-        batch.setViewTransform(Transform());
+        batch.resetViewTransform();
         
         float screenRatio = ((float)qApp->getDevicePixelRatio());
-        float renderRatio = ((float)screenRatio * qApp->getRenderResolutionScale());
+        float renderRatio = ((float)qApp->getRenderResolutionScale());
         
         auto viewport = qApp->getMirrorViewRect();
         glm::vec2 bottomLeft(viewport.left(), viewport.top() + viewport.height());
@@ -184,13 +193,11 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         glm::vec2 texCoordMinCorner(0.0f, 0.0f);
         glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
 
-
-        geometryCache->useSimpleDrawPipeline(batch, true);
         batch.setResourceTexture(0, selfieTexture);
-        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); 
+        float alpha = DependencyManager::get<OffscreenUi>()->getDesktop()->property("unpinnedAlpha").toFloat();
+        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, alpha), _rearViewGeometryId);
 
         batch.setResourceTexture(0, renderArgs->_whiteTexture);
-        geometryCache->useSimpleDrawPipeline(batch, false);
     }
 }
 
@@ -235,7 +242,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(Transform());
-        batch.setViewTransform(Transform());
+        batch.resetViewTransform();
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
         // FIXME: THe line width of CONNECTION_STATUS_BORDER_LINE_WIDTH is not supported anymore, we ll need a workaround
 
@@ -249,37 +256,35 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
     }
 }
 
+static const auto COLOR_FORMAT = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+static const auto DEFAULT_SAMPLER = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+static const auto DEPTH_FORMAT = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
+
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
 
-    QSize desiredSize = qApp->getDeviceSize();
-    int currentWidth = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
-    int currentHeight = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
-    QSize frameBufferCurrentSize(currentWidth, currentHeight);
-    
-    if (_overlayFramebuffer && desiredSize == frameBufferCurrentSize) {
-        // Already built
-        return;
-    }
-    
-    if (_overlayFramebuffer) {
-        _overlayFramebuffer.reset();
-        _overlayDepthTexture.reset();
-        _overlayColorTexture.reset();
+    auto uiSize = qApp->getUiSize();
+    if (!_overlayFramebuffer || uiSize != _overlayFramebuffer->getSize()) {
+        _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ApplicationOverlay"));
     }
 
-    _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    auto width = uiSize.x;
+    auto height = uiSize.y;
+    if (!_overlayFramebuffer->getDepthStencilBuffer()) {
+        auto overlayDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(DEPTH_FORMAT, width, height, DEFAULT_SAMPLER));
+        _overlayFramebuffer->setDepthStencilBuffer(overlayDepthTexture, DEPTH_FORMAT);
+    }
 
-   auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-   auto width = desiredSize.width();
-   auto height = desiredSize.height();
+    if (!_overlayFramebuffer->getRenderBuffer(0)) {
+        const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
+        auto colorBuffer = gpu::TexturePointer(gpu::Texture::create2D(COLOR_FORMAT, width, height, OVERLAY_SAMPLER));
+        _overlayFramebuffer->setRenderBuffer(0, colorBuffer);
+    }
+}
 
-   auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-   _overlayColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-   _overlayFramebuffer->setRenderBuffer(0, _overlayColorTexture);
-
-   auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
-   _overlayDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
-
-   _overlayFramebuffer->setDepthStencilBuffer(_overlayDepthTexture, depthFormat);
+gpu::TexturePointer ApplicationOverlay::getOverlayTexture() {
+    if (!_overlayFramebuffer) {
+        return gpu::TexturePointer();
+    }
+    return _overlayFramebuffer->getRenderBuffer(0);
 }

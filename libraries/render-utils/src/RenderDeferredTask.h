@@ -12,113 +12,200 @@
 #ifndef hifi_RenderDeferredTask_h
 #define hifi_RenderDeferredTask_h
 
-#include "render/DrawTask.h"
+#include <gpu/Pipeline.h>
+#include <render/CullTask.h>
+#include "LightingModel.h"
 
-#include "gpu/Pipeline.h"
 
-class SetupDeferred {
+class BeginGPURangeTimer {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-    typedef render::Job::Model<SetupDeferred> JobModel;
+    using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;
+    
+    BeginGPURangeTimer() : _gpuTimer(std::make_shared<gpu::RangeTimer>()) {}
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer);
+    
+protected:
+    gpu::RangeTimerPointer _gpuTimer;
 };
 
-class PrepareDeferred {
-public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+using GPURangeTimerConfig = render::GPUJobConfig;
 
-    typedef render::Job::Model<PrepareDeferred> JobModel;
+class EndGPURangeTimer {
+public:
+    using Config = GPURangeTimerConfig;
+    using JobModel = render::Job::ModelI<EndGPURangeTimer, gpu::RangeTimerPointer, Config>;
+    
+    EndGPURangeTimer() {}
+    
+    void configure(const Config& config) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer);
+    
+protected:
 };
 
 
-class RenderDeferred {
-public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+class DrawConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
 
-    typedef render::Job::Model<RenderDeferred> JobModel;
+    Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+public:
+
+    int getNumDrawn() { return _numDrawn; }
+    void setNumDrawn(int numDrawn) { _numDrawn = numDrawn;  emit newStats(); }
+
+    int maxDrawn{ -1 };
+
+signals:
+    void newStats();
+    void dirty();
+
+protected:
+    int _numDrawn{ 0 };
 };
 
-class ResolveDeferred {
+class DrawDeferred {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
+    using Config = DrawConfig;
+    using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 
-    typedef render::Job::Model<ResolveDeferred> JobModel;
+    DrawDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+protected:
+    render::ShapePlumberPointer _shapePlumber;
+    int _maxDrawn; // initialized by Config
 };
 
-class DrawOpaqueDeferred {
+class DrawStateSortConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
+        Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+        Q_PROPERTY(bool stateSort MEMBER stateSort NOTIFY dirty)
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
-    typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
+    int getNumDrawn() { return numDrawn; }
+    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
+
+    int maxDrawn{ -1 };
+    bool stateSort{ true };
+
+signals:
+    void numDrawnChanged();
+    void dirty();
+
+protected:
+    int numDrawn{ 0 };
 };
 
-class DrawTransparentDeferred {
+class DrawStateSortDeferred {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
 
-    typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
+    using Config = DrawStateSortConfig;
+    using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;
+
+    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; }
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+protected:
+    render::ShapePlumberPointer _shapePlumber;
+    int _maxDrawn; // initialized by Config
+    bool _stateSort;
 };
 
+class DeferredFramebuffer;
 class DrawStencilDeferred {
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
-    static const gpu::PipelinePointer& getOpaquePipeline();
+    using JobModel = render::Job::ModelI<DrawStencilDeferred, std::shared_ptr<DeferredFramebuffer>>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const std::shared_ptr<DeferredFramebuffer>& deferredFramebuffer);
 
-    typedef render::Job::Model<DrawStencilDeferred> JobModel;
+protected:
+    gpu::PipelinePointer _opaquePipeline;
+
+    gpu::PipelinePointer getOpaquePipeline();
 };
+
+using DrawBackgroundDeferredConfig = render::GPUJobConfig;
 
 class DrawBackgroundDeferred {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
 
-    typedef render::Job::Model<DrawBackgroundDeferred> JobModel;
+    using Config = DrawBackgroundDeferredConfig;
+    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, Inputs, Config>;
+
+    void configure(const Config& config) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+protected:
+    gpu::RangeTimer _gpuTimer;
+};
+
+class DrawOverlay3DConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
+    Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+public:
+    int getNumDrawn() { return numDrawn; }
+    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
+
+    int maxDrawn{ -1 };
+
+signals:
+    void numDrawnChanged();
+    void dirty();
+
+protected:
+    int numDrawn{ 0 };
 };
 
 class DrawOverlay3D {
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
-    static const gpu::PipelinePointer& getOpaquePipeline();
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    using Config = DrawOverlay3DConfig;
+    using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
 
-    typedef render::Job::Model<DrawOverlay3D> JobModel;
+    DrawOverlay3D(bool opaque);
+
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+protected:
+    render::ShapePlumberPointer _shapePlumber;
+    int _maxDrawn; // initialized by Config
+    bool _opaquePass{ true };
 };
+
+class Blit {
+public:
+    using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
+};
+
+using RenderDeferredTaskConfig = render::GPUTaskConfig;
 
 class RenderDeferredTask : public render::Task {
 public:
+    using Config = RenderDeferredTaskConfig;
+    RenderDeferredTask(render::CullFunctor cullFunctor);
 
-    RenderDeferredTask();
-    ~RenderDeferredTask();
+    void configure(const Config& config) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    render::Jobs _jobs;
+    using JobModel = Model<RenderDeferredTask, Config>;
 
-    int _drawStatusJobIndex = -1;
-    int _drawHitEffectJobIndex = -1;
-
-    void setDrawItemStatus(bool draw) { if (_drawStatusJobIndex >= 0) { _jobs[_drawStatusJobIndex].setEnabled(draw); } }
-    bool doDrawItemStatus() const { if (_drawStatusJobIndex >= 0) { return _jobs[_drawStatusJobIndex].isEnabled(); } else { return false; } }
-    
-    void setDrawHitEffect(bool draw) { if (_drawHitEffectJobIndex >= 0) { _jobs[_drawHitEffectJobIndex].setEnabled(draw); } }
-    bool doDrawHitEffect() const { if (_drawHitEffectJobIndex >=0) { return _jobs[_drawHitEffectJobIndex].isEnabled(); } else { return false; } }
-
-    int _occlusionJobIndex = -1;
-
-    void setOcclusionStatus(bool draw) { if (_occlusionJobIndex >= 0) { _jobs[_occlusionJobIndex].setEnabled(draw); } }
-    bool doOcclusionStatus() const { if (_occlusionJobIndex >= 0) { return _jobs[_occlusionJobIndex].isEnabled(); } else { return false; } }
-
-    int _antialiasingJobIndex = -1;
-
-    void setAntialiasingStatus(bool draw) { if (_antialiasingJobIndex >= 0) { _jobs[_antialiasingJobIndex].setEnabled(draw); } }
-    bool doAntialiasingStatus() const { if (_antialiasingJobIndex >= 0) { return _jobs[_antialiasingJobIndex].isEnabled(); } else { return false; } }
-
-    virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-
-    gpu::Queries _timerQueries;
-    int _currentTimerQueryIndex = 0;
+protected:
+    gpu::RangeTimer _gpuTimer;
 };
-
 
 #endif // hifi_RenderDeferredTask_h

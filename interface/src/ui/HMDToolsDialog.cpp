@@ -79,12 +79,6 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     // what screens we're allowed on
     watchWindow(windowHandle());
     auto dialogsManager = DependencyManager::get<DialogsManager>();
-    if (qApp->getRunningScriptsWidget()) {
-        watchWindow(qApp->getRunningScriptsWidget()->windowHandle());
-    }
-    if (qApp->getToolWindow()) {
-        watchWindow(qApp->getToolWindow()->windowHandle());
-    }
     if (dialogsManager->getBandwidthDialog()) {
         watchWindow(dialogsManager->getBandwidthDialog()->windowHandle());
     }

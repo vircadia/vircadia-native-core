@@ -92,7 +92,7 @@ void Mesh::setPartBuffer(const BufferView& buffer) {
     _partBuffer = buffer;
 }
 
-const Box Mesh::evalPartBound(int partNum) const {
+Box Mesh::evalPartBound(int partNum) const {
     Box box;
     if (partNum < _partBuffer.getNum<Part>()) {
         const Part& part = _partBuffer.get<Part>(partNum);
@@ -111,7 +111,7 @@ const Box Mesh::evalPartBound(int partNum) const {
     return box;
 }
 
-const Box Mesh::evalPartBounds(int partStart, int partEnd, Boxes& bounds) const {
+Box Mesh::evalPartsBound(int partStart, int partEnd) const {
     Box totalBound;
     auto part = _partBuffer.cbegin<Part>() + partStart;
     auto partItEnd = _partBuffer.cbegin<Part>() + partEnd;

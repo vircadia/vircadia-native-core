@@ -34,11 +34,11 @@ public:
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
 protected:
-    
-    virtual QSharedPointer<Resource> createResource(const QUrl& url,
-                const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+        const void* extra) override;
 private:
-    AnimationCache(QObject* parent = NULL);
+    explicit AnimationCache(QObject* parent = NULL);
     virtual ~AnimationCache() { }
 
 };
@@ -51,7 +51,7 @@ class Animation : public Resource {
 
 public:
 
-    Animation(const QUrl& url);
+    explicit Animation(const QUrl& url);
 
     const FBXGeometry& getGeometry() const { return *_geometry; }
 
@@ -68,12 +68,12 @@ protected:
     virtual void downloadFinished(const QByteArray& data) override;
 
 protected slots:
-    void animationParseSuccess(FBXGeometry* geometry);
+    void animationParseSuccess(FBXGeometry::Pointer geometry);
     void animationParseError(int error, QString str);
 
 private:
     
-    std::unique_ptr<FBXGeometry> _geometry;
+    FBXGeometry::Pointer _geometry;
 };
 
 /// Reads geometry in a worker thread.
@@ -82,10 +82,10 @@ class AnimationReader : public QObject, public QRunnable {
 
 public:
     AnimationReader(const QUrl& url, const QByteArray& data);
-    virtual void run();
+    virtual void run() override;
 
 signals:
-    void onSuccess(FBXGeometry* geometry);
+    void onSuccess(FBXGeometry::Pointer geometry);
     void onError(int error, QString str);
 
 private:

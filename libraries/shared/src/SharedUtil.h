@@ -13,6 +13,7 @@
 #define hifi_SharedUtil_h
 
 #include <memory>
+#include <mutex>
 #include <math.h>
 #include <stdint.h>
 
@@ -20,7 +21,66 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <QDebug>
+#include <QtCore/QDebug>
+#include <QtCore/QCoreApplication>
+#include <QUuid>
+
+
+// When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
+// the value to be reset when the sessionID changes.
+const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
+
+// Access to the global instance pointer to enable setting / unsetting
+template <typename T>
+std::unique_ptr<T>& globalInstancePointer() {
+    static std::unique_ptr<T> instancePtr;
+    return instancePtr;
+}
+
+template <typename T>
+void setGlobalInstance(const char* propertyName, T* instance) {
+    globalInstancePointer<T>().reset(instance);
+}
+
+template <typename T>
+bool destroyGlobalInstance() {
+    std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();
+    if (instancePtr.get()) {
+        instancePtr.reset();
+        return true;
+    }
+    return false;
+}
+
+// Provides efficient access to a named global type.  By storing the value
+// in the QApplication by name we can implement the singleton pattern and 
+// have the single instance function across DLL boundaries.  
+template <typename T, typename... Args>
+T* globalInstance(const char* propertyName, Args&&... args) {
+    static T* resultInstance { nullptr };
+    static std::mutex mutex;
+    if (!resultInstance) {
+        std::unique_lock<std::mutex> lock(mutex);
+        if (!resultInstance) {
+            auto variant = qApp->property(propertyName);
+            if (variant.isNull()) {
+                std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();
+                if (!instancePtr.get()) {
+                    // Since we're building the object, store it in a shared_ptr so it's 
+                    // destroyed by the destructor of the static instancePtr
+                    instancePtr = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+                }
+                void* voidInstance = &(*instancePtr);
+                variant = QVariant::fromValue(voidInstance);
+                qApp->setProperty(propertyName, variant);
+            }
+            void* returnedVoidInstance = variant.value<void*>();
+            resultInstance = static_cast<T*>(returnedVoidInstance);
+        }
+    }
+    return resultInstance;
+}
+
 
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
@@ -65,8 +125,13 @@ inline bool operator!=(const xColor& lhs, const xColor& rhs)
 // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
 const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)";
 
+// Equivalent to time_t but in usecs instead of secs
 quint64 usecTimestampNow(bool wantDebug = false);
-void usecTimestampNowForceClockSkew(int clockSkew);
+void usecTimestampNowForceClockSkew(qint64 clockSkew);
+
+// Number of seconds expressed since the first call to this function, expressed as a float
+// Maximum accuracy in msecs
+float secTimestampNow();
 
 float randFloat();
 int randIntInRange (int min, int max);
@@ -121,13 +186,17 @@ private:
     static int DEADBEEF_SIZE;
 };
 
-bool isBetween(int64_t value, int64_t max, int64_t min);
-
+/// \return true when value is between max and min
+inline bool isBetween(int64_t value, int64_t max, int64_t min) { return ((value <= max) && (value >= min)); }
 
 /// \return bool is the float NaN
-bool isNaN(float value);
+inline bool isNaN(float value) { return value != value; }
 
-QString formatUsecTime(float usecs, int prec = 3);
+QString formatUsecTime(float usecs);
+QString formatUsecTime(double usecs);
+QString formatUsecTime(quint64 usecs);
+QString formatUsecTime(qint64 usecs);
+
 QString formatSecondsElapsed(float seconds);
 bool similarStrings(const QString& stringA, const QString& stringB);
 
@@ -136,5 +205,30 @@ uint qHash(const std::shared_ptr<T>& ptr, uint seed = 0)
 {
     return qHash(ptr.get(), seed);
 }
+
+void disableQtBearerPoll();
+
+void printSystemInformation();
+
+struct MemoryInfo {
+    uint64_t totalMemoryBytes;
+    uint64_t availMemoryBytes;
+    uint64_t usedMemoryBytes;
+    uint64_t processUsedMemoryBytes;
+    uint64_t processPeakUsedMemoryBytes;
+};
+
+bool getMemoryInfo(MemoryInfo& info);
+
+struct ProcessorInfo {
+    int32_t numPhysicalProcessorPackages;
+    int32_t numProcessorCores;
+    int32_t numLogicalProcessors;
+    int32_t numProcessorCachesL1;
+    int32_t numProcessorCachesL2;
+    int32_t numProcessorCachesL3;
+};
+
+bool getProcessorInfo(ProcessorInfo& info);
 
 #endif // hifi_SharedUtil_h

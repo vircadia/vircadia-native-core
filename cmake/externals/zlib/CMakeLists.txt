@@ -1,28 +1,32 @@
+set(EXTERNAL_NAME zlib)
+string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-if (WIN32)
-  set(EXTERNAL_NAME zlib)
-  string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
+include(ExternalProject)
 
-  include(ExternalProject)
-  ExternalProject_Add(
-    ${EXTERNAL_NAME}
-    URL http://zlib.net/zlib128.zip
-    URL_MD5 126f8676442ffbd97884eb4d6f32afb4
-    INSTALL_COMMAND ""
-    LOG_DOWNLOAD 1
-  )
+ExternalProject_Add(
+  ${EXTERNAL_NAME}
+  URL http://hifi-public.s3.amazonaws.com/dependencies/zlib128.zip
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
+  LOG_DOWNLOAD 1
+  LOG_CONFIGURE 1
+  LOG_BUILD 1
+)
 
-  # Hide this external target (for ide users)
-  set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
+# Hide this external target (for ide users)
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 
-  ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
+ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
+set(${EXTERNAL_NAME_UPPER}_ROOT ${INSTALL_DIR} CACHE PATH "Path for Zlib install root")
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include CACHE PATH "List of zlib include directories")
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${${EXTERNAL_NAME_UPPER}_INCLUDE_DIR} CACHE PATH "List of zlib include directories")
+set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${INSTALL_DIR}/bin CACHE FILEPATH "Location of ZLib DLL")
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/zlib.lib CACHE FILEPATH "Location of zlib release library")
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/zlibd.lib CACHE FILEPATH "Location of zlib debug library")
 
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE PATH "List of zlib include directories")
+include(SelectLibraryConfigurations)
+select_library_configurations(${EXTERNAL_NAME_UPPER})
 
-  ExternalProject_Get_Property(${EXTERNAL_NAME} BINARY_DIR)
-
-  set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${BINARY_DIR}/Release CACHE FILEPATH "Location of GLEW DLL")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${BINARY_DIR}/Release/zlib.lib CACHE FILEPATH "Location of ZLib release library")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE FILEPATH "Location of ZLib debug library")
-
-endif ()
+# Force selected libraries into the cache
+set(${EXTERNAL_NAME_UPPER}_LIBRARY ${${EXTERNAL_NAME_UPPER}_LIBRARY} CACHE FILEPATH "Location of zlib libraries")
+set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARIES} CACHE FILEPATH "Location of zlib libraries")

@@ -18,6 +18,8 @@ typedef TextTemplate::Block::Pointer BlockPointer;
 typedef TextTemplate::Config::Pointer ConfigPointer;
 typedef TextTemplate::Pointer TextTemplatePointer;
 
+const std::string TextTemplate::Tag::NULL_VAR = "_SCRIBE_NULL";
+
 //-----------------------------------------------------------------------------
 TextTemplate::Config::Config() :
     _includes(),
@@ -370,7 +372,11 @@ bool TextTemplate::convertExpressionToFuncArguments(String& src, std::vector< St
             token += c;
         } else if (c == ',') {
             if (!token.empty()) {
-                arguments.push_back(token);
+                if (token == Tag::NULL_VAR) {
+                    arguments.push_back(Tag::NULL_VAR);
+                } else {
+                    arguments.push_back(token);
+                }
                 nbTokens++;
             }
             token.clear();
@@ -730,7 +736,8 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                 BlockPointer funcBlock = _config->_funcs.findFunc(block->command.arguments.front().c_str());
                 if (funcBlock) {
                     // before diving in the func tree, let's modify the vars with the local defs:
-                    int nbParams = std::min(block->command.arguments.size(), funcBlock->command.arguments.size());
+                    int nbParams = (int)std::min(block->command.arguments.size(),
+                                                 funcBlock->command.arguments.size());
                     std::vector< String > paramCache;
                     paramCache.push_back("");
                     String val;
@@ -741,6 +748,8 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                             Vars::iterator it = vars.find(val);
                             if (it != vars.end()) {
                                 val = (*it).second;
+                            } else {
+                                val = Tag::NULL_VAR;
                             }
                         }
 
@@ -749,15 +758,22 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                             paramCache.push_back((*it).second);
                             (*it).second = val;
                         } else {
-                            vars.insert(Vars::value_type(funcBlock->command.arguments[i], val));
-                            paramCache.push_back("");
+                            if (val != Tag::NULL_VAR) {
+                                vars.insert(Vars::value_type(funcBlock->command.arguments[i], val));
+                            }
+
+                            paramCache.push_back(Tag::NULL_VAR);
                         }
                     }
 
                     generateTree(dst, funcBlock, vars);
 
                     for (int i = 1; i < nbParams; i++) {
-                        vars[ funcBlock->command.arguments[i] ] = paramCache[i];
+                        if (paramCache[i] == Tag::NULL_VAR) {
+                            vars.erase(funcBlock->command.arguments[i]);
+                        } else {
+                            vars[funcBlock->command.arguments[i]] = paramCache[i];
+                        }
                     }
                 }
             }
@@ -839,7 +855,7 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                 String val;
                 for (unsigned int t = 1; t < block->command.arguments.size(); t++) {
                     // detect if a param is a var
-                    int len = block->command.arguments[t].length();
+                    auto len = block->command.arguments[t].length();
                     if ((block->command.arguments[t][0] == Tag::VAR)
                         && (block->command.arguments[t][len - 1] == Tag::VAR)) {
                         String var = block->command.arguments[t].substr(1, len - 2);

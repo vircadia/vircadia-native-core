@@ -10,14 +10,4 @@
 //
 #pragma once
 
-#include <plugins/Plugin.h>
-
-class InputPlugin : public Plugin {
-public:
-    virtual bool isJointController() const = 0;
-
-    virtual void pluginFocusOutEvent() = 0;
-
-    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) = 0;
-};
-
+#include <plugins/InputPlugin.h>

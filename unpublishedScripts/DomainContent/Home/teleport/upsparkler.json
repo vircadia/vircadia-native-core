@@ -1,0 +1,44 @@
+{
+    "Entities": [
+        {
+            "accelerationSpread": {
+                "x": 0,
+                "y": 0.30000001192092896,
+                "z": 0
+            },
+            "created": "2016-05-23T20:56:55Z",
+            "dimensions": {
+                "x": 15.000479698181152,
+                "y": 15.000479698181152,
+                "z": 15.000479698181152
+            },
+            "emitAcceleration": {
+                "x": 0,
+                "y": 0.20000000298023224,
+                "z": 0
+            },
+            "emitOrientation": {
+                "w": 0.7070763111114502,
+                "x": -0.70713728666305542,
+                "y": -1.5258539860951714e-05,
+                "z": -1.5258539860951714e-05
+            },
+            "emitRate": 11,
+            "emitSpeed": 0.5,
+            "id": "{57104b1c-01a9-4f2b-b7bf-9eb406e8d78b}",
+            "lifespan": 3.5999999046325684,
+            "maxParticles": 210,
+            "name": "home_teleport_sparkler_up",
+            "queryAACube": {
+                "scale": 25.981592178344727,
+                "x": -12.990796089172363,
+                "y": -12.990796089172363,
+                "z": -12.990796089172363
+            },
+            "speedSpread": 0.80000001192092896,
+            "textures": "atp:/teleport/sparkle2.png",
+            "type": "ParticleEffect"
+        }
+    ],
+    "Version": 57
+}

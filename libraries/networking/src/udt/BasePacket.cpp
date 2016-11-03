@@ -58,7 +58,7 @@ BasePacket::BasePacket(qint64 size) {
     Q_ASSERT(size >= 0 || size < maxPayload);
     
     _packetSize = size;
-    _packet.reset(new char[_packetSize]);
+    _packet.reset(new char[_packetSize]());
     _payloadCapacity = _packetSize;
     _payloadSize = 0;
     _payloadStart = _packet.get();
@@ -150,6 +150,22 @@ QByteArray BasePacket::readWithoutCopy(qint64 maxSize) {
     return data;
 }
 
+qint64 BasePacket::writeString(const QString& string) {
+    QByteArray data = string.toUtf8();
+    uint32_t length = data.length();
+    writePrimitive(length);
+    write(data.constData(), data.length());
+    return length + sizeof(uint32_t);
+}
+
+QString BasePacket::readString() {
+    uint32_t size;
+    readPrimitive(&size);
+    auto string = QString::fromUtf8(getPayload() + pos(), size);
+    seek(pos() + size);
+    return string;
+}
+
 bool BasePacket::reset() {
     if (isWritable()) {
         _payloadSize = 0;
@@ -159,7 +175,6 @@ bool BasePacket::reset() {
 }
 
 qint64 BasePacket::writeData(const char* data, qint64 maxSize) {
-   
     Q_ASSERT_X(maxSize <= bytesAvailableForWrite(), "BasePacket::writeData", "not enough space for write");
     
     // make sure we have the space required to write this block

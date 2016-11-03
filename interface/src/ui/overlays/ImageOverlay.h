@@ -11,48 +11,22 @@
 #ifndef hifi_ImageOverlay_h
 #define hifi_ImageOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include <QImage>
-#include <QRect>
 #include <QUrl>
 
-#include <TextureCache.h>
+#include "QmlOverlay.h"
 
-#include "Overlay2D.h"
-
-class ImageOverlay : public Overlay2D {
+class ImageOverlay : public QmlOverlay {
     Q_OBJECT
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
+    static QUrl const URL;
 
     ImageOverlay();
     ImageOverlay(const ImageOverlay* imageOverlay);
     
-    virtual void render(RenderArgs* args);
-
-    // getters
-    const QRect& getClipFromSource() const { return _fromImage; }
-    const QUrl& getImageURL() const { return _imageURL; }
-
-    // setters
-    void setClipFromSource(const QRect& bounds) { _fromImage = bounds; _wantClipFromImage = true; }
-    void setImageURL(const QUrl& url);
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
-
-    virtual ImageOverlay* createClone() const;
-
-private:
-
-    QUrl _imageURL;
-    QImage _textureImage;
-
-    NetworkTexturePointer _texture;
-    QRect _fromImage; // where from in the image to sample
-    bool _renderImage; // is there an image associated with this overlay, or is it just a colored rectangle
-    bool _wantClipFromImage;
+    virtual ImageOverlay* createClone() const override;
 };
 
  

@@ -17,31 +17,40 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
+// these thresholds determine what updates (object-->body) will activate the physical object
+const float ACTIVATION_POSITION_DELTA = 0.005f;
+const float ACTIVATION_ALIGNMENT_DOT = 0.99990f;
+const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
+const float ACTIVATION_GRAVITY_DELTA = 0.1f;
+const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
+
+
 // origin of physics simulation in world-frame
 glm::vec3 _worldOffset(0.0f);
 
-// static 
+// static
 void ObjectMotionState::setWorldOffset(const glm::vec3& offset) {
     _worldOffset = offset;
 }
 
-// static 
+// static
 const glm::vec3& ObjectMotionState::getWorldOffset() {
     return _worldOffset;
 }
 
-// static 
+// static
 uint32_t worldSimulationStep = 0;
 void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
     assert(step > worldSimulationStep);
     worldSimulationStep = step;
 }
 
+// static
 uint32_t ObjectMotionState::getWorldSimulationStep() {
     return worldSimulationStep;
 }
 
-// static 
+// static
 ShapeManager* shapeManager = nullptr;
 void ObjectMotionState::setShapeManager(ShapeManager* manager) {
     assert(manager);
@@ -53,7 +62,7 @@ ShapeManager* ObjectMotionState::getShapeManager() {
     return shapeManager;
 }
 
-ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
+ObjectMotionState::ObjectMotionState(const btCollisionShape* shape) :
     _motionType(MOTION_TYPE_STATIC),
     _shape(shape),
     _body(nullptr),
@@ -64,7 +73,8 @@ ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
 
 ObjectMotionState::~ObjectMotionState() {
     assert(!_body);
-    assert(!_shape);
+    setShape(nullptr);
+    _type = MOTIONSTATE_TYPE_INVALID;
 }
 
 void ObjectMotionState::setBodyLinearVelocity(const glm::vec3& velocity) const {
@@ -80,17 +90,20 @@ void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
 }
 
 glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
-    // returns the body's velocity unless it is moving too slow in which case returns zero
-    btVector3 velocity = _body->getLinearVelocity();
+    return bulletToGLM(_body->getLinearVelocity());
+}
 
+glm::vec3 ObjectMotionState::getBodyLinearVelocityGTSigma() const {
     // NOTE: the threshold to use here relates to the linear displacement threshold (dX) for sending updates
-    // to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving 
+    // to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving
     // just under this velocity threshold would trigger an update about V/dX times per second.
     const float MIN_LINEAR_SPEED_SQUARED = 0.0036f; // 6 mm/sec
-    if (velocity.length2() < MIN_LINEAR_SPEED_SQUARED) {
+
+    glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
+    if (glm::length2(velocity) < MIN_LINEAR_SPEED_SQUARED) {
         velocity *= 0.0f;
     }
-    return bulletToGLM(velocity);
+    return velocity;
 }
 
 glm::vec3 ObjectMotionState::getObjectLinearVelocityChange() const {
@@ -101,15 +114,34 @@ glm::vec3 ObjectMotionState::getBodyAngularVelocity() const {
     return bulletToGLM(_body->getAngularVelocity());
 }
 
-void ObjectMotionState::releaseShape() {
-    if (_shape) {
-        shapeManager->releaseShape(_shape);
-        _shape = nullptr;
-    }
+void ObjectMotionState::setMotionType(PhysicsMotionType motionType) {
+    _motionType = motionType;
 }
 
-void ObjectMotionState::setMotionType(MotionType motionType) {
-    _motionType = motionType;
+// Update the Continuous Collision Detection (CCD) configuration settings of our RigidBody so that
+// CCD will be enabled automatically when its speed surpasses a certain threshold.
+void ObjectMotionState::updateCCDConfiguration() {
+    if (_body) {
+        if (_shape) {
+            // If this object moves faster than its bounding radius * RADIUS_MOTION_THRESHOLD_MULTIPLIER,
+            // CCD will be enabled for this object.
+            const auto RADIUS_MOTION_THRESHOLD_MULTIPLIER = 0.5f;
+
+            btVector3 center;
+            btScalar radius;
+            _shape->getBoundingSphere(center, radius);
+            _body->setCcdMotionThreshold(radius * RADIUS_MOTION_THRESHOLD_MULTIPLIER);
+
+            // TODO: Ideally the swept sphere radius would be contained by the object. Using the bounding sphere
+            // radius works well for spherical objects, but may cause issues with other shapes. For arbitrary
+            // objects we may want to consider a different approach, such as grouping rigid bodies together.
+
+            _body->setCcdSweptSphereRadius(radius);
+        } else {
+            // Disable CCD
+            _body->setCcdMotionThreshold(0);
+        }
+    }
 }
 
 void ObjectMotionState::setRigidBody(btRigidBody* body) {
@@ -121,32 +153,90 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
         _body = body;
         if (_body) {
             _body->setUserPointer(this);
+            assert(_body->getCollisionShape() == _shape);
         }
+        updateCCDConfiguration();
     }
 }
 
-bool ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
-    if (flags & Simulation::DIRTY_POSITION) {
-        btTransform worldTrans;
-        if (flags & Simulation::DIRTY_ROTATION) {
-            worldTrans.setRotation(glmToBullet(getObjectRotation()));
-        } else {
-            worldTrans = _body->getWorldTransform();
+void ObjectMotionState::setShape(const btCollisionShape* shape) {
+    if (_shape != shape) {
+        if (_shape) {
+            getShapeManager()->releaseShape(_shape);
         }
-        worldTrans.setOrigin(glmToBullet(getObjectPosition()));
+        _shape = shape;
+    }
+}
+
+void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
+    if (flags & Simulation::DIRTY_POSITION) {
+        btTransform worldTrans = _body->getWorldTransform();
+        btVector3 newPosition = glmToBullet(getObjectPosition());
+        float delta = (newPosition - worldTrans.getOrigin()).length();
+        if (delta > ACTIVATION_POSITION_DELTA) {
+            flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        }
+        worldTrans.setOrigin(newPosition);
+
+        if (flags & Simulation::DIRTY_ROTATION) {
+            btQuaternion newRotation = glmToBullet(getObjectRotation());
+            float alignmentDot = fabsf(worldTrans.getRotation().dot(newRotation));
+            if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
+                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            }
+            worldTrans.setRotation(newRotation);
+        }
         _body->setWorldTransform(worldTrans);
+        if (!(flags & HARD_DIRTY_PHYSICS_FLAGS) && _body->isStaticObject()) {
+            // force activate static body so its Aabb is updated later
+            _body->activate(true);
+        }
     } else if (flags & Simulation::DIRTY_ROTATION) {
         btTransform worldTrans = _body->getWorldTransform();
-        worldTrans.setRotation(glmToBullet(getObjectRotation()));
+        btQuaternion newRotation = glmToBullet(getObjectRotation());
+        float alignmentDot = fabsf(worldTrans.getRotation().dot(newRotation));
+        if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
+            flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        }
+        worldTrans.setRotation(newRotation);
         _body->setWorldTransform(worldTrans);
+        if (!(flags & HARD_DIRTY_PHYSICS_FLAGS) && _body->isStaticObject()) {
+            // force activate static body so its Aabb is updated later
+            _body->activate(true);
+        }
     }
 
-    if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
-        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
-        _body->setGravity(glmToBullet(getObjectGravity()));
-    }
-    if (flags & Simulation::DIRTY_ANGULAR_VELOCITY) {
-        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
+    if (_body->getCollisionShape()->getShapeType() != TRIANGLE_MESH_SHAPE_PROXYTYPE) {
+        if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
+            btVector3 newLinearVelocity = glmToBullet(getObjectLinearVelocity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newLinearVelocity - _body->getLinearVelocity()).length();
+                if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
+            }
+            _body->setLinearVelocity(newLinearVelocity);
+
+            btVector3 newGravity = glmToBullet(getObjectGravity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newGravity - _body->getGravity()).length();
+                if (delta > ACTIVATION_GRAVITY_DELTA ||
+                        (delta > 0.0f && _body->getGravity().length2() == 0.0f)) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
+            }
+            _body->setGravity(newGravity);
+        }
+        if (flags & Simulation::DIRTY_ANGULAR_VELOCITY) {
+            btVector3 newAngularVelocity = glmToBullet(getObjectAngularVelocity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newAngularVelocity - _body->getAngularVelocity()).length();
+                if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
+            }
+            _body->setAngularVelocity(newAngularVelocity);
+        }
     }
 
     if (flags & Simulation::DIRTY_MATERIAL) {
@@ -156,17 +246,15 @@ bool ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
     if (flags & Simulation::DIRTY_MASS) {
         updateBodyMassProperties();
     }
-
-    return true;
 }
 
-bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
     if (flags & Simulation::DIRTY_SHAPE) {
         // make sure the new shape is valid
         if (!isReadyToComputeShape()) {
             return false;
         }
-        btCollisionShape* newShape = computeNewShape();
+        const btCollisionShape* newShape = computeNewShape();
         if (!newShape) {
             qCDebug(physics) << "Warning: failed to generate new shape!";
             // failed to generate new shape! --> keep old shape and remove shape-change flag
@@ -175,25 +263,27 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
             if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
                 // no HARD flags remain, so do any EASY changes
                 if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-                    handleEasyChanges(flags, engine);
+                    handleEasyChanges(flags);
                 }
                 return true;
             }
         }
-        getShapeManager()->releaseShape(_shape);
-        if (_shape != newShape) {
-            _shape = newShape;
-            _body->setCollisionShape(_shape);
-        } else {
-            // huh... the shape didn't actually change, so we clear the DIRTY_SHAPE flag
+        if (_shape == newShape) {
+            // the shape didn't actually change, so we clear the DIRTY_SHAPE flag
             flags &= ~Simulation::DIRTY_SHAPE;
+            // and clear the reference we just created
+            getShapeManager()->releaseShape(_shape);
+        } else {
+            _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
+            setShape(newShape);
+            updateCCDConfiguration();
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-        handleEasyChanges(flags, engine);
+        handleEasyChanges(flags);
     }
-    // it is possible that there are no HARD flags at this point (if DIRTY_SHAPE was removed)
-    // so we check again befoe we reinsert:
+    // it is possible there are no HARD flags at this point (if DIRTY_SHAPE was removed)
+    // so we check again before we reinsert:
     if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
         engine->reinsertObject(this);
     }
@@ -212,6 +302,12 @@ void ObjectMotionState::updateBodyVelocities() {
     setBodyAngularVelocity(getObjectAngularVelocity());
     setBodyGravity(getObjectGravity());
     _body->setActivationState(ACTIVE_TAG);
+}
+
+void ObjectMotionState::updateLastKinematicStep() {
+    // NOTE: we init to worldSimulationStep - 1 so that: when any object transitions to kinematic
+    // it will compute a non-zero dt on its first step.
+    _lastKinematicStep = ObjectMotionState::getWorldSimulationStep() - 1;
 }
 
 void ObjectMotionState::updateBodyMassProperties() {

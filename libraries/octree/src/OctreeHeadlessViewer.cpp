@@ -14,26 +14,20 @@
 #include "OctreeLogging.h"
 #include "OctreeHeadlessViewer.h"
 
-OctreeHeadlessViewer::OctreeHeadlessViewer() :
-    OctreeRenderer(),
-    _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
-    _boundaryLevelAdjust(0),
-    _maxPacketsPerSecond(DEFAULT_MAX_OCTREE_PPS)
-{
+OctreeHeadlessViewer::OctreeHeadlessViewer() : OctreeRenderer() {
     _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 }
 
 void OctreeHeadlessViewer::init() {
     OctreeRenderer::init();
-    setViewFrustum(&_viewFrustum);
 }
 
 void OctreeHeadlessViewer::queryOctree() {
     char serverType = getMyNodeType();
     PacketType packetType = getMyQueryMessageType();
-    
+
     NodeToJurisdictionMap& jurisdictions = *_jurisdictionListener->getJurisdictions();
-    
+
     bool wantExtraDebugging = false;
 
     if (wantExtraDebugging) {
@@ -49,13 +43,6 @@ void OctreeHeadlessViewer::queryOctree() {
         qCDebug(octree) << "---------------";
     }
 
-    // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantColor(true);
-    _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantOcclusionCulling(false);
-    _octreeQuery.setWantCompression(true); // TODO: should be on by default
-
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
     _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
     _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
@@ -63,9 +50,9 @@ void OctreeHeadlessViewer::queryOctree() {
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-
-    _octreeQuery.setOctreeSizeScale(getVoxelSizeScale());
-    _octreeQuery.setBoundaryLevelAdjust(getBoundaryLevelAdjust());
+    _octreeQuery.setCameraCenterRadius(_viewFrustum.getCenterRadius());
+    _octreeQuery.setOctreeSizeScale(_voxelSizeScale);
+    _octreeQuery.setBoundaryLevelAdjust(_boundaryLevelAdjust);
 
     // Iterate all of the nodes, and get a count of how many voxel servers we have...
     int totalServers = 0;
@@ -88,23 +75,21 @@ void OctreeHeadlessViewer::queryOctree() {
                 if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                     unknownJurisdictionServers++;
                     return;
-                } 
+                }
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
                 if (!rootCode) {
                     return;
                 }
 
-                voxelDetailsForCode(rootCode, rootDetails);
+                voxelDetailsForCode(rootCode.get(), rootDetails);
                 foundRootDetails = true;
             });
 
             if (foundRootDetails) {
                 AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
-
-                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                if ((bool)(_viewFrustum.calculateCubeKeyholeIntersection(serverBounds))) {
                     inViewServers++;
                 }
             }
@@ -161,7 +146,7 @@ void OctreeHeadlessViewer::queryOctree() {
                 }
 
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
 
                 if (!rootCode) {
                     if (wantExtraDebugging) {
@@ -169,19 +154,13 @@ void OctreeHeadlessViewer::queryOctree() {
                     }
                     return;
                 }
-                voxelDetailsForCode(rootCode, rootDetails);
+                voxelDetailsForCode(rootCode.get(), rootDetails);
                 foundRootDetails = true;
             });
 
             if (foundRootDetails) {
                 AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-
-                ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
-                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                    inView = true;
-                } else {
-                    inView = false;
-                }
+                inView = (bool)(_viewFrustum.calculateCubeKeyholeIntersection(serverBounds));
             }
 
             if (inView) {
@@ -219,7 +198,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
             // setup the query packet
             auto queryPacket = NLPacket::create(packetType);
-            
+
             // read the data to our packet and set the payload size to fit the query
             int querySize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
             queryPacket->setPayloadSize(querySize);
@@ -231,10 +210,10 @@ void OctreeHeadlessViewer::queryOctree() {
 }
 
 
-int OctreeHeadlessViewer::parseOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sourceNode) {
+int OctreeHeadlessViewer::parseOctreeStats(QSharedPointer<ReceivedMessage> message, SharedNodePointer sourceNode) {
 
     OctreeSceneStats temp;
-    int statsMessageLength = temp.unpackFromPacket(*packet);
+    int statsMessageLength = temp.unpackFromPacket(*message);
 
     // TODO: actually do something with these stats, like expose them to JS...
 

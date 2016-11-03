@@ -1,0 +1,27 @@
+{
+    "Entities": [
+        {
+            "backgroundMode": "skybox",
+            "dimensions": {
+                "x": 10000,
+                "y": 10000,
+                "z": 10000
+            },
+            "name": "Rainy Day/Night Cycle",
+            "rotation": {
+                "w": 1,
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "script": "https://s3.amazonaws.com/hifi-public/brad/rainstorm/lightningEntity.js",
+            "shapeType": "box",
+            "skybox": {
+                "url": "https://hifi-public.s3.amazonaws.com/images/SkyboxTextures/CloudyDay1.jpg"
+            },
+            "type": "Zone",
+            "userData":"{\n\"ProceduralEntity\":{\n\"version\":2,\n\"shaderUrl\":\"https://s3.amazonaws.com/hifi-public/brad/rainstorm/rainyDayNightSkybox.fs\",\n\"channels\":[\n\"https://hifi-public.s3.amazonaws.com/austin/assets/images/skybox/starmap_8k.jpg\",\n\"https://hifi-public.s3.amazonaws.com/austin/assets/images/skybox/celestial_grid.jpg\",\n\"https://s3.amazonaws.com/hifi-public/brad/rainstorm/noise.jpg\",\n\"https://s3.amazonaws.com/hifi-public/brad/noise.jpg\"\n],\n\"uniforms\":{\n\"rotationSpeed\":0.001,\n\"uDayColor\":[0.4,0.3,0.3],\n\"constellationLevel\":0.0,\n\"constellationBoundaryLevel\":0.00,\n\"gridLevel\":0.0\n}\n},\n\"lightning\":{\n\"flashMax\":20,\n\"flashMin\":0,\n\"flashIntensityStepRandomeness\":2,\n\"flashMaxRandomness\":10,\n\"averageLightningStrikeGap\":120,\n\"extraRandomRangeLightningStrikeGap\":5,\n\"thunderURL\":\"https://s3.amazonaws.com/hifi-public/brad/rainstorm/thunder-48k.wav\",\n\"thunderVolume\":0.1,\n\"rainURL\":\"https://s3.amazonaws.com/hifi-public/brad/rainstorm/rain.wav\",\n\"rainVolume\":0.05\n}\n}"
+        }
+    ],
+    "Version": 57
+}

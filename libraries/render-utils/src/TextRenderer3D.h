@@ -12,10 +12,9 @@
 #ifndef hifi_TextRenderer3D_h
 #define hifi_TextRenderer3D_h
 
+#include <memory>
 #include <glm/glm.hpp>
 #include <QColor>
-
-
 
 namespace gpu {
 class Batch;
@@ -34,13 +33,11 @@ public:
     static TextRenderer3D* getInstance(const char* family, float pointSize = DEFAULT_POINT_SIZE, 
             bool bold = false, bool italic = false, EffectType effect = NO_EFFECT, int effectThickness = 1);
 
-    ~TextRenderer3D();
-
     glm::vec2 computeExtent(const QString& str) const;
     float getFontSize() const; // Pixel size
     
     void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(1.0f),
-              const glm::vec2& bounds = glm::vec2(-1.0f));
+              const glm::vec2& bounds = glm::vec2(-1.0f), bool layered = false);
 
 private:
     TextRenderer3D(const char* family, float pointSize, int weight = -1, bool italic = false,
@@ -55,7 +52,7 @@ private:
     // text color
     glm::vec4 _color;
 
-    Font* _font;
+    std::shared_ptr<Font> _font;
 };
 
 

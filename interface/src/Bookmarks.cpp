@@ -20,12 +20,18 @@
 
 #include <AddressManager.h>
 #include <Application.h>
+#include <OffscreenUi.h>
 
 #include "MainWindow.h"
 #include "Menu.h"
 #include "InterfaceLogging.h"
 
 #include "Bookmarks.h"
+#include <QtQuick/QQuickWindow>
+
+
+const QString Bookmarks::HOME_BOOKMARK = "Home";
+
 
 Bookmarks::Bookmarks() {
     _bookmarksFilename = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + BOOKMARKS_FILENAME;
@@ -58,8 +64,17 @@ bool Bookmarks::contains(const QString& name) const {
     return _bookmarks.contains(name);
 }
 
+QString Bookmarks::addressForBookmark(const QString& name) const {
+    return _bookmarks.value(name).toString();
+}
+
 void Bookmarks::readFromFile() {
     QFile loadFile(_bookmarksFilename);
+
+    if (!loadFile.exists()) {
+        // User has not yet saved bookmarks
+        return;
+    }
 
     if (!loadFile.open(QIODevice::ReadOnly)) {
         qWarning("Couldn't open bookmarks file for reading");
@@ -86,11 +101,13 @@ void Bookmarks::persistToFile() {
 
 void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     // Add menus/actions
-    menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation, 0,
-                                           this, SLOT(bookmarkLocation()));
+    auto bookmarkAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation);
+    QObject::connect(bookmarkAction, SIGNAL(triggered()), this, SLOT(bookmarkLocation()), Qt::QueuedConnection);
+    auto setHomeAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::SetHomeLocation);
+    QObject::connect(setHomeAction, SIGNAL(triggered()), this, SLOT(setHomeLocation()), Qt::QueuedConnection);
     _bookmarksMenu = menu->addMenu(MenuOption::Bookmarks);
-    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark, 0,
-                                                                    this, SLOT(deleteBookmark()));
+    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark);
+    QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
     
     // Enable/Disable menus as needed
     enableMenuItems(_bookmarks.count() > 0);
@@ -104,18 +121,13 @@ void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 }
 
 void Bookmarks::bookmarkLocation() {
-    QInputDialog bookmarkLocationDialog(qApp->getWindow());
-    bookmarkLocationDialog.setWindowTitle("Bookmark Location");
-    bookmarkLocationDialog.setLabelText("Name:");
-    bookmarkLocationDialog.setInputMode(QInputDialog::TextInput);
-    bookmarkLocationDialog.resize(400, 200);
-    
-    if (bookmarkLocationDialog.exec() == QDialog::Rejected) {
+    bool ok = false;
+    auto bookmarkName = OffscreenUi::getText(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString(), &ok);
+    if (!ok) {
         return;
     }
     
-    QString bookmarkName = bookmarkLocationDialog.textValue().trimmed();
-    bookmarkName = bookmarkName.replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
+    bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
     if (bookmarkName.length() == 0) {
         return;
     }
@@ -125,13 +137,14 @@ void Bookmarks::bookmarkLocation() {
     
     Menu* menubar = Menu::getInstance();
     if (contains(bookmarkName)) {
-        QMessageBox duplicateBookmarkMessage;
-        duplicateBookmarkMessage.setIcon(QMessageBox::Warning);
-        duplicateBookmarkMessage.setText("The bookmark name you entered already exists in your list.");
-        duplicateBookmarkMessage.setInformativeText("Would you like to overwrite it?");
-        duplicateBookmarkMessage.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-        duplicateBookmarkMessage.setDefaultButton(QMessageBox::Yes);
-        if (duplicateBookmarkMessage.exec() == QMessageBox::No) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(OffscreenUi::ICON_WARNING, "Duplicate Bookmark",
+            "The bookmark name you entered already exists in your list.",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        duplicateBookmarkMessage->setProperty("informativeText", "Would you like to overwrite it?");
+
+        auto result = offscreenUi->waitForMessageBoxResult(duplicateBookmarkMessage);
+        if (result != QMessageBox::Yes) {
             return;
         }
         removeLocationFromMenu(menubar, bookmarkName);
@@ -140,6 +153,18 @@ void Bookmarks::bookmarkLocation() {
     addLocationToMenu(menubar, bookmarkName, bookmarkAddress);
     insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
     
+    enableMenuItems(true);
+}
+
+void Bookmarks::setHomeLocation() {
+    Menu* menubar = Menu::getInstance();
+    QString bookmarkName = HOME_BOOKMARK;
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString bookmarkAddress = addressManager->currentAddress().toString();
+
+    addLocationToMenu(menubar, bookmarkName, bookmarkAddress);
+    insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
+
     enableMenuItems(true);
 }
 
@@ -157,19 +182,13 @@ void Bookmarks::deleteBookmark() {
         bookmarkList.append(menuItems[i]->text());
     }
     
-    QInputDialog deleteBookmarkDialog(qApp->getWindow());
-    deleteBookmarkDialog.setWindowTitle("Delete Bookmark");
-    deleteBookmarkDialog.setLabelText("Select the bookmark to delete");
-    deleteBookmarkDialog.resize(400, 400);
-    deleteBookmarkDialog.setOption(QInputDialog::UseListViewForComboBoxItems);
-    deleteBookmarkDialog.setComboBoxItems(bookmarkList);
-    deleteBookmarkDialog.setOkButtonText("Delete");
-    
-    if (deleteBookmarkDialog.exec() == QDialog::Rejected) {
+    bool ok = false;
+    auto bookmarkName = OffscreenUi::getItem(OffscreenUi::ICON_PLACEMARK, "Delete Bookmark", "Select the bookmark to delete", bookmarkList, 0, false, &ok);
+    if (!ok) {
         return;
     }
     
-    QString bookmarkName = deleteBookmarkDialog.textValue().trimmed();
+    bookmarkName = bookmarkName.trimmed();
     if (bookmarkName.length() == 0) {
         return;
     }

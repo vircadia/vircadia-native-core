@@ -1,0 +1,36 @@
+{
+    "Entities": [
+        {
+            "collisionsWillMove": 1,
+            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/caitlyn/dev/Tutorials/Putter_phys.obj",
+            "created": "2016-04-07T23:19:30Z",
+            "description": "Spawns ball or jumps to ball with trigger",
+            "dimensions": {
+                "x": 0.043093059211969376,
+                "y": 1.1488667726516724,
+                "z": 0.42455694079399109
+            },
+            "dynamic": 1,
+            "id": "{266a9bc2-cff5-4128-b347-5eab519d8209}",
+            "modelURL": "http://hifi-content.s3.amazonaws.com/caitlyn/dev/Tutorials/putter_VR.fbx",
+            "name": "Golf Putter",
+            "queryAACube": {
+                "scale": 1.2255613803863525,
+                "x": -0.61278069019317627,
+                "y": -0.61278069019317627,
+                "z": -0.61278069019317627
+            },
+            "rotation": {
+                "w": 0.41972994804382324,
+                "x": 0.78570234775543213,
+                "y": -0.41875332593917847,
+                "z": 0.17653167247772217
+            },
+            "script": "https://s3.amazonaws.com/hifi-public/philip/golfClub.js",
+            "shapeType": "compound",
+            "type": "Model",
+            "userData": "{\"wearable\":{\"joints\":{\"LeftHand\":[{\"x\":-0.1631782054901123,\"y\":0.44648152589797974,\"z\":0.10100018978118896},{\"x\":-0.9181621670722961,\"y\":-0.0772884339094162,\"z\":-0.3870723247528076,\"w\":-0.0343472845852375}],\"RightHand\":[{\"x\":0.16826771199703217,\"y\":0.4757269620895386,\"z\":0.07139724493026733},{\"x\":-0.7976328134536743,\"y\":-0.0011603273451328278,\"z\":0.6030101776123047,\"w\":-0.012610925361514091}]}}}"
+        }
+    ],
+    "Version": 57
+}

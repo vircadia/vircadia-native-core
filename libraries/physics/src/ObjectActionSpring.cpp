@@ -21,9 +21,11 @@ const uint16_t ObjectActionSpring::springVersion = 1;
 ObjectActionSpring::ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectAction(ACTION_TYPE_SPRING, id, ownerEntity),
     _positionalTarget(glm::vec3(0.0f)),
+    _desiredPositionalTarget(glm::vec3(0.0f)),
     _linearTimeScale(FLT_MAX),
     _positionalTargetSet(true),
     _rotationalTarget(glm::quat()),
+    _desiredRotationalTarget(glm::quat()),
     _angularTimeScale(FLT_MAX),
     _rotationalTargetSet(true) {
     #if WANT_DEBUG
@@ -37,9 +39,81 @@ ObjectActionSpring::~ObjectActionSpring() {
     #endif
 }
 
+bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
+                                   glm::vec3& linearVelocity, glm::vec3& angularVelocity) {
+    rotation = _desiredRotationalTarget;
+    position = _desiredPositionalTarget;
+    linearVelocity = glm::vec3();
+    angularVelocity = glm::vec3();
+    return true;
+}
+
+bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return false;
+    }
+
+    glm::quat rotation;
+    glm::vec3 position;
+    glm::vec3 linearVelocity;
+    glm::vec3 angularVelocity;
+
+    bool valid = false;
+    int springCount = 0;
+
+    QList<EntityActionPointer> springDerivedActions;
+    springDerivedActions.append(ownerEntity->getActionsOfType(ACTION_TYPE_SPRING));
+    springDerivedActions.append(ownerEntity->getActionsOfType(ACTION_TYPE_HOLD));
+
+    foreach (EntityActionPointer action, springDerivedActions) {
+        std::shared_ptr<ObjectActionSpring> springAction = std::static_pointer_cast<ObjectActionSpring>(action);
+        glm::quat rotationForAction;
+        glm::vec3 positionForAction;
+        glm::vec3 linearVelocityForAction, angularVelocityForAction;
+        bool success = springAction->getTarget(deltaTimeStep, rotationForAction,
+                                               positionForAction,  linearVelocityForAction,
+                                               angularVelocityForAction);
+        if (success) {
+            springCount ++;
+            if (springAction.get() == this) {
+                // only use the rotation for this action
+                valid = true;
+                rotation = rotationForAction;
+            }
+
+            position += positionForAction;
+            linearVelocity += linearVelocityForAction;
+            angularVelocity += angularVelocityForAction;
+        }
+    }
+
+    if (valid && springCount > 0) {
+        position /= springCount;
+        linearVelocity /= springCount;
+        angularVelocity /= springCount;
+
+        withWriteLock([&]{
+            _positionalTarget = position;
+            _rotationalTarget = rotation;
+            _linearVelocityTarget = linearVelocity;
+            _angularVelocityTarget = angularVelocity;
+            _positionalTargetSet = true;
+            _rotationalTargetSet = true;
+            _active = true;
+        });
+    }
+
+    return valid;
+}
+
+
 void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
-    // don't risk hanging the thread running the physics simulation
-    auto lockResult = withTryReadLock([&]{
+    if (!prepareForSpringUpdate(deltaTimeStep)) {
+        return;
+    }
+
+    withReadLock([&]{
         auto ownerEntity = _ownerEntity.lock();
         if (!ownerEntity) {
             return;
@@ -58,15 +132,17 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 
         const float MAX_TIMESCALE = 600.0f; // 10 min is a long time
         if (_linearTimeScale < MAX_TIMESCALE) {
+            btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
             btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
             float offsetLength = offset.length();
-            btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
-
-            if (offsetLength > 0) {
-                float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
+            if (offsetLength > FLT_EPSILON) {
+                float speed = glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED);
                 targetVelocity = (-speed / offsetLength) * offset;
+                if (speed > rigidBody->getLinearSleepingThreshold()) {
+                    forceBodyNonStatic();
+                    rigidBody->activate();
+                }
             }
-
             // this action is aggresively critically damped and defeats the current velocity
             rigidBody->setLinearVelocity(targetVelocity);
         }
@@ -90,19 +166,16 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
                 //
                 //      dQ = Q1 * Q0^
                 btQuaternion deltaQ = target * bodyRotation.inverse();
-                float angle = deltaQ.getAngle();
-                const float MIN_ANGLE = 1.0e-4f;
-                if (angle > MIN_ANGLE) {
-                    targetVelocity = (angle / _angularTimeScale) * deltaQ.getAxis();
+                float speed = deltaQ.getAngle() / _angularTimeScale;
+                targetVelocity = speed * deltaQ.getAxis();
+                if (speed > rigidBody->getAngularSleepingThreshold()) {
+                    rigidBody->activate();
                 }
             }
             // this action is aggresively critically damped and defeats the current velocity
             rigidBody->setAngularVelocity(targetVelocity);
         }
     });
-    if (!lockResult) {
-        qDebug() << "ObjectActionSpring::updateActionWorker lock failed";
-    }
 }
 
 const float MIN_TIMESCALE = 0.1f;
@@ -121,7 +194,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
         bool ok = true;
         positionalTarget = EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
         if (!ok) {
-            positionalTarget = _positionalTarget;
+            positionalTarget = _desiredPositionalTarget;
         }
         ok = true;
         linearTimeScale = EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
@@ -132,7 +205,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
         ok = true;
         rotationalTarget = EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
         if (!ok) {
-            rotationalTarget = _rotationalTarget;
+            rotationalTarget = _desiredRotationalTarget;
         }
 
         ok = true;
@@ -143,9 +216,9 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
         }
 
         if (somethingChanged ||
-            positionalTarget != _positionalTarget ||
+            positionalTarget != _desiredPositionalTarget ||
             linearTimeScale != _linearTimeScale ||
-            rotationalTarget != _rotationalTarget ||
+            rotationalTarget != _desiredRotationalTarget ||
             angularTimeScale != _angularTimeScale) {
             // something changed
             needUpdate = true;
@@ -154,15 +227,16 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
 
     if (needUpdate) {
         withWriteLock([&] {
-            _positionalTarget = positionalTarget;
+            _desiredPositionalTarget = positionalTarget;
             _linearTimeScale = glm::max(MIN_TIMESCALE, glm::abs(linearTimeScale));
-            _rotationalTarget = rotationalTarget;
+            _desiredRotationalTarget = rotationalTarget;
             _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
             _active = true;
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
                 ownerEntity->setActionDataDirty(true);
+                ownerEntity->setActionDataNeedsTransmit(true);
             }
         });
         activateBody();
@@ -175,9 +249,9 @@ QVariantMap ObjectActionSpring::getArguments() {
     QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&] {
         arguments["linearTimeScale"] = _linearTimeScale;
-        arguments["targetPosition"] = glmToQMap(_positionalTarget);
+        arguments["targetPosition"] = glmToQMap(_desiredPositionalTarget);
 
-        arguments["targetRotation"] = glmToQMap(_rotationalTarget);
+        arguments["targetRotation"] = glmToQMap(_desiredRotationalTarget);
         arguments["angularTimeScale"] = _angularTimeScale;
     });
     return arguments;
@@ -192,13 +266,13 @@ QByteArray ObjectActionSpring::serialize() const {
     dataStream << ObjectActionSpring::springVersion;
 
     withReadLock([&] {
-        dataStream << _positionalTarget;
+        dataStream << _desiredPositionalTarget;
         dataStream << _linearTimeScale;
         dataStream << _positionalTargetSet;
-        dataStream << _rotationalTarget;
+        dataStream << _desiredRotationalTarget;
         dataStream << _angularTimeScale;
         dataStream << _rotationalTargetSet;
-        dataStream << _expires;
+        dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
     });
 
@@ -224,15 +298,18 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
     }
 
     withWriteLock([&] {
-        dataStream >> _positionalTarget;
+        dataStream >> _desiredPositionalTarget;
         dataStream >> _linearTimeScale;
         dataStream >> _positionalTargetSet;
 
-        dataStream >> _rotationalTarget;
+        dataStream >> _desiredRotationalTarget;
         dataStream >> _angularTimeScale;
         dataStream >> _rotationalTargetSet;
 
-        dataStream >> _expires;
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+
         dataStream >> _tag;
 
         _active = true;

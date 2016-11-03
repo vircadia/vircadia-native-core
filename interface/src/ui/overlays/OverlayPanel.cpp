@@ -26,26 +26,27 @@ PropertyBinding::PropertyBinding(QString avatar, QUuid entity) :
 {
 }
 
-QScriptValue propertyBindingToScriptValue(QScriptEngine* engine, const PropertyBinding& value) {
-    QScriptValue obj = engine->newObject();
+QVariant propertyBindingToVariant(const PropertyBinding& value) {
+    QVariantMap obj;
 
     if (value.avatar == "MyAvatar") {
-        obj.setProperty("avatar", "MyAvatar");
+        obj["avatar"] = "MyAvatar";
     } else if (!value.entity.isNull()) {
-        obj.setProperty("entity", engine->newVariant(value.entity));
+        obj["entity"] = value.entity;
     }
 
     return obj;
 }
 
-void propertyBindingFromScriptValue(const QScriptValue& object, PropertyBinding& value) {
-    QScriptValue avatar = object.property("avatar");
-    QScriptValue entity = object.property("entity");
+void propertyBindingFromVariant(const QVariant& objectVar, PropertyBinding& value) {
+    auto object = objectVar.toMap();
+    auto avatar = object["avatar"];
+    auto entity = object["entity"];
 
     if (avatar.isValid() && !avatar.isNull()) {
-        value.avatar = avatar.toVariant().toString();
+        value.avatar = avatar.toString();
     } else if (entity.isValid() && !entity.isNull()) {
-        value.entity = entity.toVariant().toUuid();
+        value.entity = entity.toUuid();
     }
 }
 
@@ -62,103 +63,82 @@ void OverlayPanel::removeChild(unsigned int childId) {
     }
 }
 
-QScriptValue OverlayPanel::getProperty(const QString &property) {
+QVariant OverlayPanel::getProperty(const QString &property) {
     if (property == "anchorPosition") {
-        return vec3toScriptValue(_scriptEngine, getAnchorPosition());
+        return vec3toVariant(getAnchorPosition());
     }
     if (property == "anchorPositionBinding") {
-        return propertyBindingToScriptValue(_scriptEngine,
-                                            PropertyBinding(_anchorPositionBindMyAvatar ?
+        return propertyBindingToVariant(PropertyBinding(_anchorPositionBindMyAvatar ?
                                                             "MyAvatar" : "",
                                                             _anchorPositionBindEntity));
     }
     if (property == "anchorRotation") {
-        return quatToScriptValue(_scriptEngine, getAnchorRotation());
+        return quatToVariant(getAnchorRotation());
     }
     if (property == "anchorRotationBinding") {
-        return propertyBindingToScriptValue(_scriptEngine,
-                                            PropertyBinding(_anchorRotationBindMyAvatar ?
+        return propertyBindingToVariant(PropertyBinding(_anchorRotationBindMyAvatar ?
                                                             "MyAvatar" : "",
                                                             _anchorRotationBindEntity));
     }
     if (property == "anchorScale") {
-        return vec3toScriptValue(_scriptEngine, getAnchorScale());
+        return vec3toVariant(getAnchorScale());
     }
     if (property == "visible") {
         return getVisible();
     }
     if (property == "children") {
-        QScriptValue array = _scriptEngine->newArray(_children.length());
+        QVariantList array;
         for (int i = 0; i < _children.length(); i++) {
-            array.setProperty(i, _children[i]);
+            array.append(_children[i]);
         }
         return array;
     }
 
-    QScriptValue value = Billboardable::getProperty(_scriptEngine, property);
+    auto value = Billboardable::getProperty(property);
     if (value.isValid()) {
         return value;
     }
-    return PanelAttachable::getProperty(_scriptEngine, property);
+    return PanelAttachable::getProperty(property);
 }
 
-void OverlayPanel::setProperties(const QScriptValue &properties) {
+void OverlayPanel::setProperties(const QVariantMap& properties) {
     PanelAttachable::setProperties(properties);
     Billboardable::setProperties(properties);
 
-    QScriptValue anchorPosition = properties.property("anchorPosition");
-    if (anchorPosition.isValid() &&
-        anchorPosition.property("x").isValid() &&
-        anchorPosition.property("y").isValid() &&
-        anchorPosition.property("z").isValid()) {
-        glm::vec3 newPosition;
-        vec3FromScriptValue(anchorPosition, newPosition);
-        setAnchorPosition(newPosition);
+    auto anchorPosition = properties["anchorPosition"];
+    if (anchorPosition.isValid()) {
+        setAnchorPosition(vec3FromVariant(anchorPosition));
     }
 
-    QScriptValue anchorPositionBinding = properties.property("anchorPositionBinding");
+    auto anchorPositionBinding = properties["anchorPositionBinding"];
     if (anchorPositionBinding.isValid()) {
         PropertyBinding binding = {};
-        propertyBindingFromScriptValue(anchorPositionBinding, binding);
+        propertyBindingFromVariant(anchorPositionBinding, binding);
         _anchorPositionBindMyAvatar = binding.avatar == "MyAvatar";
         _anchorPositionBindEntity = binding.entity;
     }
 
-    QScriptValue anchorRotation = properties.property("anchorRotation");
-    if (anchorRotation.isValid() &&
-        anchorRotation.property("x").isValid() &&
-        anchorRotation.property("y").isValid() &&
-        anchorRotation.property("z").isValid() &&
-        anchorRotation.property("w").isValid()) {
-        glm::quat newRotation;
-        quatFromScriptValue(anchorRotation, newRotation);
-        setAnchorRotation(newRotation);
+    auto anchorRotation = properties["anchorRotation"];
+    if (anchorRotation.isValid()) {
+        setAnchorRotation(quatFromVariant(anchorRotation));
     }
 
-    QScriptValue anchorRotationBinding = properties.property("anchorRotationBinding");
+    auto anchorRotationBinding = properties["anchorRotationBinding"];
     if (anchorRotationBinding.isValid()) {
         PropertyBinding binding = {};
-        propertyBindingFromScriptValue(anchorPositionBinding, binding);
+        propertyBindingFromVariant(anchorPositionBinding, binding);
         _anchorRotationBindMyAvatar = binding.avatar == "MyAvatar";
         _anchorRotationBindEntity = binding.entity;
     }
 
-    QScriptValue anchorScale = properties.property("anchorScale");
+    auto anchorScale = properties["anchorScale"];
     if (anchorScale.isValid()) {
-        if (anchorScale.property("x").isValid() &&
-            anchorScale.property("y").isValid() &&
-            anchorScale.property("z").isValid()) {
-            glm::vec3 newScale;
-            vec3FromScriptValue(anchorScale, newScale);
-            setAnchorScale(newScale);
-        } else {
-            setAnchorScale(anchorScale.toVariant().toFloat());
-        }
+        setAnchorScale(vec3FromVariant(anchorScale));
     }
 
-    QScriptValue visible = properties.property("visible");
+    auto visible = properties["visible"];
     if (visible.isValid()) {
-        setVisible(visible.toVariant().toBool());
+        setVisible(visible.toBool());
     }
 }
 
@@ -170,9 +150,13 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
                 transform.setTranslation(DependencyManager::get<AvatarManager>()->getMyAvatar()
                                          ->getPosition());
             } else if (!_anchorPositionBindEntity.isNull()) {
-                transform.setTranslation(DependencyManager::get<EntityScriptingInterface>()
-                                         ->getEntityTree()->findEntityByID(_anchorPositionBindEntity)
-                                         ->getPosition());
+                EntityTreePointer entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
+                entityTree->withReadLock([&] {
+                    EntityItemPointer foundEntity = entityTree->findEntityByID(_anchorPositionBindEntity);
+                    if (foundEntity) {
+                        transform.setTranslation(foundEntity->getPosition());
+                    }
+                });
             } else {
                 transform.setTranslation(getAnchorPosition());
             }
@@ -181,9 +165,13 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
                 transform.setRotation(DependencyManager::get<AvatarManager>()->getMyAvatar()
                                       ->getOrientation());
             } else if (!_anchorRotationBindEntity.isNull()) {
-                transform.setRotation(DependencyManager::get<EntityScriptingInterface>()
-                                      ->getEntityTree()->findEntityByID(_anchorRotationBindEntity)
-                                      ->getRotation());
+                EntityTreePointer entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
+                entityTree->withReadLock([&] {
+                    EntityItemPointer foundEntity = entityTree->findEntityByID(_anchorRotationBindEntity);
+                    if (foundEntity) {
+                        transform.setRotation(foundEntity->getRotation());
+                    }
+                });
             } else {
                 transform.setRotation(getAnchorRotation());
             }

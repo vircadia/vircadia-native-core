@@ -19,7 +19,7 @@
 
 class EntitiesScriptEngineProvider {
 public:
-    virtual void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName) = 0;
+    virtual void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList()) = 0;
 };
 
 #endif // hifi_EntitiesScriptEngineProvider_h

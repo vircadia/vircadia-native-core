@@ -11,35 +11,23 @@
 
 #include <PhysicsCollisionGroups.h>
 
+#include <PerfStat.h>
+
+#include "CharacterController.h"
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
-uint32_t PhysicsEngine::getNumSubsteps() {
-    return _numSubsteps;
-}
-
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
-        _characterController(nullptr) {
-    // build table of masks with their group as the key
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEFAULT), COLLISION_MASK_DEFAULT);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_STATIC), COLLISION_MASK_STATIC);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_KINEMATIC), COLLISION_MASK_KINEMATIC);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEBRIS), COLLISION_MASK_DEBRIS);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_TRIGGER), COLLISION_MASK_TRIGGER);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_MY_AVATAR), COLLISION_MASK_MY_AVATAR);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_MY_ATTACHMENT), COLLISION_MASK_MY_ATTACHMENT);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_OTHER_AVATAR), COLLISION_MASK_OTHER_AVATAR);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_OTHER_ATTACHMENT), COLLISION_MASK_OTHER_ATTACHMENT);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_COLLISIONLESS), COLLISION_MASK_COLLISIONLESS);
+        _myAvatarController(nullptr) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
-    if (_characterController) {
-        _characterController->setDynamicsWorld(nullptr);
+    if (_myAvatarController) {
+        _myAvatarController->setDynamicsWorld(nullptr);
     }
     delete _collisionConfig;
     delete _collisionDispatcher;
@@ -63,54 +51,67 @@ void PhysicsEngine::init() {
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+
+        // By default Bullet will update the Aabb's of all objects every frame, even statics.
+        // This can waste CPU cycles so we configure Bullet to only update ACTIVE objects here.
+        // However, this means when a static object is moved we must manually update its Aabb
+        // in order for its broadphase collision queries to work correctly. Look at how we use
+        // _activeStaticBodies to track and update the Aabb's of moved static objects.
+        _dynamicsWorld->setForceUpdateAllAabbs(false);
     }
 }
 
-void PhysicsEngine::addObject(ObjectMotionState* motionState) {
+uint32_t PhysicsEngine::getNumSubsteps() {
+    return _numSubsteps;
+}
+
+// private
+void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     assert(motionState);
 
     btVector3 inertia(0.0f, 0.0f, 0.0f);
     float mass = 0.0f;
     // NOTE: the body may or may not already exist, depending on whether this corresponds to a reinsertion, or a new insertion.
     btRigidBody* body = motionState->getRigidBody();
-    MotionType motionType = motionState->computeObjectMotionType();
+    PhysicsMotionType motionType = motionState->computePhysicsMotionType();
     motionState->setMotionType(motionType);
     switch(motionType) {
         case MOTION_TYPE_KINEMATIC: {
             if (!body) {
-                btCollisionShape* shape = motionState->getShape();
+                btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
                 assert(shape);
                 body = new btRigidBody(mass, motionState, shape, inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             motionState->updateBodyVelocities();
-            const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
-            const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
-            body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
+            motionState->updateLastKinematicStep();
+            body->setSleepingThresholds(KINEMATIC_LINEAR_SPEED_THRESHOLD, KINEMATIC_ANGULAR_SPEED_THRESHOLD);
+            motionState->clearInternalKinematicChanges();
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
             mass = motionState->getMass();
-            btCollisionShape* shape = motionState->getShape();
+            btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
             assert(shape);
             shape->calculateLocalInertia(mass, inertia);
             if (!body) {
                 body = new btRigidBody(mass, motionState, shape, inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
+            body->setCollisionFlags(body->getCollisionFlags() & ~(btCollisionObject::CF_KINEMATIC_OBJECT |
+                                                                  btCollisionObject::CF_STATIC_OBJECT));
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             motionState->updateBodyVelocities();
+
             // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
             // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
-            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-            body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+            body->setSleepingThresholds(DYNAMIC_LINEAR_SPEED_THRESHOLD, DYNAMIC_ANGULAR_SPEED_THRESHOLD);
             if (!motionState->isMoving()) {
                 // try to initialize this object as inactive
                 body->forceActivationState(ISLAND_SLEEPING);
@@ -121,67 +122,65 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
         default: {
             if (!body) {
                 assert(motionState->getShape());
-                body = new btRigidBody(mass, motionState, motionState->getShape(), inertia);
+                body = new btRigidBody(mass, motionState, const_cast<btCollisionShape*>(motionState->getShape()), inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
             body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             break;
         }
     }
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
     motionState->updateBodyMaterialProperties();
 
-    int16_t group = motionState->computeCollisionGroup();
-    _dynamicsWorld->addRigidBody(body, group, getCollisionMask(group));
+    int16_t group, mask;
+    motionState->computeCollisionGroupAndMask(group, mask);
+    _dynamicsWorld->addRigidBody(body, group, mask);
 
     motionState->clearIncomingDirtyFlags();
 }
 
-void PhysicsEngine::removeObject(ObjectMotionState* object) {
-    // wake up anything touching this object
-    bump(object);
-    removeContacts(object);
-
-    btRigidBody* body = object->getRigidBody();
-    assert(body);
-    _dynamicsWorld->removeRigidBody(body);
-}
-
-void PhysicsEngine::deleteObjects(const VectorOfMotionStates& objects) {
+void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
+    // first bump and prune contacts for all objects in the list
     for (auto object : objects) {
-        removeObject(object);
+        bumpAndPruneContacts(object);
+    }
 
-        // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+    // then remove them
+    for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        object->setRigidBody(nullptr);
-        body->setMotionState(nullptr);
-        delete body;
-        object->releaseShape();
-        delete object;
+        if (body) {
+            _dynamicsWorld->removeRigidBody(body);
+
+            // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+            object->setRigidBody(nullptr);
+            body->setMotionState(nullptr);
+            delete body;
+        }
     }
 }
 
 // Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
-void PhysicsEngine::deleteObjects(const SetOfMotionStates& objects) {
+void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
+    _contactMap.clear();
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        removeObject(object);
+        if (body) {
+            _dynamicsWorld->removeRigidBody(body);
 
-        // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
-        object->setRigidBody(nullptr);
-        body->setMotionState(nullptr);
-        delete body;
-        object->releaseShape();
-        delete object;
+            // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+            object->setRigidBody(nullptr);
+            body->setMotionState(nullptr);
+            delete body;
+        }
     }
 }
 
 void PhysicsEngine::addObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
-        addObject(object);
+        addObjectToDynamicsWorld(object);
     }
 }
 
@@ -196,19 +195,32 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
                 stillNeedChange.push_back(object);
             }
         } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleEasyChanges(flags, this)) {
-                object->clearIncomingDirtyFlags();
-            } else {
-                stillNeedChange.push_back(object);
-            }
+            object->handleEasyChanges(flags);
+            object->clearIncomingDirtyFlags();
         }
+        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
+            _activeStaticBodies.push_back(object->getRigidBody());
+        }
+    }
+    // active static bodies have changed (in an Easy way) and need their Aabbs updated
+    // but we've configured Bullet to NOT update them automatically (for improved performance)
+    // so we must do it ourselves
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
+        _dynamicsWorld->updateSingleAabb(_activeStaticBodies[i]);
     }
     return stillNeedChange;
 }
 
 void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
-    removeObject(object);
-    addObject(object);
+    // remove object from DynamicsWorld
+    bumpAndPruneContacts(object);
+    btRigidBody* body = object->getRigidBody();
+    if (body) {
+        _dynamicsWorld->removeRigidBody(body);
+
+        // add it back
+        addObjectToDynamicsWorld(object);
+    }
 }
 
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
@@ -216,9 +228,7 @@ void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
     ContactMap::iterator contactItr = _contactMap.begin();
     while (contactItr != _contactMap.end()) {
         if (contactItr->first._a == motionState || contactItr->first._b == motionState) {
-            ContactMap::iterator iterToDelete = contactItr;
-            ++contactItr;
-            _contactMap.erase(iterToDelete);
+            contactItr = _contactMap.erase(contactItr);
         } else {
             ++contactItr;
         }
@@ -239,57 +249,111 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    // TODO: move character->preSimulation() into relayIncomingChanges
-    if (_characterController) {
-        if (_characterController->needsRemoval()) {
-            _characterController->setDynamicsWorld(nullptr);
+    if (_myAvatarController) {
+        BT_PROFILE("avatarController");
+        // TODO: move this stuff outside and in front of stepSimulation, because
+        // the updateShapeIfNecessary() call needs info from MyAvatar and should
+        // be done on the main thread during the pre-simulation stuff
+        if (_myAvatarController->needsRemoval()) {
+            _myAvatarController->setDynamicsWorld(nullptr);
+
+            // We must remove any existing contacts for the avatar so that any new contacts will have
+            // valid data.  MyAvatar's RigidBody is the ONLY one in the simulation that does not yet
+            // have a MotionState so we pass nullptr to removeContacts().
+            removeContacts(nullptr);
         }
-        _characterController->updateShapeIfNecessary();
-        if (_characterController->needsAddition()) {
-            _characterController->setDynamicsWorld(_dynamicsWorld);
+        _myAvatarController->updateShapeIfNecessary();
+        if (_myAvatarController->needsAddition()) {
+            _myAvatarController->setDynamicsWorld(_dynamicsWorld);
         }
-        _characterController->preSimulation(timeStep);
+        _myAvatarController->preSimulation();
     }
 
-    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    auto onSubStep = [this]() {
+        updateContactMap();
+    };
+
+    int numSubsteps = _dynamicsWorld->stepSimulationWithSubstepCallback(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS,
+                                                                        PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
         BT_PROFILE("postSimulation");
         _numSubsteps += (uint32_t)numSubsteps;
         ObjectMotionState::setWorldSimulationStep(_numSubsteps);
 
-        if (_characterController) {
-            _characterController->postSimulation();
+        if (_myAvatarController) {
+            _myAvatarController->postSimulation();
         }
-        updateContactMap();
+
         _hasOutgoingChanges = true;
     }
+}
+
+void PhysicsEngine::harvestPerformanceStats() {
+    // unfortunately the full context names get too long for our stats presentation format
+    //QString contextName = PerformanceTimer::getContextName(); // TODO: how to show full context name?
+    QString contextName("...");
+
+    CProfileIterator* profileIterator = CProfileManager::Get_Iterator();
+    if (profileIterator) {
+        // hunt for stepSimulation context
+        profileIterator->First();
+        for (int32_t childIndex = 0; !profileIterator->Is_Done(); ++childIndex) {
+            if (QString(profileIterator->Get_Current_Name()) == "stepSimulation") {
+                profileIterator->Enter_Child(childIndex);
+                recursivelyHarvestPerformanceStats(profileIterator, contextName);
+                break;
+            }
+            profileIterator->Next();
+        }
+    }
+}
+
+void PhysicsEngine::recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName) {
+    QString parentContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Parent_Name());
+    // get the stats for the children
+    int32_t numChildren = 0;
+    profileIterator->First();
+    while (!profileIterator->Is_Done()) {
+        QString childContextName = parentContextName + QString("/") + QString(profileIterator->Get_Current_Name());
+        uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * profileIterator->Get_Current_Total_Time());
+        PerformanceTimer::addTimerRecord(childContextName, time);
+        profileIterator->Next();
+        ++numChildren;
+    }
+    // recurse the children
+    for (int32_t i = 0; i < numChildren; ++i) {
+        profileIterator->Enter_Child(i);
+        recursivelyHarvestPerformanceStats(profileIterator, contextName);
+    }
+    // retreat back to parent
+    profileIterator->Enter_Parent();
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
     BT_PROFILE("ownershipInfection");
 
-    const btCollisionObject* characterObject = _characterController ? _characterController->getCollisionObject() : nullptr;
+    const btCollisionObject* characterObject = _myAvatarController ? _myAvatarController->getCollisionObject() : nullptr;
 
     ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
 
     if (motionStateB &&
-        ((motionStateA && motionStateA->getSimulatorID() == _sessionID && !objectA->isStaticObject()) ||
+        ((motionStateA && motionStateA->getSimulatorID() == Physics::getSessionUUID() && !objectA->isStaticObject()) ||
          (objectA == characterObject))) {
         // NOTE: we might own the simulation of a kinematic object (A)
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
-        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != _sessionID) {
-            quint8 priority = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
-            motionStateB->bump(priority);
+        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != Physics::getSessionUUID()) {
+            quint8 priorityA = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
+            motionStateB->bump(priorityA);
         }
     } else if (motionStateA &&
-               ((motionStateB && motionStateB->getSimulatorID() == _sessionID && !objectB->isStaticObject()) ||
+               ((motionStateB && motionStateB->getSimulatorID() == Physics::getSessionUUID() && !objectB->isStaticObject()) ||
                 (objectB == characterObject))) {
         // SIMILARLY: we might own the simulation of a kinematic object (B)
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
-        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != _sessionID) {
-            quint8 priority = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
-            motionStateA->bump(priority);
+        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != Physics::getSessionUUID()) {
+            quint8 priorityB = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
+            motionStateA->bump(priorityB);
         }
     }
 }
@@ -321,7 +385,7 @@ void PhysicsEngine::updateContactMap() {
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0));
             }
 
-            if (!_sessionID.isNull()) {
+            if (!Physics::getSessionUUID().isNull()) {
                 doOwnershipInfection(objectA, objectB);
             }
         }
@@ -344,16 +408,16 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
             glm::vec3 velocityChange = (motionStateA ? motionStateA->getObjectLinearVelocityChange() : glm::vec3(0.0f)) +
                 (motionStateB ? motionStateB->getObjectLinearVelocityChange() : glm::vec3(0.0f));
 
-            if (motionStateA && motionStateA->getType() == MOTIONSTATE_TYPE_ENTITY) {
+            if (motionStateA) {
                 QUuid idA = motionStateA->getObjectID();
                 QUuid idB;
-                if (motionStateB && motionStateB->getType() == MOTIONSTATE_TYPE_ENTITY) {
+                if (motionStateB) {
                     idB = motionStateB->getObjectID();
                 }
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnB()) + _originOffset;
                 glm::vec3 penetration = bulletToGLM(contact.distance * contact.normalWorldOnB);
                 _collisionEvents.push_back(Collision(type, idA, idB, position, penetration, velocityChange));
-            } else if (motionStateB && motionStateB->getType() == MOTIONSTATE_TYPE_ENTITY) {
+            } else if (motionStateB) {
                 QUuid idB = motionStateB->getObjectID();
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnA()) + _originOffset;
                 // NOTE: we're flipping the order of A and B (so that the first objectID is never NULL)
@@ -364,9 +428,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
         }
 
         if (type == CONTACT_EVENT_TYPE_END) {
-            ContactMap::iterator iterToDelete = contactItr;
-            ++contactItr;
-            _contactMap.erase(iterToDelete);
+            contactItr = _contactMap.erase(contactItr);
         } else {
             ++contactItr;
         }
@@ -376,6 +438,12 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
 
 const VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
     BT_PROFILE("copyOutgoingChanges");
+    // Bullet will not deactivate static objects (it doesn't expect them to be active)
+    // so we must deactivate them ourselves
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
+        _activeStaticBodies[i]->forceActivationState(ISLAND_SLEEPING);
+    }
+    _activeStaticBodies.clear();
     _dynamicsWorld->synchronizeMotionStates();
     _hasOutgoingChanges = false;
     return _dynamicsWorld->getChangedMotionStates();
@@ -397,7 +465,7 @@ void PhysicsEngine::dumpStatsIfNecessary() {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-void PhysicsEngine::bump(ObjectMotionState* motionState) {
+void PhysicsEngine::bumpAndPruneContacts(ObjectMotionState* motionState) {
     // Find all objects that touch the object corresponding to motionState and flag the other objects
     // for simulation ownership by the local simulation.
 
@@ -429,23 +497,19 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
             }
         }
     }
+    removeContacts(motionState);
 }
 
-void PhysicsEngine::setCharacterController(DynamicCharacterController* character) {
-    if (_characterController != character) {
-        if (_characterController) {
+void PhysicsEngine::setCharacterController(CharacterController* character) {
+    if (_myAvatarController != character) {
+        if (_myAvatarController) {
             // remove the character from the DynamicsWorld immediately
-            _characterController->setDynamicsWorld(nullptr);
-            _characterController = nullptr;
+            _myAvatarController->setDynamicsWorld(nullptr);
+            _myAvatarController = nullptr;
         }
         // the character will be added to the DynamicsWorld later
-        _characterController = character;
+        _myAvatarController = character;
     }
-}
-
-int16_t PhysicsEngine::getCollisionMask(int16_t group) const {
-    const int16_t* mask = _collisionMasks.find(btHashInt((int)group));
-    return mask ? *mask : COLLISION_MASK_DEFAULT;
 }
 
 EntityActionPointer PhysicsEngine::getActionByID(const QUuid& actionID) const {
@@ -479,5 +543,13 @@ void PhysicsEngine::removeAction(const QUuid actionID) {
         ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
         _dynamicsWorld->removeAction(objectAction);
         _objectActions.remove(actionID);
+    }
+}
+
+void PhysicsEngine::forEachAction(std::function<void(EntityActionPointer)> actor) {
+    QHashIterator<QUuid, EntityActionPointer> iter(_objectActions);
+    while (iter.hasNext()) {
+        iter.next();
+        actor(iter.value());
     }
 }

@@ -58,7 +58,7 @@ public:
     }
 
     /// if you're running in non-threaded mode, you must call this method regularly
-    virtual bool process();
+    virtual bool process() override;
 
     /// Set the desired number of pending messages that the OctreeEditPacketSender should attempt to queue even if
     /// servers are not present. This only applies to how the OctreeEditPacketSender will manage messages when no
@@ -75,9 +75,9 @@ public:
 
     // you must override these...
     virtual char getMyNodeType() const = 0;
-    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, int clockSkew) { }
+    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew) { }
 
-    void processNackPacket(NLPacket& packet, SharedNodePointer sendingNode);
+    void processNackPacket(ReceivedMessage& message, SharedNodePointer sendingNode);
 
 public slots:
     void nodeKilled(SharedNodePointer node);
@@ -89,7 +89,7 @@ protected:
     void queuePacketToNode(const QUuid& nodeID, std::unique_ptr<NLPacket> packet);
     void queuePendingPacketToNodes(std::unique_ptr<NLPacket> packet);
     void queuePacketToNodes(std::unique_ptr<NLPacket> packet);
-    std::unique_ptr<NLPacket> initializePacket(PacketType type, int nodeClockSkew);
+    std::unique_ptr<NLPacket> initializePacket(PacketType type, qint64 nodeClockSkew);
     void releaseQueuedPacket(const QUuid& nodeUUID, std::unique_ptr<NLPacket> packetBuffer); // releases specific queued packet
 
     void processPreServerExistsPackets();

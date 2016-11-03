@@ -16,28 +16,39 @@
 #include <QtCore/qpointer.h>
 #include <QtCore/QProcess>
 #include <QtCore/QDateTime>
+#include <QDir>
 
 #include <Assignment.h>
 
 #include "AssignmentClientChildData.h"
+#include <HTTPManager.h>
+#include <HTTPConnection.h>
 
 extern const char* NUM_FORKS_PARAMETER;
 
-class AssignmentClientMonitor : public QObject {
+struct ACProcess {
+    QProcess* process; // looks like a dangling pointer, but is parented by the AssignmentClientMonitor 
+    QString logStdoutPath;
+    QString logStderrPath;
+};
+
+class AssignmentClientMonitor : public QObject, public HTTPRequestHandler {
     Q_OBJECT
 public:
     AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
                             const unsigned int maxAssignmentClientForks, Assignment::Type requestAssignmentType,
                             QString assignmentPool, quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
-                            quint16 assignmentServerPort);
+                            quint16 assignmentServerPort, quint16 httpStatusServerPort, QString logDirectory);
     ~AssignmentClientMonitor();
 
     void stopChildProcesses();
 private slots:
     void checkSpares();
-    void childProcessFinished();
-    void handleChildStatusPacket(QSharedPointer<NLPacket> packet);
-    
+    void childProcessFinished(qint64 pid);
+    void handleChildStatusPacket(QSharedPointer<ReceivedMessage> message);
+
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+
 public slots:
     void aboutToQuit();
 
@@ -46,6 +57,10 @@ private:
     void simultaneousWaitOnChildren(int waitMsecs);
 
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
+
+    QDir _logDirectory;
+
+    HTTPManager _httpManager;
 
     const unsigned int _numAssignmentClientForks;
     const unsigned int _minAssignmentClientForks;
@@ -57,7 +72,9 @@ private:
     QString _assignmentServerHostname;
     quint16 _assignmentServerPort;
 
-    QMap<qint64, QProcess*> _childProcesses;
+    QMap<qint64, ACProcess> _childProcesses;
+
+    bool _wantsChildFileLogging { false };
 };
 
 #endif // hifi_AssignmentClientMonitor_h

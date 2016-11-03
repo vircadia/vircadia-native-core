@@ -14,6 +14,8 @@
 
 #include <QtCore/QUuid>
 
+#include "ReceivedMessage.h"
+
 #include "NodeList.h"
 
 const int MAX_PAYLOAD_BYTES = 1024;
@@ -21,7 +23,7 @@ const int MAX_PAYLOAD_BYTES = 1024;
 const QString emptyPool = QString();
 
 /// Holds information used for request, creation, and deployment of assignments
-class Assignment : public NodeData {
+class Assignment : public QObject {
     Q_OBJECT
 public:
 
@@ -30,7 +32,7 @@ public:
         AvatarMixerType = 1,
         AgentType = 2,
         AssetServerType = 3,
-        UNUSED_0 = 4,
+        MessagesMixerType = 4,
         UNUSED_1 = 5,
         EntityServerType = 6,
         AllTypes = 7
@@ -61,7 +63,7 @@ public:
 
     /// Constructs an Assignment from a network packet
     /// \param packet the packet to un-pack the assignment from
-    Assignment(NLPacket& packet);
+    Assignment(ReceivedMessage& packet);
 
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() const { return _uuid; }

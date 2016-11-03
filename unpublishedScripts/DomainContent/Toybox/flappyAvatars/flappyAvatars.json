@@ -1,0 +1,34 @@
+{
+    "Entities": [
+        {
+            "collisionsWillMove": 1,
+            "created": "2016-03-03T19:00:10Z",
+            "dimensions": {
+                "x": 0.11497055739164352,
+                "y": 0.11497056484222412,
+                "z": 0.11497056484222412
+            },
+            "dynamic": 1,
+            "id": "{ee5b25e6-aca2-4dc7-9462-51537d89c126}",
+            "modelURL": "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/cube.fbx",
+            "queryAACube": {
+                "scale": 0.5974045991897583,
+                "x": -5.1575918197631836,
+                "y": 23.078603744506836,
+                "z": 16.521066665649414
+            },
+            "rotation": {
+                "w": 0.92288088798522949,
+                "x": -0.10148775577545166,
+                "y": -0.13279926776885986,
+                "z": 0.34688329696655273
+            },
+            "script": "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/flappyAvatars.js",
+            "scriptTimestamp": 1457031937425,
+            "shapeType": "box",
+            "type": "Model",
+            "userData": "{\"wearable\":{\"joints\":{\"RightHand\":[{\"x\":0.07079616189002991,\"y\":0.20177987217903137,\"z\":0.06374628841876984},{\"x\":-0.5863648653030396,\"y\":-0.46007341146469116,\"z\":0.46949487924575806,\"w\":-0.4733745753765106}],\"LeftHand\":[{\"x\":-0.018704339861869812,\"y\":0.20499876141548157,\"z\":0.08445858210325241},{\"x\":0.2061777561903,\"y\":-0.6629757881164551,\"z\":0.5865269303321838,\"w\":0.41706138849258423}]}},\"grabbableKey\":{\"invertSolidWhileHeld\":true},\"resetMe\":{\"resetMe\":true},\"highScore\":0}"
+        }
+    ],
+    "Version": 57
+}

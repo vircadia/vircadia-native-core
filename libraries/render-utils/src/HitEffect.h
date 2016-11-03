@@ -9,23 +9,29 @@
 #ifndef hifi_hitEffect_h
 #define hifi_hitEffect_h
 
-#include <DependencyManager.h>
-#include "render/DrawTask.h"
+#include <render/DrawTask.h>
 
-class AbstractViewStateInterface;
-class ProgramObject;
+class HitEffectConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(bool enabled MEMBER enabled)
+public:
+    HitEffectConfig() : render::Job::Config(false) {}
+};
 
 class HitEffect {
 public:
+    using Config = HitEffectConfig;
+    using JobModel = render::Job::Model<HitEffect, Config>;
     
     HitEffect();
-    
+    ~HitEffect();
+    void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    typedef render::Job::Model<HitEffect> JobModel;
     
-    const gpu::PipelinePointer&     getHitEffectPipeline();
+    const gpu::PipelinePointer& getHitEffectPipeline();
     
 private:
+    int _geometryId { 0 };
     gpu::PipelinePointer _hitEffectPipeline;
 };
 

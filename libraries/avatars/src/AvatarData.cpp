@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+#include "AvatarData.h"
+
 #include <cstdio>
 #include <cstring>
 #include <stdint.h>
@@ -16,18 +19,26 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QThread>
 #include <QtCore/QUuid>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonObject>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
+#include <QVariantGLM.h>
+#include <Transform.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <GLMHelpers.h>
 #include <StreamUtils.h>
 #include <UUID.h>
+#include <shared/JSONHelpers.h>
+#include <ShapeInfo.h>
 
 #include "AvatarLogging.h"
-#include "AvatarData.h"
+
+//#define WANT_DEBUG
 
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
@@ -36,14 +47,63 @@ using namespace std;
 const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
 const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 
+const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
+
+namespace AvatarDataPacket {
+    // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
+
+    PACKED_BEGIN struct Header {
+        float position[3];                // skeletal model's position
+        float globalPosition[3];          // avatar's position
+        uint16_t localOrientation[3];     // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
+        uint16_t scale;                   // (compressed) 'ratio' encoding uses sign bit as flag.
+        float lookAtPosition[3];          // world space position that eyes are focusing on.
+        float audioLoudness;              // current loundess of microphone
+        uint8_t sensorToWorldQuat[6];     // 6 byte compressed quaternion part of sensor to world matrix
+        uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
+        float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
+        uint8_t flags;
+    } PACKED_END;
+    const size_t HEADER_SIZE = 69;
+
+    // only present if HAS_REFERENTIAL flag is set in header.flags
+    PACKED_BEGIN struct ParentInfo {
+        uint8_t parentUUID[16];       // rfc 4122 encoded
+        uint16_t parentJointIndex;
+    } PACKED_END;
+    const size_t PARENT_INFO_SIZE = 18;
+
+    // only present if IS_FACESHIFT_CONNECTED flag is set in header.flags
+    PACKED_BEGIN struct FaceTrackerInfo {
+        float leftEyeBlink;
+        float rightEyeBlink;
+        float averageLoudness;
+        float browAudioLift;
+        uint8_t numBlendshapeCoefficients;
+        // float blendshapeCoefficients[numBlendshapeCoefficients];
+    } PACKED_END;
+    const size_t FACE_TRACKER_INFO_SIZE = 17;
+
+    // variable length structure follows
+    /*
+    struct JointData {
+        uint8_t numJoints;
+        uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
+        SixByteQuat rotation[numValidRotations];  // encodeded and compressed by packOrientationQuatToSixBytes()
+        uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
+        SixByteTrans translation[numValidTranslations];  // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+    };
+    */
+}
+
+static const int TRANSLATION_COMPRESSION_RADIX = 12;
+static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
+
+#define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
+
 AvatarData::AvatarData() :
-    _sessionUUID(),
-    _position(0.0f),
+    SpatiallyNestable(NestableType::Avatar, QUuid()),
     _handPosition(0.0f),
-    _referential(NULL),
-    _bodyYaw(-90.0f),
-    _bodyPitch(0.0f),
-    _bodyRoll(0.0f),
     _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
@@ -51,24 +111,24 @@ AvatarData::AvatarData() :
     _hasNewJointRotations(true),
     _hasNewJointTranslations(true),
     _headData(NULL),
-    _handData(NULL),
-    _faceModelURL("http://invalid.com"),
     _displayNameTargetAlpha(1.0f),
     _displayNameAlpha(1.0f),
-    _billboard(),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _velocity(0.0f),
     _targetVelocity(0.0f),
     _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
 {
+    setBodyPitch(0.0f);
+    setBodyYaw(-90.0f);
+    setBodyRoll(0.0f);
 
+    ASSERT(sizeof(AvatarDataPacket::Header) == AvatarDataPacket::HEADER_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::ParentInfo) == AvatarDataPacket::PARENT_INFO_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::FaceTrackerInfo) == AvatarDataPacket::FACE_TRACKER_INFO_SIZE);
 }
 
 AvatarData::~AvatarData() {
     delete _headData;
-    delete _handData;
-    delete _referential;
 }
 
 // We cannot have a file-level variable (const or otherwise) in the header if it uses PathUtils, because that references Application, which will not yet initialized.
@@ -81,112 +141,43 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     return _defaultFullAvatarModelUrl;
 }
 
-const glm::vec3& AvatarData::getPosition() const {
-    if (_referential) {
-        _referential->update();
-    }
-    return _position;
-}
-
-void AvatarData::setPosition(const glm::vec3 position, bool overideReferential) {
-    if (!_referential || overideReferential) {
-        _position = position;
-    }
-}
-
-glm::quat AvatarData::getOrientation() const {
-    if (_referential) {
-        _referential->update();
-    }
-
-    return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll)));
-}
-
-void AvatarData::setOrientation(const glm::quat& orientation, bool overideReferential) {
-    if (!_referential || overideReferential) {
-        glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
-        _bodyPitch = eulerAngles.x;
-        _bodyYaw = eulerAngles.y;
-        _bodyRoll = eulerAngles.z;
-    }
-}
-
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
-    avatarLock.lock();
-    setPosition(position, true);
-    setOrientation(orientation, true);
-    avatarLock.unlock();
-}
-void AvatarData::startCapture() {
-    avatarLock.lock();
-    assert(_nextAllowed);
-    _nextAllowed = false;
-    _nextPosition = getPosition();
-    _nextOrientation = getOrientation();
-}
-void AvatarData::endCapture() {
-    avatarLock.unlock();
-}
-void AvatarData::startUpdate() {
-    avatarLock.lock();
-}
-void AvatarData::endUpdate() {
-    avatarLock.unlock();
-}
-void AvatarData::startRenderRun() {
-    // I'd like to get rid of this and just (un)lock at (end-)startRender.
-    // But somehow that causes judder in rotations.
-    avatarLock.lock();
-}
-void AvatarData::endRenderRun() {
-    avatarLock.unlock();
-}
-void AvatarData::startRender() {
-    glm::vec3 pos = getPosition();
-    glm::quat rot = getOrientation();
-    setPosition(_nextPosition, true);
-    setOrientation(_nextOrientation, true);
+    bool success;
+    Transform trans = getTransform(success);
+    if (!success) {
+        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+        return;
+    }
+    trans.setTranslation(position);
+    trans.setRotation(orientation);
+    SpatiallyNestable::setTransform(trans, success);
+    if (!success) {
+        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+    }
     updateAttitude();
-    _nextPosition = pos;
-    _nextOrientation = rot;
-}
-void AvatarData::endRender() {
-    setPosition(_nextPosition, true);
-    setOrientation(_nextOrientation, true);
-    updateAttitude();
-    _nextAllowed = true;
 }
 
 float AvatarData::getTargetScale() const {
-    if (_referential) {
-        _referential->update();
-    }
-
     return _targetScale;
 }
 
-void AvatarData::setTargetScale(float targetScale, bool overideReferential) {
-    if (!_referential || overideReferential) {
-        _targetScale = targetScale;
-    }
+void AvatarData::setTargetScale(float targetScale) {
+    _targetScale = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
 }
 
-void AvatarData::setClampedTargetScale(float targetScale, bool overideReferential) {
-
-    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
-
-    setTargetScale(targetScale, overideReferential);
+void AvatarData::setTargetScaleVerbose(float targetScale) {
+    setTargetScale(targetScale);
     qCDebug(avatars) << "Changed scale to " << _targetScale;
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
-    return getOrientation() * _handPosition + _position;
+    return getOrientation() * _handPosition + getPosition();
 }
 
 void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     // store relative to position/orientation
-    _handPosition = glm::inverse(getOrientation()) * (handPosition - _position);
+    _handPosition = glm::inverse(getOrientation()) * (handPosition - getPosition());
 }
 
 QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
@@ -207,77 +198,79 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
 
-    memcpy(destinationBuffer, &_position, sizeof(_position));
-    destinationBuffer += sizeof(_position);
+    auto header = reinterpret_cast<AvatarDataPacket::Header*>(destinationBuffer);
+    header->position[0] = getLocalPosition().x;
+    header->position[1] = getLocalPosition().y;
+    header->position[2] = getLocalPosition().z;
+    header->globalPosition[0] = _globalPosition.x;
+    header->globalPosition[1] = _globalPosition.y;
+    header->globalPosition[2] = _globalPosition.z;
 
-    // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
+    glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(getLocalOrientation()));
+    packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 0), bodyEulerAngles.y);
+    packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 1), bodyEulerAngles.x);
+    packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 2), bodyEulerAngles.z);
+    packFloatRatioToTwoByte((uint8_t*)(&header->scale), _targetScale);
+    header->lookAtPosition[0] = _headData->_lookAtPosition.x;
+    header->lookAtPosition[1] = _headData->_lookAtPosition.y;
+    header->lookAtPosition[2] = _headData->_lookAtPosition.z;
+    header->audioLoudness = _headData->_audioLoudness;
 
-    // Body scale
-    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
+    glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+    packOrientationQuatToSixBytes(header->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
+    glm::vec3 scale = extractScale(sensorToWorldMatrix);
+    packFloatScalarToSignedTwoByteFixed((uint8_t*)&header->sensorToWorldScale, scale.x, SENSOR_TO_WORLD_SCALE_RADIX);
+    header->sensorToWorldTrans[0] = sensorToWorldMatrix[3][0];
+    header->sensorToWorldTrans[1] = sensorToWorldMatrix[3][1];
+    header->sensorToWorldTrans[2] = sensorToWorldMatrix[3][2];
 
-    // Lookat Position
-    memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
-    destinationBuffer += sizeof(_headData->_lookAtPosition);
-
-    // Instantaneous audio loudness (used to drive facial animation)
-    memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
-    destinationBuffer += sizeof(float);
-
-    // bitMask of less than byte wide items
-    unsigned char bitItems = 0;
-
-    // key state
-    setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
+    setSemiNibbleAt(header->flags, KEY_STATE_START_BIT, _keyState);
     // hand state
     bool isFingerPointing = _handState & IS_FINGER_POINTING_FLAG;
-    setSemiNibbleAt(bitItems, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
+    setSemiNibbleAt(header->flags, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
     if (isFingerPointing) {
-        setAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT);
+        setAtBit(header->flags, HAND_STATE_FINGER_POINTING_BIT);
     }
     // faceshift state
     if (_headData->_isFaceTrackerConnected) {
-        setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        setAtBit(header->flags, IS_FACESHIFT_CONNECTED);
     }
     // eye tracker state
     if (_headData->_isEyeTrackerConnected) {
-        setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
+        setAtBit(header->flags, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
-    if (_referential != NULL && _referential->isValid()) {
-        setAtBit(bitItems, HAS_REFERENTIAL);
+    QUuid parentID = getParentID();
+    if (!parentID.isNull()) {
+        setAtBit(header->flags, HAS_REFERENTIAL);
     }
-    *destinationBuffer++ = bitItems;
+    destinationBuffer += sizeof(AvatarDataPacket::Header);
 
-    // Add referential
-    if (_referential != NULL && _referential->isValid()) {
-        destinationBuffer += _referential->packReferential(destinationBuffer);
+    if (!parentID.isNull()) {
+        auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
+        QByteArray referentialAsBytes = parentID.toRfc4122();
+        memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
+        parentInfo->parentJointIndex = _parentJointIndex;
+        destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
     }
 
     // If it is connected, pack up the data
     if (_headData->_isFaceTrackerConnected) {
-        memcpy(destinationBuffer, &_headData->_leftEyeBlink, sizeof(float));
-        destinationBuffer += sizeof(float);
+        auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
 
-        memcpy(destinationBuffer, &_headData->_rightEyeBlink, sizeof(float));
-        destinationBuffer += sizeof(float);
+        faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
+        faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
+        faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
+        faceTrackerInfo->browAudioLift = _headData->_browAudioLift;
+        faceTrackerInfo->numBlendshapeCoefficients = _headData->_blendshapeCoefficients.size();
+        destinationBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
 
-        memcpy(destinationBuffer, &_headData->_averageLoudness, sizeof(float));
-        destinationBuffer += sizeof(float);
-
-        memcpy(destinationBuffer, &_headData->_browAudioLift, sizeof(float));
-        destinationBuffer += sizeof(float);
-
-        *destinationBuffer++ = _headData->_blendshapeCoefficients.size();
-        memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(),
-            _headData->_blendshapeCoefficients.size() * sizeof(float));
+        // followed by a variable number of float coefficients
+        memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(), _headData->_blendshapeCoefficients.size() * sizeof(float));
         destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
 
-    // pupil dilation
-    destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
+    QReadLocker readLock(&_jointDataLock);
 
     // joint rotation data
     *destinationBuffer++ = _jointData.size();
@@ -293,7 +286,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     _lastSentJointData.resize(_jointData.size());
 
     for (int i=0; i < _jointData.size(); i++) {
-        const JointData& data = _jointData.at(i);
+        const JointData& data = _jointData[i];
         if (sendAll || _lastSentJointData[i].rotation != data.rotation) {
             if (sendAll ||
                 !cullSmallChanges ||
@@ -318,9 +311,9 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     validityBit = 0;
     validity = *validityPosition++;
     for (int i = 0; i < _jointData.size(); i ++) {
-        const JointData& data = _jointData[ i ];
+        const JointData& data = _jointData[i];
         if (validity & (1 << validityBit)) {
-            destinationBuffer += packOrientationQuatToBytes(destinationBuffer, data.rotation);
+            destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
         }
         if (++validityBit == BITS_IN_BYTE) {
             validityBit = 0;
@@ -341,7 +334,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
 
     float maxTranslationDimension = 0.0;
     for (int i=0; i < _jointData.size(); i++) {
-        const JointData& data = _jointData.at(i);
+        const JointData& data = _jointData[i];
         if (sendAll || _lastSentJointData[i].translation != data.translation) {
             if (sendAll ||
                 !cullSmallChanges ||
@@ -363,23 +356,17 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         }
     }
 
-
     if (validityBit != 0) {
         *destinationBuffer++ = validity;
     }
 
-    // TODO -- automatically pick translationCompressionRadix
-    int translationCompressionRadix = 12;
-
-    *destinationBuffer++ = translationCompressionRadix;
-
     validityBit = 0;
     validity = *validityPosition++;
     for (int i = 0; i < _jointData.size(); i ++) {
-        const JointData& data = _jointData[ i ];
+        const JointData& data = _jointData[i];
         if (validity & (1 << validityBit)) {
             destinationBuffer +=
-                packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, translationCompressionRadix);
+                packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
         }
         if (++validityBit == BITS_IN_BYTE) {
             validityBit = 0;
@@ -387,12 +374,21 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         }
     }
 
+    // faux joints
+    Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
+    destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerLeftHandTransform.getRotation());
+    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerLeftHandTransform.getTranslation(),
+                                                           TRANSLATION_COMPRESSION_RADIX);
+    Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
+    destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerRightHandTransform.getRotation());
+    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
+                                                           TRANSLATION_COMPRESSION_RADIX);
+
     #ifdef WANT_DEBUG
     if (sendAll) {
         qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
                  << "rotations:" << rotationSentCount << "translations:" << translationSentCount
                  << "largest:" << maxTranslationDimension
-                 << "radix:" << translationCompressionRadix
                  << "size:"
                  << (beforeRotations - startPosition) << "+"
                  << (beforeTranslations - beforeRotations) << "+"
@@ -406,6 +402,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
 
 void AvatarData::doneEncoding(bool cullSmallChanges) {
     // The server has finished sending this version of the joint-data to other nodes.  Update _lastSentJointData.
+    QReadLocker readLock(&_jointDataLock);
     _lastSentJointData.resize(_jointData.size());
     for (int i = 0; i < _jointData.size(); i ++) {
         const JointData& data = _jointData[ i ];
@@ -429,6 +426,12 @@ void AvatarData::doneEncoding(bool cullSmallChanges) {
 }
 
 bool AvatarData::shouldLogError(const quint64& now) {
+#ifdef WANT_DEBUG
+    if (now > 0) {
+        return true;
+    }
+#endif
+
     if (now > _errorLogExpiry) {
         _errorLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
         return true;
@@ -436,127 +439,117 @@ bool AvatarData::shouldLogError(const quint64& now) {
     return false;
 }
 
+
+const unsigned char* unpackFauxJoint(const unsigned char* sourceBuffer, ThreadSafeValueCache<glm::mat4>& matrixCache) {
+    glm::quat orientation;
+    glm::vec3 position;
+    Transform transform;
+    sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, orientation);
+    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, position, TRANSLATION_COMPRESSION_RADIX);
+    transform.setTranslation(position);
+    transform.setRotation(orientation);
+    matrixCache.set(transform.getMatrix());
+    return sourceBuffer;
+}
+
+
+#define PACKET_READ_CHECK(ITEM_NAME, SIZE_TO_READ)                                        \
+    if ((endPosition - sourceBuffer) < (int)SIZE_TO_READ) {                               \
+        if (shouldLogError(now)) {                                                        \
+            qCWarning(avatars) << "AvatarData packet too small, attempting to read " <<   \
+                #ITEM_NAME << ", only " << (endPosition - sourceBuffer) <<                \
+                " bytes left, " << getSessionUUID();                                      \
+        }                                                                                 \
+        return buffer.size();                                                             \
+    }
+
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
-
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
     }
 
-    // lazily allocate memory for HandData in case we're not an Avatar instance
-    if (!_handData) {
-        _handData = new HandData(this);
-    }
-
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(buffer.data());
+    const unsigned char* endPosition = startPosition + buffer.size();
     const unsigned char* sourceBuffer = startPosition;
     quint64 now = usecTimestampNow();
 
-    // The absolute minimum size of the update data is as follows:
-    // 36 bytes of "plain old data" {
-    //     position      = 12 bytes
-    //     bodyYaw       =  2 (compressed float)
-    //     bodyPitch     =  2 (compressed float)
-    //     bodyRoll      =  2 (compressed float)
-    //     targetScale   =  2 (compressed float)
-    //     lookAt        = 12
-    //     audioLoudness =  4
-    // }
-    // + 1 byte for varying data
-    // + 1 byte for pupilSize
-    // + 1 byte for numJoints (0)
-    // = 39 bytes
-    int minPossibleSize = 39;
+    PACKET_READ_CHECK(Header, sizeof(AvatarDataPacket::Header));
+    auto header = reinterpret_cast<const AvatarDataPacket::Header*>(sourceBuffer);
+    sourceBuffer += sizeof(AvatarDataPacket::Header);
 
-    int maxAvailableSize = buffer.size();
-    if (minPossibleSize > maxAvailableSize) {
+    glm::vec3 position = glm::vec3(header->position[0], header->position[1], header->position[2]);
+    _globalPosition = glm::vec3(header->globalPosition[0], header->globalPosition[1], header->globalPosition[2]);
+    if (isNaN(position)) {
         if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet at the start; "
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize
-                << " maxAvailableSize = " << maxAvailableSize;
+            qCWarning(avatars) << "Discard AvatarData packet: position NaN, uuid " << getSessionUUID();
         }
-        // this packet is malformed so we report all bytes as consumed
-        return maxAvailableSize;
+        return buffer.size();
+    }
+    setLocalPosition(position);
+
+    float pitch, yaw, roll;
+    unpackFloatAngleFromTwoByte(header->localOrientation + 0, &yaw);
+    unpackFloatAngleFromTwoByte(header->localOrientation + 1, &pitch);
+    unpackFloatAngleFromTwoByte(header->localOrientation + 2, &roll);
+    if (isNaN(yaw) || isNaN(pitch) || isNaN(roll)) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "Discard AvatarData packet: localOriention is NaN, uuid " << getSessionUUID();
+        }
+        return buffer.size();
     }
 
-    { // Body world position, rotation, and scale
-        // position
-        glm::vec3 position;
-        memcpy(&position, sourceBuffer, sizeof(position));
-        sourceBuffer += sizeof(position);
+    glm::quat currentOrientation = getLocalOrientation();
+    glm::vec3 newEulerAngles(pitch, yaw, roll);
+    glm::quat newOrientation = glm::quat(glm::radians(newEulerAngles));
+    if (currentOrientation != newOrientation) {
+        _hasNewJointRotations = true;
+        setLocalOrientation(newOrientation);
+    }
 
-        if (glm::isnan(position.x) || glm::isnan(position.y) || glm::isnan(position.z)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::position; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
+    float scale;
+    unpackFloatRatioFromTwoByte((uint8_t*)&header->scale, scale);
+    if (isNaN(scale)) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "Discard AvatarData packet: scale NaN, uuid " << getSessionUUID();
         }
-        setPosition(position);
+        return buffer.size();
+    }
+    _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, scale));
 
-        // rotation (NOTE: This needs to become a quaternion to save two bytes)
-        float yaw, pitch, roll;
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &yaw);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &pitch);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &roll);
-        if (glm::isnan(yaw) || glm::isnan(pitch) || glm::isnan(roll)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::yaw,pitch,roll; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
+    glm::vec3 lookAt = glm::vec3(header->lookAtPosition[0], header->lookAtPosition[1], header->lookAtPosition[2]);
+    if (isNaN(lookAt)) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "Discard AvatarData packet: lookAtPosition is NaN, uuid " << getSessionUUID();
         }
-        if (_bodyYaw != yaw || _bodyPitch != pitch || _bodyRoll != roll) {
-            _hasNewJointRotations = true;
-            _bodyYaw = yaw;
-            _bodyPitch = pitch;
-            _bodyRoll = roll;
-        }
+        return buffer.size();
+    }
+    _headData->_lookAtPosition = lookAt;
 
-        // scale
-        float scale;
-        sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, scale);
-        if (glm::isnan(scale)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::scale; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
+    float audioLoudness = header->audioLoudness;
+    if (isNaN(audioLoudness)) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "Discard AvatarData packet: audioLoudness is NaN, uuid " << getSessionUUID();
         }
-        _targetScale = scale;
-    } // 20 bytes
+        return buffer.size();
+    }
+    _headData->_audioLoudness = audioLoudness;
 
-    { // Lookat Position
-        glm::vec3 lookAt;
-        memcpy(&lookAt, sourceBuffer, sizeof(lookAt));
-        sourceBuffer += sizeof(lookAt);
-        if (glm::isnan(lookAt.x) || glm::isnan(lookAt.y) || glm::isnan(lookAt.z)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::lookAt; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-        }
-        _headData->_lookAtPosition = lookAt;
-    } // 12 bytes
+    glm::quat sensorToWorldQuat;
+    unpackOrientationQuatFromSixBytes(header->sensorToWorldQuat, sensorToWorldQuat);
+    float sensorToWorldScale;
+    unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&header->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
+    glm::vec3 sensorToWorldTrans(header->sensorToWorldTrans[0], header->sensorToWorldTrans[1], header->sensorToWorldTrans[2]);
+    glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
 
-    { // AudioLoudness
-        // Instantaneous audio loudness (used to drive facial animation)
-        float audioLoudness;
-        memcpy(&audioLoudness, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-        if (glm::isnan(audioLoudness)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::audioLoudness; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-         }
-        _headData->_audioLoudness = audioLoudness;
-    } // 4 bytes
+    _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
 
     { // bitFlags and face data
-        unsigned char bitItems = *sourceBuffer++;
+        uint8_t bitItems = header->flags;
 
         // key state, stored as a semi-nibble in the bitItems
-        _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
+        _keyState = (KeyState)getSemiNibbleAt(bitItems, KEY_STATE_START_BIT);
 
         // hand state, stored as a semi-nibble plus a bit in the bitItems
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
@@ -572,103 +565,46 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->_isEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
 
-        // Referential
         if (hasReferential) {
-            Referential* ref = new Referential(sourceBuffer, this);
-            if (_referential == NULL ||
-                ref->version() != _referential->version()) {
-                changeReferential(ref);
-            } else {
-                delete ref;
-            }
-            _referential->update();
-        } else if (_referential != NULL) {
-            changeReferential(NULL);
-        }
+            PACKET_READ_CHECK(ParentInfo, sizeof(AvatarDataPacket::ParentInfo));
+            auto parentInfo = reinterpret_cast<const AvatarDataPacket::ParentInfo*>(sourceBuffer);
+            sourceBuffer += sizeof(AvatarDataPacket::ParentInfo);
 
+            QByteArray byteArray((const char*)parentInfo->parentUUID, NUM_BYTES_RFC4122_UUID);
+            _parentID = QUuid::fromRfc4122(byteArray);
+            _parentJointIndex = parentInfo->parentJointIndex;
+        } else {
+            _parentID = QUuid();
+        }
 
         if (_headData->_isFaceTrackerConnected) {
-            float leftEyeBlink, rightEyeBlink, averageLoudness, browAudioLift;
-            minPossibleSize += sizeof(leftEyeBlink) + sizeof(rightEyeBlink) + sizeof(averageLoudness) + sizeof(browAudioLift);
-            minPossibleSize++; // one byte for blendDataSize
-            if (minPossibleSize > maxAvailableSize) {
-                if (shouldLogError(now)) {
-                    qCDebug(avatars) << "Malformed AvatarData packet after BitItems;"
-                        << " displayName = '" << _displayName << "'"
-                        << " minPossibleSize = " << minPossibleSize
-                        << " maxAvailableSize = " << maxAvailableSize;
-                }
-                return maxAvailableSize;
-            }
-            // unpack face data
-            memcpy(&leftEyeBlink, sourceBuffer, sizeof(float));
-            sourceBuffer += sizeof(float);
+            PACKET_READ_CHECK(FaceTrackerInfo, sizeof(AvatarDataPacket::FaceTrackerInfo));
+            auto faceTrackerInfo = reinterpret_cast<const AvatarDataPacket::FaceTrackerInfo*>(sourceBuffer);
+            sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
 
-            memcpy(&rightEyeBlink, sourceBuffer, sizeof(float));
-            sourceBuffer += sizeof(float);
+            _headData->_leftEyeBlink = faceTrackerInfo->leftEyeBlink;
+            _headData->_rightEyeBlink = faceTrackerInfo->rightEyeBlink;
+            _headData->_averageLoudness = faceTrackerInfo->averageLoudness;
+            _headData->_browAudioLift = faceTrackerInfo->browAudioLift;
 
-            memcpy(&averageLoudness, sourceBuffer, sizeof(float));
-            sourceBuffer += sizeof(float);
-
-            memcpy(&browAudioLift, sourceBuffer, sizeof(float));
-            sourceBuffer += sizeof(float);
-
-            if (glm::isnan(leftEyeBlink) || glm::isnan(rightEyeBlink)
-                    || glm::isnan(averageLoudness) || glm::isnan(browAudioLift)) {
-                if (shouldLogError(now)) {
-                    qCDebug(avatars) << "Discard nan AvatarData::faceData; displayName = '" << _displayName << "'";
-                }
-                return maxAvailableSize;
-            }
-            _headData->_leftEyeBlink = leftEyeBlink;
-            _headData->_rightEyeBlink = rightEyeBlink;
-            _headData->_averageLoudness = averageLoudness;
-            _headData->_browAudioLift = browAudioLift;
-
-            int numCoefficients = (int)(*sourceBuffer++);
-            int blendDataSize = numCoefficients * sizeof(float);
-            minPossibleSize += blendDataSize;
-            if (minPossibleSize > maxAvailableSize) {
-                if (shouldLogError(now)) {
-                    qCDebug(avatars) << "Malformed AvatarData packet after Blendshapes;"
-                        << " displayName = '" << _displayName << "'"
-                        << " minPossibleSize = " << minPossibleSize
-                        << " maxAvailableSize = " << maxAvailableSize;
-                }
-                return maxAvailableSize;
-            }
-
-            _headData->_blendshapeCoefficients.resize(numCoefficients);
-            memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, blendDataSize);
-            sourceBuffer += numCoefficients * sizeof(float);
-
-            //bitItemsDataSize = 4 * sizeof(float) + 1 + blendDataSize;
+            int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
+            const int coefficientsSize = sizeof(float) * numCoefficients;
+            PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
+            _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
+            memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
+            sourceBuffer += coefficientsSize;
         }
-    } // 1 + bitItemsDataSize bytes
-
-    { // pupil dilation
-        sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
-    } // 1 byte
-
-    // joint rotations
-    int numJoints = *sourceBuffer++;
-    int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
-    minPossibleSize += bytesOfValidity;
-    if (minPossibleSize > maxAvailableSize) {
-        if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet after JointValidityBits;"
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize
-                << " maxAvailableSize = " << maxAvailableSize;
-        }
-        return maxAvailableSize;
     }
-    int numValidJointRotations = 0;
-    _jointData.resize(numJoints);
 
+    PACKET_READ_CHECK(NumJoints, sizeof(uint8_t));
+    int numJoints = *sourceBuffer++;
+
+    const int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
+    PACKET_READ_CHECK(JointRotationValidityBits, bytesOfValidity);
+
+    int numValidJointRotations = 0;
     QVector<bool> validRotations;
     validRotations.resize(numJoints);
-
     { // rotation validity bits
         unsigned char validity = 0;
         int validityBit = 0;
@@ -683,38 +619,29 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             validRotations[i] = valid;
             validityBit = (validityBit + 1) % BITS_IN_BYTE;
         }
-    } // 1 + bytesOfValidity bytes
-
-    // each joint rotation component is stored in two bytes (sizeof(uint16_t))
-    int COMPONENTS_PER_QUATERNION = 4;
-    minPossibleSize += numValidJointRotations * COMPONENTS_PER_QUATERNION * sizeof(uint16_t);
-    if (minPossibleSize > maxAvailableSize) {
-        if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet after JointData rotation validity;"
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize
-                << " maxAvailableSize = " << maxAvailableSize;
-        }
-        return maxAvailableSize;
     }
 
-    { // joint data
-        for (int i = 0; i < numJoints; i++) {
-            JointData& data = _jointData[i];
-            if (validRotations[i]) {
-                _hasNewJointRotations = true;
-                data.rotationSet = true;
-                sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
-            }
-        }
-    } // numJoints * 8 bytes
+    // each joint rotation is stored in 6 bytes.
+    QWriteLocker writeLock(&_jointDataLock);
+    _jointData.resize(numJoints);
 
-    // joint translations
+    const int COMPRESSED_QUATERNION_SIZE = 6;
+    PACKET_READ_CHECK(JointRotations, numValidJointRotations * COMPRESSED_QUATERNION_SIZE);
+    for (int i = 0; i < numJoints; i++) {
+        JointData& data = _jointData[i];
+        if (validRotations[i]) {
+            sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
+            _hasNewJointRotations = true;
+            data.rotationSet = true;
+        }
+    }
+
+    PACKET_READ_CHECK(JointTranslationValidityBits, bytesOfValidity);
+
     // get translation validity bits -- these indicate which translations were packed
     int numValidJointTranslations = 0;
     QVector<bool> validTranslations;
     validTranslations.resize(numJoints);
-
     { // translation validity bits
         unsigned char validity = 0;
         int validityBit = 0;
@@ -731,40 +658,30 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
     } // 1 + bytesOfValidity bytes
 
-    // each joint translation component is stored in 6 bytes.  1 byte for translationCompressionRadix
-    minPossibleSize += numValidJointTranslations * 6 + 1;
-    if (minPossibleSize > maxAvailableSize) {
-        if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet after JointData translation validity;"
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize
-                << " maxAvailableSize = " << maxAvailableSize;
+    // each joint translation component is stored in 6 bytes.
+    const int COMPRESSED_TRANSLATION_SIZE = 6;
+    PACKET_READ_CHECK(JointTranslation, numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE);
+
+    for (int i = 0; i < numJoints; i++) {
+        JointData& data = _jointData[i];
+        if (validTranslations[i]) {
+            sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+            _hasNewJointTranslations = true;
+            data.translationSet = true;
         }
-        return maxAvailableSize;
     }
-
-    int translationCompressionRadix = *sourceBuffer++;
-
-    { // joint data
-        for (int i = 0; i < numJoints; i++) {
-            JointData& data = _jointData[i];
-            if (validTranslations[i]) {
-                sourceBuffer +=
-                    unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, translationCompressionRadix);
-                _hasNewJointTranslations = true;
-                data.translationSet = true;
-            }
-        }
-    } // numJoints * 12 bytes
 
     #ifdef WANT_DEBUG
     if (numValidJointRotations > 15) {
         qDebug() << "RECEIVING -- rotations:" << numValidJointRotations
                  << "translations:" << numValidJointTranslations
-                 << "radix:" << translationCompressionRadix
                  << "size:" << (int)(sourceBuffer - startPosition);
     }
     #endif
+
+    // faux joints
+    sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerLeftHandMatrixCache);
+    sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerRightHandMatrixCache);
 
     int numBytesRead = sourceBuffer - startPosition;
     _averageBytesReceived.updateAverage(numBytesRead);
@@ -779,176 +696,17 @@ int AvatarData::getReceiveRate() const {
     return lrint(1.0f / _averageBytesReceived.getEventDeltaAverage());
 }
 
-bool AvatarData::hasReferential() {
-    return _referential != NULL;
+std::shared_ptr<Transform> AvatarData::getRecordingBasis() const {
+    return _recordingBasis;
 }
 
-bool AvatarData::isPlaying() {
-    return _player && _player->isPlaying();
-}
-
-bool AvatarData::isPaused() {
-    return _player && _player->isPaused();
-}
-
-qint64 AvatarData::playerElapsed() {
-    if (!_player) {
-        return 0;
-    }
+void AvatarData::setRawJointData(QVector<JointData> data) {
     if (QThread::currentThread() != thread()) {
-        qint64 result;
-        QMetaObject::invokeMethod(this, "playerElapsed", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(qint64, result));
-        return result;
-    }
-    return _player->elapsed();
-}
-
-qint64 AvatarData::playerLength() {
-    if (!_player) {
-        return 0;
-    }
-    if (QThread::currentThread() != thread()) {
-        qint64 result;
-        QMetaObject::invokeMethod(this, "playerLength", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(qint64, result));
-        return result;
-    }
-    return _player->getRecording()->getLength();
-}
-
-int AvatarData::playerCurrentFrame() {
-    return (_player) ? _player->getCurrentFrame() : 0;
-}
-
-int AvatarData::playerFrameNumber() {
-    return (_player && _player->getRecording()) ? _player->getRecording()->getFrameNumber() : 0;
-}
-
-void AvatarData::loadRecording(QString filename) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
-                                  Q_ARG(QString, filename));
+        QMetaObject::invokeMethod(this, "setRawJointData", Q_ARG(QVector<JointData>, data));
         return;
     }
-    if (!_player) {
-        _player = QSharedPointer<Player>::create(this);
-    }
-
-    _player->loadFromFile(filename);
-}
-
-void AvatarData::startPlaying() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (!_player) {
-        _player = QSharedPointer<Player>::create(this);
-    }
-    _player->startPlaying();
-}
-
-void AvatarData::setPlayerVolume(float volume) {
-    if (_player) {
-        _player->setVolume(volume);
-    }
-}
-
-void AvatarData::setPlayerAudioOffset(int audioOffset) {
-    if (_player) {
-        _player->setAudioOffset(audioOffset);
-    }
-}
-
-void AvatarData::setPlayerFrame(unsigned int frame) {
-    if (_player) {
-        _player->setCurrentFrame(frame);
-    }
-}
-
-void AvatarData::setPlayerTime(unsigned int time) {
-    if (_player) {
-        _player->setCurrentTime(time);
-    }
-}
-
-void AvatarData::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
-    if (_player) {
-        _player->setPlayFromCurrentLocation(playFromCurrentLocation);
-    }
-}
-
-void AvatarData::setPlayerLoop(bool loop) {
-    if (_player) {
-        _player->setLoop(loop);
-    }
-}
-
-void AvatarData::setPlayerUseDisplayName(bool useDisplayName) {
-    if(_player) {
-        _player->useDisplayName(useDisplayName);
-    }
-}
-
-void AvatarData::setPlayerUseAttachments(bool useAttachments) {
-    if(_player) {
-        _player->useAttachements(useAttachments);
-    }
-}
-
-void AvatarData::setPlayerUseHeadModel(bool useHeadModel) {
-    if(_player) {
-        _player->useHeadModel(useHeadModel);
-    }
-}
-
-void AvatarData::setPlayerUseSkeletonModel(bool useSkeletonModel) {
-    if(_player) {
-        _player->useSkeletonModel(useSkeletonModel);
-    }
-}
-
-void AvatarData::play() {
-    if (isPlaying()) {
-        if (QThread::currentThread() != thread()) {
-            QMetaObject::invokeMethod(this, "play", Qt::BlockingQueuedConnection);
-            return;
-        }
-
-        _player->play();
-    }
-}
-
-void AvatarData::pausePlayer() {
-    if (!_player) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "pausePlayer", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (_player) {
-        _player->pausePlayer();
-    }
-}
-
-void AvatarData::stopPlaying() {
-    if (!_player) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopPlaying", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (_player) {
-        _player->stopPlaying();
-    }
-}
-
-void AvatarData::changeReferential(Referential* ref) {
-    delete _referential;
-    _referential = ref;
+    QWriteLocker writeLock(&_jointDataLock);
+    _jointData = data;
 }
 
 void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
@@ -959,12 +717,15 @@ void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::v
         QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
     JointData& data = _jointData[index];
     data.rotation = rotation;
+    data.rotationSet = true;
     data.translation = translation;
+    data.translationSet = true;
 }
 
 void AvatarData::clearJointData(int index) {
@@ -975,6 +736,8 @@ void AvatarData::clearJointData(int index) {
         QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
+    // FIXME: I don't understand how this "clears" the joint data at index
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
@@ -1003,6 +766,7 @@ glm::quat AvatarData::getJointRotation(int index) const {
             Q_RETURN_ARG(glm::quat, result), Q_ARG(int, index));
         return result;
     }
+    QReadLocker readLock(&_jointDataLock);
     return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
 }
 
@@ -1017,6 +781,7 @@ glm::vec3 AvatarData::getJointTranslation(int index) const {
             Q_RETURN_ARG(glm::vec3, result), Q_ARG(int, index));
         return result;
     }
+    QReadLocker readLock(&_jointDataLock);
     return index < _jointData.size() ? _jointData.at(index).translation : glm::vec3();
 }
 
@@ -1064,11 +829,13 @@ void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
         QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
     JointData& data = _jointData[index];
     data.rotation = rotation;
+    data.rotationSet = true;
 }
 
 void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
@@ -1079,11 +846,13 @@ void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
         QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
     JointData& data = _jointData[index];
     data.translation = translation;
+    data.translationSet = true;
 }
 
 void AvatarData::clearJointData(const QString& name) {
@@ -1122,6 +891,7 @@ QVector<glm::quat> AvatarData::getJointRotations() const {
                                   Q_RETURN_ARG(QVector<glm::quat>, result));
         return result;
     }
+    QReadLocker readLock(&_jointDataLock);
     QVector<glm::quat> jointRotations(_jointData.size());
     for (int i = 0; i < _jointData.size(); ++i) {
         jointRotations[i] = _jointData[i].rotation;
@@ -1136,6 +906,7 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
                                   "setJointRotations", Qt::BlockingQueuedConnection,
                                   Q_ARG(QVector<glm::quat>, jointRotations));
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() < jointRotations.size()) {
         _jointData.resize(jointRotations.size());
     }
@@ -1153,7 +924,7 @@ void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
                                   "setJointTranslations", Qt::BlockingQueuedConnection,
                                   Q_ARG(QVector<glm::vec3>, jointTranslations));
     }
-
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() < jointTranslations.size()) {
         _jointData.resize(jointTranslations.size());
     }
@@ -1165,39 +936,77 @@ void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
 }
 
 void AvatarData::clearJointsData() {
+    // FIXME: this method is terribly inefficient and probably doesn't even work
+    // (see implementation of clearJointData(index))
     for (int i = 0; i < _jointData.size(); ++i) {
         clearJointData(i);
     }
 }
 
-bool AvatarData::hasIdentityChangedAfterParsing(NLPacket& packet) {
-    QDataStream packetStream(&packet);
+int AvatarData::getFauxJointIndex(const QString& name) const {
+    if (name == "_SENSOR_TO_WORLD_MATRIX") {
+        return SENSOR_TO_WORLD_MATRIX_INDEX;
+    }
+    if (name == "_CONTROLLER_LEFTHAND") {
+        return CONTROLLER_LEFTHAND_INDEX;
+    }
+    if (name == "_CONTROLLER_RIGHTHAND") {
+        return CONTROLLER_RIGHTHAND_INDEX;
+    }
+    return -1;
+}
 
-    QUuid avatarUUID;
-    QUrl faceModelURL, skeletonModelURL;
-    QVector<AttachmentData> attachmentData;
-    QString displayName;
-    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL >> attachmentData >> displayName;
+int AvatarData::getJointIndex(const QString& name) const {
+    int result = getFauxJointIndex(name);
+    if (result != -1) {
+        return result;
+    }
+    QReadLocker readLock(&_jointDataLock);
+    return _jointIndices.value(name) - 1;
+}
 
+QStringList AvatarData::getJointNames() const {
+    QReadLocker readLock(&_jointDataLock);
+    return _jointNames;
+}
+
+void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
+    QDataStream packetStream(data);
+
+    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.avatarEntityData;
+}
+
+static const QUrl emptyURL("");
+const QUrl& AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) {
+    // We don't put file urls on the wire, but instead convert to empty.
+    return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
+}
+
+bool AvatarData::processAvatarIdentity(const Identity& identity) {
     bool hasIdentityChanged = false;
 
-    if (faceModelURL != _faceModelURL) {
-        setFaceModelURL(faceModelURL);
+    if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
+        setSkeletonModelURL(identity.skeletonModelURL);
+        hasIdentityChanged = true;
+        _firstSkeletonCheck = false;
+    }
+
+    if (identity.displayName != _displayName) {
+        setDisplayName(identity.displayName);
         hasIdentityChanged = true;
     }
 
-    if (skeletonModelURL != _skeletonModelURL) {
-        setSkeletonModelURL(skeletonModelURL);
+    if (identity.attachmentData != _attachmentData) {
+        setAttachmentData(identity.attachmentData);
         hasIdentityChanged = true;
     }
 
-    if (displayName != _displayName) {
-        setDisplayName(displayName);
-        hasIdentityChanged = true;
-    }
-
-    if (attachmentData != _attachmentData) {
-        setAttachmentData(attachmentData);
+    bool avatarEntityDataChanged = false;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
+    });
+    if (avatarEntityDataChanged) {
+        setAvatarEntityData(identity.avatarEntityData);
         hasIdentityChanged = true;
     }
 
@@ -1207,27 +1016,13 @@ bool AvatarData::hasIdentityChangedAfterParsing(NLPacket& packet) {
 QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    QUrl emptyURL("");
-    const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? emptyURL : _skeletonModelURL;
+    const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL);
 
-    identityStream << QUuid() << _faceModelURL << urlToSend << _attachmentData << _displayName;
+    _avatarEntitiesLock.withReadLock([&] {
+        identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _avatarEntityData;
+    });
 
     return identityData;
-}
-
-bool AvatarData::hasBillboardChangedAfterParsing(NLPacket& packet) {
-    QByteArray newBillboard = packet.readAll();
-    if (newBillboard == _billboard) {
-        return false;
-    }
-    _billboard = newBillboard;
-    return true;
-}
-
-void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
-    _faceModelURL = faceModelURL;
-
-    qCDebug(avatars) << "Changing face model for avatar to" << _faceModelURL.toString();
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
@@ -1236,7 +1031,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
         return;
     }
     _skeletonModelURL = expanded;
-    qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
+    qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
 }
@@ -1265,12 +1060,15 @@ void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData
     _attachmentData = attachmentData;
 }
 
-void AvatarData::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
-        const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
+void AvatarData::attach(const QString& modelURL, const QString& jointName,
+                        const glm::vec3& translation, const glm::quat& rotation,
+                        float scale, bool isSoft,
+                        bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "attach", Q_ARG(const QString&, modelURL), Q_ARG(const QString&, jointName),
-            Q_ARG(const glm::vec3&, translation), Q_ARG(const glm::quat&, rotation),
-            Q_ARG(float, scale), Q_ARG(bool, allowDuplicates), Q_ARG(bool, useSaved));
+                                  Q_ARG(const glm::vec3&, translation), Q_ARG(const glm::quat&, rotation),
+                                  Q_ARG(float, scale), Q_ARG(bool, isSoft),
+                                  Q_ARG(bool, allowDuplicates), Q_ARG(bool, useSaved));
         return;
     }
     QVector<AttachmentData> attachmentData = getAttachmentData();
@@ -1287,6 +1085,7 @@ void AvatarData::attach(const QString& modelURL, const QString& jointName, const
     data.translation = translation;
     data.rotation = rotation;
     data.scale = scale;
+    data.isSoft = isSoft;
     attachmentData.append(data);
     setAttachmentData(attachmentData);
 }
@@ -1297,7 +1096,7 @@ void AvatarData::detachOne(const QString& modelURL, const QString& jointName) {
         return;
     }
     QVector<AttachmentData> attachmentData = getAttachmentData();
-    for (QVector<AttachmentData>::iterator it = attachmentData.begin(); it != attachmentData.end(); it++) {
+    for (QVector<AttachmentData>::iterator it = attachmentData.begin(); it != attachmentData.end(); ++it) {
         if (it->modelURL == modelURL && (jointName.isEmpty() || it->jointName == jointName)) {
             attachmentData.erase(it);
             setAttachmentData(attachmentData);
@@ -1316,67 +1115,50 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
         if (it->modelURL == modelURL && (jointName.isEmpty() || it->jointName == jointName)) {
             it = attachmentData.erase(it);
         } else {
-            it++;
+            ++it;
         }
     }
     setAttachmentData(attachmentData);
 }
 
-void AvatarData::setBillboard(const QByteArray& billboard) {
-    _billboard = billboard;
-
-    qCDebug(avatars) << "Changing billboard for avatar.";
-}
-
-void AvatarData::setBillboardFromURL(const QString &billboardURL) {
-    _billboardURL = billboardURL;
-
-
-    qCDebug(avatars) << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
-
-    QNetworkRequest billboardRequest;
-    billboardRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    billboardRequest.setUrl(QUrl(billboardURL));
-
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkReply* networkReply = networkAccessManager.get(billboardRequest);
-    connect(networkReply, SIGNAL(finished()), this, SLOT(setBillboardFromNetworkReply()));
-}
-
-void AvatarData::setBillboardFromNetworkReply() {
-    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
-    setBillboard(networkReply->readAll());
-    networkReply->deleteLater();
-}
-
 void AvatarData::setJointMappingsFromNetworkReply() {
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
 
-    QByteArray line;
-    while (!(line = networkReply->readLine()).isEmpty()) {
-        if (!(line = line.trimmed()).startsWith("jointIndex")) {
-            continue;
-        }
-        int jointNameIndex = line.indexOf('=') + 1;
-        if (jointNameIndex == 0) {
-            continue;
-        }
-        int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
-        if (secondSeparatorIndex == -1) {
-            continue;
-        }
-        QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
-        bool ok;
-        int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
-        if (ok) {
-            while (_jointNames.size() < jointIndex + 1) {
-                _jointNames.append(QString());
+    {
+        QWriteLocker writeLock(&_jointDataLock);
+        QByteArray line;
+        while (!(line = networkReply->readLine()).isEmpty()) {
+            line = line.trimmed();
+            if (line.startsWith("filename")) {
+                int filenameIndex = line.indexOf('=') + 1;
+                    if (filenameIndex > 0) {
+                        _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
+                    }
+                }
+            if (!line.startsWith("jointIndex")) {
+                continue;
             }
-            _jointNames[jointIndex] = jointName;
+            int jointNameIndex = line.indexOf('=') + 1;
+            if (jointNameIndex == 0) {
+                continue;
+            }
+            int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
+            if (secondSeparatorIndex == -1) {
+                continue;
+            }
+            QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
+            bool ok;
+            int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
+            if (ok) {
+                while (_jointNames.size() < jointIndex + 1) {
+                    _jointNames.append(QString());
+                }
+                _jointNames[jointIndex] = jointName;
+            }
         }
-    }
-    for (int i = 0; i < _jointNames.size(); i++) {
-        _jointIndices.insert(_jointNames.at(i), i + 1);
+        for (int i = 0; i < _jointNames.size(); i++) {
+            _jointIndices.insert(_jointNames.at(i), i + 1);
+        }
     }
 
     networkReply->deleteLater();
@@ -1384,7 +1166,7 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
 void AvatarData::sendAvatarDataPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
-    
+
     // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
     // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
     bool sendFullUpdate = randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO;
@@ -1392,7 +1174,7 @@ void AvatarData::sendAvatarDataPacket() {
     doneEncoding(true);
 
     static AvatarDataSequenceNumber sequenceNumber = 0;
-    
+
     auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
     avatarPacket->writePrimitive(sequenceNumber++);
     avatarPacket->write(avatarByteArray);
@@ -1405,60 +1187,106 @@ void AvatarData::sendIdentityPacket() {
 
     QByteArray identityData = identityByteArray();
 
-    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, identityData.size());
-    identityPacket->write(identityData);
+    auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+    packetList->write(identityData);
+    nodeList->eachMatchingNode(
+        [&](const SharedNodePointer& node)->bool {
+            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+        },
+        [&](const SharedNodePointer& node) {
+            nodeList->sendPacketList(std::move(packetList), *node);
+        });
 
-    nodeList->broadcastToNodes(std::move(identityPacket), NodeSet() << NodeType::AvatarMixer);
-}
-
-void AvatarData::sendBillboardPacket() {
-    if (!_billboard.isEmpty()) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        
-        // This makes sure the billboard won't be too large to send.
-        // Once more protocol changes are done and we can send blocks of data we can support sending > MTU sized billboards.
-        if (_billboard.size() <= NLPacket::maxPayloadSize(PacketType::AvatarBillboard)) {
-            auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, _billboard.size());
-            billboardPacket->write(_billboard);
-            
-            nodeList->broadcastToNodes(std::move(billboardPacket), NodeSet() << NodeType::AvatarMixer);
-        }
-    }
+    _avatarEntityDataLocallyEdited = false;
 }
 
 void AvatarData::updateJointMappings() {
-    _jointIndices.clear();
-    _jointNames.clear();
+    {
+        QWriteLocker writeLock(&_jointDataLock);
+        _jointIndices.clear();
+        _jointNames.clear();
+        _jointData.clear();
+    }
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
+        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
-        connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
+        connect(networkReply, &QNetworkReply::finished, this, &AvatarData::setJointMappingsFromNetworkReply);
     }
 }
 
-AttachmentData::AttachmentData() :
-    scale(1.0f) {
+static const QString JSON_ATTACHMENT_URL = QStringLiteral("modelUrl");
+static const QString JSON_ATTACHMENT_JOINT_NAME = QStringLiteral("jointName");
+static const QString JSON_ATTACHMENT_TRANSFORM = QStringLiteral("transform");
+static const QString JSON_ATTACHMENT_IS_SOFT = QStringLiteral("isSoft");
+
+QJsonObject AttachmentData::toJson() const {
+    QJsonObject result;
+    if (modelURL.isValid() && !modelURL.isEmpty()) {
+        result[JSON_ATTACHMENT_URL] = modelURL.toString();
+    }
+    if (!jointName.isEmpty()) {
+        result[JSON_ATTACHMENT_JOINT_NAME] = jointName;
+    }
+    // FIXME the transform constructor that takes rot/scale/translation
+    // doesn't return the correct value for isIdentity()
+    Transform transform;
+    transform.setRotation(rotation);
+    transform.setScale(scale);
+    transform.setTranslation(translation);
+    if (!transform.isIdentity()) {
+        result[JSON_ATTACHMENT_TRANSFORM] = Transform::toJson(transform);
+    }
+    result[JSON_ATTACHMENT_IS_SOFT] = isSoft;
+    return result;
+}
+
+void AttachmentData::fromJson(const QJsonObject& json) {
+    if (json.contains(JSON_ATTACHMENT_URL)) {
+        const QString modelURLTemp = json[JSON_ATTACHMENT_URL].toString();
+        if (modelURLTemp != modelURL.toString()) {
+            modelURL = modelURLTemp;
+        }
+    }
+
+    if (json.contains(JSON_ATTACHMENT_JOINT_NAME)) {
+        const QString jointNameTemp = json[JSON_ATTACHMENT_JOINT_NAME].toString();
+        if (jointNameTemp != jointName) {
+            jointName = jointNameTemp;
+        }
+    }
+
+    if (json.contains(JSON_ATTACHMENT_TRANSFORM)) {
+        Transform transform = Transform::fromJson(json[JSON_ATTACHMENT_TRANSFORM]);
+        translation = transform.getTranslation();
+        rotation = transform.getRotation();
+        scale = transform.getScale().x;
+    }
+
+    if (json.contains(JSON_ATTACHMENT_IS_SOFT)) {
+        isSoft = json[JSON_ATTACHMENT_IS_SOFT].toBool();
+    }
 }
 
 bool AttachmentData::operator==(const AttachmentData& other) const {
     return modelURL == other.modelURL && jointName == other.jointName && translation == other.translation &&
-        rotation == other.rotation && scale == other.scale;
+        rotation == other.rotation && scale == other.scale && isSoft == other.isSoft;
 }
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment) {
     return out << attachment.modelURL << attachment.jointName <<
-        attachment.translation << attachment.rotation << attachment.scale;
+        attachment.translation << attachment.rotation << attachment.scale << attachment.isSoft;
 }
 
 QDataStream& operator>>(QDataStream& in, AttachmentData& attachment) {
     return in >> attachment.modelURL >> attachment.jointName >>
-        attachment.translation >> attachment.rotation >> attachment.scale;
+        attachment.translation >> attachment.rotation >> attachment.scale >> attachment.isSoft;
 }
 
-void AttachmentDataObject::setModelURL(const QString& modelURL) const {
+void AttachmentDataObject::setModelURL(const QString& modelURL) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.modelURL = modelURL;
     thisObject() = engine()->toScriptValue(data);
@@ -1468,7 +1296,7 @@ QString AttachmentDataObject::getModelURL() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).modelURL.toString();
 }
 
-void AttachmentDataObject::setJointName(const QString& jointName) const {
+void AttachmentDataObject::setJointName(const QString& jointName) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.jointName = jointName;
     thisObject() = engine()->toScriptValue(data);
@@ -1478,7 +1306,7 @@ QString AttachmentDataObject::getJointName() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).jointName;
 }
 
-void AttachmentDataObject::setTranslation(const glm::vec3& translation) const {
+void AttachmentDataObject::setTranslation(const glm::vec3& translation) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.translation = translation;
     thisObject() = engine()->toScriptValue(data);
@@ -1488,7 +1316,7 @@ glm::vec3 AttachmentDataObject::getTranslation() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).translation;
 }
 
-void AttachmentDataObject::setRotation(const glm::quat& rotation) const {
+void AttachmentDataObject::setRotation(const glm::quat& rotation) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.rotation = rotation;
     thisObject() = engine()->toScriptValue(data);
@@ -1498,7 +1326,7 @@ glm::quat AttachmentDataObject::getRotation() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).rotation;
 }
 
-void AttachmentDataObject::setScale(float scale) const {
+void AttachmentDataObject::setScale(float scale) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.scale = scale;
     thisObject() = engine()->toScriptValue(data);
@@ -1508,9 +1336,493 @@ float AttachmentDataObject::getScale() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).scale;
 }
 
+void AttachmentDataObject::setIsSoft(bool isSoft) {
+    AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
+    data.isSoft = isSoft;
+    thisObject() = engine()->toScriptValue(data);
+}
+
+bool AttachmentDataObject::getIsSoft() const {
+    return qscriptvalue_cast<AttachmentData>(thisObject()).isSoft;
+}
+
 void registerAvatarTypes(QScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<AttachmentData> >(engine);
     engine->setDefaultPrototype(qMetaTypeId<AttachmentData>(), engine->newQObject(
         new AttachmentDataObject(), QScriptEngine::ScriptOwnership));
 }
 
+void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
+    if (!recordingBasis) {
+        recordingBasis = std::make_shared<Transform>();
+        recordingBasis->setRotation(getOrientation());
+        recordingBasis->setTranslation(getPosition());
+        // TODO: find a  different way to record/playback the Scale of the avatar
+        //recordingBasis->setScale(getTargetScale());
+    }
+    _recordingBasis = recordingBasis;
+}
+
+void AvatarData::clearRecordingBasis() {
+    _recordingBasis.reset();
+}
+
+static const QString JSON_AVATAR_BASIS = QStringLiteral("basisTransform");
+static const QString JSON_AVATAR_RELATIVE = QStringLiteral("relativeTransform");
+static const QString JSON_AVATAR_JOINT_ARRAY = QStringLiteral("jointArray");
+static const QString JSON_AVATAR_HEAD = QStringLiteral("head");
+static const QString JSON_AVATAR_HEAD_MODEL = QStringLiteral("headModel");
+static const QString JSON_AVATAR_BODY_MODEL = QStringLiteral("bodyModel");
+static const QString JSON_AVATAR_DISPLAY_NAME = QStringLiteral("displayName");
+static const QString JSON_AVATAR_ATTACHEMENTS = QStringLiteral("attachments");
+static const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
+static const QString JSON_AVATAR_SCALE = QStringLiteral("scale");
+static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
+
+static const int JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION = 0;
+static const int JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION = 1;
+
+QJsonValue toJsonValue(const JointData& joint) {
+    QJsonArray result;
+    result.push_back(toJsonValue(joint.rotation));
+    result.push_back(toJsonValue(joint.translation));
+    return result;
+}
+
+JointData jointDataFromJsonValue(const QJsonValue& json) {
+    JointData result;
+    if (json.isArray()) {
+        QJsonArray array = json.toArray();
+        result.rotation = quatFromJsonValue(array[0]);
+        result.rotationSet = true;
+        result.translation = vec3FromJsonValue(array[1]);
+        result.translationSet = false;
+    }
+    return result;
+}
+
+QJsonObject AvatarData::toJson() const {
+    QJsonObject root;
+
+    root[JSON_AVATAR_VERSION] = JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION;
+
+    if (!getSkeletonModelURL().isEmpty()) {
+        root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
+    }
+    if (!getDisplayName().isEmpty()) {
+        root[JSON_AVATAR_DISPLAY_NAME] = getDisplayName();
+    }
+    if (!getAttachmentData().isEmpty()) {
+        QJsonArray attachmentsJson;
+        for (auto attachment : getAttachmentData()) {
+            attachmentsJson.push_back(attachment.toJson());
+        }
+        root[JSON_AVATAR_ATTACHEMENTS] = attachmentsJson;
+    }
+
+    _avatarEntitiesLock.withReadLock([&] {
+        if (!_avatarEntityData.empty()) {
+            QJsonArray avatarEntityJson;
+            for (auto entityID : _avatarEntityData.keys()) {
+                QVariantMap entityData;
+                entityData.insert("id", entityID);
+                entityData.insert("properties", _avatarEntityData.value(entityID));
+                avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
+            }
+            root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
+        }
+    });
+
+    auto recordingBasis = getRecordingBasis();
+    bool success;
+    Transform avatarTransform = getTransform(success);
+    if (!success) {
+        qDebug() << "Warning -- AvatarData::toJson couldn't get avatar transform";
+    }
+    avatarTransform.setScale(getTargetScale());
+    if (recordingBasis) {
+        root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
+        // Find the relative transform
+        auto relativeTransform = recordingBasis->relativeTransform(avatarTransform);
+        if (!relativeTransform.isIdentity()) {
+            root[JSON_AVATAR_RELATIVE] = Transform::toJson(relativeTransform);
+        }
+    } else {
+        root[JSON_AVATAR_RELATIVE] = Transform::toJson(avatarTransform);
+    }
+
+    auto scale = getTargetScale();
+    if (scale != 1.0f) {
+        root[JSON_AVATAR_SCALE] = scale;
+    }
+
+    // Skeleton pose
+    QJsonArray jointArray;
+    for (const auto& joint : getRawJointData()) {
+        jointArray.push_back(toJsonValue(joint));
+    }
+    root[JSON_AVATAR_JOINT_ARRAY] = jointArray;
+
+    const HeadData* head = getHeadData();
+    if (head) {
+        auto headJson = head->toJson();
+        if (!headJson.isEmpty()) {
+            root[JSON_AVATAR_HEAD] = headJson;
+        }
+    }
+    return root;
+}
+
+void AvatarData::fromJson(const QJsonObject& json) {
+
+    int version;
+    if (json.contains(JSON_AVATAR_VERSION)) {
+        version = json[JSON_AVATAR_VERSION].toInt();
+    } else {
+        // initial data did not have a version field.
+        version = JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION;
+    }
+
+    // The head setOrientation likes to overwrite the avatar orientation,
+    // so lets do the head first
+    // Most head data is relative to the avatar, and needs no basis correction,
+    // but the lookat vector does need correction
+    if (json.contains(JSON_AVATAR_HEAD)) {
+        if (!_headData) {
+            _headData = new HeadData(this);
+        }
+        _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
+    }
+
+    if (json.contains(JSON_AVATAR_BODY_MODEL)) {
+        auto bodyModelURL = json[JSON_AVATAR_BODY_MODEL].toString();
+        if (bodyModelURL != getSkeletonModelURL().toString()) {
+            setSkeletonModelURL(bodyModelURL);
+        }
+    }
+    if (json.contains(JSON_AVATAR_DISPLAY_NAME)) {
+        auto newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
+        if (newDisplayName != getDisplayName()) {
+            setDisplayName(newDisplayName);
+        }
+    }
+
+    if (json.contains(JSON_AVATAR_RELATIVE)) {
+        // During playback you can either have the recording basis set to the avatar current state
+        // meaning that all playback is relative to this avatars starting position, or
+        // the basis can be loaded from the recording, meaning the playback is relative to the
+        // original avatar location
+        // The first is more useful for playing back recordings on your own avatar, while
+        // the latter is more useful for playing back other avatars within your scene.
+
+        auto currentBasis = getRecordingBasis();
+        if (!currentBasis) {
+            currentBasis = std::make_shared<Transform>(Transform::fromJson(json[JSON_AVATAR_BASIS]));
+        }
+
+        auto relativeTransform = Transform::fromJson(json[JSON_AVATAR_RELATIVE]);
+        auto worldTransform = currentBasis->worldTransform(relativeTransform);
+        setPosition(worldTransform.getTranslation());
+        setOrientation(worldTransform.getRotation());
+    }
+
+    if (json.contains(JSON_AVATAR_SCALE)) {
+        setTargetScale((float)json[JSON_AVATAR_SCALE].toDouble());
+    }
+
+    if (json.contains(JSON_AVATAR_ATTACHEMENTS) && json[JSON_AVATAR_ATTACHEMENTS].isArray()) {
+        QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHEMENTS].toArray();
+        QVector<AttachmentData> attachments;
+        for (auto attachmentJson : attachmentsJson) {
+            AttachmentData attachment;
+            attachment.fromJson(attachmentJson.toObject());
+            attachments.push_back(attachment);
+        }
+        setAttachmentData(attachments);
+    }
+
+    // if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
+    //     QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHEMENTS].toArray();
+    //     for (auto attachmentJson : attachmentsJson) {
+    //         // TODO -- something
+    //     }
+    // }
+
+    if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
+        if (version == JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION) {
+            // because we don't have the full joint hierarchy skeleton of the model,
+            // we can't properly convert from relative rotations into absolute rotations.
+            quint64 now = usecTimestampNow();
+            if (shouldLogError(now)) {
+                qCWarning(avatars) << "Version 0 avatar recordings not supported. using default rotations";
+            }
+        } else {
+            QVector<JointData> jointArray;
+            QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
+            jointArray.reserve(jointArrayJson.size());
+            int i = 0;
+            for (const auto& jointJson : jointArrayJson) {
+                auto joint = jointDataFromJsonValue(jointJson);
+                jointArray.push_back(joint);
+                setJointData(i, joint.rotation, joint.translation);
+                i++;
+            }
+            setRawJointData(jointArray);
+        }
+    }
+}
+
+// Every frame will store both a basis for the recording and a relative transform
+// This allows the application to decide whether playback should be relative to an avatar's
+// transform at the start of playback, or relative to the transform of the recorded
+// avatar
+QByteArray AvatarData::toFrame(const AvatarData& avatar) {
+    QJsonObject root = avatar.toJson();
+#ifdef WANT_JSON_DEBUG
+    {
+        QJsonObject obj = root;
+        obj.remove(JSON_AVATAR_JOINT_ARRAY);
+        qDebug().noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
+    }
+#endif
+    return QJsonDocument(root).toBinaryData();
+}
+
+
+void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
+    QJsonDocument doc = QJsonDocument::fromBinaryData(frameData);
+#ifdef WANT_JSON_DEBUG
+    {
+        QJsonObject obj = doc.object();
+        obj.remove(JSON_AVATAR_JOINT_ARRAY);
+        qDebug().noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
+    }
+#endif
+    result.fromJson(doc.object());
+}
+
+float AvatarData::getBodyYaw() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.y;
+}
+
+void AvatarData::setBodyYaw(float bodyYaw) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.y = bodyYaw;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+float AvatarData::getBodyPitch() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.x;
+}
+
+void AvatarData::setBodyPitch(float bodyPitch) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.x = bodyPitch;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+float AvatarData::getBodyRoll() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.z;
+}
+
+void AvatarData::setBodyRoll(float bodyRoll) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.z = bodyRoll;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+void AvatarData::setPosition(const glm::vec3& position) {
+    SpatiallyNestable::setPosition(position);
+}
+
+void AvatarData::setOrientation(const glm::quat& orientation) {
+    SpatiallyNestable::setOrientation(orientation);
+}
+
+glm::quat AvatarData::getAbsoluteJointRotationInObjectFrame(int index) const {
+    assert(false);
+    return glm::quat();
+}
+
+glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    assert(false);
+    return glm::vec3();
+}
+
+QVariant AttachmentData::toVariant() const {
+    QVariantMap result;
+    result["modelUrl"] = modelURL;
+    result["jointName"] = jointName;
+    result["translation"] = glmToQMap(translation);
+    result["rotation"] = glmToQMap(glm::degrees(safeEulerAngles(rotation)));
+    result["scale"] = scale;
+    result["soft"] = isSoft;
+    return result;
+}
+
+glm::vec3 variantToVec3(const QVariant& var) {
+    auto map = var.toMap();
+    glm::vec3 result;
+    result.x = map["x"].toFloat();
+    result.y = map["y"].toFloat();
+    result.z = map["z"].toFloat();
+    return result;
+}
+
+void AttachmentData::fromVariant(const QVariant& variant) {
+    auto map = variant.toMap();
+    if (map.contains("modelUrl")) {
+        auto urlString = map["modelUrl"].toString();
+        modelURL = urlString;
+    }
+    if (map.contains("jointName")) {
+        jointName = map["jointName"].toString();
+    }
+    if (map.contains("translation")) {
+        translation = variantToVec3(map["translation"]);
+    }
+    if (map.contains("rotation")) {
+        rotation = glm::quat(glm::radians(variantToVec3(map["rotation"])));
+    }
+    if (map.contains("scale")) {
+        scale = map["scale"].toFloat();
+    }
+    if (map.contains("soft")) {
+        isSoft = map["soft"].toBool();
+    }
+}
+
+QVariantList AvatarData::getAttachmentsVariant() const {
+    QVariantList result;
+    for (const auto& attachment : getAttachmentData()) {
+        result.append(attachment.toVariant());
+    }
+    return result;
+}
+
+void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
+    QVector<AttachmentData> newAttachments;
+    newAttachments.reserve(variant.size());
+    for (const auto& attachmentVar : variant) {
+        AttachmentData attachment;
+        attachment.fromVariant(attachmentVar);
+        if (!attachment.modelURL.isEmpty()) {
+            newAttachments.append(attachment);
+        }
+    }
+    setAttachmentData(newAttachments);
+}
+
+void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updateAvatarEntity", Q_ARG(const QUuid&, entityID), Q_ARG(QByteArray, entityData));
+        return;
+    }
+    _avatarEntitiesLock.withWriteLock([&] {
+        _avatarEntityData.insert(entityID, entityData);
+        _avatarEntityDataLocallyEdited = true;
+    });
+}
+
+void AvatarData::clearAvatarEntity(const QUuid& entityID) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearAvatarEntity", Q_ARG(const QUuid&, entityID));
+        return;
+    }
+
+    _avatarEntitiesLock.withWriteLock([&] {
+        _avatarEntityData.remove(entityID);
+        _avatarEntityDataLocallyEdited = true;
+    });
+}
+
+AvatarEntityMap AvatarData::getAvatarEntityData() const {
+    AvatarEntityMap result;
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAvatarEntityData", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(AvatarEntityMap, result));
+        return result;
+    }
+
+    _avatarEntitiesLock.withReadLock([&] {
+        result = _avatarEntityData;
+    });
+    return result;
+}
+
+void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setAvatarEntityData", Q_ARG(const AvatarEntityMap&, avatarEntityData));
+        return;
+    }
+    _avatarEntitiesLock.withWriteLock([&] {
+        if (_avatarEntityData != avatarEntityData) {
+            // keep track of entities that were attached to this avatar but no longer are
+            AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
+
+            _avatarEntityData = avatarEntityData;
+            setAvatarEntityDataChanged(true);
+
+            foreach (auto entityID, previousAvatarEntityIDs) {
+                if (!_avatarEntityData.contains(entityID)) {
+                    _avatarEntityDetached.insert(entityID);
+                }
+            }
+        }
+    });
+}
+
+AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
+    AvatarEntityIDs result;
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(AvatarEntityIDs, result));
+        return result;
+    }
+    _avatarEntitiesLock.withWriteLock([&] {
+        result = _avatarEntityDetached;
+        _avatarEntityDetached.clear();
+    });
+    return result;
+}
+
+// thread-safe
+glm::mat4 AvatarData::getSensorToWorldMatrix() const {
+    return _sensorToWorldMatrixCache.get();
+}
+
+// thread-safe
+glm::mat4 AvatarData::getControllerLeftHandMatrix() const {
+    return _controllerLeftHandMatrixCache.get();
+}
+
+// thread-safe
+glm::mat4 AvatarData::getControllerRightHandMatrix() const {
+    return _controllerRightHandMatrixCache.get();
+}
+
+
+QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    QScriptValue avatarIDValue = quuidToScriptValue(engine, value.avatarID);
+    obj.setProperty("avatarID", avatarIDValue);
+    obj.setProperty("distance", value.distance);
+    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    obj.setProperty("intersection", intersection);
+    return obj;
+}
+
+void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    QScriptValue avatarIDValue = object.property("avatarID");
+    quuidFromScriptValue(avatarIDValue, value.avatarID);
+    value.distance = object.property("distance").toVariant().toFloat();
+    QScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
+        vec3FromScriptValue(intersection, value.intersection);
+    }
+}

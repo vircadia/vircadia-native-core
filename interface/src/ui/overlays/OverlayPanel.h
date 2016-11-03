@@ -16,7 +16,6 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <QScriptValue>
 #include <QUuid>
 
 #include "PanelAttachable.h"
@@ -30,8 +29,8 @@ public:
     QUuid entity;
 };
 
-QScriptValue propertyBindingToScriptValue(QScriptEngine* engine, const PropertyBinding& value);
-void propertyBindingFromScriptValue(const QScriptValue& object, PropertyBinding& value);
+QVariant propertyBindingToVariant(const PropertyBinding& value);
+void propertyBindingFromVariant(const QVariant& object, PropertyBinding& value);
 
 
 class OverlayPanel : public QObject, public PanelAttachable, public Billboardable {
@@ -60,10 +59,10 @@ public:
     void removeChild(unsigned int childId);
     unsigned int popLastChild() { return _children.takeLast(); }
 
-    QScriptValue getProperty(const QString& property);
-    void setProperties(const QScriptValue& properties);
+    void setProperties(const QVariantMap& properties);
+    QVariant getProperty(const QString& property);
 
-    virtual void applyTransformTo(Transform& transform, bool force = false);
+    virtual void applyTransformTo(Transform& transform, bool force = false) override;
 
 private:
     Transform _anchorTransform;

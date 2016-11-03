@@ -22,17 +22,18 @@
 
 #include "AACube.h"
 #include "OctalCode.h"
+#include "Octree.h"
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
-#include "Octree.h"
 #include "OctreeLogging.h"
+#include "OctreeUtils.h"
 #include "SharedUtil.h"
 
-quint64 OctreeElement::_octreeMemoryUsage = 0;
-quint64 OctreeElement::_octcodeMemoryUsage = 0;
-quint64 OctreeElement::_externalChildrenMemoryUsage = 0;
-quint64 OctreeElement::_voxelNodeCount = 0;
-quint64 OctreeElement::_voxelNodeLeafCount = 0;
+AtomicUIntStat OctreeElement::_octreeMemoryUsage { 0 };
+AtomicUIntStat OctreeElement::_octcodeMemoryUsage { 0 };
+AtomicUIntStat OctreeElement::_externalChildrenMemoryUsage { 0 };
+AtomicUIntStat OctreeElement::_voxelNodeCount { 0 };
+AtomicUIntStat OctreeElement::_voxelNodeLeafCount { 0 };
 
 void OctreeElement::resetPopulationStatistics() {
     _voxelNodeCount = 0;
@@ -95,10 +96,6 @@ void OctreeElement::init(unsigned char * octalCode) {
 }
 
 OctreeElement::~OctreeElement() {
-    // We can't call notifyDeleteHooks from here:
-    //   notifyDeleteHooks();
-    // see comment in EntityTreeElement::createNewElement.
-    assert(_deleteHooksNotified);
     _voxelNodeCount--;
     if (isLeaf()) {
         _voxelNodeLeafCount--;
@@ -115,7 +112,6 @@ OctreeElement::~OctreeElement() {
 
 void OctreeElement::markWithChangedTime() {
     _lastChanged = usecTimestampNow();
-    notifyUpdateHooks(); // if the node has changed, notify our hooks
 }
 
 // This method is called by Octree when the subtree below this node
@@ -245,13 +241,12 @@ bool OctreeElement::isParentOf(OctreeElementPointer possibleChild) const {
     return false;
 }
 
-quint64 OctreeElement::_getChildAtIndexTime = 0;
-quint64 OctreeElement::_getChildAtIndexCalls = 0;
-quint64 OctreeElement::_setChildAtIndexTime = 0;
-quint64 OctreeElement::_setChildAtIndexCalls = 0;
-
-quint64 OctreeElement::_externalChildrenCount = 0;
-quint64 OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+AtomicUIntStat OctreeElement::_getChildAtIndexTime { 0 };
+AtomicUIntStat OctreeElement::_getChildAtIndexCalls { 0 };
+AtomicUIntStat OctreeElement::_setChildAtIndexTime { 0 };
+AtomicUIntStat OctreeElement::_setChildAtIndexCalls { 0 };
+AtomicUIntStat OctreeElement::_externalChildrenCount { 0 };
+AtomicUIntStat OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1];
 
 OctreeElementPointer OctreeElement::getChildAtIndex(int childIndex) const {
 #ifdef SIMPLE_CHILD_ARRAY
@@ -464,8 +459,8 @@ float OctreeElement::getEnclosingRadius() const {
     return getScale() * sqrtf(3.0f) / 2.0f;
 }
 
-ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) const {
-    return viewFrustum.cubeInFrustum(_cube);
+ViewFrustum::intersection OctreeElement::computeViewIntersection(const ViewFrustum& viewFrustum) const {
+    return viewFrustum.calculateCubeKeyholeIntersection(_cube);
 }
 
 // There are two types of nodes for which we want to "render"
@@ -477,11 +472,11 @@ ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) c
 //    Since, if we know the camera position and orientation, we can know which of the corners is the "furthest"
 //    corner. We can use we can use this corner as our "voxel position" to do our distance calculations off of.
 //    By doing this, we don't need to test each child voxel's position vs the LOD boundary
-bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
+bool OctreeElement::calculateShouldRender(const ViewFrustum& viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
     bool shouldRender = false;
 
     if (hasContent()) {
-        float furthestDistance = furthestDistanceToCamera(*viewFrustum);
+        float furthestDistance = furthestDistanceToCamera(viewFrustum);
         float childBoundary = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
         bool inChildBoundary = (furthestDistance <= childBoundary);
         if (hasDetailedContent() && inChildBoundary) {
@@ -521,115 +516,6 @@ float OctreeElement::distanceToPoint(const glm::vec3& point) const {
     glm::vec3 temp = point - _cube.calcCenter();
     float distance = sqrtf(glm::dot(temp, temp));
     return distance;
-}
-
-QReadWriteLock OctreeElement::_deleteHooksLock;
-std::vector<OctreeElementDeleteHook*> OctreeElement::_deleteHooks;
-
-void OctreeElement::addDeleteHook(OctreeElementDeleteHook* hook) {
-    _deleteHooksLock.lockForWrite();
-    _deleteHooks.push_back(hook);
-    _deleteHooksLock.unlock();
-}
-
-void OctreeElement::removeDeleteHook(OctreeElementDeleteHook* hook) {
-    _deleteHooksLock.lockForWrite();
-    for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
-        if (_deleteHooks[i] == hook) {
-            _deleteHooks.erase(_deleteHooks.begin() + i);
-            break;
-        }
-    }
-    _deleteHooksLock.unlock();
-}
-
-void OctreeElement::notifyDeleteHooks() {
-    _deleteHooksLock.lockForRead();
-    for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
-        _deleteHooks[i]->elementDeleted(shared_from_this());
-    }
-    _deleteHooksLock.unlock();
-    _deleteHooksNotified = true;
-}
-
-std::vector<OctreeElementUpdateHook*> OctreeElement::_updateHooks;
-
-void OctreeElement::addUpdateHook(OctreeElementUpdateHook* hook) {
-    _updateHooks.push_back(hook);
-}
-
-void OctreeElement::removeUpdateHook(OctreeElementUpdateHook* hook) {
-    for (unsigned int i = 0; i < _updateHooks.size(); i++) {
-        if (_updateHooks[i] == hook) {
-            _updateHooks.erase(_updateHooks.begin() + i);
-            return;
-        }
-    }
-}
-
-void OctreeElement::notifyUpdateHooks() {
-    for (unsigned int i = 0; i < _updateHooks.size(); i++) {
-        _updateHooks[i]->elementUpdated(shared_from_this());
-    }
-}
-
-bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude,
-                         void** intersectedObject, bool precisionPicking) {
-
-    keepSearching = true; // assume that we will continue searching after this.
-
-    float distanceToElementCube = std::numeric_limits<float>::max();
-    float distanceToElementDetails = distance;
-    BoxFace localFace;
-    glm::vec3 localSurfaceNormal;
-
-    // if the ray doesn't intersect with our cube, we can stop searching!
-    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)) {
-        keepSearching = false; // no point in continuing to search
-        return false; // we did not intersect
-    }
-
-    // by default, we only allow intersections with leaves with content
-    if (!canRayIntersect()) {
-        return false; // we don't intersect with non-leaves, and we keep searching
-    }
-
-    // if the distance to the element cube is not less than the current best distance, then it's not possible
-    // for any details inside the cube to be closer so we don't need to consider them.
-    if (_cube.contains(origin) || distanceToElementCube < distance) {
-
-        if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
-                                    face, localSurfaceNormal, entityIdsToInclude, intersectedObject, precisionPicking, distanceToElementCube)) {
-
-            if (distanceToElementDetails < distance) {
-                distance = distanceToElementDetails;
-                face = localFace;
-                surfaceNormal = localSurfaceNormal;
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude,
-                         void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
-
-    // we did hit this element, so calculate appropriate distances
-    if (hasContent()) {
-        element = shared_from_this();
-        distance = distanceToElementCube;
-        if (intersectedObject) {
-            *intersectedObject = this;
-        }
-        keepSearching = false;
-        return true; // we did intersect
-    }
-    return false; // we did not intersect
 }
 
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,

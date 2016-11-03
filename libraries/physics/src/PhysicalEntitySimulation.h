@@ -23,7 +23,9 @@
 #include "PhysicsEngine.h"
 #include "EntityMotionState.h"
 
-typedef QSet<EntityMotionState*> SetOfEntityMotionStates;
+class PhysicalEntitySimulation;
+using PhysicalEntitySimulationPointer = std::shared_ptr<PhysicalEntitySimulation>;
+using SetOfEntityMotionStates = QSet<EntityMotionState*>;
 
 class PhysicalEntitySimulation :public EntitySimulation {
 public:
@@ -35,6 +37,8 @@ public:
     virtual void addAction(EntityActionPointer action) override;
     virtual void applyActionChanges() override;
 
+    virtual void takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) override;
+
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
     virtual void updateEntitiesInternal(const quint64& now) override;
@@ -44,23 +48,25 @@ protected: // only called by EntitySimulation
     virtual void clearEntitiesInternal() override;
 
 public:
-    void getObjectsToDelete(VectorOfMotionStates& result);
-    void getObjectsToAdd(VectorOfMotionStates& result);
+    virtual void prepareEntityForDelete(EntityItemPointer entity) override;
+
+    void getObjectsToRemoveFromPhysics(VectorOfMotionStates& result);
+    void deleteObjectsRemovedFromPhysics();
+    void getObjectsToAddToPhysics(VectorOfMotionStates& result);
     void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
     void getObjectsToChange(VectorOfMotionStates& result);
 
-    void handleOutgoingChanges(const VectorOfMotionStates& motionStates, const QUuid& sessionID);
+    void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
 
 private:
-    // incoming changes
-    SetOfEntityMotionStates _pendingRemoves; // EntityMotionStates to be removed from PhysicsEngine (and deleted)
-    SetOfEntities _pendingAdds; // entities to be be added to PhysicsEngine (and a their EntityMotionState created)
-    SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
+    SetOfEntities _entitiesToRemoveFromPhysics;
+    SetOfEntities _entitiesToRelease;
+    SetOfEntities _entitiesToAddToPhysics;
 
-    // outgoing changes
+    SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
     SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we need to send updates to entity-server
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
@@ -68,7 +74,7 @@ private:
     PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
-    uint32_t _lastStepSendPackets = 0;
+    uint32_t _lastStepSendPackets { 0 };
 };
 
 

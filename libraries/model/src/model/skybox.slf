@@ -1,0 +1,60 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  skybox.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 5/5/2015.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+uniform samplerCube cubeMap;
+
+struct Skybox {
+    vec4 color;
+};
+
+uniform skyboxBuffer {
+    Skybox skybox;
+};
+
+in vec3  _normal;
+out vec4 _fragColor;
+
+//PROCEDURAL_COMMON_BLOCK
+
+#line 1001
+//PROCEDURAL_BLOCK
+
+#line 2033
+void main(void) {
+
+#ifdef PROCEDURAL
+
+    vec3 color = getSkyboxColor();
+     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
+     color = pow(color, vec3(2.2));
+    _fragColor = vec4(color, 0.0);
+
+    // FIXME: scribe does not yet scrub out else statements
+    return;
+
+#else 
+    vec3 coord = normalize(_normal);
+    vec3 color = skybox.color.rgb;
+
+    // blend is only set if there is a cubemap
+    if (skybox.color.a > 0.0) {
+        color = texture(cubeMap, coord).rgb;
+        if (skybox.color.a < 1.0) {
+            color *= skybox.color.rgb;
+        }
+    }
+    _fragColor = vec4(color, 0.0);
+
+#endif
+
+}

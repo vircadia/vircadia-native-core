@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>High Fidelity</title>
+        <script src="downloader.js"></script>
+        <link rel="stylesheet" type="text/css" href="downloader.css"></link>
+    </head>
+    <body onload="ready()">
+        <div id="state-downloading" class="state">
+            <h1>Downloading<span class="one">.</span><span class="two">.</span><span class="three">.</span></h1>
+            <progress max="100" value="80" id="download-progress"></progress>
+            <div id="progress-bytes">10 MB / 4.0 MB</div>
+            <div id="download-summary">
+                Sit tight, we are downloading content for your home
+            </div>
+        </div>
+
+        <div id="state-installing" class="state">
+            <h1>Extracting<span class="one">.</span><span class="two">.</span><span class="three">.</span></h1>
+            <em>Just a moment</em>
+        </div>
+
+        <div id="state-complete" class="state">
+            <h1>Success!</h1>
+            <em>You're all set.</em>
+        </div>
+
+        <div id="state-error" class="state">
+            <h1>Houston...</h1>
+            <em>An unfortunate error has occurred:</em>
+            <div id="error-message" class="selectable">
+        </div>
+    </body>
+</html>

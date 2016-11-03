@@ -13,11 +13,14 @@
 #include <QNetworkReply>
 
 #include <QFile>
+#include <QPointer>
 #include "ScriptEngineLogging.h"
 #include "BatchLoader.h"
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 #include "ResourceManager.h"
+#include "ScriptEngines.h"
+#include "ScriptCache.h"
 
 BatchLoader::BatchLoader(const QList<QUrl>& urls) 
     : QObject(),
@@ -34,38 +37,48 @@ void BatchLoader::start() {
     }
 
     _started = true;
-    
-    for (const auto& url : _urls) {
-        auto request = ResourceManager::createResourceRequest(this, url);
-        if (!request) {
-            _data.insert(url, QString());
-            qCDebug(scriptengine) << "Could not load" << url;
-            continue;
-        }
-        connect(request, &ResourceRequest::finished, this, [=]() {
-            if (request->getResult() == ResourceRequest::Success) {
-                _data.insert(url, request->getData());
-            } else {
-                _data.insert(url, QString());
-                qCDebug(scriptengine) << "Could not load" << url;
-            }
-            request->deleteLater();
-            checkFinished();
-        });
 
-        // If we end up being destroyed before the reply finishes, clean it up
-        connect(this, &QObject::destroyed, request, &QObject::deleteLater);
+    if (_urls.size() == 0) {
+        _finished = true;
+        emit finished(_data);
+        return;
+    }
+
+
+    for (const auto& rawURL : _urls) {
+        QUrl url = expandScriptUrl(normalizeScriptURL(rawURL));
 
         qCDebug(scriptengine) << "Loading script at " << url;
 
-        request->send();
+        auto scriptCache = DependencyManager::get<ScriptCache>();
+
+        // Use a proxy callback to handle the call and emit the signal in a thread-safe way.
+        // If BatchLoader is deleted before the callback is called, the subsequent "emit" call will not do
+        // anything.
+        ScriptCacheSignalProxy* proxy = new ScriptCacheSignalProxy(scriptCache.data());
+
+        connect(proxy, &ScriptCacheSignalProxy::contentAvailable, this, [this](const QString& url, const QString& contents, bool isURL, bool success) {
+            if (isURL && success) {
+                _data.insert(url, contents);
+                qCDebug(scriptengine) << "Loaded: " << url;
+            } else {
+                _data.insert(url, QString());
+                qCDebug(scriptengine) << "Could not load: " << url;
+            }
+
+            if (!_finished && _urls.size() == _data.size()) {
+                _finished = true;
+                emit finished(_data);
+            }
+        });
+
+        scriptCache->getScriptContents(url.toString(), [proxy](const QString& url, const QString& contents, bool isURL, bool success) {
+            proxy->receivedContent(url, contents, isURL, success);
+            proxy->deleteLater();
+        }, false);
     }
-    checkFinished();
 }
 
-void BatchLoader::checkFinished() {
-    if (!_finished && _urls.size() == _data.size()) {
-        _finished = true;
-        emit finished(_data);
-    }
+void ScriptCacheSignalProxy::receivedContent(const QString& url, const QString& contents, bool isURL, bool success) {
+    emit contentAvailable(url, contents, isURL, success);
 }

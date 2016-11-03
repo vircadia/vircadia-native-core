@@ -10,6 +10,7 @@
 //
 
 #include <SettingHandle.h>
+#include <OctreeUtils.h>
 #include <Util.h>
 
 #include "Application.h"
@@ -22,7 +23,6 @@ Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DE
 Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DOWN_FPS);
 
 LODManager::LODManager() {
-    calculateAvatarLODDistanceMultiplier();
 }
 
 float LODManager::getLODDecreaseFPS() {
@@ -38,7 +38,6 @@ float LODManager::getLODIncreaseFPS() {
     }
     return getDesktopLODIncreaseFPS();
 }
-
 
 void LODManager::autoAdjustLOD(float currentFPS) {
     
@@ -161,8 +160,6 @@ void LODManager::autoAdjustLOD(float currentFPS) {
         }
     
         if (changed) {
-            calculateAvatarLODDistanceMultiplier();
-            _shouldRenderTableNeedsRebuilding = true;
             auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
             if (lodToolsDialog) {
                 lodToolsDialog->reloadSliders();
@@ -218,100 +215,19 @@ QString LODManager::getLODFeedbackText() {
 }
 
 bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
-    const float maxScale = (float)TREE_SCALE;
-    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
-    float octreeSizeScale = args->_sizeScale;
-    int boundaryLevelAdjust = args->_boundaryLevelAdjust;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
-    float distanceToCamera = glm::length(bounds.calcCenter() - args->_viewFrustum->getPosition());
-    float largestDimension = bounds.getLargestDimension();
-    
-    static bool shouldRenderTableNeedsBuilding = true;
-    static QMap<float, float> shouldRenderTable;
-    if (shouldRenderTableNeedsBuilding) {
-        
-        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
-        float scale = maxScale;
-        float factor = 1.0f;
-        
-        while (scale > SMALLEST_SCALE_IN_TABLE) {
-            scale /= 2.0f;
-            factor /= 2.0f;
-            shouldRenderTable[scale] = factor;
-        }
-        
-        shouldRenderTableNeedsBuilding = false;
-    }
-    
-    float closestScale = maxScale;
-    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
-    QMap<float, float>::const_iterator lowerBound = shouldRenderTable.lowerBound(largestDimension);
-    if (lowerBound != shouldRenderTable.constEnd()) {
-        closestScale = lowerBound.key();
-        visibleDistanceAtClosestScale = visibleDistanceAtMaxScale * lowerBound.value();
-    }
-    
-    if (closestScale < largestDimension) {
-        visibleDistanceAtClosestScale *= 2.0f;
-    }
-    
-    return distanceToCamera <= visibleDistanceAtClosestScale;
+    // FIXME - eventually we want to use the render accuracy as an indicator for the level of detail
+    // to use in rendering.
+    float renderAccuracy = calculateRenderAccuracy(args->getViewFrustum().getPosition(), bounds, args->_sizeScale, args->_boundaryLevelAdjust);
+    return (renderAccuracy > 0.0f);
 };
-
-// TODO: This is essentially the same logic used to render octree cells, but since models are more detailed then octree cells
-//       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
-bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera) {
-    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
-    float octreeSizeScale = getOctreeSizeScale();
-    int boundaryLevelAdjust = getBoundaryLevelAdjust();
-    float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
-    
-    if (_shouldRenderTableNeedsRebuilding) {
-        _shouldRenderTable.clear();
-        
-        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
-        float scale = maxScale;
-        float visibleDistanceAtScale = visibleDistanceAtMaxScale;
-        
-        while (scale > SMALLEST_SCALE_IN_TABLE) {
-            scale /= 2.0f;
-            visibleDistanceAtScale /= 2.0f;
-            _shouldRenderTable[scale] = visibleDistanceAtScale;
-        }
-        _shouldRenderTableNeedsRebuilding = false;
-    }
-    
-    float closestScale = maxScale;
-    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
-    QMap<float, float>::const_iterator lowerBound = _shouldRenderTable.lowerBound(largestDimension);
-    if (lowerBound != _shouldRenderTable.constEnd()) {
-        closestScale = lowerBound.key();
-        visibleDistanceAtClosestScale = lowerBound.value();
-    }
-    
-    if (closestScale < largestDimension) {
-        visibleDistanceAtClosestScale *= 2.0f;
-    }
-    
-    return (distanceToCamera <= visibleDistanceAtClosestScale);
-}
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
     _octreeSizeScale = sizeScale;
-    calculateAvatarLODDistanceMultiplier();
-    _shouldRenderTableNeedsRebuilding = true;
-}
-
-void LODManager::calculateAvatarLODDistanceMultiplier() {
-    _avatarLODDistanceMultiplier = AVATAR_TO_ENTITY_RATIO / (_octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE);
 }
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
-    _shouldRenderTableNeedsRebuilding = true;
 }
-
 
 void LODManager::loadSettings() {
     setDesktopLODDecreaseFPS(desktopLODDecreaseFPS.get());
@@ -322,5 +238,4 @@ void LODManager::saveSettings() {
     desktopLODDecreaseFPS.set(getDesktopLODDecreaseFPS());
     hmdLODDecreaseFPS.set(getHMDLODDecreaseFPS());
 }
-
 

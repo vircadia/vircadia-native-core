@@ -44,11 +44,11 @@ void main() {
     // fetch raw RGB values for nearby locations
     // sampling pattern is "five on a die" (each diagonal direction and the center)
     // computing the coordinates for these texture reads could be moved to the vertex shader for speed if needed
-    vec3 rgbNW = texture2D(colorTexture, varTexcoord + (vec2(-1.0, -1.0) * texcoordOffset)).xyz;
-    vec3 rgbNE = texture2D(colorTexture, varTexcoord + (vec2(+1.0, -1.0) * texcoordOffset)).xyz;
-    vec3 rgbSW = texture2D(colorTexture, varTexcoord + (vec2(-1.0, +1.0) * texcoordOffset)).xyz;
-    vec3 rgbSE = texture2D(colorTexture, varTexcoord + (vec2(+1.0, +1.0) * texcoordOffset)).xyz;
-    vec3 rgbM  = texture2D(colorTexture, varTexcoord).xyz;
+    vec3 rgbNW = texture(colorTexture, varTexcoord + (vec2(-1.0, -1.0) * texcoordOffset)).xyz;
+    vec3 rgbNE = texture(colorTexture, varTexcoord + (vec2(+1.0, -1.0) * texcoordOffset)).xyz;
+    vec3 rgbSW = texture(colorTexture, varTexcoord + (vec2(-1.0, +1.0) * texcoordOffset)).xyz;
+    vec3 rgbSE = texture(colorTexture, varTexcoord + (vec2(+1.0, +1.0) * texcoordOffset)).xyz;
+    vec3 rgbM  = texture(colorTexture, varTexcoord).xyz;
 	
     // convert RGB values to luminance
     vec3 luma = vec3(0.299, 0.587, 0.114);
@@ -76,11 +76,11 @@ void main() {
 		
     // perform additional texture sampling perpendicular to gradient
     vec3 rgbA = (1.0 / 2.0) * (
-                texture2D(colorTexture, varTexcoord + dir * (1.0 / 3.0 - 0.5)).xyz +
-                texture2D(colorTexture, varTexcoord + dir * (2.0 / 3.0 - 0.5)).xyz);
+                texture(colorTexture, varTexcoord + dir * (1.0 / 3.0 - 0.5)).xyz +
+                texture(colorTexture, varTexcoord + dir * (2.0 / 3.0 - 0.5)).xyz);
     vec3 rgbB = rgbA * (1.0 / 2.0) + (1.0 / 4.0) * (
-                texture2D(colorTexture, varTexcoord + dir * (0.0 / 3.0 - 0.5)).xyz +
-                texture2D(colorTexture, varTexcoord + dir * (3.0 / 3.0 - 0.5)).xyz);
+                texture(colorTexture, varTexcoord + dir * (0.0 / 3.0 - 0.5)).xyz +
+                texture(colorTexture, varTexcoord + dir * (3.0 / 3.0 - 0.5)).xyz);
     float lumaB = dot(rgbB, luma);
 
     // compare luma of new samples to the luma range of the original neighborhood

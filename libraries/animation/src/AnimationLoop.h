@@ -19,7 +19,7 @@ public:
     static const float MAXIMUM_POSSIBLE_FRAME;
 
     AnimationLoop();
-    AnimationLoop(const AnimationDetails& animationDetails);
+    explicit AnimationLoop(const AnimationDetails& animationDetails);
     AnimationLoop(float fps, bool loop, bool hold, bool startAutomatically, float firstFrame, 
                   float lastFrame, bool running, float currentFrame);
 

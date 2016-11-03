@@ -1,99 +1,124 @@
-# 
+#
 #  AutoScribeShader.cmake
-# 
+#
 #  Created by Sam Gateau on 12/17/14.
 #  Copyright 2014 High Fidelity, Inc.
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-# 
+#
 
 function(AUTOSCRIBE_SHADER SHADER_FILE)
-    
-    # Grab include files
-    foreach(includeFile  ${ARGN})
-        list(APPEND SHADER_INCLUDE_FILES ${includeFile})
-    endforeach()
+  # Grab include files
+  foreach(includeFile  ${ARGN})
+    list(APPEND SHADER_INCLUDE_FILES ${includeFile})
+  endforeach()
 
-    foreach(SHADER_INCLUDE ${SHADER_INCLUDE_FILES})
-        get_filename_component(INCLUDE_DIR ${SHADER_INCLUDE} PATH)
-        list(APPEND SHADER_INCLUDES_PATHS ${INCLUDE_DIR})
-    endforeach()
+  foreach(SHADER_INCLUDE ${SHADER_INCLUDE_FILES})
+    get_filename_component(INCLUDE_DIR ${SHADER_INCLUDE} PATH)
+    list(APPEND SHADER_INCLUDES_PATHS ${INCLUDE_DIR})
+  endforeach()
 
+  #Extract the unique include shader paths
+  set(INCLUDES ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
+  #message(${TARGET_NAME} Hifi for includes ${INCLUDES})
+  foreach(EXTRA_SHADER_INCLUDE ${INCLUDES})
+    list(APPEND SHADER_INCLUDES_PATHS ${EXTRA_SHADER_INCLUDE})
+  endforeach()
 
-    #Extract the unique include shader paths
-    set(INCLUDES ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
-	#message(Hifi for includes ${INCLUDES})
-	foreach(EXTRA_SHADER_INCLUDE ${INCLUDES})
-      list(APPEND SHADER_INCLUDES_PATHS ${EXTRA_SHADER_INCLUDE})
-    endforeach()
+  list(REMOVE_DUPLICATES SHADER_INCLUDES_PATHS)
+  #message(ready for includes ${SHADER_INCLUDES_PATHS})
 
-    list(REMOVE_DUPLICATES SHADER_INCLUDES_PATHS)
-	#message(ready for includes ${SHADER_INCLUDES_PATHS})
+  # make the scribe include arguments
+  set(SCRIBE_INCLUDES)
+  foreach(INCLUDE_PATH ${SHADER_INCLUDES_PATHS})
+    set(SCRIBE_INCLUDES ${SCRIBE_INCLUDES} -I ${INCLUDE_PATH}/)
+  endforeach()
 
-    # make the scribe include arguments
-    set(SCRIBE_INCLUDES)
-    foreach(INCLUDE_PATH ${SHADER_INCLUDES_PATHS})
-        set(SCRIBE_INCLUDES ${SCRIBE_INCLUDES} -I ${INCLUDE_PATH}/)
-    endforeach()
+  # Define the final name of the generated shader file
+  get_filename_component(SHADER_TARGET ${SHADER_FILE} NAME_WE)
+  get_filename_component(SHADER_EXT ${SHADER_FILE} EXT)
+  if(SHADER_EXT STREQUAL .slv)
+    set(SHADER_TARGET ${SHADER_TARGET}_vert.h)
+  elseif(${SHADER_EXT} STREQUAL .slf)
+    set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
+  elseif(${SHADER_EXT} STREQUAL .slg)
+    set(SHADER_TARGET ${SHADER_TARGET}_geom.h)
+  endif()
 
-    # Define the final name of the generated shader file
-    get_filename_component(SHADER_TARGET ${SHADER_FILE} NAME_WE)
-    get_filename_component(SHADER_EXT ${SHADER_FILE} EXT)
-    if(SHADER_EXT STREQUAL .slv)
-        set(SHADER_TARGET ${SHADER_TARGET}_vert.h)
-    elseif(${SHADER_EXT} STREQUAL .slf) 
-        set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
-    endif()
+  set(SHADER_TARGET "${SHADERS_DIR}/${SHADER_TARGET}")
 
-    # Target dependant Custom rule on the SHADER_FILE
-    if (APPLE)
-        set(GLPROFILE MAC_GL)
-        set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+  # Target dependant Custom rule on the SHADER_FILE
+  if (APPLE)
+    set(GLPROFILE MAC_GL)
+    set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
 
-        add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
-    elseif (UNIX)
-        set(GLPROFILE LINUX_GL)
-        set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+    add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+  elseif (ANDROID)
+    set(GLPROFILE LINUX_GL)
+    set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
 
-        add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
-    else ()
-        set(GLPROFILE PC_GL)
-        set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+    # for an android build, we can't use the scribe that cmake would normally produce as a target,
+    # since it's unrunnable by the cross-compiling build machine
 
-        add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
-    endif()
+    # so, we require the compiling user to point us at a compiled executable version for their native toolchain
+    find_program(NATIVE_SCRIBE scribe PATHS ${SCRIBE_PATH} ENV SCRIBE_PATH)
 
-    #output the generated file name
-    set(AUTOSCRIBE_SHADER_RETURN ${SHADER_TARGET} PARENT_SCOPE)
+    if (NOT NATIVE_SCRIBE)
+      message(FATAL_ERROR "The High Fidelity scribe tool is required for shader pre-processing. \
+        Please compile scribe using your native toolchain and set SCRIBE_PATH to the path containing the scribe executable in your ENV.\
+      ")
+    endif ()
 
-    file(GLOB INCLUDE_FILES ${SHADER_TARGET})
+    add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND ${NATIVE_SCRIBE} ${SCRIBE_ARGS} DEPENDS ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+  elseif (UNIX)
+    set(GLPROFILE LINUX_GL)
+    set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+
+    add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+  else ()
+    set(GLPROFILE PC_GL)
+    set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+
+    add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+  endif()
+
+  #output the generated file name
+  set(AUTOSCRIBE_SHADER_RETURN ${SHADER_TARGET} PARENT_SCOPE)
+
+  file(GLOB INCLUDE_FILES ${SHADER_TARGET})
 
 endfunction()
 
 
 macro(AUTOSCRIBE_SHADER_LIB)
+  set(HIFI_LIBRARIES_SHADER_INCLUDE_FILES "")
   file(RELATIVE_PATH RELATIVE_LIBRARY_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR} "${HIFI_LIBRARY_DIR}")
-  foreach(HIFI_LIBRARY ${ARGN})    
+  foreach(HIFI_LIBRARY ${ARGN})
     #if (NOT TARGET ${HIFI_LIBRARY})
     #  file(GLOB_RECURSE HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}/src/)
     #endif ()
-  
+
     #file(GLOB_RECURSE HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src/*.slh)
     list(APPEND HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src)
   endforeach()
-  #message(${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
+  #message("${TARGET_NAME} ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES}")
 
   file(GLOB_RECURSE SHADER_INCLUDE_FILES src/*.slh)
-  file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf)
+  file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf src/*.slg)
 
-  #message(${SHADER_INCLUDE_FILES})
+  #make the shader folder
+  set(SHADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/${TARGET_NAME}")
+  file(MAKE_DIRECTORY ${SHADERS_DIR})
+
+  #message("${TARGET_NAME} ${SHADER_INCLUDE_FILES}")
+  set(AUTOSCRIBE_SHADER_SRC "")
   foreach(SHADER_FILE ${SHADER_SOURCE_FILES})
-      AUTOSCRIBE_SHADER(${SHADER_FILE} ${SHADER_INCLUDE_FILES})
-      file(TO_CMAKE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${AUTOSCRIBE_SHADER_RETURN}" AUTOSCRIBE_GENERATED_FILE)
-      list(APPEND AUTOSCRIBE_SHADER_SRC ${AUTOSCRIBE_GENERATED_FILE})
+    AUTOSCRIBE_SHADER(${SHADER_FILE} ${SHADER_INCLUDE_FILES})
+    file(TO_CMAKE_PATH "${AUTOSCRIBE_SHADER_RETURN}" AUTOSCRIBE_GENERATED_FILE)
+    list(APPEND AUTOSCRIBE_SHADER_SRC ${AUTOSCRIBE_GENERATED_FILE})
   endforeach()
-  #message(${AUTOSCRIBE_SHADER_SRC})
+  #message(${TARGET_NAME} ${AUTOSCRIBE_SHADER_SRC})
 
   if (WIN32)
     source_group("Shaders" FILES ${SHADER_INCLUDE_FILES})
@@ -104,5 +129,8 @@ macro(AUTOSCRIBE_SHADER_LIB)
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_INCLUDE_FILES})
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_SOURCE_FILES})
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${AUTOSCRIBE_SHADER_SRC})
+
+  # Link library shaders, if they exist
+  include_directories("${SHADERS_DIR}")
 
 endmacro()

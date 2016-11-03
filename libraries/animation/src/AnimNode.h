@@ -33,11 +33,12 @@ class QJsonObject;
 //   * evaluate method, perform actual joint manipulations here and return result by reference.
 //     Also, append any triggers that are detected during evaluation.
 
-class AnimNode {
+class AnimNode : public std::enable_shared_from_this<AnimNode> {
 public:
     enum class Type {
         Clip = 0,
         BlendLinear,
+        BlendLinearMove,
         Overlay,
         StateMachine,
         Manipulator,
@@ -59,14 +60,15 @@ public:
     Type getType() const { return _type; }
 
     // hierarchy accessors
-    void addChild(Pointer child) { _children.push_back(child); }
+    Pointer getParent();
+    void addChild(Pointer child);
     void removeChild(Pointer child);
-
+    void replaceChild(Pointer oldChild, Pointer newChild);
     Pointer getChild(int i) const;
     int getChildCount() const { return (int)_children.size(); }
 
     // pair this AnimNode graph with a skeleton.
-    void setSkeleton(const AnimSkeleton::Pointer skeleton);
+    void setSkeleton(AnimSkeleton::ConstPointer skeleton);
 
     AnimSkeleton::ConstPointer getSkeleton() const { return _skeleton; }
 
@@ -75,9 +77,33 @@ public:
         return evaluate(animVars, dt, triggersOut);
     }
 
-protected:
-
     void setCurrentFrame(float frame);
+
+    template <typename F>
+    bool traverse(F func) {
+        if (func(shared_from_this())) {
+            for (auto&& child : _children) {
+                if (!child->traverse(func)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    Pointer findByName(const QString& id) {
+        Pointer result;
+        traverse([&](Pointer node) {
+            if (id == node->getID()) {
+                result = node;
+                return false;
+            }
+            return true;
+        });
+        return result;
+    }
+
+protected:
 
     virtual void setCurrentFrameInternal(float frame) {}
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) { _skeleton = skeleton; }
@@ -89,6 +115,7 @@ protected:
     QString _id;
     std::vector<AnimNode::Pointer> _children;
     AnimSkeleton::ConstPointer _skeleton;
+    std::weak_ptr<AnimNode> _parent;
 
     // no copies
     AnimNode(const AnimNode&) = delete;

@@ -29,7 +29,6 @@
 #include "sdf_text3D_frag.h"
 
 #include "GeometryCache.h"
-#include "DeferredLightingEffect.h"
 
 const float TextRenderer3D::DEFAULT_POINT_SIZE = 12;
 
@@ -55,9 +54,6 @@ TextRenderer3D::TextRenderer3D(const char* family, float pointSize, int weight, 
     }
 }
 
-TextRenderer3D::~TextRenderer3D() {
-}
-
 glm::vec2 TextRenderer3D::computeExtent(const QString& str) const {
     if (_font) {
         return _font->computeExtent(str);
@@ -73,12 +69,12 @@ float TextRenderer3D::getFontSize() const {
 }
 
 void TextRenderer3D::draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
-                         const glm::vec2& bounds) {
+                         const glm::vec2& bounds, bool layered) {
     // The font does all the OpenGL work
     if (_font) {
         // Cache color so that the pointer stays valid.
         _color = color;
-        _font->drawString(batch, x, y, str, &_color, _effectType, bounds);
+        _font->drawString(batch, x, y, str, &_color, _effectType, bounds, layered);
     }
 }
 

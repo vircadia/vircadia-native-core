@@ -17,8 +17,14 @@
 #include <JurisdictionSender.h>
 
 const int MAX_FILENAME_LENGTH = 1024;
-const int INTERVALS_PER_SECOND = 60;
+
+/// This is the frequency (hz) that we check the octree server for changes to determine if we need to
+/// send new "scene" information to the viewers. This will directly effect how quickly edits are 
+/// sent down do viewers. By setting it to 90hz we allow edits happening at 90hz to be sent down
+/// to viewers at a rate more closely matching the edit rate. It would probably be better to allow
+/// clients to ask the server to send at a rate consistent with their current vsynch since clients
+/// can't render any faster than their vsynch even if the server sent them more acurate information
+const int INTERVALS_PER_SECOND = 90;
 const int OCTREE_SEND_INTERVAL_USECS = (1000 * 1000)/INTERVALS_PER_SECOND;
-const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for sending octree elements
 
 #endif // hifi_OctreeServerConsts_h

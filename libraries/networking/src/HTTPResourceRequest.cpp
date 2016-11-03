@@ -28,8 +28,28 @@ HTTPResourceRequest::~HTTPResourceRequest() {
     }
 }
 
+void HTTPResourceRequest::setupTimer() {
+    Q_ASSERT(!_sendTimer);
+    static const int TIMEOUT_MS = 10000;
+
+    _sendTimer = new QTimer();
+    connect(this, &QObject::destroyed, _sendTimer, &QTimer::deleteLater);
+    connect(_sendTimer, &QTimer::timeout, this, &HTTPResourceRequest::onTimeout);
+
+    _sendTimer->setSingleShot(true);
+    _sendTimer->start(TIMEOUT_MS);
+}
+
+void HTTPResourceRequest::cleanupTimer() {
+    Q_ASSERT(_sendTimer);
+    _sendTimer->disconnect(this);
+    _sendTimer->deleteLater();
+    _sendTimer = nullptr;
+}
+
 void HTTPResourceRequest::doSend() {
     QNetworkRequest networkRequest(_url);
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
 
     if (_cacheEnabled) {
@@ -42,18 +62,15 @@ void HTTPResourceRequest::doSend() {
     
     connect(_reply, &QNetworkReply::finished, this, &HTTPResourceRequest::onRequestFinished);
     connect(_reply, &QNetworkReply::downloadProgress, this, &HTTPResourceRequest::onDownloadProgress);
-    connect(&_sendTimer, &QTimer::timeout, this, &HTTPResourceRequest::onTimeout);
 
-    static const int TIMEOUT_MS = 10000;
-    _sendTimer.setSingleShot(true);
-    _sendTimer.start(TIMEOUT_MS);
+    setupTimer();
 }
 
 void HTTPResourceRequest::onRequestFinished() {
     Q_ASSERT(_state == InProgress);
     Q_ASSERT(_reply);
 
-    _sendTimer.stop();
+    cleanupTimer();
     
     switch(_reply->error()) {
         case QNetworkReply::NoError:
@@ -80,7 +97,7 @@ void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesT
     Q_ASSERT(_state == InProgress);
     
     // We've received data, so reset the timer
-    _sendTimer.start();
+    _sendTimer->start();
 
     emit progress(bytesReceived, bytesTotal);
 }
@@ -91,6 +108,8 @@ void HTTPResourceRequest::onTimeout() {
     _reply->abort();
     _reply->deleteLater();
     _reply = nullptr;
+
+    cleanupTimer();
     
     _result = Timeout;
     _state = Finished;

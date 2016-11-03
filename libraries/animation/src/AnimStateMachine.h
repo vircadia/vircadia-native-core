@@ -31,13 +31,27 @@
 //   visible after interpolation is complete.
 // * interpDuration - (frames) The total length of time it will take to interp between the current pose and the
 //   interpTarget frame.
+// * interpType - How the interpolation is performed.
+//   * SnapshotBoth: Stores two snapshots, the previous animation before interpolation begins and the target state at the
+//     interTarget frame.  Then during the interpolation period the two snapshots are interpolated to produce smooth motion between them.
+//   * SnapshotPrev: Stores a snapshot of the previous animation before interpolation begins.  However the target state is
+//     evaluated dynamically.  During the interpolation period the previous snapshot is interpolated with the target pose
+//     to produce smooth motion between them.  This mode is useful for interping into a blended animation where the actual
+//     blend factor is not known at the start of the interp or is might change dramatically during the interp.
 
 class AnimStateMachine : public AnimNode {
 public:
     friend class AnimNodeLoader;
     friend bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
 
+    enum class InterpType {
+        SnapshotBoth = 0,
+        SnapshotPrev,
+        NumTypes
+    };
+
 protected:
+
     class State {
     public:
         friend AnimStateMachine;
@@ -55,16 +69,18 @@ protected:
             State::Pointer _state;
         };
 
-        State(const QString& id, AnimNode::Pointer node, float interpTarget, float interpDuration) :
+        State(const QString& id, int childIndex, float interpTarget, float interpDuration, InterpType interpType) :
             _id(id),
-            _node(node),
+            _childIndex(childIndex),
             _interpTarget(interpTarget),
-            _interpDuration(interpDuration) {}
+            _interpDuration(interpDuration),
+            _interpType(interpType) {}
 
         void setInterpTargetVar(const QString& interpTargetVar) { _interpTargetVar = interpTargetVar; }
         void setInterpDurationVar(const QString& interpDurationVar) { _interpDurationVar = interpDurationVar; }
+        void setInterpTypeVar(const QString& interpTypeVar) { _interpTypeVar = interpTypeVar; }
 
-        AnimNode::Pointer getNode() const { return _node; }
+        int getChildIndex() const { return _childIndex; }
         const QString& getID() const { return _id; }
 
     protected:
@@ -75,12 +91,14 @@ protected:
         void addTransition(const Transition& transition) { _transitions.push_back(transition); }
 
         QString _id;
-        AnimNode::Pointer _node;
+        int _childIndex;
         float _interpTarget;  // frames
         float _interpDuration; // frames
+        InterpType _interpType;
 
         QString _interpTargetVar;
         QString _interpDurationVar;
+        QString _interpTypeVar;
 
         std::vector<Transition> _transitions;
 
@@ -92,7 +110,7 @@ protected:
 
 public:
 
-    AnimStateMachine(const QString& id);
+    explicit AnimStateMachine(const QString& id);
     virtual ~AnimStateMachine() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
@@ -115,6 +133,7 @@ protected:
 
     // interpolation state
     bool _duringInterp = false;
+    InterpType _interpType { InterpType::SnapshotBoth };
     float _alphaVel = 0.0f;
     float _alpha = 0.0f;
     AnimPoseVec _prevPoses;

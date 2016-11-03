@@ -16,10 +16,10 @@
 #include "RenderableEntityItem.h"
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
-friend class ParticlePayload;
+    friend class ParticlePayloadData;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    RenderableParticleEffectEntityItem(const EntityItemID& entityItemID);
 
     virtual void update(const quint64& now) override;
 
@@ -29,23 +29,19 @@ public:
     virtual void removeFromScene(EntityItemPointer self, render::ScenePointer scene, render::PendingChanges& pendingChanges) override;
 
 protected:
-    render::ItemID _renderItemId;
+    virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
+    virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
 
-    struct Vertex {
-        Vertex(glm::vec3 xyzIn, glm::vec2 uvIn, uint32_t rgbaIn) : xyz(xyzIn), uv(uvIn), rgba(rgbaIn) {}
-        glm::vec3 xyz;
-        glm::vec2 uv;
-        uint32_t rgba;
-    };
+    void notifyBoundChanged();
 
-    static void createPipelines();
-
-    std::vector<Vertex> _vertices;
-    static gpu::PipelinePointer _untexturedPipeline;
-    static gpu::PipelinePointer _texturedPipeline;
-
+    void createPipelines();
+    
     render::ScenePointer _scene;
+    render::ItemID _renderItemId{ render::Item::INVALID_ITEM_ID };
+    
     NetworkTexturePointer _texture;
+    gpu::PipelinePointer _untexturedPipeline;
+    gpu::PipelinePointer _texturedPipeline;
 };
 
 

@@ -1,0 +1,76 @@
+<!
+//  render/SceneOctree.slh
+//
+//  Created by Sam Gateau on 1/29/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not RENDER_OCTREE_SLH@>
+<@def RENDER_OCTREE_SLH@>
+
+const float _size = 32768.0;
+const float _invSize = 1.0 / _size;
+const vec3 _origin = vec3(-16384.0);
+
+float getSize() { return _size; }
+vec3 getOrigin() { return _origin; }
+
+const int MAX_DEPTH  = 15;
+const float DEPTH_DIM[16] = float[16]( 
+    1.0,
+    2.0,
+    4.0,
+    8.0,
+    16.0,
+    32.0,
+    64.0,
+    128.0,
+    256.0,
+    512.0,
+    1024.0,
+    2048.0,
+    4096.0,
+    8192.0,
+    16384.0,
+    32768.0 );
+const float INV_DEPTH_DIM[16] = float[16]( 
+    1.0,
+    1.0 / 2.0,
+    1.0 / 4.0,
+    1.0 / 8.0,
+    1.0 / 16.0,
+    1.0 / 32.0,
+    1.0 / 64.0,
+    1.0 / 128.0,
+    1.0 / 256.0,
+    1.0 / 512.0,
+    1.0 / 1024.0,
+    1.0 / 2048.0,
+    1.0 / 4096.0,
+    1.0 / 8192.0,
+    1.0 / 16384.0,
+    1.0 / 32768.0 );
+
+int getDepthDimension(int depth) { return 1 << depth; }
+float getDepthDimensionf(int depth) { return DEPTH_DIM[depth]; }
+float getInvDepthDimension(int depth) { return INV_DEPTH_DIM[depth]; }
+
+float getCellWidth(int depth) { return _size * getInvDepthDimension(depth); }
+float getInvCellWidth(int depth) { return getDepthDimensionf(depth) * _invSize; }
+
+vec3 evalPos(ivec3 coord, int depth) {
+    return getOrigin() + vec3(coord) * getCellWidth(depth);
+}
+vec3 evalPosDepthWidth(ivec3 coord, float cellWidth) {
+    return getOrigin() + vec3(coord) * cellWidth;
+}
+
+vec4 evalBound(ivec4 loc) {
+    float cellWidth = getCellWidth(loc.w);
+    return vec4(evalPosDepthWidth(loc.xyz, cellWidth), cellWidth);
+}
+
+
+<@endif@>

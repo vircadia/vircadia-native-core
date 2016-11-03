@@ -57,7 +57,7 @@ public:
     BandwidthDialog(QWidget* parent);
     ~BandwidthDialog();
 
-    void paintEvent(QPaintEvent*);
+    void paintEvent(QPaintEvent*) override;
 
 private:
     BandwidthChannelDisplay* _audioChannelDisplay;
@@ -77,14 +77,14 @@ signals:
 
 public slots:
 
-    void reject();
+    void reject() override;
     void updateTimerTimeout();
 
 
 protected:
 
     // Emits a 'closed' signal when this dialog is closed.
-    void closeEvent(QCloseEvent*);
+    void closeEvent(QCloseEvent*) override;
 
 private:
     QTimer* averageUpdateTimer = new QTimer(this);

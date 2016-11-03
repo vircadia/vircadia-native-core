@@ -13,20 +13,21 @@
 #define hifi_PhysicsEngine_h
 
 #include <stdint.h>
+#include <vector>
 
 #include <QUuid>
-#include <QVector>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 
 #include "BulletUtil.h"
 #include "ContactInfo.h"
-#include "DynamicCharacterController.h"
 #include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "ObjectAction.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
+
+class CharacterController;
 
 // simple class for keeping track of contacts
 class ContactKey {
@@ -40,29 +41,25 @@ public:
 };
 
 typedef std::map<ContactKey, ContactInfo> ContactMap;
-typedef QVector<Collision> CollisionEvents;
+typedef std::vector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
-    uint32_t getNumSubsteps();
-
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
     void init();
 
-    void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
-    const QUuid& getSessionID() const { return _sessionID; }
+    uint32_t getNumSubsteps();
 
-    void addObject(ObjectMotionState* motionState);
-    void removeObject(ObjectMotionState* motionState);
+    void removeObjects(const VectorOfMotionStates& objects);
+    void removeObjects(const SetOfMotionStates& objects); // only called during teardown
 
-    void deleteObjects(const VectorOfMotionStates& objects);
-    void deleteObjects(const SetOfMotionStates& objects); // only called during teardown
     void addObjects(const VectorOfMotionStates& objects);
     VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
 
     void stepSimulation();
+    void harvestPerformanceStats();
     void updateContactMap();
 
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
@@ -82,22 +79,22 @@ public:
     /// \return position of simulation origin in domain-frame
     const glm::vec3& getOriginOffset() const { return _originOffset; }
 
-    /// \brief call bump on any objects that touch the object corresponding to motionState
-    void bump(ObjectMotionState* motionState);
-
-    void removeRigidBody(btRigidBody* body);
-
-    void setCharacterController(DynamicCharacterController* character);
+    void setCharacterController(CharacterController* character);
 
     void dumpNextStats() { _dumpNextStats = true; }
-
-    int16_t getCollisionMask(int16_t group) const;
 
     EntityActionPointer getActionByID(const QUuid& actionID) const;
     void addAction(EntityActionPointer action);
     void removeAction(const QUuid actionID);
+    void forEachAction(std::function<void(EntityActionPointer)> actor);
 
 private:
+    void addObjectToDynamicsWorld(ObjectMotionState* motionState);
+    void recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName);
+
+    /// \brief bump any objects that touch this one, then remove contact info
+    void bumpAndPruneContacts(ObjectMotionState* motionState);
+
     void removeContacts(ObjectMotionState* motionState);
 
     void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
@@ -110,26 +107,20 @@ private:
     ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
     btGhostPairCallback* _ghostPairCallback = NULL;
 
+    ContactMap _contactMap;
+    CollisionEvents _collisionEvents;
+    QHash<QUuid, EntityActionPointer> _objectActions;
+    std::vector<btRigidBody*> _activeStaticBodies;
+
     glm::vec3 _originOffset;
 
-    ContactMap _contactMap;
-    uint32_t _numContactFrames = 0;
-    uint32_t _lastNumSubstepsAtUpdateInternal = 0;
+    CharacterController* _myAvatarController;
 
-    /// character collisions
-    DynamicCharacterController* _characterController = NULL;
+    uint32_t _numContactFrames = 0;
+    uint32_t _numSubsteps;
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
-
-    QUuid _sessionID;
-    CollisionEvents _collisionEvents;
-
-    QHash<QUuid, EntityActionPointer> _objectActions;
-
-    btHashMap<btHashInt, int16_t> _collisionMasks;
-
-    uint32_t _numSubsteps;
 };
 
 typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;

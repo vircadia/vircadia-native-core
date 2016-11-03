@@ -20,6 +20,8 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
+#include <tbb/concurrent_unordered_set.h>
+
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
 #include <QtCore/QSet>
@@ -39,6 +41,7 @@ const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
 using NodePacketPair = std::pair<SharedNodePointer, std::unique_ptr<NLPacket>>;
 using NodeSharedPacketPair = std::pair<SharedNodePointer, QSharedPointer<NLPacket>>;
+using NodeSharedReceivedMessagePair = std::pair<SharedNodePointer, QSharedPointer<ReceivedMessage>>;
 
 class Application;
 class Assignment;
@@ -48,11 +51,11 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
-    NodeType_t getOwnerType() const { return _ownerType; }
-    void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
+    NodeType_t getOwnerType() const { return _ownerType.load(); }
+    void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
-    qint64 sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination);
-    qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
+    Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, HifiSockAddr destination);
+    Q_INVOKABLE qint64 sendStatsToDomainServer(QJsonObject statsObject);
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     DomainHandler& getDomainHandler() { return _domainHandler; }
@@ -62,29 +65,44 @@ public:
     void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
     void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
 
-    void processReceivedPacket(std::unique_ptr<NLPacket>, HifiSockAddr senderSockAddr);
-
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
+    
+    void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
+
+    void ignoreNodeBySessionID(const QUuid& nodeID);
+    bool isIgnoringNode(const QUuid& nodeID) const;
+
+    void kickNodeBySessionID(const QUuid& nodeID);
 
 public slots:
     void reset();
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
 
-    void processDomainServerList(QSharedPointer<NLPacket> packet);
-    void processDomainServerAddedNode(QSharedPointer<NLPacket> packet);
-    void processDomainServerPathResponse(QSharedPointer<NLPacket> packet);
+    void processDomainServerList(QSharedPointer<ReceivedMessage> message);
+    void processDomainServerAddedNode(QSharedPointer<ReceivedMessage> message);
+    void processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> message);
+    void processDomainServerPathResponse(QSharedPointer<ReceivedMessage> message);
 
-    void processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet);
+    void processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedMessage> message);
     
-    void processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processPingReplyPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
-    void processICEPingPacket(QSharedPointer<NLPacket> packet);
+    void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
+
+#if (PR_BUILD || DEV_BUILD)
+    void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
+#endif
+
 signals:
     void limitOfSilentDomainCheckInsReached();
+    void receivedDomainServerList();
+    void ignoredNode(const QUuid& nodeID);
+    
 private slots:
+    void stopKeepalivePingTimer();
     void sendPendingDSPathQuery();
     void handleICEConnectionToDomainServer();
 
@@ -92,16 +110,21 @@ private slots:
     void handleNodePingTimeout();
 
     void pingPunchForDomainServer();
+    
+    void sendKeepAlivePings();
+
+    void maybeSendIgnoreSetToNode(SharedNodePointer node);
+    
 private:
-    NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
-    NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
-    NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
-    void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
+    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { assert(false); } // Not implemented, needed for DependencyManager templates compile
+    NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
+    NodeList(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
+    void operator=(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
-    void activateSocketFromNodeCommunication(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode);
-    void timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode);
+    void activateSocketFromNodeCommunication(ReceivedMessage& message, const SharedNodePointer& sendingNode);
+    void timePingReply(ReceivedMessage& message, const SharedNodePointer& sendingNode);
 
     void sendDSPathQuery(const QString& newPath);
  
@@ -109,11 +132,22 @@ private:
 
     void pingPunchForInactiveNode(const SharedNodePointer& node);
 
-    NodeType_t _ownerType;
+    bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
+
+    std::atomic<NodeType_t> _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
+    bool _isShuttingDown { false };
+    QTimer _keepAlivePingTimer;
+
+    mutable QReadWriteLock _ignoredSetLock;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
+
+#if (PR_BUILD || DEV_BUILD)
+    bool _shouldSendNewerVersion { false };
+#endif
 };
 
 #endif // hifi_NodeList_h

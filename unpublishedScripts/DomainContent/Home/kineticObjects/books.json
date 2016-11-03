@@ -1,0 +1,299 @@
+{
+    "Entities": [{
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
+        "created": "2016-03-15T21:26:11Z",
+        "dimensions": {
+            "x": 0.25794500112533569,
+            "y": 0.3533988893032074,
+            "z": 0.03479468822479248
+        },
+        "dynamic": 1,
+        "id": "{896373aa-9ed0-4be5-865b-a474448ea67b}",
+        "modelURL": "atp:/kineticObjects/books/Book-SC-NS.fbx",
+        "name": "home_model_book1",
+        "position": {
+            "x": 0,
+            "y": 0.0357666015625,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 0.43890440464019775,
+            "x": -0.21945220232009888,
+            "y": -0.18368560075759888,
+            "z": -0.21945220232009888
+        },
+        "rotation": {
+            "w": -0.31764703989028931,
+            "x": -4.57763671875e-05,
+            "y": 0.94818031787872314,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
+        "created": "2016-03-07T21:07:29Z",
+        "dimensions": {
+            "x": 0.25794500112533569,
+            "y": 0.36685666441917419,
+            "z": 0.046798638999462128
+        },
+        "dynamic": 1,
+        "id": "{e48fd6a5-ff0f-4ba6-92c7-fd972eba53c6}",
+        "modelURL": "atp:/kineticObjects/books/Book-RPO-EC.fbx",
+        "name": "home_model_book_readyplayerone",
+        "position": {
+            "x": 0.031494140625,
+            "y": 0.052947998046875,
+            "z": 0.04192352294921875
+        },
+        "queryAACube": {
+            "scale": 0.45089861750602722,
+            "x": -0.19395516812801361,
+            "y": -0.17250131070613861,
+            "z": -0.18352578580379486
+        },
+        "rotation": {
+            "w": -0.2843213677406311,
+            "x": -4.57763671875e-05,
+            "y": 0.95870912075042725,
+            "z": 1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "created": "2016-03-15T21:26:11Z",
+        "dimensions": {
+            "x": 0.23445942997932434,
+            "y": 0.33540505170822144,
+            "z": 0.036211937665939331
+        },
+        "id": "{e0790afc-6c62-4891-a933-7904b6cbc7cc}",
+        "modelURL": "atp:/kineticObjects/books/Book-DADOES-PD.fbx",
+        "name": "home_model_book_DoAndroids",
+        "position": {
+            "x": 0.031005859375,
+            "y": 0.0430908203125,
+            "z": 0.10480499267578125
+        },
+        "dynamic": 1,
+        "queryAACube": {
+            "scale": 0.41082730889320374,
+            "x": -0.17440779507160187,
+            "y": -0.16232283413410187,
+            "z": -0.10060866177082062
+        },
+        "rotation": {
+            "w": -0.2843824028968811,
+            "x": -4.57763671875e-05,
+            "y": 0.95870912075042725,
+            "z": 1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
+        "created": "2016-03-07T21:07:29Z",
+        "dimensions": {
+            "x": 0.19239270687103271,
+            "y": 0.27543020248413086,
+            "z": 0.042817402631044388
+        },
+        "id": "{5120bfbb-66bf-493c-8c1a-ed883f39c054}",
+        "modelURL": "atp:/kineticObjects/books/Book-F1-IA.fbx",
+        "name": "home_model_book_Foundation1",
+        "position": {
+            "x": 0.04150390625,
+            "y": 0.005096435546875,
+            "z": 0.15532684326171875
+        },
+        "dynamic": 1,
+        "queryAACube": {
+            "scale": 0.33868876099586487,
+            "x": -0.12784047424793243,
+            "y": -0.16424794495105743,
+            "z": -0.014017537236213684
+        },
+        "rotation": {
+            "w": -0.2843213677406311,
+            "x": -4.57763671875e-05,
+            "y": 0.95870912075042725,
+            "z": 1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
+        "created": "2016-03-07T21:07:29Z",
+        "dimensions": {
+            "x": 0.19239270687103271,
+            "y": 0.27289187908172607,
+            "z": 0.037494994699954987
+        },
+        "id": "{f9af3a1e-dbd5-4fb3-ad38-dc818592e4c6}",
+        "modelURL": "atp:/kineticObjects/books/Book-F2-IA.fbx",
+        "name": "home_model_bookSecondFoundation",
+        "position": {
+            "x": 0.056884765625,
+            "y": 0.00262451171875,
+            "z": 0.20074462890625
+        },
+        "dynamic": 1,
+        "queryAACube": {
+            "scale": 0.33599227666854858,
+            "x": -0.11111137270927429,
+            "y": -0.16537162661552429,
+            "z": 0.032748490571975708
+        },
+        "rotation": {
+            "w": -0.2843213677406311,
+            "x": -4.57763671875e-05,
+            "y": 0.95870912075042725,
+            "z": 1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
+        "created": "2016-03-07T21:07:29Z",
+        "dimensions": {
+            "x": 0.19239270687103271,
+            "y": 0.27362632751464844,
+            "z": 0.04995863139629364
+        },
+        "id": "{6af6bf06-05c9-427c-8ff5-d10072ffc293}",
+        "modelURL": "atp:/kineticObjects/books/Book-F3-IA.fbx",
+        "name": "home_model_book_Foundation3",
+        "position": {
+            "x": 0.0919189453125,
+            "y": 0,
+            "z": 0.24033355712890625
+        },
+        "dynamic": 1,
+        "queryAACube": {
+            "scale": 0.33820435404777527,
+            "x": -0.077183231711387634,
+            "y": -0.16910217702388763,
+            "z": 0.071231380105018616
+        },
+        "rotation": {
+            "w": -0.2843213677406311,
+            "x": -4.57763671875e-05,
+            "y": 0.95870912075042725,
+            "z": 1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
+        "created": "2016-03-15T21:26:11Z",
+        "dimensions": {
+            "x": 0.20406116545200348,
+            "y": 0.29261711239814758,
+            "z": 0.014823859557509422
+        },
+        "id": "{4982da58-d573-4582-b627-f08312cc0d07}",
+        "modelURL": "atp:/kineticObjects/books/Book-LPP-ASE.fbx",
+        "name": "home_model_bookLePetitePrince",
+        "position": {
+            "x": 0.1171875,
+            "y": 0.01153564453125,
+            "z": 0.26572418212890625
+        },
+        "dynamic": 1,
+        "queryAACube": {
+            "scale": 0.35705110430717468,
+            "x": -0.061338052153587341,
+            "y": -0.16698990762233734,
+            "z": 0.087198629975318909
+        },
+        "rotation": {
+            "w": -0.27602046728134155,
+            "x": -4.57763671875e-05,
+            "y": 0.96115052700042725,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
+        "created": "2016-03-07T21:07:29Z",
+        "dimensions": {
+            "x": 0.23497477173805237,
+            "y": 0.28377044200897217,
+            "z": 0.033324316143989563
+        },
+        "id": "{178b1cef-f76b-4cda-b834-42080208d502}",
+        "name": "home_model_bookNeuromancer",
+        "modelURL": "atp:/kineticObjects/books/Book-N-WG.fbx",
+        "position": {
+            "x": 0.1429443359375,
+            "y": 0.00970458984375,
+            "z": 0.2823486328125
+        },
+        "dynamic": 1,
+        "queryAACube": {
+            "scale": 0.36993148922920227,
+            "x": -0.042021408677101135,
+            "y": -0.17526115477085114,
+            "z": 0.097382888197898865
+        },
+        "rotation": {
+            "w": -0.30934613943099976,
+            "x": -4.57763671875e-05,
+            "y": 0.9509575366973877,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }],
+    "Version": 57
+}

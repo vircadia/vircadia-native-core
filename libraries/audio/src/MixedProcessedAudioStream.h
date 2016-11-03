@@ -19,10 +19,10 @@ class AudioClient;
 class MixedProcessedAudioStream  : public InboundAudioStream {
     Q_OBJECT
 public:
-    MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings);
+    MixedProcessedAudioStream(int numFramesCapacity, int numStaticJitterFrames = -1);
 
 signals:
-    
+
     void addedSilence(int silentSamplesPerChannel);
     void addedLastFrameRepeatedWithFade(int samplesPerChannel);
     void addedStereoSamples(const QByteArray& samples);
@@ -30,19 +30,20 @@ signals:
     void processSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
 
 public:
-    void outputFormatChanged(int outputFormatChannelCountTimesSampleRate);
+    void outputFormatChanged(int sampleRate, int channelCount);
 
 protected:
-    int writeDroppableSilentSamples(int silentSamples);
-    int writeLastFrameRepeatedWithFade(int samples);
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
+    int writeDroppableSilentFrames(int silentFrames) override;
+    int writeLastFrameRepeatedWithFade(int frames) override;
+    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) override;
 
 private:
-    int networkToDeviceSamples(int networkSamples);
-    int deviceToNetworkSamples(int deviceSamples);
+    int networkToDeviceFrames(int networkFrames);
+    int deviceToNetworkFrames(int deviceFrames);
 
 private:
-    int _outputFormatChannelsTimesSampleRate;
+    quint64 _outputSampleRate;
+    quint64 _outputChannelCount;
 };
 
 #endif // hifi_MixedProcessedAudioStream_h

@@ -20,13 +20,11 @@
 
 class AnimationsDialog;
 class AttachmentsDialog;
-class AudioStatsDialog;
 class BandwidthDialog;
 class CachesSizeDialog;
 class DiskCacheEditor;
 class LodToolsDialog;
 class OctreeStatsDialog;
-class PreferencesDialog;
 class ScriptEditorWindow;
 class QMessageBox;
 class DomainConnectionDialog;
@@ -36,29 +34,26 @@ class DialogsManager : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    QPointer<AudioStatsDialog> getAudioStatsDialog() const { return _audioStatsDialog; }
     QPointer<BandwidthDialog> getBandwidthDialog() const { return _bandwidthDialog; }
     QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
-    QPointer<PreferencesDialog> getPreferencesDialog() const { return _preferencesDialog; }
+    void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
 
 public slots:
     void toggleAddressBar();
+    void showAddressBar();
+    void showFeed();
+    void setDomainConnectionFailureVisibility(bool visible);
     void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();
     void octreeStatsDetails();
     void cachesSizeDialog();
-    void editPreferences();
-    void editAttachments();
-    void editAnimations();
-    void audioStatsDetails();
     void bandwidthDetails();
     void lodTools();
     void hmdTools(bool showTools);
     void showScriptEditor();
-    void showIRCLink();
     void showDomainConnectionDialog();
     
     // Application Update
@@ -66,9 +61,10 @@ public slots:
 
 signals:
     void addressBarToggled();
+    void addressBarShown(bool visible);
+    void setUseFeed(bool useFeed);
 
 private slots:
-    void toggleToolWindow();
     void hmdToolsClosed();
 
 private:
@@ -79,7 +75,6 @@ private:
 
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
-    QPointer<AudioStatsDialog> _audioStatsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
     QPointer<DiskCacheEditor> _diskCacheEditor;
@@ -87,7 +82,6 @@ private:
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
-    QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
 };

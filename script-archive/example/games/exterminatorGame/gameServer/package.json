@@ -1,0 +1,21 @@
+{
+  "name": "KillAllTheRats",
+  "version": "0.6.9",
+  "scripts": {
+    "build": "browserify ./client/app.jsx -t babelify --outfile ./public/js/app.js",
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.13.1",
+    "gulp": "^3.9.0",
+    "jquery": "^2.1.4",
+    "react": "^0.13.3",
+    "shortid": "^2.2.4",
+    "underscore": "^1.8.3",
+    "websocket": "^1.0.22"
+  },
+  "devDependencies": {
+    "babelify": "^6.1.3",
+    "browserify": "^10.2.6"
+  }
+}

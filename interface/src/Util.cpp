@@ -25,7 +25,6 @@
 #include <QThread>
 
 #include <ByteCountCoding.h>
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <OctreeConstants.h>
 #include <SharedUtil.h>
@@ -51,73 +50,96 @@ void renderWorldBox(gpu::Batch& batch) {
     static const float DASH_LENGTH = 1.0f;
     static const float GAP_LENGTH = 1.0f;
     auto transform = Transform{};
+    static std::array<int, 18> geometryIds;
+    static std::once_flag initGeometryIds;
+    std::call_once(initGeometryIds, [&] {
+        for (size_t i = 0; i < geometryIds.size(); ++i) {
+            geometryIds[i] = geometryCache->allocateID();
+        }
+    });
 
     batch.setModelTransform(transform);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(HALF_TREE_SCALE, 0.0f, 0.0f), RED);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(HALF_TREE_SCALE, 0.0f, 0.0f), RED, geometryIds[0]);
     geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-HALF_TREE_SCALE, 0.0f, 0.0f), DASHED_RED,
-                                    DASH_LENGTH, GAP_LENGTH);
+                                    DASH_LENGTH, GAP_LENGTH, geometryIds[1]);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, HALF_TREE_SCALE, 0.0f), GREEN);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, HALF_TREE_SCALE, 0.0f), GREEN, geometryIds[2]);
     geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -HALF_TREE_SCALE, 0.0f), DASHED_GREEN,
-                                    DASH_LENGTH, GAP_LENGTH);
+                                    DASH_LENGTH, GAP_LENGTH, geometryIds[3]);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, HALF_TREE_SCALE), BLUE);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, HALF_TREE_SCALE), BLUE, geometryIds[4]);
     geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -HALF_TREE_SCALE), DASHED_BLUE,
-                                    DASH_LENGTH, GAP_LENGTH);
+                                    DASH_LENGTH, GAP_LENGTH, geometryIds[5]);
 
     // X center boundaries
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f),
-                              glm::vec3(HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f), GREY);
+                              glm::vec3(HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f), GREY,
+                              geometryIds[6]);
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f),
-                              glm::vec3(-HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY);
+                              glm::vec3(-HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY,
+                              geometryIds[7]);
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f),
-                              glm::vec3(HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY);
+                              glm::vec3(HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY,
+                              geometryIds[8]);
     geometryCache->renderLine(batch, glm::vec3(HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f),
-                              glm::vec3(HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY);
+                              glm::vec3(HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY,
+                              geometryIds[9]);
 
     // Z center boundaries
     geometryCache->renderLine(batch, glm::vec3(0.0f, -HALF_TREE_SCALE, -HALF_TREE_SCALE),
-                              glm::vec3(0.0f, -HALF_TREE_SCALE, HALF_TREE_SCALE), GREY);
+                              glm::vec3(0.0f, -HALF_TREE_SCALE, HALF_TREE_SCALE), GREY,
+                              geometryIds[10]);
     geometryCache->renderLine(batch, glm::vec3(0.0f, -HALF_TREE_SCALE, -HALF_TREE_SCALE),
-                              glm::vec3(0.0f, HALF_TREE_SCALE, -HALF_TREE_SCALE), GREY);
+                              glm::vec3(0.0f, HALF_TREE_SCALE, -HALF_TREE_SCALE), GREY,
+                              geometryIds[11]);
     geometryCache->renderLine(batch, glm::vec3(0.0f, HALF_TREE_SCALE, -HALF_TREE_SCALE),
-                              glm::vec3(0.0f, HALF_TREE_SCALE, HALF_TREE_SCALE), GREY);
+                              glm::vec3(0.0f, HALF_TREE_SCALE, HALF_TREE_SCALE), GREY,
+                              geometryIds[12]);
     geometryCache->renderLine(batch, glm::vec3(0.0f, -HALF_TREE_SCALE, HALF_TREE_SCALE),
-                              glm::vec3(0.0f, HALF_TREE_SCALE, HALF_TREE_SCALE), GREY);
+                              glm::vec3(0.0f, HALF_TREE_SCALE, HALF_TREE_SCALE), GREY,
+                              geometryIds[13]);
 
     // Center boundaries
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE),
-                              glm::vec3(-HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
+                              glm::vec3(-HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY,
+                              geometryIds[14]);
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE),
-                              glm::vec3(HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE), GREY);
+                              glm::vec3(HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE), GREY,
+                              geometryIds[15]);
     geometryCache->renderLine(batch, glm::vec3(HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE),
-                              glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
+                              glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY,
+                              geometryIds[16]);
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE),
-                              glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
+                              glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY,
+                              geometryIds[17]);
 
-    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-
-    deferredLighting->renderWireCubeInstance(batch, Transform(), GREY4);
+    
+    geometryCache->renderWireCubeInstance(batch, GREY4);
 
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
 
     transform = Transform().setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, RED);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, RED);
 
     transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f)).setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, RED);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, RED);
 
     transform = Transform().setTranslation(glm::vec3(0.0f, MARKER_DISTANCE, 0.0f)).setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, GREEN);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, GREEN);
 
     transform = Transform().setTranslation(glm::vec3(0.0f, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, BLUE);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, BLUE);
 
     transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, GREY);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, GREY);
 }
 
 //  Return a random vector of average length 1
@@ -128,71 +150,102 @@ const glm::vec3 randVector() {
 //  Do some basic timing tests and report the results
 void runTimingTests() {
     //  How long does it take to make a call to get the time?
+    const int numTimingTests = 3;
+    QElapsedTimer startTime;
+    float elapsedNSecs;
+    float elapsedUSecs;
+
+    qCDebug(interfaceapp, "numTimingTests: %d", numTimingTests);
+
+    startTime.start();
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() ns: %f", (double)elapsedNSecs / numTimingTests);
+
+    // Test sleep functions for accuracy
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        QThread::msleep(1);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", (double)(elapsedNSecs / NSECS_PER_MSEC / numTimingTests));
+
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        QThread::sleep(1);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "QThread::sleep(1) s: %f", (double)(elapsedNSecs / NSECS_PER_MSEC / MSECS_PER_SECOND / numTimingTests));
+
+    const int numUsecTests = 1000;
+    startTime.start();
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(1);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
+
+    startTime.start();
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(10);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(10) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
+
+    startTime.start();
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(100);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(100) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
+
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1000);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1000) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
+
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1001);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1001) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
+
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1500);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1500) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
+
+    startTime.start();
+    usleep(15000);
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(15000) (1x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+
     const int numTests = 1000000;
     int* iResults = (int*)malloc(sizeof(int) * numTests);
     float fTest = 1.0;
     float* fResults = (float*)malloc(sizeof(float) * numTests);
-    QElapsedTimer startTime;
-    startTime.start();
-    float elapsedUsecs;
-
-    float NSEC_TO_USEC = 1.0f / 1000.0f;
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() usecs: %f", (double)elapsedUsecs);
-
-    // Test sleep functions for accuracy
-    startTime.start();
-    QThread::msleep(1);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    QThread::sleep(1);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QThread::sleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(1);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(10);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(10) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(100);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(100) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(1000);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(1000) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(15000);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(15000) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     // Random number generation
     startTime.start();
     for (int i = 0; i < numTests; i++) {
         iResults[i] = rand();
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
     qCDebug(interfaceapp, "rand() stored in array usecs: %f, first result:%d",
-            (double)(elapsedUsecs / numTests), iResults[0]);
+            (double)(elapsedUSecs / numTests), iResults[0]);
 
     // Random number generation using randFloat()
     startTime.start();
     for (int i = 0; i < numTests; i++) {
         fResults[i] = randFloat();
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
     qCDebug(interfaceapp, "randFloat() stored in array usecs: %f, first result: %f",
-            (double)(elapsedUsecs / numTests), (double)(fResults[0]));
+            (double)(elapsedUSecs / numTests), (double)(fResults[0]));
 
     free(iResults);
     free(fResults);
@@ -203,8 +256,8 @@ void runTimingTests() {
     for (int i = 0; i < numTests; i++) {
         fTest = powf(fTest, 0.5f);
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "powf(f, 0.5) usecs: %f", (double)(elapsedUsecs / (float) numTests));
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
+    qCDebug(interfaceapp, "powf(f, 0.5) usecs: %f", (double)(elapsedUSecs / (float) numTests));
 
     //  Vector Math
     float distance;
@@ -215,9 +268,9 @@ void runTimingTests() {
         //float distanceSquared = glm::dot(temp, temp);
         distance = glm::distance(pointA, pointB);
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
     qCDebug(interfaceapp, "vector math usecs: %f [%f usecs total for %d tests], last result:%f",
-            (double)(elapsedUsecs / (float) numTests), (double)elapsedUsecs, numTests, (double)distance);
+            (double)(elapsedUSecs / (float) numTests), (double)elapsedUSecs, numTests, (double)distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
@@ -228,9 +281,9 @@ void runTimingTests() {
         glm::vec3 temp = vecA-vecB;
         result = glm::dot(temp,temp);
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
     qCDebug(interfaceapp, "vec3 assign and dot() usecs: %f, last result:%f",
-            (double)(elapsedUsecs / numTests), (double)result);
+            (double)(elapsedUSecs / numTests), (double)result);
 
 
     quint64 BYTE_CODE_MAX_TEST_VALUE = 99999999;
@@ -262,9 +315,9 @@ void runTimingTests() {
             }
 
         }
-        elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-        qCDebug(interfaceapp) << "ByteCountCoded<quint64> usecs: " << elapsedUsecs
-                                << "per test:" << (double) (elapsedUsecs / tests)
+        elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
+        qCDebug(interfaceapp) << "ByteCountCoded<quint64> usecs: " << elapsedUSecs
+                                << "per test:" << (double) (elapsedUSecs / tests)
                                 << "tests:" << tests
                                 << "failed:" << failed;
     }

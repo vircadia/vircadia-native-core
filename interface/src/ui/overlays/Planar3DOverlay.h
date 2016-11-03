@@ -20,17 +20,17 @@ public:
     Planar3DOverlay();
     Planar3DOverlay(const Planar3DOverlay* planar3DOverlay);
     
-    AABox getBounds() const;
+    virtual AABox getBounds() const override;
     
     glm::vec2 getDimensions() const { return _dimensions; }
     void setDimensions(float value) { _dimensions = glm::vec2(value); }
     void setDimensions(const glm::vec2& value) { _dimensions = value; }
     
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                        BoxFace& face, glm::vec3& surfaceNormal);
+                                        BoxFace& face, glm::vec3& surfaceNormal) override;
     
 protected:
     glm::vec2 _dimensions;

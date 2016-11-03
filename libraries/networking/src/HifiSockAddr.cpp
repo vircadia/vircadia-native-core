@@ -16,7 +16,7 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 
-static int hifiSockAddrMetaTypeId = qRegisterMetaType<HifiSockAddr>();
+int hifiSockAddrMetaTypeId = qRegisterMetaType<HifiSockAddr>();
 
 HifiSockAddr::HifiSockAddr() :
     _address(),
@@ -95,16 +95,16 @@ void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
     if (hostInfo.error() != QHostInfo::NoError) {
         qCDebug(networking) << "Lookup failed for" << hostInfo.lookupId() << ":" << hostInfo.errorString();
         emit lookupFailed();
-    }
-
-    foreach(const QHostAddress& address, hostInfo.addresses()) {
-        // just take the first IPv4 address
-        if (address.protocol() == QAbstractSocket::IPv4Protocol) {
-            _address = address;
-            qCDebug(networking) << "QHostInfo lookup result for"
-                << hostInfo.hostName() << "with lookup ID" << hostInfo.lookupId() << "is" << address.toString();
-            emit lookupCompleted();
-            break;
+    } else {
+        foreach(const QHostAddress& address, hostInfo.addresses()) {
+            // just take the first IPv4 address
+            if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+                _address = address;
+                qCDebug(networking) << "QHostInfo lookup result for"
+                    << hostInfo.hostName() << "with lookup ID" << hostInfo.lookupId() << "is" << address.toString();
+                emit lookupCompleted();
+                break;
+            }
         }
     }
 }
@@ -122,36 +122,6 @@ QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr) {
 QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr) {
     dataStream >> sockAddr._address >> sockAddr._port;
     return dataStream;
-}
-
-QHostAddress getLocalAddress() {
-
-    QHostAddress localAddress;
-
-    foreach(const QNetworkInterface &networkInterface, QNetworkInterface::allInterfaces()) {
-        if (networkInterface.flags() & QNetworkInterface::IsUp
-            && networkInterface.flags() & QNetworkInterface::IsRunning
-            && networkInterface.flags() & ~QNetworkInterface::IsLoopBack) {
-            // we've decided that this is the active NIC
-            // enumerate it's addresses to grab the IPv4 address
-            foreach(const QNetworkAddressEntry &entry, networkInterface.addressEntries()) {
-                // make sure it's an IPv4 address that isn't the loopback
-                if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
-
-                    // set our localAddress and break out
-                    localAddress = entry.ip();
-                    break;
-                }
-            }
-        }
-
-        if (!localAddress.isNull()) {
-            break;
-        }
-    }
-
-    // return the looked up local address
-    return localAddress;
 }
 
 uint qHash(const HifiSockAddr& key, uint seed) {

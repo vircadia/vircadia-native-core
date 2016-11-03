@@ -1,0 +1,80 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  overlay3D_translucent.slf
+//  fragment shader
+//
+//  Created by Sam Gateau on 6/16/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include model/Light.slh@>
+
+<@include LightingModel.slh@>
+
+<@include LightDirectional.slh@>
+<$declareLightingDirectional()$>
+
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+
+vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 fresnel, float roughness, float opacity) {
+
+    // Need the light now
+    Light light = getLight();
+    TransformCamera cam = getTransformCamera();
+    vec3 fragNormal;
+    <$transformEyeToWorldDir(cam, normal, fragNormal)$>
+    vec3 fragEyeVectorView = normalize(-position);
+    vec3 fragEyeDir;
+    <$transformEyeToWorldDir(cam, fragEyeVectorView, fragEyeDir)$>
+
+    vec3 color = opacity * albedo * getLightColor(light) * getLightAmbientIntensity(light);
+
+    // Directional
+    vec3 directionalDiffuse;
+    vec3 directionalSpecular;
+    evalLightingDirectional(directionalDiffuse, directionalSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
+    color += directionalDiffuse;
+    color += directionalSpecular / opacity;
+
+    return vec4(color, opacity);
+}
+
+uniform sampler2D originalTexture;
+
+in vec2 _texCoord0;
+in vec4 _position;
+in vec3 _normal;
+in vec3 _color;
+in float _alpha;
+
+out vec4 _fragColor;
+
+void main(void) {
+    vec4 albedo = texture(originalTexture, _texCoord0);
+
+    vec3 fragPosition = _position.xyz;
+    vec3 fragNormal = normalize(_normal);
+    vec3 fragAlbedo = albedo.rgb * _color;
+    float fragMetallic = 0.0;
+    vec3 fragSpecular = vec3(0.1);
+    float fragRoughness = 0.9;
+    float fragOpacity = albedo.a * _alpha;
+
+    vec4 color =  evalGlobalColor(1.0,
+        fragPosition,
+        fragNormal,
+        fragAlbedo,
+        fragMetallic,
+        fragSpecular,
+        fragRoughness,
+        fragOpacity);
+
+    // Apply standard tone mapping
+    _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
+}

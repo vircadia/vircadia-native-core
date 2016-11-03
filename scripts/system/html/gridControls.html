@@ -1,0 +1,66 @@
+<!--
+//  gridControls.html
+//
+//  Created by Ryan Huffman on 6 Nov 2014
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+        <link rel="stylesheet" type="text/css" href="css/colpick.css">
+        <script src="js/jquery-2.1.4.min.js"></script>
+        <script src="js/colpick.js"></script>
+        <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+        <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
+        <script type="text/javascript" src="js/spinButtons.js"></script>
+        <script type="text/javascript" src="js/keyboardControl.js"></script>
+        <script type="text/javascript" src="js/gridControls.js"></script>
+    </head>
+    <body onload='loaded();'>
+        <div id="grid-section">
+            <div class="section-header">
+                <label>Editing Grid</label>
+            </div>
+            <div class="property checkbox">
+                <input type='checkbox' id="horiz-grid-visible">
+                <label for="horiz-grid-visible">Visible</label>
+            </div>
+            <div class="property checkbox">
+                <input type="checkbox" id="snap-to-grid">
+                <label for="snap-to-grid">Snap entities to grid</label>
+            </div>
+            <div class="property">
+                <div class="number">
+                    <label for="major-spacing">Major grid size <span class="unit">m</span></label>
+                    <input type="number" id="major-spacing" min="1" step="1" />
+                </div>
+                <div class="number">
+                    <label for="minor-spacing">Minor grid size <span class="unit">m</span></label>
+                    <input type="number" id="minor-spacing" min="0.2" step="0.2" />
+                </div>
+            </div>
+            <div class="property number">
+                <label for="horiz-y">Position (Y axis) <span class="unit">m</span></label>
+                <input type="number" id="horiz-y" step="0.1" />
+            </div>
+            <div class="property rgb">
+                <div id="grid-color" class="color-picker"></div>
+                <label>Grid line color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="grid-color-red"><label for="grid-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="grid-color-green"><label for="grid-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="grid-color-blue"><label for="grid-color-blue">Blue:</label></div>
+                </div>
+            </div>
+            <div class="property">
+                <span>
+                    <input type="button" id="move-to-selection" value="Align To Selection">
+                    <input type="button" id="move-to-avatar" value="Align To Avatar">
+                </span>
+            </div>
+        </div>
+    </body>
+</html>

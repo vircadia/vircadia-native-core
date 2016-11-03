@@ -130,6 +130,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
                 ownerEntity->setActionDataDirty(true);
+                ownerEntity->setActionDataNeedsTransmit(true);
             }
         });
         activateBody();
@@ -160,7 +161,7 @@ QByteArray ObjectActionOffset::serialize() const {
         dataStream << _linearDistance;
         dataStream << _linearTimeScale;
         dataStream << _positionalTargetSet;
-        dataStream << _expires;
+        dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
     });
 
@@ -189,7 +190,11 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
         dataStream >> _linearDistance;
         dataStream >> _linearTimeScale;
         dataStream >> _positionalTargetSet;
-        dataStream >> _expires;
+
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+
         dataStream >> _tag;
         _active = true;
     });

@@ -10,21 +10,34 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.4
 import QtQuick.Controls 1.3
 import QtGraphicalEffects 1.0
+import Qt.labs.settings 1.0
 
 Hifi.AvatarInputs {
     id: root
     objectName: "AvatarInputs"
-    anchors.fill: parent
+    width: mirrorWidth
+    height: controls.height + mirror.height 
+    x: 10; y: 5
 
-//    width: 800
-//    height: 600
-//    color: "black"
-    readonly property int iconPadding: 5
     readonly property int mirrorHeight: 215
     readonly property int mirrorWidth: 265
-    readonly property int mirrorTopPad: iconPadding
-    readonly property int mirrorLeftPad: 10
     readonly property int iconSize: 24
+    readonly property int iconPadding: 5
+
+    readonly property bool shouldReposition: true
+
+    Settings {
+        category: "Overlay.AvatarInputs"
+        property alias x: root.x
+        property alias y: root.y
+    }
+    
+    MouseArea {
+        id: hover
+        hoverEnabled: true
+        drag.target: parent
+        anchors.fill: parent
+    }
 
     Item {
         id: mirror
@@ -32,17 +45,7 @@ Hifi.AvatarInputs {
         height: root.mirrorVisible ? root.mirrorHeight : 0
         visible: root.mirrorVisible
         anchors.left: parent.left
-        anchors.leftMargin: root.mirrorLeftPad
-        anchors.top: parent.top
-        anchors.topMargin: root.mirrorTopPad
         clip: true
-
-        MouseArea {
-             id: hover
-             anchors.fill: parent
-             hoverEnabled: true
-             propagateComposedEvents: true
-         }
 
         Image {
             id: closeMirror
@@ -64,7 +67,7 @@ Hifi.AvatarInputs {
 
         Image {
             id: zoomIn
-            visible:  hover.containsMouse
+            visible: hover.containsMouse
             width: root.iconSize
             height: root.iconSize
             anchors.bottom: parent.bottom
@@ -82,58 +85,20 @@ Hifi.AvatarInputs {
     }
 
     Item {
+        id: controls
         width: root.mirrorWidth
         height: 44
-
-        x: root.mirrorLeftPad
-        y: root.mirrorVisible ? root.mirrorTopPad + root.mirrorHeight : 5
-
-
+        visible: root.showAudioTools
+        anchors.top: mirror.bottom
 
         Rectangle {
             anchors.fill: parent
             color: root.mirrorVisible ? (root.audioClipping ? "red" : "#696969") : "#00000000"
 
-            Image {
-                id: faceMute
-                width: root.iconSize
-                height: root.iconSize
-                visible: root.cameraEnabled
-                anchors.left: parent.left
-                anchors.leftMargin: root.iconPadding
-                anchors.verticalCenter: parent.verticalCenter
-                source: root.cameraMuted ? "../images/face-mute.svg" : "../images/face.svg"
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        root.toggleCameraMute()
-                    }
-                    onDoubleClicked: {
-                        root.resetSensors();
-                    }
-                }
-            }
-
-            Image {
-                id: micMute
-                width: root.iconSize
-                height: root.iconSize
-                anchors.left: root.cameraEnabled ? faceMute.right : parent.left
-                anchors.leftMargin: root.iconPadding
-                anchors.verticalCenter: parent.verticalCenter
-                source: root.audioMuted ? "../images/mic-mute.svg" : "../images/mic.svg"
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        root.toggleAudioMute()
-                    }
-                }
-            }
-
             Item {
                 id: audioMeter
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.left: micMute.right
+                anchors.left: parent.left
                 anchors.leftMargin: root.iconPadding
                 anchors.right: parent.right
                 anchors.rightMargin: root.iconPadding

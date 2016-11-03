@@ -43,30 +43,54 @@ void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
 }
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
+    QMutexLocker lock(&_mutex);
     assert(entity);
-    if (entity->shouldBePhysical()) { 
+    assert(!entity->isDead());
+    if (entity->shouldBePhysical()) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (!motionState) {
-            _pendingAdds.insert(entity);
+            _entitiesToAddToPhysics.insert(entity);
         }
-    } else if (entity->isMoving()) {
+    } else if (entity->isMovingRelativeToParent()) {
         _simpleKinematicEntities.insert(entity);
     }
 }
 
 void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
-    EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-    if (motionState) {
-        motionState->clearObjectBackPointer();
-        entity->setPhysicsInfo(nullptr);
-        _pendingRemoves.insert(motionState);
-        _outgoingChanges.remove(motionState);
+    if (entity->isSimulated()) {
+        EntitySimulation::removeEntityInternal(entity);
+        QMutexLocker lock(&_mutex);
+        _entitiesToAddToPhysics.remove(entity);
+
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            _outgoingChanges.remove(motionState);
+            _entitiesToRemoveFromPhysics.insert(entity);
+        } else {
+            _entitiesToDelete.insert(entity);
+        }
     }
-    _pendingAdds.remove(entity);
+}
+
+void PhysicalEntitySimulation::takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
+    QMutexLocker lock(&_mutex);
+    for (auto entity : _entitiesToDelete) {
+        // this entity is still in its tree, so we insert into the external list
+        entitiesToDelete.push_back(entity);
+
+        // Someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
+        // rather than do it here
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            _entitiesToRemoveFromPhysics.insert(entity);
+        }
+    }
+    _entitiesToDelete.clear();
 }
 
 void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     // queue incoming changes: from external sources (script, EntityServer, etc) to physics engine
+    QMutexLocker lock(&_mutex);
     assert(entity);
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
     if (motionState) {
@@ -74,9 +98,9 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
             // the entity should be removed from the physical simulation
             _pendingChanges.remove(motionState);
             _physicalObjects.remove(motionState);
-            _pendingRemoves.insert(motionState);
             _outgoingChanges.remove(motionState);
-            if (entity->isMoving()) {
+            _entitiesToRemoveFromPhysics.insert(entity);
+            if (entity->isMovingRelativeToParent()) {
                 _simpleKinematicEntities.insert(entity);
             }
         } else {
@@ -85,9 +109,9 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     } else if (entity->shouldBePhysical()) {
         // The intent is for this object to be in the PhysicsEngine, but it has no MotionState yet.
         // Perhaps it's shape has changed and it can now be added?
-        _pendingAdds.insert(entity);
+        _entitiesToAddToPhysics.insert(entity);
         _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
-    } else if (entity->isMoving()) {
+    } else if (entity->isMovingRelativeToParent()) {
         _simpleKinematicEntities.insert(entity);
     } else {
         _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
@@ -99,72 +123,117 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode
     // anyway, so maybe the simulation was already properly shutdown?  Cross our fingers...
 
-    // first disconnect each MotionStates from its Entity
+    // copy everything into _entitiesToDelete
     for (auto stateItr : _physicalObjects) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
-        EntityItemPointer entity = motionState->getEntity();
-        if (entity) {
-            entity->setPhysicsInfo(nullptr);
-        }
-        motionState->clearObjectBackPointer();
+        _entitiesToDelete.insert(motionState->getEntity());
     }
 
-    // then delete the objects (aka MotionStates)
-    _physicsEngine->deleteObjects(_physicalObjects);
+    // then remove the objects (aka MotionStates) from physics
+    _physicsEngine->removeObjects(_physicalObjects);
 
-    // finally clear all lists (which now have only dangling pointers)
+    // delete the MotionStates
+    // TODO: after we invert the entities/physics lib dependencies we will let EntityItem delete
+    // its own PhysicsInfo rather than do it here
+    for (auto entity : _entitiesToDelete) {
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            entity->setPhysicsInfo(nullptr);
+            delete motionState;
+        }
+    }
+
+    // finally clear all lists maintained by this class
     _physicalObjects.clear();
-    _pendingRemoves.clear();
-    _pendingAdds.clear();
+    _entitiesToRemoveFromPhysics.clear();
+    _entitiesToRelease.clear();
+    _entitiesToAddToPhysics.clear();
     _pendingChanges.clear();
+    _outgoingChanges.clear();
+}
+
+// virtual
+void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
+    assert(entity);
+    assert(entity->isDead());
+    entity->clearActions(getThisPointer());
+    removeEntityInternal(entity);
 }
 // end EntitySimulation overrides
 
-
-void PhysicalEntitySimulation::getObjectsToDelete(VectorOfMotionStates& result) {
+void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
     result.clear();
     QMutexLocker lock(&_mutex);
-    for (auto stateItr : _pendingRemoves) {
-        EntityMotionState* motionState = &(*stateItr);
-        _pendingChanges.remove(motionState);
-        _physicalObjects.remove(motionState);
+    for (auto entity: _entitiesToRemoveFromPhysics) {
+        // make sure it isn't on any side lists
+        _entitiesToAddToPhysics.remove(entity);
 
-        EntityItemPointer entity = motionState->getEntity();
-        if (entity) {
-            _pendingAdds.remove(entity);
-            entity->setPhysicsInfo(nullptr);
-            motionState->clearObjectBackPointer();
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            _pendingChanges.remove(motionState);
+            _outgoingChanges.remove(motionState);
+            _physicalObjects.remove(motionState);
+            result.push_back(motionState);
+            _entitiesToRelease.insert(entity);
         }
-        result.push_back(motionState);
+
+        if (entity->isDead()) {
+            _entitiesToDelete.insert(entity);
+        }
     }
-    _pendingRemoves.clear();
+    _entitiesToRemoveFromPhysics.clear();
 }
 
-void PhysicalEntitySimulation::getObjectsToAdd(VectorOfMotionStates& result) {
+void PhysicalEntitySimulation::deleteObjectsRemovedFromPhysics() {
+    QMutexLocker lock(&_mutex);
+    for (auto entity: _entitiesToRelease) {
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        assert(motionState);
+        entity->setPhysicsInfo(nullptr);
+        delete motionState;
+
+        if (entity->isDead()) {
+            _entitiesToDelete.insert(entity);
+        }
+    }
+    _entitiesToRelease.clear();
+}
+
+void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& result) {
     result.clear();
     QMutexLocker lock(&_mutex);
-    SetOfEntities::iterator entityItr = _pendingAdds.begin();
-    while (entityItr != _pendingAdds.end()) {
-        EntityItemPointer entity = *entityItr;
+    SetOfEntities::iterator entityItr = _entitiesToAddToPhysics.begin();
+    while (entityItr != _entitiesToAddToPhysics.end()) {
+        EntityItemPointer entity = (*entityItr);
         assert(!entity->getPhysicsInfo());
-        if (!entity->shouldBePhysical()) {
-            // this entity should no longer be on the internal _pendingAdds
-            entityItr = _pendingAdds.erase(entityItr);
-            if (entity->isMoving()) {
+        if (entity->isDead()) {
+            prepareEntityForDelete(entity);
+        } else if (!entity->shouldBePhysical()) {
+            // this entity should no longer be on the internal _entitiesToAddToPhysics
+            entityItr = _entitiesToAddToPhysics.erase(entityItr);
+            if (entity->isMovingRelativeToParent()) {
                 _simpleKinematicEntities.insert(entity);
             }
         } else if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
-            btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+            int numPoints = shapeInfo.getLargestSubshapePointCount();
+            if (shapeInfo.getType() == SHAPE_TYPE_COMPOUND) {
+                if (numPoints > MAX_HULL_POINTS) {
+                    qWarning() << "convex hull with" << numPoints
+                        << "points for entity" << entity->getName()
+                        << "at" << entity->getPosition() << " will be reduced";
+                }
+            }
+            btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
             if (shape) {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
                 _physicalObjects.insert(motionState);
                 result.push_back(motionState);
-                entityItr = _pendingAdds.erase(entityItr);
+                entityItr = _entitiesToAddToPhysics.erase(entityItr);
             } else {
-                //qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
+                //qWarning() << "Failed to generate new shape for entity." << entity->getName();
                 ++entityItr;
             }
         } else {
@@ -190,20 +259,20 @@ void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) 
     _pendingChanges.clear();
 }
 
-void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates& motionStates, const QUuid& sessionID) {
+void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates& motionStates) {
     QMutexLocker lock(&_mutex);
+
     // walk the motionStates looking for those that correspond to entities
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
         if (state && state->getType() == MOTIONSTATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             EntityItemPointer entity = entityState->getEntity();
-            if (entity) {
-                if (entityState->isCandidateForOwnership(sessionID)) {
-                    _outgoingChanges.insert(entityState);
-                }
-                _entitiesToSort.insert(entityState->getEntity());
+            assert(entity.get());
+            if (entityState->isCandidateForOwnership()) {
+                _outgoingChanges.insert(entityState);
             }
+            _entitiesToSort.insert(entity);
         }
     }
 
@@ -211,20 +280,22 @@ void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates&
     if (_lastStepSendPackets != numSubsteps) {
         _lastStepSendPackets = numSubsteps;
 
-        if (sessionID.isNull()) {
+        if (Physics::getSessionUUID().isNull()) {
             // usually don't get here, but if so --> nothing to do
             _outgoingChanges.clear();
             return;
         }
 
-        // send outgoing packets
+        // look for entities to prune or update
         QSet<EntityMotionState*>::iterator stateItr = _outgoingChanges.begin();
         while (stateItr != _outgoingChanges.end()) {
             EntityMotionState* state = *stateItr;
-            if (!state->isCandidateForOwnership(sessionID)) {
+            if (!state->isCandidateForOwnership()) {
+                // prune
                 stateItr = _outgoingChanges.erase(stateItr);
-            } else if (state->shouldSendUpdate(numSubsteps, sessionID)) {
-                state->sendUpdate(_entityPacketSender, sessionID, numSubsteps);
+            } else if (state->shouldSendUpdate(numSubsteps)) {
+                // update
+                state->sendUpdate(_entityPacketSender, numSubsteps);
                 ++stateItr;
             } else {
                 ++stateItr;
@@ -251,7 +322,8 @@ void PhysicalEntitySimulation::addAction(EntityActionPointer action) {
             QMutexLocker lock(&_mutex);
             const QUuid& actionID = action->getID();
             if (_physicsEngine->getActionByID(actionID)) {
-                qDebug() << "warning -- PhysicalEntitySimulation::addAction -- adding an action that was already in _physicsEngine";
+                qCDebug(physics) << "warning -- PhysicalEntitySimulation::addAction -- adding an "
+                    "action that was already in _physicsEngine";
             }
         }
         EntitySimulation::addAction(action);

@@ -17,7 +17,7 @@
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
     PROP_CUSTOM_PROPERTIES_INCLUDED,
-    
+
     // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
     PROP_POSITION,
@@ -33,7 +33,7 @@ enum EntityPropertyList {
 
     // these properties are supported by some derived classes
     PROP_COLOR,
-    
+
     // these are used by models only
     PROP_MODEL_URL,
     PROP_ANIMATION_URL,
@@ -45,8 +45,8 @@ enum EntityPropertyList {
     PROP_REGISTRATION_POINT,
     PROP_ANGULAR_VELOCITY,
     PROP_ANGULAR_DAMPING,
-    PROP_IGNORE_FOR_COLLISIONS,
-    PROP_COLLISIONS_WILL_MOVE,
+    PROP_COLLISIONLESS,
+    PROP_DYNAMIC,
 
     // property used by Light entity
     PROP_IS_SPOTLIGHT,
@@ -149,6 +149,38 @@ enum EntityPropertyList {
     PROP_ANIMATION_HOLD,
     PROP_ANIMATION_START_AUTOMATICALLY,
 
+    PROP_EMITTER_SHOULD_TRAIL,
+
+    PROP_PARENT_ID,
+    PROP_PARENT_JOINT_INDEX,
+
+    PROP_LOCAL_POSITION, // only used to convert values to and from scripts
+    PROP_LOCAL_ROTATION, // only used to convert values to and from scripts
+
+    PROP_QUERY_AA_CUBE, // how the EntityTree considers the size and position on an entity
+
+    // ModelEntity joint state
+    PROP_JOINT_ROTATIONS_SET,
+    PROP_JOINT_ROTATIONS,
+    PROP_JOINT_TRANSLATIONS_SET,
+    PROP_JOINT_TRANSLATIONS,
+
+    PROP_COLLISION_MASK, // one byte of collision group flags
+
+    PROP_FALLOFF_RADIUS, // for Light entity
+
+    PROP_FLYING_ALLOWED, // can avatars in a zone fly?
+    PROP_GHOSTING_ALLOWED, // can avatars in a zone turn off physics?
+
+    PROP_CLIENT_ONLY, // doesn't go over wire
+    PROP_OWNING_AVATAR_ID, // doesn't go over wire
+
+    PROP_SHAPE,
+    PROP_DPI,
+
+    PROP_LOCAL_VELOCITY, // only used to convert values to and from scripts
+    PROP_LOCAL_ANGULAR_VELOCITY, // only used to convert values to and from scripts
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
@@ -179,17 +211,11 @@ enum EntityPropertyList {
     PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
     PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
     PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
-    PROP_ATMOSPHERE_CENTER = PROP_MAX_PARTICLES,
-    PROP_ATMOSPHERE_INNER_RADIUS = PROP_LIFESPAN,
-    PROP_ATMOSPHERE_OUTER_RADIUS = PROP_EMIT_RATE,
-    PROP_ATMOSPHERE_MIE_SCATTERING = PROP_EMIT_SPEED,
-    PROP_ATMOSPHERE_RAYLEIGH_SCATTERING = PROP_EMIT_STRENGTH,
-    PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS = PROP_EMIT_ACCELERATION,
-    PROP_ATMOSPHERE_HAS_STARS = PROP_PARTICLE_RADIUS,
     PROP_BACKGROUND_MODE = PROP_MODEL_URL,
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
-
+    PROP_KEYLIGHT_AMBIENT_URL = PROP_ANIMATION_PLAYING,
+    
     // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. 
     PROP_SOURCE_URL = PROP_MODEL_URL,

@@ -17,20 +17,31 @@ public:
     ~OverlayConductor();
 
     void update(float dt);
-    void setEnabled(bool enable);
-    bool getEnabled() const;
+    void centerUI();
 
 private:
-    void updateMode();
+    bool headOutsideOverlay() const;
+    bool updateAvatarHasDriveInput();
+    bool updateAvatarIsAtRest();
 
-    enum Mode {
-        FLAT,
-        SITTING,
-        STANDING
+    enum SupressionFlags {
+        SuppressedByDrive = 0x01,
+        SuppressedByHead = 0x02,
+        SuppressMask = 0x03,
     };
 
-    Mode _mode = FLAT;
-    bool _enabled = true;
+    uint8_t _flags { SuppressedByDrive };
+    bool _hmdMode { false };
+
+    // used by updateAvatarHasDriveInput
+    quint64 _desiredDrivingTimer { 0 };
+    bool _desiredDriving { false };
+    bool _currentDriving { false };
+
+    // used by updateAvatarIsAtRest
+    quint64 _desiredAtRestTimer { 0 };
+    bool _desiredAtRest { true };
+    bool _currentAtRest { true };
 };
 
 #endif

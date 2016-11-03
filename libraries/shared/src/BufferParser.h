@@ -51,7 +51,7 @@ public:
     inline void readCompressedCount(T& result) {
         // FIXME switch to a heapless implementation as soon as Brad provides it.
         ByteCountCoded<T> codec;
-        _offset += codec.decode(reinterpret_cast<const char*>(_data + _offset), remaining());
+        _offset += codec.decode(reinterpret_cast<const char*>(_data + _offset), (int)remaining());
         result = codec.data;
     }
 

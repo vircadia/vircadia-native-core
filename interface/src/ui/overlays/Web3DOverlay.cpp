@@ -12,12 +12,9 @@
 
 #include "Web3DOverlay.h"
 
-#include <QtScript/QScriptValue>
 #include <QtGui/QOpenGLContext>
 #include <QtQuick/QQuickItem>
 
-
-#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
@@ -27,14 +24,17 @@
 #include <RegisteredMetaTypes.h>
 #include <AbstractViewStateInterface.h>
 
-#include <OffscreenQmlSurface.h>
+#include <gl/OffscreenQmlSurface.h>
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
+static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 QString const Web3DOverlay::TYPE = "web3d";
 
-Web3DOverlay::Web3DOverlay() : _dpi(DPI) { }
+Web3DOverlay::Web3DOverlay() : _dpi(DPI) { 
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     Billboard3DOverlay(Web3DOverlay),
@@ -42,25 +42,36 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     _dpi(Web3DOverlay->_dpi),
     _resolution(Web3DOverlay->_resolution)
 {
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Web3DOverlay::~Web3DOverlay() {
     if (_webSurface) {
         _webSurface->pause();
         _webSurface->disconnect(_connection);
+
+
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
-        // member variables, since they would implicitly refer to a this that 
+        // member variables, since they would implicitly refer to a this that
         // is no longer valid
         auto webSurface = _webSurface;
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
             webSurface->deleteLater();
         });
     }
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 void Web3DOverlay::update(float deltatime) {
-    applyTransformTo(_transform);
+    if (usecTimestampNow() > _transformExpiry) {
+        Transform transform = getTransform();
+        applyTransformTo(transform);
+        setTransform(transform);
+    }
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
@@ -71,16 +82,21 @@ void Web3DOverlay::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
-        _webSurface = new OffscreenQmlSurface();
+        auto deleter = [](OffscreenQmlSurface* webSurface) {
+            AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
+                webSurface->deleteLater();
+            });
+        };
+        _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
+        // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
+        // and the current rendering load)
+        _webSurface->setMaxFps(10);
         _webSurface->create(currentContext);
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-        _webSurface->load("WebEntity.qml");
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
+        _webSurface->load("WebView.qml");
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
-        _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
-            _texture = textureId;
-        });
         currentContext->makeCurrent(currentSurface);
     }
 
@@ -88,50 +104,74 @@ void Web3DOverlay::render(RenderArgs* args) {
     vec2 halfSize = size / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
 
-    applyTransformTo(_transform, true);
-    Transform transform = _transform;
+    Transform transform = getTransform();
+    applyTransformTo(transform, true);
+    setTransform(transform);
     if (glm::length2(getDimensions()) != 1.0f) {
         transform.postScale(vec3(getDimensions(), 1.0f));
     }
 
-    Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    if (_texture) {
-        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
-    } else {
-        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    if (!_texture) {
+        auto webSurface = _webSurface;
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
+        _texture->setSource(__FUNCTION__);
+    }
+    OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    bool newTextureAvailable = _webSurface->fetchTexture(newTextureAndFence);
+    if (newTextureAvailable) {
+        _texture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
     }
 
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setResourceTexture(0, _texture);
     batch.setModelTransform(transform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true, false, false, true);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (color.a < OPAQUE_ALPHA_THRESHOLD) {
+        geometryCache->bindTransparentWebBrowserProgram(batch);
+    } else {
+        geometryCache->bindOpaqueWebBrowserProgram(batch);
+    }
+    geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 
-void Web3DOverlay::setProperties(const QScriptValue &properties) {
+const render::ShapeKey Web3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
+}
+
+void Web3DOverlay::setProperties(const QVariantMap& properties) {
     Billboard3DOverlay::setProperties(properties);
 
-    QScriptValue urlValue = properties.property("url");
+    auto urlValue = properties["url"];
     if (urlValue.isValid()) {
-        QString newURL = urlValue.toVariant().toString();
+        QString newURL = urlValue.toString();
         if (newURL != _url) {
             setURL(newURL);
         }
     }
 
-    QScriptValue resolution = properties.property("resolution");
+    auto resolution = properties["resolution"];
     if (resolution.isValid()) {
-        vec2FromScriptValue(resolution, _resolution);
+        bool valid;
+        auto res = vec2FromVariant(resolution, valid);
+        if (valid) {
+            _resolution = res;
+        }
     }
 
 
-    QScriptValue dpi = properties.property("dpi");
+    auto dpi = properties["dpi"];
     if (dpi.isValid()) {
-        _dpi = dpi.toVariant().toFloat();
+        _dpi = dpi.toFloat();
     }
 }
 
-QScriptValue Web3DOverlay::getProperty(const QString& property) {
+QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;
     }
@@ -155,7 +195,10 @@ bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
     // FIXME - face and surfaceNormal not being returned
 
     // Make sure position and rotation is updated.
-    applyTransformTo(_transform, true);
+    Transform transform;
+    applyTransformTo(transform, true);
+    setTransform(transform);
+
     vec2 size = _resolution / _dpi * INCHES_TO_METERS * vec2(getDimensions());
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
     return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), size, distance);

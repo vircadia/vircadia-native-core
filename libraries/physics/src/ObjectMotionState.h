@@ -23,11 +23,20 @@
 #include "ContactInfo.h"
 #include "ShapeManager.h"
 
-enum MotionType {
+enum PhysicsMotionType {
     MOTION_TYPE_STATIC,     // no motion
     MOTION_TYPE_DYNAMIC,    // motion according to physical laws
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
+
+inline QString motionTypeToString(PhysicsMotionType motionType) {
+    switch(motionType) {
+        case MOTION_TYPE_STATIC: return QString("static");
+        case MOTION_TYPE_DYNAMIC: return QString("dynamic");
+        case MOTION_TYPE_KINEMATIC: return QString("kinematic");
+    }
+    return QString("unknown");
+}
 
 enum MotionStateType {
     MOTIONSTATE_TYPE_INVALID,
@@ -35,17 +44,18 @@ enum MotionStateType {
     MOTIONSTATE_TYPE_AVATAR
 };
 
-// The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
+// The update flags trigger two varieties of updates: "hard" which require the body to be pulled
 // and re-added to the physics engine and "easy" which just updates the body properties.
-const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_SHAPE | 
+const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_SHAPE |
                                                      Simulation::DIRTY_COLLISION_GROUP);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES |
-                                                     Simulation::DIRTY_MASS | Simulation::DIRTY_MATERIAL | 
-                                                     Simulation::DIRTY_SIMULATOR_ID | Simulation::DIRTY_SIMULATOR_OWNERSHIP);
+                                                     Simulation::DIRTY_MASS | Simulation::DIRTY_MATERIAL |
+                                                     Simulation::DIRTY_SIMULATOR_ID | Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY |
+                                                     Simulation::DIRTY_PHYSICS_ACTIVATION);
+
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
-const uint32_t DIRTY_PHYSICS_FLAGS = (uint32_t)(HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS |
-                                                Simulation::DIRTY_PHYSICS_ACTIVATION);
+const uint32_t DIRTY_PHYSICS_FLAGS = (uint32_t)(HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS);
 
 // These are the outgoing flags that the PhysicsEngine can affect:
 const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES;
@@ -57,7 +67,7 @@ class PhysicsEngine;
 class ObjectMotionState : public btMotionState {
 public:
     // These poroperties of the PhysicsEngine are "global" within the context of all ObjectMotionStates
-    // (assuming just one PhysicsEngine).  They are cached as statics for fast calculations in the 
+    // (assuming just one PhysicsEngine).  They are cached as statics for fast calculations in the
     // ObjectMotionState context.
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
@@ -68,18 +78,20 @@ public:
     static void setShapeManager(ShapeManager* manager);
     static ShapeManager* getShapeManager();
 
-    ObjectMotionState(btCollisionShape* shape);
+    ObjectMotionState(const btCollisionShape* shape);
     ~ObjectMotionState();
 
-    virtual bool handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
-    virtual bool handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual void handleEasyChanges(uint32_t& flags);
+    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
 
     void updateBodyMaterialProperties();
     void updateBodyVelocities();
+    void updateLastKinematicStep();
+
     virtual void updateBodyMassProperties();
 
     MotionStateType getType() const { return _type; }
-    virtual MotionType getMotionType() const { return _motionType; }
+    virtual PhysicsMotionType getMotionType() const { return _motionType; }
 
     void setMass(float mass) { _mass = fabsf(mass); }
     float getMass() { return _mass; }
@@ -89,18 +101,17 @@ public:
     void setBodyGravity(const glm::vec3& gravity) const;
 
     glm::vec3 getBodyLinearVelocity() const;
+    glm::vec3 getBodyLinearVelocityGTSigma() const;
     glm::vec3 getBodyAngularVelocity() const;
     virtual glm::vec3 getObjectLinearVelocityChange() const;
 
     virtual uint32_t getIncomingDirtyFlags() = 0;
     virtual void clearIncomingDirtyFlags() = 0;
 
-    virtual MotionType computeObjectMotionType() const = 0;
+    virtual PhysicsMotionType computePhysicsMotionType() const = 0;
 
-    btCollisionShape* getShape() const { return _shape; }
+    const btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
-
-    void releaseShape();
 
     virtual bool isMoving() const = 0;
 
@@ -111,45 +122,50 @@ public:
     virtual float getObjectFriction() const = 0;
     virtual float getObjectLinearDamping() const = 0;
     virtual float getObjectAngularDamping() const = 0;
-    
+
     virtual glm::vec3 getObjectPosition() const = 0;
     virtual glm::quat getObjectRotation() const = 0;
     virtual glm::vec3 getObjectLinearVelocity() const = 0;
     virtual glm::vec3 getObjectAngularVelocity() const = 0;
     virtual glm::vec3 getObjectGravity() const = 0;
 
-    virtual const QUuid& getObjectID() const = 0;
+    virtual const QUuid getObjectID() const = 0;
 
     virtual quint8 getSimulationPriority() const { return 0; }
     virtual QUuid getSimulatorID() const = 0;
     virtual void bump(quint8 priority) {}
 
-    virtual QString getName() { return ""; }
+    virtual QString getName() const { return ""; }
 
-    virtual int16_t computeCollisionGroup() = 0;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const = 0;
 
     bool isActive() const { return _body ? _body->isActive() : false; }
+
+    bool hasInternalKinematicChanges() const { return _hasInternalKinematicChanges; }
+
+    void dirtyInternalKinematicChanges() { _hasInternalKinematicChanges = true; }
+    void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
 
     friend class PhysicsEngine;
 
 protected:
-    virtual bool isReadyToComputeShape() = 0;
-    virtual btCollisionShape* computeNewShape() = 0;
-    void setMotionType(MotionType motionType);
-
-    // clearObjectBackPointer() overrrides should call the base method, then actually clear the object back pointer.
-    virtual void clearObjectBackPointer() { _type = MOTIONSTATE_TYPE_INVALID; }
+    virtual bool isReadyToComputeShape() const = 0;
+    virtual const btCollisionShape* computeNewShape() = 0;
+    virtual void setMotionType(PhysicsMotionType motionType);
+    void updateCCDConfiguration();
 
     void setRigidBody(btRigidBody* body);
+    virtual void setShape(const btCollisionShape* shape);
 
     MotionStateType _type = MOTIONSTATE_TYPE_INVALID; // type of MotionState
-    MotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
+    PhysicsMotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
-    btCollisionShape* _shape;
+    const btCollisionShape* _shape;
     btRigidBody* _body;
     float _mass;
 
     uint32_t _lastKinematicStep;
+    bool _hasInternalKinematicChanges { false };
 };
 
 typedef QSet<ObjectMotionState*> SetOfMotionStates;

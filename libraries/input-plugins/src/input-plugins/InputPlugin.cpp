@@ -13,25 +13,20 @@
 #include <plugins/PluginManager.h>
 
 #include "KeyboardMouseDevice.h"
-#include "SDL2Manager.h"
-#include "SixenseManager.h"
-#include "ViveControllerManager.h"
+#include "TouchscreenDevice.h"
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 InputPluginList getInputPlugins() {
     InputPlugin* PLUGIN_POOL[] = {
         new KeyboardMouseDevice(),
-        new SDL2Manager(),
-        new SixenseManager(),
-        new ViveControllerManager(),
+        new TouchscreenDevice(),
         nullptr
     };
 
     InputPluginList result;
     for (int i = 0; PLUGIN_POOL[i]; ++i) {
-        InputPlugin * plugin = PLUGIN_POOL[i];
+        InputPlugin* plugin = PLUGIN_POOL[i];
         if (plugin->isSupported()) {
-            plugin->init();
             result.push_back(InputPluginPointer(plugin));
         }
     }

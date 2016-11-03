@@ -15,12 +15,9 @@
 #include <SharedUtil.h> // for xColor
 #include <render/Scene.h>
 
-class QScriptEngine;
-class QScriptValue;
-
 class Overlay : public QObject {
     Q_OBJECT
-    
+
 public:
     enum Anchor {
         NO_ANCHOR,
@@ -34,14 +31,20 @@ public:
     Overlay();
     Overlay(const Overlay* overlay);
     ~Overlay();
-    void init(QScriptEngine* scriptEngine);
+
+    unsigned int getOverlayID() { return _overlayID; }
+    void setOverlayID(unsigned int overlayID) { _overlayID = overlayID; }
+
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
-    
+
     virtual AABox getBounds() const = 0;
+    virtual bool supportsGetProperty() const { return true; }
 
     virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+
+    virtual const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
 
     // getters
     virtual QString getType() const = 0;
@@ -50,7 +53,6 @@ public:
     bool getVisible() const { return _visible; }
     xColor getColor();
     float getAlpha();
-    float getGlowLevel();
     Anchor getAnchor() const { return _anchor; }
 
     float getPulseMax() const { return _pulseMax; }
@@ -58,7 +60,6 @@ public:
     float getPulsePeriod() const { return _pulsePeriod; }
     float getPulseDirection() const { return _pulseDirection; }
 
-    float getGlowLevelPulse() const { return _glowLevelPulse; }
     float getColorPulse() const { return _colorPulse; }
     float getAlphaPulse() const { return _alphaPulse; }
 
@@ -66,7 +67,6 @@ public:
     void setVisible(bool visible) { _visible = visible; }
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
-    void setGlowLevel(float value) { _glowLevel = value; }
     void setAnchor(Anchor anchor) { _anchor = anchor; }
 
     void setPulseMax(float value) { _pulseMax = value; }
@@ -74,14 +74,12 @@ public:
     void setPulsePeriod(float value) { _pulsePeriod = value; }
     void setPulseDirection(float value) { _pulseDirection = value; }
 
-
-    void setGlowLevelPulse(float value) { _glowLevelPulse = value; }
     void setColorPulse(float value) { _colorPulse = value; }
     void setAlphaPulse(float value) { _alphaPulse = value; }
 
-    virtual void setProperties(const QScriptValue& properties);
+    virtual void setProperties(const QVariantMap& properties);
     virtual Overlay* createClone() const = 0;
-    virtual QScriptValue getProperty(const QString& property);
+    virtual QVariant getProperty(const QString& property);
 
     render::ItemID getRenderItemID() const { return _renderItemID; }
     void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }
@@ -89,11 +87,12 @@ public:
 protected:
     float updatePulse();
 
-    render::ItemID _renderItemID;
+    render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
+
+    unsigned int _overlayID; // what Overlays.cpp knows this instance as
 
     bool _isLoaded;
     float _alpha;
-    float _glowLevel;
 
     float _pulse;
     float _pulseMax;
@@ -102,15 +101,12 @@ protected:
     float _pulseDirection;
     quint64 _lastPulseUpdate;
 
-    float _glowLevelPulse; // ratio of the pulse to the glow level
     float _alphaPulse; // ratio of the pulse to the alpha
     float _colorPulse; // ratio of the pulse to the color
 
     xColor _color;
     bool _visible; // should the overlay be drawn at all
     Anchor _anchor;
-
-    QScriptEngine* _scriptEngine;
 };
 
 namespace render {
@@ -118,6 +114,7 @@ namespace render {
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
    template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
+   template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
 }
 
  

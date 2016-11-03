@@ -17,7 +17,7 @@
 public: \
     type name() { return _##name; }; \
 private: \
-    type _##name{ initialValue }; 
+    type _##name{ initialValue };
 
 class AvatarInputs : public QQuickItem {
     Q_OBJECT
@@ -30,6 +30,8 @@ class AvatarInputs : public QQuickItem {
     AI_PROPERTY(float, audioLevel, 0)
     AI_PROPERTY(bool, mirrorVisible, false)
     AI_PROPERTY(bool, mirrorZoomed, true)
+    AI_PROPERTY(bool, isHMD, false)
+    AI_PROPERTY(bool, showAudioTools, true)
 
 public:
     static AvatarInputs* getInstance();
@@ -44,6 +46,8 @@ signals:
     void audioLevelChanged();
     void mirrorVisibleChanged();
     void mirrorZoomedChanged();
+    void isHMDChanged();
+    void showAudioToolsChanged();
 
 protected:
     Q_INVOKABLE void resetSensors();

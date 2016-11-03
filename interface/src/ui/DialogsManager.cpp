@@ -19,10 +19,9 @@
 #include <PathUtils.h>
 
 #include "AddressBarDialog.h"
-#include "AnimationsDialog.h"
-#include "AttachmentsDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
+#include "ConnectionFailureDialog.h"
 #include "DiskCacheEditor.h"
 #include "DomainConnectionDialog.h"
 #include "HMDToolsDialog.h"
@@ -50,6 +49,23 @@ void DialogsManager::maybeCreateDialog(QPointer<T>& member) {
 void DialogsManager::toggleAddressBar() {
     AddressBarDialog::toggle();
     emit addressBarToggled();
+}
+
+void DialogsManager::showAddressBar() {
+    AddressBarDialog::show();
+}
+
+void DialogsManager::showFeed() {
+    AddressBarDialog::show();
+    emit setUseFeed(true);
+}
+
+void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
+    if (visible) {
+        ConnectionFailureDialog::show();
+    } else {
+        ConnectionFailureDialog::hide();
+    }
 }
 
 void DialogsManager::toggleDiskCacheEditor() {
@@ -92,47 +108,6 @@ void DialogsManager::cachesSizeDialog() {
     _cachesSizeDialog->raise();
 }
 
-void DialogsManager::editPreferences() {
-    if (!_preferencesDialog) {
-        maybeCreateDialog(_preferencesDialog);
-        _preferencesDialog->show();
-    } else {
-        _preferencesDialog->close();
-    }
-}
-
-void DialogsManager::editAttachments() {
-    if (!_attachmentsDialog) {
-        maybeCreateDialog(_attachmentsDialog);
-        _attachmentsDialog->show();
-    } else {
-        _attachmentsDialog->close();
-    }
-}
-
-void DialogsManager::editAnimations() {
-    if (!_animationsDialog) {
-        maybeCreateDialog(_animationsDialog);
-        _animationsDialog->show();
-    } else {
-        _animationsDialog->close();
-    }
-}
-
-void DialogsManager::audioStatsDetails() {
-    if (! _audioStatsDialog) {
-        _audioStatsDialog = new AudioStatsDialog(qApp->getWindow());
-        connect(_audioStatsDialog, SIGNAL(closed()), _audioStatsDialog, SLOT(deleteLater()));
-        
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_audioStatsDialog->windowHandle());
-        }
-        
-        _audioStatsDialog->show();
-    }
-    _audioStatsDialog->raise();
-}
-
 void DialogsManager::bandwidthDetails() {
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(qApp->getWindow());
@@ -157,11 +132,6 @@ void DialogsManager::lodTools() {
     _lodToolsDialog->raise();
 }
 
-void DialogsManager::toggleToolWindow() {
-    QMainWindow* toolWindow = qApp->getToolWindow();
-    toolWindow->setVisible(!toolWindow->isVisible());
-}
-
 void DialogsManager::hmdTools(bool showTools) {
     if (showTools) {
         if (!_hmdToolsDialog) {
@@ -177,27 +147,15 @@ void DialogsManager::hmdTools(bool showTools) {
 }
 
 void DialogsManager::hmdToolsClosed() {
-    _hmdToolsDialog->hide();
+    if (_hmdToolsDialog) {
+        _hmdToolsDialog->hide();
+    }
 }
 
 void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
     _scriptEditor->show();
     _scriptEditor->raise();
-}
-
-void DialogsManager::showIRCLink() {
-    if (!_ircInfoBox) {
-        _ircInfoBox = new QMessageBox(QMessageBox::NoIcon,
-                                      "High Fidelity IRC",
-                                      "High Fidelity has an IRC channel on irc.freenode.net at #highfidelity.<br/><br/>Web chat is available <a href='http://webchat.freenode.net/?channels=highfidelity&uio=d4'>here</a>.",
-                                      QMessageBox::Ok);
-        _ircInfoBox->setTextFormat(Qt::RichText);
-        _ircInfoBox->setAttribute(Qt::WA_DeleteOnClose);
-        _ircInfoBox->show();
-    }
-
-    _ircInfoBox->raise();
 }
 
 void DialogsManager::showDomainConnectionDialog() {

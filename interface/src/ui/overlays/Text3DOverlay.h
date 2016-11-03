@@ -22,14 +22,16 @@ class Text3DOverlay : public Billboard3DOverlay {
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Text3DOverlay();
     Text3DOverlay(const Text3DOverlay* text3DOverlay);
     ~Text3DOverlay();
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
 
-    virtual void update(float deltatime);
+    virtual void update(float deltatime) override;
+
+    virtual const render::ShapeKey getShapeKey() override;
 
     // getters
     const QString& getText() const { return _text; }
@@ -39,38 +41,40 @@ public:
     float getRightMargin() const { return _rightMargin; }
     float getBottomMargin() const { return _bottomMargin; }
     xColor getBackgroundColor();
-    float getBackgroundAlpha() const { return _backgroundAlpha; }
+    float getTextAlpha() { return _textAlpha; }
+    float getBackgroundAlpha() { return getAlpha(); }
 
     // setters
     void setText(const QString& text) { _text = text; }
+    void setTextAlpha(float alpha) { _textAlpha = alpha; }
     void setLineHeight(float value) { _lineHeight = value; }
     void setLeftMargin(float margin) { _leftMargin = margin; }
     void setTopMargin(float margin) { _topMargin = margin; }
     void setRightMargin(float margin) { _rightMargin = margin; }
     void setBottomMargin(float margin) { _bottomMargin = margin; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     QSizeF textSize(const QString& test) const;  // Meters
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                        BoxFace& face, glm::vec3& surfaceNormal);
+                                        BoxFace& face, glm::vec3& surfaceNormal) override;
 
-    virtual Text3DOverlay* createClone() const;
+    virtual Text3DOverlay* createClone() const override;
 
 private:
     TextRenderer3D* _textRenderer = nullptr;
     
     QString _text;
-    xColor _backgroundColor;
-    float _backgroundAlpha;
-    float _lineHeight;
-    float _leftMargin;
-    float _topMargin;
-    float _rightMargin;
-    float _bottomMargin;
+    xColor _backgroundColor = xColor { 0, 0, 0 };
+    float _textAlpha { 1.0f };
+    float _lineHeight { 1.0f };
+    float _leftMargin { 0.1f };
+    float _topMargin { 0.1f };
+    float _rightMargin { 0.1f };
+    float _bottomMargin { 0.1f };
+    int _geometryId { 0 };
 };
 
- 
 #endif // hifi_Text3DOverlay_h

@@ -11,9 +11,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "Cube3DOverlay.h"
 
-#include <QScriptValue>
-
-#include <DeferredLightingEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 #include <GeometryCache.h>
@@ -21,9 +18,29 @@
 
 QString const Cube3DOverlay::TYPE = "cube";
 
+Cube3DOverlay::Cube3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _geometryIds.size(); ++i) {
+        _geometryIds[i] = geometryCache->allocateID();
+    }
+}
+
 Cube3DOverlay::Cube3DOverlay(const Cube3DOverlay* cube3DOverlay) :
     Volume3DOverlay(cube3DOverlay)
 {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _geometryIds.size(); ++i) {
+        _geometryIds[i] = geometryCache->allocateID();
+    }
+}
+
+Cube3DOverlay::~Cube3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        for (size_t i = 0; i < _geometryIds.size(); ++i) {
+            geometryCache->releaseID(_geometryIds[i]);
+        }
+    }
 }
 
 void Cube3DOverlay::render(RenderArgs* args) {
@@ -47,23 +64,18 @@ void Cube3DOverlay::render(RenderArgs* args) {
         Transform transform;
         transform.setTranslation(position);
         transform.setRotation(rotation);
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto pipeline = args->_pipeline;
+        if (!pipeline) {
+            pipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+        }
+
         if (_isSolid) {
-            // if (_borderSize > 0) {
-            //     // Draw a cube at a larger size behind the main cube, creating
-            //     // a border effect.
-            //     // Disable writing to the depth mask so that the "border" cube will not
-            //     // occlude the main cube.  This means the border could be covered by
-            //     // overlays that are further back and drawn later, but this is good
-            //     // enough for the use-case.
-            //     transform.setScale(dimensions * _borderSize);
-            //     batch->setModelTransform(transform);
-            //     DependencyManager::get<GeometryCache>()->renderSolidCube(*batch, 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
-            // }
-
             transform.setScale(dimensions);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(*batch, transform, cubeColor);
+            batch->setModelTransform(transform);
+            geometryCache->renderSolidCubeInstance(*batch, cubeColor, pipeline);
         } else {
-
+            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             if (getIsDashedLine()) {
                 transform.setScale(1.0f);
                 batch->setModelTransform(transform);
@@ -79,48 +91,57 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 glm::vec3 topLeftFar(-halfDimensions.x, halfDimensions.y, halfDimensions.z);
                 glm::vec3 topRightFar(halfDimensions.x, halfDimensions.y, halfDimensions.z);
 
-                auto geometryCache = DependencyManager::get<GeometryCache>();
+                geometryCache->renderDashedLine(*batch, bottomLeftNear, bottomRightNear, cubeColor, _geometryIds[0]);
+                geometryCache->renderDashedLine(*batch, bottomRightNear, bottomRightFar, cubeColor, _geometryIds[1]);
+                geometryCache->renderDashedLine(*batch, bottomRightFar, bottomLeftFar, cubeColor, _geometryIds[2]);
+                geometryCache->renderDashedLine(*batch, bottomLeftFar, bottomLeftNear, cubeColor, _geometryIds[3]);
 
-                geometryCache->renderDashedLine(*batch, bottomLeftNear, bottomRightNear, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomRightNear, bottomRightFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomRightFar, bottomLeftFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomLeftFar, bottomLeftNear, cubeColor);
+                geometryCache->renderDashedLine(*batch, topLeftNear, topRightNear, cubeColor, _geometryIds[4]);
+                geometryCache->renderDashedLine(*batch, topRightNear, topRightFar, cubeColor, _geometryIds[5]);
+                geometryCache->renderDashedLine(*batch, topRightFar, topLeftFar, cubeColor, _geometryIds[6]);
+                geometryCache->renderDashedLine(*batch, topLeftFar, topLeftNear, cubeColor, _geometryIds[7]);
 
-                geometryCache->renderDashedLine(*batch, topLeftNear, topRightNear, cubeColor);
-                geometryCache->renderDashedLine(*batch, topRightNear, topRightFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, topRightFar, topLeftFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, topLeftFar, topLeftNear, cubeColor);
-
-                geometryCache->renderDashedLine(*batch, bottomLeftNear, topLeftNear, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomRightNear, topRightNear, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomLeftFar, topLeftFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomRightFar, topRightFar, cubeColor);
+                geometryCache->renderDashedLine(*batch, bottomLeftNear, topLeftNear, cubeColor, _geometryIds[8]);
+                geometryCache->renderDashedLine(*batch, bottomRightNear, topRightNear, cubeColor, _geometryIds[9]);
+                geometryCache->renderDashedLine(*batch, bottomLeftFar, topLeftFar, cubeColor, _geometryIds[10]);
+                geometryCache->renderDashedLine(*batch, bottomRightFar, topRightFar, cubeColor, _geometryIds[11]);
 
             } else {
-                batch->setModelTransform(Transform());
                 transform.setScale(dimensions);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(*batch, transform, cubeColor);
+                batch->setModelTransform(transform);
+                geometryCache->renderWireCubeInstance(*batch, cubeColor, pipeline);
             }
         }
     }
+}
+
+const render::ShapeKey Cube3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    if (!getIsSolid()) {
+        builder.withUnlit().withDepthBias();
+    }
+    return builder.build();
 }
 
 Cube3DOverlay* Cube3DOverlay::createClone() const {
     return new Cube3DOverlay(this);
 }
 
-void Cube3DOverlay::setProperties(const QScriptValue& properties) {
+void Cube3DOverlay::setProperties(const QVariantMap& properties) {
     Volume3DOverlay::setProperties(properties);
 
-    QScriptValue borderSize = properties.property("borderSize");
+    auto borderSize = properties["borderSize"];
 
     if (borderSize.isValid()) {
-        float value = borderSize.toVariant().toFloat();
+        float value = borderSize.toFloat();
         setBorderSize(value);
     }
 }
 
-QScriptValue Cube3DOverlay::getProperty(const QString& property) {
+QVariant Cube3DOverlay::getProperty(const QString& property) {
     if (property == "borderSize") {
         return _borderSize;
     }

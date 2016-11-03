@@ -12,7 +12,6 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
-#include <DeferredLightingEffect.h>
 #include <gpu/Batch.h>
 #include <SharedUtil.h>
 
@@ -40,17 +39,33 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        batch->setModelTransform(Transform());
-
-        Transform transform = _transform;
+        Transform transform = getTransform();
         transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
+        batch->setModelTransform(transform);
+
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto pipeline = args->_pipeline;
+        if (!pipeline) {
+            pipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+        }
+
         if (_isSolid) {
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(*batch, transform, sphereColor);
+            geometryCache->renderSolidSphereInstance(*batch, sphereColor, pipeline);
         } else {
-            DependencyManager::get<DeferredLightingEffect>()->renderWireSphereInstance(*batch, transform, sphereColor);
+            geometryCache->renderWireSphereInstance(*batch, sphereColor, pipeline);
         }
     }
+}
 
+const render::ShapeKey Sphere3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    if (!getIsSolid()) {
+        builder.withUnlit().withDepthBias();
+    }
+    return builder.build();
 }
 
 Sphere3DOverlay* Sphere3DOverlay::createClone() const {

@@ -1,0 +1,22 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  debug_deferred_buffer.slv
+//  vertex shader
+//
+//  Created by Clement on 12/3
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+
+out vec2 uv;
+
+void main(void) {
+    uv = (inPosition.xy + 1.0) * 0.5;
+    gl_Position = inPosition;
+}

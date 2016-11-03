@@ -15,40 +15,32 @@
 //#define SIMPLE_CHILD_ARRAY
 #define SIMPLE_EXTERNAL_CHILDREN
 
+#include <atomic>
+
 #include <QReadWriteLock>
 
 #include <OctalCode.h>
 #include <SharedUtil.h>
+#include <ViewFrustum.h>
 
 #include "AACube.h"
-#include "ViewFrustum.h"
 #include "OctreeConstants.h"
+
+using AtomicUIntStat = std::atomic<uintmax_t>;
+
 
 class EncodeBitstreamParams;
 class Octree;
 class OctreeElement;
-class OctreeElementBag;
-class OctreeElementDeleteHook;
 class OctreePacketData;
 class ReadBitstreamToTreeParams;
 class Shape;
 class VoxelSystem;
-typedef std::shared_ptr<OctreeElement> OctreeElementPointer;
-typedef std::shared_ptr<const OctreeElement> ConstOctreeElementPointer;
-typedef std::shared_ptr<Octree> OctreePointer;
 
-// Callers who want delete hook callbacks should implement this class
-class OctreeElementDeleteHook {
-public:
-    virtual void elementDeleted(OctreeElementPointer element) = 0;
-};
-
-// Callers who want update hook callbacks should implement this class
-class OctreeElementUpdateHook {
-public:
-    virtual void elementUpdated(OctreeElementPointer element) = 0;
-};
-
+using OctreeElementPointer = std::shared_ptr<OctreeElement>;
+using OctreeElementWeakPointer = std::weak_ptr<OctreeElement>;
+using ConstOctreeElementPointer = std::shared_ptr<const OctreeElement>;
+using OctreePointer = std::shared_ptr<Octree>;
 
 class OctreeElement: public std::enable_shared_from_this<OctreeElement> {
 
@@ -57,20 +49,20 @@ protected:
     OctreeElement();
 
     virtual OctreeElementPointer createNewElement(unsigned char * octalCode = NULL) = 0;
-    
+
 public:
     virtual void init(unsigned char * octalCode); /// Your subclass must call init on construction.
     virtual ~OctreeElement();
 
     // methods you can and should override to implement your tree functionality
-    
+
     /// Adds a child to the current element. Override this if there is additional child initialization your class needs.
     virtual OctreeElementPointer addChildAtIndex(int childIndex);
 
-    /// Override this to implement LOD averaging on changes to the tree. 
+    /// Override this to implement LOD averaging on changes to the tree.
     virtual void calculateAverageFromChildren() { }
 
-    /// Override this to implement LOD collapsing and identical child pruning on changes to the tree. 
+    /// Override this to implement LOD collapsing and identical child pruning on changes to the tree.
     virtual bool collapseChildren() { return false; }
 
     /// Should this element be considered to have content in it. This will be used in collision and ray casting methods.
@@ -80,12 +72,12 @@ public:
     /// Should this element be considered to have detailed content in it. Specifically should it be rendered.
     /// By default we assume that only leaves have detailed content, but some octrees may have different semantics.
     virtual bool hasDetailedContent() const { return isLeaf(); }
-    
+
     /// Override this to break up large octree elements when an edit operation is performed on a smaller octree element.
-    /// For example, if the octrees represent solid cubes and a delete of a smaller octree element is done then the 
+    /// For example, if the octrees represent solid cubes and a delete of a smaller octree element is done then the
     /// meaningful split would be to break the larger cube into smaller cubes of the same color/texture.
     virtual void splitChildren() { }
-    
+
     /// Override to indicate that this element requires a split before editing lower elements in the octree
     virtual bool requiresSplit() const { return false; }
 
@@ -96,17 +88,17 @@ public:
     virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) { }
     virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const { return true; }
     virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { return true; }
-    
+
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const { }
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const { }
+    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const { }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const 
+    virtual AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const
                                 { return COMPLETED; }
-    
+
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
-    virtual int readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) 
+    virtual int readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args)
                     { return 0; }
 
     /// Override to indicate that the item is currently rendered in the rendering engine. By default we assume that if
@@ -114,25 +106,15 @@ public:
     /// where an element is not actually rendering all should render elements. If the isRendered() state doesn't match the
     /// shouldRender() state, the tree will remark elements as changed even in cases there the elements have not changed.
     virtual bool isRendered() const { return getShouldRender(); }
-    
+
     virtual bool deleteApproved() const { return true; }
 
     virtual bool canRayIntersect() const { return isLeaf(); }
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             bool& keepSearching, OctreeElementPointer& node, float& distance, 
-                             BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude,
-                             void** intersectedObject = NULL, bool precisionPicking = false);
-
-    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude,
-                         void** intersectedObject, bool precisionPicking, float distanceToElementCube);
-
     /// \param center center of sphere in meters
     /// \param radius radius of sphere in meters
     /// \param[out] penetration pointing into cube from sphere
     /// \param penetratedObject unused
-    virtual bool findSpherePenetration(const glm::vec3& center, float radius, 
+    virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const;
 
     // Base class methods you don't need to implement
@@ -143,7 +125,7 @@ public:
     bool isParentOf(OctreeElementPointer possibleChild) const;
 
     /// handles deletion of all descendants, returns false if delete not approved
-    bool safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); 
+    bool safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0);
 
 
     const AACube& getAACube() const { return _cube; }
@@ -152,12 +134,12 @@ public:
     int getLevel() const { return numberOfThreeBitSectionsInCode(getOctalCode()) + 1; }
 
     float getEnclosingRadius() const;
-    bool isInView(const ViewFrustum& viewFrustum) const { return inFrustum(viewFrustum) != ViewFrustum::OUTSIDE; }
-    ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
+    bool isInView(const ViewFrustum& viewFrustum) const { return computeViewIntersection(viewFrustum) != ViewFrustum::OUTSIDE; }
+    ViewFrustum::intersection computeViewIntersection(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const;
     float furthestDistanceToCamera(const ViewFrustum& viewFrustum) const;
 
-    bool calculateShouldRender(const ViewFrustum* viewFrustum,
+    bool calculateShouldRender(const ViewFrustum& viewFrustum,
                 float voxelSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
 
     // points are assumed to be in Voxel Coordinates (not TREE_SCALE'd)
@@ -185,12 +167,6 @@ public:
     uint16_t getSourceUUIDKey() const { return _sourceUUIDKey; }
     bool matchesSourceUUID(const QUuid& sourceUUID) const;
     static uint16_t getSourceNodeUUIDKey(const QUuid& sourceUUID);
-
-    static void addDeleteHook(OctreeElementDeleteHook* hook);
-    static void removeDeleteHook(OctreeElementDeleteHook* hook);
-
-    static void addUpdateHook(OctreeElementUpdateHook* hook);
-    static void removeUpdateHook(OctreeElementUpdateHook* hook);
 
     static void resetPopulationStatistics();
     static unsigned long getNodeCount() { return _voxelNodeCount; }
@@ -249,8 +225,6 @@ protected:
     void setChildAtIndex(int childIndex, OctreeElementPointer child);
 
     void calculateAACube();
-    void notifyDeleteHooks();
-    void notifyUpdateHooks();
 
     AACube _cube; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
 
@@ -283,7 +257,7 @@ protected:
     static std::map<QString, uint16_t> _mapSourceUUIDsToKeys;
     static std::map<uint16_t, QString> _mapKeysToSourceUUIDs;
 
-    unsigned char _childBitmask;     // 1 byte 
+    unsigned char _childBitmask;     // 1 byte
 
     bool _falseColored : 1, /// Client only, is this voxel false colored, 1 bit
          _isDirty : 1, /// Client only, has this voxel changed since being rendered, 1 bit
@@ -292,28 +266,20 @@ protected:
          _unknownBufferIndex : 1,
          _childrenExternal : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
 
-    bool _deleteHooksNotified = false;
+    static AtomicUIntStat _voxelNodeCount;
+    static AtomicUIntStat _voxelNodeLeafCount;
 
-    static QReadWriteLock _deleteHooksLock;
-    static std::vector<OctreeElementDeleteHook*> _deleteHooks;
+    static AtomicUIntStat _octreeMemoryUsage;
+    static AtomicUIntStat _octcodeMemoryUsage;
+    static AtomicUIntStat _externalChildrenMemoryUsage;
 
-    //static QReadWriteLock _updateHooksLock;
-    static std::vector<OctreeElementUpdateHook*> _updateHooks;
+    static AtomicUIntStat _getChildAtIndexTime;
+    static AtomicUIntStat _getChildAtIndexCalls;
+    static AtomicUIntStat _setChildAtIndexTime;
+    static AtomicUIntStat _setChildAtIndexCalls;
 
-    static quint64 _voxelNodeCount;
-    static quint64 _voxelNodeLeafCount;
-
-    static quint64 _octreeMemoryUsage;
-    static quint64 _octcodeMemoryUsage;
-    static quint64 _externalChildrenMemoryUsage;
-
-    static quint64 _getChildAtIndexTime;
-    static quint64 _getChildAtIndexCalls;
-    static quint64 _setChildAtIndexTime;
-    static quint64 _setChildAtIndexCalls;
-
-    static quint64 _externalChildrenCount;
-    static quint64 _childrenCount[NUMBER_OF_CHILDREN + 1];
+    static AtomicUIntStat _externalChildrenCount;
+    static AtomicUIntStat _childrenCount[NUMBER_OF_CHILDREN + 1];
 };
 
 #endif // hifi_OctreeElement_h

@@ -13,14 +13,12 @@
 //
 
 <@include gpu/Inputs.slh@>
-
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
-const int MAX_TEXCOORDS = 2;
-
-uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
+<@include MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
 
 out vec4 _position;
 out vec2 _texCoord0;
@@ -30,16 +28,17 @@ out vec3 _tangent;
 out vec3 _color;
 
 void main(void) {
-    _color = inColor.xyz;
+    // pass along the color in linear space
+    _color = colorToLinearRGB(inColor.xyz);
 
-    // and the texture coordinates
-    _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;
-    _texCoord1 = (texcoordMatrices[1] * vec4(inTexCoord1.st, 0.0, 1.0)).st;
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _texCoord1)$>
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
-    <$transformModelToEyeDir(cam, obj, inTangent.xyz, _tangent)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToWorldDir(cam, obj, inTangent.xyz, _tangent)$>
 }

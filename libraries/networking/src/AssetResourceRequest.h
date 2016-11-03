@@ -14,14 +14,16 @@
 
 #include <QUrl>
 
+#include <PortableHighResolutionClock.h>
+
 #include "AssetRequest.h"
 #include "ResourceRequest.h"
 
 class AssetResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    AssetResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
-    ~AssetResourceRequest();
+    AssetResourceRequest(const QUrl& url);
+    virtual ~AssetResourceRequest() override;
 
 protected:
     virtual void doSend() override;
@@ -30,7 +32,15 @@ private slots:
     void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
 private:
+    bool urlIsAssetHash() const;
+
+    void requestMappingForPath(const AssetPath& path);
+    void requestHash(const AssetHash& hash);
+
+    GetMappingRequest* _assetMappingRequest { nullptr };
     AssetRequest* _assetRequest { nullptr };
+
+    p_high_resolution_clock::time_point _lastProgressDebug;
 };
 
 #endif

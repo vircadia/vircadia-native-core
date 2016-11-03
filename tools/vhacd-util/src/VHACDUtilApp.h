@@ -15,12 +15,25 @@
 
 #include <QApplication>
 
+#include <FBXReader.h>
+
+const int VHACD_RETURN_CODE_FAILURE_TO_READ = 1;
+const int VHACD_RETURN_CODE_FAILURE_TO_WRITE = 2;
+const int VHACD_RETURN_CODE_FAILURE_TO_CONVEXIFY = 3;
+
 
 class VHACDUtilApp : public QCoreApplication {
     Q_OBJECT
- public:
+public:
     VHACDUtilApp(int argc, char* argv[]);
     ~VHACDUtilApp();
+
+    bool writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart = -1);
+
+    int getReturnCode() const { return _returnCode; }
+
+private:
+    int _returnCode { 0 };
 };
 
 

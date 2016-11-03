@@ -12,36 +12,62 @@
 #ifndef hifi_AssetServer_h
 #define hifi_AssetServer_h
 
-#include <QDir>
+#include <QtCore/QDir>
+#include <QtCore/QThreadPool>
 
 #include <ThreadedAssignment.h>
-#include <QThreadPool>
 
 #include "AssetUtils.h"
+#include "ReceivedMessage.h"
 
 class AssetServer : public ThreadedAssignment {
     Q_OBJECT
 public:
-    AssetServer(NLPacket& packet);
+    AssetServer(ReceivedMessage& message);
 
 public slots:
-    void run();
+    void run() override;
 
 private slots:
-    void handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
-    
-    void sendStatsPacket();
-    
+    void completeSetup();
+
+    void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
+    void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
+    void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
+    void handleAssetMappingOperation(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
+    void sendStatsPacket() override;
+
 private:
-    static void writeError(NLPacketList* packetList, AssetServerError error);
+    using Mappings = QVariantHash;
+
+    void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+
+    // Mapping file operations must be called from main assignment thread only
+    bool loadMappingsFromFile();
+    bool writeMappingsToFile();
+
+    /// Set the mapping for path to hash
+    bool setMapping(AssetPath path, AssetHash hash);
+
+    /// Delete mapping `path`. Returns `true` if deletion of mappings succeeds, else `false`.
+    bool deleteMappings(AssetPathList& paths);
+
+    /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
+    bool renameMapping(AssetPath oldPath, AssetPath newPath);
+
+    // deletes any unmapped files from the local asset directory
+    void cleanupUnmappedFiles();
+
+    Mappings _fileMappings;
+
     QDir _resourcesDirectory;
+    QDir _filesDirectory;
     QThreadPool _taskPool;
 };
-
-inline void writeError(NLPacketList* packetList, AssetServerError error) {
-    packetList->writePrimitive(error);
-}
 
 #endif

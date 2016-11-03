@@ -16,15 +16,9 @@
 
 <@include model/Material.slh@>
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
-
-// the emissive map texture and parameters
-uniform sampler2D emissiveMap;
-uniform vec2 emissiveParams;
-
-// the specular texture
-uniform sampler2D specularMap;
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC)$>
+<$declareMaterialLightmap()$>
 
 in vec4 _position;
 in vec2 _texCoord0;
@@ -33,18 +27,17 @@ in vec3 _normal;
 in vec3 _color;
 
 void main(void) {
-    // set the diffuse, normal, specular data
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
-    vec3 specular = texture(specularMap, _texCoord0).rgb;
-    vec4 emissive = texture(emissiveMap, _texCoord1);
-
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, _SCRIBE_NULL, metallicTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
 
     packDeferredFragmentLightmap(
         normalize(_normal), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * _color,
-        specular, // no use of getMaterialSpecular(mat)
-        getMaterialShininess(mat),
-        (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
+        getMaterialAlbedo(mat) * albedo.rgb * _color,
+        getMaterialRoughness(mat) * roughness,
+        getMaterialMetallic(mat) * metallicTex,
+        /*metallicTex, // no use of */getMaterialFresnel(mat),
+        lightmapVal);
 }

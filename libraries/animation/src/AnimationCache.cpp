@@ -15,13 +15,14 @@
 #include "AnimationCache.h"
 #include "AnimationLogging.h"
 
-static int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
+int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 
 AnimationCache::AnimationCache(QObject* parent) :
     ResourceCache(parent)
 {
     const qint64 ANIMATION_DEFAULT_UNUSED_MAX_SIZE = 50 * BYTES_PER_MEGABYTES;
     setUnusedResourceCacheSize(ANIMATION_DEFAULT_UNUSED_MAX_SIZE);
+    setObjectName("AnimationCache");
 }
 
 AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
@@ -35,8 +36,8 @@ AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
 }
 
 QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        bool delayLoad, const void* extra) {
-    return QSharedPointer<Resource>(new Animation(url), &Resource::allReferencesCleared);
+    const void* extra) {
+    return QSharedPointer<Resource>(new Animation(url), &Resource::deleter);
 }
 
 Animation::Animation(const QUrl& url) : Resource(url) {}
@@ -47,6 +48,11 @@ AnimationReader::AnimationReader(const QUrl& url, const QByteArray& data) :
 }
 
 void AnimationReader::run() {
+    auto originalPriority = QThread::currentThread()->priority();
+    if (originalPriority == QThread::InheritPriority) {
+        originalPriority = QThread::NormalPriority;
+    }
+    QThread::currentThread()->setPriority(QThread::LowPriority);
     try {
         if (_data.isEmpty()) {
             throw QString("Reply is NULL ?!");
@@ -58,9 +64,9 @@ void AnimationReader::run() {
 
         if (urlValid) {
             // Parse the FBX directly from the QNetworkReply
-            FBXGeometry* fbxgeo = nullptr;
+            FBXGeometry::Pointer fbxgeo;
             if (_url.path().toLower().endsWith(".fbx")) {
-                fbxgeo = readFBX(_data, QVariantHash(), _url.path());
+                fbxgeo.reset(readFBX(_data, QVariantHash(), _url.path()));
             } else {
                 QString errorStr("usupported format");
                 emit onError(299, errorStr);
@@ -73,6 +79,7 @@ void AnimationReader::run() {
     } catch (const QString& error) {
         emit onError(299, error);
     }
+    QThread::currentThread()->setPriority(originalPriority);
 }
 
 bool Animation::isLoaded() const {
@@ -110,22 +117,23 @@ const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {
 void Animation::downloadFinished(const QByteArray& data) {
     // parse the animation/fbx file on a background thread.
     AnimationReader* animationReader = new AnimationReader(_url, data);
-    connect(animationReader, SIGNAL(onSuccess(FBXGeometry*)), SLOT(animationParseSuccess(FBXGeometry*)));
+    connect(animationReader, SIGNAL(onSuccess(FBXGeometry::Pointer)), SLOT(animationParseSuccess(FBXGeometry::Pointer)));
     connect(animationReader, SIGNAL(onError(int, QString)), SLOT(animationParseError(int, QString)));
     QThreadPool::globalInstance()->start(animationReader);
 }
 
-void Animation::animationParseSuccess(FBXGeometry* geometry) {
+void Animation::animationParseSuccess(FBXGeometry::Pointer geometry) {
 
     qCDebug(animation) << "Animation parse success" << _url.toDisplayString();
 
-    _geometry.reset(geometry);
+    _geometry = geometry;
     finishedLoading(true);
 }
 
 void Animation::animationParseError(int error, QString str) {
     qCCritical(animation) << "Animation failure parsing " << _url.toDisplayString() << "code =" << error << str;
     emit failed(QNetworkReply::UnknownContentError);
+    finishedLoading(false);
 }
 
 AnimationDetails::AnimationDetails() :

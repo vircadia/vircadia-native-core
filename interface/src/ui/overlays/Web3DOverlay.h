@@ -18,34 +18,36 @@ class Web3DOverlay : public Billboard3DOverlay {
 
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Web3DOverlay();
     Web3DOverlay(const Web3DOverlay* Web3DOverlay);
     virtual ~Web3DOverlay();
 
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
+    virtual const render::ShapeKey getShapeKey() override;
 
-    virtual void update(float deltatime);
+    virtual void update(float deltatime) override;
 
     // setters
     void setURL(const QString& url);
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                        BoxFace& face, glm::vec3& surfaceNormal);
+        BoxFace& face, glm::vec3& surfaceNormal) override;
 
-    virtual Web3DOverlay* createClone() const;
+    virtual Web3DOverlay* createClone() const override;
 
 private:
-    OffscreenQmlSurface* _webSurface{ nullptr };
+    QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
-    uint32_t _texture{ 0 };
+    gpu::TexturePointer _texture;
     QString _url;
     float _dpi;
     vec2 _resolution{ 640, 480 };
+    int _geometryId { 0 };
 };
 
 #endif // hifi_Web3DOverlay_h

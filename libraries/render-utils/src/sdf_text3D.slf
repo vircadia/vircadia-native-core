@@ -10,6 +10,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+<@include DeferredBufferWrite.slh@>
+
 uniform sampler2D Font;
 uniform bool Outline;
 uniform vec4 Color;
@@ -18,14 +20,8 @@ uniform vec4 Color;
 in vec3 _normal;
 in vec2 _texCoord0;
 
-layout(location = 0) out vec4 _fragColor0;
-layout(location = 1) out vec4 _fragColor1;
-layout(location = 2) out vec4 _fragColor2;
-
-const float DEFAULT_SHININESS = 10;
-
 const float gamma = 2.2;
-const float smoothing = 256.0;
+const float smoothing = 32.0;
 const float interiorCutoff = 0.8;
 const float outlineExpansion = 0.2;
 
@@ -45,15 +41,15 @@ void main() {
     float w = clamp( s, 0.0, 0.5);
     float a = smoothstep(0.5 - w, 0.5 + w, sdf);
     
-    // gamma correction for linear attenuation
-    a = pow(a, 1.0 / gamma);
-    
+    // discard if unvisible
     if (a < 0.01) {
         discard;
     }
     
-    // final color
-    _fragColor0 = vec4(Color.rgb, Color.a * a);
-    _fragColor1 = vec4(normalize(_normal.xyz), 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
-    _fragColor2 = vec4(Color.rgb, DEFAULT_SHININESS / 128.0);
+    packDeferredFragmentTranslucent(
+        normalize(_normal),
+        a * Color.a,
+        Color.rgb,
+        DEFAULT_FRESNEL,
+        DEFAULT_ROUGHNESS);
 }

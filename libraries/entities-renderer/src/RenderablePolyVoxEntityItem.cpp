@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QByteArray>
 #include <QtConcurrent/QtConcurrentRun>
+#include <glm/gtx/transform.hpp>
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -26,16 +27,22 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning( disable : 4267 )
+#endif
 #include <PolyVoxCore/CubicSurfaceExtractorWithNormals.h>
 #include <PolyVoxCore/MarchingCubesSurfaceExtractor.h>
 #include <PolyVoxCore/SurfaceMesh.h>
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Material.h>
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 #include "model/Geometry.h"
 #include "EntityTreeRenderer.h"
@@ -48,25 +55,81 @@
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
+
+/*
+  A PolyVoxEntity has several interdependent parts:
+
+  _voxelData -- compressed QByteArray representation of which voxels have which values
+  _volData -- datastructure from the PolyVox library which holds which voxels have which values
+  _mesh -- renderable representation of the voxels
+  _shape -- used for bullet collisions
+
+  Each one depends on the one before it, except that _voxelData is set from _volData if a script edits the voxels.
+
+  There are booleans to indicate that something has been updated and the dependents now need to be updated.
+
+  _voxelDataDirty
+  _volDataDirty
+  _meshDirty
+
+  In RenderablePolyVoxEntityItem::render, these flags are checked and changes are propagated along the chain.
+  decompressVolumeData() is called to decompress _voxelData into _volData.  getMesh() is called to invoke the
+  polyVox surface extractor to create _mesh (as well as set Simulation _dirtyFlags).  Because Simulation::DIRTY_SHAPE
+  is set, isReadyToComputeShape() gets called and _shape is created either from _volData or _shape, depending on
+  the surface style.
+
+  When a script changes _volData, compressVolumeDataAndSendEditPacket is called to update _voxelData and to
+  send a packet to the entity-server.
+
+  decompressVolumeData, getMesh, computeShapeInfoWorker, and compressVolumeDataAndSendEditPacket are too expensive
+  to run on a thread that has other things to do.  These use QtConcurrent::run to spawn a thread.  As each thread
+  finishes, it adjusts the dirty flags so that the next call to render() will kick off the next step.
+
+  polyvoxes are designed to seemlessly fit up against neighbors.  If voxels go right up to the edge of polyvox,
+  the resulting mesh wont be closed -- the library assumes you'll have another polyvox next to it to continue the
+  mesh.
+
+  If a polyvox entity is "edged", the voxel space is wrapped in an extra layer of zero-valued voxels.  This avoids the
+  previously mentioned gaps along the edges.
+
+  Non-edged polyvox entities can be told about their neighbors in all 6 cardinal directions.  On the positive
+  edges of the polyvox, the values are set from the (negative edge of) relevant neighbor so that their meshes
+  knit together.  This is handled by bonkNeighbors and copyUpperEdgesFromNeighbors.  In these functions, variable
+  names have XP for x-positive, XN x-negative, etc.
+
+ */
+
+
+
+
+
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderablePolyVoxEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderablePolyVoxEntityItem(entityID) };
+    entity->setProperties(properties);
+    std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity)->initializePolyVox();
+    return entity;
 }
 
-RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID,
-                                                         const EntityItemProperties& properties) :
-    PolyVoxEntityItem(entityItemID, properties),
+RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID) :
+    PolyVoxEntityItem(entityItemID),
     _mesh(new model::Mesh()),
     _meshDirty(true),
     _xTexture(nullptr),
     _yTexture(nullptr),
     _zTexture(nullptr) {
-    setVoxelVolumeSize(_voxelVolumeSize);
-    getMeshAsync();
 }
 
 RenderablePolyVoxEntityItem::~RenderablePolyVoxEntityItem() {
+    withWriteLock([&] {
+        if (_volData) {
+            delete _volData;
+        }
+    });
 }
 
+void RenderablePolyVoxEntityItem::initializePolyVox() {
+    setVoxelVolumeSize(_voxelVolumeSize);
+}
 
 bool isEdged(PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle) {
     switch (surfaceStyle) {
@@ -80,63 +143,77 @@ bool isEdged(PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle) {
     return false;
 }
 
-
 void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
-    _voxelDataLock.lockForWrite();
-    if (_voxelData == voxelData) {
-        _voxelDataLock.unlock();
-        return;
-    }
-
-    _voxelData = voxelData;
-    _voxelDataDirty = true;
-    _voxelDataLock.unlock();
-    decompressVolumeData();
+    // compressed voxel information from the entity-server
+    withWriteLock([&] {
+        if (_voxelData != voxelData) {
+            _voxelData = voxelData;
+            _voxelDataDirty = true;
+        }
+    });
 }
-
 
 void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
-    if (_voxelSurfaceStyle == voxelSurfaceStyle) {
-        return;
-    }
+    // this controls whether the polyvox surface extractor does marching-cubes or makes a cubic mesh.  It
+    // also determines if the extra "edged" layer is used.
+    bool volSizeChanged = false;
 
-    // if we are switching to or from "edged" we need to force a resize of _volData.
-    bool wasEdged = isEdged(_voxelSurfaceStyle);
-    bool willBeEdged = isEdged(voxelSurfaceStyle);
-
-    if (wasEdged != willBeEdged) {
-        _volDataLock.lockForWrite();
-        _volDataDirty = true;
-        if (_volData) {
-            delete _volData;
+    withWriteLock([&] {
+        if (_voxelSurfaceStyle == voxelSurfaceStyle) {
+            return;
         }
-        _volData = nullptr;
-        _voxelSurfaceStyle = voxelSurfaceStyle;
-        _volDataLock.unlock();
+
+        // if we are switching to or from "edged" we need to force a resize of _volData.
+        bool wasEdged = isEdged(_voxelSurfaceStyle);
+        bool willBeEdged = isEdged(voxelSurfaceStyle);
+
+        if (wasEdged != willBeEdged) {
+            _volDataDirty = true;
+            if (_volData) {
+                delete _volData;
+            }
+            _volData = nullptr;
+            _voxelSurfaceStyle = voxelSurfaceStyle;
+            _voxelDataDirty = true;
+            volSizeChanged = true;
+        } else {
+            _volDataDirty = true;
+            _voxelSurfaceStyle = voxelSurfaceStyle;
+        }
+    });
+
+    if (volSizeChanged) {
+        // setVoxelVolumeSize will re-alloc _volData with the right size
         setVoxelVolumeSize(_voxelVolumeSize);
-        decompressVolumeData();
-    } else {
-        _voxelSurfaceStyle = voxelSurfaceStyle;
-        getMesh();
     }
 }
-
 
 glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
-    glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    if (isEdged(_voxelSurfaceStyle)) {
-        return scale / -2.0f;
-    }
-    return scale / 2.0f;
+    glm::vec3 result;
+    withReadLock([&] {
+        glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
+        if (isEdged(_voxelSurfaceStyle)) {
+            result = scale / -2.0f;
+        }
+        return scale / 2.0f;
+    });
+    return result;
 }
 
-
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
-    glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    glm::vec3 center = getCenterPosition();
-    glm::vec3 position = getPosition();
+    glm::vec3 voxelVolumeSize;
+    withReadLock([&] {
+        voxelVolumeSize = _voxelVolumeSize;
+    });
+
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 scale = dimensions / voxelVolumeSize; // meters / voxel-units
+    bool success; // TODO -- Does this actually have to happen in world space?
+    glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
+    glm::vec3 position = getPosition(success);
     glm::vec3 positionToCenter = center - position;
-    positionToCenter -= getDimensions() * Vectors::HALF - getSurfacePositionAdjustment();
+
+    positionToCenter -= dimensions * Vectors::HALF - getSurfacePositionAdjustment();
     glm::mat4 centerToCorner = glm::translate(glm::mat4(), positionToCenter);
     glm::mat4 scaled = glm::scale(centerToCorner, scale);
     return scaled;
@@ -158,23 +235,35 @@ glm::mat4 RenderablePolyVoxEntityItem::worldToVoxelMatrix() const {
     return worldToModelMatrix;
 }
 
-
 bool RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue) {
     if (_locked) {
         return false;
     }
 
-    _volDataLock.lockForWrite();
-    bool result = setVoxelInternal(x, y, z, toValue);
-    if (result) {
-        _volDataDirty = true;
-    }
-    _volDataLock.unlock();
+    bool result = false;
+    withWriteLock([&] {
+        result = setVoxelInternal(x, y, z, toValue);
+    });
     if (result) {
         compressVolumeDataAndSendEditPacket();
     }
 
     return result;
+}
+
+void RenderablePolyVoxEntityItem::forEachVoxelValue(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize,
+                                                    std::function<void(int, int, int, uint8_t)> thunk) {
+    // a thread-safe way for code outside this class to iterate over a range of voxels
+    withReadLock([&] {
+        for (int z = 0; z < voxelZSize; z++) {
+            for (int y = 0; y < voxelYSize; y++) {
+                for (int x = 0; x < voxelXSize; x++) {
+                    uint8_t uVoxelValue = getVoxelInternal(x, y, z);
+                    thunk(x, y, z, uVoxelValue);
+                }
+            }
+        }
+    });
 }
 
 
@@ -184,16 +273,15 @@ bool RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
         return result;
     }
 
-    _volDataLock.lockForWrite();
-    _volDataDirty = true;
-    for (int z = 0; z < _voxelVolumeSize.z; z++) {
-        for (int y = 0; y < _voxelVolumeSize.y; y++) {
-            for (int x = 0; x < _voxelVolumeSize.x; x++) {
-                result |= setVoxelInternal(x, y, z, toValue);
+    withWriteLock([&] {
+        for (int z = 0; z < _voxelVolumeSize.z; z++) {
+            for (int y = 0; y < _voxelVolumeSize.y; y++) {
+                for (int x = 0; x < _voxelVolumeSize.x; x++) {
+                    result |= setVoxelInternal(x, y, z, toValue);
+                }
             }
         }
-    }
-    _volDataLock.unlock();
+    });
     if (result) {
         compressVolumeDataAndSendEditPacket();
     }
@@ -214,17 +302,15 @@ bool RenderablePolyVoxEntityItem::setCuboid(const glm::vec3& lowPosition, const 
     int yHigh = std::max(std::min(yLow + (int)roundf(cuboidSize.y), (int)roundf(_voxelVolumeSize.y)), yLow);
     int zHigh = std::max(std::min(zLow + (int)roundf(cuboidSize.z), (int)roundf(_voxelVolumeSize.z)), zLow);
 
-    _volDataLock.lockForWrite();
-    _volDataDirty = true;
-
-    for (int x = xLow; x < xHigh; x++) {
-        for (int y = yLow; y < yHigh; y++) {
-            for (int z = zLow; z < zHigh; z++) {
-                result |= setVoxelInternal(x, y, z, toValue);
+    withWriteLock([&] {
+        for (int x = xLow; x < xHigh; x++) {
+            for (int y = yLow; y < yHigh; y++) {
+                for (int z = zLow; z < zHigh; z++) {
+                    result |= setVoxelInternal(x, y, z, toValue);
+                }
             }
         }
-    }
-    _volDataLock.unlock();
+    });
     if (result) {
         compressVolumeDataAndSendEditPacket();
     }
@@ -249,28 +335,25 @@ bool RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
     }
 
     // This three-level for loop iterates over every voxel in the volume
-    _volDataLock.lockForWrite();
-    for (int z = 0; z < _voxelVolumeSize.z; z++) {
-        for (int y = 0; y < _voxelVolumeSize.y; y++) {
-            for (int x = 0; x < _voxelVolumeSize.x; x++) {
-                // Store our current position as a vector...
-                glm::vec3 pos(x + 0.5f, y + 0.5f, z + 0.5f); // consider voxels cenetered on their coordinates
-                // And compute how far the current position is from the center of the volume
-                float fDistToCenter = glm::distance(pos, center);
-                // If the current voxel is less than 'radius' units from the center then we set its value
-                if (fDistToCenter <= radius) {
-                    result |= setVoxelInternal(x, y, z, toValue);
+    withWriteLock([&] {
+        for (int z = 0; z < _voxelVolumeSize.z; z++) {
+            for (int y = 0; y < _voxelVolumeSize.y; y++) {
+                for (int x = 0; x < _voxelVolumeSize.x; x++) {
+                    // Store our current position as a vector...
+                    glm::vec3 pos(x + 0.5f, y + 0.5f, z + 0.5f); // consider voxels cenetered on their coordinates
+                    // And compute how far the current position is from the center of the volume
+                    float fDistToCenter = glm::distance(pos, center);
+                    // If the current voxel is less than 'radius' units from the center then we set its value
+                    if (fDistToCenter <= radius) {
+                        result |= setVoxelInternal(x, y, z, toValue);
+                    }
                 }
             }
         }
-    }
+    });
 
     if (result) {
-        _volDataDirty = true;
-        _volDataLock.unlock();
         compressVolumeDataAndSendEditPacket();
-    } else {
-        _volDataLock.unlock();
     }
     return result;
 }
@@ -284,30 +367,27 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     glm::mat4 vtwMatrix = voxelToWorldMatrix();
 
     // This three-level for loop iterates over every voxel in the volume
-    _volDataLock.lockForWrite();
-    for (int z = 0; z < _voxelVolumeSize.z; z++) {
-        for (int y = 0; y < _voxelVolumeSize.y; y++) {
-            for (int x = 0; x < _voxelVolumeSize.x; x++) {
-                // Store our current position as a vector...
-                glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
-                // convert to world coordinates
-                glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
-                // compute how far the current position is from the center of the volume
-                float fDistToCenter = glm::distance(worldPos, centerWorldCoords);
-                // If the current voxel is less than 'radius' units from the center then we set its value
-                if (fDistToCenter <= radiusWorldCoords) {
-                    result |= setVoxelInternal(x, y, z, toValue);
+    withWriteLock([&] {
+        for (int z = 0; z < _voxelVolumeSize.z; z++) {
+            for (int y = 0; y < _voxelVolumeSize.y; y++) {
+                for (int x = 0; x < _voxelVolumeSize.x; x++) {
+                    // Store our current position as a vector...
+                    glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
+                    // convert to world coordinates
+                    glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
+                    // compute how far the current position is from the center of the volume
+                    float fDistToCenter = glm::distance(worldPos, centerWorldCoords);
+                    // If the current voxel is less than 'radius' units from the center then we set its value
+                    if (fDistToCenter <= radiusWorldCoords) {
+                        result |= setVoxelInternal(x, y, z, toValue);
+                    }
                 }
             }
         }
-    }
+    });
 
     if (result) {
-        _volDataDirty = true;
-        _volDataLock.unlock();
         compressVolumeDataAndSendEditPacket();
-    } else {
-        _volDataLock.unlock();
     }
     return result;
 }
@@ -366,7 +446,8 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     // the PolyVox ray intersection code requires a near and far point.
     // set ray cast length to long enough to cover all of the voxel space
     float distanceToEntity = glm::distance(origin, getPosition());
-    float largestDimension = glm::max(getDimensions().x, getDimensions().y, getDimensions().z) * 2.0f;
+    glm::vec3 dimensions = getDimensions();
+    float largestDimension = glm::compMax(dimensions) * 2.0f;
     glm::vec3 farPoint = origin + normDirection * (distanceToEntity + largestDimension);
 
     glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);
@@ -389,7 +470,8 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 
     float voxelDistance;
 
-    bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel), voxelDistance, face, surfaceNormal);
+    bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel),
+                                            voxelDistance, face, surfaceNormal);
 
     glm::vec4 voxelIntersectionPoint = glm::vec4(glm::vec3(originInVoxel) + glm::vec3(directionInVoxel) * voxelDistance, 1.0);
     glm::vec4 intersectionPoint = vtwMatrix * voxelIntersectionPoint;
@@ -404,13 +486,15 @@ PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originIn
     PolyVox::Vector3DFloat startPoint(originInVoxel.x, originInVoxel.y, originInVoxel.z);
     PolyVox::Vector3DFloat endPoint(farInVoxel.x, farInVoxel.y, farInVoxel.z);
 
-    _volDataLock.lockForRead();
-    RaycastFunctor callback(_volData);
-    PolyVox::RaycastResult raycastResult = PolyVox::raycastWithEndpoints(_volData, startPoint, endPoint, callback);
-    _volDataLock.unlock();
+    PolyVox::RaycastResult raycastResult;
+    withReadLock([&] {
+        RaycastFunctor callback(_volData);
+        raycastResult = PolyVox::raycastWithEndpoints(_volData, startPoint, endPoint, callback);
 
-    // result is in voxel-space coordinates.
-    result = callback._result;
+        // result is in voxel-space coordinates.
+        result = callback._result;
+    });
+
     return raycastResult;
 }
 
@@ -420,20 +504,30 @@ ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
     return SHAPE_TYPE_COMPOUND;
 }
 
+void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value) {
+    if (value != _registrationPoint) {
+        _meshDirty = true;
+        EntityItem::updateRegistrationPoint(value);
+    }
+}
+
 bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
-    _meshLock.lockForRead();
-    if (_meshDirty) {
-        _meshLock.unlock();
+    // we determine if we are ready to compute the physics shape by actually doing so.
+    // if _voxelDataDirty or _volDataDirty is set, don't do this yet -- wait for their
+    // threads to finish before creating the collision shape.
+    if (_meshDirty && !_voxelDataDirty && !_volDataDirty) {
+        _meshDirty = false;
         computeShapeInfoWorker();
         return false;
     }
-    _meshLock.unlock();
     return true;
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
-    QReadLocker(&this->_shapeInfoLock);
-    info = _shapeInfo;
+    // the shape was actually computed in isReadyToComputeShape.  Just hand it off, here.
+    withWriteLock([&] {
+        info = _shapeInfo;
+    });
 }
 
 void RenderablePolyVoxEntityItem::setXTextureURL(QString xTextureURL) {
@@ -462,22 +556,33 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::PolyVox);
     Q_ASSERT(args->_batch);
 
-    _volDataLock.lockForRead();
-    if (_volDataDirty) {
-        _volDataLock.unlock();
+    bool voxelDataDirty;
+    bool volDataDirty;
+    withWriteLock([&] {
+        voxelDataDirty = _voxelDataDirty;
+        volDataDirty = _volDataDirty;
+        if (_voxelDataDirty) {
+            _voxelDataDirty = false;
+        } else if (_volDataDirty) {
+            _volDataDirty = false;
+        }
+    });
+    if (voxelDataDirty) {
+        decompressVolumeData();
+    } else if (volDataDirty) {
         getMesh();
-    } else {
-        _volDataLock.unlock();
     }
 
-
-    _meshLock.lockForRead();
-    model::MeshPointer mesh = _mesh;
-    _meshLock.unlock();
+    model::MeshPointer mesh;
+    glm::vec3 voxelVolumeSize;
+    withReadLock([&] {
+        mesh = _mesh;
+        voxelVolumeSize = _voxelVolumeSize;
+    });
 
     if (!_pipeline) {
-        gpu::ShaderPointer vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(polyvox_vert)));
-        gpu::ShaderPointer pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(polyvox_frag)));
+        gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
+        gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
@@ -485,14 +590,14 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
 
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
         gpu::Shader::makeProgram(*program, slotBindings);
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
-        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+        _pipeline = gpu::Pipeline::create(program, state);
     }
 
     gpu::Batch& batch = *args->_batch;
@@ -535,11 +640,9 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     }
 
     int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
-    batch._glUniform3f(voxelVolumeSizeLocation, _voxelVolumeSize.x, _voxelVolumeSize.y, _voxelVolumeSize.z);
+    batch._glUniform3f(voxelVolumeSizeLocation, voxelVolumeSize.x, voxelVolumeSize.y, voxelVolumeSize.z);
 
-    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
-
-    RenderableDebugableEntityItem::render(this, args);
+    batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
 }
 
 bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
@@ -547,9 +650,13 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
                                              render::PendingChanges& pendingChanges) {
     _myItem = scene->allocateID();
 
-    auto renderItem = std::make_shared<PolyVoxPayload>(shared_from_this());
+    auto renderItem = std::make_shared<PolyVoxPayload>(getThisPointer());
     auto renderData = PolyVoxPayload::Pointer(renderItem);
     auto renderPayload = std::make_shared<PolyVoxPayload::Payload>(renderData);
+
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
 
     pendingChanges.resetItem(_myItem, renderPayload);
 
@@ -560,6 +667,7 @@ void RenderablePolyVoxEntityItem::removeFromScene(EntityItemPointer self,
                                                   std::shared_ptr<render::Scene> scene,
                                                   render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myItem);
+    render::Item::clearID(_myItem);
 }
 
 namespace render {
@@ -570,7 +678,12 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload) {
         if (payload && payload->_owner) {
             auto polyVoxEntity = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(payload->_owner);
-            return polyVoxEntity->getAABox();
+            bool success;
+            auto result = polyVoxEntity->getAABox(success);
+            if (!success) {
+                return render::Item::Bound();
+            }
+            return result;
         }
         return render::Item::Bound();
     }
@@ -611,49 +724,52 @@ glm::vec3 RenderablePolyVoxEntityItem::localCoordsToVoxelCoords(glm::vec3& local
 
 
 void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
-    if (_volData && _voxelVolumeSize == voxelVolumeSize) {
-        return;
-    }
+    // This controls how many individual voxels are in the entity.  This is unrelated to
+    // the dimentions of the entity -- it defines the size of the arrays that hold voxel values.
+    // In addition to setting the number of voxels, this is used in a few places for its
+    // side-effect of allocating _volData to be the correct size.
+    withWriteLock([&] {
+        if (_volData && _voxelVolumeSize == voxelVolumeSize) {
+            return;
+        }
 
-    _volDataLock.lockForWrite();
-    _volDataDirty = true;
-    _voxelVolumeSize = voxelVolumeSize;
+        _voxelDataDirty = true;
+        _voxelVolumeSize = voxelVolumeSize;
 
-    if (_volData) {
-        delete _volData;
-    }
-    _onCount = 0;
+        if (_volData) {
+            delete _volData;
+        }
+        _onCount = 0;
 
-    if (isEdged(_voxelSurfaceStyle)) {
-        // with _EDGED_ we maintain an extra box of voxels around those that the user asked for.  This
-        // changes how the surface extractor acts -- mainly it becomes impossible to have holes in the
-        // generated mesh.  The non _EDGED_ modes will leave holes in the mesh at the edges of the
-        // voxel space.
-        PolyVox::Vector3DInt32 lowCorner(0, 0, 0);
-        PolyVox::Vector3DInt32 highCorner(_voxelVolumeSize.x + 1, // corners are inclusive
-                                          _voxelVolumeSize.y + 1,
-                                          _voxelVolumeSize.z + 1);
-        _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
-    } else {
-        PolyVox::Vector3DInt32 lowCorner(0, 0, 0);
-        // these should each have -1 after them, but if we leave layers on the upper-axis faces,
-        // they act more like I expect.
-        PolyVox::Vector3DInt32 highCorner(_voxelVolumeSize.x,
-                                          _voxelVolumeSize.y,
-                                          _voxelVolumeSize.z);
-        _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
-    }
+        if (isEdged(_voxelSurfaceStyle)) {
+            // with _EDGED_ we maintain an extra box of voxels around those that the user asked for.  This
+            // changes how the surface extractor acts -- it becomes impossible to have holes in the
+            // generated mesh.  The non _EDGED_ modes will leave holes in the mesh at the edges of the
+            // voxel space.
+            PolyVox::Vector3DInt32 lowCorner(0, 0, 0);
+            PolyVox::Vector3DInt32 highCorner(_voxelVolumeSize.x + 1, // corners are inclusive
+                                              _voxelVolumeSize.y + 1,
+                                              _voxelVolumeSize.z + 1);
+            _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
+        } else {
+            PolyVox::Vector3DInt32 lowCorner(0, 0, 0);
+            // these should each have -1 after them, but if we leave layers on the upper-axis faces,
+            // they act more like I expect.
+            PolyVox::Vector3DInt32 highCorner(_voxelVolumeSize.x,
+                                              _voxelVolumeSize.y,
+                                              _voxelVolumeSize.z);
+            _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
+        }
 
-    // having the "outside of voxel-space" value be 255 has helped me notice some problems.
-    _volData->setBorderValue(255);
-    _volDataLock.unlock();
-    decompressVolumeData();
+        // having the "outside of voxel-space" value be 255 has helped me notice some problems.
+        _volData->setBorderValue(255);
+    });
 }
 
 
-bool RenderablePolyVoxEntityItem::inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol,
-                                               PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
-                                               int x, int y, int z) const {
+bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol,
+                  PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
+                  int x, int y, int z) {
     // x, y, z are in user voxel-coords, not adjusted-for-edge voxel-coords.
     if (isEdged(surfaceStyle)) {
         if (x < 0 || y < 0 || z < 0 ||
@@ -672,8 +788,11 @@ bool RenderablePolyVoxEntityItem::inUserBounds(const PolyVox::SimpleVolume<uint8
 
 
 uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
-    QReadLocker(&this->_volDataLock);
-    return getVoxelInternal(x, y, z);
+    uint8_t result;
+    withReadLock([&] {
+        result = getVoxelInternal(x, y, z);
+    });
+    return result;
 }
 
 
@@ -693,7 +812,8 @@ uint8_t RenderablePolyVoxEntityItem::getVoxelInternal(int x, int y, int z) {
 
 
 bool RenderablePolyVoxEntityItem::setVoxelInternal(int x, int y, int z, uint8_t toValue) {
-    // set a voxel without recompressing the voxel data
+    // set a voxel without recompressing the voxel data.  This assumes that the caller has
+    // write-locked the entity.
     bool result = false;
     if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return result;
@@ -706,6 +826,12 @@ bool RenderablePolyVoxEntityItem::setVoxelInternal(int x, int y, int z, uint8_t 
     } else {
         _volData->setVoxelAt(x, y, z, toValue);
     }
+
+    if (x == 0 || y == 0 || z == 0) {
+        _neighborsNeedUpdate = true;
+    }
+
+    _volDataDirty |= result;
 
     return result;
 }
@@ -735,576 +861,581 @@ bool RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toV
 }
 
 void RenderablePolyVoxEntityItem::decompressVolumeData() {
-    _threadRunning.acquire();
-    QtConcurrent::run(this, &RenderablePolyVoxEntityItem::decompressVolumeDataAsync);
+    // take compressed data and expand it into _volData.
+    QByteArray voxelData;
+    auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
+
+    withReadLock([&] {
+        voxelData = _voxelData;
+    });
+
+    QtConcurrent::run([=] {
+        QDataStream reader(voxelData);
+        quint16 voxelXSize, voxelYSize, voxelZSize;
+        reader >> voxelXSize;
+        reader >> voxelYSize;
+        reader >> voxelZSize;
+
+        if (voxelXSize == 0 || voxelXSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION ||
+            voxelYSize == 0 || voxelYSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION ||
+            voxelZSize == 0 || voxelZSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION) {
+            qDebug() << "voxelSize is not reasonable, skipping decompressions."
+                     << voxelXSize << voxelYSize << voxelZSize << getName() << getID();
+            entity->setVoxelDataDirty(false);
+            return;
+        }
+        int rawSize = voxelXSize * voxelYSize * voxelZSize;
+
+        QByteArray compressedData;
+        reader >> compressedData;
+
+        QByteArray uncompressedData = qUncompress(compressedData);
+
+        if (uncompressedData.size() != rawSize) {
+            qDebug() << "PolyVox decompress -- size is (" << voxelXSize << voxelYSize << voxelZSize << ")"
+                     << "so expected uncompressed length of" << rawSize << "but length is" << uncompressedData.size()
+                     << getName() << getID();
+            entity->setVoxelDataDirty(false);
+            return;
+        }
+
+        entity->setVoxelsFromData(uncompressedData, voxelXSize, voxelYSize, voxelZSize);
+    });
 }
 
-// take compressed data and expand it into _volData.
-void RenderablePolyVoxEntityItem::decompressVolumeDataAsync() {
-    _voxelDataLock.lockForRead();
-    QDataStream reader(_voxelData);
-    quint16 voxelXSize, voxelYSize, voxelZSize;
-    reader >> voxelXSize;
-    reader >> voxelYSize;
-    reader >> voxelZSize;
-
-    if (voxelXSize == 0 || voxelXSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION ||
-        voxelYSize == 0 || voxelYSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION ||
-        voxelZSize == 0 || voxelZSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION) {
-        qDebug() << "voxelSize is not reasonable, skipping decompressions."
-                 << voxelXSize << voxelYSize << voxelZSize << getName() << getID();
-        _voxelDataDirty = false;
-        _voxelDataLock.unlock();
-        _threadRunning.release();
-        return;
-    }
-
-    int rawSize = voxelXSize * voxelYSize * voxelZSize;
-
-    QByteArray compressedData;
-    reader >> compressedData;
-    _voxelDataDirty = false;
-    _voxelDataLock.unlock();
-    QByteArray uncompressedData = qUncompress(compressedData);
-
-    if (uncompressedData.size() != rawSize) {
-        qDebug() << "PolyVox decompress -- size is (" << voxelXSize << voxelYSize << voxelZSize << ")"
-                 << "so expected uncompressed length of" << rawSize << "but length is" << uncompressedData.size()
-                 << getName() << getID();
-        _threadRunning.release();
-        return;
-    }
-
-    _volDataLock.lockForWrite();
-    if (!_volData) {
-        _volDataLock.unlock();
-        _threadRunning.release();
-        return;
-    }
-    _volDataDirty = true;
-    for (int z = 0; z < voxelZSize; z++) {
-        for (int y = 0; y < voxelYSize; y++) {
-            for (int x = 0; x < voxelXSize; x++) {
-                int uncompressedIndex = (z * voxelYSize * voxelXSize) + (y * voxelZSize) + x;
-                setVoxelInternal(x, y, z, uncompressedData[uncompressedIndex]);
+void RenderablePolyVoxEntityItem::setVoxelsFromData(QByteArray uncompressedData,
+                                                    quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) {
+    // this accepts the payload from decompressVolumeData
+    withWriteLock([&] {
+        for (int z = 0; z < voxelZSize; z++) {
+            for (int y = 0; y < voxelYSize; y++) {
+                for (int x = 0; x < voxelXSize; x++) {
+                    int uncompressedIndex = (z * voxelYSize * voxelXSize) + (y * voxelZSize) + x;
+                    setVoxelInternal(x, y, z, uncompressedData[uncompressedIndex]);
+                }
             }
         }
-    }
-    _volDataLock.unlock();
-    _threadRunning.release();
+        _volDataDirty = true;
+    });
 }
 
 void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
-    _threadRunning.acquire();
-    QtConcurrent::run(this, &RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacketAsync);
-}
+    // compress the data in _volData and save the results.  The compressed form is used during
+    // saves to disk and for transmission over the wire to the entity-server
 
-// compress the data in _volData and save the results.  The compressed form is used during
-// saves to disk and for transmission over the wire
-void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacketAsync() {
-    quint16 voxelXSize = _voxelVolumeSize.x;
-    quint16 voxelYSize = _voxelVolumeSize.y;
-    quint16 voxelZSize = _voxelVolumeSize.z;
-    int rawSize = voxelXSize * voxelYSize * voxelZSize;
+    EntityItemPointer entity = getThisPointer();
 
-    QByteArray uncompressedData = QByteArray(rawSize, '\0');
-
-    _volDataLock.lockForRead();
-    for (int z = 0; z < voxelZSize; z++) {
-        for (int y = 0; y < voxelYSize; y++) {
-            for (int x = 0; x < voxelXSize; x++) {
-                uint8_t uVoxelValue = getVoxelInternal(x, y, z);
-                int uncompressedIndex =
-                    z * voxelYSize * voxelXSize +
-                    y * voxelXSize +
-                    x;
-                uncompressedData[uncompressedIndex] = uVoxelValue;
-            }
-        }
-    }
-    _volDataLock.unlock();
-
-    QByteArray newVoxelData;
-    QDataStream writer(&newVoxelData, QIODevice::WriteOnly | QIODevice::Truncate);
-
-    writer << voxelXSize << voxelYSize << voxelZSize;
-
-    QByteArray compressedData = qCompress(uncompressedData, 9);
-    writer << compressedData;
-
-    // make sure the compressed data can be sent over the wire-protocol
-    if (newVoxelData.size() > 1150) {
-        // HACK -- until we have a way to allow for properties larger than MTU, don't update.
-        // revert the active voxel-space to the last version that fit.
-        // XXX
-        qDebug() << "compressed voxel data is too large" << getName() << getID();
-        _threadRunning.release();
-        return;
-    }
-
-    auto now = usecTimestampNow();
-    setLastEdited(now);
-    setLastBroadcast(now);
-
-    _voxelDataLock.lockForWrite();
-    _voxelDataDirty = true;
-    _voxelData = newVoxelData;
-    _voxelDataLock.unlock();
-
-    EntityItemProperties properties = getProperties();
-    properties.setVoxelDataDirty();
-    properties.setLastEdited(now);
+    quint16 voxelXSize;
+    quint16 voxelYSize;
+    quint16 voxelZSize;
+    withReadLock([&] {
+        voxelXSize = _voxelVolumeSize.x;
+        voxelYSize = _voxelVolumeSize.y;
+        voxelZSize = _voxelVolumeSize.z;
+    });
 
     EntityTreeElementPointer element = getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
-    EntitySimulation* simulation = tree ? tree->getSimulation() : nullptr;
-    PhysicalEntitySimulation* peSimulation = static_cast<PhysicalEntitySimulation*>(simulation);
-    EntityEditPacketSender* packetSender = peSimulation ? peSimulation->getPacketSender() : nullptr;
-    if (packetSender) {
-        packetSender->queueEditEntityMessage(PacketType::EntityEdit, _id, properties);
-    }
-    _threadRunning.release();
+
+    QtConcurrent::run([voxelXSize, voxelYSize, voxelZSize, entity, tree] {
+        int rawSize = voxelXSize * voxelYSize * voxelZSize;
+        QByteArray uncompressedData = QByteArray(rawSize, '\0');
+
+        auto polyVoxEntity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity);
+        polyVoxEntity->forEachVoxelValue(voxelXSize, voxelYSize, voxelZSize, [&] (int x, int y, int z, uint8_t uVoxelValue) {
+            int uncompressedIndex =
+                z * voxelYSize * voxelXSize +
+                y * voxelXSize +
+                x;
+            uncompressedData[uncompressedIndex] = uVoxelValue;
+        });
+
+        QByteArray newVoxelData;
+        QDataStream writer(&newVoxelData, QIODevice::WriteOnly | QIODevice::Truncate);
+
+        writer << voxelXSize << voxelYSize << voxelZSize;
+
+        QByteArray compressedData = qCompress(uncompressedData, 9);
+        writer << compressedData;
+
+        // make sure the compressed data can be sent over the wire-protocol
+        if (newVoxelData.size() > 1150) {
+            // HACK -- until we have a way to allow for properties larger than MTU, don't update.
+            // revert the active voxel-space to the last version that fit.
+            qDebug() << "compressed voxel data is too large" << entity->getName() << entity->getID();
+            return;
+        }
+
+        auto now = usecTimestampNow();
+        entity->setLastEdited(now);
+        entity->setLastBroadcast(now);
+
+        std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity)->setVoxelData(newVoxelData);
+
+        tree->withReadLock([&] {
+            EntityItemProperties properties = entity->getProperties();
+            properties.setVoxelDataDirty();
+            properties.setLastEdited(now);
+
+            EntitySimulationPointer simulation = tree ? tree->getSimulation() : nullptr;
+            PhysicalEntitySimulationPointer peSimulation = std::static_pointer_cast<PhysicalEntitySimulation>(simulation);
+            EntityEditPacketSender* packetSender = peSimulation ? peSimulation->getPacketSender() : nullptr;
+            if (packetSender) {
+                packetSender->queueEditEntityMessage(PacketType::EntityEdit, tree, entity->getID(), properties);
+            }
+        });
+    });
 }
 
-void RenderablePolyVoxEntityItem::getMesh() {
-    _threadRunning.acquire();
-    QtConcurrent::run(this, &RenderablePolyVoxEntityItem::getMeshAsync);
-}
+EntityItemPointer lookUpNeighbor(EntityTreePointer tree, EntityItemID neighborID, EntityItemWeakPointer& currentWP) {
+    EntityItemPointer current = currentWP.lock();
 
-void RenderablePolyVoxEntityItem::clearOutOfDateNeighbors() {
-    if (_xNNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
-        if (currentXNNeighbor && currentXNNeighbor->getID() != _xNNeighborID) {
-            _xNNeighbor.reset();
-        }
-    }
-    if (_yNNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentYNNeighbor = _yNNeighbor.lock();
-        if (currentYNNeighbor && currentYNNeighbor->getID() != _yNNeighborID) {
-            _yNNeighbor.reset();
-        }
-    }
-    if (_zNNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentZNNeighbor = _zNNeighbor.lock();
-        if (currentZNNeighbor && currentZNNeighbor->getID() != _zNNeighborID) {
-            _zNNeighbor.reset();
-        }
+    if (!current && neighborID == UNKNOWN_ENTITY_ID) {
+        // no neighbor
+        return nullptr;
     }
 
-    if (_xPNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentXPNeighbor = _xPNeighbor.lock();
-        if (currentXPNeighbor && currentXPNeighbor->getID() != _xPNeighborID) {
-            _xPNeighbor.reset();
-        }
-    }
-    if (_yPNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentYPNeighbor = _yPNeighbor.lock();
-        if (currentYPNeighbor && currentYPNeighbor->getID() != _yPNeighborID) {
-            _yPNeighbor.reset();
-        }
-    }
-    if (_zPNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentZPNeighbor = _zPNeighbor.lock();
-        if (currentZPNeighbor && currentZPNeighbor->getID() != _zPNeighborID) {
-            _zPNeighbor.reset();
-        }
+    if (current && current->getID() == neighborID) {
+        // same neighbor
+        return current;
     }
 
+    if (neighborID == UNKNOWN_ENTITY_ID) {
+        currentWP.reset();
+        return nullptr;
+    }
+
+    current = tree->findEntityByID(neighborID);
+    if (!current) {
+        return nullptr;
+    }
+
+    currentWP = current;
+    return current;
 }
 
 void RenderablePolyVoxEntityItem::cacheNeighbors() {
-    clearOutOfDateNeighbors();
+    // this attempts to turn neighbor entityIDs into neighbor weak-pointers
     EntityTreeElementPointer element = getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
     if (!tree) {
         return;
     }
-
-    if (_xNNeighborID != UNKNOWN_ENTITY_ID && _xNNeighbor.expired()) {
-        _xNNeighbor = tree->findEntityByID(_xNNeighborID);
-    }
-    if (_yNNeighborID != UNKNOWN_ENTITY_ID && _yNNeighbor.expired()) {
-        _yNNeighbor = tree->findEntityByID(_yNNeighborID);
-    }
-    if (_zNNeighborID != UNKNOWN_ENTITY_ID && _zNNeighbor.expired()) {
-        _zNNeighbor = tree->findEntityByID(_zNNeighborID);
-    }
-
-    if (_xPNeighborID != UNKNOWN_ENTITY_ID && _xPNeighbor.expired()) {
-        _xPNeighbor = tree->findEntityByID(_xPNeighborID);
-    }
-    if (_yPNeighborID != UNKNOWN_ENTITY_ID && _yPNeighbor.expired()) {
-        _yPNeighbor = tree->findEntityByID(_yPNeighborID);
-    }
-    if (_zPNeighborID != UNKNOWN_ENTITY_ID && _zPNeighbor.expired()) {
-        _zPNeighbor = tree->findEntityByID(_zPNeighborID);
-    }
-
+    lookUpNeighbor(tree, _xNNeighborID, _xNNeighbor);
+    lookUpNeighbor(tree, _yNNeighborID, _yNNeighbor);
+    lookUpNeighbor(tree, _zNNeighborID, _zNNeighbor);
+    lookUpNeighbor(tree, _xPNeighborID, _xPNeighbor);
+    lookUpNeighbor(tree, _yPNeighborID, _yPNeighbor);
+    lookUpNeighbor(tree, _zPNeighborID, _zPNeighbor);
 }
 
 void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
+    // fill in our upper edges with a copy of our neighbors lower edges so that the meshes knit together
     if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
         return;
     }
 
-    EntityItemPointer currentXPNeighbor = _xPNeighbor.lock();
-    EntityItemPointer currentYPNeighbor = _yPNeighbor.lock();
-    EntityItemPointer currentZPNeighbor = _zPNeighbor.lock();
+    auto currentXPNeighbor = getXPNeighbor();
+    auto currentYPNeighbor = getYPNeighbor();
+    auto currentZPNeighbor = getZPNeighbor();
 
-    if (currentXPNeighbor) {
-        auto polyVoxXPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXPNeighbor);
-        if (polyVoxXPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+    if (currentXPNeighbor && currentXPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+        withWriteLock([&] {
             for (int y = 0; y < _volData->getHeight(); y++) {
                 for (int z = 0; z < _volData->getDepth(); z++) {
-                    uint8_t neighborValue = polyVoxXPNeighbor->getVoxel(0, y, z);
+                    uint8_t neighborValue = currentXPNeighbor->getVoxel(0, y, z);
+                    if ((y == 0 || z == 0) && _volData->getVoxelAt(_volData->getWidth() - 1, y, z) != neighborValue) {
+                        bonkNeighbors();
+                    }
                     _volData->setVoxelAt(_volData->getWidth() - 1, y, z, neighborValue);
                 }
             }
-        }
+        });
     }
 
-    if (currentYPNeighbor) {
-        auto polyVoxYPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYPNeighbor);
-        if (polyVoxYPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+
+    if (currentYPNeighbor && currentYPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+        withWriteLock([&] {
             for (int x = 0; x < _volData->getWidth(); x++) {
                 for (int z = 0; z < _volData->getDepth(); z++) {
-                    uint8_t neighborValue = polyVoxYPNeighbor->getVoxel(x, 0, z);
-                    _volData->setVoxelAt(x, _volData->getWidth() - 1, z, neighborValue);
+                    uint8_t neighborValue = currentYPNeighbor->getVoxel(x, 0, z);
+                    if ((x == 0 || z == 0) && _volData->getVoxelAt(x, _volData->getHeight() - 1, z) != neighborValue) {
+                        bonkNeighbors();
+                    }
+                    _volData->setVoxelAt(x, _volData->getHeight() - 1, z, neighborValue);
                 }
             }
-        }
+        });
     }
 
-    if (currentZPNeighbor) {
-        auto polyVoxZPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZPNeighbor);
-        if (polyVoxZPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+
+    if (currentZPNeighbor && currentZPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+        withWriteLock([&] {
             for (int x = 0; x < _volData->getWidth(); x++) {
                 for (int y = 0; y < _volData->getHeight(); y++) {
-                    uint8_t neighborValue = polyVoxZPNeighbor->getVoxel(x, y, 0);
+                    uint8_t neighborValue = currentZPNeighbor->getVoxel(x, y, 0);
+                    _volData->setVoxelAt(x, y, _volData->getDepth() - 1, neighborValue);
+                    if ((x == 0 || y == 0) && _volData->getVoxelAt(x, y, _volData->getDepth() - 1) != neighborValue) {
+                        bonkNeighbors();
+                    }
                     _volData->setVoxelAt(x, y, _volData->getDepth() - 1, neighborValue);
                 }
             }
-        }
+        });
     }
 }
 
-void RenderablePolyVoxEntityItem::getMeshAsync() {
-    model::MeshPointer mesh(new model::Mesh());
+void RenderablePolyVoxEntityItem::getMesh() {
+    // use _volData to make a renderable mesh
+    PolyVoxSurfaceStyle voxelSurfaceStyle;
+    withReadLock([&] {
+        voxelSurfaceStyle = _voxelSurfaceStyle;
+    });
 
     cacheNeighbors();
-
-    // A mesh object to hold the result of surface extraction
-    PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
-
-    _volDataLock.lockForRead();
-    if (!_volData) {
-        _volDataLock.unlock();
-        return;
-    }
     copyUpperEdgesFromNeighbors();
 
-    switch (_voxelSurfaceStyle) {
-        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES: {
-            PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-                (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-            surfaceExtractor.execute();
-            break;
+    auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
+
+
+    QtConcurrent::run([entity, voxelSurfaceStyle] {
+        model::MeshPointer mesh(new model::Mesh());
+
+        // A mesh object to hold the result of surface extraction
+        PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
+
+        entity->withReadLock([&] {
+            PolyVox::SimpleVolume<uint8_t>* volData = entity->getVolData();
+            switch (voxelSurfaceStyle) {
+                case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES: {
+                    PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                        (volData, volData->getEnclosingRegion(), &polyVoxMesh);
+                    surfaceExtractor.execute();
+                    break;
+                }
+                case PolyVoxEntityItem::SURFACE_MARCHING_CUBES: {
+                    PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                        (volData, volData->getEnclosingRegion(), &polyVoxMesh);
+                    surfaceExtractor.execute();
+                    break;
+                }
+                case PolyVoxEntityItem::SURFACE_EDGED_CUBIC: {
+                    PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                        (volData, volData->getEnclosingRegion(), &polyVoxMesh);
+                    surfaceExtractor.execute();
+                    break;
+                }
+                case PolyVoxEntityItem::SURFACE_CUBIC: {
+                    PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                        (volData, volData->getEnclosingRegion(), &polyVoxMesh);
+                    surfaceExtractor.execute();
+                    break;
+                }
+            }
+        });
+
+        // convert PolyVox mesh to a Sam mesh
+        const std::vector<uint32_t>& vecIndices = polyVoxMesh.getIndices();
+        auto indexBuffer = std::make_shared<gpu::Buffer>(vecIndices.size() * sizeof(uint32_t),
+                                                         (gpu::Byte*)vecIndices.data());
+        auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
+        auto indexBufferView = new gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
+        mesh->setIndexBuffer(*indexBufferView);
+
+        const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getVertices();
+        auto vertexBuffer = std::make_shared<gpu::Buffer>(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
+                                                          (gpu::Byte*)vecVertices.data());
+        auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
+        gpu::Resource::Size vertexBufferSize = 0;
+        if (vertexBufferPtr->getSize() > sizeof(float) * 3) {
+            vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 3;
         }
-        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES: {
-            PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-                (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-            surfaceExtractor.execute();
-            break;
-        }
-        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC: {
-            PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-                (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-            surfaceExtractor.execute();
-            break;
-        }
-        case PolyVoxEntityItem::SURFACE_CUBIC: {
-            PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-                (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-            surfaceExtractor.execute();
-            break;
-        }
+        auto vertexBufferView = new gpu::BufferView(vertexBufferPtr, 0, vertexBufferSize,
+                                                    sizeof(PolyVox::PositionMaterialNormal),
+                                                    gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
+        mesh->setVertexBuffer(*vertexBufferView);
+        mesh->addAttribute(gpu::Stream::NORMAL,
+                           gpu::BufferView(vertexBufferPtr,
+                                           sizeof(float) * 3,
+                                           vertexBufferPtr->getSize() - sizeof(float) * 3,
+                                           sizeof(PolyVox::PositionMaterialNormal),
+                                           gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+        entity->setMesh(mesh);
+    });
+}
+
+void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
+    // this catches the payload from getMesh
+    bool neighborsNeedUpdate;
+    withWriteLock([&] {
+        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        _mesh = mesh;
+        _meshDirty = true;
+        _meshInitialized = true;
+        neighborsNeedUpdate = _neighborsNeedUpdate;
+        _neighborsNeedUpdate = false;
+    });
+    if (neighborsNeedUpdate) {
+        bonkNeighbors();
     }
-
-    // convert PolyVox mesh to a Sam mesh
-    const std::vector<uint32_t>& vecIndices = polyVoxMesh.getIndices();
-    auto indexBuffer = std::make_shared<gpu::Buffer>(vecIndices.size() * sizeof(uint32_t),
-                                                     (gpu::Byte*)vecIndices.data());
-    auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
-    auto indexBufferView = new gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
-    mesh->setIndexBuffer(*indexBufferView);
-
-    const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getVertices();
-    auto vertexBuffer = std::make_shared<gpu::Buffer>(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
-                                                      (gpu::Byte*)vecVertices.data());
-    auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
-    gpu::Resource::Size vertexBufferSize = 0;
-    if (vertexBufferPtr->getSize() > sizeof(float) * 3) {
-        vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 3;
-    }
-    auto vertexBufferView = new gpu::BufferView(vertexBufferPtr, 0, vertexBufferSize, sizeof(PolyVox::PositionMaterialNormal),
-                                                gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
-    mesh->setVertexBuffer(*vertexBufferView);
-    mesh->addAttribute(gpu::Stream::NORMAL,
-                       gpu::BufferView(vertexBufferPtr,
-                                       sizeof(float) * 3,
-                                       vertexBufferPtr->getSize() - sizeof(float) * 3,
-                                       sizeof(PolyVox::PositionMaterialNormal),
-                                       gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
-
-    _meshLock.lockForWrite();
-    _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-    _mesh = mesh;
-    _meshDirty = true;
-    _meshLock.unlock();
-    _volDataDirty = false;
-    _volDataLock.unlock();
-    bonkNeighbors();
-    _threadRunning.release();
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
-    _threadRunning.acquire();
-    QtConcurrent::run(this, &RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync);
-}
-
-
-void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
-    QVector<QVector<glm::vec3>> points;
-    AABox box;
-    glm::mat4 vtoM = voxelToLocalMatrix();
-
-    if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_MARCHING_CUBES ||
-        _voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES) {
-        // pull each triangle in the mesh into a polyhedron which can be collided with
-        unsigned int i = 0;
-
-        _meshLock.lockForRead();
-        model::MeshPointer mesh = _mesh;
-        const gpu::BufferView vertexBufferView = mesh->getVertexBuffer();
-        const gpu::BufferView& indexBufferView = mesh->getIndexBuffer();
-        _meshLock.unlock();
-
-        gpu::BufferView::Iterator<const uint32_t> it = indexBufferView.cbegin<uint32_t>();
-        while (it != indexBufferView.cend<uint32_t>()) {
-            uint32_t p0Index = *(it++);
-            uint32_t p1Index = *(it++);
-            uint32_t p2Index = *(it++);
-
-            const glm::vec3& p0 = vertexBufferView.get<const glm::vec3>(p0Index);
-            const glm::vec3& p1 = vertexBufferView.get<const glm::vec3>(p1Index);
-            const glm::vec3& p2 = vertexBufferView.get<const glm::vec3>(p2Index);
-
-            glm::vec3 av = (p0 + p1 + p2) / 3.0f; // center of the triangular face
-            glm::vec3 normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
-            glm::vec3 p3 = av - normal * MARCHING_CUBE_COLLISION_HULL_OFFSET;
-
-            glm::vec3 p0Model = glm::vec3(vtoM * glm::vec4(p0, 1.0f));
-            glm::vec3 p1Model = glm::vec3(vtoM * glm::vec4(p1, 1.0f));
-            glm::vec3 p2Model = glm::vec3(vtoM * glm::vec4(p2, 1.0f));
-            glm::vec3 p3Model = glm::vec3(vtoM * glm::vec4(p3, 1.0f));
-
-            box += p0Model;
-            box += p1Model;
-            box += p2Model;
-            box += p3Model;
-
-            QVector<glm::vec3> pointsInPart;
-            pointsInPart << p0Model;
-            pointsInPart << p1Model;
-            pointsInPart << p2Model;
-            pointsInPart << p3Model;
-            // add next convex hull
-            QVector<glm::vec3> newMeshPoints;
-            points << newMeshPoints;
-            // add points to the new convex hull
-            points[i++] << pointsInPart;
-        }
-    } else {
-        unsigned int i = 0;
-
-        _volDataLock.lockForRead();
-        if (!_volData) {
-            _volDataLock.unlock();
-            return;
-        }
-
-        for (int z = 0; z < _voxelVolumeSize.z; z++) {
-            for (int y = 0; y < _voxelVolumeSize.y; y++) {
-                for (int x = 0; x < _voxelVolumeSize.x; x++) {
-                    if (getVoxelInternal(x, y, z) > 0) {
-
-                        if ((x > 0 && getVoxel(x - 1, y, z) > 0) &&
-                            (y > 0 && getVoxel(x, y - 1, z) > 0) &&
-                            (z > 0 && getVoxel(x, y, z - 1) > 0) &&
-                            (x < _voxelVolumeSize.x - 1 && getVoxel(x + 1, y, z) > 0) &&
-                            (y < _voxelVolumeSize.y - 1 && getVoxel(x, y + 1, z) > 0) &&
-                            (z < _voxelVolumeSize.z - 1 && getVoxel(x, y, z + 1) > 0)) {
-                            // this voxel has neighbors in every cardinal direction, so there's no need
-                            // to include it in the collision hull.
-                            continue;
-                        }
-
-                        QVector<glm::vec3> pointsInPart;
-
-                        float offL = -0.5f;
-                        float offH = 0.5f;
-                        if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_CUBIC) {
-                            offL += 1.0f;
-                            offH += 1.0f;
-                        }
-
-                        glm::vec3 p000 = glm::vec3(vtoM * glm::vec4(x + offL, y + offL, z + offL, 1.0f));
-                        glm::vec3 p001 = glm::vec3(vtoM * glm::vec4(x + offL, y + offL, z + offH, 1.0f));
-                        glm::vec3 p010 = glm::vec3(vtoM * glm::vec4(x + offL, y + offH, z + offL, 1.0f));
-                        glm::vec3 p011 = glm::vec3(vtoM * glm::vec4(x + offL, y + offH, z + offH, 1.0f));
-                        glm::vec3 p100 = glm::vec3(vtoM * glm::vec4(x + offH, y + offL, z + offL, 1.0f));
-                        glm::vec3 p101 = glm::vec3(vtoM * glm::vec4(x + offH, y + offL, z + offH, 1.0f));
-                        glm::vec3 p110 = glm::vec3(vtoM * glm::vec4(x + offH, y + offH, z + offL, 1.0f));
-                        glm::vec3 p111 = glm::vec3(vtoM * glm::vec4(x + offH, y + offH, z + offH, 1.0f));
-
-                        box += p000;
-                        box += p001;
-                        box += p010;
-                        box += p011;
-                        box += p100;
-                        box += p101;
-                        box += p110;
-                        box += p111;
-
-                        pointsInPart << p000;
-                        pointsInPart << p001;
-                        pointsInPart << p010;
-                        pointsInPart << p011;
-                        pointsInPart << p100;
-                        pointsInPart << p101;
-                        pointsInPart << p110;
-                        pointsInPart << p111;
-
-                        // add next convex hull
-                        QVector<glm::vec3> newMeshPoints;
-                        points << newMeshPoints;
-                        // add points to the new convex hull
-                        points[i++] << pointsInPart;
-                    }
-                }
-            }
-        }
-        _volDataLock.unlock();
+    // this creates a collision-shape for the physics engine.  The shape comes from
+    // _volData for cubic extractors and from _mesh for marching-cube extractors
+    if (!_meshInitialized) {
+        return;
     }
 
-    if (points.isEmpty()) {
-        _shapeInfoLock.lockForWrite();
+    EntityItemPointer entity = getThisPointer();
+
+    PolyVoxSurfaceStyle voxelSurfaceStyle;
+    glm::vec3 voxelVolumeSize;
+    model::MeshPointer mesh;
+
+    withReadLock([&] {
+        voxelSurfaceStyle = _voxelSurfaceStyle;
+        voxelVolumeSize = _voxelVolumeSize;
+        mesh = _mesh;
+    });
+
+    QtConcurrent::run([entity, voxelSurfaceStyle, voxelVolumeSize, mesh] {
+        auto polyVoxEntity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity);
+        QVector<QVector<glm::vec3>> pointCollection;
+        AABox box;
+        glm::mat4 vtoM = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity)->voxelToLocalMatrix();
+
+        if (voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_MARCHING_CUBES ||
+            voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES) {
+            // pull each triangle in the mesh into a polyhedron which can be collided with
+            unsigned int i = 0;
+
+            const gpu::BufferView& vertexBufferView = mesh->getVertexBuffer();
+            const gpu::BufferView& indexBufferView = mesh->getIndexBuffer();
+
+            gpu::BufferView::Iterator<const uint32_t> it = indexBufferView.cbegin<uint32_t>();
+            while (it != indexBufferView.cend<uint32_t>()) {
+                uint32_t p0Index = *(it++);
+                uint32_t p1Index = *(it++);
+                uint32_t p2Index = *(it++);
+
+                const glm::vec3& p0 = vertexBufferView.get<const glm::vec3>(p0Index);
+                const glm::vec3& p1 = vertexBufferView.get<const glm::vec3>(p1Index);
+                const glm::vec3& p2 = vertexBufferView.get<const glm::vec3>(p2Index);
+
+                glm::vec3 av = (p0 + p1 + p2) / 3.0f; // center of the triangular face
+                glm::vec3 normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
+                glm::vec3 p3 = av - normal * MARCHING_CUBE_COLLISION_HULL_OFFSET;
+
+                glm::vec3 p0Model = glm::vec3(vtoM * glm::vec4(p0, 1.0f));
+                glm::vec3 p1Model = glm::vec3(vtoM * glm::vec4(p1, 1.0f));
+                glm::vec3 p2Model = glm::vec3(vtoM * glm::vec4(p2, 1.0f));
+                glm::vec3 p3Model = glm::vec3(vtoM * glm::vec4(p3, 1.0f));
+
+                box += p0Model;
+                box += p1Model;
+                box += p2Model;
+                box += p3Model;
+
+                QVector<glm::vec3> pointsInPart;
+                pointsInPart << p0Model;
+                pointsInPart << p1Model;
+                pointsInPart << p2Model;
+                pointsInPart << p3Model;
+                // add next convex hull
+                QVector<glm::vec3> newMeshPoints;
+                pointCollection << newMeshPoints;
+                // add points to the new convex hull
+                pointCollection[i++] << pointsInPart;
+            }
+        } else {
+            unsigned int i = 0;
+            polyVoxEntity->forEachVoxelValue(voxelVolumeSize.x, voxelVolumeSize.y, voxelVolumeSize.z,
+                                             [&](int x, int y, int z, uint8_t value) {
+                if (value > 0) {
+                    if ((x > 0 && polyVoxEntity->getVoxelInternal(x - 1, y, z) > 0) &&
+                        (y > 0 && polyVoxEntity->getVoxelInternal(x, y - 1, z) > 0) &&
+                        (z > 0 && polyVoxEntity->getVoxelInternal(x, y, z - 1) > 0) &&
+                        (x < voxelVolumeSize.x - 1 && polyVoxEntity->getVoxelInternal(x + 1, y, z) > 0) &&
+                        (y < voxelVolumeSize.y - 1 && polyVoxEntity->getVoxelInternal(x, y + 1, z) > 0) &&
+                        (z < voxelVolumeSize.z - 1 && polyVoxEntity->getVoxelInternal(x, y, z + 1) > 0)) {
+                        // this voxel has neighbors in every cardinal direction, so there's no need
+                        // to include it in the collision hull.
+                        return;
+                    }
+
+                    QVector<glm::vec3> pointsInPart;
+
+                    float offL = -0.5f;
+                    float offH = 0.5f;
+                    if (voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_CUBIC) {
+                        offL += 1.0f;
+                        offH += 1.0f;
+                    }
+
+                    glm::vec3 p000 = glm::vec3(vtoM * glm::vec4(x + offL, y + offL, z + offL, 1.0f));
+                    glm::vec3 p001 = glm::vec3(vtoM * glm::vec4(x + offL, y + offL, z + offH, 1.0f));
+                    glm::vec3 p010 = glm::vec3(vtoM * glm::vec4(x + offL, y + offH, z + offL, 1.0f));
+                    glm::vec3 p011 = glm::vec3(vtoM * glm::vec4(x + offL, y + offH, z + offH, 1.0f));
+                    glm::vec3 p100 = glm::vec3(vtoM * glm::vec4(x + offH, y + offL, z + offL, 1.0f));
+                    glm::vec3 p101 = glm::vec3(vtoM * glm::vec4(x + offH, y + offL, z + offH, 1.0f));
+                    glm::vec3 p110 = glm::vec3(vtoM * glm::vec4(x + offH, y + offH, z + offL, 1.0f));
+                    glm::vec3 p111 = glm::vec3(vtoM * glm::vec4(x + offH, y + offH, z + offH, 1.0f));
+
+                    box += p000;
+                    box += p001;
+                    box += p010;
+                    box += p011;
+                    box += p100;
+                    box += p101;
+                    box += p110;
+                    box += p111;
+
+                    pointsInPart << p000;
+                    pointsInPart << p001;
+                    pointsInPart << p010;
+                    pointsInPart << p011;
+                    pointsInPart << p100;
+                    pointsInPart << p101;
+                    pointsInPart << p110;
+                    pointsInPart << p111;
+
+                    // add next convex hull
+                    QVector<glm::vec3> newMeshPoints;
+                    pointCollection << newMeshPoints;
+                    // add points to the new convex hull
+                    pointCollection[i++] << pointsInPart;
+                }
+            });
+        }
+        polyVoxEntity->setCollisionPoints(pointCollection, box);
+    });
+}
+
+void RenderablePolyVoxEntityItem::setCollisionPoints(ShapeInfo::PointCollection pointCollection, AABox box) {
+    // this catches the payload from computeShapeInfoWorker
+    if (pointCollection.isEmpty()) {
         EntityItem::computeShapeInfo(_shapeInfo);
-        _shapeInfoLock.unlock();
-        _threadRunning.release();
         return;
     }
 
     glm::vec3 collisionModelDimensions = box.getDimensions();
-    QByteArray b64 = _voxelData.toBase64();
-    _shapeInfoLock.lockForWrite();
-    _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, QString(b64));
-    _shapeInfo.setConvexHulls(points);
-    _shapeInfoLock.unlock();
-
-    _meshLock.lockForWrite();
-    _meshDirty = false;
-    _meshLock.unlock();
-    _threadRunning.release();
-    return;
+    // include the registrationPoint in the shape key, because the offset is already
+    // included in the points and the shapeManager wont know that the shape has changed.
+    withWriteLock([&] {
+            QString shapeKey = QString(_voxelData.toBase64()) + "," +
+                QString::number(_registrationPoint.x) + "," +
+                QString::number(_registrationPoint.y) + "," +
+                QString::number(_registrationPoint.z);
+            _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
+            _shapeInfo.setPointCollection(pointCollection);
+            _meshDirty = false;
+        });
 }
 
-
 void RenderablePolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighborID) {
+    if (xNNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
+
     if (xNNeighborID != _xNNeighborID) {
         PolyVoxEntityItem::setXNNeighborID(xNNeighborID);
         cacheNeighbors();
-        EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
-        if (currentXNNeighbor && currentXNNeighbor->getType() == EntityTypes::PolyVox) {
-            auto polyVoxXNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNNeighbor);
-            polyVoxXNNeighbor->setXPNeighborID(_id);
-            polyVoxXNNeighbor->rebakeMesh();
-        }
     }
 }
 
 void RenderablePolyVoxEntityItem::setYNNeighborID(const EntityItemID& yNNeighborID) {
+    if (yNNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
+
     if (yNNeighborID != _yNNeighborID) {
         PolyVoxEntityItem::setYNNeighborID(yNNeighborID);
         cacheNeighbors();
-        EntityItemPointer currentYNNeighbor = _yNNeighbor.lock();
-        if (currentYNNeighbor && currentYNNeighbor->getType() == EntityTypes::PolyVox) {
-            auto polyVoxYNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNNeighbor);
-            polyVoxYNNeighbor->setYPNeighborID(_id);
-            polyVoxYNNeighbor->rebakeMesh();
-        }
     }
 }
 
 void RenderablePolyVoxEntityItem::setZNNeighborID(const EntityItemID& zNNeighborID) {
+    if (zNNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
+
     if (zNNeighborID != _zNNeighborID) {
         PolyVoxEntityItem::setZNNeighborID(zNNeighborID);
         cacheNeighbors();
-        EntityItemPointer currentZNNeighbor = _yNNeighbor.lock();
-        if (currentZNNeighbor && currentZNNeighbor->getType() == EntityTypes::PolyVox) {
-            auto polyVoxZNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNNeighbor);
-            polyVoxZNNeighbor->setZPNeighborID(_id);
-            polyVoxZNNeighbor->rebakeMesh();
-        }
     }
 }
 
-
 void RenderablePolyVoxEntityItem::setXPNeighborID(const EntityItemID& xPNeighborID) {
+    if (xPNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
     if (xPNeighborID != _xPNeighborID) {
         PolyVoxEntityItem::setXPNeighborID(xPNeighborID);
-        rebakeMesh();
+        _volDataDirty = true;
     }
 }
 
 void RenderablePolyVoxEntityItem::setYPNeighborID(const EntityItemID& yPNeighborID) {
+    if (yPNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
     if (yPNeighborID != _yPNeighborID) {
         PolyVoxEntityItem::setYPNeighborID(yPNeighborID);
-        rebakeMesh();
+        _volDataDirty = true;
     }
 }
 
 void RenderablePolyVoxEntityItem::setZPNeighborID(const EntityItemID& zPNeighborID) {
+    if (zPNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
     if (zPNeighborID != _zPNeighborID) {
         PolyVoxEntityItem::setZPNeighborID(zPNeighborID);
-        rebakeMesh();
+        _volDataDirty = true;
     }
 }
 
-
-void RenderablePolyVoxEntityItem::rebakeMesh() {
-    QReadLocker(&this->_volDataLock);
-    _volDataDirty = true;
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getXNNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_xNNeighbor.lock());
 }
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getYNNeighbor() {
+        return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_yNNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getZNNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_zNNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getXPNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_xPNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getYPNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_yPNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getZPNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_zPNeighbor.lock());
+}
+
 
 void RenderablePolyVoxEntityItem::bonkNeighbors() {
-    clearOutOfDateNeighbors();
+    // flag neighbors to the negative of this entity as needing to rebake their meshes.
     cacheNeighbors();
 
-    EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
-    EntityItemPointer currentYNNeighbor = _yNNeighbor.lock();
-    EntityItemPointer currentZNNeighbor = _zNNeighbor.lock();
+    auto currentXNNeighbor = getXNNeighbor();
+    auto currentYNNeighbor = getYNNeighbor();
+    auto currentZNNeighbor = getZNNeighbor();
 
-    if (currentXNNeighbor && currentXNNeighbor->getType() == EntityTypes::PolyVox) {
-        auto polyVoxXNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNNeighbor);
-        polyVoxXNNeighbor->rebakeMesh();
+    if (currentXNNeighbor) {
+        currentXNNeighbor->setVolDataDirty();
     }
-    if (currentYNNeighbor && currentYNNeighbor->getType() == EntityTypes::PolyVox) {
-        auto polyVoxYNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNNeighbor);
-        polyVoxYNNeighbor->rebakeMesh();
+    if (currentYNNeighbor) {
+        currentYNNeighbor->setVolDataDirty();
     }
-    if (currentZNNeighbor && currentZNNeighbor->getType() == EntityTypes::PolyVox) {
-        auto polyVoxZNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNNeighbor);
-        polyVoxZNNeighbor->rebakeMesh();
+    if (currentZNNeighbor) {
+        currentZNNeighbor->setVolDataDirty();
     }
 }

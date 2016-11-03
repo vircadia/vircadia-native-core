@@ -25,8 +25,8 @@ const QCommandLineOption TARGET_OPTION {
     "IP:PORT or HOSTNAME:PORT"
 };
 const QCommandLineOption PACKET_SIZE {
-    "packet-size", "size for sent packets in bytes (defaults to 1500)", "bytes",
-    QString(udt::MAX_PACKET_SIZE_WITH_UDP_HEADER)
+    "packet-size", "size for sent packets in bytes (defaults to " + QString::number(udt::MAX_PACKET_SIZE) + ")", "bytes",
+    QString(udt::MAX_PACKET_SIZE)
 };
 const QCommandLineOption MIN_PACKET_SIZE {
     "min-packet-size", "min size for sent packets in bytes", "min bytes"
@@ -57,13 +57,13 @@ const QCommandLineOption STATS_INTERVAL {
 };
 
 const QStringList CLIENT_STATS_TABLE_HEADERS {
-    "Send (P/s)", "Est. Max (P/s)", "RTT (ms)", "CW (P)", "Period (us)",
+    "Send (Mb/s)", "Est. Max (Mb/s)", "RTT (ms)", "CW (P)", "Period (us)",
     "Recv ACK", "Procd ACK", "Recv LACK", "Recv NAK", "Recv TNAK",
     "Sent ACK2", "Sent Packets", "Re-sent Packets"
 };
 
 const QStringList SERVER_STATS_TABLE_HEADERS {
-    "  Mb/s  ", "Recv P/s", "Est. Max (P/s)", "RTT (ms)", "CW (P)",
+    "  Mb/s  ", "Recv Mb/s", "Est. Max (Mb/s)", "RTT (ms)", "CW (P)",
     "Sent ACK", "Sent LACK", "Sent NAK", "Sent TNAK",
     "Recv ACK2", "Duplicates (P)"
 };
@@ -77,7 +77,7 @@ UDTTest::UDTTest(int& argc, char** argv) :
     
     // randomize the seed for packet size randomization
     srand(time(NULL));
-    
+
     _socket.bind(QHostAddress::AnyIPv4, _argumentParser.value(PORT_OPTION).toUInt());
     qDebug() << "Test socket is listening on" << _socket.localPort();
     
@@ -176,9 +176,36 @@ UDTTest::UDTTest(int& argc, char** argv) :
     } else {
         // this is a receiver - in case there are ordered packets (messages) being sent to us make sure that we handle them
         // so that they can be verified
-        _socket.setPacketListHandler(
-            [this](std::unique_ptr<udt::PacketList> packetList) { handlePacketList(std::move(packetList)); });
+        _socket.setMessageHandler(
+            [this](std::unique_ptr<udt::Packet> packet) {
+                auto messageNumber = packet->getMessageNumber();
+                auto it = _pendingMessages.find(messageNumber);
+
+                if (it == _pendingMessages.end()) {
+                    auto message = std::unique_ptr<Message>(new Message { messageNumber, packet->readAll() });
+                    message->data.reserve(_messageSize);
+                    if (packet->getPacketPosition() == udt::Packet::ONLY) {
+                        handleMessage(std::move(message));
+                    } else {
+                        _pendingMessages[messageNumber] = std::move(message);
+                    }
+                } else {
+                    auto& message = it->second;
+                    message->data.append(packet->readAll());
+
+                    if (packet->getPacketPosition() == udt::Packet::LAST) {
+                        handleMessage(std::move(message));
+                        _pendingMessages.erase(it);
+                    }
+                }
+
+        });
     }
+    _socket.setMessageFailureHandler(
+        [this](HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
+            _pendingMessages.erase(messageNumber);
+        }
+    );
     
     // the sender reports stats every 100 milliseconds, unless passed a custom value
     
@@ -284,8 +311,8 @@ void UDTTest::sendPacket() {
             
             packetList->closeCurrentPacket();
             
-            _totalQueuedBytes += packetList->getDataSize();
-            _totalQueuedPackets += packetList->getNumPackets();
+            _totalQueuedBytes += (int)packetList->getDataSize();
+            _totalQueuedPackets += (int)packetList->getNumPackets();
             
             _socket.writePacketList(std::move(packetList), _target);
         }
@@ -308,11 +335,11 @@ void UDTTest::sendPacket() {
     
 }
 
-void UDTTest::handlePacketList(std::unique_ptr<udt::PacketList> packetList) {
+void UDTTest::handleMessage(std::unique_ptr<Message> message) {
     // generate the byte array that should match this message - using the same seed the sender did
     
     int packetSize = udt::Packet::maxPayloadSize(true);
-    int messageSize = packetList->getMessageSize();
+    int messageSize = message->data.size();
     
     QByteArray messageData(messageSize, 0);
    
@@ -323,13 +350,13 @@ void UDTTest::handlePacketList(std::unique_ptr<udt::PacketList> packetList) {
         messageData.replace(i, sizeof(randomInt), reinterpret_cast<char*>(&randomInt), sizeof(randomInt));
     }
     
-    bool dataMatch = messageData == packetList->getMessage();
+    bool dataMatch = messageData == message->data;
     
-    Q_ASSERT_X(dataMatch, "UDTTest::handlePacketList",
+    Q_ASSERT_X(dataMatch, "UDTTest::handleMessage",
                "received message did not match expected message (from seeded random number generation).");
     
     if (!dataMatch) {
-        qCritical() << "UDTTest::handlePacketList" << "received message did not match expected message"
+        qCritical() << "UDTTest::handleMessage" << "received message did not match expected message"
             << "(from seeded random number generation).";
     }
 }
@@ -337,7 +364,11 @@ void UDTTest::handlePacketList(std::unique_ptr<udt::PacketList> packetList) {
 void UDTTest::sampleStats() {
     static bool first = true;
     static const double USECS_PER_MSEC = 1000.0;
-    
+    static const double MEGABITS_PER_BYTE = 8.0 / 1000000.0;
+    static const double MS_PER_SECOND = 1000.0;
+    static const double PPS_TO_MBPS = udt::MAX_PACKET_SIZE * MEGABITS_PER_BYTE;
+
+
     if (!_target.isNull()) {
         if (first) {
             // output the headers for stats for our table
@@ -351,8 +382,8 @@ void UDTTest::sampleStats() {
         
         // setup a list of left justified values
         QStringList values {
-            QString::number(stats.sendRate).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.estimatedBandwith).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.sendRate * PPS_TO_MBPS).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.estimatedBandwith * PPS_TO_MBPS).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
             QString::number(stats.rtt / USECS_PER_MSEC, 'f', 2).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
             QString::number(stats.congestionWindowSize).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
             QString::number(stats.packetSendPeriod).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
@@ -381,16 +412,13 @@ void UDTTest::sampleStats() {
             
             int headerIndex = -1;
             
-            static const double MEGABITS_PER_BYTE = 8.0 / 1000000.0;
-            static const double MS_PER_SECOND = 1000.0;
-            
             double megabitsPerSecond = (stats.receivedBytes * MEGABITS_PER_BYTE * MS_PER_SECOND) / _statsInterval;
             
             // setup a list of left justified values
             QStringList values {
                 QString::number(megabitsPerSecond, 'f', 2).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.receiveRate).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.estimatedBandwith).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.receiveRate * PPS_TO_MBPS).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.estimatedBandwith * PPS_TO_MBPS).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.rtt / USECS_PER_MSEC, 'f', 2).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.congestionWindowSize).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.events[udt::ConnectionStats::Stats::SentACK]).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),

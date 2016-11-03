@@ -9,16 +9,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SharedUtil.h"
+
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <cctype>
 #include <time.h>
+#include <mutex>
 
-#ifdef _WIN32
+#include <glm/glm.hpp>
+
+
+#ifdef Q_OS_WIN
 #include <windows.h>
+#include "CPUIdent.h"
+#include <Psapi.h>
 #endif
+
 
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
@@ -27,42 +36,42 @@
 #include <QtCore/QDebug>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QProcess>
+#include <QSysInfo>
 #include <QThread>
 
 #include "NumericalConstants.h"
 #include "OctalCode.h"
 #include "SharedLogging.h"
-#include "SharedUtil.h"
 
-static int usecTimestampNowAdjust = 0; // in usec
-void usecTimestampNowForceClockSkew(int clockSkew) {
+static qint64 usecTimestampNowAdjust = 0; // in usec
+void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
+static qint64 TIME_REFERENCE = 0; // in usec
+static std::once_flag usecTimestampNowIsInitialized;
+static QElapsedTimer timestampTimer;
+
 quint64 usecTimestampNow(bool wantDebug) {
-    static bool usecTimestampNowIsInitialized = false;
-    static qint64 TIME_REFERENCE = 0; // in usec
-    static QElapsedTimer timestampTimer;
-    
-    if (!usecTimestampNowIsInitialized) {
-        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+    std::call_once(usecTimestampNowIsInitialized, [&] {
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
         timestampTimer.start();
-        usecTimestampNowIsInitialized = true;
-    }
+    });
     
     quint64 now;
     quint64 nsecsElapsed = timestampTimer.nsecsElapsed();
-    quint64 usecsElapsed = nsecsElapsed / 1000;  // nsec to usec
+    quint64 usecsElapsed = nsecsElapsed / NSECS_PER_USEC;  // nsec to usec
     
     // QElapsedTimer may not advance if the CPU has gone to sleep. In which case it
     // will begin to deviate from real time. We detect that here, and reset if necessary
     quint64 msecsCurrentTime = QDateTime::currentMSecsSinceEpoch();
-    quint64 msecsEstimate = (TIME_REFERENCE + usecsElapsed) / 1000; // usecs to msecs
+    quint64 msecsEstimate = (TIME_REFERENCE + usecsElapsed) / USECS_PER_MSEC; // usecs to msecs
     int possibleSkew = msecsEstimate - msecsCurrentTime;
-    const int TOLERANCE = 10000; // up to 10 seconds of skew is tolerated
+    const int TOLERANCE = 10 * MSECS_PER_SECOND; // up to 10 seconds of skew is tolerated
     if (abs(possibleSkew) > TOLERANCE) {
         // reset our TIME_REFERENCE and timer
-        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
         timestampTimer.restart();
         now = TIME_REFERENCE + ::usecTimestampNowAdjust;
 
@@ -116,6 +125,13 @@ quint64 usecTimestampNow(bool wantDebug) {
     }
     
     return now;
+}
+
+float secTimestampNow() {
+    static const auto START_TIME = usecTimestampNow();
+    const auto nowUsecs = usecTimestampNow() - START_TIME;
+    const auto nowMsecs = nowUsecs / USECS_PER_MSEC;
+    return (float)nowMsecs / MSECS_PER_SECOND;
 }
 
 float randFloat() {
@@ -232,12 +248,6 @@ int getNthBit(unsigned char byte, int ordinal) {
     return ERROR_RESULT;
 }
 
-bool isBetween(int64_t value, int64_t max, int64_t min) {
-    return ((value <= max) && (value >= min));
-}
-
-
-
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
     byte |= ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
@@ -245,12 +255,7 @@ void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
 
 bool isInEnvironment(const char* environment) {
     char* environmentString = getenv("HIFI_ENVIRONMENT");
-
-    if (environmentString && strcmp(environmentString, environment) == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return (environmentString && strcmp(environmentString, environment) == 0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -327,8 +332,8 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         voxelSizeInOctets++;
     }
 
-    unsigned int voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
-    unsigned int voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
+    auto voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
+    auto voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
 
     // allocate our resulting buffer
     unsigned char* voxelOut = new unsigned char[voxelBufferSize];
@@ -448,19 +453,44 @@ void printVoxelCode(unsigned char* voxelCode) {
 }
 
 #ifdef _WIN32
-    void usleep(int waitTime) {
-        const quint64 BUSY_LOOP_USECS = 2000;
-        quint64 compTime = waitTime + usecTimestampNow();
-        quint64 compTimeSleep = compTime - BUSY_LOOP_USECS;
-        while (true) {
-            if (usecTimestampNow() < compTimeSleep) {
-                QThread::msleep(1);
-            }
-            if (usecTimestampNow() >= compTime) {
-                break;
-            }
+void usleep(int waitTime) {
+    // Use QueryPerformanceCounter for least overhead
+    LARGE_INTEGER now; // ticks
+    QueryPerformanceCounter(&now);
+
+    static int64_t ticksPerSec = 0;
+    if (ticksPerSec == 0) {
+        LARGE_INTEGER frequency;
+        QueryPerformanceFrequency(&frequency);
+        ticksPerSec = frequency.QuadPart;
+    }
+
+    // order ops to avoid loss in precision
+    int64_t waitTicks = (ticksPerSec * waitTime) / USECS_PER_SECOND;
+    int64_t sleepTicks = now.QuadPart + waitTicks;
+
+    // Busy wait with sleep/yield where possible
+    while (true) {
+        QueryPerformanceCounter(&now);
+        if (now.QuadPart >= sleepTicks) {
+            break;
+        }
+
+        // Sleep if we have at least 1ms to spare
+        const int64_t MIN_SLEEP_USECS = 1000;
+        // msleep is allowed to overshoot, so give it a 100us berth
+        const int64_t MIN_SLEEP_USECS_BERTH = 100;
+        // order ops to avoid loss in precision
+        int64_t sleepFor = ((sleepTicks - now.QuadPart) * USECS_PER_SECOND) / ticksPerSec - MIN_SLEEP_USECS_BERTH;
+        if (sleepFor > MIN_SLEEP_USECS) {
+            Sleep((DWORD)(sleepFor / USECS_PER_MSEC));
+        // Yield otherwise
+        } else {
+            // Use Qt to delegate, as SwitchToThread is only supported starting with XP
+            QThread::yieldCurrentThread();
         }
     }
+}
 #endif
 
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
@@ -617,26 +647,74 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
     assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
-bool isNaN(float value) { 
-    return value != value; 
-}
 
-QString formatUsecTime(float usecs, int prec) {
-    static const quint64 SECONDS_PER_MINUTE = 60;
-    static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * SECONDS_PER_MINUTE;
+// glm::abs() works for signed or unsigned types
+template <typename T>
+QString formatUsecTime(T usecs) {
+    static const int PRECISION = 3;
+    static const int FRACTION_MASK = pow(10, PRECISION);
+
+    static const T USECS_PER_MSEC = 1000;
+    static const T USECS_PER_SECOND = 1000 * USECS_PER_MSEC;
+    static const T USECS_PER_MINUTE = USECS_PER_SECOND * 60;
+    static const T USECS_PER_HOUR = USECS_PER_MINUTE * 60;
 
     QString result;
-    if (usecs > USECS_PER_MINUTE) {
-        result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
-    } else if (usecs > USECS_PER_SECOND) {
-        result = QString::number(usecs / USECS_PER_SECOND, 'f', prec) + 's';
-    } else if (usecs > USECS_PER_MSEC) {
-        result = QString::number(usecs / USECS_PER_MSEC, 'f', prec) + "ms";
+    if (glm::abs(usecs) > USECS_PER_HOUR) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_HOUR);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_HOUR)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_HOUR, 'f', PRECISION);
+        }
+        result += " hrs";
+    } else if (glm::abs(usecs) > USECS_PER_MINUTE) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_MINUTE);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_MINUTE)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_MINUTE, 'f', PRECISION);
+        }
+        result += " mins";
+    } else if (glm::abs(usecs) > USECS_PER_SECOND) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_SECOND);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_SECOND)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_SECOND, 'f', PRECISION);
+        }
+        result += " secs";
+    } else if (glm::abs(usecs) > USECS_PER_MSEC) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_MSEC);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_MSEC)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_MSEC, 'f', PRECISION);
+        }
+        result += " msecs";
     } else {
-        result = QString::number(usecs, 'f', prec) + "us";
+        result = QString::number(usecs) + " usecs";
     }
     return result;
 }
+
+
+QString formatUsecTime(quint64 usecs) {
+    return formatUsecTime<quint64>(usecs);
+}
+
+QString formatUsecTime(qint64 usecs) {
+    return formatUsecTime<qint64>(usecs);
+}
+
+QString formatUsecTime(float usecs) {
+    return formatUsecTime<float>(usecs);
+}
+
+QString formatUsecTime(double usecs) {
+    return formatUsecTime<double>(usecs);
+}
+
 
 QString formatSecondsElapsed(float seconds) {
     QString result;
@@ -678,3 +756,261 @@ bool similarStrings(const QString& stringA, const QString& stringB) {
     return similarity >= SIMILAR_ENOUGH;
 }
 
+void disableQtBearerPoll() {
+    // to work around the Qt constant wireless scanning, set the env for polling interval very high
+    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
+    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
+}
+
+void printSystemInformation() {
+    // Write system information to log
+    qCDebug(shared) << "Build Information";
+    qCDebug(shared).noquote() << "\tBuild ABI: " << QSysInfo::buildAbi();
+    qCDebug(shared).noquote() << "\tBuild CPU Architecture: " << QSysInfo::buildCpuArchitecture();
+
+    qCDebug(shared).noquote() << "System Information";
+    qCDebug(shared).noquote() << "\tProduct Name: " << QSysInfo::prettyProductName();
+    qCDebug(shared).noquote() << "\tCPU Architecture: " << QSysInfo::currentCpuArchitecture();
+    qCDebug(shared).noquote() << "\tKernel Type: " << QSysInfo::kernelType();
+    qCDebug(shared).noquote() << "\tKernel Version: " << QSysInfo::kernelVersion();
+
+    auto macVersion = QSysInfo::macVersion();
+    if (macVersion != QSysInfo::MV_None) {
+        qCDebug(shared) << "\tMac Version: " << macVersion;
+    }
+
+    auto windowsVersion = QSysInfo::windowsVersion();
+    if (windowsVersion != QSysInfo::WV_None) {
+        qCDebug(shared) << "\tWindows Version: " << windowsVersion;
+    }
+
+#ifdef Q_OS_WIN
+    SYSTEM_INFO si;
+    GetNativeSystemInfo(&si);
+
+    qCDebug(shared) << "SYSTEM_INFO";
+    qCDebug(shared).noquote() << "\tOEM ID: " << si.dwOemId;
+    qCDebug(shared).noquote() << "\tProcessor Architecture: " << si.wProcessorArchitecture;
+    qCDebug(shared).noquote() << "\tProcessor Type: " << si.dwProcessorType;
+    qCDebug(shared).noquote() << "\tProcessor Level: " << si.wProcessorLevel;
+    qCDebug(shared).noquote() << "\tProcessor Revision: "
+                       << QString("0x%1").arg(si.wProcessorRevision, 4, 16, QChar('0'));
+    qCDebug(shared).noquote() << "\tNumber of Processors: " << si.dwNumberOfProcessors;
+    qCDebug(shared).noquote() << "\tPage size: " << si.dwPageSize << " Bytes";
+    qCDebug(shared).noquote() << "\tMin Application Address: "
+                       << QString("0x%1").arg(qulonglong(si.lpMinimumApplicationAddress), 16, 16, QChar('0'));
+    qCDebug(shared).noquote() << "\tMax Application Address: "
+                       << QString("0x%1").arg(qulonglong(si.lpMaximumApplicationAddress), 16, 16, QChar('0'));
+
+    const double BYTES_TO_MEGABYTE = 1.0 / (1024 * 1024);
+
+    qCDebug(shared) << "MEMORYSTATUSEX";
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (GlobalMemoryStatusEx(&ms)) {
+        qCDebug(shared).noquote()
+            << QString("\tCurrent System Memory Usage: %1%").arg(ms.dwMemoryLoad);
+        qCDebug(shared).noquote()
+            << QString("\tAvail Physical Memory: %1 MB").arg(ms.ullAvailPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal Physical Memory: %1 MB").arg(ms.ullTotalPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tAvail in Page File:    %1 MB").arg(ms.ullAvailPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal in Page File:    %1 MB").arg(ms.ullTotalPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tAvail Virtual Memory:  %1 MB").arg(ms.ullAvailVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal Virtual Memory:  %1 MB").arg(ms.ullTotalVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+    } else {
+        qCDebug(shared) << "\tFailed to retrieve memory status: " << GetLastError();
+    }
+
+    qCDebug(shared) << "CPUID";
+
+    qCDebug(shared) << "\tCPU Vendor: " << CPUIdent::Vendor().c_str();
+    qCDebug(shared) << "\tCPU Brand:  " << CPUIdent::Brand().c_str();
+
+    for (auto& feature : CPUIdent::getAllFeatures()) {
+        qCDebug(shared).nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
+    }
+#endif
+
+    qCDebug(shared) << "Environment Variables";
+    // List of env variables to include in the log. For privacy reasons we don't send all env variables.
+    const QStringList envWhitelist = {
+        "QTWEBENGINE_REMOTE_DEBUGGING"
+    };
+    auto envVariables = QProcessEnvironment::systemEnvironment();
+    for (auto& env : envWhitelist)
+    {
+        qCDebug(shared).noquote().nospace() << "\t" <<
+            (envVariables.contains(env) ? " = " + envVariables.value(env) : " NOT FOUND");
+    }
+}
+
+bool getMemoryInfo(MemoryInfo& info) {
+#ifdef Q_OS_WIN
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (!GlobalMemoryStatusEx(&ms)) {
+        return false;
+    }
+
+    info.totalMemoryBytes = ms.ullTotalPhys;
+    info.availMemoryBytes = ms.ullAvailPhys;
+    info.usedMemoryBytes = ms.ullTotalPhys - ms.ullAvailPhys;
+
+
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+        return false;
+    }
+    info.processUsedMemoryBytes = pmc.PrivateUsage;
+    info.processPeakUsedMemoryBytes = pmc.PeakPagefileUsage;
+
+    return true;
+#endif
+
+    return false;
+}
+
+// Largely taken from: https://msdn.microsoft.com/en-us/library/windows/desktop/ms683194(v=vs.85).aspx
+
+#ifdef Q_OS_WIN
+using LPFN_GLPI = BOOL(WINAPI*)(
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION,
+    PDWORD);
+
+DWORD CountSetBits(ULONG_PTR bitMask)
+{
+    DWORD LSHIFT = sizeof(ULONG_PTR) * 8 - 1;
+    DWORD bitSetCount = 0;
+    ULONG_PTR bitTest = (ULONG_PTR)1 << LSHIFT;
+    DWORD i;
+
+    for (i = 0; i <= LSHIFT; ++i) {
+        bitSetCount += ((bitMask & bitTest) ? 1 : 0);
+        bitTest /= 2;
+    }
+
+    return bitSetCount;
+}
+#endif
+
+bool getProcessorInfo(ProcessorInfo& info) {
+
+#ifdef Q_OS_WIN
+    LPFN_GLPI glpi;
+    bool done = false;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = NULL;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION ptr = NULL;
+    DWORD returnLength = 0;
+    DWORD logicalProcessorCount = 0;
+    DWORD numaNodeCount = 0;
+    DWORD processorCoreCount = 0;
+    DWORD processorL1CacheCount = 0;
+    DWORD processorL2CacheCount = 0;
+    DWORD processorL3CacheCount = 0;
+    DWORD processorPackageCount = 0;
+    DWORD byteOffset = 0;
+    PCACHE_DESCRIPTOR Cache;
+
+    glpi = (LPFN_GLPI)GetProcAddress(
+        GetModuleHandle(TEXT("kernel32")),
+        "GetLogicalProcessorInformation");
+    if (nullptr == glpi) {
+        qDebug() << "GetLogicalProcessorInformation is not supported.";
+        return false;
+    }
+
+    while (!done) {
+        DWORD rc = glpi(buffer, &returnLength);
+
+        if (FALSE == rc) {
+            if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+                if (buffer) {
+                    free(buffer);
+                }
+
+                buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(
+                    returnLength);
+
+                if (NULL == buffer) {
+                    qDebug() << "Error: Allocation failure";
+                    return false;
+                }
+            } else {
+                qDebug() << "Error " << GetLastError();
+                return false;
+            }
+        } else {
+            done = true;
+        }
+    }
+
+    ptr = buffer;
+
+    while (byteOffset + sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION) <= returnLength) {
+        switch (ptr->Relationship) {
+        case RelationNumaNode:
+            // Non-NUMA systems report a single record of this type.
+            numaNodeCount++;
+            break;
+
+        case RelationProcessorCore:
+            processorCoreCount++;
+
+            // A hyperthreaded core supplies more than one logical processor.
+            logicalProcessorCount += CountSetBits(ptr->ProcessorMask);
+            break;
+
+        case RelationCache:
+            // Cache data is in ptr->Cache, one CACHE_DESCRIPTOR structure for each cache. 
+            Cache = &ptr->Cache;
+            if (Cache->Level == 1) {
+                processorL1CacheCount++;
+            } else if (Cache->Level == 2) {
+                processorL2CacheCount++;
+            } else if (Cache->Level == 3) {
+                processorL3CacheCount++;
+            }
+            break;
+
+        case RelationProcessorPackage:
+            // Logical processors share a physical package.
+            processorPackageCount++;
+            break;
+
+        default:
+            qDebug() << "\nError: Unsupported LOGICAL_PROCESSOR_RELATIONSHIP value.\n";
+            break;
+        }
+        byteOffset += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+        ptr++;
+    }
+
+    qDebug() << "GetLogicalProcessorInformation results:";
+    qDebug() << "Number of NUMA nodes:" << numaNodeCount;
+    qDebug() << "Number of physical processor packages:" << processorPackageCount;
+    qDebug() << "Number of processor cores:" << processorCoreCount;
+    qDebug() << "Number of logical processors:" << logicalProcessorCount;
+    qDebug() << "Number of processor L1/L2/L3 caches:"
+        << processorL1CacheCount
+        << "/" << processorL2CacheCount
+        << "/" << processorL3CacheCount;
+
+    info.numPhysicalProcessorPackages = processorPackageCount;
+    info.numProcessorCores = processorCoreCount;
+    info.numLogicalProcessors = logicalProcessorCount;
+    info.numProcessorCachesL1 = processorL1CacheCount;
+    info.numProcessorCachesL2 = processorL2CacheCount;
+    info.numProcessorCachesL3 = processorL3CacheCount;
+
+    free(buffer);
+
+    return true;
+#endif
+
+    return false;
+}

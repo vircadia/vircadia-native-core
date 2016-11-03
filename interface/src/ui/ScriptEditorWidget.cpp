@@ -25,7 +25,9 @@
 #include <QTimer>
 #include <QWidget>
 
+#include <ScriptEngines.h>
 #include <NetworkAccessManager.h>
+#include <OffscreenUi.h>
 
 #include "Application.h"
 #include "ScriptHighlighting.h"
@@ -100,17 +102,18 @@ bool ScriptEditorWidget::setRunning(bool run) {
         disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     }
 
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (run) {
         const QString& scriptURLString = QUrl(_currentScript).toString();
         // Reload script so that an out of date copy is not retrieved from the cache
-        _scriptEngine = qApp->loadScript(scriptURLString, true, true, false, true);
+        _scriptEngine = scriptEngines->loadScript(scriptURLString, true, true, false, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     } else {
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
         const QString& scriptURLString = QUrl(_currentScript).toString();
-        qApp->stopScript(scriptURLString);
+        scriptEngines->stopScript(scriptURLString);
         _scriptEngine = NULL;
     }
     _console->setScriptEngine(_scriptEngine);
@@ -120,7 +123,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
 bool ScriptEditorWidget::saveFile(const QString &scriptPath) {
      QFile file(scriptPath);
      if (!file.open(QFile::WriteOnly | QFile::Text)) {
-         QMessageBox::warning(this, tr("Interface"), tr("Cannot write script %1:\n%2.").arg(scriptPath)
+         OffscreenUi::warning(this, tr("Interface"), tr("Cannot write script %1:\n%2.").arg(scriptPath)
              .arg(file.errorString()));
          return false;
      }
@@ -141,7 +144,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
     if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
         QFile file(scriptPath);
         if (!file.open(QFile::ReadOnly | QFile::Text)) {
-            QMessageBox::warning(this, tr("Interface"), tr("Cannot read script %1:\n%2.").arg(scriptPath)
+            OffscreenUi::warning(this, tr("Interface"), tr("Cannot read script %1:\n%2.").arg(scriptPath)
                                                                                          .arg(file.errorString()));
             return;
         }
@@ -158,6 +161,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
     } else {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(url);
+        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         QNetworkReply* reply = networkAccessManager.get(networkRequest);
         qDebug() << "Downloading included script at" << scriptPath;
@@ -172,7 +176,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         }
     }
     const QString& scriptURLString = QUrl(_currentScript).toString();
-    _scriptEngine = qApp->getScriptEngine(scriptURLString);
+    _scriptEngine = DependencyManager::get<ScriptEngines>()->getScriptEngine(scriptURLString);
     if (_scriptEngine != NULL) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
@@ -186,6 +190,7 @@ bool ScriptEditorWidget::save() {
 }
 
 bool ScriptEditorWidget::saveAs() {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save script"),
                                                     qApp->getPreviousScriptLocation(),
                                                     tr("JavaScript Files (*.js)"));
@@ -208,7 +213,7 @@ void ScriptEditorWidget::setScriptFile(const QString& scriptPath) {
 
 bool ScriptEditorWidget::questionSave() {
     if (_scriptEditorWidgetUI->scriptEdit->document()->isModified()) {
-        QMessageBox::StandardButton button = QMessageBox::warning(this, tr("Interface"),
+        QMessageBox::StandardButton button = OffscreenUi::warning(this, tr("Interface"),
             tr("The script has been modified.\nDo you want to save your changes?"), QMessageBox::Save | QMessageBox::Discard |
             QMessageBox::Cancel, QMessageBox::Save);
         return button == QMessageBox::Save ? save() : (button == QMessageBox::Discard);
@@ -219,21 +224,31 @@ bool ScriptEditorWidget::questionSave() {
 void ScriptEditorWidget::onWindowActivated() {
     if (!_isReloading) {
         _isReloading = true;
-        
-        if (QFileInfo(_currentScript).lastModified() > _currentScriptModified) {
-            if (static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->autoReloadScripts()
-                || QMessageBox::warning(this, _currentScript,
-                    tr("This file has been modified outside of the Interface editor.") + "\n\n"
+
+        QDateTime fileStamp = QFileInfo(_currentScript).lastModified();
+        if (fileStamp > _currentScriptModified) {
+            bool doReload = false;
+            auto window = static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent());
+            window->inModalDialog = true;
+            if (window->autoReloadScripts()
+                || OffscreenUi::question(this, tr("Reload Script"),
+                    tr("The following file has been modified outside of the Interface editor:") + "\n" + _currentScript + "\n"
                         + (isModified()
                         ? tr("Do you want to reload it and lose the changes you've made in the Interface editor?")
                         : tr("Do you want to reload it?")),
                     QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+                doReload = true;
+            }
+            window->inModalDialog = false;
+            if (doReload) {
                 loadFile(_currentScript);
                 if (_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
                     _isRestarting = true;
                     setRunning(false);
                     // Script is restarted once current script instance finishes.
                 }
+            } else {
+                _currentScriptModified = fileStamp; // Asked and answered. Don't ask again until the external file is changed again.
             }
         }
         _isReloading = false;

@@ -38,6 +38,9 @@ protected:
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
 
+    void evaluateAndBlendChildren(const AnimVariantMap& animVars, Triggers& triggersOut, float alpha,
+                                  size_t prevPoseIndex, size_t nextPoseIndex, float dt);
+
     AnimPoseVec _poses;
 
     float _alpha;

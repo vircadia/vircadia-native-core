@@ -9,52 +9,48 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PhysicsHelpers.h>
 #include <PhysicsCollisionGroups.h>
+#include <PhysicsEngine.h>
+#include <PhysicsHelpers.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
 #include "BulletUtil.h"
 
-AvatarMotionState::AvatarMotionState(Avatar* avatar, btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
+AvatarMotionState::AvatarMotionState(Avatar* avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
     assert(_avatar);
+    _type = MOTIONSTATE_TYPE_AVATAR;
     if (_shape) {
         _mass = 100.0f; // HACK
     }
 }
 
 AvatarMotionState::~AvatarMotionState() {
+    assert(_avatar);
     _avatar = nullptr;
 }
 
 // virtual
 uint32_t AvatarMotionState::getIncomingDirtyFlags() {
-    uint32_t dirtyFlags = 0;
-    if (_body && _avatar) {
-        dirtyFlags = _dirtyFlags;
-    }
-    return dirtyFlags;
+    return _body ? _dirtyFlags : 0;
 }
 
 void AvatarMotionState::clearIncomingDirtyFlags() {
-    if (_body && _avatar) {
+    if (_body) {
         _dirtyFlags = 0;
     }
 }
 
-MotionType AvatarMotionState::computeObjectMotionType() const {
+PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
     // TODO?: support non-DYNAMIC motion for avatars? (e.g. when sitting)
     return MOTION_TYPE_DYNAMIC;
 }
 
 // virtual and protected
-btCollisionShape* AvatarMotionState::computeNewShape() {
-    if (_avatar) {
-        ShapeInfo shapeInfo;
-        _avatar->computeShapeInfo(shapeInfo);
-        return getShapeManager()->getShape(shapeInfo);
-    }
-    return nullptr;
+const btCollisionShape* AvatarMotionState::computeNewShape() {
+    ShapeInfo shapeInfo;
+    _avatar->computeShapeInfo(shapeInfo);
+    return getShapeManager()->getShape(shapeInfo);
 }
 
 // virtual
@@ -64,9 +60,6 @@ bool AvatarMotionState::isMoving() const {
 
 // virtual
 void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
-    if (!_avatar) {
-        return;
-    }
     worldTrans.setOrigin(glmToBullet(getObjectPosition()));
     worldTrans.setRotation(glmToBullet(getObjectRotation()));
     if (_body) {
@@ -75,11 +68,8 @@ void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
     }
 }
 
-// virtual 
+// virtual
 void AvatarMotionState::setWorldTransform(const btTransform& worldTrans) {
-    if (!_avatar) {
-        return;
-    }
     // HACK: The PhysicsEngine does not actually move OTHER avatars -- instead it slaves their local RigidBody to the transform
     // as specified by a remote simulation.  However, to give the remote simulation time to respond to our own objects we tie
     // the other avatar's body to its true position with a simple spring. This is a HACK that will have to be improved later.
@@ -144,7 +134,7 @@ glm::vec3 AvatarMotionState::getObjectGravity() const {
 }
 
 // virtual
-const QUuid& AvatarMotionState::getObjectID() const {
+const QUuid AvatarMotionState::getObjectID() const {
     return _avatar->getSessionUUID();
 }
 
@@ -153,15 +143,9 @@ QUuid AvatarMotionState::getSimulatorID() const {
     return _avatar->getSessionUUID();
 }
 
-// virtual 
-int16_t AvatarMotionState::computeCollisionGroup() {
-    return COLLISION_GROUP_OTHER_AVATAR;
+// virtual
+void AvatarMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
+    group = BULLET_COLLISION_GROUP_OTHER_AVATAR;
+    mask = Physics::getDefaultCollisionMask(group);
 }
-
-// virtual 
-void AvatarMotionState::clearObjectBackPointer() {
-    ObjectMotionState::clearObjectBackPointer();
-    _avatar = nullptr;
-}
-
 

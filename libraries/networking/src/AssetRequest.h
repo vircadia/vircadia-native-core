@@ -34,19 +34,22 @@ public:
         NoError,
         NotFound,
         InvalidByteRange,
+        InvalidHash,
         HashVerificationFailed,
         NetworkError,
         UnknownError
     };
 
-    AssetRequest(const QString& hash, const QString& extension);
+    AssetRequest(const QString& hash);
+    virtual ~AssetRequest() override;
 
     Q_INVOKABLE void start();
 
     const QByteArray& getData() const { return _data; }
     const State& getState() const { return _state; }
     const Error& getError() const { return _error; }
-    QUrl getUrl() const { return ::getATPUrl(_hash, _extension); }
+    QUrl getUrl() const { return ::getATPUrl(_hash); }
+    QString getHash() const { return _hash; }
 
 signals:
     void finished(AssetRequest* thisRequest);
@@ -58,9 +61,10 @@ private:
     AssetInfo _info;
     uint64_t _totalReceived { 0 };
     QString _hash;
-    QString _extension;
     QByteArray _data;
     int _numPendingRequests { 0 };
+    MessageID _assetRequestID { AssetClient::INVALID_MESSAGE_ID };
+    MessageID _assetInfoRequestID { AssetClient::INVALID_MESSAGE_ID };
 };
 
 #endif

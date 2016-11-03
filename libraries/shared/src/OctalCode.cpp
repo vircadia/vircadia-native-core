@@ -264,29 +264,6 @@ unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLev
     return newCode;
 }
 
-unsigned char* rebaseOctalCode(const unsigned char* originalOctalCode, const unsigned char* newParentOctalCode,
-                        bool includeColorSpace) {
-
-    int oldCodeLength       = numberOfThreeBitSectionsInCode(originalOctalCode);
-    int newParentCodeLength = numberOfThreeBitSectionsInCode(newParentOctalCode);
-    int newCodeLength       = newParentCodeLength + oldCodeLength;
-    int bufferLength        = newCodeLength + (includeColorSpace ? SIZE_OF_COLOR_DATA : 0);
-    unsigned char* newCode  = new unsigned char[bufferLength];
-    *newCode = newCodeLength; // set the length byte
-
-    // copy parent code section first
-    for (int sectionFromParent = 0; sectionFromParent < newParentCodeLength; sectionFromParent++) {
-        char sectionValue = getOctalCodeSectionValue(newParentOctalCode, sectionFromParent);
-        setOctalCodeSectionValue(newCode, sectionFromParent, sectionValue);
-    }
-    // copy original code section next
-    for (int sectionFromOriginal = 0; sectionFromOriginal < oldCodeLength; sectionFromOriginal++) {
-        char sectionValue = getOctalCodeSectionValue(originalOctalCode, sectionFromOriginal);
-        setOctalCodeSectionValue(newCode, sectionFromOriginal + newParentCodeLength, sectionValue);
-    }
-    return newCode;
-}
-
 bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, int descendentsChild) {
     if (!possibleAncestor || !possibleDescendent) {
         return false;
@@ -327,14 +304,18 @@ bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* po
     return true;
 }
 
-unsigned char* hexStringToOctalCode(const QString& input) {
+OctalCodePtr createOctalCodePtr(size_t size) {
+    return OctalCodePtr(new unsigned char[size], std::default_delete<unsigned char[]>());
+}
+
+OctalCodePtr hexStringToOctalCode(const QString& input) {
     const int HEX_NUMBER_BASE = 16;
     const int HEX_BYTE_SIZE = 2;
     int stringIndex = 0;
     int byteArrayIndex = 0;
 
     // allocate byte array based on half of string length
-    unsigned char* bytes = new unsigned char[(input.length()) / HEX_BYTE_SIZE];
+    auto bytes = createOctalCodePtr(input.length() / HEX_BYTE_SIZE);
 
     // loop through the string - 2 bytes at a time converting
     //  it to decimal equivalent and store in byte array
@@ -344,15 +325,14 @@ unsigned char* hexStringToOctalCode(const QString& input) {
         if (!ok) {
             break;
         }
-        bytes[byteArrayIndex] = (unsigned char)value;
+        bytes.get()[byteArrayIndex] = (unsigned char)value;
         stringIndex += HEX_BYTE_SIZE;
         byteArrayIndex++;
     }
 
     // something went wrong
     if (!ok) {
-        delete[] bytes;
-        return NULL;
+        return nullptr;
     }
     return bytes;
 }

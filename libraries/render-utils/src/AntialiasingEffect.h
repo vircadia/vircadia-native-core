@@ -16,13 +16,22 @@
 
 #include "render/DrawTask.h"
 
+class AntiAliasingConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(bool enabled MEMBER enabled)
+public:
+    AntiAliasingConfig() : render::Job::Config(true) {}
+};
+
 class Antialiasing {
 public:
+    using Config = AntiAliasingConfig;
+    using JobModel = render::Job::ModelI<Antialiasing, gpu::FramebufferPointer, Config>;
 
     Antialiasing();
-
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    typedef render::Job::Model<Antialiasing> JobModel;
+    ~Antialiasing();
+    void configure(const Config& config) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer);
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
@@ -38,7 +47,7 @@ private:
 
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
-
+    int _geometryId { 0 };
 };
 
 #endif // hifi_AntialiasingEffect_h

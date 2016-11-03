@@ -1,0 +1,39 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  skybox.vert
+//  vertex shader
+//
+//  Created by Sam Gateau on 5/5/2015.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+out vec3 _normal;
+
+void main(void) {
+    const float depth = 0.0;
+    const vec4 UNIT_QUAD[4] = vec4[4](
+        vec4(-1.0, -1.0, depth, 1.0),
+        vec4(1.0, -1.0, depth, 1.0),
+        vec4(-1.0, 1.0, depth, 1.0),
+        vec4(1.0, 1.0, depth, 1.0)
+    );
+    vec4 inPosition = UNIT_QUAD[gl_VertexID];
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    vec3 clipDir = vec3(inPosition.xy, 0.0);
+    vec3 eyeDir;
+    <$transformClipToEyeDir(cam, clipDir, eyeDir)$>
+    <$transformEyeToWorldDir(cam, eyeDir, _normal)$>
+    
+    // Position is supposed to come in clip space
+    gl_Position = vec4(inPosition.xy, 0.0, 1.0);
+}

@@ -15,12 +15,14 @@
 #include <AddressManager.h>
 #include <DomainHandler.h>
 #include <NodeList.h>
+#include <steamworks-wrapper/SteamClient.h>
+#include <UserActivityLogger.h>
 #include <UUID.h>
 
 #include "DiscoverabilityManager.h"
 #include "Menu.h"
 
-const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::All;
+const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Friends;
 
 DiscoverabilityManager::DiscoverabilityManager() :
     _mode("discoverabilityMode", DEFAULT_DISCOVERABILITY_MODE)
@@ -29,59 +31,104 @@ DiscoverabilityManager::DiscoverabilityManager() :
 }
 
 const QString API_USER_LOCATION_PATH = "/api/v1/user/location";
+const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
+
+const QString SESSION_ID_KEY = "session_id";
 
 void DiscoverabilityManager::updateLocation() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    
-    if (_mode.get() != Discoverability::None) {
-        auto addressManager = DependencyManager::get<AddressManager>();
-        DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-        
-        if (accountManager.isLoggedIn() && domainHandler.isConnected()
-            && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
-            
-            // construct a QJsonObject given the user's current address information
-            QJsonObject rootObject;
-            
-            QJsonObject locationObject;
-            
-            QString pathString = addressManager->currentPath();
-            
-            const QString LOCATION_KEY_IN_ROOT = "location";
-            
-            const QString PATH_KEY_IN_LOCATION = "path";
-            locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-            
-            if (!addressManager->getRootPlaceID().isNull()) {
-                const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
-                locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
-                                      uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
-                
-            } else {
-                const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
-                locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
-                                      uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
-            }
-            
-            const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
-            locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
-            
-            rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
-            
-            accountManager.sendRequest(API_USER_LOCATION_PATH, AccountManagerAuth::Required,
-                                       QNetworkAccessManager::PutOperation,
-                                       JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
+    auto accountManager = DependencyManager::get<AccountManager>();
+    auto addressManager = DependencyManager::get<AddressManager>();
+    auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+
+
+    if (_mode.get() != Discoverability::None && accountManager->isLoggedIn()) {
+        // construct a QJsonObject given the user's current address information
+        QJsonObject rootObject;
+
+        QJsonObject locationObject;
+
+        QString pathString = addressManager->currentPath();
+
+        const QString PATH_KEY_IN_LOCATION = "path";
+        locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
+
+        const QString CONNECTED_KEY_IN_LOCATION = "connected";
+        locationObject.insert(CONNECTED_KEY_IN_LOCATION, domainHandler.isConnected());
+
+        if (!addressManager->getRootPlaceID().isNull()) {
+            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
+            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
         }
-    } else {
+
+        if (!domainHandler.getUUID().isNull()) {
+            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
+        }
+
+        // in case the place/domain isn't in the database, we send the network address and port
+        auto& domainSockAddr = domainHandler.getSockAddr();
+        const QString NETWORK_ADRESS_KEY_IN_LOCATION = "network_address";
+        locationObject.insert(NETWORK_ADRESS_KEY_IN_LOCATION, domainSockAddr.getAddress().toString());
+
+        const QString NETWORK_ADDRESS_PORT_IN_LOCATION = "network_port";
+        locationObject.insert(NETWORK_ADDRESS_PORT_IN_LOCATION, domainSockAddr.getPort());
+
+        const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
+        locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
+
+        JSONCallbackParameters callbackParameters;
+        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
+
+        // figure out if we'll send a fresh location or just a simple heartbeat
+        auto apiPath = API_USER_HEARTBEAT_PATH;
+
+        if (locationObject != _lastLocationObject) {
+            // we have a changed location, send it now
+            _lastLocationObject = locationObject;
+
+            const QString LOCATION_KEY_IN_ROOT = "location";
+            rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
+
+            apiPath = API_USER_LOCATION_PATH;
+        }
+
+        accountManager->sendRequest(apiPath, AccountManagerAuth::Required,
+                                   QNetworkAccessManager::PutOperation,
+                                   callbackParameters, QJsonDocument(rootObject).toJson());
+
+    } else if (UserActivityLogger::getInstance().isEnabled()) {
         // we still send a heartbeat to the metaverse server for stats collection
-        const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
-        accountManager.sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation);
+
+        JSONCallbackParameters callbackParameters;
+        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
+
+        accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
+                                   QNetworkAccessManager::PutOperation, callbackParameters);
+    }
+
+    // Update Steam
+    SteamClient::updateLocation(domainHandler.getHostname(), addressManager->currentFacingShareableAddress());
+}
+
+void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {
+    auto dataObject = AccountManager::dataObjectFromResponse(requestReply);
+
+    if (!dataObject.isEmpty()) {
+        auto sessionID = dataObject[SESSION_ID_KEY].toString();
+
+        // give that session ID to the account manager
+        auto accountManager = DependencyManager::get<AccountManager>();
+        accountManager->setSessionID(sessionID);
     }
 }
 
 void DiscoverabilityManager::removeLocation() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    accountManager.sendRequest(API_USER_LOCATION_PATH, AccountManagerAuth::Required, QNetworkAccessManager::DeleteOperation);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->sendRequest(API_USER_LOCATION_PATH, AccountManagerAuth::Required, QNetworkAccessManager::DeleteOperation);
 }
 
 void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discoverabilityMode) {
@@ -93,6 +140,9 @@ void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discov
         if (static_cast<int>(_mode.get()) == Discoverability::None) {
             // if we just got set to no discoverability, make sure that we delete our location in DB
             removeLocation();
+        } else {
+            // we have a discoverability mode that says we should send a location, do that right away
+            updateLocation();
         }
 
         emit discoverabilityModeChanged(discoverabilityMode);

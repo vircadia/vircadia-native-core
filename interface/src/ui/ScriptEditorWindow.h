@@ -28,12 +28,15 @@ public:
     void terminateCurrentTab();
     bool autoReloadScripts();
 
+    bool inModalDialog { false };
+    bool ignoreCloseForModal(QCloseEvent* event);
+
 signals:
     void windowActivated();
 
 protected:
-    void closeEvent(QCloseEvent* event);
-    virtual bool event(QEvent* event);
+    void closeEvent(QCloseEvent* event) override;
+    virtual bool event(QEvent* event) override;
 
 private:
     Ui::ScriptEditorWindow* _ScriptEditorWindowUI;

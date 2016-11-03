@@ -1,0 +1,200 @@
+<!
+//  LightingModel.slh
+//  fragment shader
+//
+//  Created by Sam Gateau on 1/25/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not LIGHTING_MODEL_SLH@>
+<@def LIGHTING_MODEL_SLH@>
+
+<@func declareLightingModel()@>
+
+struct LightingModel {
+    vec4 _UnlitEmissiveLightmapBackground;
+    vec4 _ScatteringDiffuseSpecularAlbedo;
+    vec4 _AmbientDirectionalPointSpot;
+    vec4 _ShowContourObscuranceSpare2;
+};
+
+uniform lightingModelBuffer{
+    LightingModel lightingModel;
+};
+
+float isUnlitEnabled() {
+    return lightingModel._UnlitEmissiveLightmapBackground.x;
+}
+float isEmissiveEnabled() {
+    return lightingModel._UnlitEmissiveLightmapBackground.y;
+}
+float isLightmapEnabled() {
+    return lightingModel._UnlitEmissiveLightmapBackground.z;
+}
+float isBackgroundEnabled() {
+    return lightingModel._UnlitEmissiveLightmapBackground.w;
+}
+float isObscuranceEnabled() {
+    return lightingModel._ShowContourObscuranceSpare2.y;
+}
+
+float isScatteringEnabled() {
+    return lightingModel._ScatteringDiffuseSpecularAlbedo.x;
+}
+float isDiffuseEnabled() {
+    return lightingModel._ScatteringDiffuseSpecularAlbedo.y;
+}
+float isSpecularEnabled() {
+    return lightingModel._ScatteringDiffuseSpecularAlbedo.z;
+}
+float isAlbedoEnabled() {
+    return lightingModel._ScatteringDiffuseSpecularAlbedo.w;
+}
+
+float isAmbientEnabled() {
+    return lightingModel._AmbientDirectionalPointSpot.x;
+}
+float isDirectionalEnabled() {
+    return lightingModel._AmbientDirectionalPointSpot.y;
+}
+float isPointEnabled() {
+    return lightingModel._AmbientDirectionalPointSpot.z;
+}
+float isSpotEnabled() {
+    return lightingModel._AmbientDirectionalPointSpot.w;
+}
+
+float isShowLightContour() {
+    return lightingModel._ShowContourObscuranceSpare2.x;
+}
+
+
+<@endfunc@>
+<$declareLightingModel()$>
+
+<@func declareBeckmannSpecular()@>
+
+uniform sampler2D scatteringSpecularBeckmann;
+
+float fetchSpecularBeckmann(float ndoth, float roughness) {
+    return pow(2.0 * texture(scatteringSpecularBeckmann, vec2(ndoth, roughness)).r, 10.0);
+}
+
+float fresnelSchlickScalar(float fresnelColor, vec3 lightDir, vec3 halfDir) {
+    float base = 1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0);
+    float exponential = pow(base, 5.0);
+    return (exponential)+fresnelColor * (1.0 - exponential);
+}
+
+vec2 skinSpecular(vec3 N, vec3 L, vec3 V, float roughness, float intensity) {
+    vec2 result = vec2(0.0, 1.0);
+    float ndotl = dot(N, L);
+    if (ndotl > 0.0) {
+        vec3 h = L + V;
+        vec3 H = normalize(h);
+        float ndoth = dot(N, H);
+        float PH = fetchSpecularBeckmann(ndoth, roughness);
+        float F = fresnelSchlickScalar(0.028, H, V);
+        float frSpec = max(PH * F / dot(h, h), 0.0);
+        result.x = ndotl * intensity * frSpec;
+        result.y -= F;
+    }
+
+    return result;
+}
+<@endfunc@>
+
+<@func declareEvalPBRShading()@>
+
+vec3 fresnelSchlickColor(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
+    float base = 1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0);
+    float exponential = pow(base, 5.0);
+    return vec3(exponential) + fresnelColor * (1.0 - exponential);
+}
+
+
+
+float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
+    float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
+    float gloss2 = pow(0.001 + roughness, 4.0);
+    float denom = (ndoth * ndoth*(gloss2 - 1.0) + 1.0);
+    float power = gloss2 / (3.14159 * denom * denom);
+    return power;
+}
+<! //NOTE: ANother implementation for specularDistribution
+    float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
+    float gloss = exp2(10 * (1.0 - roughness) + 1);
+    float power = pow(clamp(dot(halfDir, normal), 0.0, 1.0), gloss);
+    power *= (gloss * 0.125 + 0.25);
+    return power;
+}
+!>
+// Frag Shading returns the diffuse amount as W and the specular rgb as xyz
+vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
+    // Diffuse Lighting
+    float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+
+    // Specular Lighting
+    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+    vec3 fresnelColor = fresnelSchlickColor(fresnel, fragLightDir, halfDir);
+    float power = specularDistribution(roughness, fragNormal, halfDir);
+    vec3 specular = power * fresnelColor * diffuse;
+
+    return vec4(specular, (1.0 - metallic) * diffuse * (1.0 - fresnelColor.x));
+}
+<@endfunc@>
+
+
+
+<$declareEvalPBRShading()$>
+
+// Return xyz the specular/reflection component and w the diffuse component
+//vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
+//    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+//}
+
+void evalFragShading(out vec3 diffuse, out vec3 specular,
+    vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
+    float metallic, vec3 fresnel, float roughness, vec3 albedo) {
+    vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+    diffuse = vec3(shading.w);
+    if (isAlbedoEnabled() > 0.0) {
+        diffuse *= albedo;
+    }
+    specular = shading.xyz;
+}
+
+<$declareBeckmannSpecular()$>
+<@include SubsurfaceScattering.slh@>
+<$declareSubsurfaceScatteringBRDF()$>
+
+
+void evalFragShading(out vec3 diffuse, out vec3 specular,
+    vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
+    float metallic, vec3 fresnel, float roughness, vec3 albedo,
+    float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature) {
+    if (scattering * isScatteringEnabled() > 0.0) {
+        vec3 brdf = evalSkinBRDF(fragLightDir, fragNormal, midNormalCurvature.xyz, lowNormalCurvature.xyz, lowNormalCurvature.w);
+        float NdotL = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+        diffuse = mix(vec3(NdotL), brdf, scattering);
+
+        // Specular Lighting
+        vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+        vec2 specularBrdf = skinSpecular(fragNormal, fragLightDir, fragEyeDir, roughness, 1.0);
+        
+        diffuse *= specularBrdf.y;
+        specular = vec3(specularBrdf.x);
+    } else {
+        vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+        diffuse = vec3(shading.w);
+        specular = shading.xyz;
+    }
+    if (isAlbedoEnabled() > 0.0) {
+        diffuse *= albedo;
+    }
+}
+
+
+<@endif@>

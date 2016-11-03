@@ -21,7 +21,7 @@
 #include "HifiSockAddr.h"
 
 const QString ICE_SERVER_HOSTNAME = "localhost";
-const int ICE_SERVER_DEFAULT_PORT = 7337;
+const quint16 ICE_SERVER_DEFAULT_PORT = 7337;
 const int ICE_HEARBEAT_INTERVAL_MSECS = 2 * 1000;
 const int MAX_ICE_CONNECTION_ATTEMPTS = 5;
 
@@ -81,8 +81,12 @@ public:
 public slots:
     void startPingTimer();
     void stopPingTimer();
+
 signals:
     void pingTimerTimeout();
+    void socketActivated(const HifiSockAddr& sockAddr);
+    void socketUpdated();
+
 protected:
     void setActiveSocket(HifiSockAddr* discoveredSocket);
 

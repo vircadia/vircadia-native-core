@@ -37,10 +37,10 @@ void LocalModelsOverlay::render(RenderArgs* args) {
         auto batch = args ->_batch;
 
         Transform transform = Transform();
-        transform.setTranslation(args->_viewFrustum->getPosition() + getPosition());
+        transform.setTranslation(args->getViewFrustum().getPosition() + getPosition());
         batch->setViewTransform(transform);
         _entityTreeRenderer->render(args);
-        transform.setTranslation(args->_viewFrustum->getPosition());
+        transform.setTranslation(args->getViewFrustum().getPosition());
         batch->setViewTransform(transform);
     }
 }

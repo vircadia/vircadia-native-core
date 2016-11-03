@@ -33,27 +33,24 @@
 #include <QString>
 
 #include <GeometryUtil.h>
+#include <Gzip.h>
 #include <LogHandler.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <udt/PacketHeaders.h>
+#include <ResourceManager.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
-#include <Gzip.h>
+#include <ViewFrustum.h>
 
-#include "CoverageMap.h"
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "Octree.h"
-#include "ViewFrustum.h"
+#include "OctreeUtils.h"
 #include "OctreeLogging.h"
 
 
 QVector<QString> PERSIST_EXTENSIONS = {"svo", "json", "json.gz"};
-
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
-    return voxelSizeScale / powf(2, renderLevel);
-}
 
 Octree::Octree(bool shouldReaverage) :
     _rootElement(NULL),
@@ -388,9 +385,10 @@ int Octree::readElementData(OctreeElementPointer destinationElement, const unsig
         // check the exists mask to see if we have a child to traverse into
 
         if (oneAtBit(childInBufferMask, childIndex)) {
-            if (!destinationElement->getChildAtIndex(childIndex)) {
+            auto childAt = destinationElement->getChildAtIndex(childIndex);
+            if (!childAt) {
                 // add a child at that index, if it doesn't exist
-                destinationElement->addChildAtIndex(childIndex);
+                childAt = destinationElement->addChildAtIndex(childIndex);
                 bool nodeIsDirty = destinationElement->isDirty();
                 if (nodeIsDirty) {
                     _isDirty = true;
@@ -398,8 +396,7 @@ int Octree::readElementData(OctreeElementPointer destinationElement, const unsig
             }
 
             // tell the child to read the subsequent data
-            int lowerLevelBytes = readElementData(destinationElement->getChildAtIndex(childIndex),
-                                      nodeData + bytesRead, bytesLeftToRead, args);
+            int lowerLevelBytes = readElementData(childAt, nodeData + bytesRead, bytesLeftToRead, args);
 
             bytesRead += lowerLevelBytes;
             bytesLeftToRead -= lowerLevelBytes;
@@ -480,12 +477,12 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
             }
         }
 
-        int octalCodeBytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInStream);
+        auto octalCodeBytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInStream);
 
         int theseBytesRead = 0;
-        theseBytesRead += octalCodeBytes;
+        theseBytesRead += (int)octalCodeBytes;
         int lowerLevelBytes = readElementData(bitstreamRootElement, bitstreamAt + octalCodeBytes,
-                                       bufferSizeBytes - (bytesRead + octalCodeBytes), args);
+                                       bufferSizeBytes - (bytesRead + (int)octalCodeBytes), args);
 
         theseBytesRead += lowerLevelBytes;
 
@@ -694,50 +691,7 @@ OctreeElementPointer Octree::getOrCreateChildElementContaining(const AACube& box
     return getRoot()->getOrCreateChildElementContaining(box);
 }
 
-// combines the ray cast arguments into a single object
-class RayArgs {
-public:
-    glm::vec3 origin;
-    glm::vec3 direction;
-    OctreeElementPointer& element;
-    float& distance;
-    BoxFace& face;
-    glm::vec3& surfaceNormal;
-    const QVector<QUuid>& entityIdsToInclude;
-    void** intersectedObject;
-    bool found;
-    bool precisionPicking;
-};
 
-bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
-    RayArgs* args = static_cast<RayArgs*>(extraData);
-    bool keepSearching = true;
-    if (element->findRayIntersection(args->origin, args->direction, keepSearching,
-                            args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude, 
-                            args->intersectedObject, args->precisionPicking)) {
-        args->found = true;
-    }
-    return keepSearching;
-}
-
-bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElementPointer& element, float& distance, 
-                                    BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude, void** intersectedObject,
-                                    Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, entityIdsToInclude, intersectedObject, false, precisionPicking};
-    distance = FLT_MAX;
-
-    bool requireLock = lockType == Octree::Lock;
-    bool lockResult = withReadLock([&]{
-        recurseTreeWithOperation(findRayIntersectionOp, &args);
-    }, requireLock);
-
-    if (accurateResult) {
-        *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
-    }
-
-    return args.found;
-}
 
 class SphereArgs {
 public:
@@ -945,7 +899,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
     }
 
     // If we're at a element that is out of view, then we can return, because no nodes below us will be in view!
-    if (params.viewFrustum && !element->isInView(*params.viewFrustum)) {
+    if (!params.recurseEverything && !element->isInView(params.viewFrustum)) {
         params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
         return bytesWritten;
     }
@@ -965,7 +919,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
         }
     } else {
         roomForOctalCode = packetData->startSubTree(element->getOctalCode());
-        codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(element->getOctalCode()));
+        codeLength = (int)bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(element->getOctalCode()));
     }
 
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
@@ -985,18 +939,17 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
         params.stats->traversed(element);
     }
 
-    ViewFrustum::location parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
+    ViewFrustum::intersection parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
 
     int childBytesWritten = encodeTreeBitstreamRecursion(element, packetData, bag, params,
                                                          currentEncodeLevel, parentLocationThisView);
 
-
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
 
-    // if includeColor and childBytesWritten == 2, then it can only mean that the lower level trees don't exist or for some
+    // if childBytesWritten == 2, then it can only mean that the lower level trees don't exist or for some
     // reason couldn't be written... so reset them here... This isn't true for the non-color included case
-    if (suppressEmptySubtrees() && params.includeColor && childBytesWritten == 2) {
+    if (suppressEmptySubtrees() && childBytesWritten == 2) {
         childBytesWritten = 0;
         //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
     }
@@ -1022,7 +975,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
 int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                                          OctreePacketData* packetData, OctreeElementBag& bag,
                                          EncodeBitstreamParams& params, int& currentEncodeLevel,
-                                         const ViewFrustum::location& parentLocationThisView) const {
+                                         const ViewFrustum::intersection& parentLocationThisView) const {
 
 
     const bool wantDebug = false;
@@ -1061,16 +1014,13 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         }
     }
 
-    ViewFrustum::location nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
-
-    // caller can pass NULL as viewFrustum if they want everything
-    if (params.viewFrustum) {
-        float distance = element->distanceToCamera(*params.viewFrustum);
+    ViewFrustum::intersection nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
+    if (!params.recurseEverything) {
         float boundaryDistance = boundaryDistanceForRenderLevel(element->getLevel() + params.boundaryLevelAdjust,
                                         params.octreeElementSizeScale);
 
         // If we're too far away for our render level, then just return
-        if (distance >= boundaryDistance) {
+        if (element->distanceToCamera(params.viewFrustum) >= boundaryDistance) {
             if (params.stats) {
                 params.stats->skippedDistance(element);
             }
@@ -1082,7 +1032,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // if we are INSIDE, INTERSECT, or OUTSIDE
         if (parentLocationThisView != ViewFrustum::INSIDE) {
             assert(parentLocationThisView != ViewFrustum::OUTSIDE); // we shouldn't be here if our parent was OUTSIDE!
-            nodeLocationThisView = element->inFrustum(*params.viewFrustum);
+            nodeLocationThisView = element->computeViewIntersection(params.viewFrustum);
         }
 
         // If we're at a element that is out of view, then we can return, because no nodes below us will be in view!
@@ -1100,8 +1050,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // because we don't send nodes from the previously know in view frustum.
         bool wasInView = false;
 
-        if (params.deltaViewFrustum && params.lastViewFrustum) {
-            ViewFrustum::location location = element->inFrustum(*params.lastViewFrustum);
+        if (params.deltaView) {
+            ViewFrustum::intersection location = element->computeViewIntersection(params.lastViewFrustum);
 
             // If we're a leaf, then either intersect or inside is considered "formerly in view"
             if (element->isLeaf()) {
@@ -1115,10 +1065,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             // to it, and so therefore it may now be visible from an LOD perspective, in which case we don't consider it
             // as "was in view"...
             if (wasInView) {
-                float distance = element->distanceToCamera(*params.lastViewFrustum);
                 float boundaryDistance = boundaryDistanceForRenderLevel(element->getLevel() + params.boundaryLevelAdjust,
                                                                             params.octreeElementSizeScale);
-                if (distance >= boundaryDistance) {
+                if (element->distanceToCamera(params.lastViewFrustum) >= boundaryDistance) {
                     // This would have been invisible... but now should be visible (we wouldn't be here otherwise)...
                     wasInView = false;
                 }
@@ -1126,9 +1075,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         }
 
         // If we were previously in the view, then we normally will return out of here and stop recursing. But
-        // if we're in deltaViewFrustum mode, and this element has changed since it was last sent, then we do
+        // if we're in deltaView mode, and this element has changed since it was last sent, then we do
         // need to send it.
-        if (wasInView && !(params.deltaViewFrustum && element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
+        if (wasInView && !(params.deltaView && element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
             if (params.stats) {
                 params.stats->skippedWasInView(element);
             }
@@ -1138,38 +1087,13 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
         // If we're not in delta sending mode, and we weren't asked to do a force send, and the voxel hasn't changed,
         // then we can also bail early and save bits
-        if (!params.forceSendScene && !params.deltaViewFrustum &&
+        if (!params.forceSendScene && !params.deltaView &&
             !element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
             if (params.stats) {
                 params.stats->skippedNoChange(element);
             }
             params.stopReason = EncodeBitstreamParams::NO_CHANGE;
             return bytesAtThisLevel;
-        }
-
-        // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
-        // leaf occlusion is handled down below when we check child nodes
-        if (params.wantOcclusionCulling && !element->isLeaf()) {
-            OctreeProjectedPolygon* voxelPolygon =
-                new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(element->getAACube()));
-
-            // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
-            // culling and proceed as normal
-            if (voxelPolygon->getAllInView()) {
-                CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, false);
-                delete voxelPolygon; // cleanup
-                if (result == OCCLUDED) {
-                    if (params.stats) {
-                        params.stats->skippedOccluded(element);
-                    }
-                    params.stopReason = EncodeBitstreamParams::OCCLUDED;
-                    return bytesAtThisLevel;
-                }
-            } else {
-                // If this shadow wasn't "all in view" then we ignored it for occlusion culling, but
-                // we do need to clean up memory and proceed as normal...
-                delete voxelPolygon;
-            }
         }
     }
 
@@ -1233,20 +1157,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             }
         }
 
-        if (params.wantOcclusionCulling) {
-            if (childElement) {
-                float distance = params.viewFrustum ? childElement->distanceToCamera(*params.viewFrustum) : 0;
-
-                currentCount = insertOctreeElementIntoSortedArrays(childElement, distance, i,
-                                                                   sortedChildren, (float*)&distancesToChildren,
-                                                                   (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
-            }
-        } else {
-            sortedChildren[i] = childElement;
-            indexOfChildren[i] = i;
-            distancesToChildren[i] = 0.0f;
-            currentCount++;
-        }
+        sortedChildren[i] = childElement;
+        indexOfChildren[i] = i;
+        distancesToChildren[i] = 0.0f;
+        currentCount++;
 
         // track stats
         // must check childElement here, because it could be we got here with no childElement
@@ -1262,10 +1176,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         int originalIndex = indexOfChildren[i];
 
         bool childIsInView  = (childElement &&
-                ( !params.viewFrustum || // no view frustum was given, everything is assumed in view
-                  (nodeLocationThisView == ViewFrustum::INSIDE) || // parent was fully in view, we can assume ALL children are
+                (params.recurseEverything ||
+                 (nodeLocationThisView == ViewFrustum::INSIDE) || // parent was fully in view, we can assume ALL children are
                   (nodeLocationThisView == ViewFrustum::INTERSECT &&
-                        childElement->isInView(*params.viewFrustum)) // the parent intersects and the child is in view
+                        childElement->isInView(params.viewFrustum)) // the parent intersects and the child is in view
                 ));
 
         if (!childIsInView) {
@@ -1275,12 +1189,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             }
         } else {
             // Before we consider this further, let's see if it's in our LOD scope...
-            float distance = distancesToChildren[i];
-            float boundaryDistance = !params.viewFrustum ? 1 :
-                                     boundaryDistanceForRenderLevel(childElement->getLevel() + params.boundaryLevelAdjust,
+            float boundaryDistance = params.recurseEverything ? 1 :
+                                    boundaryDistanceForRenderLevel(childElement->getLevel() + params.boundaryLevelAdjust,
                                             params.octreeElementSizeScale);
 
-            if (!(distance < boundaryDistance)) {
+            if (!(distancesToChildren[i] < boundaryDistance)) {
                 // don't need to check childElement here, because we can't get here with no childElement
                 if (params.stats) {
                     params.stats->skippedDistance(childElement);
@@ -1298,40 +1211,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
                 bool childIsOccluded = false; // assume it's not occluded
 
-                // If the user also asked for occlusion culling, check if this element is occluded
-                if (params.wantOcclusionCulling && childElement->isLeaf()) {
-                    // Don't check occlusion here, just add them to our distance ordered array...
-
-                    // FIXME params.ViewFrustum is used here, but later it is checked against nullptr.
-                    OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
-                                params.viewFrustum->getProjectedPolygon(childElement->getAACube()));
-
-                    // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we ignore occlusion
-                    // culling and proceed as normal
-                    if (voxelPolygon->getAllInView()) {
-                        CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, true);
-
-                        // In all cases where the shadow wasn't stored, we need to free our own memory.
-                        // In the case where it is stored, the CoverageMap will free memory for us later.
-                        if (result != STORED) {
-                            delete voxelPolygon;
-                        }
-
-                        // If while attempting to add this voxel's shadow, we determined it was occluded, then
-                        // we don't need to process it further and we can exit early.
-                        if (result == OCCLUDED) {
-                            childIsOccluded = true;
-                        }
-                    } else {
-                        delete voxelPolygon;
-                    }
-                } // wants occlusion culling & isLeaf()
-
-
-                bool shouldRender = !params.viewFrustum
-                                    ? true
-                                    : childElement->calculateShouldRender(params.viewFrustum,
-                                                    params.octreeElementSizeScale, params.boundaryLevelAdjust);
+                bool shouldRender = params.recurseEverything ||
+                        childElement->calculateShouldRender(params.viewFrustum,
+                                params.octreeElementSizeScale, params.boundaryLevelAdjust);
 
                 // track some stats
                 if (params.stats) {
@@ -1349,8 +1231,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 if (shouldRender && !childIsOccluded) {
                     bool childWasInView = false;
 
-                    if (childElement && params.deltaViewFrustum && params.lastViewFrustum) {
-                        ViewFrustum::location location = childElement->inFrustum(*params.lastViewFrustum);
+                    if (childElement && params.deltaView) {
+                        ViewFrustum::intersection location = childElement->computeViewIntersection(params.lastViewFrustum);
 
                         // If we're a leaf, then either intersect or inside is considered "formerly in view"
                         if (childElement->isLeaf()) {
@@ -1364,7 +1246,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                     // Or if we were previously in the view, but this element has changed since it was last sent, then we do
                     // need to send it.
                     if (!childWasInView ||
-                        (params.deltaViewFrustum &&
+                        (params.deltaView &&
                          childElement->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
 
                         childrenDataBits += (1 << (7 - originalIndex));
@@ -1402,7 +1284,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
     // NOW might be a good time to give our tree subclass and this element a chance to set up and check any extra encode data
     element->initializeExtraEncodeData(params);
 
-    // write the child element data... NOTE: includeColor means include element data
+    // write the child element data...
     // NOTE: the format of the bitstream is generally this:
     //    [octalcode]
     //    [bitmask for existence of child data]
@@ -1412,65 +1294,63 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
     //        N x [ ... tree for children ...]
     //
     // This section of the code, is writing the "N x [child data]" portion of this bitstream
-    if (params.includeColor) {
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            if (oneAtBit(childrenDataBits, i)) {
-                OctreeElementPointer childElement = element->getChildAtIndex(i);
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        if (oneAtBit(childrenDataBits, i)) {
+            OctreeElementPointer childElement = element->getChildAtIndex(i);
 
-                // the childrenDataBits were set up by the in view/LOD logic, it may contain children that we've already
-                // processed and sent the data bits for. Let our tree subclass determine if it really wants to send the
-                // data for this child at this point
-                if (childElement && element->shouldIncludeChildData(i, params)) {
+            // the childrenDataBits were set up by the in view/LOD logic, it may contain children that we've already
+            // processed and sent the data bits for. Let our tree subclass determine if it really wants to send the
+            // data for this child at this point
+            if (childElement && element->shouldIncludeChildData(i, params)) {
 
-                    int bytesBeforeChild = packetData->getUncompressedSize();
+                int bytesBeforeChild = packetData->getUncompressedSize();
 
-                    // a childElement may "partially" write it's data. for example, the model server where the entire
-                    // contents of the element may be larger than can fit in a single MTU/packetData. In this case,
-                    // we want to allow the appendElementData() to respond that it produced partial data, which should be
-                    // written, but that the childElement needs to be reprocessed in an additional pass or passes
-                    // to be completed.
-                    LevelDetails childDataLevelKey = packetData->startLevel();
+                // a childElement may "partially" write it's data. for example, the model server where the entire
+                // contents of the element may be larger than can fit in a single MTU/packetData. In this case,
+                // we want to allow the appendElementData() to respond that it produced partial data, which should be
+                // written, but that the childElement needs to be reprocessed in an additional pass or passes
+                // to be completed.
+                LevelDetails childDataLevelKey = packetData->startLevel();
 
-                    OctreeElement::AppendState childAppendState = childElement->appendElementData(packetData, params);
+                OctreeElement::AppendState childAppendState = childElement->appendElementData(packetData, params);
 
-                    // allow our tree subclass to do any additional bookkeeping it needs to do with encoded data state
-                    element->updateEncodedData(i, childAppendState, params);
+                // allow our tree subclass to do any additional bookkeeping it needs to do with encoded data state
+                element->updateEncodedData(i, childAppendState, params);
 
-                    // Continue this level so long as some part of this child element was appended.
-                    bool childFit = (childAppendState != OctreeElement::NONE);
+                // Continue this level so long as some part of this child element was appended.
+                bool childFit = (childAppendState != OctreeElement::NONE);
 
-                    // some datatypes (like Voxels) assume that all child data will fit, if it doesn't fit
-                    // the data type wants to bail on this element level completely
-                    if (!childFit && mustIncludeAllChildData()) {
-                        continueThisLevel = false;
-                        break;
-                    }
+                // some datatypes (like Voxels) assume that all child data will fit, if it doesn't fit
+                // the data type wants to bail on this element level completely
+                if (!childFit && mustIncludeAllChildData()) {
+                    continueThisLevel = false;
+                    break;
+                }
 
-                    // If the child was partially or fully appended, then mark the actualChildrenDataBits as including
-                    // this child data
-                    if (childFit) {
-                        actualChildrenDataBits += (1 << (7 - i));
-                        continueThisLevel = packetData->endLevel(childDataLevelKey);
-                    } else {
-                        packetData->discardLevel(childDataLevelKey);
-                        elementAppendState = OctreeElement::PARTIAL;
-                        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-                    }
+                // If the child was partially or fully appended, then mark the actualChildrenDataBits as including
+                // this child data
+                if (childFit) {
+                    actualChildrenDataBits += (1 << (7 - i));
+                    continueThisLevel = packetData->endLevel(childDataLevelKey);
+                } else {
+                    packetData->discardLevel(childDataLevelKey);
+                    elementAppendState = OctreeElement::PARTIAL;
+                    params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+                }
 
-                    // If this child was partially appended, then consider this element to be partially appended
-                    if (childAppendState == OctreeElement::PARTIAL) {
-                        elementAppendState = OctreeElement::PARTIAL;
-                        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-                    }
+                // If this child was partially appended, then consider this element to be partially appended
+                if (childAppendState == OctreeElement::PARTIAL) {
+                    elementAppendState = OctreeElement::PARTIAL;
+                    params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+                }
 
-                    int bytesAfterChild = packetData->getUncompressedSize();
+                int bytesAfterChild = packetData->getUncompressedSize();
 
-                    bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
+                bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
 
-                    // don't need to check childElement here, because we can't get here with no childElement
-                    if (params.stats && (childAppendState != OctreeElement::NONE)) {
-                        params.stats->colorSent(childElement);
-                    }
+                // don't need to check childElement here, because we can't get here with no childElement
+                if (params.stats && (childAppendState != OctreeElement::NONE)) {
+                    params.stats->colorSent(childElement);
                 }
             }
         }
@@ -1553,10 +1433,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // final packet in standard order. So what we're going to do is keep track of how big each subtree was in bytes,
         // and then later reshuffle these sections of our output buffer back into normal order. This allows us to make
         // a single recursive pass in distance sorted order, but retain standard order in our encoded packet
-        int recursiveSliceSizes[NUMBER_OF_CHILDREN];
-        const unsigned char* recursiveSliceStarts[NUMBER_OF_CHILDREN];
-        int firstRecursiveSliceOffset = packetData->getUncompressedByteOffset();
-        int allSlicesSize = 0;
 
         // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
         // add them to our distance ordered array of children
@@ -1567,8 +1443,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
 
                 int thisLevel = currentEncodeLevel;
-                // remember this for reshuffling
-                recursiveSliceStarts[originalIndex] = packetData->getUncompressedData() + packetData->getUncompressedSize();
 
                 int childTreeBytesOut = 0;
 
@@ -1577,7 +1451,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 // called databits), then we wouldn't send the children. So those types of Octree's should tell us to keep
                 // recursing, by returning TRUE in recurseChildrenWithData().
 
-                if (recurseChildrenWithData() || !params.viewFrustum || !oneAtBit(childrenDataBits, originalIndex)) {
+                if (params.recurseEverything || recurseChildrenWithData() || !oneAtBit(childrenDataBits, originalIndex)) {
 
                     // Allow the datatype a chance to determine if it really wants to recurse this tree. Usually this
                     // will be true. But if the tree has already been encoded, we will skip this.
@@ -1588,10 +1462,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                         childTreeBytesOut = 0;
                     }
                 }
-
-                // remember this for reshuffling
-                recursiveSliceSizes[originalIndex] = childTreeBytesOut;
-                allSlicesSize += childTreeBytesOut;
 
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
                 // basically, the children below don't contain any info.
@@ -1609,17 +1479,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 // so, if the child returns 2 bytes out, we can actually consider that an empty tree also!!
                 //
                 // we can make this act like no bytes out, by just resetting the bytes out in this case
-                if (suppressEmptySubtrees() && params.includeColor && !params.includeExistsBits && childTreeBytesOut == 2) {
+                if (suppressEmptySubtrees() && !params.includeExistsBits && childTreeBytesOut == 2) {
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
 
                 }
-                // We used to try to collapse trees that didn't contain any data, but this does appear to create a problem
-                // in detecting element deletion. So, I've commented this out but left it in here as a warning to anyone else
-                // about not attempting to add this optimization back in, without solving the element deletion case.
-                // We need to send these bitMasks in case the exists in tree bitmask is indicating the deletion of a tree
-                //if (params.includeColor && params.includeExistsBits && childTreeBytesOut == 3) {
-                //    childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
-                //}
 
                 bytesAtThisLevel += childTreeBytesOut;
 
@@ -1639,7 +1502,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
                     // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
                     if (params.stats && childrenExistInPacketBits == 0) {
-                        params.stats->childBitsRemoved(params.includeExistsBits, params.includeColor);
+                        params.stats->childBitsRemoved(params.includeExistsBits);
                     }
 
                     if (!continueThisLevel) {
@@ -1656,39 +1519,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 } // end if (childTreeBytesOut == 0)
             } // end if (oneAtBit(childrenExistInPacketBits, originalIndex))
         } // end for
-
-        // reshuffle here...
-        if (continueThisLevel && params.wantOcclusionCulling) {
-            unsigned char tempReshuffleBuffer[MAX_OCTREE_UNCOMRESSED_PACKET_SIZE];
-
-            unsigned char* tempBufferTo = &tempReshuffleBuffer[0]; // this is our temporary destination
-
-            // iterate through our childrenExistInPacketBits, these will be the sections of the packet that we copied subTree
-            // details into. Unfortunately, they're in distance sorted order, not original index order. we need to put them
-            // back into original distance order
-            for (int originalIndex = 0; originalIndex < NUMBER_OF_CHILDREN; originalIndex++) {
-                if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
-                    int thisSliceSize = recursiveSliceSizes[originalIndex];
-                    const unsigned char* thisSliceStarts = recursiveSliceStarts[originalIndex];
-
-                    memcpy(tempBufferTo, thisSliceStarts, thisSliceSize);
-                    tempBufferTo += thisSliceSize;
-                }
-            }
-
-            // now that all slices are back in the correct order, copy them to the correct output buffer
-            continueThisLevel = packetData->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
-            if (!continueThisLevel) {
-                qCDebug(octree) << "WARNING UNEXPECTED CASE: Failed to update recursive slice!!!";
-                qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
-            }
-        }
     } // end keepDiggingDeeper
 
     // If we made it this far, then we've written all of our child data... if this element is the root
     // element, then we also allow the root element to write out it's data...
     if (continueThisLevel && element == _rootElement && rootElementHasData()) {
-
         int bytesBeforeChild = packetData->getUncompressedSize();
 
         // release the bytes we reserved...
@@ -1696,6 +1531,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
         LevelDetails rootDataLevelKey = packetData->startLevel();
         OctreeElement::AppendState rootAppendState = element->appendElementData(packetData, params);
+
         bool partOfRootFit = (rootAppendState != OctreeElement::NONE);
         bool allOfRootFit = (rootAppendState == OctreeElement::COMPLETED);
 
@@ -1730,7 +1566,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             qCDebug(octree) << "WARNING UNEXPECTED CASE: Something failed in packing ROOT data";
             qCDebug(octree) << "This is not expected!!!! -- continueThisLevel=FALSE....";
         }
-
     }
 
     // if we were unable to fit this level in our packet, then rewind and add it to the element bag for
@@ -1779,7 +1614,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
     // If our element is completed let the element know so it can do any cleanup it of extra  wants
     if (elementAppendState == OctreeElement::COMPLETED) {
-        element->elementEncodeComplete(params, &bag);
+        element->elementEncodeComplete(params);
     }
 
     return bytesAtThisLevel;
@@ -1835,34 +1670,24 @@ bool Octree::readJSONFromGzippedFile(QString qFileName) {
 }
 
 bool Octree::readFromURL(const QString& urlString) {
-    bool readOk = false;
+    auto request = std::unique_ptr<ResourceRequest>(ResourceManager::createResourceRequest(this, urlString));
 
-    // determine if this is a local file or a network resource
-    QUrl url(urlString);
-
-    if (url.isLocalFile()) {
-        readOk = readFromFile(qPrintable(url.toLocalFile()));
-    } else {
-        QNetworkRequest request;
-        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        request.setUrl(url);
-
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkReply* reply = networkAccessManager.get(request);
-
-        qCDebug(octree) << "Downloading svo at" << qPrintable(urlString);
-
-        QEventLoop loop;
-        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-        loop.exec();
-
-        if (reply->error() == QNetworkReply::NoError) {
-            int resourceSize = reply->bytesAvailable();
-            QDataStream inputStream(reply);
-            readOk = readFromStream(resourceSize, inputStream);
-        }
+    if (!request) {
+        return false;
     }
-    return readOk;
+
+    QEventLoop loop;
+    connect(request.get(), &ResourceRequest::finished, &loop, &QEventLoop::quit);
+    request->send();
+    loop.exec();
+
+    if (request->getResult() != ResourceRequest::Success) {
+        return false;
+    }
+
+    auto data = request->getData();
+    QDataStream inputStream(data);
+    return readFromStream(data.size(), inputStream);
 }
 
 
@@ -1884,6 +1709,7 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
 
 
 bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStream) {
+    qWarning() << "SVO file format depricated. Support for reading SVO files is no longer support and will be removed soon.";
 
     bool fileOk = false;
 
@@ -1933,8 +1759,8 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
                             versionForPacketType(expectedDataPacketType()), gotVersion);
             }
         } else {
-            qCDebug(octree) << "SVO file type mismatch. Expected: " << nameForPacketType(expectedType)
-                        << " Got: " << nameForPacketType(gotType);
+            qCDebug(octree) << "SVO file type mismatch. Expected: " << expectedType
+                        << " Got: " << gotType;
         }
 
     } else {
@@ -1960,7 +1786,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
 
             unsigned char* dataAt = entireFileDataSection;
 
-            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0,
+            ReadBitstreamToTreeParams args(NO_EXISTS_BITS, NULL, 0,
                                                 SharedNodePointer(), wantImportProgress, gotVersion);
 
             readBitstreamToTree(dataAt, dataLength, args);
@@ -1999,7 +1825,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
                 unsigned char* dataAt = fileChunk;
                 unsigned long  dataLength = chunkLength;
 
-                ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0,
+                ReadBitstreamToTreeParams args(NO_EXISTS_BITS, NULL, 0,
                                                     SharedNodePointer(), wantImportProgress, gotVersion);
 
                 readBitstreamToTree(dataAt, dataLength, args);
@@ -2021,7 +1847,7 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
 
     QByteArray jsonBuffer;
     char* rawData = new char[READ_JSON_BUFFER_SIZE];
-    while (true) {
+    while (!inputStream.atEnd()) {
         int got = inputStream.readRawData(rawData, READ_JSON_BUFFER_SIZE - 1);
         if (got < 0) {
             qCritical() << "error while reading from json stream";
@@ -2037,29 +1863,31 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
-    readFromMap(asMap);
+    bool success = readFromMap(asMap);
     delete[] rawData;
-    return true;
+    return success;
 }
 
-void Octree::writeToFile(const char* fileName, OctreeElementPointer element, QString persistAsFileType) {
+bool Octree::writeToFile(const char* fileName, OctreeElementPointer element, QString persistAsFileType) {
     // make the sure file extension makes sense
     QString qFileName = fileNameWithoutExtension(QString(fileName), PERSIST_EXTENSIONS) + "." + persistAsFileType;
     QByteArray byteArray = qFileName.toUtf8();
     const char* cFileName = byteArray.constData();
 
+    bool success = false;
     if (persistAsFileType == "svo") {
-        writeToSVOFile(fileName, element);
+        success = writeToSVOFile(fileName, element);
     } else if (persistAsFileType == "json") {
-        writeToJSONFile(cFileName, element);
+        success = writeToJSONFile(cFileName, element);
     } else if (persistAsFileType == "json.gz") {
-        writeToJSONFile(cFileName, element, true);
+        success = writeToJSONFile(cFileName, element, true);
     } else {
         qCDebug(octree) << "unable to write octree to file of type" << persistAsFileType;
     }
+    return success;
 }
 
-void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element, bool doGzip) {
+bool Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element, bool doGzip) {
     QVariantMap entityDescription;
 
     qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
@@ -2077,10 +1905,10 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element,
     entityDescription["Version"] = (int) expectedVersion;
 
     // store the entity data
-    bool entityDescriptionSuccess = writeToMap(entityDescription, top, true);
+    bool entityDescriptionSuccess = writeToMap(entityDescription, top, true, true);
     if (!entityDescriptionSuccess) {
         qCritical("Failed to convert Entities to QVariantMap while saving to json.");
-        return;
+        return false;
     }
 
     // convert the QVariantMap to JSON
@@ -2090,21 +1918,27 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element,
     if (doGzip) {
         if (!gzip(jsonData, jsonDataForFile, -1)) {
             qCritical("unable to gzip data while saving to json.");
-            return;
+            return false;
         }
     } else {
         jsonDataForFile = jsonData;
     }
 
     QFile persistFile(fileName);
+    bool success = false;
     if (persistFile.open(QIODevice::WriteOnly)) {
-        persistFile.write(jsonDataForFile);
+        success = persistFile.write(jsonDataForFile) != -1;
     } else {
         qCritical("Could not write to JSON description of entities.");
     }
+
+    return success;
 }
 
-void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) {
+bool Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) {
+    qWarning() << "SVO file format deprecated. Support for reading SVO files is no longer support and will be removed soon.";
+    bool success = false;
+
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
@@ -2144,10 +1978,9 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) 
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
-        while (!elementBag.isEmpty()) {
-            OctreeElementPointer subTree = elementBag.extract();
-
-            EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
+        while (OctreeElementPointer subTree = elementBag.extract()) {
+            EncodeBitstreamParams params(INT_MAX, NO_EXISTS_BITS);
+            params.recurseEverything = true;
             withReadLock([&] {
                 params.extraEncodeData = &extraEncodeData;
                 bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);
@@ -2183,8 +2016,12 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) 
         }
 
         releaseSceneEncodeData(&extraEncodeData);
+
+        success = true;
     }
     file.close();
+
+    return success;
 }
 
 unsigned long Octree::getOctreeElementsCount() {

@@ -345,6 +345,7 @@ public:
     uint8 getColorWriteMask() const { return _values.colorWriteMask; }
 
     // All the possible fields
+    // NOTE: If you change this, you must update GLBackend::GLState::_resetStateCommands
     enum Field {
         FILL_MODE,
         CULL_MODE,
@@ -364,6 +365,7 @@ public:
         STENCIL_TEST_BACK,
 
         SAMPLE_MASK,
+
         ALPHA_TO_COVERAGE_ENABLE,
 
         BLEND_FUNCTION,
@@ -385,6 +387,8 @@ public:
     State(const Data& values);
     const Data& getValues() const { return _values; }
 
+    const GPUObjectPointer gpuObject {};
+
 protected:
     State(const State& state);
     State& operator=(const State& state);
@@ -392,12 +396,6 @@ protected:
     Data _values;
     Signature _signature{0};
     Stamp _stamp{0};
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = nullptr;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-    friend class Backend;
 };
 
 typedef std::shared_ptr< State > StatePointer;

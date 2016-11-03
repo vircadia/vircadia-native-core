@@ -14,6 +14,7 @@
 
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
+#include <ViewFrustum.h>
 
 #include "JurisdictionListener.h"
 #include "Octree.h"
@@ -22,7 +23,6 @@
 #include "OctreeRenderer.h"
 #include "OctreeSceneStats.h"
 #include "Octree.h"
-#include "ViewFrustum.h"
 
 // Generic client side Octree renderer class.
 class OctreeHeadlessViewer : public OctreeRenderer {
@@ -37,7 +37,7 @@ public:
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
 
-    static int parseOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sourceNode);
+    static int parseOctreeStats(QSharedPointer<ReceivedMessage> message, SharedNodePointer sourceNode);
     static void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
 public slots:
@@ -46,6 +46,8 @@ public slots:
     // setters for camera attributes
     void setPosition(const glm::vec3& position) { _viewFrustum.setPosition(position); }
     void setOrientation(const glm::quat& orientation) { _viewFrustum.setOrientation(orientation); }
+    void setCenterRadius(float radius) { _viewFrustum.setCenterRadius(radius); }
+    void setKeyholeRadius(float radius) { _viewFrustum.setCenterRadius(radius); } // TODO: remove this legacy support
 
     // setters for LOD and PPS
     void setVoxelSizeScale(float sizeScale) { _voxelSizeScale = sizeScale; }
@@ -58,18 +60,18 @@ public slots:
 
     // getters for LOD and PPS
     float getVoxelSizeScale() const { return _voxelSizeScale; }
-    int getBoundaryLevelAdjust() const override { return _boundaryLevelAdjust; }
+    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     int getMaxPacketsPerSecond() const { return _maxPacketsPerSecond; }
 
     unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }
 
 private:
-    ViewFrustum _viewFrustum;
     JurisdictionListener* _jurisdictionListener = nullptr;
     OctreeQuery _octreeQuery;
-    float _voxelSizeScale;
-    int _boundaryLevelAdjust;
-    int _maxPacketsPerSecond;
+
+    float _voxelSizeScale { DEFAULT_OCTREE_SIZE_SCALE };
+    int _boundaryLevelAdjust { 0 };
+    int _maxPacketsPerSecond { DEFAULT_MAX_OCTREE_PPS };
 };
 
 #endif // hifi_OctreeHeadlessViewer_h

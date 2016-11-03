@@ -14,6 +14,10 @@
 
 #include "EntitySimulation.h"
 
+class SimpleEntitySimulation;
+using SimpleEntitySimulationPointer = std::shared_ptr<SimpleEntitySimulation>;
+
+
 /// provides simple velocity + gravity extrapolation of EntityItem's
 
 class SimpleEntitySimulation : public EntitySimulation {
@@ -21,14 +25,20 @@ public:
     SimpleEntitySimulation() : EntitySimulation() { }
     virtual ~SimpleEntitySimulation() { clearEntitiesInternal(); }
 
-protected:
-    virtual void updateEntitiesInternal(const quint64& now);
-    virtual void addEntityInternal(EntityItemPointer entity);
-    virtual void removeEntityInternal(EntityItemPointer entity);
-    virtual void changeEntityInternal(EntityItemPointer entity);
-    virtual void clearEntitiesInternal();
+    void clearOwnership(const QUuid& ownerID);
 
-    SetOfEntities _entitiesWithSimulator;
+protected:
+    virtual void updateEntitiesInternal(const quint64& now) override;
+    virtual void addEntityInternal(EntityItemPointer entity) override;
+    virtual void removeEntityInternal(EntityItemPointer entity) override;
+    virtual void changeEntityInternal(EntityItemPointer entity) override;
+    virtual void clearEntitiesInternal() override;
+
+    virtual void sortEntitiesThatMoved() override;
+
+    SetOfEntities _entitiesWithSimulationOwner;
+    SetOfEntities _entitiesThatNeedSimulationOwner;
+    quint64 _nextOwnerlessExpiry { 0 };
 };
 
 #endif // hifi_SimpleEntitySimulation_h

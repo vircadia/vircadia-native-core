@@ -1,6 +1,6 @@
 //
 //  GeometryUtilTests.cpp
-//  tests/physics/src
+//  tests/shared/src
 //
 //  Created by Andrew Meadows on 2015.07.27
 //  Copyright 2015 High Fidelity, Inc.
@@ -14,6 +14,7 @@
 #include "GeometryUtilTests.h"
 
 #include <GeometryUtil.h>
+#include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <StreamUtils.h>
 
@@ -22,6 +23,63 @@
 
 QTEST_MAIN(GeometryUtilTests)
 
+static void testSphereVsCone(const glm::vec3 coneNormal, const glm::vec3 coneBiNormal, float coneAngle, float sphereRadius, float sphereDistance) {
+
+    glm::vec3 u, v, w;
+    generateBasisVectors(coneNormal, coneBiNormal, u, v, w);
+    glm::vec3 coneEdge = u * cosf(coneAngle) + v * sinf(coneAngle);
+    glm::vec3 coneCenter = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 sphereCenter = coneCenter + coneEdge * sphereDistance;
+    float result = coneSphereAngle(coneCenter, u, sphereCenter, sphereRadius);
+    QCOMPARE(isnan(result), false);
+    QCOMPARE(result < coneAngle, true);
+
+    // push sphere outward from edge so it is tangent to the cone.
+    glm::vec3 sphereOffset = glm::angleAxis(PI / 2.0f, w) * coneEdge;
+    sphereCenter += sphereOffset * sphereRadius;
+    result = coneSphereAngle(coneCenter, u, sphereCenter, sphereRadius);
+    QCOMPARE(isnan(result), false);
+    QCOMPARE_WITH_ABS_ERROR(result, coneAngle, 0.001f);
+
+    // push sphere outward from edge a bit further, so it is outside of the cone.
+    sphereCenter += 0.1f * sphereOffset;
+    result = coneSphereAngle(coneCenter, u, sphereCenter, sphereRadius);
+    QCOMPARE(isnan(result), false);
+    QCOMPARE(result > coneAngle, true);
+}
+
+void GeometryUtilTests::testConeSphereAngle() {
+
+    // start with a 45 degree cone.
+    testSphereVsCone(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), PI / 4.0f, 1.0f, 10.0f);
+
+    // test 30 degree cone.
+    testSphereVsCone(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), PI / 6.0f, 1.0f, 10.0f);
+
+    // test 60 degree cone.
+    testSphereVsCone(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), PI / 3.0f, 1.0f, 10.0f);
+
+    // test 120 degree cone.
+    testSphereVsCone(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 2 * PI / 3.0f, 1.0f, 10.0f);
+
+    // test skinny cone.
+    testSphereVsCone(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.0001f, 1.0f, 10.0f);
+
+    // start again with a 45 off axis cone.
+    testSphereVsCone(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), PI / 4.0f, 1.0f, 10.0f);
+
+    // test 30 degree off axis cone
+    testSphereVsCone(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), PI / 6.0f, 1.0f, 10.0f);
+
+    // test 60 degree cone off axis cone
+    testSphereVsCone(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), PI / 3.0f, 1.0f, 10.0f);
+
+    // test 120 degree off axis cone.
+    testSphereVsCone(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), 2 * PI / 3.0f, 1.0f, 10.0f);
+
+    // test skinny off-axis cone.
+    testSphereVsCone(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.0001f, 1.0f, 10.0f);
+}
 
 void GeometryUtilTests::testLocalRayRectangleIntersection() {
     glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
@@ -212,3 +270,15 @@ void GeometryUtilTests::testTwistSwingDecomposition() {
 }
 
 
+void GeometryUtilTests::testSphereCapsulePenetration() {
+    glm::vec3 sphereCenter(1.5, 0.0, 0.0);
+    float sphereRadius = 1.0f;
+    glm::vec3 capsuleStart(0.0f, -10.0f, 0.0f);
+    glm::vec3 capsuleEnd(0.0f, 10.0f, 0.0f);
+    float capsuleRadius = 1.0f;
+
+    glm::vec3 penetration(glm::vec3::_null);
+    bool hit = findSphereCapsulePenetration(sphereCenter, sphereRadius, capsuleStart, capsuleEnd, capsuleRadius, penetration);
+    QCOMPARE(hit, true);
+    QCOMPARE_WITH_ABS_ERROR(penetration, glm::vec3(-0.5f, 0.0f, 0.0f), EPSILON);
+}

@@ -1,0 +1,187 @@
+{
+    "Entities": [{
+        "collisionsWillMove": 1,
+        "created": "2016-04-01T18:13:50Z",
+        "dimensions": {
+            "x": 0.31800505518913269,
+            "y": 0.31800499558448792,
+            "z": 0.0033226886298507452
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "id": "{e9edc4d0-ecef-42de-88de-a652087f8a18}",
+        "modelURL": "atp:/tutorialContent/Junk-Album-3.fbx",
+        "name": "home_model_junkAlbum3.fbx",
+        "queryAACube": {
+            "scale": 0.44973927736282349,
+            "x": -0.22486963868141174,
+            "y": -0.22486963868141174,
+            "z": -0.22486963868141174
+        },
+        "restitution": 0.10000000149011612,
+        "rotation": {
+            "w": 0.66469824314117432,
+            "x": -0.66491186618804932,
+            "y": 0.24086368083953857,
+            "z": 0.24098575115203857
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "collisionsWillMove": 1,
+        "created": "2016-04-01T18:13:50Z",
+        "dimensions": {
+            "x": 0.2365347146987915,
+            "y": 0.32964301109313965,
+            "z": 0.34057953953742981
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "id": "{cc75df45-0caf-41ff-8c05-29c771cc63d9}",
+        "modelURL": "atp:/tutorialContent/Hideous-Knick-Knack1.fbx",
+        "name": "home_model_junkDoll",
+        "position": {
+            "x": 0.3363037109375,
+            "y": 0.1844482421875,
+            "z": 0.3884124755859375
+        },
+        "queryAACube": {
+            "scale": 0.52972406148910522,
+            "x": 0.071441680192947388,
+            "y": -0.080413788557052612,
+            "z": 0.12355044484138489
+        },
+        "rotation": {
+            "w": 0.24678421020507812,
+            "x": -7.62939453125e-05,
+            "y": 0.9690546989440918,
+            "z": -7.62939453125e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "collisionsWillMove": 1,
+        "created": "2016-04-01T18:11:39Z",
+        "dimensions": {
+            "x": 0.31800505518913269,
+            "y": 0.31800499558448792,
+            "z": 0.0033226886298507452
+        },
+        "dynamic": 1,
+        "friction": 0.75,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "id": "{903543d7-4531-4532-997a-8176be9fc660}",
+        "modelURL": "atp:/tutorialContent/Junk-Album-1.fbx",
+        "name": "home_model_junkAlbum1",
+        "position": {
+            "x": 0.10009765625,
+            "y": 0.087310791015625,
+            "z": 0.27129364013671875
+        },
+        "queryAACube": {
+            "scale": 0.44973927736282349,
+            "x": -0.12477198243141174,
+            "y": -0.13755884766578674,
+            "z": 0.046424001455307007
+        },
+        "rotation": {
+            "w": 0.31657898426055908,
+            "x": -0.024460196495056152,
+            "y": 0.63219654560089111,
+            "z": 0.70672154426574707
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "collisionsWillMove": 1,
+        "created": "2016-04-01T18:13:50Z",
+        "dimensions": {
+            "x": 0.29665771126747131,
+            "y": 0.50835514068603516,
+            "z": 0.26848328113555908
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "id": "{d99aeed0-9d38-4b82-8ae0-630cdfcd32cb}",
+        "marketplaceID": "268b7d13-d3f6-4e03-a252-3e5bde1d145e",
+        "modelURL": "atp:/tutorialContent/Lamp.fbx",
+        "name": "home_model_Junk - lamp",
+        "position": {
+            "x": 0.61279296875,
+            "y": 0.2528076171875,
+            "z": 0.91259002685546875
+        },
+        "queryAACube": {
+            "scale": 0.64692658185958862,
+            "x": 0.28932967782020569,
+            "y": -0.070655673742294312,
+            "z": 0.58912670612335205
+        },
+        "rotation": {
+            "w": 0.999969482421875,
+            "x": -7.62939453125e-05,
+            "y": -0.0066376924514770508,
+            "z": 4.57763671875e-05
+        },
+        "shapeType": "box",
+        "type": "Model"
+    }, {
+        "compoundShapeURL": "atp:/static_objects/Junk-Crate.obj",
+        "created": "2016-04-01T18:13:50Z",
+        "dimensions": {
+            "x": 0.39995807409286499,
+            "y": 0.11108967661857605,
+            "z": 0.71549224853515625
+        },
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "dynamic": 1,
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "id": "{51a01cc1-15cf-4265-9d33-261c96e0e1ed}",
+        "modelURL": "atp:/models/Junk-Crate.fbx",
+        "name": "home_model_junkHolder",
+        "position": {
+            "x": 0.369384765625,
+            "y": 0.0540771484375,
+            "z": 0.39377593994140625
+        },
+        "queryAACube": {
+            "scale": 0.82718592882156372,
+            "x": -0.04420819878578186,
+            "y": -0.35951581597328186,
+            "z": -0.01981702446937561
+        },
+        "rotation": {
+            "w": 0.85989165306091309,
+            "x": -0.0001373291015625,
+            "y": 0.5104600191116333,
+            "z": 4.57763671875e-05
+        },
+        "shapeType": "compound",
+        "type": "Model"
+    }],
+    "Version": 57
+}

@@ -14,110 +14,116 @@
 
 #include <functional>
 #include <memory>
-#include "GLMHelpers.h"
+#include <stack>
+
+#include <GLMHelpers.h>
+#include <ViewFrustum.h>
+
 
 
 class AABox;
 class OctreeRenderer;
-class ViewFrustum;
+
 namespace gpu {
 class Batch;
 class Context;
 class Texture;
+class Framebuffer;
+}
+
+namespace render {
+class ShapePipeline;
 }
 
 class RenderDetails {
 public:
     enum Type {
-        OPAQUE_ITEM,
-        TRANSLUCENT_ITEM,
-        OTHER_ITEM
+        ITEM,
+        SHADOW,
+        OTHER
     };
-    
+
     struct Item {
         int _considered = 0;
-        int _rendered = 0;
         int _outOfView = 0;
         int _tooSmall = 0;
+        int _rendered = 0;
     };
-    
+
     int _materialSwitches = 0;
     int _trianglesRendered = 0;
-    
-    Item _opaque;
-    Item _translucent;
+
+    Item _item;
+    Item _shadow;
     Item _other;
-    
-    Item* _item = &_other;
-    
-    void pointTo(Type type) {
+
+    Item& edit(Type type) {
         switch (type) {
-            case OPAQUE_ITEM:
-                _item = &_opaque;
-                break;
-            case TRANSLUCENT_ITEM:
-                _item = &_translucent;
-                break;
-            case OTHER_ITEM:
-                _item = &_other;
-                break;
+            case SHADOW:
+                return _shadow;
+            case ITEM:
+                return _item;
+            default:
+                return _other;
         }
     }
 };
 
 class RenderArgs {
 public:
-    typedef std::function<bool(const RenderArgs* args, const AABox& bounds)> ShoudRenderFunctor;
-    
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE };
-
     enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
-
     enum DebugFlags {
         RENDER_DEBUG_NONE = 0,
-        RENDER_DEBUG_HULLS = 1,
-        RENDER_DEBUG_SIMULATION_OWNERSHIP = 2,
+        RENDER_DEBUG_HULLS = 1
     };
-    
+
     RenderArgs(std::shared_ptr<gpu::Context> context = nullptr,
-               OctreeRenderer* renderer = nullptr,
-               ViewFrustum* viewFrustum = nullptr,
+               QSharedPointer<OctreeRenderer> renderer = QSharedPointer<OctreeRenderer>(nullptr),
                float sizeScale = 1.0f,
                int boundaryLevelAdjust = 0,
                RenderMode renderMode = DEFAULT_RENDER_MODE,
                RenderSide renderSide = MONO,
                DebugFlags debugFlags = RENDER_DEBUG_NONE,
-               gpu::Batch* batch = nullptr,
-               ShoudRenderFunctor shouldRender = nullptr) :
+               gpu::Batch* batch = nullptr) :
     _context(context),
     _renderer(renderer),
-    _viewFrustum(viewFrustum),
     _sizeScale(sizeScale),
     _boundaryLevelAdjust(boundaryLevelAdjust),
     _renderMode(renderMode),
     _renderSide(renderSide),
     _debugFlags(debugFlags),
-    _batch(batch),
-    _shouldRender(shouldRender) {
+    _batch(batch) {
     }
 
+    bool hasViewFrustum() const { return _viewFrustums.size() > 0; }
+    void setViewFrustum(const ViewFrustum& viewFrustum) {
+        while (_viewFrustums.size() > 0) {
+            _viewFrustums.pop();
+        }
+        _viewFrustums.push(viewFrustum);
+    }
+    const ViewFrustum& getViewFrustum() const { assert(_viewFrustums.size() > 0); return _viewFrustums.top(); }
+    void pushViewFrustum(const ViewFrustum& viewFrustum) { _viewFrustums.push(viewFrustum); }
+    void popViewFrustum() { _viewFrustums.pop(); }
+
     std::shared_ptr<gpu::Context> _context = nullptr;
-    OctreeRenderer* _renderer = nullptr;
-    ViewFrustum* _viewFrustum = nullptr;
-    glm::ivec4 _viewport{ 0, 0, 1, 1 };
+    std::shared_ptr<gpu::Framebuffer> _blitFramebuffer = nullptr;
+    std::shared_ptr<render::ShapePipeline> _pipeline = nullptr;
+    QSharedPointer<OctreeRenderer> _renderer;
+    std::stack<ViewFrustum> _viewFrustums;
+    glm::ivec4 _viewport{ 0.0f, 0.0f, 1.0f, 1.0f };
+    glm::vec3 _boomOffset{ 0.0f, 0.0f, 1.0f };
     float _sizeScale = 1.0f;
     int _boundaryLevelAdjust = 0;
     RenderMode _renderMode = DEFAULT_RENDER_MODE;
     RenderSide _renderSide = MONO;
     DebugFlags _debugFlags = RENDER_DEBUG_NONE;
     gpu::Batch* _batch = nullptr;
-    ShoudRenderFunctor _shouldRender;
-    
+
     std::shared_ptr<gpu::Texture> _whiteTexture;
 
     RenderDetails _details;
-
-    float _alphaThreshold = 0.5f;
 };
 
 #endif // hifi_RenderArgs_h

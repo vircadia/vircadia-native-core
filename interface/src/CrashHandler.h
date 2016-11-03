@@ -17,22 +17,17 @@
 class CrashHandler {
 
 public:
-    static void checkForAndHandleCrash();
-
-    static void writeRunningMarkerFiler();
-    static void deleteRunningMarkerFile();
+    static bool checkForResetSettings(bool suppressPrompt = false);
 
 private:
     enum Action {
         DELETE_INTERFACE_INI,
-        RETAIN_LOGIN_AND_AVATAR_INFO,
+        RETAIN_AVATAR_INFO,
         DO_NOTHING
     };
 
-    static Action promptUserForAction();
+    static Action promptUserForAction(bool showCrashMessage);
     static void handleCrash(Action action);
-
-    static const QString runningMarkerFilePath();
 };
 
 #endif // hifi_CrashHandler_h

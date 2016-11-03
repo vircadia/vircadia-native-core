@@ -8,14 +8,14 @@ like to get paid for your work, make sure you report the bug via a job on
 [Worklist.net](https://worklist.net).
 
 We're hiring! We're looking for skilled developers; 
-send your resume to hiring@highfidelity.io
+send your resume to hiring@highfidelity.com
 
 ##### Chat with us
 Come chat with us in [our Gitter](http://gitter.im/highfidelity/hifi) if you have any questions or just want to say hi!
 
 Documentation
 =========
-Documentation is available at [docs.highfidelity.io](http://docs.highfidelity.io), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
+Documentation is available at [docs.highfidelity.com](http://docs.highfidelity.com), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
 
 Build Instructions 
 =========

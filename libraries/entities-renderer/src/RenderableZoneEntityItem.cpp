@@ -14,17 +14,21 @@
 #include <gpu/Batch.h>
 
 #include <AbstractViewStateInterface.h>
-#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
+
+#include "EntityTreeRenderer.h"
+#include "RenderableEntityItem.h"
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableZoneEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableZoneEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 template<typename Lambda>
@@ -57,6 +61,10 @@ bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& propert
         somethingChanged = this->ZoneEntityItem::setProperties(properties);
     });
     return somethingChanged;
+}
+
+void RenderableZoneEntityItem::somethingChangedNotification() {
+    DependencyManager::get<EntityTreeRenderer>()->updateZone(_id);
 }
 
 int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -112,6 +120,8 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
                     render::PendingChanges pendingChanges;
                     _model->removeFromScene(scene, pendingChanges);
+                    render::Item::Status::Getters statusGetters;
+                    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
                     _model->addToScene(scene, pendingChanges);
                     
                     scene->enqueuePendingChanges(pendingChanges);
@@ -127,15 +137,20 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 
                 Q_ASSERT(args->_batch);
                 gpu::Batch& batch = *args->_batch;
-                batch.setModelTransform(Transform());
 
-                auto shapeTransform = getTransformToCenter();
-                auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+                bool success;
+                auto shapeTransform = getTransformToCenter(success);
+                if (!success) {
+                    break;
+                }
+                auto geometryCache = DependencyManager::get<GeometryCache>();
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
                     shapeTransform.postScale(SPHERE_ENTITY_SCALE);
-                    deferredLightingEffect->renderWireSphereInstance(batch, shapeTransform, DEFAULT_COLOR);
+                    batch.setModelTransform(shapeTransform);
+                    geometryCache->renderWireSphereInstance(batch, DEFAULT_COLOR);
                 } else {
-                    deferredLightingEffect->renderWireCubeInstance(batch, shapeTransform, DEFAULT_COLOR);
+                    batch.setModelTransform(shapeTransform);
+                    geometryCache->renderWireCubeInstance(batch, DEFAULT_COLOR);
                 }
                 break;
             }
@@ -184,7 +199,12 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const RenderableZoneEntityItemMeta::Pointer& payload) {
         if (payload && payload->entity) {
-            return payload->entity->getAABox();
+            bool success;
+            auto result = payload->entity->getAABox(success);
+            if (!success) {
+                return render::Item::Bound();
+            }
+            return result;
         }
         return render::Item::Bound();
     }
@@ -203,7 +223,11 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
     
     auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
-    
+
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
+
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     return true;
 }
@@ -211,7 +235,25 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
 void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                                 render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myMetaItem);
+    render::Item::clearID(_myMetaItem);
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
+    }
+}
+
+
+void RenderableZoneEntityItem::notifyBoundChanged() {
+    if (!render::Item::isValidID(_myMetaItem)) {
+        return;
+    }
+    render::PendingChanges pendingChanges;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    if (scene) {
+        pendingChanges.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
+        });
+
+        scene->enqueuePendingChanges(pendingChanges);
+    } else {
+        qCWarning(entitiesrenderer) << "RenderableZoneEntityItem::notifyBoundChanged(), Unexpected null scene, possibly during application shutdown";
     }
 }

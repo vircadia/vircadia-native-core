@@ -18,12 +18,22 @@
 
 #include "ThreadedAssignment.h"
 
-ThreadedAssignment::ThreadedAssignment(NLPacket& packet) :
-    Assignment(packet),
-    _isFinished(false)
-
+ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
+    Assignment(message),
+    _isFinished(false),
+    _domainServerTimer(this),
+    _statsTimer(this)
 {
+    static const int STATS_TIMEOUT_MS = 1000;
+    _statsTimer.setInterval(STATS_TIMEOUT_MS);
+    connect(&_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
 
+    connect(&_domainServerTimer, &QTimer::timeout, this, &ThreadedAssignment::checkInWithDomainServerOrExit);
+    _domainServerTimer.setInterval(DOMAIN_SERVER_CHECK_IN_MSECS);
+
+    // if the NL tells us we got a DS response, clear our member variable of queued check-ins
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::receivedDomainServerList, this, &ThreadedAssignment::clearQueuedCheckIns);
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {
@@ -33,25 +43,23 @@ void ThreadedAssignment::setFinished(bool isFinished) {
         if (_isFinished) {
 
             qDebug() << "ThreadedAssignment::setFinished(true) called - finishing up.";
-
-            auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+            
+            auto nodeList = DependencyManager::get<NodeList>();
+            
+            auto& packetReceiver = nodeList->getPacketReceiver();
 
             // we should de-register immediately for any of our packets
             packetReceiver.unregisterListener(this);
 
             // we should also tell the packet receiver to drop packets while we're cleaning up
             packetReceiver.setShouldDropPackets(true);
+            
+            // send a disconnect packet to the domain
+            nodeList->getDomainHandler().disconnect();
 
-            if (_domainServerTimer) {
-                // stop the domain-server check in timer by calling deleteLater so it gets cleaned up on NL thread
-                _domainServerTimer->deleteLater();
-                _domainServerTimer = nullptr;
-            }
-
-            if (_statsTimer) {
-                _statsTimer->deleteLater();
-                _statsTimer = nullptr;
-            }
+            // stop our owned timers
+            _domainServerTimer.stop();
+            _statsTimer.stop();
 
             // call our virtual aboutToFinish method - this gives the ThreadedAssignment subclass a chance to cleanup
             aboutToFinish();
@@ -61,34 +69,28 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     }
 }
 
-void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats) {
+void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType) {
     // change the logging target name while the assignment is running
     LogHandler::getInstance().setTargetName(targetName);
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(nodeType);
 
-    _domainServerTimer = new QTimer;
-    connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
-    
-    // move the domain server time to the NL so check-ins fire from there
-    _domainServerTimer->moveToThread(nodeList->thread());
+    // send a domain-server check in immediately and start the timer to fire them every DOMAIN_SERVER_CHECK_IN_MSECS
+    checkInWithDomainServerOrExit();
+    _domainServerTimer.start();
 
-    if (shouldSendStats) {
-        // start sending stats packet once we connect to the domain
-        connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain, this, &ThreadedAssignment::startSendingStats);
-        
-        // stop sending stats if we disconnect
-        connect(&nodeList->getDomainHandler(), &DomainHandler::disconnectedFromDomain, this, &ThreadedAssignment::stopSendingStats);
-    }
+    // start sending stats packet once we connect to the domain
+    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), &_statsTimer, SLOT(start()));
+
+    // stop sending stats if we disconnect
+    connect(&nodeList->getDomainHandler(), &DomainHandler::disconnectedFromDomain, &_statsTimer, &QTimer::stop);
 }
 
-void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObject) {
+void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObject) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     float packetsPerSecond, bytesPerSecond;
-    // XXX can BandwidthRecorder be used for this?
     nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
     nodeList->resetPacketStats();
 
@@ -103,25 +105,23 @@ void ThreadedAssignment::sendStatsPacket() {
     addPacketStatsAndSendStatsPacket(statsObject);
 }
 
-void ThreadedAssignment::startSendingStats() {
-    // send the stats packet every 1s
-    if (!_statsTimer) {
-        _statsTimer = new QTimer;
-        connect(_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
-    }
-    
-    _statsTimer->start(1000);
-}
-
-void ThreadedAssignment::stopSendingStats() {
-    // stop sending stats, we just disconnected from domain
-    _statsTimer->stop();
-}
-
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
-    if (DependencyManager::get<NodeList>()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+    // verify that the number of queued check-ins is not >= our max
+    // the number of queued check-ins is cleared anytime we get a response from the domain-server
+    if (_numQueuedCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+        qDebug() << "At least" << MAX_SILENT_DOMAIN_SERVER_CHECK_INS << "have been queued without a response from domain-server"
+            << "Stopping the current assignment";
         setFinished(true);
     } else {
-        DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
+        auto nodeList = DependencyManager::get<NodeList>();
+        QMetaObject::invokeMethod(nodeList.data(), "sendDomainServerCheckIn");
+
+        // increase the number of queued check ins
+        _numQueuedCheckIns++;
     }
+}
+
+void ThreadedAssignment::domainSettingsRequestFailed() {
+    qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+    setFinished(true);
 }

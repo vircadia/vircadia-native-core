@@ -15,6 +15,8 @@
 
 class AnimTests : public QObject {
     Q_OBJECT
+public:
+    void testAccumulateTimeWithParameters(float startFrame, float endFrame, float timeScale) const;
 private slots:
     void initTestCase();
     void cleanupTestCase();
@@ -23,6 +25,11 @@ private slots:
     void testClipEvaulateWithVars();
     void testLoader();
     void testVariant();
+    void testAccumulateTime();
+    void testAnimPose();
+    void testExpressionTokenizer();
+    void testExpressionParser();
+    void testExpressionEvaluator();
 };
 
 #endif // hifi_AnimTests_h

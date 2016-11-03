@@ -9,8 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HifiConfigVariantMap.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
+#include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonArray>
@@ -18,8 +21,8 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QVariant>
 
+#include "ServerPathUtils.h"
 #include "SharedLogging.h"
-#include "HifiConfigVariantMap.h"
 
 QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringList& argumentList) {
 
@@ -108,20 +111,68 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
         loadMapFromJSONFile(_masterConfig, masterConfigFilepath);
     }
 
+    // load the user config - that method replace loadMasterAndUserConfig after the 1.7 migration
+    loadConfig(argumentList);
+
+    mergeMasterAndUserConfigs();
+}
+
+void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
     // load the user config
     const QString USER_CONFIG_FILE_OPTION = "--user-config";
+    static const QString USER_CONFIG_FILE_NAME = "config.json";
 
     int userConfigIndex = argumentList.indexOf(USER_CONFIG_FILE_OPTION);
     if (userConfigIndex != -1) {
         _userConfigFilename = argumentList[userConfigIndex + 1];
     } else {
-        _userConfigFilename = QString("%1/%2/%3/config.json").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
-                                                                  QCoreApplication::organizationName(),
-                                                                  QCoreApplication::applicationName());
+        // we weren't passed a user config path
+        _userConfigFilename = ServerPathUtils::getDataFilePath(USER_CONFIG_FILE_NAME);
+
+        // as of 1/19/2016 this path was moved so we attempt a migration for first run post migration here
+
+        // figure out what the old path was
+
+        // if our build version is "dev" we should migrate from a different organization folder
+
+        auto oldConfigFilename = QString("%1/%2/%3/%4").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
+                                                            QCoreApplication::organizationName(),
+                                                            QCoreApplication::applicationName(),
+                                                            USER_CONFIG_FILE_NAME);
+
+        oldConfigFilename = oldConfigFilename.replace("High Fidelity - dev", "High Fidelity");
+
+
+        // check if there's already a config file at the new path
+        QFile newConfigFile { _userConfigFilename };
+        if (!newConfigFile.exists()) {
+
+            QFile oldConfigFile { oldConfigFilename };
+
+            if (oldConfigFile.exists()) {
+                // we have the old file and not the new file - time to copy the file
+
+                // make the destination directory if it doesn't exist
+                auto dataDirectory = ServerPathUtils::getDataDirectory();
+                if (QDir().mkpath(dataDirectory)) {
+                    if (oldConfigFile.copy(_userConfigFilename)) {
+                        qDebug() << "Migrated config file from" << oldConfigFilename << "to" << _userConfigFilename;
+                    } else {
+                        qWarning() << "Could not copy previous config file from" << oldConfigFilename << "to" << _userConfigFilename
+                        << "- please try to copy manually and restart.";
+                    }
+                } else {
+                    qWarning() << "Could not create application data directory" << dataDirectory << "- unable to migrate previous config file.";
+                }
+            }
+        }
+        
     }
-
+    
     loadMapFromJSONFile(_userConfig, _userConfigFilename);
+}
 
+void HifiConfigVariantMap::mergeMasterAndUserConfigs() {
     // the merged config is initially matched to the master config
     _mergedConfig = _masterConfig;
 
@@ -167,10 +218,12 @@ QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath, bool 
     if (shouldCreateIfMissing || variantMap.contains(firstKey)) {
         if (dotIndex == -1) {
             return &variantMap[firstKey];
-        } else if (variantMap[firstKey].canConvert(QMetaType::QVariantMap)) {
-            return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1),
-                                   shouldCreateIfMissing);
         }
+        if (!variantMap[firstKey].canConvert(QMetaType::QVariantMap)) {
+            variantMap[firstKey] = QVariantMap();
+        }
+        return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1),
+                               shouldCreateIfMissing);
     }
 
     return NULL;

@@ -11,8 +11,7 @@
 #include <SettingHandle.h>
 
 #include "DisplayPlugin.h"
-#include <plugins/PluginContainer.h>
-#include <OVR_CAPI_Keys.h>
+#include <ui-plugins/PluginContainer.h>
 
 static Setting::Handle<float> IPD_SCALE_HANDLE("hmd.ipdScale", 1.0f);
 
@@ -26,12 +25,12 @@ float AbstractHMDScriptingInterface::getIPD() const {
 
 float AbstractHMDScriptingInterface::getEyeHeight() const {
     // FIXME update the display plugin interface to expose per-plugin settings
-    return OVR_DEFAULT_EYE_HEIGHT;
+    return getPlayerHeight() - 0.10f;
 }
 
 float AbstractHMDScriptingInterface::getPlayerHeight() const {
     // FIXME update the display plugin interface to expose per-plugin settings
-    return OVR_DEFAULT_PLAYER_HEIGHT;
+    return 1.755f;
 }
 
 float AbstractHMDScriptingInterface::getIPDScale() const {

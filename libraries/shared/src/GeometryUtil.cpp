@@ -564,3 +564,17 @@ void swingTwistDecomposition(const glm::quat& rotation,
     // rotation = swing * twist  -->  swing = rotation * invTwist
     swing = rotation * glm::inverse(twist);
 }
+
+// calculate the minimum angle between a point and a sphere.
+float coneSphereAngle(const glm::vec3& coneCenter, const glm::vec3& coneDirection, const glm::vec3& sphereCenter, float sphereRadius) {
+    glm::vec3 d = sphereCenter - coneCenter;
+    float dLen = glm::length(d);
+
+    // theta is the angle between the coneDirection normal and the center of the sphere.
+    float theta = acosf(glm::dot(d, coneDirection) / dLen);
+
+    // phi is the deflection angle from the center of the sphere to a point tangent to the sphere.
+    float phi = atanf(sphereRadius / dLen);
+
+    return glm::max(0.0f, theta - phi);
+}

@@ -33,6 +33,7 @@ void AutoUpdater::checkForUpdate() {
 void AutoUpdater::getLatestVersionData() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest latestVersionRequest(BUILDS_XML_URL);
+    latestVersionRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(latestVersionRequest);
     connect(reply, &QNetworkReply::finished, this, &AutoUpdater::parseLatestVersionData);

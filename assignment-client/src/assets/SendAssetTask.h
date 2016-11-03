@@ -25,12 +25,12 @@ class NLPacket;
 
 class SendAssetTask : public QRunnable {
 public:
-    SendAssetTask(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendToNode, const QDir& resourcesDir);
+    SendAssetTask(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& sendToNode, const QDir& resourcesDir);
 
-    void run();
+    void run() override;
 
 private:
-    QSharedPointer<NLPacket> _packet;
+    QSharedPointer<ReceivedMessage> _message;
     SharedNodePointer _senderNode;
     QDir _resourcesDir;
 };

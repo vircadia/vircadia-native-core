@@ -16,12 +16,30 @@
 
 #include <NumericalConstants.h>
 
-// static 
+const quint8 PENDING_STATE_NOTHING = 0;
+const quint8 PENDING_STATE_TAKE = 1;
+const quint8 PENDING_STATE_RELEASE = 2;
+
+// static
 const int SimulationOwner::NUM_BYTES_ENCODED = NUM_BYTES_RFC4122_UUID + 1;
 
+SimulationOwner::SimulationOwner() :
+        _id(),
+        _expiry(0),
+        _pendingTimestamp(0),
+        _priority(0),
+        _pendingPriority(0),
+        _pendingState(PENDING_STATE_NOTHING)
+{
+}
 
-SimulationOwner::SimulationOwner(const SimulationOwner& other) 
-    : _id(other._id), _priority(other._priority), _expiry(other._expiry) {
+SimulationOwner::SimulationOwner(const QUuid& id, quint8 priority) :
+        _id(id),
+        _expiry(0),
+        _pendingTimestamp(0),
+        _priority(priority),
+        _pendingPriority(0)
+{
 }
 
 QByteArray SimulationOwner::toByteArray() const {
@@ -42,23 +60,20 @@ bool SimulationOwner::fromByteArray(const QByteArray& data) {
 
 void SimulationOwner::clear() {
     _id = QUuid();
-    _priority = 0;
     _expiry = 0;
+    _pendingTimestamp = 0;
+    _priority = 0;
+    _pendingPriority = 0;
+    _pendingState = PENDING_STATE_NOTHING;
 }
 
 void SimulationOwner::setPriority(quint8 priority) {
     _priority = priority;
-    if (_priority == 0) {
-        // when priority is zero we clear everything
-        _expiry = 0;
-        _id = QUuid();
-    }
 }
 
 void SimulationOwner::promotePriority(quint8 priority) {
     if (priority > _priority) {
         _priority = priority;
-        updateExpiry();
     }
 }
 
@@ -75,18 +90,40 @@ bool SimulationOwner::setID(const QUuid& id) {
 }
 
 bool SimulationOwner::set(const QUuid& id, quint8 priority) {
+    uint8_t oldPriority = _priority;
     setPriority(priority);
-    return setID(id);
+    return setID(id) || oldPriority != _priority;
 }
 
 bool SimulationOwner::set(const SimulationOwner& owner) {
+    uint8_t oldPriority = _priority;
     setPriority(owner._priority);
-    return setID(owner._id);
+    return setID(owner._id) || oldPriority != _priority;
+}
+
+void SimulationOwner::setPendingPriority(quint8 priority, const quint64& timestamp) {
+    _pendingPriority = priority;
+    _pendingTimestamp = timestamp;
+    _pendingState = (_pendingPriority == 0) ? PENDING_STATE_RELEASE : PENDING_STATE_TAKE;
 }
 
 void SimulationOwner::updateExpiry() {
     const quint64 OWNERSHIP_LOCKOUT_EXPIRY = USECS_PER_SECOND / 5;
     _expiry = usecTimestampNow() + OWNERSHIP_LOCKOUT_EXPIRY;
+}
+
+bool SimulationOwner::pendingRelease(const quint64& timestamp) {
+    return _pendingPriority == 0 && _pendingState == PENDING_STATE_RELEASE && _pendingTimestamp >= timestamp;
+}
+
+bool SimulationOwner::pendingTake(const quint64& timestamp) {
+    return _pendingPriority > 0 && _pendingState == PENDING_STATE_TAKE && _pendingTimestamp >= timestamp;
+}
+
+void SimulationOwner::clearCurrentOwner() {
+    _id = QUuid();
+    _expiry = 0;
+    _priority = 0;
 }
 
 // NOTE: eventually this code will be moved into unit tests
@@ -157,7 +194,7 @@ void SimulationOwner::test() {
 }
 
 bool SimulationOwner::operator!=(const SimulationOwner& other) {
-    return (_id != other._id && _priority != other._priority);
+    return (_id != other._id || _priority != other._priority);
 }
 
 SimulationOwner& SimulationOwner::operator=(const SimulationOwner& other) {

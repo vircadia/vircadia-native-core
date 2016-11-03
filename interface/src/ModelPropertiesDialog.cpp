@@ -21,6 +21,7 @@
 
 #include <FSTReader.h>
 #include <GLMHelpers.h>
+#include <OffscreenUi.h>
 
 #include "ModelPropertiesDialog.h"
 
@@ -200,7 +201,7 @@ void ModelPropertiesDialog::chooseTextureDirectory() {
         return;
     }
     if (!directory.startsWith(_basePath)) {
-        QMessageBox::warning(NULL, "Invalid texture directory", "Texture directory must be child of base path.");
+        OffscreenUi::warning(NULL, "Invalid texture directory", "Texture directory must be child of base path.");
         return;
     }
     _textureDirectory->setText(directory.length() == _basePath.length() ? "." : directory.mid(_basePath.length() + 1));

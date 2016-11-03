@@ -11,34 +11,21 @@
 
 #include <QSize>
 
-#include <gpu/Framebuffer.h>
+#include <mutex>
+#include <gpu/Forward.h>
 #include <DependencyManager.h>
-
-namespace gpu {
-class Batch;
-}
 
 /// Stores cached textures, including render-to-texture targets.
 class FramebufferCache : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
+    // Shadow map size is static
+    static const int SHADOW_MAP_SIZE = 2048;
+
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
-
-    /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
-    /// used for scene rendering.
-    gpu::FramebufferPointer getPrimaryFramebuffer();
-    gpu::FramebufferPointer getPrimaryFramebufferDepthColor();
-
-    gpu::TexturePointer getPrimaryDepthTexture();
-    gpu::TexturePointer getPrimaryColorTexture();
-    gpu::TexturePointer getPrimaryNormalTexture();
-    gpu::TexturePointer getPrimarySpecularTexture();
-
-    /// Returns the framebuffer object used to render shadow maps;
-    gpu::FramebufferPointer getShadowFramebuffer();
 
     /// Returns the framebuffer object used to render selfie maps;
     gpu::FramebufferPointer getSelfieFramebuffer();
@@ -51,24 +38,16 @@ public:
     void releaseFramebuffer(const gpu::FramebufferPointer& framebuffer);
 
 private:
-    FramebufferCache();
-    virtual ~FramebufferCache();
-
     void createPrimaryFramebuffer();
 
-    gpu::FramebufferPointer _primaryFramebufferFull;
-    gpu::FramebufferPointer _primaryFramebufferDepthColor;
-
-    gpu::TexturePointer _primaryDepthTexture;
-    gpu::TexturePointer _primaryColorTexture;
-    gpu::TexturePointer _primaryNormalTexture;
-    gpu::TexturePointer _primarySpecularTexture;
-    
     gpu::FramebufferPointer _shadowFramebuffer;
 
     gpu::FramebufferPointer _selfieFramebuffer;
 
     QSize _frameBufferSize{ 100, 100 };
+
+    std::mutex _mutex;
+    std::list<gpu::FramebufferPointer> _cachedFramebuffers;
 };
 
 #endif // hifi_FramebufferCache_h

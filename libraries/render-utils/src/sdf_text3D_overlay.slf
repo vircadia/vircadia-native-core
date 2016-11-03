@@ -1,0 +1,52 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  sdf_text.frag
+//  fragment shader
+//
+//  Created by Bradley Austin Davis on 2015-02-04
+//  Based on fragment shader code from 
+//  https://github.com/paulhoux/Cinder-Samples/blob/master/TextRendering/include/text/Text.cpp 
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+
+uniform sampler2D Font;
+uniform bool Outline;
+uniform vec4 Color;
+
+// the interpolated normal
+in vec3 _normal;
+in vec2 _texCoord0;
+
+layout(location = 0) out vec4 _fragColor0;
+
+const float gamma = 2.2;
+const float smoothing = 32.0;
+const float interiorCutoff = 0.8;
+const float outlineExpansion = 0.2;
+
+void main() {
+    // retrieve signed distance
+    float sdf = texture(Font, _texCoord0).g;
+    if (Outline) {
+        if (sdf > interiorCutoff) {
+            sdf = 1.0 - sdf;
+        } else {
+            sdf += outlineExpansion;
+        }
+    }
+    // perform adaptive anti-aliasing of the edges
+    // The larger we're rendering, the less anti-aliasing we need
+    float s = smoothing * length(fwidth(_texCoord0));
+    float w = clamp( s, 0.0, 0.5);
+    float a = smoothstep(0.5 - w, 0.5 + w, sdf);
+    
+    // gamma correction for linear attenuation
+    a = pow(a, 1.0 / gamma);
+    
+    // discard if unvisible
+    if (a < 0.01) {
+        discard;
+    }
+    _fragColor0 = vec4(Color.rgb, a);
+}

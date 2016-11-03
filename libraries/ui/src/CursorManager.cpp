@@ -26,22 +26,8 @@ namespace Cursor {
 
 
     class MouseInstance : public Instance {
-        Source getType() const {
+        Source getType() const override {
             return Source::MOUSE;
-        }
-
-        ivec2 getScreenPosition() const {
-            return toGlm(QCursor::pos());
-        }
-
-        ivec2 getWindowPosition(QWidget* widget) const {
-            return toGlm(widget->mapFromGlobal(QCursor::pos()));
-        }
-
-        vec2 getRelativePosition(QWidget* widget) const {
-            vec2 pos = getWindowPosition(widget);
-            pos /= vec2(toGlm(widget->size()));
-            return pos;
         }
     };
 
@@ -56,6 +42,10 @@ namespace Cursor {
     Manager& Manager::instance() {
         static Manager instance;
         return instance;
+    }
+
+    QList<uint16_t> Manager::registeredIcons() const {
+        return ICONS.keys();
     }
 
     uint8_t Manager::getCount() {

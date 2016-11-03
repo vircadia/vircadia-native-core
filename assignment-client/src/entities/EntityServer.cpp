@@ -16,13 +16,14 @@
 #include "EntityServer.h"
 #include "EntityServerConsts.h"
 #include "EntityNodeData.h"
+#include "AssignmentParentFinder.h"
 
 const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
 const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
-EntityServer::EntityServer(NLPacket& packet) :
-    OctreeServer(packet),
+EntityServer::EntityServer(ReceivedMessage& message) :
+    OctreeServer(message),
     _entitySimulation(NULL)
 {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -40,14 +41,14 @@ EntityServer::~EntityServer() {
     tree->removeNewlyCreatedHook(this);
 }
 
-void EntityServer::handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void EntityServer::handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
+        _octreeInboundPacketProcessor->queueReceivedPacket(message, senderNode);
     }
 }
 
-OctreeQueryNode* EntityServer::createOctreeQueryNode() {
-    return new EntityNodeData();
+std::unique_ptr<OctreeQueryNode> EntityServer::createOctreeQueryNode() {
+    return std::unique_ptr<OctreeQueryNode> { new EntityNodeData() };
 }
 
 OctreePointer EntityServer::createTree() {
@@ -55,11 +56,15 @@ OctreePointer EntityServer::createTree() {
     tree->createRootElement();
     tree->addNewlyCreatedHook(this);
     if (!_entitySimulation) {
-        SimpleEntitySimulation* simpleSimulation = new SimpleEntitySimulation();
+        SimpleEntitySimulationPointer simpleSimulation { new SimpleEntitySimulation() };
         simpleSimulation->setEntityTree(tree);
         tree->setSimulation(simpleSimulation);
         _entitySimulation = simpleSimulation;
     }
+
+    DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
+    DependencyManager::set<AssignmentParentFinder>(tree);
+
     return tree;
 }
 
@@ -82,52 +87,164 @@ bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
     if (nodeData) {
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
-
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         shouldSendDeletedEntities = tree->hasEntitiesDeletedSince(deletedEntitiesSentAt);
+
+        #ifdef EXTRA_ERASE_DEBUGGING
+            if (shouldSendDeletedEntities) {
+                int elapsed = usecTimestampNow() - deletedEntitiesSentAt;
+                qDebug() << "shouldSendDeletedEntities to node:" << node->getUUID() << "deletedEntitiesSentAt:" << deletedEntitiesSentAt << "elapsed:" << elapsed;
+            }
+        #endif
     }
 
     return shouldSendDeletedEntities;
 }
 
+// FIXME - most of the old code for this was encapsulated in EntityTree, I liked that design from a data
+// hiding and object oriented perspective. But that didn't really allow us to handle the case of lots
+// of entities being deleted at the same time. I'd like to look to move this back into EntityTree but
+// for now this works and addresses the bug.
 int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) {
     int totalBytes = 0;
 
     EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
     if (nodeData) {
-        quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
-        quint64 deletePacketSentAt = usecTimestampNow();
 
+        quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
+        quint64 considerEntitiesSince = EntityTree::getAdjustedConsiderSince(deletedEntitiesSentAt);
+
+        quint64 deletePacketSentAt = usecTimestampNow();
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-        bool hasMoreToSend = true;
+        auto recentlyDeleted = tree->getRecentlyDeletedEntityIDs();
 
         packetsSent = 0;
 
-        while (hasMoreToSend) {
-            auto specialPacket = tree->encodeEntitiesDeletedSince(queryNode->getSequenceNumber(), deletedEntitiesSentAt,
-                                                                  hasMoreToSend);
+        // create a new special packet
+        std::unique_ptr<NLPacket> deletesPacket = NLPacket::create(PacketType::EntityErase);
 
-            queryNode->packetSent(*specialPacket);
+        // pack in flags
+        OCTREE_PACKET_FLAGS flags = 0;
+        deletesPacket->writePrimitive(flags);
 
-            totalBytes += specialPacket->getDataSize();
-            packetsSent++;
+        // pack in sequence number
+        auto sequenceNumber = queryNode->getSequenceNumber();
+        deletesPacket->writePrimitive(sequenceNumber);
 
-            DependencyManager::get<NodeList>()->sendPacket(std::move(specialPacket), *node);
-        }
+        // pack in timestamp
+        OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
+        deletesPacket->writePrimitive(now);
+
+        // figure out where we are now and pack a temporary number of IDs
+        uint16_t numberOfIDs = 0;
+        qint64 numberOfIDsPos = deletesPacket->pos();
+        deletesPacket->writePrimitive(numberOfIDs);
+
+        // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
+        // deleted since we last sent to this node
+        auto it = recentlyDeleted.constBegin();
+        while (it != recentlyDeleted.constEnd()) {
+
+            // if the timestamp is more recent then out last sent time, include it
+            if (it.key() > considerEntitiesSince) {
+
+                // get all the IDs for this timestamp
+                const auto& entityIDsFromTime = recentlyDeleted.values(it.key());
+
+                for (const auto& entityID : entityIDsFromTime) {
+
+                    // check to make sure we have room for one more ID, if we don't have more
+                    // room, then send out this packet and create another one
+                    if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailableForWrite()) {
+
+                        // replace the count for the number of included IDs
+                        deletesPacket->seek(numberOfIDsPos);
+                        deletesPacket->writePrimitive(numberOfIDs);
+
+                        // Send the current packet
+                        queryNode->packetSent(*deletesPacket);
+                        auto thisPacketSize = deletesPacket->getDataSize();
+                        totalBytes += thisPacketSize;
+                        packetsSent++;
+                        DependencyManager::get<NodeList>()->sendPacket(std::move(deletesPacket), *node);
+
+                        #ifdef EXTRA_ERASE_DEBUGGING
+                            qDebug() << "EntityServer::sendSpecialPackets() sending packet packetsSent[" << packetsSent << "] size:" << thisPacketSize;
+                        #endif
+
+
+                        // create another packet
+                        deletesPacket = NLPacket::create(PacketType::EntityErase);
+
+                        // pack in flags
+                        deletesPacket->writePrimitive(flags);
+
+                        // pack in sequence number
+                        sequenceNumber = queryNode->getSequenceNumber();
+                        deletesPacket->writePrimitive(sequenceNumber);
+
+                        // pack in timestamp
+                        deletesPacket->writePrimitive(now);
+
+                        // figure out where we are now and pack a temporary number of IDs
+                        numberOfIDs = 0;
+                        numberOfIDsPos = deletesPacket->pos();
+                        deletesPacket->writePrimitive(numberOfIDs);
+                    }
+
+                    // FIXME - we still seem to see cases where incorrect EntityIDs get sent from the server
+                    // to the client. These were causing "lost" entities like flashlights and laser pointers
+                    // now that we keep around some additional history of the erased entities and resend that
+                    // history for a longer time window, these entities are not "lost". But we haven't yet
+                    // found/fixed the underlying issue that caused bad UUIDs to be sent to some users.
+                    deletesPacket->write(entityID.toRfc4122());
+                    ++numberOfIDs;
+
+                    #ifdef EXTRA_ERASE_DEBUGGING
+                        qDebug() << "EntityTree::encodeEntitiesDeletedSince() including:" << entityID;
+                    #endif
+                } // end for (ids)
+
+            } // end if (it.val > sinceLast)
+
+
+            ++it;
+        } // end while
+
+        // replace the count for the number of included IDs
+        deletesPacket->seek(numberOfIDsPos);
+        deletesPacket->writePrimitive(numberOfIDs);
+
+        // Send the current packet
+        queryNode->packetSent(*deletesPacket);
+        auto thisPacketSize = deletesPacket->getDataSize();
+        totalBytes += thisPacketSize;
+        packetsSent++;
+        DependencyManager::get<NodeList>()->sendPacket(std::move(deletesPacket), *node);
+        #ifdef EXTRA_ERASE_DEBUGGING
+            qDebug() << "EntityServer::sendSpecialPackets() sending packet packetsSent[" << packetsSent << "] size:" << thisPacketSize;
+        #endif
 
         nodeData->setLastDeletedEntitiesSentAt(deletePacketSentAt);
     }
 
+    #ifdef EXTRA_ERASE_DEBUGGING
+        if (packetsSent > 0) {
+            qDebug() << "EntityServer::sendSpecialPackets() sent " << packetsSent << "special packets of " 
+                        << totalBytes << " total bytes to node:" << node->getUUID();
+        }
+    #endif
+
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
     return totalBytes;
 }
+
 
 void EntityServer::pruneDeletedEntities() {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     if (tree->hasAnyDeletedEntities()) {
 
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
-
         DependencyManager::get<NodeList>()->eachNode([&earliestLastDeletedEntitiesSent](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
@@ -137,12 +254,11 @@ void EntityServer::pruneDeletedEntities() {
                 }
             }
         });
-
         tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }
 
-bool EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
+void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
     bool wantEditLogging = false;
     readOptionBool(QString("wantEditLogging"), settingsSectionObject, wantEditLogging);
     qDebug("wantEditLogging=%s", debug::valueOf(wantEditLogging));
@@ -152,8 +268,98 @@ bool EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     qDebug("wantTerseEditLogging=%s", debug::valueOf(wantTerseEditLogging));
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+
+    int maxTmpEntityLifetime;
+    if (readOptionInt("maxTmpLifetime", settingsSectionObject, maxTmpEntityLifetime)) {
+        tree->setEntityMaxTmpLifetime(maxTmpEntityLifetime);
+    } else {
+        tree->setEntityMaxTmpLifetime(EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME);
+    }
+
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
+}
 
-    return true;
+void EntityServer::nodeAdded(SharedNodePointer node) {
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+    tree->knowAvatarID(node->getUUID());
+    OctreeServer::nodeAdded(node);
+}
+
+void EntityServer::nodeKilled(SharedNodePointer node) {
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+    tree->deleteDescendantsOfAvatar(node->getUUID());
+    tree->forgetAvatarID(node->getUUID());
+    OctreeServer::nodeKilled(node);
+}
+
+// FIXME - this stats tracking is somewhat temporary to debug the Whiteboard issues. It's not a bad
+// set of stats to have, but we'd probably want a different data structure if we keep it very long.
+// Since this version uses a single shared QMap for all senders, there could be some lock contention 
+// on this QWriteLocker
+void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) {
+    QWriteLocker locker(&_viewerSendingStatsLock);
+    _viewerSendingStats[sessionID][dataID] = { usecTimestampNow(), dataLastEdited };
+}
+
+void EntityServer::trackViewerGone(const QUuid& sessionID) {
+    QWriteLocker locker(&_viewerSendingStatsLock);
+    _viewerSendingStats.remove(sessionID);
+    if (_entitySimulation) {
+        _entitySimulation->clearOwnership(sessionID);
+    }
+}
+
+QString EntityServer::serverSubclassStats() {
+    QLocale locale(QLocale::English);
+    QString statsString;
+
+    // display memory usage stats
+    statsString += "<b>Entity Server Memory Statistics</b>\r\n";
+    statsString += QString().sprintf("EntityTreeElement size... %ld bytes\r\n", sizeof(EntityTreeElement));
+    statsString += QString().sprintf("       EntityItem size... %ld bytes\r\n", sizeof(EntityItem));
+    statsString += "\r\n\r\n";
+
+    statsString += "<b>Entity Server Sending to Viewer Statistics</b>\r\n";
+    statsString += "----- Viewer Node ID -----------------    ----- Entity ID ----------------------    "
+                   "---------- Last Sent To ----------    ---------- Last Edited -----------\r\n";
+
+    int viewers = 0;
+    const int COLUMN_WIDTH = 24;
+
+    {
+        QReadLocker locker(&_viewerSendingStatsLock);
+        quint64 now = usecTimestampNow();
+
+        for (auto viewerID : _viewerSendingStats.keys()) {
+            statsString += viewerID.toString() + "\r\n";
+
+            auto viewerData = _viewerSendingStats[viewerID];
+            for (auto entityID : viewerData.keys()) {
+                ViewerSendingStats stats = viewerData[entityID];
+
+                quint64 elapsedSinceSent = now - stats.lastSent;
+                double sentMsecsAgo = (double)(elapsedSinceSent / USECS_PER_MSEC);
+
+                quint64 elapsedSinceEdit = now - stats.lastEdited;
+                double editMsecsAgo = (double)(elapsedSinceEdit / USECS_PER_MSEC);
+
+                statsString += "                                          "; // the viewerID spacing
+                statsString += entityID.toString();
+                statsString += "    ";
+                statsString += QString("%1 msecs ago")
+                    .arg(locale.toString((double)sentMsecsAgo).rightJustified(COLUMN_WIDTH, ' '));
+                statsString += QString("%1 msecs ago")
+                    .arg(locale.toString((double)editMsecsAgo).rightJustified(COLUMN_WIDTH, ' '));
+                statsString += "\r\n";
+            }
+            viewers++;
+        }
+    }
+    if (viewers < 1) {
+        statsString += "    no viewers... \r\n";
+    }
+    statsString += "\r\n\r\n";
+
+    return statsString;
 }

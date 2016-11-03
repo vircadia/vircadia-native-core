@@ -1,0 +1,11 @@
+{
+    "name": "HighFidelityTests",
+    "version": "1.0.0",
+    "scripts": {
+        "test": "mocha"
+    },
+    "license": "Apache 2.0",
+    "devDependencies": {
+        "mocha": "^2.2.1"
+    }
+}

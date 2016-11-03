@@ -13,12 +13,15 @@
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
-AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
+bool AnimClip::usePreAndPostPoseFromAnim = true;
+
+AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag) :
     AnimNode(AnimNode::Type::Clip, id),
     _startFrame(startFrame),
     _endFrame(endFrame),
     _timeScale(timeScale),
     _loopFlag(loopFlag),
+    _mirrorFlag(mirrorFlag),
     _frame(startFrame)
 {
     loadURL(url);
@@ -35,7 +38,10 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     _endFrame = animVars.lookup(_endFrameVar, _endFrame);
     _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
     _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
-    _frame = accumulateTime(animVars.lookup(_frameVar, _frame), dt, triggersOut);
+    _mirrorFlag = animVars.lookup(_mirrorFlagVar, _mirrorFlag);
+    float frame = animVars.lookup(_frameVar, _frame);
+
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
 
     // poll network anim to see if it's finished loading yet.
     if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
@@ -45,21 +51,28 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     }
 
     if (_anim.size()) {
-        int frameCount = _anim.size();
+
+        // lazy creation of mirrored animation frames.
+        if (_mirrorFlag && _anim.size() != _mirrorAnim.size()) {
+            buildMirrorAnim();
+        }
 
         int prevIndex = (int)glm::floor(_frame);
-        int nextIndex = (int)glm::ceil(_frame);
-        if (_loopFlag && nextIndex >= frameCount) {
-            nextIndex = 0;
+        int nextIndex;
+        if (_loopFlag && _frame >= _endFrame) {
+            nextIndex = (int)glm::ceil(_startFrame);
+        } else {
+            nextIndex = (int)glm::ceil(_frame);
         }
 
         // It can be quite possible for the user to set _startFrame and _endFrame to
         // values before or past valid ranges.  We clamp the frames here.
+        int frameCount = (int)_anim.size();
         prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
         nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
 
-        const AnimPoseVec& prevFrame = _anim[prevIndex];
-        const AnimPoseVec& nextFrame = _anim[nextIndex];
+        const AnimPoseVec& prevFrame = _mirrorFlag ? _mirrorAnim[prevIndex] : _anim[prevIndex];
+        const AnimPoseVec& nextFrame = _mirrorFlag ? _mirrorAnim[nextIndex] : _anim[nextIndex];
         float alpha = glm::fract(_frame);
 
         ::blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
@@ -78,39 +91,7 @@ void AnimClip::setCurrentFrameInternal(float frame) {
     // because dt is 0, we should not encounter any triggers
     const float dt = 0.0f;
     Triggers triggers;
-    _frame = accumulateTime(frame * _timeScale, dt, triggers);
-}
-
-float AnimClip::accumulateTime(float frame, float dt, Triggers& triggersOut) const {
-    const float startFrame = std::min(_startFrame, _endFrame);
-    if (startFrame == _endFrame) {
-        // when startFrame >= endFrame
-        frame = _endFrame;
-    } else if (_timeScale > 0.0f) {
-        // accumulate time, keeping track of loops and end of animation events.
-        const float FRAMES_PER_SECOND = 30.0f;
-        float framesRemaining = (dt * _timeScale) * FRAMES_PER_SECOND;
-        while (framesRemaining > 0.0f) {
-            float framesTillEnd = _endFrame - _frame;
-            if (framesRemaining >= framesTillEnd) {
-                if (_loopFlag) {
-                    // anim loop
-                    triggersOut.push_back(_id + "OnLoop");
-                    framesRemaining -= framesTillEnd;
-                    frame = startFrame;
-                } else {
-                    // anim end
-                    triggersOut.push_back(_id + "OnDone");
-                    frame = _endFrame;
-                    framesRemaining = 0.0f;
-                }
-            } else {
-                frame += framesRemaining;
-                framesRemaining = 0.0f;
-            }
-        }
-    }
-    return frame;
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame + _startFrame, dt, _loopFlag, _id, triggers);
 }
 
 void AnimClip::copyFromNetworkAnim() {
@@ -120,64 +101,91 @@ void AnimClip::copyFromNetworkAnim() {
     // build a mapping from animation joint indices to skeleton joint indices.
     // by matching joints with the same name.
     const FBXGeometry& geom = _networkAnim->getGeometry();
-    const QVector<FBXJoint>& animJoints = geom.joints;
+    AnimSkeleton animSkeleton(geom);
+    const auto animJointCount = animSkeleton.getNumJoints();
+    const auto skeletonJointCount = _skeleton->getNumJoints();
     std::vector<int> jointMap;
-    const int animJointCount = animJoints.count();
     jointMap.reserve(animJointCount);
     for (int i = 0; i < animJointCount; i++) {
-        int skeletonJoint = _skeleton->nameToJointIndex(animJoints.at(i).name);
+        int skeletonJoint = _skeleton->nameToJointIndex(animSkeleton.getJointName(i));
         if (skeletonJoint == -1) {
-            qCWarning(animation) << "animation contains joint =" << animJoints.at(i).name << " which is not in the skeleton, url =" << _url;
+            qCWarning(animation) << "animation contains joint =" << animSkeleton.getJointName(i) << " which is not in the skeleton, url =" << _url;
         }
         jointMap.push_back(skeletonJoint);
     }
 
     const int frameCount = geom.animationFrames.size();
-    const int skeletonJointCount = _skeleton->getNumJoints();
     _anim.resize(frameCount);
-
-    const glm::vec3 offsetScale = extractScale(geom.offset);
 
     for (int frame = 0; frame < frameCount; frame++) {
 
-        // init all joints in animation to bind pose
-        // this will give us a resonable result for bones in the skeleton but not in the animation.
+        const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
+
+        // init all joints in animation to default pose
+        // this will give us a resonable result for bones in the model skeleton but not in the animation.
         _anim[frame].reserve(skeletonJointCount);
         for (int skeletonJoint = 0; skeletonJoint < skeletonJointCount; skeletonJoint++) {
-            _anim[frame].push_back(_skeleton->getRelativeBindPose(skeletonJoint));
+            _anim[frame].push_back(_skeleton->getRelativeDefaultPose(skeletonJoint));
         }
 
         for (int animJoint = 0; animJoint < animJointCount; animJoint++) {
-
             int skeletonJoint = jointMap[animJoint];
+
+            const glm::vec3& fbxAnimTrans = fbxAnimFrame.translations[animJoint];
+            const glm::quat& fbxAnimRot = fbxAnimFrame.rotations[animJoint];
 
             // skip joints that are in the animation but not in the skeleton.
             if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
 
-                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint] * offsetScale;
-                const AnimPose& relBindPose = _skeleton->getRelativeBindPose(skeletonJoint);
+                AnimPose preRot, postRot;
+                if (usePreAndPostPoseFromAnim) {
+                    preRot = animSkeleton.getPreRotationPose(animJoint);
+                    postRot = animSkeleton.getPostRotationPose(animJoint);
+                } else {
+                    // In order to support Blender, which does not have preRotation FBX support, we use the models defaultPose as the reference frame for the animations.
+                    preRot = AnimPose(glm::vec3(1.0f), _skeleton->getRelativeBindPose(skeletonJoint).rot, glm::vec3());
+                    postRot = AnimPose::identity;
+                }
 
-                // used to adjust translation offsets, so large translation animatons on the reference skeleton
+                // cancel out scale
+                preRot.scale = glm::vec3(1.0f);
+                postRot.scale = glm::vec3(1.0f);
+
+                AnimPose rot(glm::vec3(1.0f), fbxAnimRot, glm::vec3());
+
+                // adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
-                float limbLengthScale = fabsf(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relBindPose.trans) / glm::length(fbxZeroTrans));
+                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint];
+                const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
+                float boneLengthScale = 1.0f;
+                const float EPSILON = 0.0001f;
+                if (fabsf(glm::length(fbxZeroTrans)) > EPSILON) {
+                    boneLengthScale = glm::length(relDefaultPose.trans) / glm::length(fbxZeroTrans);
+                }
 
-                AnimPose& pose = _anim[frame][skeletonJoint];
-                const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
+                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans + boneLengthScale * (fbxAnimTrans - fbxZeroTrans));
 
-                // rotation in fbxAnimationFrame is a delta from a reference skeleton bind pose.
-                pose.rot = relBindPose.rot * fbxAnimFrame.rotations[animJoint];
-
-                // translation in fbxAnimationFrame is not a delta.
-                // convert it into a delta by subtracting from the first frame.
-                const glm::vec3& fbxTrans = fbxAnimFrame.translations[animJoint] * offsetScale;
-                pose.trans = relBindPose.trans + limbLengthScale * (fbxTrans - fbxZeroTrans);
+                _anim[frame][skeletonJoint] = trans * preRot * rot * postRot;
             }
         }
     }
 
+    // mirrorAnim will be re-built on demand, if needed.
+    _mirrorAnim.clear();
+
     _poses.resize(skeletonJointCount);
 }
 
+void AnimClip::buildMirrorAnim() {
+    assert(_skeleton);
+
+    _mirrorAnim.clear();
+    _mirrorAnim.reserve(_anim.size());
+    for (auto& relPoses : _anim) {
+        _mirrorAnim.push_back(relPoses);
+        _skeleton->mirrorRelativePoses(_mirrorAnim.back());
+    }
+}
 
 const AnimPoseVec& AnimClip::getPosesInternal() const {
     return _poses;

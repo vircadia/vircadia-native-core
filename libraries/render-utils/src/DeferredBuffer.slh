@@ -11,90 +11,79 @@
 <@if not DEFERRED_BUFFER_SLH@>
 <@def DEFERRED_BUFFER_SLH@>
 
+<@include gpu/PackedNormal.slh@>
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
+// Unpack the metallic-mode value
+const float FRAG_PACK_SHADED_NON_METALLIC = 0.0;
+const float FRAG_PACK_SHADED_METALLIC = 0.1;
+const float FRAG_PACK_SHADED_RANGE_INV = 1.0 / (FRAG_PACK_SHADED_METALLIC - FRAG_PACK_SHADED_NON_METALLIC);
 
-// the normal texture
-uniform sampler2D normalMap;
+const float FRAG_PACK_LIGHTMAPPED_NON_METALLIC = 0.2;
+const float FRAG_PACK_LIGHTMAPPED_METALLIC = 0.3;
+const float FRAG_PACK_LIGHTMAPPED_RANGE_INV = 1.0 / (FRAG_PACK_LIGHTMAPPED_METALLIC - FRAG_PACK_LIGHTMAPPED_NON_METALLIC);
 
-// the specular texture
-uniform sampler2D specularMap;
+const float FRAG_PACK_SCATTERING_NON_METALLIC = 0.4;
+const float FRAG_PACK_SCATTERING_METALLIC = 0.5;
+const float FRAG_PACK_SCATTERING_RANGE_INV = 1.0 / (FRAG_PACK_SCATTERING_METALLIC - FRAG_PACK_SCATTERING_NON_METALLIC);
 
-// the depth texture
-uniform sampler2D depthMap;
+const float FRAG_PACK_UNLIT = 0.6;
 
+const int FRAG_MODE_UNLIT = 0;
+const int FRAG_MODE_SHADED = 1;
+const int FRAG_MODE_LIGHTMAPPED = 2;
+const int FRAG_MODE_SCATTERING = 3;
 
-struct DeferredTransform { 
-    mat4 projection;
-    mat4 viewInverse;
-
-    vec4 stereoSide_spareABC;
-};
-
-layout(std140) uniform deferredTransformBuffer {
-    DeferredTransform _deferredTransform;
-};
-DeferredTransform getDeferredTransform() {
-    return _deferredTransform;
-}
-
-bool getStereoMode(DeferredTransform deferredTransform) {
-    return (deferredTransform.stereoSide_spareABC.x != 0.0);
-}
-float getStereoSide(DeferredTransform deferredTransform) {
-    return  (deferredTransform.stereoSide_spareABC.x);
-}
-
-vec4 evalEyePositionFromZ(DeferredTransform deferredTransform, float depthVal, vec2 texcoord) {
-    vec3 nPos = vec3(texcoord.xy * 2.0f - 1.0f, depthVal * 2.0f - 1.0f);
-
-    // compute the view space position using the depth
-    // basically manually pick the proj matrix components to do the inverse
-    float Ze = -deferredTransform.projection[3][2] / (nPos.z + deferredTransform.projection[2][2]);
-    float Xe = (-Ze * nPos.x - Ze * deferredTransform.projection[2][0] - deferredTransform.projection[3][0]) /  deferredTransform.projection[0][0];
-    float Ye = (-Ze * nPos.y - Ze * deferredTransform.projection[2][1] - deferredTransform.projection[3][1]) /  deferredTransform.projection[1][1];
-    return vec4(Xe, Ye, Ze, 1.0f);
-}
-
-struct DeferredFragment {
-    float depthVal;
-    vec4 normalVal;
-    vec4 diffuseVal;
-    vec4 specularVal;
-    vec4 position;
-    vec3 normal;
-    vec3 diffuse;
-    float opacity;
-    vec3 specular;
-    float gloss;
-};
-
-DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec2 texcoord) {
-    DeferredFragment frag;
-    frag.depthVal = texture(depthMap, texcoord).r;
-    frag.normalVal = texture(normalMap, texcoord);
-    frag.diffuseVal = texture(diffuseMap, texcoord);
-    frag.specularVal = texture(specularMap, texcoord);
-
-    if (getStereoMode(deferredTransform)) {
-        if (texcoord.x > 0.5) {
-            texcoord.x -= 0.5;
-        }
-        texcoord.x *= 2.0;
+void unpackModeMetallic(float rawValue, out int mode, out float metallic) {
+    if (rawValue <= FRAG_PACK_SHADED_METALLIC) {
+        mode = FRAG_MODE_SHADED;
+        metallic = clamp((rawValue - FRAG_PACK_SHADED_NON_METALLIC) * FRAG_PACK_SHADED_RANGE_INV, 0.0, 1.0);
+    } else if (rawValue <= FRAG_PACK_LIGHTMAPPED_METALLIC) {
+        mode = FRAG_MODE_LIGHTMAPPED;
+        metallic = clamp((rawValue - FRAG_PACK_LIGHTMAPPED_NON_METALLIC) * FRAG_PACK_LIGHTMAPPED_RANGE_INV, 0.0, 1.0);
+    } else if (rawValue <= FRAG_PACK_SCATTERING_METALLIC) {
+        mode = FRAG_MODE_SCATTERING;
+        metallic = clamp((rawValue - FRAG_PACK_SCATTERING_NON_METALLIC) * FRAG_PACK_SCATTERING_RANGE_INV, 0.0, 1.0);
+    } else if (rawValue >= FRAG_PACK_UNLIT) {
+        mode = FRAG_MODE_UNLIT;
+        metallic = 0.0;
     }
-    frag.position = evalEyePositionFromZ(deferredTransform, frag.depthVal, texcoord);
-
-   // Unpack the normal from the map
-    frag.normal = normalize(frag.normalVal.xyz * 2.0 - vec3(1.0));
-
-    frag.diffuse = frag.diffuseVal.xyz;
-    frag.opacity = frag.diffuseVal.w;
-    frag.specular = frag.specularVal.xyz;
-    frag.gloss = frag.specularVal.w;
-
-    return frag;
 }
 
+float packShadedMetallic(float metallic) {
+    return mix(FRAG_PACK_SHADED_NON_METALLIC, FRAG_PACK_SHADED_METALLIC, metallic);
+}
+
+float packLightmappedMetallic(float metallic) {
+    return mix(FRAG_PACK_LIGHTMAPPED_NON_METALLIC, FRAG_PACK_LIGHTMAPPED_METALLIC, metallic);
+}
+
+float packScatteringMetallic(float metallic) {
+    return mix(FRAG_PACK_SCATTERING_NON_METALLIC, FRAG_PACK_SCATTERING_METALLIC, metallic);
+}
+
+float packUnlit() {
+    return FRAG_PACK_UNLIT;
+}
+
+<!
+uniform sampler2D normalFittingMap;
+
+vec3 bestFitNormal(vec3 normal) {
+    vec3 absNorm = abs(normal);
+    float maxNAbs = max(absNorm.z, max(absNorm.x, absNorm.y));
+
+    vec2 texcoord = (absNorm.z < maxNAbs ? 
+                        (absNorm.y < maxNAbs ? absNorm.yz : absNorm.xz) :
+                        absNorm.xy);
+    texcoord = (texcoord.x < texcoord.y ? texcoord.yx : texcoord.xy);
+    texcoord.y /= texcoord.x;
+    vec3 cN = normal / maxNAbs;
+
+    float fittingScale = texture(normalFittingMap, texcoord).a;
+    cN *= fittingScale;
+
+    return (cN * 0.5 + 0.5);
+}
+!>
 
 <@endif@>

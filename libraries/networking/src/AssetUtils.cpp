@@ -11,6 +11,8 @@
 
 #include "AssetUtils.h"
 
+#include <memory>
+
 #include <QtCore/QCryptographicHash>
 #include <QtNetwork/QAbstractNetworkCache>
 
@@ -19,12 +21,8 @@
 
 #include "ResourceManager.h"
 
-QUrl getATPUrl(const QString& hash, const QString& extension) {
-    if (!extension.isEmpty()) {
-        return QUrl(QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, extension));
-    } else {
-        return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP, hash));
-    }
+QUrl getATPUrl(const QString& hash) {
+    return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP, hash));
 }
 
 QByteArray hashData(const QByteArray& data) {
@@ -33,12 +31,15 @@ QByteArray hashData(const QByteArray& data) {
 
 QByteArray loadFromCache(const QUrl& url) {
     if (auto cache = NetworkAccessManager::getInstance().cache()) {
-        if (auto ioDevice = cache->data(url)) {
+
+        // caller is responsible for the deletion of the ioDevice, hence the unique_ptr
+        if (auto ioDevice = std::unique_ptr<QIODevice>(cache->data(url))) {
             qCDebug(asset_client) << url.toDisplayString() << "loaded from disk cache.";
             return ioDevice->readAll();
         } else {
             qCDebug(asset_client) << url.toDisplayString() << "not in disk cache";
         }
+
     } else {
         qCWarning(asset_client) << "No disk cache to load assets from.";
     }
@@ -53,7 +54,8 @@ bool saveToCache(const QUrl& url, const QByteArray& file) {
             metaData.setSaveToDisk(true);
             metaData.setLastModified(QDateTime::currentDateTime());
             metaData.setExpirationDate(QDateTime()); // Never expires
-            
+
+            // ioDevice is managed by the cache and should either be passed back to insert or remove!
             if (auto ioDevice = cache->prepare(metaData)) {
                 ioDevice->write(file);
                 cache->insert(ioDevice);
@@ -66,4 +68,19 @@ bool saveToCache(const QUrl& url, const QByteArray& file) {
         qCWarning(asset_client) << "No disk cache to save assets to.";
     }
     return false;
+}
+
+bool isValidFilePath(const AssetPath& filePath) {
+    QRegExp filePathRegex { ASSET_FILE_PATH_REGEX_STRING };
+    return filePathRegex.exactMatch(filePath);
+}
+
+bool isValidPath(const AssetPath& path) {
+    QRegExp pathRegex { ASSET_PATH_REGEX_STRING };
+    return pathRegex.exactMatch(path);
+}
+
+bool isValidHash(const AssetHash& hash) {
+    QRegExp hashRegex { ASSET_HASH_REGEX_STRING };
+    return hashRegex.exactMatch(hash);
 }

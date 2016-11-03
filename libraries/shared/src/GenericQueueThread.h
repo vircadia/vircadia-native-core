@@ -12,9 +12,10 @@
 
 #include <stdint.h>
 
-#include <QQueue>
-#include <QMutex>
-#include <QWaitCondition>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QMutex>
+#include <QtCore/QQueue>
+#include <QtCore/QWaitCondition>
 
 #include "GenericThread.h"
 #include "NumericalConstants.h"
@@ -35,6 +36,48 @@ public:
         _hasItems.wakeAll();
     }
 
+    void waitIdle(uint32_t maxWaitMs = UINT32_MAX) {
+        QElapsedTimer timer;
+        timer.start();
+
+        // FIXME this will work as long as the thread doing the wait
+        // is the only thread which can add work to the queue.  
+        // It would be better if instead we had a queue empty condition to wait on
+        // that would ensure that we get woken as soon as we're idle the very 
+        // first time the queue was empty.
+        while (timer.elapsed() < maxWaitMs) {
+            lock();
+            if (!_items.size()) {
+                unlock();
+                return;
+            }
+            unlock();
+        }
+    }
+
+    virtual bool process() override {
+        lock();
+        if (!_items.size()) {
+            unlock();
+            _hasItemsMutex.lock();
+            _hasItems.wait(&_hasItemsMutex, getMaxWait());
+            _hasItemsMutex.unlock();
+        } else {
+            unlock();
+        }
+
+        lock();
+        if (!_items.size()) {
+            unlock();
+            return isStillRunning();
+        }
+
+        Queue processItems;
+        processItems.swap(_items);
+        unlock();
+        return processQueueItems(processItems);
+    }
+
 protected:
     virtual void queueItemInternal(const T& t) {
         _items.push_back(t);
@@ -44,23 +87,7 @@ protected:
         return MSECS_PER_SECOND;
     }
 
-    virtual bool process() {
-        if (!_items.size()) {
-            _hasItemsMutex.lock();
-            _hasItems.wait(&_hasItemsMutex, getMaxWait());
-            _hasItemsMutex.unlock();
-        }
 
-        if (!_items.size()) {
-            return isStillRunning();
-        }
-
-        Queue processItems;
-        lock();
-        processItems.swap(_items);
-        unlock();
-        return processQueueItems(processItems);
-    }
 
     virtual bool processQueueItems(const Queue& items) = 0;
 

@@ -16,31 +16,30 @@
 #ifndef hifi_OctreeElementBag_h
 #define hifi_OctreeElementBag_h
 
+#include <unordered_map>
+
 #include "OctreeElement.h"
 
-class OctreeElementBag : public OctreeElementDeleteHook {
-
+class OctreeElementBag {
+    using Bag = std::unordered_map<OctreeElement*, OctreeElementWeakPointer>;
+    
 public:
-    OctreeElementBag();
-    ~OctreeElementBag();
-
     void insert(OctreeElementPointer element); // put a element into the bag
-    OctreeElementPointer extract(); // pull a element out of the bag (could come in any order)
-    bool contains(OctreeElementPointer element); // is this element in the bag?
-    void remove(OctreeElementPointer element); // remove a specific element from the bag
-    bool isEmpty() const { return _bagElements.isEmpty(); }
-    int count() const { return _bagElements.size(); }
 
+    OctreeElementPointer extract(); /// pull a element out of the bag (could come in any order) and if all of the
+                                    /// elements have expired, a single null pointer will be returned
+
+    bool isEmpty(); /// does the bag contain elements, 
+                    /// if all of the contained elements are expired, they will not report as empty, and
+                    /// a single last item will be returned by extract as a null pointer
+    
     void deleteAll();
-    virtual void elementDeleted(OctreeElementPointer element);
-
-    void unhookNotifications();
+    size_t size() const { return _bagElements.size(); }
 
 private:
-    QSet<OctreeElementPointer> _bagElements;
-    bool _hooked;
+    Bag _bagElements;
 };
 
-typedef QMap<const OctreeElement*, void*> OctreeElementExtraEncodeData;
+using OctreeElementExtraEncodeData = QMap<const OctreeElement*, void*>;
 
 #endif // hifi_OctreeElementBag_h

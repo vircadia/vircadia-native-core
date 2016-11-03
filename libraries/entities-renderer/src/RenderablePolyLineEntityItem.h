@@ -12,35 +12,43 @@
 #ifndef hifi_RenderablePolyLineEntityItem_h
 #define hifi_RenderablePolyLineEntityItem_h
 
+
 #include <gpu/Batch.h>
-#include <PolyLineEntityItem.h>
-#include "RenderableDebugableEntityItem.h"
-#include "RenderableEntityItem.h"
 #include <GeometryCache.h>
+#include <PolyLineEntityItem.h>
+#include "RenderableEntityItem.h"
+#include <TextureCache.h>
+
 #include <QReadWriteLock>
-#include <gpu/GPUConfig.h>
 
 
 class RenderablePolyLineEntityItem : public PolyLineEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static void createPipeline();
-    RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    
-    virtual void render(RenderArgs* args);
-    
+    RenderablePolyLineEntityItem(const EntityItemID& entityItemID);
+
+    virtual void render(RenderArgs* args) override;
+    virtual void update(const quint64& now) override;
+    virtual bool needsToCallUpdate() const override { return true; }
+
+    bool isTransparent() override { return true; }
+
     SIMPLE_RENDERABLE();
-    
+
+    NetworkTexturePointer _texture;
+
     static gpu::PipelinePointer _pipeline;
     static gpu::Stream::FormatPointer _format;
-    static gpu::TexturePointer _texture;
-    static GLint PAINTSTROKE_GPU_SLOT;
-    
+    static int32_t PAINTSTROKE_GPU_SLOT;
+
 protected:
     void updateGeometry();
+    void updateVertices();
     gpu::BufferPointer _verticesBuffer;
+    gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
-
+    QVector<glm::vec3> _vertices;
 };
 
 

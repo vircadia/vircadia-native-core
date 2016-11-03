@@ -11,7 +11,9 @@
 using namespace gpu;
 
 const Element Element::COLOR_RGBA_32{ VEC4, NUINT8, RGBA };
-const Element Element::COLOR_RGBA{ VEC4, FLOAT, RGBA };
+const Element Element::COLOR_SRGBA_32{ VEC4, NUINT8, SRGBA };
+const Element Element::COLOR_R11G11B10{ SCALAR, FLOAT, R11G11B10 };
+const Element Element::VEC4F_COLOR_RGBA{ VEC4, FLOAT, RGBA };
 const Element Element::VEC2F_UV{ VEC2, FLOAT, UV };
 const Element Element::VEC2F_XY{ VEC2, FLOAT, XY };
 const Element Element::VEC3F_XYZ{ VEC3, FLOAT, XYZ };

@@ -46,11 +46,11 @@ public:
     // Vertex buffer
     void setVertexBuffer(const BufferView& buffer);
     const BufferView& getVertexBuffer() const { return _vertexBuffer; }
-    uint getNumVertices() const { return _vertexBuffer.getNumElements(); }
+    size_t getNumVertices() const { return _vertexBuffer.getNumElements(); }
     bool hasVertexData() const { return _vertexBuffer._buffer.get() != nullptr; }
 
     // Attribute Buffers
-    int getNumAttributes() const { return _attributeBuffers.size(); }
+    size_t getNumAttributes() const { return _attributeBuffers.size(); }
     void addAttribute(Slot slot, const BufferView& buffer);
     const BufferView getAttributeBuffer(int attrib) const;
 
@@ -58,12 +58,12 @@ public:
     const gpu::Stream::FormatPointer getVertexFormat() const { return _vertexFormat; }
 
     // BufferStream on the mesh vertices and attributes matching the vertex format
-    const gpu::BufferStream getVertexStream() const { return _vertexStream; }
+    const gpu::BufferStream& getVertexStream() const { return _vertexStream; }
 
     // Index Buffer
     void setIndexBuffer(const BufferView& buffer);
     const BufferView& getIndexBuffer() const { return _indexBuffer; }
-    uint getNumIndices() const { return _indexBuffer.getNumElements(); }
+    size_t getNumIndices() const { return _indexBuffer.getNumElements(); }
 
     // Access vertex position value
     const Vec3& getPos3(Index index) const { return _vertexBuffer.get<Vec3>(index); }
@@ -104,13 +104,13 @@ public:
 
     void setPartBuffer(const BufferView& buffer);
     const BufferView& getPartBuffer() const { return _partBuffer; }
-    uint getNumParts() const { return _partBuffer.getNumElements(); }
+    size_t getNumParts() const { return _partBuffer.getNumElements(); }
 
     // evaluate the bounding box of A part
-    const Box evalPartBound(int partNum) const;
-    // evaluate the bounding boxes of the parts in the range [start, end[ and fill the bounds parameter
-    // the returned box is the bounding box of ALL the evaluated part bounds.
-    const Box evalPartBounds(int partStart, int partEnd, Boxes& bounds) const;
+    Box evalPartBound(int partNum) const;
+    // evaluate the bounding boxes of the parts in the range [start, end]
+    // the returned box is the bounding box of ALL the evaluated parts bound.
+    Box evalPartsBound(int partStart, int partEnd) const;
 
     static gpu::Primitive topologyToPrimitive(Topology topo) { return static_cast<gpu::Primitive>(topo); }
 
@@ -130,7 +130,7 @@ protected:
     void evalVertexStream();
 
 };
-typedef std::shared_ptr< Mesh > MeshPointer;
+using MeshPointer = std::shared_ptr< Mesh >;
 
 
 class Geometry {

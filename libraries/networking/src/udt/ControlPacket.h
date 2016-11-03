@@ -34,7 +34,8 @@ public:
         TimeoutNAK,
         Handshake,
         HandshakeACK,
-        ProbeTail
+        ProbeTail,
+        HandshakeRequest
     };
     
     static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);

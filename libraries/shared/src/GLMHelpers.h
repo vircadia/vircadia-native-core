@@ -16,6 +16,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 // Bring the most commonly used GLM types into the default namespace
 using glm::ivec2;
@@ -57,6 +58,9 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 class Quaternions {
  public:
     static const quat IDENTITY;
+    static const quat X_180;
+    static const quat Y_180;
+    static const quat Z_180;
 };
 
 class Vectors {
@@ -80,6 +84,7 @@ public:
     static const vec3& RIGHT;
     static const vec3& UP;
     static const vec3& FRONT;
+    static const vec3 ZERO4;
 };
 
 // These pack/unpack functions are designed to start specific known types in as efficient a manner
@@ -93,6 +98,14 @@ int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destina
 // this allows us to encode each component in 16bits with great accuracy
 int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput);
 int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatOutput);
+
+// alternate compression method that picks the smallest three quaternion components.
+// and packs them into 15 bits each. An additional 2 bits are used to encode which component
+// was omitted.  Also because the components are encoded from the -1/sqrt(2) to 1/sqrt(2) which
+// gives us some extra precision over the -1 to 1 range.  The final result will have a maximum
+// error of +- 4.3e-5 error per compoenent.
+int packOrientationQuatToSixBytes(unsigned char* buffer, const glm::quat& quatInput);
+int unpackOrientationQuatFromSixBytes(const unsigned char* buffer, glm::quat& quatOutput);
 
 // Ratios need the be highly accurate when less than 10, but not very accurate above 10, and they
 // are never greater than 1000 to 1, this allows us to encode each component in 16bits
@@ -130,6 +143,7 @@ glm::vec3 extractTranslation(const glm::mat4& matrix);
 void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
 
 glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
+glm::quat glmExtractRotation(const glm::mat4& matrix);
 
 glm::vec3 extractScale(const glm::mat4& matrix);
 
@@ -153,6 +167,7 @@ vec2 toGlm(const QPointF& pt);
 vec3 toGlm(const xColor& color);
 vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
+vec4 toGlm(const xColor& color, float alpha);
 
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);
@@ -183,29 +198,37 @@ T toNormalizedDeviceScale(const T& value, const T& size) {
 #define PITCH(euler) euler.x
 #define ROLL(euler) euler.z
 
+// float - linear interpolate
+inline float lerp(float x, float y, float a) {
+    return x * (1.0f - a) + (y * a);
+}
+
 // vec2 lerp - linear interpolate
 template<typename T, glm::precision P>
-glm::detail::tvec2<T, P> lerp(const glm::detail::tvec2<T, P>& x, const glm::detail::tvec2<T, P>& y, T a) {
+glm::tvec2<T, P> lerp(const glm::tvec2<T, P>& x, const glm::tvec2<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
 }
 
 // vec3 lerp - linear interpolate
 template<typename T, glm::precision P>
-glm::detail::tvec3<T, P> lerp(const glm::detail::tvec3<T, P>& x, const glm::detail::tvec3<T, P>& y, T a) {
+glm::tvec3<T, P> lerp(const glm::tvec3<T, P>& x, const glm::tvec3<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
 }
 
 // vec4 lerp - linear interpolate
 template<typename T, glm::precision P>
-glm::detail::tvec4<T, P> lerp(const glm::detail::tvec4<T, P>& x, const glm::detail::tvec4<T, P>& y, T a) {
+glm::tvec4<T, P> lerp(const glm::tvec4<T, P>& x, const glm::tvec4<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
 }
 
 glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p);
+glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans);
+glm::quat cancelOutRoll(const glm::quat& q);
 glm::quat cancelOutRollAndPitch(const glm::quat& q);
 glm::mat4 cancelOutRollAndPitch(const glm::mat4& m);
 glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p);
-glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v);
+glm::vec3 transformVectorFast(const glm::mat4& m, const glm::vec3& v);
+glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v);
 
 // Calculate an orthogonal basis from a primary and secondary axis.
 // The uAxis, vAxis & wAxis will form an orthognal basis.
@@ -213,5 +236,13 @@ glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v);
 // The vAxis will be as close as possible to to the secondary axis.
 void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut);
+
+glm::vec2 getFacingDir2D(const glm::quat& rot);
+glm::vec2 getFacingDir2D(const glm::mat4& m);
+
+inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
+inline bool isNaN(const glm::quat& value) { return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
+
+glm::mat4 orthoInverse(const glm::mat4& m);
 
 #endif // hifi_GLMHelpers_h

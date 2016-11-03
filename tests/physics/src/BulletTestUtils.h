@@ -14,6 +14,8 @@
 
 #include <BulletUtil.h>
 
+#include <functional>
+
 // Implements functionality in QTestExtensions.h for glm types
 // There are 3 functions in here (which need to be defined for all types that use them):
 //

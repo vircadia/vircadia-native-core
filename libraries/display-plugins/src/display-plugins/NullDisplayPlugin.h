@@ -11,21 +11,14 @@
 
 class NullDisplayPlugin : public DisplayPlugin {
 public:
+    ~NullDisplayPlugin() final {}
+    const QString& getName() const override { return NAME; }
+    grouping getGrouping() const override { return DEVELOPER; }
 
-    virtual ~NullDisplayPlugin() final {}
-    virtual const QString & getName() const override;
-
-    void activate() override;
-    void deactivate() override;
-    void stop() override;
-
-    virtual glm::uvec2 getRecommendedRenderSize() const override;
-    virtual bool hasFocus() const override;
-    virtual void preRender() override;
-    virtual void preDisplay() override;
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
-    virtual void finishFrame() override;
-
+    glm::uvec2 getRecommendedRenderSize() const override;
+    bool hasFocus() const override;
+    void submitFrame(const gpu::FramePointer& newFrame) override;
+    QImage getScreenshot(float aspectRatio = 0.0f) const override;
 private:
     static const QString NAME;
 };

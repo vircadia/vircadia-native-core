@@ -19,6 +19,9 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
+#include <SettingHandle.h>
+#include "AddressManager.h"
+
 class UserActivityLogger : public QObject {
     Q_OBJECT
     
@@ -26,25 +29,28 @@ public:
     static UserActivityLogger& getInstance();
     
 public slots:
+    bool isEnabled() { return !_disabled.get(); }
+
     void disable(bool disable);
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     
-    void launch(QString applicationVersion);
+    void launch(QString applicationVersion, bool previousSessionCrashed, int previousSessionRuntime);
+
+    void insufficientGLVersion(const QJsonObject& glData);
     
     void changedDisplayName(QString displayName);
     void changedModel(QString typeOfModel, QString modelURL);
     void changedDomain(QString domainURL);
     void connectedDevice(QString typeOfDevice, QString deviceName);
     void loadedScript(QString scriptName);
-    void wentTo(QString destinationType, QString destinationName);
+    void wentTo(AddressManager::LookupTrigger trigger, QString destinationType, QString destinationName);
     
 private slots:
-    void requestFinished(QNetworkReply& requestReply);
     void requestError(QNetworkReply& errorReply);
     
 private:
-    UserActivityLogger();
-    bool _disabled;
+    UserActivityLogger() {};
+    Setting::Handle<bool> _disabled { "UserActivityLoggerDisabled", false };
 };
 
 #endif // hifi_UserActivityLogger_h

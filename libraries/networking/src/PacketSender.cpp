@@ -259,7 +259,7 @@ bool PacketSender::nonThreadedProcess() {
         }
     }
 
-    int packetsLeft = _packets.size();
+    auto packetsLeft = _packets.size();
 
     // Now that we know how many packets to send this call to process, just send them.
     while ((packetsSentThisCall < packetsToSendThisCall) && (packetsLeft > 0)) {

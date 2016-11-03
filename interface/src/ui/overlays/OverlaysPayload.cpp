@@ -8,8 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QScriptValueIterator>
-
 #include <limits>
 #include <typeinfo>
 
@@ -35,15 +33,18 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
-        if (overlay->is3D() && !std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawOnHUD()) {
-            if (std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
-                return ItemKey::Builder().withTypeShape().withLayered().build();
-            } else {
-                return ItemKey::Builder::opaqueShape();
+        auto builder = ItemKey::Builder().withTypeShape();
+        if (overlay->is3D()) {
+            if (std::static_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
+                builder.withLayered();
+            }
+            if (overlay->getAlphaPulse() != 0.0f || overlay->getAlpha() != 1.0f) {
+                builder.withTransparent();
             }
         } else {
-            return ItemKey::Builder().withTypeShape().withViewSpace().build();
+            builder.withViewSpace();
         }
+        return builder.build();
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
         return overlay->getBounds();
@@ -63,12 +64,12 @@ namespace render {
         if (args) {
             if (overlay->getAnchor() == Overlay::MY_AVATAR) {
                 auto batch = args->_batch;
-                MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+                auto avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
                 glm::quat myAvatarRotation = avatar->getOrientation();
                 glm::vec3 myAvatarPosition = avatar->getPosition();
                 float angle = glm::degrees(glm::angle(myAvatarRotation));
                 glm::vec3 axis = glm::axis(myAvatarRotation);
-                float myAvatarScale = avatar->getScale();
+                float myAvatarScale = avatar->getUniformScale();
                 Transform transform = Transform();
                 transform.setTranslation(myAvatarPosition);
                 transform.setRotation(glm::angleAxis(angle, axis));
@@ -79,5 +80,8 @@ namespace render {
                 overlay->render(args);
             }
         }
+    }
+    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay) {
+        return overlay->getShapeKey();
     }
 }

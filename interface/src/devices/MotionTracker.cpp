@@ -90,7 +90,7 @@ MotionTracker::Index MotionTracker::addJoint(const Semantic& semantic, Index par
     
 
     // All good then allocate the joint
-    Index newIndex = _jointsArray.size();
+    Index newIndex = (Index)_jointsArray.size();
     _jointsArray.push_back(JointTracker(semantic, parent));
     _jointsMap.insert(JointTracker::Map::value_type(semantic, newIndex));
 

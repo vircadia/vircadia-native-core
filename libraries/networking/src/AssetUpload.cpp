@@ -19,9 +19,8 @@
 
 const QString AssetUpload::PERMISSION_DENIED_ERROR = "You do not have permission to upload content to this asset-server.";
 
-AssetUpload::AssetUpload(const QByteArray& data, const QString& extension) :
-    _data(data),
-    _extension(extension)
+AssetUpload::AssetUpload(const QByteArray& data) :
+    _data(data)
 {
     
 }
@@ -35,6 +34,8 @@ AssetUpload::AssetUpload(const QString& filename) :
 QString AssetUpload::getErrorString() const {
     // figure out the right error message for error
     switch (_error) {
+        case AssetUpload::NoError:
+            return QString();
         case AssetUpload::PermissionDenied:
             return PERMISSION_DENIED_ERROR;
         case AssetUpload::TooLarge:
@@ -42,10 +43,11 @@ QString AssetUpload::getErrorString() const {
         case AssetUpload::FileOpenError:
             return "The file could not be opened. Please check your permissions and try again.";
         case AssetUpload::NetworkError:
-            return "The file could not be opened. Please check your network connectivity.";
+            return "There was a problem reaching your Asset Server. Please check your network connectivity.";
+        case AssetUpload::ServerFileError:
+            return "The Asset Server failed to store the asset. Please try again.";
         default:
-            // not handled, do not show a message box
-            return QString();
+            return QString("Unknown error with code %1").arg(_error);
     }
 }
 
@@ -59,11 +61,7 @@ void AssetUpload::start() {
         // try to open the file at the given filename
         QFile file { _filename };
         
-        if (file.open(QIODevice::ReadOnly)) {
-            
-            // file opened, read the data and grab the extension
-            _extension = QFileInfo(_filename).suffix();
-            
+        if (file.open(QIODevice::ReadOnly)) {            
             _data = file.readAll();
         } else {
             // we couldn't open the file - set the error result
@@ -71,6 +69,8 @@ void AssetUpload::start() {
             
             // emit that we are done
             emit finished(this, QString());
+
+            return;
         }
     }
     
@@ -81,7 +81,7 @@ void AssetUpload::start() {
         qCDebug(asset_client) << "Attempting to upload" << _filename << "to asset-server.";
     }
     
-    assetClient->uploadAsset(_data, _extension, [this](bool responseReceived, AssetServerError error, const QString& hash){
+    assetClient->uploadAsset(_data, [this](bool responseReceived, AssetServerError error, const QString& hash){
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -95,6 +95,9 @@ void AssetUpload::start() {
                 case AssetServerError::PermissionDenied:
                     _error = PermissionDenied;
                     break;
+                case AssetServerError::FileOperationFailed:
+                    _error = ServerFileError;
+                    break;
                 default:
                     _error = FileOpenError;
                     break;
@@ -102,7 +105,7 @@ void AssetUpload::start() {
         }
         
         if (_error == NoError && hash == hashData(_data).toHex()) {
-            saveToCache(getATPUrl(hash, _extension), _data);
+            saveToCache(getATPUrl(hash), _data);
         }
         
         emit finished(this, hash);

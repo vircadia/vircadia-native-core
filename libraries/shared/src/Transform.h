@@ -21,6 +21,9 @@
 
 #include <memory>
 
+class QJsonObject;
+class QJsonValue;
+
 inline bool isValidScale(glm::vec3 scale) {
     bool result = scale.x != 0.0f && scale.y != 0.0f && scale.z != 0.0f;
     assert(result);
@@ -35,6 +38,7 @@ inline bool isValidScale(float scale) {
 
 class Transform {
 public:
+    using Pointer = std::shared_ptr<Transform>;
     typedef glm::mat4 Mat4;
     typedef glm::mat3 Mat3;
     typedef glm::vec4 Vec4;
@@ -81,6 +85,14 @@ public:
         return (*this);
     }
 
+    bool operator==(const Transform& other) const {
+        return _rotation == other._rotation && _scale == other._scale && _translation == other._translation;
+    }
+
+    bool operator!=(const Transform& other) const {
+        return _rotation != other._rotation || _scale != other._scale || _translation != other._translation;
+    }
+
     Transform& setIdentity();
 
     const Vec3& getTranslation() const;
@@ -96,8 +108,6 @@ public:
     const Vec3& getScale() const;
     Transform& setScale(float scale);
     Transform& setScale(const Vec3& scale);  // [new this] = [this.translation] * [this.rotation] * [scale]
-    Transform& preScale(float scale);
-    Transform& preScale(const Vec3& scale);
     Transform& postScale(float scale);       // [new this] = [this] * [scale] equivalent to:glScale
     Transform& postScale(const Vec3& scale); // [new this] = [this] * [scale] equivalent to:glScale
 
@@ -111,6 +121,8 @@ public:
     Transform& evalFromRawMatrix(const Mat4& matrix);
     Transform& evalFromRawMatrix(const Mat3& rotationScalematrix);
 
+    Mat4 getMatrix() const;
+    Mat4 getInverseMatrix() const;
     Mat4& getMatrix(Mat4& result) const;
     Mat4& getInverseMatrix(Mat4& result) const;
     Mat4& getInverseTransposeMatrix(Mat4& result) const;
@@ -120,6 +132,9 @@ public:
 
     Transform& evalInverse(Transform& result) const;
 
+    Transform relativeTransform(const Transform& world) const;
+    Transform worldTransform(const Transform& relative) const;
+
     static void evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotationScaleMatrix);
 
     static Transform& mult(Transform& result, const Transform& left, const Transform& right);
@@ -127,8 +142,14 @@ public:
     // Left will be inversed before the multiplication
     static Transform& inverseMult(Transform& result, const Transform& left, const Transform& right);
 
+
+    static Transform fromJson(const QJsonValue& json);
+    static QJsonObject toJson(const Transform& transform);
+
     Vec4 transform(const Vec4& pos) const;
     Vec3 transform(const Vec3& pos) const;
+
+    bool containsNaN() const { return isNaN(_rotation) || isNaN(glm::dot(_scale, _translation)); }
 
 protected:
 
@@ -333,14 +354,6 @@ inline Transform& Transform::setScale(const Vec3& scale) {
     return *this;
 }
 
-inline Transform& Transform::preScale(float scale) {
-    return setScale(getScale() * scale);
-}
-
-inline Transform& Transform::preScale(const Vec3& scale) {
-    return setScale(getScale() * scale);
-}
-
 inline Transform& Transform::postScale(float scale) {
     if (!isValidScale(scale) || scale == 1.0f) {
         return *this;
@@ -359,6 +372,9 @@ inline Transform& Transform::postScale(const Vec3& scale) {
         return *this;
     }
     invalidCache();
+    if ((scale.x != scale.y) || (scale.x != scale.z)) {
+        flagNonUniform();
+    }
     if (isScaling()) {
         _scale *= scale;
     } else {
@@ -366,6 +382,18 @@ inline Transform& Transform::postScale(const Vec3& scale) {
     }
     flagScaling();
     return *this;
+}
+
+inline Transform::Mat4 Transform::getMatrix() const {
+    Transform::Mat4 result;
+    getMatrix(result);
+    return result;
+}
+
+inline Transform::Mat4 Transform::getInverseMatrix() const {
+    Transform::Mat4 result;
+    getInverseMatrix(result);
+    return result;
 }
 
 inline Transform::Mat4& Transform::getMatrix(Transform::Mat4& result) const {

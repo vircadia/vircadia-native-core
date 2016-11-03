@@ -288,7 +288,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 #endif
                 }
 
-                QHash<QString, int>::iterator it = data.extracted.texcoordSetMap.find(attrib.name);
+                QHash<QString, size_t>::iterator it = data.extracted.texcoordSetMap.find(attrib.name);
                 if (it == data.extracted.texcoordSetMap.end()) {
                     data.extracted.texcoordSetMap.insert(attrib.name, data.attributes.size());
                     data.attributes.push_back(attrib);

@@ -13,11 +13,14 @@
 #define hifi_AudioMixer_h
 
 #include <AABox.h>
+#include <AudioHRTF.h>
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
+#include <UUIDHasher.h>
 
 class PositionalAudioStream;
 class AvatarAudioStream;
+class AudioHRTF;
 class AudioMixerClientData;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
@@ -28,43 +31,51 @@ const int READ_DATAGRAMS_STATS_WINDOW_SECONDS = 30;
 class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
-    AudioMixer(NLPacket& packet);
+    AudioMixer(ReceivedMessage& message);
 
-    void deleteLater() { qDebug() << "DELETE LATER CALLED?"; QObject::deleteLater(); }
 public slots:
     /// threaded run of assignment
-    void run();
+    void run() override;
 
-    void sendStatsPacket();
+    void sendStatsPacket() override;
 
-    static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
+    static int getStaticJitterFrames() { return _numStaticJitterFrames; }
 
 private slots:
-    void handleNodeAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void broadcastMixes();
+    void handleNodeAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void handleNodeKilled(SharedNodePointer killedNode);
+    void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+
+    void removeHRTFsForFinishedInjector(const QUuid& streamID);
 
 private:
+    AudioMixerClientData* getOrCreateClientData(Node* node);
+    void domainSettingsRequestComplete();
+    
     /// adds one stream to the mix for a listening node
-    int addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
-                                                    const QUuid& streamUUID,
-                                                    PositionalAudioStream* streamToAdd,
-                                                    AvatarAudioStream* listeningNodeStream);
+    void addStreamToMixForListeningNodeWithStream(AudioMixerClientData& listenerNodeData,
+                                                  const PositionalAudioStream& streamToAdd,
+                                                  const QUuid& sourceNodeID,
+                                                  const AvatarAudioStream& listeningNodeStream);
+
+    float gainForSource(const PositionalAudioStream& streamToAdd, const AvatarAudioStream& listeningNodeStream,
+                        const glm::vec3& relativePosition, bool isEcho);
+    float azimuthForSource(const PositionalAudioStream& streamToAdd, const AvatarAudioStream& listeningNodeStream,
+                           const glm::vec3& relativePosition);
 
     /// prepares and sends a mix to one Node
-    int prepareMixForListeningNode(Node* node);
+    bool prepareMixForListeningNode(Node* node);
 
     /// Send Audio Environment packet for a single node
     void sendAudioEnvironmentPacket(SharedNodePointer node);
 
-    // used on a per stream basis to run the filter on before mixing, large enough to handle the historical
-    // data from a phase delay as well as an entire network buffer
-    int16_t _preMixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
-
-    // client samples capacity is larger than what will be sent to optimize mixing
-    // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
-    int16_t _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
-
     void perSecondActions();
+
+    QString percentageForMixStats(int counter);
 
     bool shouldMute(float quietestFrame);
 
@@ -75,9 +86,20 @@ private:
     float _performanceThrottlingRatio;
     float _attenuationPerDoublingInDistance;
     float _noiseMutingThreshold;
-    int _numStatFrames;
-    int _sumListeners;
-    int _sumMixes;
+    int _numStatFrames { 0 };
+    int _sumStreams { 0 };
+    int _sumListeners { 0 };
+    int _hrtfRenders { 0 };
+    int _hrtfSilentRenders { 0 };
+    int _hrtfStruggleRenders { 0 };
+    int _manualStereoMixes { 0 };
+    int _manualEchoMixes { 0 };
+    int _totalMixes { 0 };
+
+    QString _codecPreferenceOrder;
+
+    float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
 
     QHash<QString, AABox> _audioZones;
     struct ZonesSettings {
@@ -93,21 +115,9 @@ private:
     };
     QVector<ReverbSettings> _zoneReverbSettings;
 
-    static InboundAudioStream::Settings _streamSettings;
+    static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
 
-    static bool _printStreamStats;
     static bool _enableFilter;
-
-    quint64 _lastPerSecondCallbackTime;
-
-    bool _sendAudioStreamStats;
-
-    // stats
-    MovingMinMaxAvg<int> _datagramsReadPerCallStats;     // update with # of datagrams read for each readPendingDatagrams call
-    MovingMinMaxAvg<quint64> _timeSpentPerCallStats;     // update with usecs spent inside each readPendingDatagrams call
-    MovingMinMaxAvg<quint64> _timeSpentPerHashMatchCallStats; // update with usecs spent inside each packetVersionAndHashMatch call
-
-    MovingMinMaxAvg<int> _readPendingCallsPerSecondStats;     // update with # of readPendingDatagrams calls in the last second
 };
 
 #endif // hifi_AudioMixer_h

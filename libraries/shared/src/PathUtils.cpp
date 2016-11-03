@@ -15,7 +15,9 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QDir>
+#include <QUrl>
 #include "PathUtils.h"
+#include <QtCore/QStandardPaths>
 
 
 const QString& PathUtils::resourcesPath() {
@@ -28,6 +30,19 @@ const QString& PathUtils::resourcesPath() {
     return staticResourcePath;
 }
 
+QString PathUtils::getRootDataDirectory() {
+    auto dataPath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+
+#ifdef Q_OS_WIN
+    dataPath += "/AppData/Roaming/";
+#elif defined(Q_OS_OSX)
+    dataPath += "/Library/Application Support/";
+#else
+    dataPath += "/.local/share/";
+#endif
+
+    return dataPath;
+}
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
     QString fileNameLowered = fileName.toLower();
@@ -52,4 +67,18 @@ QString findMostRecentFileExtension(const QString& originalFileName, QVector<QSt
         }
     }
     return newestFileName;
+}
+
+QUrl defaultScriptsLocation() {
+    // return "http://s3.amazonaws.com/hifi-public";
+#ifdef Q_OS_WIN
+    QString path = QCoreApplication::applicationDirPath() + "/scripts";
+#elif defined(Q_OS_OSX)
+    QString path = QCoreApplication::applicationDirPath() + "/../Resources/scripts";
+#else
+    QString path = QCoreApplication::applicationDirPath() + "/scripts";
+#endif
+
+    QFileInfo fileInfo(path);
+    return QUrl::fromLocalFile(fileInfo.canonicalFilePath());
 }

@@ -12,6 +12,8 @@ Original.TextInput {
     verticalAlignment: Original.TextInput.AlignVCenter
     font.family: hifi.fonts.fontFamily
     font.pixelSize: hifi.fonts.pixelSize
+    property int helperPixelSize: font.pixelSize
+    property bool helperItalic: false
 
 /*
     Original.Rectangle {
@@ -23,7 +25,8 @@ Original.TextInput {
 */
     Text {
         anchors.fill: parent
-        font.pixelSize: parent.font.pixelSize
+        font.pixelSize: helperPixelSize
+        font.italic: helperItalic
         font.family: parent.font.family
         verticalAlignment: parent.verticalAlignment
         horizontalAlignment: parent.horizontalAlignment

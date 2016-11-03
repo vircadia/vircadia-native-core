@@ -11,7 +11,6 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include <AnimNodeLoader.h>
 #include <AnimInverseKinematics.h>
 #include <AnimBlendLinear.h>
 #include <AnimationLogging.h>
@@ -29,7 +28,7 @@ const glm::quat identity = glm::quat();
 const glm::quat quaterTurnAroundZ = glm::angleAxis(0.5f * PI, zAxis);
 
 
-void makeTestFBXJoints(std::vector<FBXJoint>& fbxJoints) {
+void makeTestFBXJoints(FBXGeometry& geometry) {
     FBXJoint joint;
     joint.isFree = false;
     joint.freeLineage.clear();
@@ -61,29 +60,29 @@ void makeTestFBXJoints(std::vector<FBXJoint>& fbxJoints) {
     joint.name = "A";
     joint.parentIndex = -1;
     joint.translation = origin;
-    fbxJoints.push_back(joint);
+    geometry.joints.push_back(joint);
 
     joint.name = "B";
     joint.parentIndex = 0;
     joint.translation = xAxis;
-    fbxJoints.push_back(joint);
+    geometry.joints.push_back(joint);
 
     joint.name = "C";
     joint.parentIndex = 1;
     joint.translation = xAxis;
-    fbxJoints.push_back(joint);
+    geometry.joints.push_back(joint);
 
     joint.name = "D";
     joint.parentIndex = 2;
     joint.translation = xAxis;
-    fbxJoints.push_back(joint);
+    geometry.joints.push_back(joint);
 
     // compute each joint's transform
-    for (int i = 1; i < (int)fbxJoints.size(); ++i) {
-        FBXJoint& j = fbxJoints[i];
+    for (int i = 1; i < (int)geometry.joints.size(); ++i) {
+        FBXJoint& j = geometry.joints[i];
         int parentIndex = j.parentIndex;
         // World = ParentWorld * T * (Roff * Rp) * Rpre * R * Rpost * (Rp-1 * Soff * Sp * S * Sp-1)
-        j.transform = fbxJoints[parentIndex].transform *
+        j.transform = geometry.joints[parentIndex].transform *
             glm::translate(j.translation) *
             j.preTransform *
             glm::mat4_cast(j.preRotation * j.rotation * j.postRotation) *
@@ -94,14 +93,14 @@ void makeTestFBXJoints(std::vector<FBXJoint>& fbxJoints) {
 }
 
 void AnimInverseKinematicsTests::testSingleChain() {
-    std::vector<FBXJoint> fbxJoints;
-    makeTestFBXJoints(fbxJoints);
+    FBXGeometry geometry;
+    makeTestFBXJoints(geometry);
 
     // create a skeleton and doll
     AnimPose offset;
-    AnimSkeleton* skeleton = new AnimSkeleton(fbxJoints, offset);
-    AnimSkeleton::Pointer skeletonPtr(skeleton);
+    AnimSkeleton::Pointer skeletonPtr = std::make_shared<AnimSkeleton>(geometry);
     AnimInverseKinematics ikDoll("doll");
+
     ikDoll.setSkeleton(skeletonPtr);
 
     { // easy test IK of joint C
@@ -113,11 +112,11 @@ void AnimInverseKinematicsTests::testSingleChain() {
         pose.rot = identity;
         pose.trans = origin;
 
-        std::vector<AnimPose> poses;
+        AnimPoseVec poses;
         poses.push_back(pose);
 
         pose.trans = xAxis;
-        for (int i = 1; i < (int)fbxJoints.size(); ++i) {
+        for (int i = 1; i < (int)geometry.joints.size(); ++i) {
             poses.push_back(pose);
         }
         ikDoll.loadPoses(poses);
@@ -134,7 +133,8 @@ void AnimInverseKinematicsTests::testSingleChain() {
         AnimVariantMap varMap;
         varMap.set("positionD", targetPosition);
         varMap.set("rotationD", targetRotation);
-        ikDoll.setTargetVars("D", "positionD", "rotationD");
+        varMap.set("targetType", (int)IKTarget::Type::RotationAndPosition);
+        ikDoll.setTargetVars(QString("D"), QString("positionD"), QString("rotationD"), QString("targetType"));
         AnimNode::Triggers triggers;
 
         // the IK solution should be:
@@ -144,38 +144,49 @@ void AnimInverseKinematicsTests::testSingleChain() {
         //                 |
         // A------>B------>C
         //
+
+        // iterate several times
         float dt = 1.0f;
-        ikDoll.evaluate(varMap, dt, triggers);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        const AnimPoseVec& relativePoses = ikDoll.overlay(varMap, dt, triggers, poses);
 
         // verify absolute results
         // NOTE: since we expect this solution to converge very quickly (one loop)
         // we can impose very tight error thresholds.
-        std::vector<AnimPose> absolutePoses;
+        AnimPoseVec absolutePoses;
+        for (auto pose : poses) {
+            absolutePoses.push_back(pose);
+        }
         ikDoll.computeAbsolutePoses(absolutePoses);
-        float acceptableAngle = 0.0001f;
-        QCOMPARE_QUATS(absolutePoses[0].rot, identity, acceptableAngle);
-        QCOMPARE_QUATS(absolutePoses[1].rot, identity, acceptableAngle);
-        QCOMPARE_QUATS(absolutePoses[2].rot, quaterTurnAroundZ, acceptableAngle);
-        QCOMPARE_QUATS(absolutePoses[3].rot, quaterTurnAroundZ, acceptableAngle);
+        const float acceptableAngleError = 0.001f;
+        QCOMPARE_QUATS(absolutePoses[0].rot, identity, acceptableAngleError);
+        QCOMPARE_QUATS(absolutePoses[1].rot, identity, acceptableAngleError);
+        QCOMPARE_QUATS(absolutePoses[2].rot, quaterTurnAroundZ, acceptableAngleError);
+        QCOMPARE_QUATS(absolutePoses[3].rot, quaterTurnAroundZ, acceptableAngleError);
 
-        QCOMPARE_WITH_ABS_ERROR(absolutePoses[0].trans, origin, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(absolutePoses[1].trans, xAxis, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(absolutePoses[2].trans, 2.0f * xAxis, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(absolutePoses[3].trans, targetPosition, EPSILON);
+        const float acceptableTranslationError = 0.025f;
+        QCOMPARE_WITH_ABS_ERROR(absolutePoses[0].trans, origin, acceptableTranslationError);
+        QCOMPARE_WITH_ABS_ERROR(absolutePoses[1].trans, xAxis, acceptableTranslationError);
+        QCOMPARE_WITH_ABS_ERROR(absolutePoses[2].trans, 2.0f * xAxis, acceptableTranslationError);
+        QCOMPARE_WITH_ABS_ERROR(absolutePoses[3].trans, targetPosition, acceptableTranslationError);
 
         // verify relative results
-        const std::vector<AnimPose>& relativePoses = ikDoll.getRelativePoses();
-        QCOMPARE_QUATS(relativePoses[0].rot, identity, acceptableAngle);
-        QCOMPARE_QUATS(relativePoses[1].rot, identity, acceptableAngle);
-        QCOMPARE_QUATS(relativePoses[2].rot, quaterTurnAroundZ, acceptableAngle);
-        QCOMPARE_QUATS(relativePoses[3].rot, identity, acceptableAngle);
+        QCOMPARE_QUATS(relativePoses[0].rot, identity, acceptableAngleError);
+        QCOMPARE_QUATS(relativePoses[1].rot, identity, acceptableAngleError);
+        QCOMPARE_QUATS(relativePoses[2].rot, quaterTurnAroundZ, acceptableAngleError);
+        QCOMPARE_QUATS(relativePoses[3].rot, identity, acceptableAngleError);
 
-        QCOMPARE_WITH_ABS_ERROR(relativePoses[0].trans, origin, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(relativePoses[1].trans, xAxis, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(relativePoses[2].trans, xAxis, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(relativePoses[3].trans, xAxis, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(relativePoses[0].trans, origin, acceptableTranslationError);
+        QCOMPARE_WITH_ABS_ERROR(relativePoses[1].trans, xAxis, acceptableTranslationError);
+        QCOMPARE_WITH_ABS_ERROR(relativePoses[2].trans, xAxis, acceptableTranslationError);
+        QCOMPARE_WITH_ABS_ERROR(relativePoses[3].trans, xAxis, acceptableTranslationError);
     }
-
     { // hard test IK of joint C
         // load intial poses that look like this:
         //
@@ -188,8 +199,8 @@ void AnimInverseKinematicsTests::testSingleChain() {
         pose.scale = glm::vec3(1.0f);
         pose.rot = identity;
         pose.trans = origin;
-        
-        std::vector<AnimPose> poses;
+
+        AnimPoseVec poses;
         poses.push_back(pose);
         pose.trans = xAxis;
 
@@ -211,15 +222,26 @@ void AnimInverseKinematicsTests::testSingleChain() {
         AnimVariantMap varMap;
         varMap.set("positionD", targetPosition);
         varMap.set("rotationD", targetRotation);
-        ikDoll.setTargetVars("D", "positionD", "rotationD");
+        varMap.set("targetType", (int)IKTarget::Type::RotationAndPosition);
+        ikDoll.setTargetVars(QString("D"), QString("positionD"), QString("rotationD"), QString("targetType"));
         AnimNode::Triggers triggers;
 
         // the IK solution should be:
         //
         // A------>B------>C------>D
         //
+
+        // iterate several times
         float dt = 1.0f;
-        ikDoll.evaluate(varMap, dt, triggers);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        ikDoll.overlay(varMap, dt, triggers, poses);
+        const AnimPoseVec& relativePoses = ikDoll.overlay(varMap, dt, triggers, poses);
 
         // verify absolute results
         // NOTE: the IK algorithm doesn't converge very fast for full-reach targets,
@@ -228,31 +250,33 @@ void AnimInverseKinematicsTests::testSingleChain() {
         // NOTE: constraints may help speed up convergence since some joints may get clamped
         // to maximum extension. TODO: experiment with tightening the error thresholds when
         // constraints are working.
-        std::vector<AnimPose> absolutePoses;
+        AnimPoseVec absolutePoses;
+        for (auto pose : poses) {
+            absolutePoses.push_back(pose);
+        }
         ikDoll.computeAbsolutePoses(absolutePoses);
-        float acceptableAngle = 0.1f; // radians
+        float acceptableAngle = 0.01f; // radians
         QCOMPARE_QUATS(absolutePoses[0].rot, identity, acceptableAngle);
         QCOMPARE_QUATS(absolutePoses[1].rot, identity, acceptableAngle);
         QCOMPARE_QUATS(absolutePoses[2].rot, identity, acceptableAngle);
         QCOMPARE_QUATS(absolutePoses[3].rot, identity, acceptableAngle);
 
-        float acceptableDistance = 0.4f;
-        QCOMPARE_WITH_ABS_ERROR(absolutePoses[0].trans, origin, EPSILON);
+        float acceptableDistance = 0.03f;
+        QCOMPARE_WITH_ABS_ERROR(absolutePoses[0].trans, origin, acceptableDistance);
         QCOMPARE_WITH_ABS_ERROR(absolutePoses[1].trans, xAxis, acceptableDistance);
         QCOMPARE_WITH_ABS_ERROR(absolutePoses[2].trans, 2.0f * xAxis, acceptableDistance);
         QCOMPARE_WITH_ABS_ERROR(absolutePoses[3].trans, 3.0f * xAxis, acceptableDistance);
 
         // verify relative results
-        const std::vector<AnimPose>& relativePoses = ikDoll.getRelativePoses();
         QCOMPARE_QUATS(relativePoses[0].rot, identity, acceptableAngle);
         QCOMPARE_QUATS(relativePoses[1].rot, identity, acceptableAngle);
         QCOMPARE_QUATS(relativePoses[2].rot, identity, acceptableAngle);
         QCOMPARE_QUATS(relativePoses[3].rot, identity, acceptableAngle);
 
-        QCOMPARE_WITH_ABS_ERROR(relativePoses[0].trans, origin, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(relativePoses[1].trans, xAxis, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(relativePoses[2].trans, xAxis, EPSILON);
-        QCOMPARE_WITH_ABS_ERROR(relativePoses[3].trans, xAxis, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(relativePoses[0].trans, origin, acceptableDistance);
+        QCOMPARE_WITH_ABS_ERROR(relativePoses[1].trans, xAxis, acceptableDistance);
+        QCOMPARE_WITH_ABS_ERROR(relativePoses[2].trans, xAxis, acceptableDistance);
+        QCOMPARE_WITH_ABS_ERROR(relativePoses[3].trans, xAxis, acceptableDistance);
     }
 }
 

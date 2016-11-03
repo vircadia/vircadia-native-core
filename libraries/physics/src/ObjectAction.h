@@ -29,43 +29,48 @@ public:
     ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectAction();
 
-    virtual void removeFromSimulation(EntitySimulation* simulation) const;
-    virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
-    virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
+    virtual void removeFromSimulation(EntitySimulationPointer simulation) const override;
+    virtual EntityItemWeakPointer getOwnerEntity() const override { return _ownerEntity; }
+    virtual void setOwnerEntity(const EntityItemPointer ownerEntity) override { _ownerEntity = ownerEntity; }
 
-    virtual bool updateArguments(QVariantMap arguments);
-    virtual QVariantMap getArguments();
+    virtual bool updateArguments(QVariantMap arguments) override;
+    virtual QVariantMap getArguments() override;
 
     // this is called from updateAction and should be overridden by subclasses
     virtual void updateActionWorker(float deltaTimeStep) = 0;
 
     // these are from btActionInterface
-    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
-    virtual void debugDraw(btIDebugDraw* debugDrawer);
+    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) override;
+    virtual void debugDraw(btIDebugDraw* debugDrawer) override;
 
-    virtual QByteArray serialize() const = 0;
-    virtual void deserialize(QByteArray serializedArguments) = 0;
+    virtual QByteArray serialize() const override = 0;
+    virtual void deserialize(QByteArray serializedArguments) override = 0;
 
-    virtual bool lifetimeIsOver();
+    virtual bool lifetimeIsOver() override;
+    virtual quint64 getExpires() override { return _expires; }
 
 protected:
+    quint64 localTimeToServerTime(quint64 timeValue) const;
+    quint64 serverTimeToLocalTime(quint64 timeValue) const;
 
     virtual btRigidBody* getRigidBody();
-    virtual glm::vec3 getPosition();
-    virtual void setPosition(glm::vec3 position);
-    virtual glm::quat getRotation();
-    virtual void setRotation(glm::quat rotation);
-    virtual glm::vec3 getLinearVelocity();
-    virtual void setLinearVelocity(glm::vec3 linearVelocity);
-    virtual glm::vec3 getAngularVelocity();
-    virtual void setAngularVelocity(glm::vec3 angularVelocity);
-    virtual void activateBody();
+    virtual glm::vec3 getPosition() override;
+    virtual void setPosition(glm::vec3 position) override;
+    virtual glm::quat getRotation() override;
+    virtual void setRotation(glm::quat rotation) override;
+    virtual glm::vec3 getLinearVelocity() override;
+    virtual void setLinearVelocity(glm::vec3 linearVelocity) override;
+    virtual glm::vec3 getAngularVelocity() override;
+    virtual void setAngularVelocity(glm::vec3 angularVelocity) override;
+    virtual void activateBody(bool forceActivation = false);
+    virtual void forceBodyNonStatic();
 
-    bool _active;
     EntityItemWeakPointer _ownerEntity;
-
-    quint64 _expires; // in seconds since epoch
     QString _tag;
+    quint64 _expires { 0 }; // in seconds since epoch
+
+private:
+    qint64 getEntityServerClockSkew() const;
 };
 
 #endif // hifi_ObjectAction_h

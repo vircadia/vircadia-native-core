@@ -19,9 +19,9 @@
 #include <NLPacketList.h>
 
 
-UploadAssetTask::UploadAssetTask(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode,
+UploadAssetTask::UploadAssetTask(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode,
                                  const QDir& resourcesDir) :
-    _packetList(packetList),
+    _receivedMessage(receivedMessage),
     _senderNode(senderNode),
     _resourcesDir(resourcesDir)
 {
@@ -29,7 +29,7 @@ UploadAssetTask::UploadAssetTask(QSharedPointer<NLPacketList> packetList, Shared
 }
 
 void UploadAssetTask::run() {
-    auto data = _packetList->getMessage();
+    auto data = _receivedMessage->getMessage();
     
     QBuffer buffer { &data };
     buffer.open(QIODevice::ReadOnly);
@@ -37,18 +37,13 @@ void UploadAssetTask::run() {
     MessageID messageID;
     buffer.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
     
-    uint8_t extensionLength;
-    buffer.read(reinterpret_cast<char*>(&extensionLength), sizeof(extensionLength));
-    
-    QByteArray extension = buffer.read(extensionLength);
-    
     uint64_t fileSize;
     buffer.read(reinterpret_cast<char*>(&fileSize), sizeof(fileSize));
     
-    qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes and extension" << extension << "from"
+    qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from"
         << uuidStringWithoutCurlyBraces(_senderNode->getUUID());
     
-    auto replyPacket = NLPacket::create(PacketType::AssetUploadReply);
+    auto replyPacket = NLPacket::create(PacketType::AssetUploadReply, -1, true);
     replyPacket->writePrimitive(messageID);
     
     if (fileSize > MAX_UPLOAD_SIZE) {
@@ -62,17 +57,47 @@ void UploadAssetTask::run() {
         qDebug() << "Hash for uploaded file from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID())
             << "is: (" << hexHash << ") ";
         
-        QFile file { _resourcesDir.filePath(QString(hexHash)) + "." + QString(extension) };
+        QFile file { _resourcesDir.filePath(QString(hexHash)) };
+
+        bool existingCorrectFile = false;
         
         if (file.exists()) {
-            qDebug() << "[WARNING] This file already exists: " << hexHash;
-        } else {
-            file.open(QIODevice::WriteOnly);
-            file.write(fileData);
-            file.close();
+            // check if the local file has the correct contents, otherwise we overwrite
+            if (file.open(QIODevice::ReadOnly) && hashData(file.readAll()) == hash) {
+                qDebug() << "Not overwriting existing verified file: " << hexHash;
+
+                existingCorrectFile = true;
+
+                replyPacket->writePrimitive(AssetServerError::NoError);
+                replyPacket->write(hash);
+            } else {
+                qDebug() << "Overwriting an existing file whose contents did not match the expected hash: " << hexHash;
+                file.close();
+            }
         }
-        replyPacket->writePrimitive(AssetServerError::NoError);
-        replyPacket->write(hash);
+
+        if (!existingCorrectFile) {
+            if (file.open(QIODevice::WriteOnly) && file.write(fileData) == qint64(fileSize)) {
+                qDebug() << "Wrote file" << hexHash << "to disk. Upload complete";
+                file.close();
+
+                replyPacket->writePrimitive(AssetServerError::NoError);
+                replyPacket->write(hash);
+            } else {
+                qWarning() << "Failed to upload or write to file" << hexHash << " - upload failed.";
+
+                // upload has failed - remove the file and return an error
+                auto removed = file.remove();
+
+                if (!removed) {
+                    qWarning() << "Removal of failed upload file" << hexHash << "failed.";
+                }
+                
+                replyPacket->writePrimitive(AssetServerError::FileOperationFailed);
+            }
+        }
+
+
     }
     
     auto nodeList = DependencyManager::get<NodeList>();

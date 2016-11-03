@@ -16,7 +16,7 @@
 using namespace udt;
 
 MessageNumber PacketQueue::getNextMessageNumber() {
-    static const MessageNumber MAX_MESSAGE_NUMBER = MessageNumber(1) << MESSAGE_NUMBER_BITS;
+    static const MessageNumber MAX_MESSAGE_NUMBER = MessageNumber(1) << MESSAGE_NUMBER_SIZE;
     _currentMessageNumber = (_currentMessageNumber + 1) % MAX_MESSAGE_NUMBER;
     return _currentMessageNumber;
 }
@@ -32,26 +32,26 @@ PacketQueue::PacketPointer PacketQueue::takePacket() {
     if (isEmpty()) {
         return PacketPointer();
     }
-    
+
     // Find next non empty channel
     if (_channels[nextIndex()].empty()) {
         nextIndex();
     }
     auto& channel = _channels[_currentIndex];
     Q_ASSERT(!channel.empty());
-    
+
     // Take front packet
     auto packet = std::move(channel.front());
     channel.pop_front();
-    
+
     // Remove now empty channel (Don't remove the main channel)
     if (channel.empty() && _currentIndex != 0) {
         channel.swap(_channels.back());
         _channels.pop_back();
         --_currentIndex;
     }
-    
-    return std::move(packet);
+
+    return packet;
 }
 
 unsigned int PacketQueue::nextIndex() {
@@ -65,8 +65,10 @@ void PacketQueue::queuePacket(PacketPointer packet) {
 }
 
 void PacketQueue::queuePacketList(PacketListPointer packetList) {
-    packetList->preparePackets(getNextMessageNumber());
-    
+    if (packetList->isOrdered()) {
+        packetList->preparePackets(getNextMessageNumber());
+    }
+
     LockGuard locker(_packetsLock);
     _channels.push_back(std::move(packetList->_packets));
 }

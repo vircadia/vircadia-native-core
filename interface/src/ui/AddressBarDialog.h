@@ -14,33 +14,44 @@
 #define hifi_AddressBarDialog_h
 
 #include <OffscreenQmlDialog.h>
+#include <NetworkingConstants.h>
 
 class AddressBarDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
     Q_PROPERTY(bool backEnabled READ backEnabled NOTIFY backEnabledChanged)
     Q_PROPERTY(bool forwardEnabled READ forwardEnabled NOTIFY forwardEnabledChanged)
+    Q_PROPERTY(bool useFeed READ useFeed WRITE setUseFeed NOTIFY useFeedChanged)
+    Q_PROPERTY(QString metaverseServerUrl READ metaverseServerUrl NOTIFY metaverseServerUrlChanged)
 
 public:
     AddressBarDialog(QQuickItem* parent = nullptr);
     bool backEnabled() { return _backEnabled; }
     bool forwardEnabled() { return _forwardEnabled; }
+    bool useFeed() { return _useFeed; }
+    void setUseFeed(bool useFeed) { if (_useFeed != useFeed) { _useFeed = useFeed; emit useFeedChanged(); } }
+    QString metaverseServerUrl() { return NetworkingConstants::METAVERSE_SERVER_URL.toString(); }
 
 signals:
     void backEnabledChanged();
     void forwardEnabledChanged();
+    void useFeedChanged();
+    void receivedHifiSchemeURL(const QString& url);
+    void metaverseServerUrlChanged();
 
 protected:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
-    void hide();
 
-    Q_INVOKABLE void loadAddress(const QString& address);
+    Q_INVOKABLE void loadAddress(const QString& address, bool fromSuggestions = false);
+    Q_INVOKABLE void loadHome();
     Q_INVOKABLE void loadBack();
     Q_INVOKABLE void loadForward();
+    Q_INVOKABLE void observeShownChanged(bool visible);
 
     bool _backEnabled;
     bool _forwardEnabled;
+    bool _useFeed { false };
 };
 
 #endif

@@ -220,6 +220,11 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
             } else {
                 sendingMode << "S";
             }
+            if (stats.isFullScene()) {
+                sendingMode << "F";
+            } else {
+                sendingMode << "p";
+            }
         }
     });
     sendingMode << " - " << serverCount << " servers";
@@ -428,13 +433,13 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                 } 
                 const JurisdictionMap& map = serverJurisdictions[nodeUUID];
 
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
 
                 if (rootCode) {
-                    QString rootCodeHex = octalCodeToHexString(rootCode);
+                    QString rootCodeHex = octalCodeToHexString(rootCode.get());
 
                     VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode, rootDetails);
+                    voxelDetailsForCode(rootCode.get(), rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverDetails << " jurisdiction: "
                         << qPrintable(rootCodeHex)
@@ -510,7 +515,9 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString incomingLikelyLostString = locale.toString((uint)seqStats.getLost());
                             QString incomingRecovered = locale.toString((uint)seqStats.getRecovered());
 
-                            int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
+                            qint64 clockSkewInUsecs = node->getClockSkewUsec();
+                            QString formattedClockSkewString = formatUsecTime(clockSkewInUsecs);
+                            qint64 clockSkewInMS = clockSkewInUsecs / (qint64)USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
                             QString incomingPingTimeString = locale.toString(node->getPingMs());
                             QString incomingClockSkewString = locale.toString(clockSkewInMS);
@@ -531,7 +538,9 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                                 " Average Ping Time: " << qPrintable(incomingPingTimeString) << " msecs";
 
                             serverDetails << "<br/>" <<
-                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs";
+                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs" << 
+                                " [" << qPrintable(formattedClockSkewString) << "]";
+
 
                             serverDetails << "<br/>" << "Incoming" <<
                                 " Bytes: " << qPrintable(incomingBytesString) <<

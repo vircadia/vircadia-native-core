@@ -12,10 +12,14 @@
 #define hifi_AnimVariant_h
 
 #include <cassert>
+#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <map>
 #include <set>
+#include <QScriptValue>
+#include <StreamUtils.h>
+#include <GLMHelpers.h>
 #include "AnimationLogging.h"
 
 class AnimVariant {
@@ -26,26 +30,25 @@ public:
         Float,
         Vec3,
         Quat,
-        Mat4,
         String,
         NumTypes
     };
 
+    static const AnimVariant False;
+
     AnimVariant() : _type(Type::Bool) { memset(&_val, 0, sizeof(_val)); }
-    AnimVariant(bool value) : _type(Type::Bool) { _val.boolVal = value; }
-    AnimVariant(int value) : _type(Type::Int) { _val.intVal = value; }
-    AnimVariant(float value) : _type(Type::Float) { _val.floats[0] = value; }
-    AnimVariant(const glm::vec3& value) : _type(Type::Vec3) { *reinterpret_cast<glm::vec3*>(&_val) = value; }
-    AnimVariant(const glm::quat& value) : _type(Type::Quat) { *reinterpret_cast<glm::quat*>(&_val) = value; }
-    AnimVariant(const glm::mat4& value) : _type(Type::Mat4) { *reinterpret_cast<glm::mat4*>(&_val) = value; }
-    AnimVariant(const QString& value) : _type(Type::String) { _stringVal = value; }
+    explicit AnimVariant(bool value) : _type(Type::Bool) { _val.boolVal = value; }
+    explicit AnimVariant(int value) : _type(Type::Int) { _val.intVal = value; }
+    explicit AnimVariant(float value) : _type(Type::Float) { _val.floats[0] = value; }
+    explicit AnimVariant(const glm::vec3& value) : _type(Type::Vec3) { *reinterpret_cast<glm::vec3*>(&_val) = value; }
+    explicit AnimVariant(const glm::quat& value) : _type(Type::Quat) { *reinterpret_cast<glm::quat*>(&_val) = value; }
+    explicit AnimVariant(const QString& value) : _type(Type::String) { _stringVal = value; }
 
     bool isBool() const { return _type == Type::Bool; }
     bool isInt() const { return _type == Type::Int; }
     bool isFloat() const { return _type == Type::Float; }
     bool isVec3() const { return _type == Type::Vec3; }
     bool isQuat() const { return _type == Type::Quat; }
-    bool isMat4() const { return _type == Type::Mat4; }
     bool isString() const { return _type == Type::String; }
     Type getType() const { return _type; }
 
@@ -54,16 +57,52 @@ public:
     void setFloat(float value) { assert(_type == Type::Float); _val.floats[0] = value; }
     void setVec3(const glm::vec3& value) { assert(_type == Type::Vec3); *reinterpret_cast<glm::vec3*>(&_val) = value; }
     void setQuat(const glm::quat& value) { assert(_type == Type::Quat); *reinterpret_cast<glm::quat*>(&_val) = value; }
-    void setMat4(const glm::mat4& value) { assert(_type == Type::Mat4); *reinterpret_cast<glm::mat4*>(&_val) = value; }
     void setString(const QString& value) { assert(_type == Type::String); _stringVal = value; }
 
-    bool getBool() const { assert(_type == Type::Bool); return _val.boolVal; }
-    int getInt() const { assert(_type == Type::Int); return _val.intVal; }
-    float getFloat() const { assert(_type == Type::Float); return _val.floats[0]; }
-    const glm::vec3& getVec3() const { assert(_type == Type::Vec3); return *reinterpret_cast<const glm::vec3*>(&_val); }
-    const glm::quat& getQuat() const { assert(_type == Type::Quat); return *reinterpret_cast<const glm::quat*>(&_val); }
-    const glm::mat4& getMat4() const { assert(_type == Type::Mat4); return *reinterpret_cast<const glm::mat4*>(&_val); }
-    const QString& getString() const { assert(_type == Type::String); return _stringVal; }
+    bool getBool() const {
+        if (_type == Type::Bool) {
+            return _val.boolVal;
+        } else if (_type == Type::Int) {
+            return _val.intVal != 0;
+        } else {
+            return false;
+        }
+    }
+    int getInt() const {
+        if (_type == Type::Int) {
+            return _val.intVal;
+        } else if (_type == Type::Float) {
+            return (int)_val.floats[0];
+        } else {
+            return 0;
+        }
+    }
+    float getFloat() const {
+        if (_type == Type::Float) {
+            return _val.floats[0];
+        } else if (_type == Type::Int) {
+            return (float)_val.intVal;
+        } else {
+            return 0.0f;
+        }
+    }
+    const glm::vec3& getVec3() const {
+        if (_type == Type::Vec3) {
+            return *reinterpret_cast<const glm::vec3*>(&_val);
+        } else {
+            return Vectors::ZERO;
+        }
+    }
+    const glm::quat& getQuat() const {
+        if (_type == Type::Quat) {
+            return *reinterpret_cast<const glm::quat*>(&_val);
+        } else {
+            return Quaternions::IDENTITY;
+        }
+    }
+    const QString& getString() const {
+        return _stringVal;
+    }
 
 protected:
     Type _type;
@@ -71,7 +110,7 @@ protected:
     union {
         bool boolVal;
         int intVal;
-        float floats[16];
+        float floats[4];
     } _val;
 };
 
@@ -108,7 +147,7 @@ public:
         }
     }
 
-    const glm::vec3& lookup(const QString& key, const glm::vec3& defaultValue) const {
+    const glm::vec3& lookupRaw(const QString& key, const glm::vec3& defaultValue) const {
         if (key.isEmpty()) {
             return defaultValue;
         } else {
@@ -117,7 +156,16 @@ public:
         }
     }
 
-    const glm::quat& lookup(const QString& key, const glm::quat& defaultValue) const {
+    glm::vec3 lookupRigToGeometry(const QString& key, const glm::vec3& defaultValue) const {
+        if (key.isEmpty()) {
+            return defaultValue;
+        } else {
+            auto iter = _map.find(key);
+            return iter != _map.end() ? transformPoint(_rigToGeometryMat, iter->second.getVec3()) : defaultValue;
+        }
+    }
+
+    const glm::quat& lookupRaw(const QString& key, const glm::quat& defaultValue) const {
         if (key.isEmpty()) {
             return defaultValue;
         } else {
@@ -126,12 +174,12 @@ public:
         }
     }
 
-    const glm::mat4& lookup(const QString& key, const glm::mat4& defaultValue) const {
+    glm::quat lookupRigToGeometry(const QString& key, const glm::quat& defaultValue) const {
         if (key.isEmpty()) {
             return defaultValue;
         } else {
             auto iter = _map.find(key);
-            return iter != _map.end() ? iter->second.getMat4() : defaultValue;
+            return iter != _map.end() ? _rigToGeometryRot * iter->second.getQuat() : defaultValue;
         }
     }
 
@@ -149,14 +197,34 @@ public:
     void set(const QString& key, float value) { _map[key] = AnimVariant(value); }
     void set(const QString& key, const glm::vec3& value) { _map[key] = AnimVariant(value); }
     void set(const QString& key, const glm::quat& value) { _map[key] = AnimVariant(value); }
-    void set(const QString& key, const glm::mat4& value) { _map[key] = AnimVariant(value); }
     void set(const QString& key, const QString& value) { _map[key] = AnimVariant(value); }
     void unset(const QString& key) { _map.erase(key); }
 
     void setTrigger(const QString& key) { _triggers.insert(key); }
     void clearTriggers() { _triggers.clear(); }
 
+    void setRigToGeometryTransform(const glm::mat4& rigToGeometry) {
+        _rigToGeometryMat = rigToGeometry;
+        _rigToGeometryRot = glmExtractRotation(rigToGeometry);
+    }
+
+    void clearMap() { _map.clear(); }
     bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
+
+    const AnimVariant& get(const QString& key) const {
+        auto iter = _map.find(key);
+        if (iter != _map.end()) {
+            return iter->second;
+        } else {
+            return AnimVariant::False;
+        }
+    }
+
+    // Answer a Plain Old Javascript Object (for the given engine) all of our values set as properties.
+    QScriptValue animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const;
+    // Side-effect us with the value of object's own properties. (No inherited properties.)
+    void animVariantMapFromScriptValue(const QScriptValue& object);
+    void copyVariantsFrom(const AnimVariantMap& other);
 
 #ifdef NDEBUG
     void dump() const {
@@ -178,14 +246,11 @@ public:
             case AnimVariant::Type::Quat:
                 qCDebug(animation) << "    " << pair.first << "=" << pair.second.getQuat();
                 break;
-            case AnimVariant::Type::Mat4:
-                qCDebug(animation) << "    " << pair.first << "=" << pair.second.getMat4();
-                break;
             case AnimVariant::Type::String:
                 qCDebug(animation) << "    " << pair.first << "=" << pair.second.getString();
                 break;
             default:
-                assert("AnimVariant::Type" == "valid");
+                assert(("invalid AnimVariant::Type", false));
             }
         }
     }
@@ -194,6 +259,12 @@ public:
 protected:
     std::map<QString, AnimVariant> _map;
     std::set<QString> _triggers;
+    glm::mat4 _rigToGeometryMat;
+    glm::quat _rigToGeometryRot;
 };
+
+typedef std::function<void(QScriptValue)> AnimVariantResultHandler;
+Q_DECLARE_METATYPE(AnimVariantResultHandler);
+Q_DECLARE_METATYPE(AnimVariantMap)
 
 #endif // hifi_AnimVariant_h

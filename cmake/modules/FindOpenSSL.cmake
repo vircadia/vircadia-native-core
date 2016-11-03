@@ -8,11 +8,11 @@
 #  OPENSSL_INCLUDE_DIR - the OpenSSL include directory
 #  OPENSSL_LIBRARIES - The libraries needed to use OpenSSL
 #  OPENSSL_VERSION - This is set to $major.$minor.$revision$path (eg. 0.9.8s)
-# 
+#
 # Modified on 7/16/2014 by Stephen Birarda
 # This is an adapted version of the FindOpenSSL.cmake module distributed with Cmake 2.8.12.2
 # The original license for that file is displayed below.
-# 
+#
 #=============================================================================
 # Copyright 2006-2009 Kitware, Inc.
 # Copyright 2006 Alexander Neundorf <neundorf@kde.org>
@@ -34,34 +34,40 @@ if (UNIX)
 endif ()
 
 if (WIN32)
-  # http://www.slproweb.com/products/Win32OpenSSL.html
-  set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
-    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
-    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
-  )
+
   file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _programfiles)
-  set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win32" "${_programfiles}/OpenSSL-Win64"
-    "C:/OpenSSL/" "C:/OpenSSL-Win32/" "C:/OpenSSL-Win64/"
-  )
+
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    # http://www.slproweb.com/products/Win32OpenSSL.html
+    set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
+      "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
+    )
+    set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win64" "C:/OpenSSL/" "C:/OpenSSL-Win64/")
+  else()
+    # http://www.slproweb.com/products/Win32OpenSSL.html
+    set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
+      "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
+    )
+    set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win32" "C:/OpenSSL/" "C:/OpenSSL-Win32/")
+  endif()
+
   unset(_programfiles)
   set(_OPENSSL_ROOT_HINTS_AND_PATHS HINTS ${_OPENSSL_ROOT_HINTS} PATHS ${_OPENSSL_ROOT_PATHS})
+
 else ()
   include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
   hifi_library_search_hints("openssl")
-  
+
   set(_OPENSSL_ROOT_HINTS_AND_PATHS ${OPENSSL_SEARCH_DIRS})
 endif ()
 
-find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_INCLUDEDIR} 
+find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_INCLUDEDIR}
   PATH_SUFFIXES include
 )
 
 if (WIN32 AND NOT CYGWIN)
   if (MSVC)
-    # /MD and /MDd are the standard values - if someone wants to use
-    # others, the libnames have to change here too
-    # use also ssl and ssleay32 in debug as fallback for openssl < 0.9.8b
-    # TODO: handle /MT and static lib
+
     # In Visual C++ naming convention each of these four kinds of Windows libraries has it's standard suffix:
     #   * MD for dynamic-release
     #   * MDd for dynamic-debug
@@ -72,20 +78,23 @@ if (WIN32 AND NOT CYGWIN)
     # We are using the libraries located in the VC subdir instead of the parent directory eventhough :
     # libeay32MD.lib is identical to ../libeay32.lib, and
     # ssleay32MD.lib is identical to ../ssleay32.lib
-    find_library(LIB_EAY_DEBUG NAMES libeay32MDd libeay32d 
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
+
+    # The Kitware FindOpenSSL module has been modified here by High Fidelity to look specifically for static libraries
+
+    find_library(LIB_EAY_DEBUG NAMES libeay32MTd
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
 
-    find_library(LIB_EAY_RELEASE NAMES libeay32MD libeay32 
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
+    find_library(LIB_EAY_RELEASE NAMES libeay32MT
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
 
-    find_library(SSL_EAY_DEBUG NAMES ssleay32MDd ssleay32d 
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
+    find_library(SSL_EAY_DEBUG NAMES ssleay32MTd
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
 
-    find_library(SSL_EAY_RELEASE NAMES ssleay32MD ssleay32 ssl
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
+    find_library(SSL_EAY_RELEASE NAMES ssleay32MT
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
 
     set(LIB_EAY_LIBRARY_DEBUG "${LIB_EAY_DEBUG}")
@@ -98,39 +107,8 @@ if (WIN32 AND NOT CYGWIN)
     select_library_configurations(SSL_EAY)
 
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
-    
+
     find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
-    
-  elseif (MINGW)
-    # same player, for MinGW
-    set(LIB_EAY_NAMES libeay32)
-    set(SSL_EAY_NAMES ssleay32)
-    
-    if (CMAKE_CROSSCOMPILING)
-      list(APPEND LIB_EAY_NAMES crypto)
-      list(APPEND SSL_EAY_NAMES ssl)
-    endif ()
-    
-    find_library(LIB_EAY NAMES ${LIB_EAY_NAMES}
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "lib/MinGW"
-    )
-
-    find_library(SSL_EAY NAMES ${SSL_EAY_NAMES} 
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "lib/MinGW"
-    )
-
-    mark_as_advanced(SSL_EAY LIB_EAY)
-    set(OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY})
-    unset(LIB_EAY_NAMES)
-    unset(SSL_EAY_NAMES)
-  else ()
-    # Not sure what to pick for -say- intel, let's use the toplevel ones and hope someone report issues:
-    find_library(LIB_EAY NAMES libeay32 HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} PATH_SUFFIXES lib)
-
-    find_library(SSL_EAY NAMES ssleay32 HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} PATH_SUFFIXES lib)
-
-    mark_as_advanced(SSL_EAY LIB_EAY)
-    set(OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY})
   endif()
 else()
 
@@ -138,7 +116,7 @@ else()
     PATH_SUFFIXES lib
   )
 
-  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} 
+  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR}
     PATH_SUFFIXES lib
   )
 
@@ -187,7 +165,7 @@ if (OPENSSL_INCLUDE_DIR)
   if(OPENSSL_INCLUDE_DIR AND EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h")
     file(STRINGS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h" openssl_version_str
          REGEX "^#[ ]?define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])+.*")
-    
+
     # The version number is encoded as 0xMNNFFPPS: major minor fix patch status
     # The status gives if this is a developer or prerelease and is ignored here.
     # Major, minor, and fix directly translate into the version numbers shown in
@@ -239,10 +217,6 @@ else ()
   find_package_handle_standard_args(OpenSSL "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR"
     ${OPENSSL_REQUIREMENTS}
   )
-endif ()
-
-if (WIN32)
-  add_paths_to_fixup_libs(${OPENSSL_DLL_PATH})
 endif ()
 
 mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)

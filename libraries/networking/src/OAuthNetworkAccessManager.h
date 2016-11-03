@@ -12,13 +12,14 @@
 #ifndef hifi_OAuthNetworkAccessManager_h
 #define hifi_OAuthNetworkAccessManager_h
 
-#include <QNetworkAccessManager>
+#include "NetworkAccessManager.h"
 
-class OAuthNetworkAccessManager : public QNetworkAccessManager {
+class OAuthNetworkAccessManager : public NetworkAccessManager {
 public:
     static OAuthNetworkAccessManager* getInstance();
 protected:
-    virtual QNetworkReply* createRequest(Operation op, const QNetworkRequest& req, QIODevice* outgoingData = 0);
+    OAuthNetworkAccessManager(QObject* parent = Q_NULLPTR) : NetworkAccessManager(parent) { }
+    virtual QNetworkReply* createRequest(Operation op, const QNetworkRequest& req, QIODevice* outgoingData = 0) override;
 };
 
 #endif // hifi_OAuthNetworkAccessManager_h

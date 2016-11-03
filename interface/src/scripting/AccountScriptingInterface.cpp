@@ -13,29 +13,29 @@
 
 #include "AccountScriptingInterface.h"
 
-AccountScriptingInterface::AccountScriptingInterface() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    connect(&accountManager, &AccountManager::balanceChanged, this,
-            &AccountScriptingInterface::updateBalance);
-    
-}
-
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
     static AccountScriptingInterface sharedInstance;
+    auto accountManager = DependencyManager::get<AccountManager>();
+    QObject::connect(accountManager.data(), &AccountManager::profileChanged,
+                     &sharedInstance, &AccountScriptingInterface::usernameChanged);
     return &sharedInstance;
 }
 
-float AccountScriptingInterface::getBalance() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    return accountManager.getAccountInfo().getBalanceInSatoshis();
-}
-
 bool AccountScriptingInterface::isLoggedIn() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    return accountManager.isLoggedIn();
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->isLoggedIn();
 }
 
-void AccountScriptingInterface::updateBalance() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    emit balanceChanged(accountManager.getAccountInfo().getBalanceInSatoshis());
+bool AccountScriptingInterface::checkAndSignalForAccessToken() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->checkAndSignalForAccessToken();
+}
+
+QString AccountScriptingInterface::getUsername() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (accountManager->isLoggedIn()) {
+        return accountManager->getAccountInfo().getUsername();
+    } else {
+        return "Unknown user";
+    }
 }

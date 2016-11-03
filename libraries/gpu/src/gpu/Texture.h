@@ -11,11 +11,14 @@
 #ifndef hifi_gpu_Texture_h
 #define hifi_gpu_Texture_h
 
-#include "Resource.h"
-
 #include <algorithm> //min max and more
+#include <bitset>
 
+#include <QMetaType>
 #include <QUrl>
+
+#include "Forward.h"
+#include "Resource.h"
 
 namespace gpu {
 
@@ -137,7 +140,84 @@ protected:
 };
 
 class Texture : public Resource {
+    static std::atomic<uint32_t> _textureCPUCount;
+    static std::atomic<Size> _textureCPUMemoryUsage;
+    static std::atomic<Size> _allowedCPUMemoryUsage;
+    static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
+    static std::atomic<bool> _enableSparseTextures;
+    static std::atomic<bool> _enableIncrementalTextureTransfers;
 public:
+    static uint32_t getTextureCPUCount();
+    static Size getTextureCPUMemoryUsage();
+    static uint32_t getTextureGPUCount();
+    static uint32_t getTextureGPUSparseCount();
+    static Size getTextureGPUMemoryUsage();
+    static Size getTextureGPUVirtualMemoryUsage();
+    static Size getTextureGPUFramebufferMemoryUsage();
+    static Size getTextureGPUSparseMemoryUsage();
+    static uint32_t getTextureGPUTransferCount();
+    static Size getAllowedGPUMemoryUsage();
+    static void setAllowedGPUMemoryUsage(Size size);
+
+    static bool getEnableSparseTextures();
+    static bool getEnableIncrementalTextureTransfers();
+
+    static void setEnableSparseTextures(bool enabled);
+    static void setEnableIncrementalTextureTransfers(bool enabled);
+
+    using ExternalRecycler = std::function<void(uint32, void*)>;
+    using ExternalIdAndFence = std::pair<uint32, void*>;
+    using ExternalUpdates = std::list<ExternalIdAndFence>;
+
+    class Usage {
+    public:
+        enum FlagBit {
+            COLOR = 0,   // Texture is a color map
+            NORMAL,      // Texture is a normal map
+            ALPHA,      // Texture has an alpha channel
+            ALPHA_MASK,       // Texture alpha channel is a Mask 0/1
+            EXTERNAL,
+            NUM_FLAGS,  
+        };
+        typedef std::bitset<NUM_FLAGS> Flags;
+
+        // The key is the Flags
+        Flags _flags;
+
+        Usage() : _flags(0) {}
+        Usage(const Flags& flags) : _flags(flags) {}
+
+        bool operator== (const Usage& rhs) const { return _flags == rhs._flags; }
+        bool operator!= (const Usage& rhs) const { return _flags != rhs._flags; }
+
+        class Builder {
+            friend class Usage;
+            Flags _flags{ 0 };
+        public:
+            Builder() {}
+
+            Usage build() const { return Usage(_flags); }
+
+            Builder& withColor() { _flags.set(COLOR); return (*this); }
+            Builder& withNormal() { _flags.set(NORMAL); return (*this); }
+            Builder& withAlpha() { _flags.set(ALPHA); return (*this); }
+            Builder& withAlphaMask() { _flags.set(ALPHA_MASK); return (*this); }
+            Builder& withExternal() { _flags.set(EXTERNAL); return (*this); }
+        };
+        Usage(const Builder& builder) : Usage(builder._flags) {}
+
+        bool isColor() const { return _flags[COLOR]; }
+        bool isNormal() const { return _flags[NORMAL]; }
+
+        bool isAlpha() const { return _flags[ALPHA]; }
+        bool isAlphaMask() const { return _flags[ALPHA_MASK]; }
+        bool isExternal() const { return _flags[EXTERNAL]; }
+
+
+        bool operator==(const Usage& usage) { return (_flags == usage._flags); }
+        bool operator!=(const Usage& usage) { return (_flags != usage._flags); }
+    };
 
     class Pixels {
     public:
@@ -146,9 +226,21 @@ public:
         Pixels(const Element& format, Size size, const Byte* bytes);
         ~Pixels();
 
-        Sysmem _sysmem;
+        const Byte* readData() const { return _sysmem.readData(); }
+        Size getSize() const { return _sysmem.getSize(); }
+        Size resize(Size pSize);
+        Size setData(const Element& format, Size size, const Byte* bytes );
+        
+        const Element& getFormat() const { return _format; }
+        
+        void notifyGPULoaded();
+        
+    protected:
         Element _format;
+        Sysmem _sysmem;
         bool _isGPULoaded;
+        
+        friend class Texture;
     };
     typedef std::shared_ptr< Pixels > PixelsPointer;
 
@@ -191,7 +283,7 @@ public:
         Stamp bumpStamp() { return ++_stamp; }
     protected:
         Stamp _stamp = 0;
-        Texture* _texture = nullptr;
+        Texture* _texture = nullptr; // Points to the parent texture (not owned)
         Texture::Type _type = Texture::TEX_2D; // The type of texture is needed to know the number of faces to expect
         std::vector<std::vector<PixelsPointer>> _mips; // an array of mips, each mip is an array of faces
 
@@ -210,8 +302,7 @@ public:
     static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
     static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler = Sampler());
     static Texture* createCube(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
-
-    static Texture* createFromStorage(Storage* storage);
+    static Texture* createExternal2D(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
 
     Texture();
     Texture(const Texture& buf); // deep copy of the sysmem texture
@@ -221,8 +312,11 @@ public:
     Stamp getStamp() const { return _stamp; }
     Stamp getDataStamp() const { return _storage->getStamp(); }
 
-    // The size in bytes of data stored in the texture
-    Size getSize() const { return _size; }
+    // The theoretical size in bytes of data stored in the texture
+    Size getSize() const override { return _size; }
+
+    // The actual size in bytes of data stored in the texture
+    Size getStoredSize() const;
 
     // Resize, unless auto mips mode would destroy all the sub mips
     Size resize1D(uint16 width, uint16 numSamples);
@@ -242,6 +336,7 @@ public:
     const Element& getTexelFormat() const { return _texelFormat; }
     bool  hasBorder() const { return false; }
 
+    Vec3u getDimensions() const { return Vec3u(_width, _height, _depth); }
     uint16 getWidth() const { return _width; }
     uint16 getHeight() const { return _height; }
     uint16 getDepth() const { return _depth; }
@@ -275,6 +370,8 @@ public:
 
     // Eval the size that the mips level SHOULD have
     // not the one stored in the Texture
+    static const uint MIN_DIMENSION = 1;
+    Vec3u evalMipDimensions(uint16 level) const;
     uint16 evalMipWidth(uint16 level) const { return std::max(_width >> level, 1); }
     uint16 evalMipHeight(uint16 level) const { return std::max(_height >> level, 1); }
     uint16 evalMipDepth(uint16 level) const { return std::max(_depth >> level, 1); }
@@ -292,7 +389,7 @@ public:
 
     uint32 evalTotalSize() const {
         uint32 size = 0;
-        uint16 minMipLevel = 0;
+        uint16 minMipLevel = minMip();
         uint16 maxMipLevel = maxMip();
         for (uint16 l = minMipLevel; l <= maxMipLevel; l++) {
             size += evalMipSize(l);
@@ -300,10 +397,21 @@ public:
         return size * getNumSlices();
     }
 
-    // max mip is in the range [ 1 if no sub mips, log2(max(width, height, depth))]
+    // max mip is in the range [ 0 if no sub mips, log2(max(width, height, depth))]
     // if autoGenerateMip is on => will provide the maxMIp level specified
     // else provide the deepest mip level provided through assignMip
-    uint16 maxMip() const;
+    uint16 maxMip() const { return _maxMip; }
+
+    uint16 minMip() const { return _minMip; }
+    
+    uint16 mipLevels() const { return _maxMip + 1; }
+    
+    uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
+
+    const std::string& source() const { return _source; }
+    void setSource(const std::string& source) { _source = source; }
+    bool setMinMip(uint16 newMinMip);
+    bool incremementMinMip(uint16 count = 1);
 
     // Generate the mips automatically
     // But the sysmem version is not available
@@ -343,6 +451,10 @@ public:
  
     bool isDefined() const { return _defined; }
 
+    // Usage is a a set of flags providing Semantic about the usage of the Texture.
+    void setUsage(const Usage& usage) { _usage = usage; }
+    Usage getUsage() const { return _usage; }
+
     // For Cube Texture, it's possible to generate the irradiance spherical harmonics and make them availalbe with the texture
     bool generateIrradiance();
     const SHPointer& getIrradiance(uint16 slice = 0) const { return _irradiance; }
@@ -354,9 +466,25 @@ public:
     Stamp getSamplerStamp() const { return _samplerStamp; }
 
     // Only callable by the Backend
-    void notifyMipFaceGPULoaded(uint16 level, uint8 face) const { return _storage->notifyMipFaceGPULoaded(level, face); }
+    void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
+
+    void setExternalTexture(uint32 externalId, void* externalFence);
+    void setExternalRecycler(const ExternalRecycler& recycler);
+    ExternalRecycler getExternalRecycler() const;
+
+    const GPUObjectPointer gpuObject {};
+
+    ExternalUpdates getUpdates() const;
 
 protected:
+    // Should only be accessed internally or by the backend sync function
+    mutable Mutex _externalMutex;
+    mutable std::list<ExternalIdAndFence> _externalUpdates;
+    ExternalRecycler _externalRecycler;
+
+
+    // Not strictly necessary, but incredibly useful for debugging
+    std::string _source;
     std::unique_ptr< Storage > _storage;
 
     Stamp _stamp = 0;
@@ -374,9 +502,12 @@ protected:
     uint16 _numSamples = 1;
     uint16 _numSlices = 1;
 
-    uint16 _maxMip = 0;
+    uint16 _maxMip { 0 };
+    uint16 _minMip { 0 };
  
     Type _type = TEX_1D;
+
+    Usage _usage;
 
     SHPointer _irradiance;
     bool _autoGenerateMips = false;
@@ -386,20 +517,12 @@ protected:
     static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = NULL;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-
-    friend class Backend;
 };
 
 typedef std::shared_ptr<Texture> TexturePointer;
 typedef std::vector< TexturePointer > Textures;
 
-
- // TODO: For now TextureView works with Buffer as a place holder for the Texture.
+ // TODO: For now TextureView works with Texture as a place holder for the Texture.
  // The overall logic should be about the same except that the Texture will be a real GL Texture under the hood
 class TextureView {
 public:
@@ -407,7 +530,7 @@ public:
 
     TexturePointer _texture = TexturePointer(NULL);
     uint16 _subresource = 0;
-    Element _element = Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+    Element _element = Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
 
     TextureView() {};
 
@@ -455,7 +578,7 @@ public:
 
     void reset(const QUrl& url);
 
-    void resetTexture(gpu::Texture* texture);
+    void resetTexture(gpu::TexturePointer texture);
 
     bool isDefined() const;
 
@@ -467,5 +590,6 @@ typedef std::shared_ptr< TextureSource > TextureSourcePointer;
 
 };
 
+Q_DECLARE_METATYPE(gpu::TexturePointer)
 
 #endif

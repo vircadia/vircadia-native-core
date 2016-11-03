@@ -15,113 +15,14 @@
 
 using namespace render;
 
-void ItemBucketMap::insert(const ItemID& id, const ItemKey& key) {
-    // Insert the itemID in every bucket where it filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(key)) {
-            bucket.second.insert(id);
-        }
-    }
-}
-void ItemBucketMap::erase(const ItemID& id, const ItemKey& key) {
-    // Remove the itemID in every bucket where it filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(key)) {
-            bucket.second.erase(id);
-        }
-    }
-}
-
-void ItemBucketMap::reset(const ItemID& id, const ItemKey& oldKey, const ItemKey& newKey) {
-    // Reset the itemID in every bucket,
-    // Remove from the buckets where oldKey filters true AND newKey filters false
-    // Insert into the buckets where newKey filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(oldKey)) {
-            if (!bucket.first.test(newKey)) {
-                bucket.second.erase(id);
-            }
-        } else if (bucket.first.test(newKey)) {
-            bucket.second.insert(id);
-        }
-    }
-}
-
-void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
-    (*this)[ItemFilter::Builder::opaqueShape().withoutLayered()];
-    (*this)[ItemFilter::Builder::transparentShape().withoutLayered()];
-    (*this)[ItemFilter::Builder::light()];
-    (*this)[ItemFilter::Builder::background()];
-    (*this)[ItemFilter::Builder::opaqueShape().withLayered()];
-    (*this)[ItemFilter::Builder::transparentShape().withLayered()];
-}
-
-const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();
-
-const float Item::Status::Value::RED = 0.0f;
-const float Item::Status::Value::YELLOW = 60.0f;
-const float Item::Status::Value::GREEN = 120.0f;
-const float Item::Status::Value::CYAN = 180.0f;
-const float Item::Status::Value::BLUE = 240.0f;
-const float Item::Status::Value::MAGENTA = 300.0f;
-
-void Item::Status::Value::setScale(float scale) {
-    _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
- }
-
-void Item::Status::Value::setColor(float hue) {
-    // Convert the HUe from range [0, 360] to signed normalized value
-    const float HUE_MAX = 360.0f;
-    _color = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(hue, HUE_MAX), 0.0f) / HUE_MAX);
-}
-
-void Item::Status::getPackedValues(glm::ivec4& values) const {
-    for (unsigned int i = 0; i < (unsigned int)values.length(); i++) {
-        if (i < _values.size()) {
-            values[i] = _values[i]().getPackedData();
-        } else {
-            values[i] = Value::INVALID.getPackedData();
-        }
-    }
-}
-
-void Item::PayloadInterface::addStatusGetter(const Status::Getter& getter) {
-    if (!_status) {
-        _status = std::make_shared<Status>();
-    }
-    _status->addGetter(getter);
-}
-
-void Item::PayloadInterface::addStatusGetters(const Status::Getters& getters) {
-    if (!_status) {
-        _status = std::make_shared<Status>();
-    }
-    for (auto& g : getters) {
-        _status->addGetter(g);
-    }
-}
-
-void Item::resetPayload(const PayloadPointer& payload) {
-    if (!payload) {
-        kill();
-    } else {
-        _payload = payload;
-        _key = _payload->getKey();
-    }
-}
-
-glm::ivec4 Item::getStatusPackedValues() const {
-    glm::ivec4 values(Status::Value::INVALID.getPackedData());
-    auto& status = getStatus();
-    if (status) {
-        status->getPackedValues(values);
-    };
-    return values;
-}
-
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
-    _resetItems.push_back(id);
-    _resetPayloads.push_back(payload);
+    if (payload) {
+        _resetItems.push_back(id);
+        _resetPayloads.push_back(payload);
+    } else {
+        qDebug() << "WARNING: PendingChanges::resetItem with a null payload!";
+        removeItem(id);
+    }
 }
 
 void PendingChanges::removeItem(ItemID id) {
@@ -133,7 +34,6 @@ void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) 
     _updateFunctors.push_back(functor);
 }
 
-        
 void PendingChanges::merge(PendingChanges& changes) {
     _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
@@ -142,14 +42,23 @@ void PendingChanges::merge(PendingChanges& changes) {
     _updateFunctors.insert(_updateFunctors.end(), changes._updateFunctors.begin(), changes._updateFunctors.end());
 }
 
-Scene::Scene() {
+Scene::Scene(glm::vec3 origin, float size) :
+    _masterSpatialTree(origin, size)
+{
     _items.push_back(Item()); // add the itemID #0 to nothing
-    _masterBucketMap.allocateStandardOpaqueTranparentBuckets();
+}
+
+Scene::~Scene() {
+    qDebug() << "Scene::~Scene()";
 }
 
 ItemID Scene::allocateID() {
     // Just increment and return the proevious value initialized at 0
     return _IDAllocator.fetch_add(1);
+}
+
+bool Scene::isAllocatedID(const ItemID& id) {
+    return Item::isValidID(id) && (id < _numAllocatedItems.load());
 }
 
 /// Enqueue change batch to the scene
@@ -183,38 +92,111 @@ void Scene::processPendingChangesQueue() {
         }
         // Now we know for sure that we have enough items in the array to
         // capture anything coming from the pendingChanges
+
+        // resets and potential NEW items
         resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
+
+        // Update the numItemsAtomic counter AFTER the reset changes went through
+        _numAllocatedItems.exchange(maxID);
+
+        // updates
         updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
+
+        // removes
         removeItems(consolidatedPendingChanges._removedItems);
+
+        // Update the numItemsAtomic counter AFTER the pending changes went through
+        _numAllocatedItems.exchange(maxID);
 
      // ready to go back to rendering activities
     _itemsMutex.unlock();
 }
 
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
-    auto resetID = ids.begin();
     auto resetPayload = payloads.begin();
-    for (;resetID != ids.end(); resetID++, resetPayload++) {
-        auto& item = _items[(*resetID)];
+    for (auto resetID : ids) {
+        // Access the true item
+        auto& item = _items[resetID];
         auto oldKey = item.getKey();
+        auto oldCell = item.getCell();
+
+        // Reset the item with a new payload
         item.resetPayload(*resetPayload);
+        auto newKey = item.getKey();
 
-        _masterBucketMap.reset((*resetID), oldKey, item.getKey());
+        // Update the item's container
+        assert((oldKey.isSpatial() == newKey.isSpatial()) || oldKey._flags.none());
+        if (newKey.isSpatial()) {
+            auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), resetID, newKey);
+            item.resetCell(newCell, newKey.isSmall());
+        } else {
+            _masterNonspatialSet.insert(resetID);
+        }
+
+        // next loop
+        resetPayload++;
     }
-
 }
 
 void Scene::removeItems(const ItemIDs& ids) {
     for (auto removedID :ids) {
-        _masterBucketMap.erase(removedID, _items[removedID].getKey());
-        _items[removedID].kill();
+        // Access the true item
+        auto& item = _items[removedID];
+        auto oldCell = item.getCell();
+        auto oldKey = item.getKey();
+
+        // Remove the item
+        if (oldKey.isSpatial()) {
+            _masterSpatialTree.removeItem(oldCell, oldKey, removedID);
+        } else {
+            _masterNonspatialSet.erase(removedID);
+        }
+
+        // Kill it
+        item.kill();
     }
 }
 
 void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
-    auto updateID = ids.begin();
+
     auto updateFunctor = functors.begin();
-    for (;updateID != ids.end(); updateID++, updateFunctor++) {
-        _items[(*updateID)].update((*updateFunctor));
+    for (auto updateID : ids) {
+        if (updateID == Item::INVALID_ITEM_ID) {
+            updateFunctor++;
+            continue;
+        }
+
+        // Access the true item
+        auto& item = _items[updateID];
+        auto oldCell = item.getCell();
+        auto oldKey = item.getKey();
+
+        // Update the item
+        item.update((*updateFunctor));
+        auto newKey = item.getKey();
+
+        // Update the item's container
+        if (oldKey.isSpatial() == newKey.isSpatial()) {
+            if (newKey.isSpatial()) {
+                auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
+                item.resetCell(newCell, newKey.isSmall());
+            }
+        } else {
+            if (newKey.isSpatial()) {
+                _masterNonspatialSet.erase(updateID);
+
+                auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
+                item.resetCell(newCell, newKey.isSmall());
+            } else {
+                _masterSpatialTree.removeItem(oldCell, oldKey, updateID);
+                item.resetCell();
+
+                _masterNonspatialSet.insert(updateID);
+            }
+        }
+
+
+        // next loop
+        updateFunctor++;
     }
 }

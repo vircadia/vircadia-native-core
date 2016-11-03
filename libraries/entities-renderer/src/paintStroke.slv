@@ -13,8 +13,8 @@
 //
 
 <@include gpu/Inputs.slh@>
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 // the interpolated normal
@@ -30,7 +30,8 @@ void main(void) {
     varTexcoord = inTexCoord0.st;
     
     // pass along the diffuse color
-    varColor = inColor;
+    varColor = colorToLinearRGBA(inColor);
+
 
     // standard transform
     TransformCamera cam = getTransformCamera();

@@ -12,9 +12,10 @@
 
 
 #include <avatar/AvatarActionHold.h>
-#include <avatar/AvatarActionKinematicHold.h>
 #include <ObjectActionOffset.h>
 #include <ObjectActionSpring.h>
+#include <ObjectActionTravelOriented.h>
+#include <LogHandler.h>
 
 #include "InterfaceActionFactory.h"
 
@@ -22,19 +23,19 @@
 EntityActionPointer interfaceActionFactory(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) {
     switch (type) {
         case ACTION_TYPE_NONE:
-            return nullptr;
+            return EntityActionPointer();
         case ACTION_TYPE_OFFSET:
-            return (EntityActionPointer) new ObjectActionOffset(id, ownerEntity);
+            return std::make_shared<ObjectActionOffset>(id, ownerEntity);
         case ACTION_TYPE_SPRING:
-            return (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
+            return std::make_shared<ObjectActionSpring>(id, ownerEntity);
         case ACTION_TYPE_HOLD:
-            return (EntityActionPointer) new AvatarActionHold(id, ownerEntity);
-        case ACTION_TYPE_KINEMATIC_HOLD:
-            return (EntityActionPointer) new AvatarActionKinematicHold(id, ownerEntity);
+            return std::make_shared<AvatarActionHold>(id, ownerEntity);
+        case ACTION_TYPE_TRAVEL_ORIENTED:
+            return std::make_shared<ObjectActionTravelOriented>(id, ownerEntity);
     }
 
-    assert(false);
-    return nullptr;
+    Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown entity action type");
+    return EntityActionPointer();
 }
 
 
@@ -69,6 +70,10 @@ EntityActionPointer InterfaceActionFactory::factoryBA(EntityItemPointer ownerEnt
     if (action) {
         action->deserialize(data);
         if (action->lifetimeIsOver()) {
+            static QString repeatedMessage =
+                LogHandler::getInstance().addRepeatedMessageRegex(".*factoryBA lifetimeIsOver during action creation.*");
+            qDebug() << "InterfaceActionFactory::factoryBA lifetimeIsOver during action creation --"
+                     << action->getExpires() << "<" << usecTimestampNow();
             return nullptr;
         }
     }

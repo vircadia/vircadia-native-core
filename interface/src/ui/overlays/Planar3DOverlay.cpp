@@ -28,64 +28,34 @@ Planar3DOverlay::Planar3DOverlay(const Planar3DOverlay* planar3DOverlay) :
 
 AABox Planar3DOverlay::getBounds() const {
     auto halfDimensions = glm::vec3{_dimensions / 2.0f, 0.01f};
-    
+
     auto extents = Extents{-halfDimensions, halfDimensions};
-    extents.transform(_transform);
-    
+    extents.transform(getTransform());
+
     return AABox(extents);
 }
 
-void Planar3DOverlay::setProperties(const QScriptValue& properties) {
+void Planar3DOverlay::setProperties(const QVariantMap& properties) {
     Base3DOverlay::setProperties(properties);
 
-    QScriptValue dimensions = properties.property("dimensions");
+    auto dimensions = properties["dimensions"];
 
     // if "dimensions" property was not there, check to see if they included aliases: scale
     if (!dimensions.isValid()) {
-        dimensions = properties.property("scale");
+        dimensions = properties["scale"];
         if (!dimensions.isValid()) {
-            dimensions = properties.property("size");
+            dimensions = properties["size"];
         }
     }
 
     if (dimensions.isValid()) {
-        bool validDimensions = false;
-        glm::vec2 newDimensions;
-
-        QScriptValue x = dimensions.property("x");
-        QScriptValue y = dimensions.property("y");
-
-        if (x.isValid() && y.isValid()) {
-            newDimensions.x = x.toVariant().toFloat();
-            newDimensions.y = y.toVariant().toFloat();
-            validDimensions = true;
-        } else {
-            QScriptValue width = dimensions.property("width");
-            QScriptValue height = dimensions.property("height");
-            if (width.isValid() && height.isValid()) {
-                newDimensions.x = width.toVariant().toFloat();
-                newDimensions.y = height.toVariant().toFloat();
-                validDimensions = true;
-            }
-        }
-
-        // size, scale, dimensions is special, it might just be a single scalar, check that here
-        if (!validDimensions && dimensions.isNumber()) {
-            float size = dimensions.toVariant().toFloat();
-            newDimensions.x = size;
-            newDimensions.y = size;
-            validDimensions = true;
-        }
-
-        if (validDimensions) {
-            setDimensions(newDimensions);
-        }
+        setDimensions(vec2FromVariant(dimensions));
     }
 }
 
-QScriptValue Planar3DOverlay::getProperty(const QString& property) {
+QVariant Planar3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec2toScriptValue(_scriptEngine, getDimensions());
+        return vec2toVariant(getDimensions());
     }
 
     return Base3DOverlay::getProperty(property);

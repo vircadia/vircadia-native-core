@@ -16,12 +16,9 @@
 
 <@include model/Material.slh@>
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
-
-// the emissive map texture and parameters
-uniform sampler2D emissiveMap;
-uniform vec2 emissiveParams;
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS)$>
+<$declareMaterialLightmap()$>
 
 in vec4 _position;
 in vec2 _texCoord0;
@@ -30,16 +27,18 @@ in vec3 _normal;
 in vec3 _color;
 
 void main(void) {
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
-    vec4 emissive = texture(emissiveMap, _texCoord1);
-
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
+
 
     packDeferredFragmentLightmap(
         normalize(_normal), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * _color,
-        getMaterialSpecular(mat),
-        getMaterialShininess(mat),
-        (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
+        getMaterialAlbedo(mat) * albedo.rgb * _color,
+        getMaterialRoughness(mat) * roughness,
+        getMaterialMetallic(mat),
+        getMaterialFresnel(mat),
+        lightmapVal);
 }

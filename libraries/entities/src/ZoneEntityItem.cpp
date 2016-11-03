@@ -23,73 +23,44 @@
 bool ZoneEntityItem::_zonesArePickable = false;
 bool ZoneEntityItem::_drawZoneBoundaries = false;
 
-const xColor ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR = { 255, 255, 255 };
-const float ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY = 1.0f;
-const float ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY = 0.5f;
-const glm::vec3 ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION = { 0.0f, -1.0f, 0.0f };
+
 const ShapeType ZoneEntityItem::DEFAULT_SHAPE_TYPE = SHAPE_TYPE_BOX;
 const QString ZoneEntityItem::DEFAULT_COMPOUND_SHAPE_URL = "";
+const bool ZoneEntityItem::DEFAULT_FLYING_ALLOWED = true;
+const bool ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED = true;
+
 
 EntityItemPointer ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<ZoneEntityItem>(entityID, properties);
+    EntityItemPointer entity { new ZoneEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID) 
-{
+ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Zone;
 
-    _keyLightColor[RED_INDEX] = DEFAULT_KEYLIGHT_COLOR.red;
-    _keyLightColor[GREEN_INDEX] = DEFAULT_KEYLIGHT_COLOR.green;
-    _keyLightColor[BLUE_INDEX] = DEFAULT_KEYLIGHT_COLOR.blue;
-
-    _keyLightIntensity = DEFAULT_KEYLIGHT_INTENSITY;
-    _keyLightAmbientIntensity = DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
-    _keyLightDirection = DEFAULT_KEYLIGHT_DIRECTION;
     _shapeType = DEFAULT_SHAPE_TYPE;
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
 
     _backgroundMode = BACKGROUND_MODE_INHERIT;
-    
-    setProperties(properties);
-}
-
-
-EnvironmentData ZoneEntityItem::getEnvironmentData() const {
-    EnvironmentData result;
-
-    result.setAtmosphereCenter(_atmosphereProperties.getCenter());
-    result.setAtmosphereInnerRadius(_atmosphereProperties.getInnerRadius());
-    result.setAtmosphereOuterRadius(_atmosphereProperties.getOuterRadius());
-    result.setRayleighScattering(_atmosphereProperties.getRayleighScattering());
-    result.setMieScattering(_atmosphereProperties.getMieScattering());
-    result.setScatteringWavelengths(_atmosphereProperties.getScatteringWavelengths());
-    result.setHasStars(_atmosphereProperties.getHasStars());
-
-    // NOTE: The sunLocation and SunBrightness will be overwritten in the EntityTreeRenderer to use the
-    // keyLight details from the scene interface
-    //result.setSunLocation(1000, 900, 1000));
-    //result.setSunBrightness(20.0f);
-    
-    return result;
 }
 
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightColor, getKeyLightColor);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightIntensity, getKeyLightIntensity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightAmbientIntensity, getKeyLightAmbientIntensity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightDirection, getKeyLightDirection);
-
+    
+    _keyLightProperties.getProperties(properties);
+    
     _stageProperties.getProperties(properties);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundMode, getBackgroundMode);
 
-    _atmosphereProperties.getProperties(properties);
     _skyboxProperties.getProperties(properties);
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
 
     return properties;
 }
@@ -98,21 +69,20 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightColor, setKeyLightColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightIntensity, setKeyLightIntensity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightAmbientIntensity, setKeyLightAmbientIntensity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightDirection, setKeyLightDirection);
-
+    bool somethingChangedInKeyLight = _keyLightProperties.setProperties(properties);
+    
     bool somethingChangedInStage = _stageProperties.setProperties(properties);
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
 
-    bool somethingChangedInAtmosphere = _atmosphereProperties.setProperties(properties);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
+
     bool somethingChangedInSkybox = _skyboxProperties.setProperties(properties);
 
-    somethingChanged = somethingChanged || somethingChangedInStage || somethingChangedInAtmosphere || somethingChangedInSkybox;
+    somethingChanged = somethingChanged  || somethingChangedInKeyLight || somethingChangedInStage || somethingChangedInSkybox;
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -135,31 +105,29 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, rgbColor, setKeyLightColor);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setKeyLightIntensity);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, setKeyLightAmbientIntensity);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
+    int bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                                                                                 propertyFlags, overwriteLocalData, somethingChanged);
+    
+    bytesRead += bytesFromKeylight;
+    dataAt += bytesFromKeylight;
 
     int bytesFromStage = _stageProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                                propertyFlags, overwriteLocalData, somethingChanged);
-                                                                               
+    
     bytesRead += bytesFromStage;
     dataAt += bytesFromStage;
 
-    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
-
-    int bytesFromAtmosphere = _atmosphereProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                               propertyFlags, overwriteLocalData, somethingChanged);
-                                                                               
-    bytesRead += bytesFromAtmosphere;
-    dataAt += bytesFromAtmosphere;
 
     int bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                            propertyFlags, overwriteLocalData, somethingChanged);
     bytesRead += bytesFromSkybox;
     dataAt += bytesFromSkybox;
+
+    READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
+    READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
 
     return bytesRead;
 }
@@ -169,17 +137,17 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
-    requestedProperties += PROP_KEYLIGHT_COLOR;
-    requestedProperties += PROP_KEYLIGHT_INTENSITY;
-    requestedProperties += PROP_KEYLIGHT_AMBIENT_INTENSITY;
-    requestedProperties += PROP_KEYLIGHT_DIRECTION;
+    requestedProperties += _keyLightProperties.getEntityProperties(params);
+
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_BACKGROUND_MODE;
     requestedProperties += _stageProperties.getEntityProperties(params);
-    requestedProperties += _atmosphereProperties.getEntityProperties(params);
     requestedProperties += _skyboxProperties.getEntityProperties(params);
-    
+
+    requestedProperties += PROP_FLYING_ALLOWED;
+    requestedProperties += PROP_GHOSTING_ALLOWED;
+
     return requestedProperties;
 }
 
@@ -193,10 +161,8 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, _keyLightColor);
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, getKeyLightIntensity());
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, getKeyLightAmbientIntensity());
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, getKeyLightDirection());
+    _keyLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+                                         propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     _stageProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
                                     propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -205,29 +171,24 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
-    
-    _atmosphereProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
                                     propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
+    APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
+    APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());
 }
 
 void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "             keyLightColor:" << _keyLightColor[0] << "," << _keyLightColor[1] << "," << _keyLightColor[2];
     qCDebug(entities) << "                  position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
-    qCDebug(entities) << "        _keyLightIntensity:" << _keyLightIntensity;
-    qCDebug(entities) << " _keyLightAmbientIntensity:" << _keyLightAmbientIntensity;
-    qCDebug(entities) << "        _keyLightDirection:" << _keyLightDirection;
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
 
+    _keyLightProperties.debugDump();
     _stageProperties.debugDump();
-    _atmosphereProperties.debugDump();
     _skyboxProperties.debugDump();
 }
 

@@ -2,6 +2,8 @@ set(TARGET_NAME networking)
 setup_hifi_library(Network)
 link_hifi_libraries(shared)
 
+target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")
+
 if (WIN32)
   # we need ws2_32.lib on windows, but it's static so we don't bubble it up
   target_link_libraries(${TARGET_NAME} ws2_32.lib)
@@ -31,4 +33,3 @@ endif (UNIX)
 
 # append tbb includes to our list of includes to bubble
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${TBB_INCLUDE_DIRS})
-include_application_version()

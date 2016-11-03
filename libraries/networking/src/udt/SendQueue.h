@@ -64,20 +64,26 @@ public:
     
     void setEstimatedTimeout(int estimatedTimeout) { _estimatedTimeout = estimatedTimeout; }
     void setSyncInterval(int syncInterval) { _syncInterval = syncInterval; }
+
+    void setProbePacketEnabled(bool enabled);
     
 public slots:
     void stop();
     
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
+    void fastRetransmit(SequenceNumber ack);
     void overrideNAKListFromPacket(ControlPacket& packet);
-    void handshakeACK();
+    void handshakeACK(SequenceNumber initialSequenceNumber);
 
 signals:
-    void packetSent(int dataSize, int payloadSize);
-    void packetRetransmitted();
+    void packetSent(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
+    void packetRetransmitted(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
     
     void queueInactive();
+
+    void shortCircuitLoss(quint32 sequenceNumber);
+    void timeout();
     
 private slots:
     void run();
@@ -89,14 +95,16 @@ private:
     
     void sendHandshake();
     
-    void sendPacket(const Packet& packet);
-    void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
+    int sendPacket(const Packet& packet);
+    bool sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
     
-    bool maybeSendNewPacket(); // Figures out what packet to send next
+    int maybeSendNewPacket(); // Figures out what packet to send next
     bool maybeResendPacket(); // Determines whether to resend a packet and which one
     
-    bool isInactive(bool sentAPacket);
+    bool isInactive(bool attemptedToSendPacket);
     void deactivate(); // makes the queue inactive and cleans it up
+
+    bool isFlowWindowFull() const;
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
@@ -105,10 +113,12 @@ private:
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
+
+    SequenceNumber _initialSequenceNumber; // Randomized on SendQueue creation, identifies connection during re-connect requests
     
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     
-    SequenceNumber _currentSequenceNumber; // Last sequence number sent out
+    SequenceNumber _currentSequenceNumber { 0 }; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 }; // Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
@@ -116,8 +126,7 @@ private:
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
     std::atomic<int> _syncInterval { udt::DEFAULT_SYN_INTERVAL_USECS }; // Sync interval, set from CC
-    std::atomic<int> _timeoutExpiryCount { 0 }; // The number of times the timeout has expired without response from client
-    std::atomic<uint64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
+    std::atomic<int64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     
@@ -125,13 +134,17 @@ private:
     LossList _naks; // Sequence numbers of packets to resend
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
-    std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
+    using PacketResendPair = std::pair<uint8_t, std::unique_ptr<Packet>>; // Number of resend + packet ptr
+    std::unordered_map<SequenceNumber, PacketResendPair> _sentPackets; // Packets waiting for ACK.
     
     std::mutex _handshakeMutex; // Protects the handshake ACK condition_variable
     std::atomic<bool> _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
     std::condition_variable _handshakeACKCondition;
     
     std::condition_variable_any _emptyCondition;
+
+
+    std::atomic<bool> _shouldSendProbes { true };
 };
     
 }

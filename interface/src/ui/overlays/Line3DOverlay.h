@@ -18,30 +18,40 @@ class Line3DOverlay : public Base3DOverlay {
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Line3DOverlay();
     Line3DOverlay(const Line3DOverlay* line3DOverlay);
     ~Line3DOverlay();
-    virtual void render(RenderArgs* args);
-    virtual AABox getBounds() const;
+    virtual void render(RenderArgs* args) override;
+    virtual const render::ShapeKey getShapeKey() override;
+    virtual AABox getBounds() const override;
 
     // getters
-    const glm::vec3& getStart() const { return _start; }
-    const glm::vec3& getEnd() const { return _end; }
+    glm::vec3 getStart() const;
+    glm::vec3 getEnd() const;
+    const float& getGlow() const { return _glow; }
+    const float& getGlowWidth() const { return _glowWidth; }
 
     // setters
-    void setStart(const glm::vec3& start) { _start = start; }
-    void setEnd(const glm::vec3& end) { _end = end; }
+    void setStart(const glm::vec3& start);
+    void setEnd(const glm::vec3& end);
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setGlow(const float& glow) { _glow = glow; }
+    void setGlowWidth(const float& glowWidth) { _glowWidth = glowWidth; }
 
-    virtual Line3DOverlay* createClone() const;
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
+
+    virtual Line3DOverlay* createClone() const override;
+
+    virtual void locationChanged(bool tellPhysics = true) override;
 
 protected:
     glm::vec3 _start;
     glm::vec3 _end;
+    float _glow { 0.0 };
+    float _glowWidth { 0.0 };
     int _geometryCacheID;
 };
 

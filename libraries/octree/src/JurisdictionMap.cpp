@@ -17,90 +17,11 @@
 #include <DependencyManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
-#include <OctalCode.h>
 
 #include "OctreeLogging.h"
 #include "JurisdictionMap.h"
 
-
-// standard assignment
-// copy assignment
-JurisdictionMap& JurisdictionMap::operator=(const JurisdictionMap& other) {
-    copyContents(other);
-    return *this;
-}
-
-// Copy constructor
-JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) : _rootOctalCode(NULL) {
-    copyContents(other);
-}
-
-void JurisdictionMap::copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn) {
-    unsigned char* rootCode;
-    std::vector<unsigned char*> endNodes;
-    if (rootCodeIn) {
-        size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(rootCodeIn));
-        rootCode = new unsigned char[bytes];
-        memcpy(rootCode, rootCodeIn, bytes);
-    } else {
-        rootCode = new unsigned char[1];
-        *rootCode = 0;
-    }
-
-    for (size_t i = 0; i < endNodesIn.size(); i++) {
-        if (endNodesIn[i]) {
-            size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodesIn[i]));
-            unsigned char* endNodeCode = new unsigned char[bytes];
-            memcpy(endNodeCode, endNodesIn[i], bytes);
-            endNodes.push_back(endNodeCode);
-        }
-    }
-    init(rootCode, endNodes);
-}
-
-void JurisdictionMap::copyContents(const JurisdictionMap& other) {
-    _nodeType = other._nodeType;
-    copyContents(other._rootOctalCode, other._endNodes);
-}
-
-JurisdictionMap::~JurisdictionMap() {
-    clear();
-}
-
-void JurisdictionMap::clear() {
-    if (_rootOctalCode) {
-        delete[] _rootOctalCode;
-        _rootOctalCode = NULL;
-    }
-
-    for (size_t i = 0; i < _endNodes.size(); i++) {
-        if (_endNodes[i]) {
-            delete[] _endNodes[i];
-        }
-    }
-    _endNodes.clear();
-}
-
-JurisdictionMap::JurisdictionMap(NodeType_t type) : _rootOctalCode(NULL) {
-    _nodeType = type;
-    unsigned char* rootCode = new unsigned char[1];
-    *rootCode = 0;
-
-    std::vector<unsigned char*> emptyEndNodes;
-    init(rootCode, emptyEndNodes);
-}
-
-JurisdictionMap::JurisdictionMap(const char* filename) : _rootOctalCode(NULL) {
-    clear(); // clean up our own memory
-    readFromFile(filename);
-}
-
-JurisdictionMap::JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes)
-    : _rootOctalCode(NULL) {
-    init(rootOctalCode, endNodes);
-}
-
-void myDebugoutputBits(unsigned char byte, bool withNewLine) {
+void myDebugOutputBits(unsigned char byte, bool withNewLine) {
     if (isalnum(byte)) {
         printf("[ %d (%c): ", byte, byte);
     } else {
@@ -117,13 +38,12 @@ void myDebugoutputBits(unsigned char byte, bool withNewLine) {
     }
 }
 
-
 void myDebugPrintOctalCode(const unsigned char* octalCode, bool withNewLine) {
     if (!octalCode) {
-        printf("NULL");
+        printf("nullptr");
     } else {
         for (size_t i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
-            myDebugoutputBits(octalCode[i],false);
+            myDebugOutputBits(octalCode[i], false);
         }
     }
     if (withNewLine) {
@@ -131,6 +51,55 @@ void myDebugPrintOctalCode(const unsigned char* octalCode, bool withNewLine) {
     }
 }
 
+// standard assignment
+// copy assignment
+JurisdictionMap& JurisdictionMap::operator=(const JurisdictionMap& other) {
+    copyContents(other);
+    return *this;
+}
+
+// Copy constructor
+JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) : _rootOctalCode(nullptr) {
+    copyContents(other);
+}
+
+void JurisdictionMap::copyContents(const OctalCodePtr& rootCodeIn, const OctalCodePtrList& endNodesIn) {
+    OctalCodePtr rootCode = rootCodeIn;
+    if (!rootCode) {
+        rootCode = createOctalCodePtr(1);
+        *rootCode = 0;
+    }
+
+    OctalCodePtrList emptyEndNodes;
+    init(rootCode, endNodesIn);
+}
+
+void JurisdictionMap::copyContents(const JurisdictionMap& other) {
+    _nodeType = other._nodeType;
+
+    OctalCodePtr rootOctalCode;
+    OctalCodePtrList endNodes;
+
+    std::tie(rootOctalCode, endNodes) = other.getRootAndEndNodeOctalCodes();
+
+    init(rootOctalCode, endNodes);
+}
+
+JurisdictionMap::~JurisdictionMap() {
+}
+
+JurisdictionMap::JurisdictionMap(NodeType_t type) : _rootOctalCode(nullptr) {
+    _nodeType = type;
+    OctalCodePtr rootCode = createOctalCodePtr(1);
+    *rootCode = 0;
+
+    OctalCodePtrList emptyEndNodes;
+    init(rootCode, emptyEndNodes);
+}
+
+JurisdictionMap::JurisdictionMap(const char* filename) : _rootOctalCode(nullptr) {
+    readFromFile(filename);
+}
 
 JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHexCodes) {
 
@@ -139,8 +108,8 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
 
     _rootOctalCode = hexStringToOctalCode(QString(rootHexCode));
 
-    qCDebug(octree, "JurisdictionMap::JurisdictionMap() _rootOctalCode=%p octalCode=", _rootOctalCode);
-    myDebugPrintOctalCode(_rootOctalCode, true);
+    qCDebug(octree, "JurisdictionMap::JurisdictionMap() _rootOctalCode=%p octalCode=", _rootOctalCode.get());
+    myDebugPrintOctalCode(_rootOctalCode.get(), true);
 
     QString endNodesHexStrings(endNodesHexCodes);
     QString delimiterPattern(",");
@@ -149,7 +118,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
     for (int i = 0; i < endNodeList.size(); i++) {
         QString endNodeHexString = endNodeList.at(i);
 
-        unsigned char* endNodeOctcode = hexStringToOctalCode(endNodeHexString);
+        auto endNodeOctcode = hexStringToOctalCode(endNodeHexString);
 
         qCDebug(octree, "JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s",
             i, endNodeHexString.toLocal8Bit().constData());
@@ -157,15 +126,29 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
         //printOctalCode(endNodeOctcode);
         _endNodes.push_back(endNodeOctcode);
 
-        qCDebug(octree, "JurisdictionMap::JurisdictionMap() endNodeOctcode=%p octalCode=", endNodeOctcode);
-        myDebugPrintOctalCode(endNodeOctcode, true);
+        qCDebug(octree, "JurisdictionMap::JurisdictionMap() endNodeOctcode=%p octalCode=", endNodeOctcode.get());
+        myDebugPrintOctalCode(endNodeOctcode.get(), true);
 
     }
 }
 
+std::tuple<OctalCodePtr, OctalCodePtrList> JurisdictionMap::getRootAndEndNodeOctalCodes() const {
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+    return std::tuple<OctalCodePtr, OctalCodePtrList>(_rootOctalCode, _endNodes);
+}
 
-void JurisdictionMap::init(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes) {
-    clear(); // clean up our own memory
+OctalCodePtr JurisdictionMap::getRootOctalCode() const {
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+    return _rootOctalCode;
+}
+
+OctalCodePtrList JurisdictionMap::getEndNodeOctalCodes() const {
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+    return _endNodes;
+}
+
+void JurisdictionMap::init(OctalCodePtr rootOctalCode, const OctalCodePtrList& endNodes) {
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
     _rootOctalCode = rootOctalCode;
     _endNodes = endNodes;
 }
@@ -173,17 +156,19 @@ void JurisdictionMap::init(unsigned char* rootOctalCode, const std::vector<unsig
 JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(const unsigned char* nodeOctalCode, int childIndex) const {
     // to be in our jurisdiction, we must be under the root...
 
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+
     // if the node is an ancestor of my root, then we return ABOVE
-    if (isAncestorOf(nodeOctalCode, _rootOctalCode)) {
+    if (isAncestorOf(nodeOctalCode, _rootOctalCode.get())) {
         return ABOVE;
     }
 
     // otherwise...
-    bool isInJurisdiction = isAncestorOf(_rootOctalCode, nodeOctalCode, childIndex);
+    bool isInJurisdiction = isAncestorOf(_rootOctalCode.get(), nodeOctalCode, childIndex);
     // if we're under the root, then we can't be under any of the endpoints
     if (isInJurisdiction) {
         for (size_t i = 0; i < _endNodes.size(); i++) {
-            bool isUnderEndNode = isAncestorOf(_endNodes[i], nodeOctalCode);
+            bool isUnderEndNode = isAncestorOf(_endNodes[i].get(), nodeOctalCode);
             if (isUnderEndNode) {
                 isInJurisdiction = false;
                 break;
@@ -200,8 +185,9 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     QString rootCode = settings.value("root","00").toString();
     qCDebug(octree) << "rootCode=" << rootCode;
 
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
     _rootOctalCode = hexStringToOctalCode(rootCode);
-    printOctalCode(_rootOctalCode);
+    printOctalCode(_rootOctalCode.get());
 
     settings.beginGroup("endNodes");
     const QStringList childKeys = settings.childKeys();
@@ -211,8 +197,8 @@ bool JurisdictionMap::readFromFile(const char* filename) {
         values.insert(childKey, childValue);
         qCDebug(octree) << childKey << "=" << childValue;
 
-        unsigned char* octcode = hexStringToOctalCode(childValue);
-        printOctalCode(octcode);
+        auto octcode = hexStringToOctalCode(childValue);
+        printOctalCode(octcode.get());
 
         _endNodes.push_back(octcode);
     }
@@ -221,12 +207,14 @@ bool JurisdictionMap::readFromFile(const char* filename) {
 }
 
 void JurisdictionMap::displayDebugDetails() const {
-    QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+
+    QString rootNodeValue = octalCodeToHexString(_rootOctalCode.get());
 
     qCDebug(octree) << "root:" << rootNodeValue;
 
     for (size_t i = 0; i < _endNodes.size(); i++) {
-        QString value = octalCodeToHexString(_endNodes[i]);
+        QString value = octalCodeToHexString(_endNodes[i].get());
         qCDebug(octree) << "End node[" << i << "]: " << rootNodeValue;
     }
 }
@@ -236,15 +224,16 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     QString     settingsFile(filename);
     QSettings   settings(settingsFile, QSettings::IniFormat);
 
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
 
-    QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
+    QString rootNodeValue = octalCodeToHexString(_rootOctalCode.get());
 
     settings.setValue("root", rootNodeValue);
 
     settings.beginGroup("endNodes");
     for (size_t i = 0; i < _endNodes.size(); i++) {
         QString key = QString("endnode%1").arg(i);
-        QString value = octalCodeToHexString(_endNodes[i]);
+        QString value = octalCodeToHexString(_endNodes[i].get());
         settings.setValue(key, value);
     }
     settings.endGroup();
@@ -271,18 +260,19 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
     packet->writePrimitive(type);
 
     // add the root jurisdiction
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
     if (_rootOctalCode) {
-        size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode));
+        size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode.get()));
         // No root or end node details to pack!
         packet->writePrimitive(bytes);
-        packet->write(reinterpret_cast<char*>(_rootOctalCode), bytes);
+        packet->write(reinterpret_cast<char*>(_rootOctalCode.get()), bytes);
 
         // if and only if there's a root jurisdiction, also include the end nodes
-        int endNodeCount = _endNodes.size();
+        int endNodeCount = (int)_endNodes.size();
         packet->writePrimitive(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
-            unsigned char* endNodeCode = _endNodes[i];
+            auto endNodeCode = _endNodes[i].get();
             size_t bytes = 0;
             if (endNodeCode) {
                 bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
@@ -298,28 +288,30 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
     return packet;
 }
 
-int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
-    clear();
-    
+int JurisdictionMap::unpackFromPacket(ReceivedMessage& message) {
     // read the root jurisdiction
     int bytes = 0;
-    packet.readPrimitive(&bytes);
+    message.readPrimitive(&bytes);
 
-    if (bytes > 0 && bytes <= packet.bytesLeftToRead()) {
-        _rootOctalCode = new unsigned char[bytes];
-        packet.read(reinterpret_cast<char*>(_rootOctalCode), bytes);
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+    _rootOctalCode = nullptr;
+    _endNodes.clear();
+
+    if (bytes > 0 && bytes <= message.getBytesLeftToRead()) {
+        _rootOctalCode = createOctalCodePtr(bytes);
+        message.read(reinterpret_cast<char*>(_rootOctalCode.get()), bytes);
 
         // if and only if there's a root jurisdiction, also include the end nodes
         int endNodeCount = 0;
-        packet.readPrimitive(&endNodeCount);
+        message.readPrimitive(&endNodeCount);
         
         for (int i = 0; i < endNodeCount; i++) {
             int bytes = 0;
-            packet.readPrimitive(&bytes);
+            message.readPrimitive(&bytes);
 
-            if (bytes <= packet.bytesLeftToRead()) {
-                unsigned char* endNodeCode = new unsigned char[bytes];
-                packet.read(reinterpret_cast<char*>(endNodeCode), bytes);
+            if (bytes <= message.getBytesLeftToRead()) {
+                auto endNodeCode = createOctalCodePtr(bytes);
+                message.read(reinterpret_cast<char*>(endNodeCode.get()), bytes);
 
                 // if the endNodeCode was 0 length then don't add it
                 if (bytes > 0) {
@@ -329,5 +321,5 @@ int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
         }
     }
 
-    return packet.pos(); // excludes header
+    return message.getPosition(); // excludes header
 }

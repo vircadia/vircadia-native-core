@@ -12,6 +12,7 @@
 #ifndef hifi_Node_h
 #define hifi_Node_h
 
+#include <memory>
 #include <ostream>
 #include <stdint.h>
 
@@ -20,21 +21,25 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <UUIDHasher.h>
+
+#include <tbb/concurrent_unordered_set.h>
+
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NodeData.h"
 #include "NodeType.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
+#include "NodePermissions.h"
 
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-         bool canAdjustLocks, bool canRez, const QUuid& connectionSecret = QUuid(),
+         const NodePermissions& permissions, const QUuid& connectionSecret = QUuid(),
          QObject* parent = 0);
-    ~Node();
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
     bool operator!=(const Node& otherNode) const { return !(*this == otherNode); }
@@ -45,8 +50,8 @@ public:
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
 
-    NodeData* getLinkedData() const { return _linkedData; }
-    void setLinkedData(NodeData* linkedData) { _linkedData = linkedData; }
+    NodeData* getLinkedData() const { return _linkedData.get(); }
+    void setLinkedData(std::unique_ptr<NodeData> linkedData) { _linkedData = std::move(linkedData); }
 
     bool isAlive() const { return _isAlive; }
     void setAlive(bool isAlive) { _isAlive = isAlive; }
@@ -54,15 +59,21 @@ public:
     int getPingMs() const { return _pingMs; }
     void setPingMs(int pingMs) { _pingMs = pingMs; }
 
-    int getClockSkewUsec() const { return _clockSkewUsec; }
-    void updateClockSkewUsec(int clockSkewSample);
+    qint64 getClockSkewUsec() const { return _clockSkewUsec; }
+    void updateClockSkewUsec(qint64 clockSkewSample);
     QMutex& getMutex() { return _mutex; }
 
-    void setCanAdjustLocks(bool canAdjustLocks) { _canAdjustLocks = canAdjustLocks; }
-    bool getCanAdjustLocks() { return _canAdjustLocks; }
+    void setPermissions(const NodePermissions& newPermissions) { _permissions = newPermissions; }
+    NodePermissions getPermissions() const { return _permissions; }
+    bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
+    bool getCanRez() const { return _permissions.can(NodePermissions::Permission::canRezPermanentEntities); }
+    bool getCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
+    bool getCanWriteToAssetServer() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
+    bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
 
-    void setCanRez(bool canRez) { _canRez = canRez; }
-    bool getCanRez() { return _canRez; }
+    void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
+    void addIgnoredNode(const QUuid& otherNodeID);
+    bool isIgnoringNodeWithID(const QUuid& nodeID) const { return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
@@ -75,15 +86,17 @@ private:
     NodeType_t _type;
 
     QUuid _connectionSecret;
-    NodeData* _linkedData;
+    std::unique_ptr<NodeData> _linkedData;
     bool _isAlive;
     int _pingMs;
-    int _clockSkewUsec;
+    qint64 _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
-    bool _canAdjustLocks;
-    bool _canRez;
+    NodePermissions _permissions;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
 };
+
+Q_DECLARE_METATYPE(Node*)
 
 typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)

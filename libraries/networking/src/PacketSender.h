@@ -43,14 +43,14 @@ public:
     void setPacketsPerSecond(int packetsPerSecond);
     int getPacketsPerSecond() const { return _packetsPerSecond; }
 
-    virtual bool process();
-    virtual void terminating();
+    virtual bool process() override;
+    virtual void terminating() override;
 
     /// are there packets waiting in the send queue to be sent
     bool hasPacketsToSend() const { return _packets.size() > 0; }
 
     /// how many packets are there in the send queue waiting to be sent
-    int packetsToSendCount() const { return _packets.size(); }
+    size_t packetsToSendCount() const { return _packets.size(); }
 
     /// If you're running in non-threaded mode, call this to give us a hint as to how frequently you will call process.
     /// This has no effect in threaded mode. This is only considered a hint in non-threaded mode.

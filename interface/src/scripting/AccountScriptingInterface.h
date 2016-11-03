@@ -16,16 +16,17 @@
 
 class AccountScriptingInterface : public QObject {
     Q_OBJECT
-    AccountScriptingInterface();
+
+    Q_PROPERTY(QString username READ getUsername NOTIFY usernameChanged)
 
 signals:
-    void balanceChanged(float newBalance);
-    
+    void usernameChanged();
+
 public slots:
     static AccountScriptingInterface* getInstance();
-    float getBalance();
+    QString getUsername();
     bool isLoggedIn();
-    void updateBalance();
+    bool checkAndSignalForAccessToken();
 };
 
 #endif // hifi_AccountScriptingInterface_h

@@ -10,11 +10,13 @@
 //
 
 #include "AddressBarDialog.h"
+#include "Application.h"
 
 #include <QMessageBox>
 
 #include "DependencyManager.h"
 #include "AddressManager.h"
+#include "DialogsManager.h"
 
 HIFI_QML_DEF(AddressBarDialog)
 
@@ -22,7 +24,6 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     auto addressManager = DependencyManager::get<AddressManager>();
     connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
     connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
-    connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &AddressBarDialog::hide);
     connect(addressManager.data(), &AddressManager::goBackPossible, this, [this] (bool isPossible) {
         if (isPossible != _backEnabled) {
             _backEnabled = isPossible;
@@ -37,17 +38,26 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     });
     _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
+    connect(addressManager.data(), &AddressManager::hostChanged, this, &AddressBarDialog::metaverseServerUrlChanged);
+    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::setUseFeed, this, &AddressBarDialog::setUseFeed);
+    connect(qApp, &Application::receivedHifiSchemeURL, this, &AddressBarDialog::receivedHifiSchemeURL);
 }
 
-void AddressBarDialog::hide() {
-    ((QQuickItem*)parent())->setEnabled(false);
-}
-
-void AddressBarDialog::loadAddress(const QString& address) {
+void AddressBarDialog::loadAddress(const QString& address, bool fromSuggestions) {
     qDebug() << "Called LoadAddress with address " << address;
     if (!address.isEmpty()) {
-        DependencyManager::get<AddressManager>()->handleLookupString(address);
+        DependencyManager::get<AddressManager>()->handleLookupString(address, fromSuggestions);
     }
+}
+
+void AddressBarDialog::loadHome() {
+    qDebug() << "Called LoadHome";
+    QString homeLocation = qApp->getBookmarks()->addressForBookmark(Bookmarks::HOME_BOOKMARK);
+    const QString DEFAULT_HOME_LOCATION = "localhost";
+    if (homeLocation == "") {
+        homeLocation = DEFAULT_HOME_LOCATION;
+    }
+    DependencyManager::get<AddressManager>()->handleLookupString(homeLocation);
 }
 
 void AddressBarDialog::loadBack() {
@@ -61,10 +71,13 @@ void AddressBarDialog::loadForward() {
 }
 
 void AddressBarDialog::displayAddressOfflineMessage() {
-    OffscreenUi::error("That user or place is currently offline");
+    OffscreenUi::critical("", "That user or place is currently offline");
 }
 
 void AddressBarDialog::displayAddressNotFoundMessage() {
-    OffscreenUi::error("There is no address information for that user or place");
+    OffscreenUi::critical("", "There is no address information for that user or place");
 }
 
+void AddressBarDialog::observeShownChanged(bool visible) {
+    DependencyManager::get<DialogsManager>()->emitAddressBarShown(visible);
+}

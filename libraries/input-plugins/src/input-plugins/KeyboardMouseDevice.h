@@ -12,12 +12,19 @@
 #ifndef hifi_KeyboardMouseDevice_h
 #define hifi_KeyboardMouseDevice_h
 
-#include <QTouchEvent>
 #include <chrono>
-#include "InputDevice.h"
+
+#include <QtCore/QPoint>
+
+#include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 
-class KeyboardMouseDevice : public InputPlugin, public InputDevice {
+class QTouchEvent;
+class QKeyEvent;
+class QMouseEvent;
+class QWheelEvent;
+
+class KeyboardMouseDevice : public InputPlugin {
     Q_OBJECT
 public:
     enum KeyboardChannel {
@@ -30,6 +37,9 @@ public:
         MOUSE_BUTTON_LEFT = KEYBOARD_LAST + 1,
         MOUSE_BUTTON_RIGHT,
         MOUSE_BUTTON_MIDDLE,
+        MOUSE_BUTTON_LEFT_CLICKED,
+        MOUSE_BUTTON_RIGHT_CLICKED,
+        MOUSE_BUTTON_MIDDLE_CLICKED,
     };
 
     enum MouseAxisChannel {
@@ -54,55 +64,70 @@ public:
         TOUCH_BUTTON_PRESS = TOUCH_AXIS_Y_NEG + 1,
     };
 
-    KeyboardMouseDevice() : InputDevice("Keyboard") {}
-
     // Plugin functions
-    virtual bool isSupported() const override { return true; }
-    virtual bool isJointController() const override { return false; }
+    bool isSupported() const override { return true; }
     const QString& getName() const override { return NAME; }
 
-    virtual void activate() override {};
-    virtual void deactivate() override {};
+    bool isHandController() const override { return false; }
 
-    virtual void pluginFocusOutEvent() override { focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
+    void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
+    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
-    // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
-    virtual void update(float deltaTime, bool jointsCaptured) override;
-    virtual void focusOutEvent() override;
- 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
 
-    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseMoveEvent(QMouseEvent* event);
+    void mousePressEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event);
+    void eraseMouseClicked();
 
     void touchBeginEvent(const QTouchEvent* event);
     void touchEndEvent(const QTouchEvent* event);
     void touchUpdateEvent(const QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-    
-    // Let's make it easy for Qt because we assume we love Qt forever
-    UserInputMapper::Input makeInput(Qt::Key code);
-    UserInputMapper::Input makeInput(Qt::MouseButton code);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::MouseAxisChannel axis);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchAxisChannel axis);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchButtonChannel button);
 
+    static void enableTouch(bool enableTouch) { _enableTouch = enableTouch; }
+    
     static const QString NAME;
 
 protected:
+
+    class InputDevice : public controller::InputDevice {
+    public:
+        InputDevice() : controller::InputDevice("Keyboard") {}
+    private:
+        // Device functions
+        virtual controller::Input::NamedVector getAvailableInputs() const override;
+        virtual QString getDefaultMappingConfig() const override;
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
+        virtual void focusOutEvent() override;
+
+        // Let's make it easy for Qt because we assume we love Qt forever
+        controller::Input makeInput(Qt::Key code) const;
+        controller::Input makeInput(Qt::MouseButton code, bool clicked = false) const;
+        controller::Input makeInput(MouseAxisChannel axis) const;
+        controller::Input makeInput(TouchAxisChannel axis) const;
+        controller::Input makeInput(TouchButtonChannel button) const;
+
+        friend class KeyboardMouseDevice;
+    };
+
+public:
+    const std::shared_ptr<InputDevice>& getInputDevice() const { return _inputDevice; }
+
+protected:
     QPoint _lastCursor;
+    quint64 _mousePressTime;
+    bool _mouseMoved;
     glm::vec2 _lastTouch;
+    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
+
     bool _isTouching = false;
-    
-    glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) const;
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
+
+    static bool _enableTouch;
 };
 
 #endif // hifi_KeyboardMouseDevice_h

@@ -1,0 +1,79 @@
+<!--
+//  particleExplorer.hml
+//  
+//
+//  Created by James B. Pollack @imgntn on 9/26/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Loads dat.gui, underscore, and the app
+//  Quickly edit the aesthetics of a particle system.  
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+// 
+ -->    
+<html>
+<head>
+<script type="text/javascript" src="dat.gui.min.js"></script>
+<script type="text/javascript" src="underscore-min.js"></script>
+<script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script type="text/javascript" src="../html/js/eventBridgeLoader.js"></script>
+<script type="text/javascript" src="particleExplorer.js"></script>
+<script>
+    function loaded() {
+        // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
+        document.addEventListener("contextmenu", function (event) {
+            event.preventDefault();
+        }, false);
+    }
+</script>
+<style>
+
+body{
+    background-color:black;
+    overflow-x: hidden;
+}
+
+#my-gui-container{
+
+}
+
+.importer{
+    margin-bottom:4px;
+}
+.exported-props-section {
+    width: 50%;
+    margin: 0 auto; 
+
+}
+#exported-props {
+    /* Set the margin-left and margin-right automatically set */
+    color: white;
+    white-space: pre-wrap;       /* css-3 */
+}
+
+
+::-webkit-input-placeholder {
+    text-align: center;
+    font-family: Helvetica
+}
+
+#importer-input{
+    width:90%;
+    line-height: 2;
+    margin-left:5%;
+}
+
+</style>
+</head>
+<body  onload="loaded();">
+<div class="importer">
+<input type='text' id="importer-input" placeholder="Import: Paste JSON here."  onkeypress="handleInputKeyPress(event)">
+<div class = "exported-props-section">
+  <div id = "exported-props"></div> 
+</div>
+<div id="my-gui-container">
+</div>
+
+</body>
+</html>

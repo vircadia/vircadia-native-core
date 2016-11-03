@@ -23,8 +23,14 @@ const int HALF_TREE_SCALE = TREE_SCALE / 2;
 // This controls the LOD. Larger number will make smaller voxels visible at greater distance.
 const float DEFAULT_OCTREE_SIZE_SCALE = TREE_SCALE * 400.0f; 
 
+// Since entities like models live inside of octree cells, and they themselves can have very small mesh parts,
+// we want to have some constant that controls have big a mesh part must be to render even if the octree cell itself
+// would be visible. This constanct controls that. It basically means you must be this many times closer to a mesh 
+// than an octree cell to see the mesh.
+const float OCTREE_TO_MESH_RATIO = 4.0f;
+
 // This is used in the LOD Tools to translate between the size scale slider and the values used to set the OctreeSizeScale
-const float MAX_LOD_SIZE_MULTIPLIER = 800.0f;
+const float MAX_LOD_SIZE_MULTIPLIER = 4000.0f;
 
 const int NUMBER_OF_CHILDREN = 8;
 

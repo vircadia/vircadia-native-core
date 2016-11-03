@@ -1,11 +1,20 @@
-import Hifi 1.0 as Hifi
-import QtQuick 2.3
-import QtQuick.Controls 1.2
-import QtQuick.Controls.Styles 1.3
-import QtWebKit 3.0
-import "controls"
+//
+//  InfoView.qml
+//
+//  Created by Bradley Austin Davis on 27 Apr 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-VrDialog {
+import QtQuick 2.5
+import Hifi 1.0 as Hifi
+
+import "controls-uit"
+import "windows" as Windows
+
+Windows.ScrollingWindow {
     id: root
     width: 800
     height: 800
@@ -13,20 +22,29 @@ VrDialog {
     
     Hifi.InfoView {
         id: infoView
-        // Fille the client area
-        anchors.fill: parent
-        anchors.margins: parent.margins
-        anchors.topMargin: parent.topMargin
- 
-        ScrollView {
+        width: pane.contentWidth
+        implicitHeight: pane.scrollHeight
+
+        WebView {
+            id: webview
+            objectName: "WebView"
             anchors.fill: parent
-            WebView {
-                objectName: "WebView"
-                id: webview
-                url: infoView.url
-                anchors.fill: parent
-            }
-        }        
-        
-     }
+            url: infoView.url
+        }
+    }
+
+    Component.onCompleted: {
+        centerWindow(root);
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            centerWindow(root);
+        }
+    }
+
+    function centerWindow() {
+        desktop.centerOnVisible(root);
+    }
+
 }

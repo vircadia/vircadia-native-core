@@ -118,18 +118,6 @@ void EyeTracker::init() {
         qCWarning(interfaceapp) << "Eye Tracker: Already initialized";
         return;
     }
-
-#ifdef HAVE_IVIEWHMD
-    int result = smi_setCallback(eyeTrackerCallback);
-    if (result != SMI_RET_SUCCESS) {
-        qCWarning(interfaceapp) << "Eye Tracker: Error setting callback:" << smiReturnValueToString(result);
-        QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
-    } else {
-        _isInitialized = true;
-    }
-
-    connect(&_startStreamingWatcher, SIGNAL(finished()), this, SLOT(onStreamStarted()));
-#endif
 }
 
 #ifdef HAVE_IVIEWHMD
@@ -140,6 +128,10 @@ int EyeTracker::startStreaming(bool simulate) {
 
 #ifdef HAVE_IVIEWHMD
 void EyeTracker::onStreamStarted() {
+    if (!_isInitialized) {
+        return;
+    }
+
     int result = _startStreamingWatcher.result();
     _isStreaming = (result == SMI_RET_SUCCESS);
 
@@ -147,7 +139,7 @@ void EyeTracker::onStreamStarted() {
         qCWarning(interfaceapp) << "Eye Tracker: Error starting streaming:" << smiReturnValueToString(result);
         // Display error dialog unless SMI SDK has already displayed an error message.
         if (result != SMI_ERROR_HMD_NOT_SUPPORTED) {
-            QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
+            OffscreenUi::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
         }
     } else {
         qCDebug(interfaceapp) << "Eye Tracker: Started streaming";
@@ -160,7 +152,7 @@ void EyeTracker::onStreamStarted() {
            result = smi_loadCalibration(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION);
            if (result != SMI_RET_SUCCESS) {
                qCWarning(interfaceapp) << "Eye Tracker: Error loading calibration:" << smiReturnValueToString(result);
-               QMessageBox::warning(nullptr, "Eye Tracker Error", "Error loading calibration"
+               OffscreenUi::warning(nullptr, "Eye Tracker Error", "Error loading calibration"
                    + smiReturnValueToString(result));
            } else {
                qCDebug(interfaceapp) << "Eye Tracker: Loaded calibration";
@@ -171,6 +163,20 @@ void EyeTracker::onStreamStarted() {
 #endif
 
 void EyeTracker::setEnabled(bool enabled, bool simulate) {
+    if (enabled && !_isInitialized) {
+#ifdef HAVE_IVIEWHMD
+        int result = smi_setCallback(eyeTrackerCallback);
+        if (result != SMI_RET_SUCCESS) {
+            qCWarning(interfaceapp) << "Eye Tracker: Error setting callback:" << smiReturnValueToString(result);
+            OffscreenUi::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
+        } else {
+            _isInitialized = true;
+        }
+
+        connect(&_startStreamingWatcher, SIGNAL(finished()), this, SLOT(onStreamStarted()));
+#endif
+    }
+
     if (!_isInitialized) {
         return;
     }
@@ -267,7 +273,7 @@ void EyeTracker::calibrate(int points) {
     }
 
     if (result != SMI_RET_SUCCESS) {
-        QMessageBox::warning(nullptr, "Eye Tracker Error", "Calibration error: " + smiReturnValueToString(result));
+        OffscreenUi::warning(nullptr, "Eye Tracker Error", "Calibration error: " + smiReturnValueToString(result));
     }
 }
 #endif

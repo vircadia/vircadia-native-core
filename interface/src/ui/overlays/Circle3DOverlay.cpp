@@ -10,34 +10,16 @@
 
 #include "Circle3DOverlay.h"
 
-#include <DeferredLightingEffect.h>
+#include <GeometryUtil.h>
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
-
 QString const Circle3DOverlay::TYPE = "circle3d";
 
-Circle3DOverlay::Circle3DOverlay() :
-    _startAt(0.0f),
-    _endAt(360.0f),
-    _outerRadius(1.0f),
-    _innerRadius(0.0f),
-    _hasTickMarks(false),
-    _majorTickMarksAngle(0.0f),
-    _minorTickMarksAngle(0.0f),
-    _majorTickMarksLength(0.0f),
-    _minorTickMarksLength(0.0f),
-    _quadVerticesID(GeometryCache::UNKNOWN_ID),
-    _lineVerticesID(GeometryCache::UNKNOWN_ID),
-    _majorTicksVerticesID(GeometryCache::UNKNOWN_ID),
-    _minorTicksVerticesID(GeometryCache::UNKNOWN_ID),
-    _lastStartAt(-1.0f),
-    _lastEndAt(-1.0f),
-    _lastOuterRadius(-1.0f),
-    _lastInnerRadius(-1.0f)
-{
-    _majorTickMarksColor.red = _majorTickMarksColor.green = _majorTickMarksColor.blue = (unsigned char)0;
-    _minorTickMarksColor.red = _minorTickMarksColor.green = _minorTickMarksColor.blue = (unsigned char)0;
+Circle3DOverlay::Circle3DOverlay() {
+    memset(&_minorTickMarksColor, 0, sizeof(_minorTickMarksColor));
+    memset(&_majorTickMarksColor, 0, sizeof(_majorTickMarksColor));
+    qDebug() << "Building circle3d overlay";
 }
 
 Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
@@ -56,136 +38,147 @@ Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
     _quadVerticesID(GeometryCache::UNKNOWN_ID),
     _lineVerticesID(GeometryCache::UNKNOWN_ID),
     _majorTicksVerticesID(GeometryCache::UNKNOWN_ID),
-    _minorTicksVerticesID(GeometryCache::UNKNOWN_ID),
-    _lastStartAt(-1.0f),
-    _lastEndAt(-1.0f),
-    _lastOuterRadius(-1.0f),
-    _lastInnerRadius(-1.0f)
+    _minorTicksVerticesID(GeometryCache::UNKNOWN_ID)
 {
+    qDebug() << "Building circle3d overlay";
 }
 
+Circle3DOverlay::~Circle3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        if (_quadVerticesID) {
+            geometryCache->releaseID(_quadVerticesID);
+        }
+        if (_lineVerticesID) {
+            geometryCache->releaseID(_lineVerticesID);
+        }
+        if (_majorTicksVerticesID) {
+            geometryCache->releaseID(_majorTicksVerticesID);
+        }
+        if (_minorTicksVerticesID) {
+            geometryCache->releaseID(_minorTicksVerticesID);
+        }
+    }
+    qDebug() << "Destroying circle3d overlay";
+}
 void Circle3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
 
     float alpha = getAlpha();
-
     if (alpha == 0.0f) {
         return; // do nothing if our alpha is 0, we're not visible
     }
 
-    // Create the circle in the coordinates origin
-    float outerRadius = getOuterRadius();
-    float innerRadius = getInnerRadius(); // only used in solid case
-    float startAt = getStartAt();
-    float endAt = getEndAt();
-
-    bool geometryChanged = (startAt != _lastStartAt || endAt != _lastEndAt ||
-                                innerRadius != _lastInnerRadius || outerRadius != _lastOuterRadius);
-
+    bool geometryChanged = _dirty;
+    _dirty = false;
 
     const float FULL_CIRCLE = 360.0f;
     const float SLICES = 180.0f;  // The amount of segment to create the circle
     const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
-
-    xColor colorX = getColor();
     const float MAX_COLOR = 255.0f;
-    glm::vec4 color(colorX.red / MAX_COLOR, colorX.green / MAX_COLOR, colorX.blue / MAX_COLOR, alpha);
-
-    bool colorChanged = colorX.red != _lastColor.red || colorX.green != _lastColor.green || colorX.blue != _lastColor.blue;
-    _lastColor = colorX;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    
+
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
+    if (args->_pipeline) {
+        batch.setPipeline(args->_pipeline->pipeline);
+    }
 
     // FIXME: THe line width of _lineWidth is not supported anymore, we ll need a workaround
 
-    auto transform = _transform;
+    auto transform = getTransform();
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
     batch.setModelTransform(transform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false);
-    
+
     // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
     // we just draw a line...
     if (getIsSolid()) {
-        if (_quadVerticesID == GeometryCache::UNKNOWN_ID) {
+        if (!_quadVerticesID) {
             _quadVerticesID = geometryCache->allocateID();
         }
-        
-        if (geometryChanged || colorChanged) {
-            
+
+        if (geometryChanged) {
             QVector<glm::vec2> points;
-            
-            float angle = startAt;
-            float angleInRadians = glm::radians(angle);
-            glm::vec2 mostRecentInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
-            glm::vec2 mostRecentOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
-            
-            while (angle < endAt) {
-                angleInRadians = glm::radians(angle);
-                glm::vec2 thisInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
-                glm::vec2 thisOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
-                
-                points << mostRecentInnerPoint << mostRecentOuterPoint << thisOuterPoint; // first triangle
-                points << mostRecentInnerPoint << thisInnerPoint << thisOuterPoint; // second triangle
-                
-                angle += SLICE_ANGLE;
+            QVector<glm::vec4> colors;
 
-                mostRecentInnerPoint = thisInnerPoint;
-                mostRecentOuterPoint = thisOuterPoint;
+            float pulseLevel = updatePulse();
+            vec4 pulseModifier = vec4(1);
+            if (_alphaPulse != 0.0f) {
+                pulseModifier.a = (_alphaPulse >= 0.0f) ? pulseLevel : (1.0f - pulseLevel);
             }
-            
-            // get the last slice portion....
-            angle = endAt;
-            angleInRadians = glm::radians(angle);
-            glm::vec2 lastInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
-            glm::vec2 lastOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+            if (_colorPulse != 0.0f) {
+                float pulseValue = (_colorPulse >= 0.0f) ? pulseLevel : (1.0f - pulseLevel);
+                pulseModifier = vec4(vec3(pulseValue), pulseModifier.a);
+            }
+            vec4 innerStartColor = vec4(toGlm(_innerStartColor), _innerStartAlpha) * pulseModifier;
+            vec4 outerStartColor = vec4(toGlm(_outerStartColor), _outerStartAlpha) * pulseModifier;
+            vec4 innerEndColor = vec4(toGlm(_innerEndColor), _innerEndAlpha) * pulseModifier;
+            vec4 outerEndColor = vec4(toGlm(_outerEndColor), _outerEndAlpha) * pulseModifier;
 
-            points << mostRecentInnerPoint << mostRecentOuterPoint << lastOuterPoint; // first triangle
-            points << mostRecentInnerPoint << lastInnerPoint << lastOuterPoint; // second triangle
-            
-            geometryCache->updateVertices(_quadVerticesID, points, color);
+            if (_innerRadius <= 0) {
+                _solidPrimitive = gpu::TRIANGLE_FAN;
+                points << vec2();
+                colors << innerStartColor;
+                for (float angle = _startAt; angle <= _endAt; angle += SLICE_ANGLE) {
+                    float range = (angle - _startAt) / (_endAt - _startAt);
+                    float angleRadians = glm::radians(angle);
+                    points << glm::vec2(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
+                    colors << glm::mix(outerStartColor, outerEndColor, range);
+                }
+            } else {
+                _solidPrimitive = gpu::TRIANGLE_STRIP;
+                for (float angle = _startAt; angle <= _endAt; angle += SLICE_ANGLE) {
+                    float range = (angle - _startAt) / (_endAt - _startAt);
+
+                    float angleRadians = glm::radians(angle);
+                    points << glm::vec2(cosf(angleRadians) * _innerRadius, sinf(angleRadians) * _innerRadius);
+                    colors << glm::mix(innerStartColor, innerEndColor, range);
+
+                    points << glm::vec2(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
+                    colors << glm::mix(outerStartColor, outerEndColor, range);
+                }
+            }
+            geometryCache->updateVertices(_quadVerticesID, points, colors);
         }
         
-        geometryCache->renderVertices(batch, gpu::TRIANGLES, _quadVerticesID);
+        geometryCache->renderVertices(batch, _solidPrimitive, _quadVerticesID);
         
     } else {
-        if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
+        if (!_lineVerticesID) {
             _lineVerticesID = geometryCache->allocateID();
         }
         
-        if (geometryChanged || colorChanged) {
+        if (geometryChanged) {
             QVector<glm::vec2> points;
             
-            float angle = startAt;
+            float angle = _startAt;
             float angleInRadians = glm::radians(angle);
-            glm::vec2 firstPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+            glm::vec2 firstPoint(cosf(angleInRadians) * _outerRadius, sinf(angleInRadians) * _outerRadius);
             points << firstPoint;
             
-            while (angle < endAt) {
+            while (angle < _endAt) {
                 angle += SLICE_ANGLE;
                 angleInRadians = glm::radians(angle);
-                glm::vec2 thisPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+                glm::vec2 thisPoint(cosf(angleInRadians) * _outerRadius, sinf(angleInRadians) * _outerRadius);
                 points << thisPoint;
                 
                 if (getIsDashedLine()) {
                     angle += SLICE_ANGLE / 2.0f; // short gap
                     angleInRadians = glm::radians(angle);
-                    glm::vec2 dashStartPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+                    glm::vec2 dashStartPoint(cosf(angleInRadians) * _outerRadius, sinf(angleInRadians) * _outerRadius);
                     points << dashStartPoint;
                 }
             }
             
             // get the last slice portion....
-            angle = endAt;
+            angle = _endAt;
             angleInRadians = glm::radians(angle);
-            glm::vec2 lastPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+            glm::vec2 lastPoint(cosf(angleInRadians) * _outerRadius, sinf(angleInRadians) * _outerRadius);
             points << lastPoint;
-            
-            geometryCache->updateVertices(_lineVerticesID, points, color);
+            geometryCache->updateVertices(_lineVerticesID, points, vec4(toGlm(getColor()), getAlpha()));
         }
         
         if (getIsDashedLine()) {
@@ -215,13 +208,13 @@ void Circle3DOverlay::render(RenderArgs* args) {
             if (getMajorTickMarksAngle() > 0.0f && getMajorTickMarksLength() != 0.0f) {
                 
                 float tickMarkAngle = getMajorTickMarksAngle();
-                float angle = startAt - fmodf(startAt, tickMarkAngle) + tickMarkAngle;
+                float angle = _startAt - fmodf(_startAt, tickMarkAngle) + tickMarkAngle;
                 float angleInRadians = glm::radians(angle);
                 float tickMarkLength = getMajorTickMarksLength();
-                float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
+                float startRadius = (tickMarkLength > 0.0f) ? _innerRadius : _outerRadius;
                 float endRadius = startRadius + tickMarkLength;
                 
-                while (angle <= endAt) {
+                while (angle <= _endAt) {
                     angleInRadians = glm::radians(angle);
                     
                     glm::vec2 thisPointA(cosf(angleInRadians) * startRadius, sinf(angleInRadians) * startRadius);
@@ -237,13 +230,13 @@ void Circle3DOverlay::render(RenderArgs* args) {
             if (getMinorTickMarksAngle() > 0.0f && getMinorTickMarksLength() != 0.0f) {
                 
                 float tickMarkAngle = getMinorTickMarksAngle();
-                float angle = startAt - fmodf(startAt, tickMarkAngle) + tickMarkAngle;
+                float angle = _startAt - fmodf(_startAt, tickMarkAngle) + tickMarkAngle;
                 float angleInRadians = glm::radians(angle);
                 float tickMarkLength = getMinorTickMarksLength();
-                float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
+                float startRadius = (tickMarkLength > 0.0f) ? _innerRadius : _outerRadius;
                 float endRadius = startRadius + tickMarkLength;
                 
-                while (angle <= endAt) {
+                while (angle <= _endAt) {
                     angleInRadians = glm::radians(angle);
                     
                     glm::vec2 thisPointA(cosf(angleInRadians) * startRadius, sinf(angleInRadians) * startRadius);
@@ -270,94 +263,127 @@ void Circle3DOverlay::render(RenderArgs* args) {
         
         geometryCache->renderVertices(batch, gpu::LINES, _minorTicksVerticesID);
     }
-    
-    if (geometryChanged) {
-        _lastStartAt = startAt;
-        _lastEndAt = endAt;
-        _lastInnerRadius = innerRadius;
-        _lastOuterRadius = outerRadius;
-    }
 }
 
-void Circle3DOverlay::setProperties(const QScriptValue &properties) {
+const render::ShapeKey Circle3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withUnlit();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    if (!getIsSolid()) {
+        builder.withUnlit().withDepthBias();
+    }
+    return builder.build();
+}
+
+template<typename T> T fromVariant(const QVariant& v, bool& valid) {
+    valid = v.isValid();
+    return qvariant_cast<T>(v);
+}
+
+template<> xColor fromVariant(const QVariant& v, bool& valid) {
+    return xColorFromVariant(v, valid);
+}
+
+template<typename T>
+bool updateIfValid(const QVariantMap& properties, const char* key, T& output) {
+    bool valid;
+    T result = fromVariant<T>(properties[key], valid);
+    if (!valid) {
+        return false;
+    }
+
+    // Don't signal updates if the value was already set
+    if (result == output) {
+        return false;
+    }
+
+    output = result;
+    return true;
+}
+
+// Multicast, many outputs
+template<typename T>
+bool updateIfValid(const QVariantMap& properties, const char* key, std::initializer_list<std::reference_wrapper<T>> outputs) {
+    bool valid;
+    T value = fromVariant<T>(properties[key], valid);
+    if (!valid) {
+        return false;
+    }
+    bool updated = false;
+    for (T& output : outputs) {
+        if (output != value) {
+            output = value;
+            updated = true;
+        }
+    }
+    return updated;
+}
+
+// Multicast, multiple possible inputs, in order of preference
+template<typename T>
+bool updateIfValid(const QVariantMap& properties, const std::initializer_list<const char*> keys, T& output) {
+    for (const char* key : keys) {
+        if (updateIfValid<T>(properties, key, output)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+void Circle3DOverlay::setProperties(const QVariantMap& properties) {
     Planar3DOverlay::setProperties(properties);
+    _dirty |= updateIfValid<float>(properties, "alpha", { _innerStartAlpha, _innerEndAlpha, _outerStartAlpha, _outerEndAlpha });
+    _dirty |= updateIfValid<float>(properties, "Alpha", { _innerStartAlpha, _innerEndAlpha, _outerStartAlpha, _outerEndAlpha });
+    _dirty |= updateIfValid<float>(properties, "startAlpha", { _innerStartAlpha, _outerStartAlpha });
+    _dirty |= updateIfValid<float>(properties, "endAlpha", { _innerEndAlpha, _outerEndAlpha });
+    _dirty |= updateIfValid<float>(properties, "innerAlpha", { _innerStartAlpha, _innerEndAlpha });
+    _dirty |= updateIfValid<float>(properties, "outerAlpha", { _outerStartAlpha, _outerEndAlpha });
+    _dirty |= updateIfValid(properties, "innerStartAlpha", _innerStartAlpha);
+    _dirty |= updateIfValid(properties, "innerEndAlpha", _innerEndAlpha);
+    _dirty |= updateIfValid(properties, "outerStartAlpha", _outerStartAlpha);
+    _dirty |= updateIfValid(properties, "outerEndAlpha", _outerEndAlpha);
 
-    QScriptValue startAt = properties.property("startAt");
-    if (startAt.isValid()) {
-        setStartAt(startAt.toVariant().toFloat());
-    }
+    _dirty |= updateIfValid<xColor>(properties, "color", { _innerStartColor, _innerEndColor, _outerStartColor, _outerEndColor });
+    _dirty |= updateIfValid<xColor>(properties, "startColor", { _innerStartColor, _outerStartColor } );
+    _dirty |= updateIfValid<xColor>(properties, "endColor", { _innerEndColor, _outerEndColor } );
+    _dirty |= updateIfValid<xColor>(properties, "innerColor", { _innerStartColor, _innerEndColor } );
+    _dirty |= updateIfValid<xColor>(properties, "outerColor", { _outerStartColor, _outerEndColor } );
+    _dirty |= updateIfValid(properties, "innerStartColor", _innerStartColor);
+    _dirty |= updateIfValid(properties, "innerEndColor", _innerEndColor);
+    _dirty |= updateIfValid(properties, "outerStartColor", _outerStartColor);
+    _dirty |= updateIfValid(properties, "outerEndColor", _outerEndColor);
 
-    QScriptValue endAt = properties.property("endAt");
-    if (endAt.isValid()) {
-        setEndAt(endAt.toVariant().toFloat());
-    }
+    _dirty |= updateIfValid(properties, "startAt", _startAt);
+    _dirty |= updateIfValid(properties, "endAt", _endAt);
 
-    QScriptValue outerRadius = properties.property("outerRadius");
-    if (outerRadius.isValid()) {
-        setOuterRadius(outerRadius.toVariant().toFloat());
-    }
+    _dirty |= updateIfValid(properties, { "radius", "outerRadius" }, _outerRadius);
+    _dirty |= updateIfValid(properties, "innerRadius", _innerRadius);
+    _dirty |= updateIfValid(properties, "hasTickMarks", _hasTickMarks);
+    _dirty |= updateIfValid(properties, "majorTickMarksAngle", _majorTickMarksAngle);
+    _dirty |= updateIfValid(properties, "minorTickMarksAngle", _minorTickMarksAngle);
+    _dirty |= updateIfValid(properties, "majorTickMarksLength", _majorTickMarksLength);
+    _dirty |= updateIfValid(properties, "minorTickMarksLength", _minorTickMarksLength);
+    _dirty |= updateIfValid(properties, "majorTickMarksColor", _majorTickMarksColor);
+    _dirty |= updateIfValid(properties, "minorTickMarksColor", _minorTickMarksColor);
 
-    QScriptValue innerRadius = properties.property("innerRadius");
-    if (innerRadius.isValid()) {
-        setInnerRadius(innerRadius.toVariant().toFloat());
-    }
-
-    QScriptValue hasTickMarks = properties.property("hasTickMarks");
-    if (hasTickMarks.isValid()) {
-        setHasTickMarks(hasTickMarks.toVariant().toBool());
-    }
-
-    QScriptValue majorTickMarksAngle = properties.property("majorTickMarksAngle");
-    if (majorTickMarksAngle.isValid()) {
-        setMajorTickMarksAngle(majorTickMarksAngle.toVariant().toFloat());
-    }
-
-    QScriptValue minorTickMarksAngle = properties.property("minorTickMarksAngle");
-    if (minorTickMarksAngle.isValid()) {
-        setMinorTickMarksAngle(minorTickMarksAngle.toVariant().toFloat());
-    }
-
-    QScriptValue majorTickMarksLength = properties.property("majorTickMarksLength");
-    if (majorTickMarksLength.isValid()) {
-        setMajorTickMarksLength(majorTickMarksLength.toVariant().toFloat());
-    }
-
-    QScriptValue minorTickMarksLength = properties.property("minorTickMarksLength");
-    if (minorTickMarksLength.isValid()) {
-        setMinorTickMarksLength(minorTickMarksLength.toVariant().toFloat());
-    }
-
-    QScriptValue majorTickMarksColor = properties.property("majorTickMarksColor");
-    if (majorTickMarksColor.isValid()) {
-        QScriptValue red = majorTickMarksColor.property("red");
-        QScriptValue green = majorTickMarksColor.property("green");
-        QScriptValue blue = majorTickMarksColor.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _majorTickMarksColor.red = red.toVariant().toInt();
-            _majorTickMarksColor.green = green.toVariant().toInt();
-            _majorTickMarksColor.blue = blue.toVariant().toInt();
-        }
-    }
-
-    QScriptValue minorTickMarksColor = properties.property("minorTickMarksColor");
-    if (minorTickMarksColor.isValid()) {
-        QScriptValue red = minorTickMarksColor.property("red");
-        QScriptValue green = minorTickMarksColor.property("green");
-        QScriptValue blue = minorTickMarksColor.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _minorTickMarksColor.red = red.toVariant().toInt();
-            _minorTickMarksColor.green = green.toVariant().toInt();
-            _minorTickMarksColor.blue = blue.toVariant().toInt();
-        }
+    if (_innerStartAlpha < 1.0f || _innerEndAlpha < 1.0f || _outerStartAlpha < 1.0f || _outerEndAlpha < 1.0f) {
+        // Force the alpha to 0.5, since we'll ignore it in the presence of these other values, but we need
+        // it to be non-1 in order to get the right pipeline and non-0 in order to render at all.
+        _alpha = 0.5f;
     }
 }
 
-QScriptValue Circle3DOverlay::getProperty(const QString& property) {
+QVariant Circle3DOverlay::getProperty(const QString& property) {
     if (property == "startAt") {
         return _startAt;
     }
     if (property == "endAt") {
         return _endAt;
+    }
+    if (property == "radius") {
+        return _outerRadius;
     }
     if (property == "outerRadius") {
         return _outerRadius;
@@ -381,10 +407,10 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
         return _minorTickMarksLength;
     }
     if (property == "majorTickMarksColor") {
-        return xColorToScriptValue(_scriptEngine, _majorTickMarksColor);
+        return xColorToVariant(_majorTickMarksColor);
     }
     if (property == "minorTickMarksColor") {
-        return xColorToScriptValue(_scriptEngine, _minorTickMarksColor);
+        return xColorToVariant(_minorTickMarksColor);
     }
 
     return Planar3DOverlay::getProperty(property);
@@ -394,18 +420,18 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                             BoxFace& face, glm::vec3& surfaceNormal) {
 
-    bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
+    // Scale the dimensions by the diameter
+    glm::vec2 dimensions = getOuterRadius() * 2.0f * getDimensions();
+    bool intersects = findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), dimensions, distance);
 
     if (intersects) {
         glm::vec3 hitPosition = origin + (distance * direction);
         glm::vec3 localHitPosition = glm::inverse(getRotation()) * (hitPosition - getPosition());
-        localHitPosition.y = localHitPosition.y * getDimensions().x / getDimensions().y;  // Scale to make circular
-
+        localHitPosition.x /= getDimensions().x;
+        localHitPosition.y /= getDimensions().y;
         float distanceToHit = glm::length(localHitPosition);
-        float innerRadius = getDimensions().x / 2.0f * _innerRadius;
-        float outerRadius = getDimensions().x / 2.0f * _outerRadius;
 
-        intersects = innerRadius <= distanceToHit && distanceToHit <= outerRadius;
+        intersects = getInnerRadius() <= distanceToHit && distanceToHit <= getOuterRadius();
     }
 
     return intersects;

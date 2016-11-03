@@ -72,8 +72,9 @@ BandwidthDialog::BandwidthDialog(QWidget* parent) :
 
     this->setWindowTitle("Bandwidth Details");
 
-    // Create layouter
+    // Create layout
     QFormLayout* form = new QFormLayout();
+    form->setSizeConstraint(QLayout::SetFixedSize);
     this->QDialog::setLayout(form);
 
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
@@ -118,7 +119,6 @@ void BandwidthDialog::paintEvent(QPaintEvent* event) {
     for (unsigned int i=0; i<_CHANNELCOUNT; i++)
         _allChannelDisplays[i]->paint();
     this->QDialog::paintEvent(event);
-    this->setFixedSize(this->width(), this->height());
 }
 
 void BandwidthDialog::reject() {

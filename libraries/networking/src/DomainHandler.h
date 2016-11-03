@@ -24,6 +24,7 @@
 #include "NLPacket.h"
 #include "NLPacketList.h"
 #include "Node.h"
+#include "ReceivedMessage.h"
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
@@ -35,7 +36,7 @@ class DomainHandler : public QObject {
 public:
     DomainHandler(QObject* parent = 0);
     
-    void clearConnectionInfo();
+    void disconnect();
     void clearSettings();
 
     const QUuid& getUUID() const { return _uuid; }
@@ -57,8 +58,8 @@ public:
     
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
-    
-    const QUuid& getICEDomainID() const { return _iceDomainID; }
+
+    const QUuid& getPendingDomainID() const { return _pendingDomainID; }
 
     const QUuid& getICEClientID() const { return _iceClientID; }
 
@@ -74,7 +75,6 @@ public:
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
-
    
     void setPendingPath(const QString& pendingPath) { _pendingPath = pendingPath; }
     const QString& getPendingPath() { return _pendingPath; }
@@ -83,14 +83,24 @@ public:
     bool isSocketKnown() const { return !_sockAddr.getAddress().isNull(); }
 
     void softReset();
+
+    enum class ConnectionRefusedReason : uint8_t {
+        Unknown,
+        ProtocolMismatch,
+        LoginError,
+        NotAuthorized,
+        TooManyUsers
+    };
+
 public slots:
-    void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
+    void setSocketAndID(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT, const QUuid& id = QUuid());
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
-    void processSettingsPacketList(QSharedPointer<NLPacketList> packetList);
-    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
-    void processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket);
-    void processICEResponsePacket(QSharedPointer<NLPacket> icePacket);
+    void processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList);
+    void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
+    void processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> dtlsRequirementPacket);
+    void processICEResponsePacket(QSharedPointer<ReceivedMessage> icePacket);
+    void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
@@ -103,6 +113,7 @@ signals:
     // It means that, either from DNS lookup or ICE, we think we have a socket we can talk to DS on
     void completedSocketDiscovery();
 
+    void resetting();
     void connectedToDomain(const QString& hostname);
     void disconnectedFromDomain();
 
@@ -112,7 +123,11 @@ signals:
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
 
+    void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
+
 private:
+    bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
+    void sendDisconnectPacket();
     void hardReset();
 
     QUuid _uuid;
@@ -120,14 +135,20 @@ private:
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     QUuid _connectionToken;
-    QUuid _iceDomainID;
+    QUuid _pendingDomainID; // ID of domain being connected to, via ICE or direct connection
     QUuid _iceClientID;
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
-    bool _isConnected;
+    bool _isConnected { false };
     QJsonObject _settingsObject;
-    int _failedSettingsRequests;
     QString _pendingPath;
+    QTimer _settingsTimer;
+
+    QSet<QString> _domainConnectionRefusals;
+    bool _hasCheckedForAccessToken { false };
+    int _connectionDenialsSinceKeypairRegen { 0 };
+
+    QTimer _apiRefreshTimer;
 };
 
 #endif // hifi_DomainHandler_h

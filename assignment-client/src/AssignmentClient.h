@@ -38,14 +38,15 @@ public slots:
     void aboutToQuit();
 
 private slots:
-    void handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet);
-    void handleStopNodePacket(QSharedPointer<NLPacket> packet);
+    void handleCreateAssignmentPacket(QSharedPointer<ReceivedMessage> message);
+    void handleStopNodePacket(QSharedPointer<ReceivedMessage> message);
 
 private:
     void setUpStatusToMonitor();
 
     Assignment _requestAssignment;
     QPointer<ThreadedAssignment> _currentAssignment;
+    bool _isAssigned { false };
     QString _assignmentServerHostname;
     HifiSockAddr _assignmentServerSocket;
     QTimer _requestTimer; // timer for requesting and assignment

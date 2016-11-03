@@ -2,49 +2,60 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  directional_light.frag
+//  directional_ambient_light.frag
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 9/3/14.
-//  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// Everything about deferred buffer
-<@include DeferredBuffer.slh@>
 
+
+<@include DeferredBufferRead.slh@>
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalLightmappedColor()$>
-<$declareEvalAmbientSphereGlobalColor()$>
+
+<$declareEvalAmbientSphereGlobalColor(supportScattering)$>
+
 
 in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-    DeferredTransform deferredTransform = getDeferredTransform();
+    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
-    // Light mapped or not ?
-    if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
-        vec3 color = evalLightmappedColor(
-                        deferredTransform.viewInverse,
-                        1.0,
-                        frag.normal,
-                        frag.diffuse,
-                        frag.specularVal.xyz);
-        _fragColor = vec4(color, 1.0);
+    float shadowAttenuation = 1.0;
+
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        discard;
+    } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
+        discard;
     } else {
-        vec3 color =  evalAmbienSphereGlobalColor(
-                        deferredTransform.viewInverse,
-                        1.0,
-                        frag.position.xyz,
-                        frag.normal,
-                        frag.diffuse,
-                        frag.specular,
-                        frag.gloss);
-        _fragColor = vec4(color, frag.normalVal.a);
+        vec4 midNormalCurvature;
+        vec4 lowNormalCurvature;
+        if (frag.mode == FRAG_MODE_SCATTERING) {
+            unpackMidLowNormalCurvature(_texCoord0, midNormalCurvature, lowNormalCurvature);
+        }
+
+        vec3 color = evalAmbientSphereGlobalColor(
+            getViewInverse(),
+            shadowAttenuation,
+            frag.obscurance,
+            frag.position.xyz,
+            frag.normal,
+            frag.albedo,
+            frag.fresnel,
+            frag.metallic,
+            frag.roughness,
+            frag.scattering,
+            midNormalCurvature,
+            lowNormalCurvature);
+        _fragColor = vec4(color, 1.0);
+
     }
 }

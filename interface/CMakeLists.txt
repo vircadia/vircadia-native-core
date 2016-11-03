@@ -2,7 +2,8 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LeapMotion" "RtMidi" "RSSDK" "3DConnexionClient" "iViewHMD")
+set(OPTIONAL_EXTERNALS "LeapMotion")
+
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -15,11 +16,9 @@ find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
 
 if (WIN32)
-  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h		
-  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines		
+  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
+  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 endif()
-
-include_application_version()
 
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
@@ -40,7 +39,20 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg WebKitWidgets WebSockets)
+if (ANDROID)
+  set(PLATFORM_QT_COMPONENTS AndroidExtras)
+  set(PLATFORM_QT_LIBRARIES Qt5::AndroidExtras)
+else ()
+  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+  set(PLATFORM_QT_LIBRARIES Qt5::WebEngine Qt5::WebEngineWidgets)
+endif ()
+
+find_package(
+  Qt5 COMPONENTS
+  Gui Multimedia Network OpenGL Qml Quick Script Svg
+  ${PLATFORM_QT_COMPONENTS}
+  WebChannel WebSockets
+)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -56,25 +68,47 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 # set(TS ${TARGET_NAME}_en.ts)
 # qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
-if (APPLE)
-  # configure CMake to use a custom Info.plist
-  SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
+# setup the android parameters that will help us produce an APK
+if (ANDROID)
+  set(ANDROID_APK_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk-build")
+  set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
 
-  set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
-  set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
-  
-  if (UPPER_CMAKE_BUILD_TYPE MATCHES RELEASE OR UPPER_CMAKE_BUILD_TYPE MATCHES RELWITHDEBINFO)
-    set(ICON_FILENAME "interface.icns")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
+
+  set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
+  set(ANDROID_APP_DISPLAY_NAME Interface)
+  set(ANDROID_API_LEVEL 19)
+  set(ANDROID_APK_PACKAGE io.highfidelity.interface)
+  set(ANDROID_ACTIVITY_NAME io.highfidelity.interface.InterfaceActivity)
+  set(ANDROID_APK_VERSION_NAME "0.1")
+  set(ANDROID_APK_VERSION_CODE 1)
+  set(ANDROID_APK_FULLSCREEN TRUE)
+  set(ANDROID_DEPLOY_QT_INSTALL "--install")
+
+  set(BUILD_SHARED_LIBS ON)
+endif ()
+
+if (APPLE)
+
+  # configure CMake to use a custom Info.plist
+  set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
+
+  if (PRODUCTION_BUILD)
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface)
   else ()
-    set(ICON_FILENAME "interface-beta.icns")
+    if (DEV_BUILD)
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-dev)
+    elseif (PR_BUILD)
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-pr)
+    endif ()
   endif ()
-  
+
   # set how the icon shows up in the Info.plist file
-  SET(MACOSX_BUNDLE_ICON_FILE "${ICON_FILENAME}")
+  set(MACOSX_BUNDLE_ICON_FILE "${INTERFACE_ICON_FILENAME}")
 
   # set where in the bundle to put the resources file
-  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-  
+  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+
   set(DISCOVERED_RESOURCES "")
 
   # use the add_resources_to_os_x_bundle macro to recurse into resources
@@ -82,62 +116,125 @@ if (APPLE)
 
   # append the discovered resources to our list of interface sources
   list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
-  
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
+
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
 endif()
 
 # create the executable, make it a bundle on OS X
 if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
-elseif(WIN32)
-  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM})
-else()
+
+  # make sure the output name for the .app bundle is correct
+  # Fix up the rpath so macdeployqt works
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
+elseif (WIN32)
+  # configure an rc file for the chosen icon
+  set(CONFIGURE_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
+  set(CONFIGURE_ICON_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/Icon.rc")
+  configure_file("${HF_CMAKE_DIR}/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
+
+  set(APP_FULL_NAME "High Fidelity Interface")
+  set(CONFIGURE_VERSION_INFO_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/VersionInfo.rc")
+  configure_file("${HF_CMAKE_DIR}/templates/VersionInfo.rc.in" ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
+
+  # add an executable that also has the icon itself and the configured rc file as resources
+  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
+
+  if (NOT DEV_BUILD)
+    add_custom_command(
+      TARGET ${TARGET_NAME}
+      POST_BUILD
+      COMMAND "mt.exe" -manifest "${CMAKE_CURRENT_SOURCE_DIR}/interface.exe.manifest" -inputresource:"$<TARGET_FILE:${TARGET_NAME}>"\;\#1 -outputresource:"$<TARGET_FILE:${TARGET_NAME}>"\;\#1
+      COMMENT "Adding OS version support manifest to exe"
+    )
+  endif()
+
+elseif (ANDROID)
+  # on android the Interface target is a library that gets linked/used by the APK shell that qtcreateapk produces
+  add_library(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
+else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
+endif ()
+
+target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")
+
+if (WIN32)
+  # These are external plugins, but we need to do the 'add dependency' here so that their
+  # binary directories get added to the fixup path
+  add_dependency_external_projects(sixense)
+  add_dependency_external_projects(sdl2)
+  add_dependency_external_projects(OpenVR)
+  add_dependency_external_projects(neuron)
+  add_dependency_external_projects(wasapi)
 endif()
 
-# link required hifi libraries
-link_hifi_libraries(shared octree environment gpu procedural  model render fbx networking model-networking entities avatars 
-                    audio audio-client animation script-engine physics 
-                    render-utils entities-renderer ui auto-updater 
-                    plugins display-plugins input-plugins)
+# disable /OPT:REF and /OPT:ICF for the Debug builds
+# This will prevent the following linker warnings
+# LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/OPT:ICF' specification
+if (WIN32)
+  set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
+endif()
 
+if (NOT ANDROID)
+  set(NON_ANDROID_LIBRARIES steamworks-wrapper)
+endif ()
+
+# link required hifi libraries
+link_hifi_libraries(
+  shared octree gpu gl gpu-gl procedural model render
+  recording fbx networking model-networking entities avatars
+  audio audio-client animation script-engine physics
+  render-utils entities-renderer ui auto-updater
+  controllers plugins
+  ui-plugins display-plugins input-plugins
+  ${NON_ANDROID_LIBRARIES}
+)
+
+# include the binary directory of render-utils for shader includes
+target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries/render-utils")
+
+#fixme find a way to express faceshift as a plugin
 target_bullet()
-target_glew()
 target_opengl()
 
+if (NOT ANDROID)
+  target_glew()
+endif ()
 
-add_dependency_external_projects(sdl2)
+if (WIN32 OR APPLE)
+  target_faceshift()
+endif()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
-  
+
   if (${${EXTERNAL}_UPPERCASE}_REQUIRED)
     find_package(${EXTERNAL} REQUIRED)
   else ()
     find_package(${EXTERNAL})
   endif ()
-  
+
   if (${${EXTERNAL}_UPPERCASE}_FOUND AND NOT DISABLE_${${EXTERNAL}_UPPERCASE})
     add_definitions(-DHAVE_${${EXTERNAL}_UPPERCASE})
-    
+
     # include the library directories (ignoring warnings)
     if (NOT ${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS)
       set(${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS ${${${EXTERNAL}_UPPERCASE}_INCLUDE_DIR})
     endif ()
-    
+
     include_directories(SYSTEM ${${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS})
-    
+
     # perform the system include hack for OS X to ignore warnings
     if (APPLE)
       foreach(EXTERNAL_INCLUDE_DIR  ${${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS})
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${EXTERNAL_INCLUDE_DIR}")
       endforeach()
     endif ()
-    
+
     if (NOT ${${EXTERNAL}_UPPERCASE}_LIBRARIES)
       set(${${EXTERNAL}_UPPERCASE}_LIBRARIES ${${${EXTERNAL}_UPPERCASE}_LIBRARY})
     endif ()
-    
+
     if (NOT APPLE OR NOT ${${EXTERNAL}_UPPERCASE} MATCHES "SIXENSE")
       target_link_libraries(${TARGET_NAME} ${${${EXTERNAL}_UPPERCASE}_LIBRARIES})
     elseif (APPLE AND NOT INSTALLER_BUILD)
@@ -146,20 +243,20 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   endif ()
 endforeach()
 
-# special OS X modifications for RtMidi library
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
-  find_library(CoreMIDI CoreMIDI)
-  add_definitions(-D__MACOSX_CORE__)
-  target_link_libraries(${TARGET_NAME} ${CoreMIDI})
-endif ()
-
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
 target_link_libraries(
   ${TARGET_NAME}
-  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
+  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
+  Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
+  Qt5::WebChannel Qt5::WebEngine
+  ${PLATFORM_QT_LIBRARIES}
 )
+
+if (UNIX)
+    target_link_libraries(${TARGET_NAME} pthread)
+endif(UNIX)
 
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
@@ -170,27 +267,87 @@ if (APPLE)
   find_library(AppKit AppKit)
 
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
-    
-  # install command for OS X bundle
-  INSTALL(TARGETS ${TARGET_NAME}
-    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+
+  # setup install of OS X interface bundle
+  install(TARGETS ${TARGET_NAME}
+    BUNDLE DESTINATION ${INTERFACE_INSTALL_DIR}
+    COMPONENT ${CLIENT_COMPONENT}
   )
+
+  set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
+
+  # copy script files beside the executable
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/scripts"
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts
+  )
+
+  # call the fixup_interface macro to add required bundling commands for installation
+  fixup_interface()
+
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/scripts"
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/scripts
   )
 
   # link target to external libraries
   if (WIN32)
-  #  target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
-  else (WIN32)
-    # Nothing else required on linux apparently
+
+    # setup install of executable and things copied by fixup/windeployqt
+    install(
+      FILES "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
+      DESTINATION ${INTERFACE_INSTALL_DIR}
+      COMPONENT ${CLIENT_COMPONENT}
+    )
+
+    set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_DIR}")
+
+    set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
+
+    optional_win_executable_signing()
   endif()
 endif (APPLE)
 
-copy_dlls_beside_windows_executable()
+if (SCRIPTS_INSTALL_DIR)
+
+  # setup install of scripts beside interface executable
+  install(
+    DIRECTORY "${CMAKE_SOURCE_DIR}/scripts/"
+    DESTINATION ${SCRIPTS_INSTALL_DIR}/scripts
+    COMPONENT ${CLIENT_COMPONENT}
+  )
+endif()
+
+add_bugsplat()
+
+if (WIN32)
+    set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
+
+    set(TARGET_INSTALL_DIR ${INTERFACE_INSTALL_DIR})
+    set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
+    manually_install_openssl_for_qt()
+
+    package_libraries_for_deployment()
+endif()
+
+if (ANDROID)
+  set(HIFI_URL_INTENT "<intent-filter>\
+    \n        <action android:name='android.intent.action.VIEW' />\
+    \n        <category android:name='android.intent.category.DEFAULT' />\
+    \n        <category android:name='android.intent.category.BROWSABLE' />\
+    \n        <data android:scheme='hifi' />\
+    \n      </intent-filter>"
+  )
+
+  set(ANDROID_EXTRA_ACTIVITY_XML "${HIFI_URL_INTENT}")
+
+  qt_create_apk()
+endif ()

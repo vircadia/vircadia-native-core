@@ -10,7 +10,7 @@
 //
 
 #include "GLMHelpers.h"
-
+#include <glm/gtc/matrix_transform.hpp>
 #include "NumericalConstants.h"
 
 const vec3 Vectors::UNIT_X{ 1.0f, 0.0f, 0.0f };
@@ -34,6 +34,9 @@ const vec3& Vectors::UP = Vectors::UNIT_Y;
 const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
 
 const quat Quaternions::IDENTITY{ 1.0f, 0.0f, 0.0f, 0.0f };
+const quat Quaternions::X_180{ 0.0f, 1.0f, 0.0f, 0.0f };
+const quat Quaternions::Y_180{ 0.0f, 0.0f, 1.0f, 0.0f };
+const quat Quaternions::Z_180{ 0.0f, 0.0f, 0.0f, 1.0f };
 
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
@@ -134,6 +137,87 @@ int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatO
     return sizeof(quatParts);
 }
 
+#define HI_BYTE(x) (uint8_t)(x >> 8)
+#define LO_BYTE(x) (uint8_t)(0xff & x)
+
+int packOrientationQuatToSixBytes(unsigned char* buffer, const glm::quat& quatInput) {
+
+    // find largest component
+    uint8_t largestComponent = 0;
+    for (int i = 1; i < 4; i++) {
+        if (fabs(quatInput[i]) > fabs(quatInput[largestComponent])) {
+            largestComponent = i;
+        }
+    }
+
+    // ensure that the sign of the dropped component is always negative.
+    glm::quat q = quatInput[largestComponent] > 0 ? -quatInput : quatInput;
+
+    const float MAGNITUDE = 1.0f / sqrtf(2.0f);
+    const uint32_t NUM_BITS_PER_COMPONENT = 15;
+    const uint32_t RANGE = (1 << NUM_BITS_PER_COMPONENT) - 1;
+
+    // quantize the smallest three components into integers
+    uint16_t components[3];
+    for (int i = 0, j = 0; i < 4; i++) {
+        if (i != largestComponent) {
+            // transform component into 0..1 range.
+            float value = (q[i] + MAGNITUDE) / (2.0f * MAGNITUDE);
+
+            // quantize 0..1 into 0..range
+            components[j] = (uint16_t)(value * RANGE);
+            j++;
+        }
+    }
+
+    // encode the largestComponent into the high bits of the first two components
+    components[0] = (0x7fff & components[0]) | ((0x01 & largestComponent) << 15);
+    components[1] = (0x7fff & components[1]) | ((0x02 & largestComponent) << 14);
+
+    buffer[0] = HI_BYTE(components[0]);
+    buffer[1] = LO_BYTE(components[0]);
+    buffer[2] = HI_BYTE(components[1]);
+    buffer[3] = LO_BYTE(components[1]);
+    buffer[4] = HI_BYTE(components[2]);
+    buffer[5] = LO_BYTE(components[2]);
+
+    return 6;
+}
+
+int unpackOrientationQuatFromSixBytes(const unsigned char* buffer, glm::quat& quatOutput) {
+
+    uint16_t components[3];
+    components[0] = ((uint16_t)(0x7f & buffer[0]) << 8) | buffer[1];
+    components[1] = ((uint16_t)(0x7f & buffer[2]) << 8) | buffer[3];
+    components[2] = ((uint16_t)(0x7f & buffer[4]) << 8) | buffer[5];
+
+    // largestComponent is encoded into the highest bits of the first 2 components
+    uint8_t largestComponent = ((0x80 & buffer[2]) >> 6) | ((0x80 & buffer[0]) >> 7);
+
+    const uint32_t NUM_BITS_PER_COMPONENT = 15;
+    const float RANGE = (float)((1 << NUM_BITS_PER_COMPONENT) - 1);
+    const float MAGNITUDE = 1.0f / sqrtf(2.0f);
+    float floatComponents[3];
+    for (int i = 0; i < 3; i++) {
+        floatComponents[i] = ((float)components[i] / RANGE) * (2.0f * MAGNITUDE) - MAGNITUDE;
+    }
+
+    // missingComponent is always negative.
+    float missingComponent = -sqrtf(1.0f - floatComponents[0] * floatComponents[0] - floatComponents[1] * floatComponents[1] - floatComponents[2] * floatComponents[2]);
+
+    for (int i = 0, j = 0; i < 4; i++) {
+        if (i != largestComponent) {
+            quatOutput[i] = floatComponents[j];
+            j++;
+        } else {
+            quatOutput[i] = missingComponent;
+        }
+    }
+
+    return 6;
+}
+
+
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
 //  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
 // https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
@@ -201,30 +285,7 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
 
 //  Helper function return the rotation from the first vector onto the second
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    float angle = angleBetween(v1, v2);
-    if (glm::isnan(angle) || angle < EPSILON) {
-        return glm::quat();
-    }
-    glm::vec3 axis;
-    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
-        axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
-        float axisLength = glm::length(axis);
-        if (axisLength < EPSILON) { // parallel to x; y will work
-            axis = glm::normalize(glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f)));
-        } else {
-            axis /= axisLength;
-        }
-    } else {
-        axis = glm::normalize(glm::cross(v1, v2));
-        // It is possible for axis to be nan even when angle is not less than EPSILON.
-        // For example when angle is small but not tiny but v1 and v2 and have very short lengths.
-        if (glm::isnan(glm::dot(axis, axis))) {
-            // set angle and axis to values that will generate an identity rotation
-            angle = 0.0f;
-            axis = glm::vec3(1.0f, 0.0f, 0.0f);
-        }
-    }
-    return glm::angleAxis(angle, axis);
+    return glm::rotation(glm::normalize(v1), glm::normalize(v2));
 }
 
 bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2) {
@@ -299,8 +360,22 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
                                     0.5f * sqrtf(z2) * (upper[0][1] >= upper[1][0] ? 1.0f : -1.0f)));
 }
 
+glm::quat glmExtractRotation(const glm::mat4& matrix) {
+    glm::vec3 scale = extractScale(matrix);
+    // quat_cast doesn't work so well with scaled matrices, so cancel it out.
+    glm::mat4 tmp = glm::scale(matrix, 1.0f / scale);
+    return glm::normalize(glm::quat_cast(tmp));
+}
+
 glm::vec3 extractScale(const glm::mat4& matrix) {
-    return glm::vec3(glm::length(matrix[0]), glm::length(matrix[1]), glm::length(matrix[2]));
+    glm::mat3 m(matrix);
+    float det = glm::determinant(m);
+    if (det < 0) {
+        // left handed matrix, flip sign to compensate.
+        return glm::vec3(-glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
+    } else {
+        return glm::vec3(glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
+    }
 }
 
 float extractUniformScale(const glm::mat4& matrix) {
@@ -368,6 +443,10 @@ QSize fromGlm(const glm::ivec2 & v) {
     return QSize(v.x, v.y);
 }
 
+vec4 toGlm(const xColor& color, float alpha) {
+    return vec4((float)color.red / 255.0f, (float)color.green / 255.0f, (float)color.blue / 255.0f, alpha);
+}
+
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
     QRectF result(pos.x, pos.y, size.x, size.y);
     return result;
@@ -378,6 +457,21 @@ glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p) {
     glm::mat4 m = glm::mat4_cast(q);
     m[3] = glm::vec4(p, 1.0f);
     return m;
+}
+
+// create matrix from a non-uniform scale, orientation and position
+glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
+    glm::vec3 xAxis = rot * glm::vec3(scale.x, 0.0f, 0.0f);
+    glm::vec3 yAxis = rot * glm::vec3(0.0f, scale.y, 0.0f);
+    glm::vec3 zAxis = rot * glm::vec3(0.0f, 0.0f, scale.z);
+    return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
+                     glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
+}
+
+// cancel out roll 
+glm::quat cancelOutRoll(const glm::quat& q) {
+    glm::vec3 forward = q * Vectors::FRONT;
+    return glm::quat_cast(glm::inverse(glm::lookAt(Vectors::ZERO, forward, Vectors::UP)));
 }
 
 // cancel out roll and pitch
@@ -411,7 +505,14 @@ glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p) {
     return glm::vec3(temp.x / temp.w, temp.y / temp.w, temp.z / temp.w);
 }
 
-glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v) {
+// does not handle non-uniform scale correctly, but it's faster then transformVectorFull
+glm::vec3 transformVectorFast(const glm::mat4& m, const glm::vec3& v) {
+    glm::mat3 rot(m);
+    return rot * v;
+}
+
+// handles non-uniform scale.
+glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v) {
     glm::mat3 rot(m);
     return glm::inverse(glm::transpose(rot)) * v;
 }
@@ -419,13 +520,57 @@ glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v) {
 void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut) {
 
+    // primaryAxis & secondaryAxis must not be zero.
+#ifndef NDEBUG
+    const float MIN_LENGTH_SQUARED = 1.0e-6f;
+#endif
+    assert(glm::length2(primaryAxis) > MIN_LENGTH_SQUARED);
+    assert(glm::length2(secondaryAxis) > MIN_LENGTH_SQUARED);
+
     uAxisOut = glm::normalize(primaryAxis);
-    wAxisOut = glm::cross(uAxisOut, secondaryAxis);
-    if (glm::length(wAxisOut) > 0.0f) {
-        wAxisOut = glm::normalize(wAxisOut);
-    } else {
-        wAxisOut = glm::normalize(glm::cross(uAxisOut, glm::vec3(0, 1, 0)));
+    glm::vec3 normSecondary = glm::normalize(secondaryAxis);
+
+    // if secondaryAxis is parallel with the primaryAxis, pick another axis.
+    const float EPSILON = 1.0e-4f;
+    if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) {
+        // pick a better secondaryAxis.
+        normSecondary = glm::vec3(1.0f, 0.0f, 0.0f);
+        if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) {
+            normSecondary = glm::vec3(0.0f, 1.0f, 0.0f);
+        }
     }
+
+    wAxisOut = glm::normalize(glm::cross(uAxisOut, secondaryAxis));
     vAxisOut = glm::cross(wAxisOut, uAxisOut);
 }
 
+glm::vec2 getFacingDir2D(const glm::quat& rot) {
+    glm::vec3 facing3D = rot * Vectors::UNIT_NEG_Z;
+    glm::vec2 facing2D(facing3D.x, facing3D.z);
+    const float ALMOST_ZERO = 0.0001f;
+    if (glm::length(facing2D) < ALMOST_ZERO) {
+        return glm::vec2(1.0f, 0.0f);
+    } else {
+        return glm::normalize(facing2D);
+    }
+}
+
+glm::vec2 getFacingDir2D(const glm::mat4& m) {
+    glm::vec3 facing3D = transformVectorFast(m, Vectors::UNIT_NEG_Z);
+    glm::vec2 facing2D(facing3D.x, facing3D.z);
+    const float ALMOST_ZERO = 0.0001f;
+    if (glm::length(facing2D) < ALMOST_ZERO) {
+        return glm::vec2(1.0f, 0.0f);
+    } else {
+        return glm::normalize(facing2D);
+    }
+}
+
+glm::mat4 orthoInverse(const glm::mat4& m) {
+    glm::mat4 r = m;
+    r[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    r = glm::transpose(r);
+    r[3] = -(r * m[3]);
+    r[3][3] = 1.0f;
+    return r;
+}

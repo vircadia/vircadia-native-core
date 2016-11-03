@@ -11,6 +11,9 @@
 
 #include "DomainServer.h"
 
+#include <memory>
+#include <random>
+
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -20,9 +23,11 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <QUrlQuery>
+#include <QCommandLineParser>
 
 #include <AccountManager.h>
-#include <ApplicationVersion.h>
+#include <BuildInfo.h>
+#include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <LogUtils.h>
@@ -33,18 +38,24 @@
 #include <ShutdownEventListener.h>
 #include <UUID.h>
 #include <LogHandler.h>
+#include <ServerPathUtils.h>
+#include <NumericalConstants.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+#if USE_STABLE_GLOBAL_SERVICES
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
+#else
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
+#endif
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-    _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _httpsManager(NULL),
     _allAssignments(),
     _unfulfilledAssignments(),
@@ -52,34 +63,45 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _oauthProviderURL(),
     _oauthClientID(),
     _hostname(),
+    _ephemeralACScripts(),
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
     _settingsManager(),
-    _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
+    _iceServerAddr(ICE_SERVER_DEFAULT_HOSTNAME),
+    _iceServerPort(ICE_SERVER_DEFAULT_PORT)
 {
+    parseCommandLine();
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
     LogUtils::init();
     Setting::init();
-    
-    // to work around the Qt constant wireless scanning, set the env for polling interval very high
-    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
-    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
 
     connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
 
-    setOrganizationName("High Fidelity");
+    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
-    setApplicationVersion(BUILD_VERSION);
+    setApplicationVersion(BuildInfo::VERSION);
     QSettings::setDefaultFormat(QSettings::IniFormat);
+
+    qDebug() << "Setting up domain-server";
+
+    qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
+    qDebug() << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
+    qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;
+    qDebug() << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
+    qDebug() << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
+    qDebug() << "[VERSION] We will be using this default ICE server:" << ICE_SERVER_DEFAULT_HOSTNAME;
+
 
     // make sure we have a fresh AccountManager instance
     // (need this since domain-server can restart itself and maintain static variables)
-    AccountManager::getInstance(true);
+    DependencyManager::set<AccountManager>();
 
-    _settingsManager.setupConfigMap(arguments());
+    auto args = arguments();
+
+    _settingsManager.setupConfigMap(args);
 
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32
@@ -94,26 +116,111 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
-        // we either read a certificate and private key or were not passed one
-        // and completed login or did not need to
+    // if a connected node loses connection privileges, hang up on it
+    connect(&_gatekeeper, &DomainGatekeeper::killNode, this, &DomainServer::handleKillNode);
 
-        qDebug() << "Setting up LimitedNodeList and assignments.";
-        setupNodeListAndAssignments();
+    // if permissions are updated, relay the changes to the Node datastructures
+    connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
+            &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
 
-        loadExistingSessionsFromSettings();
+    setupGroupCacheRefresh();
 
-        // setup automatic networking settings with data server
+    // if we were given a certificate/private key or oauth credentials they must succeed
+    if (!(optionallyReadX509KeyAndCertificate() && optionallySetupOAuth())) {
+        return;
+    }
+
+    _settingsManager.apiRefreshGroupInformation();
+
+    setupNodeListAndAssignments();
+
+    if (_type != NonMetaverse) {
+        // if we have a metaverse domain, we'll use an access token for API calls
+        resetAccountManagerAccessToken();
+
         setupAutomaticNetworking();
+    }
 
-        // preload some user public keys so they can connect on first request
-        _gatekeeper.preloadAllowedUserPublicKeys();
+    if (!getID().isNull() && _type != NonMetaverse) {
+        // setup periodic heartbeats to metaverse API
+        setupHeartbeatToMetaverse();
+
+        // send the first heartbeat immediately
+        sendHeartbeatToMetaverse();
+    }
+
+    // check for the temporary name parameter
+    const QString GET_TEMPORARY_NAME_SWITCH = "--get-temp-name";
+    if (args.contains(GET_TEMPORARY_NAME_SWITCH)) {
+        getTemporaryName();
+    }
+
+    _gatekeeper.preloadAllowedUserPublicKeys(); // so they can connect on first request
+
+    _metadata = new DomainMetadata(this);
+
+
+    qDebug() << "domain-server is running";
+}
+
+void DomainServer::parseCommandLine() {
+    QCommandLineParser parser;
+    parser.setApplicationDescription("High Fidelity Domain Server");
+    parser.addHelpOption();
+
+    const QCommandLineOption iceServerAddressOption("i", "ice-server address", "IP:PORT or HOSTNAME:PORT");
+    parser.addOption(iceServerAddressOption);
+
+    const QCommandLineOption domainIDOption("d", "domain-server uuid");
+    parser.addOption(domainIDOption);
+
+    const QCommandLineOption getTempNameOption("get-temp-name", "Request a temporary domain-name");
+    parser.addOption(getTempNameOption);
+
+    const QCommandLineOption masterConfigOption("master-config", "Deprecated config-file option");
+    parser.addOption(masterConfigOption);
+
+
+    if (!parser.parse(QCoreApplication::arguments())) {
+        qWarning() << parser.errorText() << endl;
+        parser.showHelp();
+        Q_UNREACHABLE();
+    }
+
+    if (parser.isSet(iceServerAddressOption)) {
+        // parse the IP and port combination for this target
+        QString hostnamePortString = parser.value(iceServerAddressOption);
+
+        _iceServerAddr = hostnamePortString.left(hostnamePortString.indexOf(':'));
+        _iceServerPort = (quint16) hostnamePortString.mid(hostnamePortString.indexOf(':') + 1).toUInt();
+        if (_iceServerPort == 0) {
+            _iceServerPort = ICE_SERVER_DEFAULT_PORT;
+        }
+
+        if (_iceServerAddr.isEmpty()) {
+            qWarning() << "Could not parse an IP address and port combination from" << hostnamePortString;
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        }
+    }
+
+    if (parser.isSet(domainIDOption)) {
+        _overridingDomainID = QUuid(parser.value(domainIDOption));
+        _overrideDomainID = true;
+        qDebug() << "domain-server ID is" << _overridingDomainID;
     }
 }
 
 DomainServer::~DomainServer() {
     // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
     DependencyManager::destroy<LimitedNodeList>();
+}
+
+void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
+    if (!quitMessage.isEmpty()) {
+        qWarning() << qPrintable(quitMessage);
+    }
+
+    QCoreApplication::exit(exitCode);
 }
 
 void DomainServer::aboutToQuit() {
@@ -126,6 +233,10 @@ void DomainServer::restart() {
     qDebug() << "domain-server is restarting.";
 
     exit(DomainServer::EXIT_CODE_REBOOT);
+}
+
+const QUuid& DomainServer::getID() {
+    return DependencyManager::get<LimitedNodeList>()->getSessionUUID();
 }
 
 bool DomainServer::optionallyReadX509KeyAndCertificate() {
@@ -155,13 +266,16 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
         QSslCertificate sslCertificate(&certFile);
         QSslKey privateKey(&keyFile, QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey, keyPassphraseString.toUtf8());
 
-        _httpsManager = new HTTPSManager(DOMAIN_SERVER_HTTPS_PORT, sslCertificate, privateKey, QString(), this, this);
+        _httpsManager = new HTTPSManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTPS_PORT, sslCertificate, privateKey, QString(), this, this);
 
         qDebug() << "TCP server listening for HTTPS connections on" << DOMAIN_SERVER_HTTPS_PORT;
 
     } else if (!certPath.isEmpty() || !keyPath.isEmpty()) {
-        qDebug() << "Missing certificate or private key. domain-server will now quit.";
-        QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        static const QString MISSING_CERT_ERROR_MSG = "Missing certificate or private key. domain-server will now quit.";
+        static const int MISSING_CERT_ERROR_CODE = 3;
+
+        QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                  Q_ARG(QString, MISSING_CERT_ERROR_MSG), Q_ARG(int, MISSING_CERT_ERROR_CODE));
         return false;
     }
 
@@ -182,9 +296,8 @@ bool DomainServer::optionallySetupOAuth() {
         _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL;
     }
 
-    AccountManager& accountManager = AccountManager::getInstance();
-    accountManager.disableSettingsFilePersistence();
-    accountManager.setAuthURL(_oauthProviderURL);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->setAuthURL(_oauthProviderURL);
 
     _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
@@ -195,8 +308,10 @@ bool DomainServer::optionallySetupOAuth() {
             || _hostname.isEmpty()
             || _oauthClientID.isEmpty()
             || _oauthClientSecret.isEmpty()) {
-            qDebug() << "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            static const QString MISSING_OAUTH_INFO_MSG = "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
+            static const int MISSING_OAUTH_INFO_ERROR_CODE = 4;
+            QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                      Q_ARG(QString, MISSING_OAUTH_INFO_MSG), Q_ARG(int, MISSING_OAUTH_INFO_ERROR_CODE));
             return false;
         } else {
             qDebug() << "OAuth will be used to identify clients using provider at" << _oauthProviderURL.toString();
@@ -207,6 +322,84 @@ bool DomainServer::optionallySetupOAuth() {
     return true;
 }
 
+static const QString METAVERSE_DOMAIN_ID_KEY_PATH = "metaverse.id";
+
+void DomainServer::getTemporaryName(bool force) {
+    // check if we already have a domain ID
+    const QVariant* idValueVariant = valueForKeyPath(_settingsManager.getSettingsMap(), METAVERSE_DOMAIN_ID_KEY_PATH);
+
+    qInfo() << "Requesting temporary domain name";
+    if (idValueVariant) {
+        qDebug() << "A domain ID is already present in domain-server settings:" << idValueVariant->toString();
+        if (force) {
+            qDebug() << "Requesting temporary domain name to replace current ID:" << getID();
+        } else {
+            qInfo() << "Abandoning request of temporary domain name.";
+            return;
+        }
+    }
+
+    // request a temporary name from the metaverse
+    auto accountManager = DependencyManager::get<AccountManager>();
+    JSONCallbackParameters callbackParameters { this, "handleTempDomainSuccess", this, "handleTempDomainError" };
+    accountManager->sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
+                                QNetworkAccessManager::PostOperation, callbackParameters);
+}
+
+void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
+    // grab the information for the new domain
+    static const QString DATA_KEY = "data";
+    static const QString DOMAIN_KEY = "domain";
+    static const QString ID_KEY = "id";
+    static const QString NAME_KEY = "name";
+    static const QString KEY_KEY = "api_key";
+
+    auto domainObject = jsonObject[DATA_KEY].toObject()[DOMAIN_KEY].toObject();
+    if (!domainObject.isEmpty()) {
+        auto id = _overrideDomainID ? _overridingDomainID.toString() : domainObject[ID_KEY].toString();
+        auto name = domainObject[NAME_KEY].toString();
+        auto key = domainObject[KEY_KEY].toString();
+
+        qInfo() << "Received new temporary domain name" << name;
+        qDebug() << "The temporary domain ID is" << id;
+
+        // store the new domain ID and auto network setting immediately
+        QString newSettingsJSON = QString("{\"metaverse\": { \"id\": \"%1\", \"automatic_networking\": \"full\"}}").arg(id);
+        auto settingsDocument = QJsonDocument::fromJson(newSettingsJSON.toUtf8());
+        _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object());
+
+        // store the new ID and auto networking setting on disk
+        _settingsManager.persistToFile();
+
+        // store the new token to the account info
+        auto accountManager = DependencyManager::get<AccountManager>();
+        accountManager->setTemporaryDomain(id, key);
+
+        // change our domain ID immediately
+        DependencyManager::get<LimitedNodeList>()->setSessionUUID(QUuid { id });
+
+        // change our type to reflect that we are a temporary domain now
+        _type = MetaverseTemporaryDomain;
+
+        // update our heartbeats to use the correct id
+        setupICEHeartbeatForFullNetworking();
+        setupHeartbeatToMetaverse();
+
+        // if we have a current ICE server address, update it in the API for the new temporary domain
+        sendICEServerAddressToMetaverseAPI();
+    } else {
+        qWarning() << "There were problems parsing the API response containing a temporary domain name. Please try again"
+            << "via domain-server relaunch or from the domain-server settings.";
+    }
+}
+
+void DomainServer::handleTempDomainError(QNetworkReply& requestReply) {
+    qWarning() << "A temporary name was requested but there was an error creating one. Please try again via domain-server relaunch"
+        << "or from the domain-server settings.";
+}
+
 const QString DOMAIN_CONFIG_ID_KEY = "id";
 
 const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
@@ -214,16 +407,35 @@ const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
 const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
 const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
 
-void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
+
+bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
+    PacketType headerType = NLPacket::typeInHeader(packet);
+    PacketVersion headerVersion = NLPacket::versionInHeader(packet);
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+    // if this is a mismatching connect packet, we can't simply drop it on the floor
+    // send back a packet to the interface that tells them we refuse connection for a mismatch
+    if (headerType == PacketType::DomainConnectRequest
+        && headerVersion != versionForPacketType(PacketType::DomainConnectRequest)) {
+        DomainGatekeeper::sendProtocolMismatchConnectionDenial(packet.getSenderSockAddr());
+    }
+
+    // let the normal nodeList implementation handle all other packets.
+    return nodeList->isPacketVerified(packet);
+}
+
+
+void DomainServer::setupNodeListAndAssignments() {
     const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
 
     QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
-    unsigned short domainServerPort = (unsigned short) localPortValue.toUInt();
+    int domainServerPort = localPortValue.toInt();
 
     QVariantMap& settingsMap = _settingsManager.getSettingsMap();
 
-    unsigned short domainServerDTLSPort = 0;
+    int domainServerDTLSPort = INVALID_PORT;
 
     if (_isUsingDTLS) {
         domainServerDTLSPort = DEFAULT_DOMAIN_SERVER_DTLS_PORT;
@@ -254,13 +466,30 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     quint16 localHttpsPort = DOMAIN_SERVER_HTTPS_PORT;
     nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_HTTPS_PORT_SMEM_KEY, this, localHttpsPort);
 
-
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
-    const QString METAVERSE_DOMAIN_ID_KEY_PATH = "metaverse.id";
-    const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
-    if (idValueVariant) {
-        nodeList->setSessionUUID(idValueVariant->toString());
+    bool isMetaverseDomain = false;
+    if (_overrideDomainID) {
+        nodeList->setSessionUUID(_overridingDomainID);
+        isMetaverseDomain = true; // assume metaverse domain
+    } else {
+        const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
+        if (idValueVariant) {
+            nodeList->setSessionUUID(idValueVariant->toString());
+            isMetaverseDomain = true; // if we have an ID, we'll assume we're a metaverse domain
+        } else {
+            nodeList->setSessionUUID(QUuid::createUuid()); // Use random UUID
+        }
+    }
+
+    if (isMetaverseDomain) {
+        // see if we think we're a temp domain (we have an API key) or a full domain
+        const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
+        if (temporaryDomainKey.isEmpty()) {
+            _type = MetaverseDomain;
+        } else {
+            _type = MetaverseTemporaryDomain;
+        }
     }
 
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
@@ -271,28 +500,27 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
-    packetReceiver.registerMessageListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
+    packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
+    packetReceiver.registerListener(PacketType::DomainDisconnectRequest, this, "processNodeDisconnectRequestPacket");
     
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
+    packetReceiver.registerListener(PacketType::NodeKickRequest, &_settingsManager, "processNodeKickRequestPacket");
     
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
+
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
-}
 
-bool DomainServer::didSetupAccountManagerWithAccessToken() {
-    if (AccountManager::getInstance().hasValidAccessToken()) {
-        // we already gave the account manager a valid access token
-        return true;
-    }
-
-    return resetAccountManagerAccessToken();
+    // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
+    nodeList->setPacketFilterOperator(&DomainServer::packetVersionMatch);
 }
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
@@ -310,134 +538,135 @@ bool DomainServer::resetAccountManagerAccessToken() {
             if (accessTokenVariant && accessTokenVariant->canConvert(QMetaType::QString)) {
                 accessToken = accessTokenVariant->toString();
             } else {
-                qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present."
-                    << "Set an access token via the web interface, in your user or master config"
+                qWarning() << "No access token is present. Some operations that use the metaverse API will fail.";
+                qDebug() << "Set an access token via the web interface, in your user config"
                     << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
+
+                // clear any existing access token from AccountManager
+                DependencyManager::get<AccountManager>()->setAccessTokenForCurrentAuthURL(QString());
+
                 return false;
             }
         } else {
             qDebug() << "Using access token from DOMAIN_SERVER_ACCESS_TOKEN in env. This overrides any access token present"
-                << " in the user or master config.";
+                << " in the user config.";
         }
 
         // give this access token to the AccountManager
-        AccountManager::getInstance().setAccessTokenForCurrentAuthURL(accessToken);
+        DependencyManager::get<AccountManager>()->setAccessTokenForCurrentAuthURL(accessToken);
 
         return true;
 
     } else {
-        qDebug() << "Missing OAuth provider URL, but a domain-server feature was required that requires authentication." <<
-            "domain-server will now quit.";
-        QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        static const QString MISSING_OAUTH_PROVIDER_MSG =
+            QString("Missing OAuth provider URL, but a domain-server feature was required that requires authentication.") +
+            QString("domain-server will now quit.");
+        static const int MISSING_OAUTH_PROVIDER_ERROR_CODE = 5;
+        QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                  Q_ARG(QString, MISSING_OAUTH_PROVIDER_MSG),
+                                  Q_ARG(int, MISSING_OAUTH_PROVIDER_ERROR_CODE));
 
         return false;
     }
 }
 
-bool DomainServer::optionallySetupAssignmentPayment() {
-    const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-
-    if (settingsMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
-        settingsMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool() &&
-        didSetupAccountManagerWithAccessToken()) {
-
-        qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
-
-        // assume that the fact we are authing against HF data server means we will pay for assignments
-        // setup a timer to send transactions to pay assigned nodes every 30 seconds
-        QTimer* creditSetupTimer = new QTimer(this);
-        connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
-
-        const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
-        creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
-
-        QTimer* nodePaymentTimer = new QTimer(this);
-        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
-
-        const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
-        nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
-    }
-
-    return true;
-}
-
 void DomainServer::setupAutomaticNetworking() {
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
 
     _automaticNetworkingSetting =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
 
-    if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
-        // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
-        connect(nodeList.data(), &LimitedNodeList::localSockAddrChanged,
-                this, &DomainServer::sendHeartbeatToIceServer);
-        connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
-                this, &DomainServer::sendHeartbeatToIceServer);
+    qDebug() << "Configuring automatic networking in domain-server as" << _automaticNetworkingSetting;
 
-        // we need this DS to know what our public IP is - start trying to figure that out now
-        nodeList->startSTUNPublicSocketUpdate();
+    if (_automaticNetworkingSetting != DISABLED_AUTOMATIC_NETWORKING_VALUE) {
+        const QUuid& domainID = getID();
 
-        // setup a timer to heartbeat with the ice-server every so often
-        QTimer* iceHeartbeatTimer = new QTimer(this);
-        connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
-        iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
-    }
-
-    if (!didSetupAccountManagerWithAccessToken()) {
-        qDebug() << "Cannot send heartbeat to data server without an access token.";
-        qDebug() << "Add an access token to your config file or via the web interface.";
-
-        return;
-    }
-
-    if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
-        _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
-
-        const QUuid& domainID = nodeList->getSessionUUID();
-
-        if (!domainID.isNull()) {
-            qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
-                << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
-
-            if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
-                // send any public socket changes to the data server so nodes can find us at our new IP
-                connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
-                        this, &DomainServer::performIPAddressUpdate);
-
-                // have the LNL enable public socket updating via STUN
-                nodeList->startSTUNPublicSocketUpdate();
-            } else {
-                // send our heartbeat to data server so it knows what our network settings are
-                sendHeartbeatToDataServer();
-            }
-        } else {
-            qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
-            << "Please add an ID to your config file or via the web interface.";
-
-            return;
+        if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+            setupICEHeartbeatForFullNetworking();
         }
-    } else {
-        sendHeartbeatToDataServer();
+
+        if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
+            _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+
+            if (!domainID.isNull()) {
+                qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
+                    << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
+
+                if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
+
+                    auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+                    // send any public socket changes to the data server so nodes can find us at our new IP
+                    connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+                            this, &DomainServer::performIPAddressUpdate);
+
+                    // have the LNL enable public socket updating via STUN
+                    nodeList->startSTUNPublicSocketUpdate();
+                }
+            } else {
+                qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
+                << "Please add an ID to your config file or via the web interface.";
+                return;
+            }
+        }
     }
 
-    qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
-
-    // no matter the auto networking settings we should heartbeat to the data-server every 15s
-    const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
-
-    QTimer* dataHeartbeatTimer = new QTimer(this);
-    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToDataServer()));
-    dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
 }
 
-void DomainServer::loginFailed() {
-    qDebug() << "Login to data server has failed. domain-server will now quit";
-    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+void DomainServer::setupHeartbeatToMetaverse() {
+    // heartbeat to the data-server every 15s
+    const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
+
+    if (!_metaverseHeartbeatTimer) {
+        // setup a timer to heartbeat with the metaverse-server
+        _metaverseHeartbeatTimer = new QTimer { this };
+        connect(_metaverseHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToMetaverse()));
+        // do not send a heartbeat immediately - this avoids flooding if the heartbeat fails with a 401
+        _metaverseHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
+    }
+}
+
+void DomainServer::setupICEHeartbeatForFullNetworking() {
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    // lookup the available ice-server hosts now
+    updateICEServerAddresses();
+
+    // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
+    connect(limitedNodeList.data(), &LimitedNodeList::localSockAddrChanged,
+            this, &DomainServer::sendHeartbeatToIceServer);
+    connect(limitedNodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+            this, &DomainServer::sendHeartbeatToIceServer);
+
+    // we need this DS to know what our public IP is - start trying to figure that out now
+    limitedNodeList->startSTUNPublicSocketUpdate();
+
+    // to send ICE heartbeats we'd better have a private key locally with an uploaded public key
+    // if we have an access token and we don't have a private key or the current domain ID has changed
+    // we should generate a new keypair
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (!accountManager->getAccountInfo().hasPrivateKey() || accountManager->getAccountInfo().getDomainID() != getID()) {
+        accountManager->generateNewDomainKeypair(getID());
+    }
+
+    // hookup to the signal from account manager that tells us when keypair is available
+    connect(accountManager.data(), &AccountManager::newKeypair, this, &DomainServer::handleKeypairChange);
+
+    if (!_iceHeartbeatTimer) {
+        // setup a timer to heartbeat with the ice-server
+        _iceHeartbeatTimer = new QTimer { this };
+        connect(_iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
+        sendHeartbeatToIceServer();
+        _iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+    }
+}
+
+void DomainServer::updateICEServerAddresses() {
+    if (_iceAddressLookupID == -1) {
+        _iceAddressLookupID = QHostInfo::lookupHost(_iceServerAddr, this, SLOT(handleICEHostInfo(QHostInfo)));
+    }
 }
 
 void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes) {
-    // check for configs from the command line, these take precedence
     const QString ASSIGNMENT_CONFIG_REGEX_STRING = "config-([\\d]+)";
     QRegExp assignmentConfigRegex(ASSIGNMENT_CONFIG_REGEX_STRING);
 
@@ -553,7 +782,6 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
         if (!excludedTypes.contains(defaultedType)
-            && defaultedType != Assignment::UNUSED_0
             && defaultedType != Assignment::UNUSED_1
             && defaultedType != Assignment::AgentType) {
             
@@ -576,10 +804,10 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
-void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    
-    QDataStream packetStream(packet.data());
-    NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, packet->getSenderSockAddr(), false);
+void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+
+    QDataStream packetStream(message->getMessage());
+    NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr(), false);
 
     // update this node's sockets in case they have changed
     sendingNode->setPublicSocket(nodeRequestData.publicSockAddr);
@@ -589,22 +817,34 @@ void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, Sha
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     nodeData->setNodeInterestSet(nodeRequestData.interestList.toSet());
 
-    sendDomainListToNode(sendingNode, packet->getSenderSockAddr());
+    // update the connecting hostname in case it has changed
+    nodeData->setPlaceName(nodeRequestData.placeName);
+
+    sendDomainListToNode(sendingNode, message->getSenderSockAddr());
 }
 
 unsigned int DomainServer::countConnectedUsers() {
     unsigned int result = 0;
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& otherNode){
-        if (otherNode->getType() == NodeType::Agent) {
-            result++;
+    nodeList->eachNode([&](const SharedNodePointer& node){
+        // only count unassigned agents (i.e., users)
+        if (node->getType() == NodeType::Agent) {
+            auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+            if (nodeData && !nodeData->wasAssigned()) {
+                result++;
+            }
         }
     });
     return result;
 }
 
 QUrl DomainServer::oauthRedirectURL() {
-    return QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+    if (_httpsManager) {
+        return QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+    } else {
+        qWarning() << "Attempting to determine OAuth re-direct URL with no HTTPS server configured.";
+        return QUrl();
+    }
 }
 
 const QString OAUTH_CLIENT_ID_QUERY_KEY = "client_id";
@@ -638,12 +878,16 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
 }
 
 void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
-    
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
-    
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(newNode->getLinkedData());
+
     // reply back to the user with a PacketType::DomainList
     sendDomainListToNode(newNode, nodeData->getSendingSockAddr());
-    
+
+    // if this node is a user (unassigned Agent), signal
+    if (newNode->getType() == NodeType::Agent && !nodeData->wasAssigned()) {
+        emit userConnected();
+    }
+
     // send out this node to our other connected nodes
     broadcastNewNode(newNode);
 }
@@ -660,8 +904,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
-    extendedHeaderStream << (quint8) node->getCanAdjustLocks();
-    extendedHeaderStream << (quint8) node->getCanRez();
+    extendedHeaderStream << node->getPermissions();
 
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
@@ -762,9 +1005,9 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
     );
 }
 
-void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packet) {
+void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage> message) {
     // construct the requested assignment from the packet data
-    Assignment requestAssignment(*packet);
+    Assignment requestAssignment(*message);
 
     // Suppress these for Assignment::AgentType to once per 5 seconds
     static QElapsedTimer noisyMessageTimer;
@@ -782,14 +1025,14 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packe
         static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
             ("Received a request for assignment type [^ ]+ from [^ ]+");
         qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                 << "from" << packet->getSenderSockAddr();
+                 << "from" << message->getSenderSockAddr();
         noisyMessageTimer.restart();
     }
 
     SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
 
     if (assignmentToDeploy) {
-        qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << packet->getSenderSockAddr();
+        qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << message->getSenderSockAddr();
 
         // give this assignment out, either the type matches or the requestor said they will take any
         static std::unique_ptr<NLPacket> assignmentPacket;
@@ -810,7 +1053,7 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packe
         assignmentStream << uniqueAssignment;
 
         auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-        limitedNodeList->sendUnreliablePacket(*assignmentPacket, packet->getSenderSockAddr());
+        limitedNodeList->sendUnreliablePacket(*assignmentPacket, message->getSenderSockAddr());
 
         // give the information for that deployed assignment to the gatekeeper so it knows to that that node
         // in when it comes back around
@@ -822,7 +1065,7 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packe
             static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
                 ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
             qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                << "from" << packet->getSenderSockAddr();
+                << "from" << message->getSenderSockAddr();
             noisyMessageTimer.restart();
         }
     }
@@ -869,9 +1112,9 @@ void DomainServer::setupPendingAssignmentCredits() {
 
 void DomainServer::sendPendingTransactionsToServer() {
 
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
-    if (accountManager.hasValidAccessToken()) {
+    if (accountManager->hasValidAccessToken()) {
 
         // enumerate the pending transactions and send them to the server to complete payment
         TransactionHash::iterator i = _pendingAssignmentCredits.begin();
@@ -882,7 +1125,7 @@ void DomainServer::sendPendingTransactionsToServer() {
         transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
 
         while (i != _pendingAssignmentCredits.end()) {
-            accountManager.sendRequest("api/v1/transactions",
+            accountManager->sendRequest("api/v1/transactions",
                                        AccountManagerAuth::Required,
                                        QNetworkAccessManager::PostOperation,
                                        transactionCallbackParams, i.value()->postJson().toJson());
@@ -935,63 +1178,288 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    sendHeartbeatToDataServer(newPublicSockAddr.getAddress().toString());
+    sendHeartbeatToMetaverse(newPublicSockAddr.getAddress().toString());
 }
 
-void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
-    const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
-    const QUuid& domainID = nodeList->getSessionUUID();
-
-    // setup the domain object to send to the data server
-    const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
-    const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
-
+void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
+    // Setup the domain object to send to the data server
     QJsonObject domainObject;
+
+    // add the versions
+    static const QString VERSION_KEY = "version";
+    domainObject[VERSION_KEY] = BuildInfo::VERSION;
+    static const QString PROTOCOL_VERSION_KEY = "protocol";
+    domainObject[PROTOCOL_VERSION_KEY] = protocolVersionsSignatureBase64();
+
+    // add networking
     if (!networkAddress.isEmpty()) {
+        static const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
         domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
     }
 
+    static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
 
-    // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
-    const QString RESTRICTED_ACCESS_FLAG = "restricted";
+    // add access level for anonymous connections
+    // consider the domain to be "restricted" if anonymous connections are disallowed
+    static const QString RESTRICTED_ACCESS_FLAG = "restricted";
+    NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
+    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.can(NodePermissions::Permission::canConnectToDomain);
 
-    domainObject[RESTRICTED_ACCESS_FLAG] =
-        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+    const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
+    if (!temporaryDomainKey.isEmpty()) {
+        // add the temporary domain token
+        const QString KEY_KEY = "api_key";
+        domainObject[KEY_KEY] = temporaryDomainKey;
+    }
 
-    // add the number of currently connected agent users
-    int numConnectedAuthedUsers = 0;
+    if (_metadata) {
+        // Add the metadata to the heartbeat
+        static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
+        domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata->get(DomainMetadata::USERS);
+    }
 
-    nodeList->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
-        if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
-            ++numConnectedAuthedUsers;
-        }
-    });
+    QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 
-    const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
-
-    QJsonObject heartbeatObject;
-    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedAuthedUsers;
-    domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
-
-    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
-
-    AccountManager::getInstance().sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
-                                              AccountManagerAuth::Required,
+    static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
+    DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(getID())),
+                                              AccountManagerAuth::Optional,
                                               QNetworkAccessManager::PutOperation,
-                                              JSONCallbackParameters(),
+                                              JSONCallbackParameters(nullptr, QString(), this, "handleMetaverseHeartbeatError"),
                                               domainUpdateJSON.toUtf8());
 }
 
-// TODO: have data-web respond with ice-server hostname to use
+void DomainServer::handleMetaverseHeartbeatError(QNetworkReply& requestReply) {
+    if (!_metaverseHeartbeatTimer) {
+        // avoid rehandling errors from the same issue
+        return;
+    }
 
-void DomainServer::sendHeartbeatToIceServer() {
-    DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
+    // only attempt to grab a new temporary name if we're already a temporary domain server
+    if (_type == MetaverseTemporaryDomain) {
+        // check if we need to force a new temporary domain name
+        switch (requestReply.error()) {
+                // if we have a temporary domain with a bad token, we get a 401
+            case QNetworkReply::NetworkError::AuthenticationRequiredError: {
+                static const QString DATA_KEY = "data";
+                static const QString TOKEN_KEY = "api_key";
+
+                QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+                auto tokenFailure = jsonObject[DATA_KEY].toObject()[TOKEN_KEY];
+
+                if (!tokenFailure.isNull()) {
+                    qWarning() << "Temporary domain name lacks a valid API key, and is being reset.";
+                }
+                break;
+            }
+                // if the domain does not (or no longer) exists, we get a 404
+            case QNetworkReply::NetworkError::ContentNotFoundError:
+                qWarning() << "Domain not found, getting a new temporary domain.";
+                break;
+                // otherwise, we erred on something else, and should not force a temporary domain
+            default:
+                return;
+        }
+
+        // halt heartbeats until we have a token
+        _metaverseHeartbeatTimer->deleteLater();
+        _metaverseHeartbeatTimer = nullptr;
+
+        // give up eventually to avoid flooding traffic
+        static const int MAX_ATTEMPTS = 5;
+        static int attempt = 0;
+        if (++attempt < MAX_ATTEMPTS) {
+            // get a new temporary name and token
+            getTemporaryName(true);
+        } else {
+            qWarning() << "Already attempted too many temporary domain requests. Please set a domain ID manually or restart.";
+        }
+    }
 }
 
-void DomainServer::processNodeJSONStatsPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer sendingNode) {
+void DomainServer::sendICEServerAddressToMetaverseAPI() {
+    if (_sendICEServerAddressToMetaverseAPIInProgress) {
+        // don't have more than one of these in-flight at a time.  set a flag to indicate that once the current one
+        // is done, we need to do update metaverse again.
+        _sendICEServerAddressToMetaverseAPIRedo = true;
+        return;
+    }
+    _sendICEServerAddressToMetaverseAPIInProgress = true;
+    const QString ICE_SERVER_ADDRESS = "ice_server_address";
+
+    QJsonObject domainObject;
+
+    if (!_connectedToICEServer || _iceServerSocket.isNull()) {
+        domainObject[ICE_SERVER_ADDRESS] = "0.0.0.0";
+    } else {
+        // we're using full automatic networking and we have a current ice-server socket, use that now
+        domainObject[ICE_SERVER_ADDRESS] = _iceServerSocket.getAddress().toString();
+    }
+
+    const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
+    if (!temporaryDomainKey.isEmpty()) {
+        // add the temporary domain token
+        const QString KEY_KEY = "api_key";
+        domainObject[KEY_KEY] = temporaryDomainKey;
+    }
+
+    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
+
+    // make sure we hear about failure so we can retry
+    JSONCallbackParameters callbackParameters;
+    callbackParameters.errorCallbackReceiver = this;
+    callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
+    callbackParameters.jsonCallbackReceiver = this;
+    callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
+
+    static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
+        ("Updating ice-server address in High Fidelity Metaverse API to [^ \n]+");
+    qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
+             << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
+
+    static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
+
+    DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_ICE_ADDRESS_UPDATE.arg(uuidStringWithoutCurlyBraces(getID())),
+                                                          AccountManagerAuth::Optional,
+                                                          QNetworkAccessManager::PutOperation,
+                                                          callbackParameters,
+                                                          domainUpdateJSON.toUtf8());
+}
+
+void DomainServer::handleSuccessfulICEServerAddressUpdate(QNetworkReply& requestReply) {
+    _sendICEServerAddressToMetaverseAPIInProgress = false;
+    if (_sendICEServerAddressToMetaverseAPIRedo) {
+        qDebug() << "ice-server address updated with metaverse, but has since changed.  redoing update...";
+        _sendICEServerAddressToMetaverseAPIRedo = false;
+        sendICEServerAddressToMetaverseAPI();
+    } else {
+        qDebug() << "ice-server address updated with metaverse.";
+    }
+}
+
+void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply& requestReply) {
+    _sendICEServerAddressToMetaverseAPIInProgress = false;
+    if (_sendICEServerAddressToMetaverseAPIRedo) {
+        // if we have new data, retry right away, even though the previous attempt didn't go well.
+        _sendICEServerAddressToMetaverseAPIRedo = false;
+        sendICEServerAddressToMetaverseAPI();
+    } else {
+        const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
+
+        qWarning() << "Failed to update ice-server address with High Fidelity Metaverse - error was"
+                   << requestReply.errorString();
+        qWarning() << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
+
+        QTimer::singleShot(ICE_SERVER_UPDATE_RETRY_MS, this, SLOT(sendICEServerAddressToMetaverseAPI()));
+    }
+}
+
+void DomainServer::sendHeartbeatToIceServer() {
+    if (!_iceServerSocket.getAddress().isNull()) {
+
+        auto accountManager = DependencyManager::get<AccountManager>();
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+        if (!accountManager->getAccountInfo().hasPrivateKey()) {
+            qWarning() << "Cannot send an ice-server heartbeat without a private key for signature.";
+            qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
+
+            if (!limitedNodeList->getSessionUUID().isNull()) {
+                accountManager->generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+            } else {
+                qWarning() << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";
+            }
+
+            return;
+        }
+
+        const int FAILOVER_NO_REPLY_ICE_HEARTBEATS { 3 };
+
+        // increase the count of no reply ICE heartbeats and check the current value
+        ++_noReplyICEHeartbeats;
+
+        if (_noReplyICEHeartbeats > FAILOVER_NO_REPLY_ICE_HEARTBEATS) {
+            qWarning() << "There have been" << _noReplyICEHeartbeats - 1 << "heartbeats sent with no reply from the ice-server";
+            qWarning() << "Clearing the current ice-server socket and selecting a new candidate ice-server";
+
+            // add the current address to our list of failed addresses
+            _failedIceServerAddresses << _iceServerSocket.getAddress();
+
+            // if we've failed to hear back for three heartbeats, we clear the current ice-server socket and attempt
+            // to randomize a new one
+            _iceServerSocket.clear();
+
+            // reset the number of no reply ICE hearbeats
+            _noReplyICEHeartbeats = 0;
+
+            // reset the connection flag for ICE server
+            _connectedToICEServer = false;
+            sendICEServerAddressToMetaverseAPI();
+
+            // randomize our ice-server address (and simultaneously look up any new hostnames for available ice-servers)
+            randomizeICEServerAddress(true);
+        }
+
+        // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
+        // QDataStream and the possibility of IPv6 address for the sockets.
+        if (!_iceServerHeartbeatPacket) {
+            _iceServerHeartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
+        }
+
+        bool shouldRecreatePacket = false;
+
+        if (_iceServerHeartbeatPacket->getPayloadSize() > 0) {
+            // if either of our sockets have changed we need to re-sign the heartbeat
+            // first read the sockets out from the current packet
+            _iceServerHeartbeatPacket->seek(0);
+            QDataStream heartbeatStream(_iceServerHeartbeatPacket.get());
+
+            QUuid senderUUID;
+            HifiSockAddr publicSocket, localSocket;
+            heartbeatStream >> senderUUID >> publicSocket >> localSocket;
+
+            if (senderUUID != limitedNodeList->getSessionUUID()
+                || publicSocket != limitedNodeList->getPublicSockAddr()
+                || localSocket != limitedNodeList->getLocalSockAddr()) {
+                shouldRecreatePacket = true;
+            }
+        } else {
+            shouldRecreatePacket = true;
+        }
+
+        if (shouldRecreatePacket) {
+            // either we don't have a heartbeat packet yet or some combination of sockets, ID and keypair have changed
+            // and we need to make a new one
+
+            // reset the position in the packet before writing
+            _iceServerHeartbeatPacket->reset();
+
+            // write our plaintext data to the packet
+            QDataStream heartbeatDataStream(_iceServerHeartbeatPacket.get());
+            heartbeatDataStream << limitedNodeList->getSessionUUID()
+                << limitedNodeList->getPublicSockAddr() << limitedNodeList->getLocalSockAddr();
+
+            // setup a QByteArray that points to the plaintext data
+            auto plaintext = QByteArray::fromRawData(_iceServerHeartbeatPacket->getPayload(), _iceServerHeartbeatPacket->getPayloadSize());
+
+            // generate a signature for the plaintext data in the packet
+            auto signature = accountManager->getAccountInfo().signPlaintext(plaintext);
+
+            // pack the signature with the data
+            heartbeatDataStream << signature;
+        }
+
+        // send the heartbeat packet to the ice server now
+        limitedNodeList->sendUnreliablePacket(*_iceServerHeartbeatPacket, _iceServerSocket);
+
+    } else {
+        qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
+        qDebug() << "Waiting for" << ICE_SERVER_DEFAULT_HOSTNAME << "host lookup response";
+
+    }
+}
+
+void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode) {
     auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     if (nodeData) {
         nodeData->updateJSONStats(packetList->getMessage());
@@ -1064,13 +1532,22 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     return nodeJson;
 }
 
-const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
+QDir pathForAssignmentScriptsDirectory() {
+    static const QString SCRIPTS_DIRECTORY_NAME = "/scripts/";
+
+    QDir directory(ServerPathUtils::getDataDirectory() + SCRIPTS_DIRECTORY_NAME);
+    if (!directory.exists()) {
+        directory.mkpath(".");
+        qInfo() << "Created path to " << directory.path();
+    }
+
+    return directory;
+}
+
 QString pathForAssignmentScript(const QUuid& assignmentUUID) {
-    QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
-    newPath += "/scripts/";
+    QDir directory = pathForAssignmentScriptsDirectory();
     // append the UUID for this script as the new filename, remove the curly braces
-    newPath += uuidStringWithoutCurlyBraces(assignmentUUID);
-    return newPath;
+    return directory.absoluteFilePath(uuidStringWithoutCurlyBraces(assignmentUUID));
 }
 
 const QString URI_OAUTH = "/oauth";
@@ -1078,7 +1555,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString JSON_MIME_TYPE = "application/json";
 
     const QString URI_ASSIGNMENT = "/assignment";
-    const QString URI_ASSIGNMENT_SCRIPTS = URI_ASSIGNMENT + "/scripts";
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
 
@@ -1097,29 +1573,39 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && assignmentRegex.indexIn(url.path()) != -1) {
-        QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
-
-        SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
-        if (!matchingAssignment) {
-            // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
-            QUuid assignmentUUID = _gatekeeper.assignmentUUIDForPendingAssignment(matchingUUID);
-            if (!assignmentUUID.isNull()) {
-                matchingAssignment = _allAssignments.value(assignmentUUID);
-
-                if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
-                    // we have a matching assignment and it is for the right type, have the HTTP manager handle it
-                    // via correct URL for the script so the client can download
-
-                    QUrl scriptURL = url;
-                    scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
-                                      + uuidStringWithoutCurlyBraces(assignmentUUID));
-
-                    // have the HTTPManager serve the appropriate script file
-                    return _httpManager.handleHTTPRequest(connection, scriptURL, true);
-                }
-            }
+        QUuid nodeUUID = QUuid(assignmentRegex.cap(1));
+        
+        auto matchingNode = nodeList->nodeWithUUID(nodeUUID);
+        
+        // don't handle if we don't have a matching node
+        if (!matchingNode) {
+            return false;
         }
+        
+        auto nodeData = dynamic_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+        
+        // don't handle if we don't have node data for this node
+        if (!nodeData) {
+            return false;
+        }
+        
+        SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
+        
+        // check if we have an assignment that matches this temp UUID, and it is a scripted assignment
+        if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
+            // we have a matching assignment and it is for the right type, have the HTTP manager handle it
+            // via correct URL for the script so the client can download
+            const auto it = _ephemeralACScripts.find(matchingAssignment->getUUID());
 
+            if (it != _ephemeralACScripts.end()) {
+                connection->respond(HTTPConnection::StatusCode200, it->second, "application/javascript");
+            } else {
+                connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
+            }
+
+            return true;
+        }
+        
         // request not handled
         return false;
     }
@@ -1286,29 +1772,15 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 
             for (int i = 0; i < numInstances; i++) {
-
                 // create an assignment for this saved script
                 Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, assignmentPool);
 
-                QString newPath = pathForAssignmentScript(scriptAssignment->getUUID());
+                _ephemeralACScripts[scriptAssignment->getUUID()] = formData[0].second;
 
-                // create a file with the GUID of the assignment in the script host location
-                QFile scriptFile(newPath);
-                if (scriptFile.open(QIODevice::WriteOnly)) {
-                    scriptFile.write(formData[0].second);
-
-                    qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
-                                           .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
-
-                    // add the script assigment to the assignment queue
-                    SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
-                    _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
-                    _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
-                } else {
-                    // unable to save script for assignment - we shouldn't be here but debug it out
-                    qDebug() << "Unable to save a script for assignment at" << newPath;
-                    qDebug() << "Script will not be added to queue";
-                }
+                // add the script assignment to the assignment queue
+                SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
+                _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
+                _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
             }
 
             // respond with a 200 code for successful upload
@@ -1382,6 +1854,7 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
                 .arg(authorizationCode, oauthRedirectURL().toString(), _oauthClientID, _oauthClientSecret);
 
             QNetworkRequest tokenRequest(tokenRequestUrl);
+            tokenRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
             tokenRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
             tokenRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
@@ -1494,10 +1967,11 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // add it to the set so we can handle the callback from the OAuth provider
             _webAuthenticationStateSet.insert(stateUUID);
 
-            QUrl oauthRedirectURL = oauthAuthorizationURL(stateUUID);
+            QUrl authURL = oauthAuthorizationURL(stateUUID);
 
             Headers redirectHeaders;
-            redirectHeaders.insert("Location", oauthRedirectURL.toEncoded());
+
+            redirectHeaders.insert("Location", authURL.toEncoded());
 
             connection->respond(HTTPConnection::StatusCode302,
                                 QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
@@ -1526,9 +2000,12 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                     // we've pulled a username and password - now check if there is a match in our basic auth hash
                     QString settingsUsername = valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)->toString();
                     const QVariant* settingsPasswordVariant = valueForKeyPath(settingsMap, BASIC_AUTH_PASSWORD_KEY_PATH);
-                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
 
-                    if (settingsUsername == headerUsername && headerPassword == settingsPassword) {
+                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
+                    QString hexHeaderPassword = QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
+
+                    if (settingsUsername == headerUsername
+                        && (settingsPassword.isEmpty() || hexHeaderPassword == settingsPassword)) {
                         return true;
                     }
                 }
@@ -1571,11 +2048,11 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
     profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
 
     QNetworkRequest profileRequest(profileURL);
+    profileRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     profileRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     return NetworkAccessManager::getInstance().get(profileRequest);
 }
 
-const QString DS_SETTINGS_SESSIONS_GROUP = "web-sessions";
 Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileReply) {
     Headers cookieHeaders;
 
@@ -1588,10 +2065,6 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     // add the profile to our in-memory data structure so we know who the user is when they send us their cookie
     DomainServerWebSessionData sessionData(userObject);
     _cookieSessionHash.insert(cookieUUID, sessionData);
-
-    // persist the cookie to settings file so we can get it back on DS relaunch
-    QStringList path = QStringList() << DS_SETTINGS_SESSIONS_GROUP << cookieUUID.toString();
-    Setting::Handle<QVariant>(path).set(QVariant::fromValue(sessionData));
 
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);
@@ -1607,18 +2080,6 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     cookieHeaders.insert("Location", redirectString.toUtf8());
 
     return cookieHeaders;
-}
-
-void DomainServer::loadExistingSessionsFromSettings() {
-    // read data for existing web sessions into memory so existing sessions can be leveraged
-    Settings domainServerSettings;
-    domainServerSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
-
-    foreach(const QString& uuidKey, domainServerSettings.childKeys()) {
-        _cookieSessionHash.insert(QUuid(uuidKey),
-                                  domainServerSettings.value(uuidKey).value<DomainServerWebSessionData>());
-        qDebug() << "Pulled web session from settings - cookie UUID is" << uuidKey;
-    }
 }
 
 void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment) {
@@ -1640,15 +2101,14 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
 
 void DomainServer::nodeAdded(SharedNodePointer node) {
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
-    node->setLinkedData(new DomainServerNodeData());
+    node->setLinkedData(std::unique_ptr<DomainServerNodeData> { new DomainServerNodeData() });
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
-
     // if this peer connected via ICE then remove them from our ICE peers hash
     _gatekeeper.removeICEPeer(node->getUUID());
 
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     if (nodeData) {
         // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
@@ -1660,15 +2120,22 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
 
-        // If this node was an Agent ask DomainServerNodeData to potentially remove the interpolation we stored
-        nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
-                                       uuidStringWithoutCurlyBraces(node->getUUID()));
-
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
             SharedNodePointer otherNode = DependencyManager::get<LimitedNodeList>()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
-                reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+                static_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+            }
+        }
+
+        if (node->getType() == NodeType::Agent) {
+            // if this node was an Agent ask DomainServerNodeData to remove the interpolation we potentially stored
+            nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
+                    uuidStringWithoutCurlyBraces(node->getUUID()));
+
+            // if this node is a user (unassigned Agent), signal
+            if (!nodeData->wasAssigned()) {
+                emit userDisconnected();
             }
         }
     }
@@ -1757,17 +2224,17 @@ void DomainServer::addStaticAssignmentsToQueue() {
     }
 }
 
-void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
+void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> message) {
     // this is a query for the viewpoint resulting from a path
     // first pull the query path from the packet
 
     // figure out how many bytes the sender said this path is
     quint16 numPathBytes;
-    packet->readPrimitive(&numPathBytes);
+    message->readPrimitive(&numPathBytes);
 
-    if (numPathBytes <= packet->bytesLeftToRead()) {
+    if (numPathBytes <= message->getBytesLeftToRead()) {
         // the number of path bytes makes sense for the sent packet - pull out the path
-        QString pathQuery = QString::fromUtf8(packet->getPayload() + packet->pos(), numPathBytes);
+        QString pathQuery = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numPathBytes);
 
         // our settings contain paths that start with a leading slash, so make sure this query has that
         if (!pathQuery.startsWith("/")) {
@@ -1776,22 +2243,31 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
 
         const QString PATHS_SETTINGS_KEYPATH_FORMAT = "%1.%2";
         const QString PATH_VIEWPOINT_KEY = "viewpoint";
+        const QString INDEX_PATH = "/";
 
         // check out paths in the _configMap to see if we have a match
-        const QVariant* pathMatch = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                    QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY)
-                                                                                          .arg(pathQuery));
-        if (pathMatch) {
+        auto keypath = QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY).arg(pathQuery);
+        const QVariant* pathMatch = valueForKeyPath(_settingsManager.getSettingsMap(), keypath);
+
+        if (pathMatch || pathQuery == INDEX_PATH) {
             // we got a match, respond with the resulting viewpoint
             auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-            QString responseViewpoint = pathMatch->toMap()[PATH_VIEWPOINT_KEY].toString();
+            QString responseViewpoint;
+
+            // if we didn't match the path BUT this is for the index path then send back our default
+            if (pathMatch) {
+                responseViewpoint = pathMatch->toMap()[PATH_VIEWPOINT_KEY].toString();
+            } else {
+                const QString DEFAULT_INDEX_PATH = "/0,0,0/0,0,0,1";
+                responseViewpoint = DEFAULT_INDEX_PATH;
+            }
 
             if (!responseViewpoint.isEmpty()) {
                 QByteArray viewpointUTF8 = responseViewpoint.toUtf8();
 
                 // prepare a packet for the response
-                auto pathResponsePacket = NLPacket::create(PacketType::DomainServerPathResponse);
+                auto pathResponsePacket = NLPacket::create(PacketType::DomainServerPathResponse, -1, true);
 
                 // check the number of bytes the viewpoint is
                 quint16 numViewpointBytes = viewpointUTF8.size();
@@ -1815,7 +2291,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
 
                     // send off the packet - see if we can associate this outbound data to a particular node
                     // TODO: does this senderSockAddr always work for a punched DS client?
-                    nodeList->sendPacket(std::move(pathResponsePacket), packet->getSenderSockAddr());
+                    nodeList->sendPacket(std::move(pathResponsePacket), message->getSenderSockAddr());
                 }
             }
 
@@ -1824,5 +2300,182 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
             // query/response is made reliable
             qDebug() << "No match for path query" << pathQuery << "- refusing to respond.";
         }
+    }
+}
+
+void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message) {
+    // This packet has been matched to a source node and they're asking not to be in the domain anymore
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    const QUuid& nodeUUID = message->getSourceID();
+
+    qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
+
+    // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
+    // packet to nodes that don't care about this type
+    auto nodeToKill = limitedNodeList->nodeWithUUID(nodeUUID);
+
+    if (nodeToKill) {
+        handleKillNode(nodeToKill);
+    }
+}
+
+void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
+    auto nodeType = nodeToKill->getType();
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    const QUuid& nodeUUID = nodeToKill->getUUID();
+
+    limitedNodeList->killNodeWithUUID(nodeUUID);
+
+    static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
+
+    removedNodePacket->reset();
+    removedNodePacket->write(nodeUUID.toRfc4122());
+
+    // broadcast out the DomainServerRemovedNode message
+    limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
+        // only send the removed node packet to nodes that care about the type of node this was
+        auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
+        return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
+    }, [&limitedNodeList](const SharedNodePointer& otherNode){
+        limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
+    });
+}
+
+void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message) {
+    static const int NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN = 3;
+
+    if (++_numHeartbeatDenials > NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN) {
+        qDebug() << "Received" << NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN << "heartbeat denials from ice-server"
+            << "- re-generating keypair now";
+
+        // we've hit our threshold of heartbeat denials, trigger a keypair re-generation
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        DependencyManager::get<AccountManager>()->generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+
+        // reset our number of heartbeat denials
+        _numHeartbeatDenials = 0;
+    }
+
+    // even though we can't get into this ice-server it is responding to us, so we reset our number of no-reply heartbeats
+    _noReplyICEHeartbeats = 0;
+}
+
+void DomainServer::processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message) {
+    // we don't do anything with this ACK other than use it to tell us to keep talking to the same ice-server
+    _noReplyICEHeartbeats = 0;
+
+    if (!_connectedToICEServer) {
+        _connectedToICEServer = true;
+        sendICEServerAddressToMetaverseAPI();
+        qInfo() << "Connected to ice-server at" << _iceServerSocket;
+    }
+}
+
+void DomainServer::handleKeypairChange() {
+    if (_iceServerHeartbeatPacket) {
+        // reset the payload size of the ice-server heartbeat packet - this causes the packet to be re-generated
+        // the next time we go to send an ice-server heartbeat
+        _iceServerHeartbeatPacket->setPayloadSize(0);
+
+        // send a heartbeat to the ice server immediately
+        sendHeartbeatToIceServer();
+    }
+}
+
+void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
+    // clear the ICE address lookup ID so that it can fire again
+    _iceAddressLookupID = -1;
+
+    if (hostInfo.error() != QHostInfo::NoError) {
+        qWarning() << "IP address lookup failed for" << ICE_SERVER_DEFAULT_HOSTNAME << ":" << hostInfo.errorString();
+
+        // if we don't have an ICE server to use yet, trigger a retry
+        if (_iceServerSocket.isNull()) {
+            const int ICE_ADDRESS_LOOKUP_RETRY_MS = 1000;
+
+            QTimer::singleShot(ICE_ADDRESS_LOOKUP_RETRY_MS, this, SLOT(updateICEServerAddresses()));
+        }
+
+    } else {
+        int countBefore = _iceServerAddresses.count();
+
+        _iceServerAddresses = hostInfo.addresses();
+
+        if (countBefore == 0) {
+            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << ICE_SERVER_DEFAULT_HOSTNAME;
+        }
+
+        if (_iceServerSocket.isNull()) {
+            // we don't have a candidate ice-server yet, pick now (without triggering a host lookup since we just did one)
+            randomizeICEServerAddress(false);
+        }
+    }
+}
+
+void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
+    if (shouldTriggerHostLookup) {
+        updateICEServerAddresses();
+    }
+
+    // create a list by removing the already failed ice-server addresses
+    auto candidateICEAddresses = _iceServerAddresses;
+
+    auto it = candidateICEAddresses.begin();
+
+    while (it != candidateICEAddresses.end()) {
+        if (_failedIceServerAddresses.contains(*it)) {
+            // we already tried this address and it failed, remove it from list of candidates
+            it = candidateICEAddresses.erase(it);
+        } else {
+            // keep this candidate, it hasn't failed yet
+            ++it;
+        }
+    }
+
+    if (candidateICEAddresses.empty()) {
+        // we ended up with an empty list since everything we've tried has failed
+        // so clear the set of failed addresses and start going through them again
+
+        qWarning() << "All current ice-server addresses have failed - re-attempting all current addresses for"
+            << ICE_SERVER_DEFAULT_HOSTNAME;
+
+        _failedIceServerAddresses.clear();
+        candidateICEAddresses = _iceServerAddresses;
+    }
+
+    // of the list of available addresses that we haven't tried, pick a random one
+    int maxIndex = candidateICEAddresses.size() - 1;
+    int indexToTry = 0;
+
+    if (maxIndex > 0) {
+        static std::random_device randomDevice;
+        static std::mt19937 generator(randomDevice());
+        std::uniform_int_distribution<> distribution(0, maxIndex);
+
+        indexToTry = distribution(generator);
+    }
+
+    _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    qInfo() << "Set candidate ice-server socket to" << _iceServerSocket;
+
+    // clear our number of hearbeat denials, this should be re-set on ice-server change
+    _numHeartbeatDenials = 0;
+
+    // immediately fire an ICE heartbeat once we've picked a candidate ice-server
+    sendHeartbeatToIceServer();
+
+    // immediately send an update to the metaverse API when our ice-server changes
+    sendICEServerAddressToMetaverseAPI();
+}
+
+void DomainServer::setupGroupCacheRefresh() {
+    const int REFRESH_GROUPS_INTERVAL_MSECS = 15 * MSECS_PER_SECOND;
+
+    if (!_metaverseGroupCacheTimer) {
+        // setup a timer to refresh this server's cached group details
+        _metaverseGroupCacheTimer = new QTimer { this };
+        connect(_metaverseGroupCacheTimer, &QTimer::timeout, &_gatekeeper, &DomainGatekeeper::refreshGroupsCache);
+        _metaverseGroupCacheTimer->start(REFRESH_GROUPS_INTERVAL_MSECS);
     }
 }

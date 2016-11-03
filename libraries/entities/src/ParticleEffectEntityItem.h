@@ -11,25 +11,25 @@
 #ifndef hifi_ParticleEffectEntityItem_h
 #define hifi_ParticleEffectEntityItem_h
 
-#include <AnimationLoop.h>
+#include <deque>
 
 #include "EntityItem.h"
 
+#include "ColorUtils.h"
+
 class ParticleEffectEntityItem : public EntityItem {
 public:
+    ALLOW_INSTANTIATION // This class can be instantiated
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual ~ParticleEffectEntityItem();
-
-    ALLOW_INSTANTIATION // This class can be instantiated
+    ParticleEffectEntityItem(const EntityItemID& entityItemID);
 
     // methods for getting/setting all properties of this entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
-    virtual bool setProperties(const EntityItemProperties& properties);
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
@@ -37,18 +37,19 @@ public:
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
                                     int& propertyCount,
-                                    OctreeElement::AppendState& appendState) const;
+                                    OctreeElement::AppendState& appendState) const override;
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                 bool& somethingChanged);
+                                                 bool& somethingChanged) override;
 
-    virtual void update(const quint64& now);
-    virtual bool needsToCallUpdate() const;
+    virtual void update(const quint64& now) override;
+    virtual bool needsToCallUpdate() const override;
 
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
+    glm::vec3 getColorRGB() const { return  ColorUtils::sRGBToLinearVec3(toGlm(getXColor())); }
 
     static const xColor DEFAULT_COLOR;
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
@@ -61,14 +62,17 @@ public:
     bool _isColorStartInitialized = false;
     void setColorStart(const xColor& colorStart) { _colorStart = colorStart; _isColorStartInitialized = true; }
     xColor getColorStart() const { return _isColorStartInitialized ? _colorStart : getXColor(); }
+    glm::vec3 getColorStartRGB() const { return _isColorStartInitialized ? ColorUtils::sRGBToLinearVec3(toGlm(_colorStart)) : getColorRGB(); }
 
     bool _isColorFinishInitialized = false;
     void setColorFinish(const xColor& colorFinish) { _colorFinish = colorFinish; _isColorFinishInitialized = true; }
     xColor getColorFinish() const { return _isColorFinishInitialized ? _colorFinish : getXColor(); }
+    glm::vec3 getColorFinishRGB() const { return _isColorStartInitialized ? ColorUtils::sRGBToLinearVec3(toGlm(_colorFinish)) : getColorRGB(); }
 
     static const xColor DEFAULT_COLOR_SPREAD;
     void setColorSpread(const xColor& colorSpread) { _colorSpread = colorSpread; }
     xColor getColorSpread() const { return _colorSpread; }
+    glm::vec3 getColorSpreadRGB() const { return ColorUtils::sRGBToLinearVec3(toGlm(_colorSpread)); }
 
     static const float MAXIMUM_ALPHA;
     static const float MINIMUM_ALPHA;
@@ -91,10 +95,10 @@ public:
     void setAlphaSpread(float alphaSpread);
     float getAlphaSpread() const { return _alphaSpread; }
 
-    void updateShapeType(ShapeType type);
-    virtual ShapeType getShapeType() const { return _shapeType; }
+    void setShapeType(ShapeType type) override;
+    virtual ShapeType getShapeType() const override { return _shapeType; }
 
-    virtual void debugDump() const;
+    virtual void debugDump() const override;
 
     bool isEmittingParticles() const; /// emitting enabled, and there are particles alive
     bool getIsEmitting() const { return _isEmitting; }
@@ -209,18 +213,36 @@ public:
         }
     }
 
+    static const bool DEFAULT_EMITTER_SHOULD_TRAIL;
+    bool getEmitterShouldTrail() const { return _emitterShouldTrail; }
+    void setEmitterShouldTrail(bool emitterShouldTrail) {
+        _emitterShouldTrail = emitterShouldTrail;
+    }
+
+    virtual bool supportsDetailedRayIntersection() const override { return false; }
+
 protected:
+    struct Particle;
+    using Particles = std::deque<Particle>;
 
     bool isAnimatingSomething() const;
+    
+    Particle createParticle(const glm::vec3& position);
     void stepSimulation(float deltaTime);
-    void updateRadius(quint32 index, float age);
-    void updateColor(quint32 index, float age);
-    void updateAlpha(quint32 index, float age);
-    void extendBounds(const glm::vec3& point);
-    void integrateParticle(quint32 index, float deltaTime);
-    quint32 getLivingParticleCount() const;
-
-    // the properties of this entity
+    void integrateParticle(Particle& particle, float deltaTime);
+    
+    struct Particle {
+        float seed { 0.0f };
+        float lifetime { 0.0f };
+        glm::vec3 position { Vectors::ZERO };
+        glm::vec3 velocity { Vectors::ZERO };
+        glm::vec3 acceleration { Vectors::ZERO };
+    };
+    
+    // Particles container
+    Particles _particles;
+    
+    // Particles properties
     rgbColor _color;
     xColor _colorStart = DEFAULT_COLOR;
     xColor _colorFinish = DEFAULT_COLOR;
@@ -229,61 +251,42 @@ protected:
     float _alphaStart = DEFAULT_ALPHA_START;
     float _alphaFinish = DEFAULT_ALPHA_FINISH;
     float _alphaSpread = DEFAULT_ALPHA_SPREAD;
-    quint32 _maxParticles = DEFAULT_MAX_PARTICLES;
-    float _lifespan = DEFAULT_LIFESPAN;
-    float _emitRate = DEFAULT_EMIT_RATE;
-    float _emitSpeed = DEFAULT_EMIT_SPEED;
-    float _speedSpread = DEFAULT_SPEED_SPREAD;
-    glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
-    glm::vec3 _emitDimensions = DEFAULT_EMIT_DIMENSIONS;
-    float _emitRadiusStart = DEFAULT_EMIT_RADIUS_START;
-    float _polarStart = DEFAULT_POLAR_START;
-    float _polarFinish = DEFAULT_POLAR_FINISH;
-    float _azimuthStart = DEFAULT_AZIMUTH_START;
-    float _azimuthFinish = DEFAULT_AZIMUTH_FINISH;
-    glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
-    glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
     float _particleRadius = DEFAULT_PARTICLE_RADIUS;
     float _radiusStart = DEFAULT_RADIUS_START;
     float _radiusFinish = DEFAULT_RADIUS_FINISH;
     float _radiusSpread = DEFAULT_RADIUS_SPREAD;
+    float _lifespan = DEFAULT_LIFESPAN;
+    
+    // Emiter properties
+    quint32 _maxParticles = DEFAULT_MAX_PARTICLES;
+    
+    float _emitRate = DEFAULT_EMIT_RATE;
+    float _emitSpeed = DEFAULT_EMIT_SPEED;
+    float _speedSpread = DEFAULT_SPEED_SPREAD;
+    
+    glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
+    glm::vec3 _emitDimensions = DEFAULT_EMIT_DIMENSIONS;
+    float _emitRadiusStart = DEFAULT_EMIT_RADIUS_START;
+    glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
+    glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
+    
+    float _polarStart = DEFAULT_POLAR_START;
+    float _polarFinish = DEFAULT_POLAR_FINISH;
+    float _azimuthStart = DEFAULT_AZIMUTH_START;
+    float _azimuthFinish = DEFAULT_AZIMUTH_FINISH;
+    
+    glm::vec3 _previousPosition;
+    quint64 _lastSimulated { 0 };
+    bool _isEmitting { true };
 
+    QString _textures { DEFAULT_TEXTURES };
+    bool _texturesChangedFlag { false };
+    ShapeType _shapeType { SHAPE_TYPE_NONE };
+    
+    float _timeUntilNextEmit { 0.0f };
 
-    quint64 _lastSimulated;
-    bool _isEmitting = true;
-
-    QString _textures = DEFAULT_TEXTURES;
-    bool _texturesChangedFlag = false;
-    ShapeType _shapeType = SHAPE_TYPE_NONE;
-
-    // all the internals of running the particle sim
-    QVector<float> _particleLifetimes;
-    QVector<glm::vec3> _particlePositions;
-    QVector<glm::vec3> _particleVelocities;
-    QVector<glm::vec3> _particleAccelerations;
-    QVector<float> _particleRadiuses;
-    QVector<float> _radiusStarts;
-    QVector<float> _radiusMiddles;
-    QVector<float> _radiusFinishes;
-    QVector<xColor> _particleColors;
-    QVector<xColor> _colorStarts;
-    QVector<xColor> _colorMiddles;
-    QVector<xColor> _colorFinishes;
-    QVector<float> _particleAlphas;
-    QVector<float> _alphaStarts;
-    QVector<float> _alphaMiddles;
-    QVector<float> _alphaFinishes;
-
-    float _timeUntilNextEmit = 0.0f;
-
-    // particle arrays are a ring buffer, use these indices
-    // to keep track of the living particles.
-    quint32 _particleHeadIndex = 0;
-    quint32 _particleTailIndex = 0;
-
-    // bounding volume
-    glm::vec3 _particleMaxBound;
-    glm::vec3 _particleMinBound;
+    
+    bool _emitterShouldTrail { DEFAULT_EMITTER_SHOULD_TRAIL };
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

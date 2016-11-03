@@ -56,7 +56,6 @@ public:
 struct FBXJointShapeInfo {
     // same units and frame as FBXJoint.translation
     QVector<glm::vec3> points;
-    float radius;
 };
 
 /// A single joint (transformation node) extracted from an FBX document.
@@ -112,7 +111,7 @@ public:
     QString texcoordSetName;
     
     bool isBumpmap{ false };
-    
+
     bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
 };
 
@@ -131,32 +130,58 @@ class FBXMaterial {
 public:
     FBXMaterial() {};
     FBXMaterial(const glm::vec3& diffuseColor, const glm::vec3& specularColor, const glm::vec3& emissiveColor,
-        const glm::vec2& emissiveParams, float shininess, float opacity) :
+         float shininess, float opacity) :
         diffuseColor(diffuseColor),
         specularColor(specularColor),
         emissiveColor(emissiveColor),
-        emissiveParams(emissiveParams),
         shininess(shininess),
         opacity(opacity)  {}
 
     glm::vec3 diffuseColor{ 1.0f };
-    float diffuseFactor = 1.0f;
+    float diffuseFactor{ 1.0f };
     glm::vec3 specularColor{ 0.02f };
-    float specularFactor = 1.0f;
+    float specularFactor{ 1.0f };
 
     glm::vec3 emissiveColor{ 0.0f };
-    glm::vec2 emissiveParams{ 0.0f, 1.0f };
-    float shininess = 23.0f;
-    float opacity = 1.0f;
+    float emissiveFactor{ 0.0f };
+
+    float shininess{ 23.0f };
+    float opacity{ 1.0f };
+
+    float metallic{ 0.0f };
+    float roughness{ 1.0f };
+    float emissiveIntensity{ 1.0f };
+    float ambientFactor{ 1.0f };
 
     QString materialID;
+    QString name;
+    QString shadingModel;
     model::MaterialPointer _material;
 
-    FBXTexture diffuseTexture;
-    FBXTexture opacityTexture;
     FBXTexture normalTexture;
+    FBXTexture albedoTexture;
+    FBXTexture opacityTexture;
+    FBXTexture glossTexture;
+    FBXTexture roughnessTexture;
     FBXTexture specularTexture;
+    FBXTexture metallicTexture;
     FBXTexture emissiveTexture;
+    FBXTexture occlusionTexture;
+    FBXTexture scatteringTexture;
+    FBXTexture lightmapTexture;
+    glm::vec2 lightmapParams{ 0.0f, 1.0f };
+
+
+    bool isPBSMaterial{ false };
+    // THe use XXXMap are not really used to drive which map are going or not, debug only
+    bool useNormalMap{ false };
+    bool useAlbedoMap{ false };
+    bool useOpacityMap{ false };
+    bool useRoughnessMap{ false };
+    bool useSpecularMap{ false };
+    bool useMetallicMap{ false };
+    bool useEmissiveMap{ false };
+    bool useOcclusionMap{ false };
 
     bool needTangentSpace() const;
 };
@@ -196,8 +221,7 @@ public:
     QMultiHash<int, int> newIndices;
     QVector<QHash<int, int> > blendshapeIndexMaps;
     QVector<QPair<int, int> > partMaterialTextures;
-    QHash<QString, int> texcoordSetMap;
-    std::map<QString, int> texcoordSetMap2;
+    QHash<QString, size_t> texcoordSetMap;
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -249,6 +273,7 @@ inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
+    using Pointer = std::shared_ptr<FBXGeometry>;
 
     QString author;
     QString applicationName; ///< the name of the application that generated the model
@@ -309,6 +334,7 @@ public:
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
+Q_DECLARE_METATYPE(FBXGeometry::Pointer)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
@@ -393,28 +419,39 @@ public:
     FBXTexture getTexture(const QString& textureID);
 
     QHash<QString, QString> _textureNames;
+    // Hashes the original RelativeFilename of textures
+    QHash<QString, QByteArray> _textureFilepaths;
+    // Hashes the place to look for textures, in case they are not inlined
     QHash<QString, QByteArray> _textureFilenames;
+    // Hashes texture content by filepath, in case they are inlined
     QHash<QByteArray, QByteArray> _textureContent;
     QHash<QString, TextureParam> _textureParams;
 
 
     QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> diffuseFactorTextures;
+    QHash<QString, QString> transparentTextures;
     QHash<QString, QString> bumpTextures;
     QHash<QString, QString> normalTextures;
     QHash<QString, QString> specularTextures;
+    QHash<QString, QString> metallicTextures;
+    QHash<QString, QString> roughnessTextures;
+    QHash<QString, QString> shininessTextures;
     QHash<QString, QString> emissiveTextures;
     QHash<QString, QString> ambientTextures;
+    QHash<QString, QString> ambientFactorTextures;
+    QHash<QString, QString> occlusionTextures;
 
     QHash<QString, FBXMaterial> _fbxMaterials;
 
-    void consolidateFBXMaterials();
+    void consolidateFBXMaterials(const QVariantHash& mapping);
 
     bool _loadLightmaps = true;
     float _lightmapOffset = 0.0f;
     float _lightmapLevel;
 
-    QMultiHash<QString, QString> _connectionParentMap;
-    QMultiHash<QString, QString> _connectionChildMap;
+    QMultiMap<QString, QString> _connectionParentMap;
+    QMultiMap<QString, QString> _connectionChildMap;
 
     static glm::vec3 getVec3(const QVariantList& properties, int index);
     static QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector);

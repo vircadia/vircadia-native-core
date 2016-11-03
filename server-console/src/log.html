@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Log</title>
+        <script src="log.js"></script>
+        <link rel="stylesheet" type="text/css" href="log.css"></link>
+    </head>
+    <body onload="ready()">
+        <div class="search">
+            <input id="search-input" placeholder="filter" />
+            <button id="view-logs">Open Log Directory</button>
+        </div>
+
+        <ul class="tabs top">
+            <li class="tab-link current" data-tab="domain-server">Domain Server</li>
+            <li class="tab-link" data-tab="assignment-client">Assignment Clients</li>
+        </ul>
+
+        <div class="tab-content bottom">
+            <div class="tab-pane" id="domain-server"></div>
+            <div class="tab-pane" id="assignment-client"><div>
+        </div>
+    </body>
+</html>

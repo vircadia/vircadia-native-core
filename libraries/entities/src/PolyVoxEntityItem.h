@@ -18,16 +18,16 @@ class PolyVoxEntityItem : public EntityItem {
  public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    PolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    PolyVoxEntityItem(const EntityItemID& entityItemID);
 
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
-    virtual bool setProperties(const EntityItemProperties& properties);
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual bool setProperties(const EntityItemProperties& properties) override;
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
-    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
@@ -35,24 +35,24 @@ class PolyVoxEntityItem : public EntityItem {
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
                                     int& propertyCount,
-                                    OctreeElement::AppendState& appendState) const;
+                                    OctreeElement::AppendState& appendState) const override;
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                 bool& somethingChanged);
+                                                 bool& somethingChanged) override;
 
     // never have a ray intersection pick a PolyVoxEntityItem.
-    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                bool& keepSearching, OctreeElementPointer& element, float& distance,
-                                                BoxFace& face, glm::vec3& surfaceNormal,
-                                                void** intersectedObject, bool precisionPicking) const { return false; }
+                                             bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                             BoxFace& face, glm::vec3& surfaceNormal,
+                                             void** intersectedObject, bool precisionPicking) const override { return false; }
 
-    virtual void debugDump() const;
+    virtual void debugDump() const override;
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
-    virtual const glm::vec3& getVoxelVolumeSize() const;
+    virtual glm::vec3 getVoxelVolumeSize() const;
 
     virtual void setVoxelData(QByteArray voxelData);
     virtual const QByteArray getVoxelData() const;
@@ -128,12 +128,14 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void rebakeMesh() {};
 
+    void setVoxelDataDirty(bool value) { withWriteLock([&] { _voxelDataDirty = value; }); }
+    virtual void getMesh() {}; // recompute mesh
+
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
 
-    mutable QReadWriteLock _voxelDataLock;
     QByteArray _voxelData;
-    bool _voxelDataDirty;
+    bool _voxelDataDirty; // _voxelData has changed, things that depend on it should be updated
 
     PolyVoxSurfaceStyle _voxelSurfaceStyle;
 

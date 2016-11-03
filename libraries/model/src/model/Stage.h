@@ -11,7 +11,7 @@
 #ifndef hifi_model_Stage_h
 #define hifi_model_Stage_h
 
-#include "gpu/Pipeline.h"
+#include <gpu/Pipeline.h>
 
 #include "Light.h"
 #include "Skybox.h"
@@ -107,60 +107,6 @@ protected:
     static Mat4d evalWorldToGeoLocationMat(double longitude, double latitude, double altitude, double scale);
 };
 
-
-class Atmosphere {
-public:
-
-    Atmosphere();
-    Atmosphere(const Atmosphere& atmosphere);
-    Atmosphere& operator= (const Atmosphere& atmosphere);
-    virtual ~Atmosphere() {};
-
-
-    void setScatteringWavelength(Vec3 wavelength);
-    const Vec3& getScatteringWavelength() const { return _scatteringWavelength; }
-
-    void setRayleighScattering(float scattering);
-    float getRayleighScattering() const { return _rayleighScattering; }
-
-    void setMieScattering(float scattering);
-    float getMieScattering() const { return _mieScattering; }
-
-    void setSunBrightness(float brightness);
-    float getSunBrightness() const { return _sunBrightness; }
-
-    void setInnerOuterRadiuses(float inner, float outer);
-    float getInnerRadius() const { return getData()._radiuses.x; }
-    float getOuterRadius() const { return getData()._radiuses.y; }
-
-    // Data to access the attribute values of the atmosphere
-    class Data {
-    public:
-        Vec4 _invWaveLength = Vec4(0.0f);
-        Vec4 _radiuses = Vec4(6000.0f, 6025.0f, 0.0f, 0.0f);
-        Vec4 _scales = Vec4(0.0f, 0.25f, 0.0f, 0.0f);
-        Vec4 _scatterings = Vec4(0.0f);
-        Vec4 _control = Vec4(2.0f, -0.990f, -0.990f*-0.990f, 0.f);
-
-        Data() {}
-    };
-
-    const UniformBufferView& getDataBuffer() const { return _dataBuffer; }
-
-protected:
-    UniformBufferView _dataBuffer;
-    Vec3 _scatteringWavelength = Vec3(0.650f, 0.570f, 0.475f);
-    float _rayleighScattering = 0.0025f;
-    float _mieScattering = 0.0010f;
-    float _sunBrightness = 20.0f;
-
-    const Data& getData() const { return _dataBuffer.get<Data>(); }
-    Data& editData() { return _dataBuffer.edit<Data>(); }
-
-    void updateScattering();
-};
-typedef std::shared_ptr< Atmosphere > AtmospherePointer;
-
 // Sun sky stage generates the rendering primitives to display a scene realistically
 // at the specified location and time around earth
 class SunSkyStage {
@@ -184,6 +130,9 @@ public:
     const Quat& getOriginOrientation() const { return _earthSunModel.getSurfaceOrientation(); }
 
     // Location  used to define the sun & sky is a longitude and latitude [rad] and a earth surface altitude [km]
+    void setOriginLatitude(float latitude);
+    void setOriginLongitude(float longitude);
+    void setOriginSurfaceAltitude(float surfaceAltitude);
     void setOriginLocation(float longitude, float latitude, float surfaceAltitude);
     float getOriginLatitude() const { return _earthSunModel.getLatitude(); }
     float getOriginLongitude() const { return _earthSunModel.getLongitude(); }
@@ -194,24 +143,27 @@ public:
     bool isSunModelEnabled() const { return _sunModelEnable; }
 
     // Sun properties
-    void setSunColor(const Vec3& color);
+    void setSunColor(const Vec3& color) { _sunLight->setColor(color); }
     const Vec3& getSunColor() const { return getSunLight()->getColor(); }
-    void setSunIntensity(float intensity);
+    void setSunIntensity(float intensity) { _sunLight->setIntensity(intensity); }
     float getSunIntensity() const { return getSunLight()->getIntensity(); }
-    void setSunAmbientIntensity(float intensity);
+    void setSunAmbientIntensity(float intensity) { _sunLight->setAmbientIntensity(intensity); }
     float getSunAmbientIntensity() const { return getSunLight()->getAmbientIntensity(); }
+    void setSunAmbientSphere(const gpu::SHPointer& sphere);
+    void setSunAmbientMap(const gpu::TexturePointer& map);
 
     // The sun direction is expressed in the world space
     void setSunDirection(const Vec3& direction);
     const Vec3& getSunDirection() const { return getSunLight()->getDirection(); }
 
     LightPointer getSunLight() const { valid(); return _sunLight;  }
-    AtmospherePointer getAtmosphere() const { valid(); return _atmosphere;  }
  
     enum BackgroundMode {
         NO_BACKGROUND = 0,
-        SKY_DOME,
+        SKY_DEFAULT,
         SKY_BOX,
+        SKY_DEFAULT_AMBIENT_TEXTURE,
+        SKY_DEFAULT_TEXTURE,
 
         NUM_BACKGROUND_MODES,
     };
@@ -223,10 +175,9 @@ public:
     const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
 
 protected:
-    BackgroundMode _backgroundMode = SKY_BOX;
+    BackgroundMode _backgroundMode = SKY_DEFAULT;
 
     LightPointer _sunLight;
-    AtmospherePointer _atmosphere;
     mutable SkyboxPointer _skybox;
 
     float _dayTime = 12.0f;

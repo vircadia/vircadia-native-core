@@ -12,11 +12,11 @@
 #ifndef hifi_EntityMotionState_h
 #define hifi_EntityMotionState_h
 
+#include <EntityTypes.h>
 #include <AACube.h>
 
 #include "ObjectMotionState.h"
 
-class EntityItem;
 
 // From the MotionState's perspective:
 //      Inside = physics simulation
@@ -29,80 +29,80 @@ public:
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables();
-    virtual bool handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
-    virtual bool handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual void handleEasyChanges(uint32_t& flags) override;
+    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
 
-    /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
-    virtual MotionType computeObjectMotionType() const;
+    /// \return PhysicsMotionType based on params set in EntityItem
+    virtual PhysicsMotionType computePhysicsMotionType() const override;
 
-    virtual bool isMoving() const;
+    virtual bool isMoving() const override;
 
     // this relays incoming position/rotation to the RigidBody
-    virtual void getWorldTransform(btTransform& worldTrans) const;
+    virtual void getWorldTransform(btTransform& worldTrans) const override;
 
     // this relays outgoing position/rotation to the EntityItem
-    virtual void setWorldTransform(const btTransform& worldTrans);
+    virtual void setWorldTransform(const btTransform& worldTrans) override;
 
-    bool isCandidateForOwnership(const QUuid& sessionID) const;
+    bool isCandidateForOwnership() const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
-    bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
-    void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
+    bool shouldSendUpdate(uint32_t simulationStep);
+    void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
-    virtual uint32_t getIncomingDirtyFlags();
-    virtual void clearIncomingDirtyFlags();
+    virtual uint32_t getIncomingDirtyFlags() override;
+    virtual void clearIncomingDirtyFlags() override;
 
-    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
-    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
-    quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
+    virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
+    virtual float getObjectFriction() const override { return _entity->getFriction(); }
+    virtual float getObjectLinearDamping() const override { return _entity->getDamping(); }
+    virtual float getObjectAngularDamping() const override { return _entity->getAngularDamping(); }
 
-    virtual float getObjectRestitution() const { return _entity->getRestitution(); }
-    virtual float getObjectFriction() const { return _entity->getFriction(); }
-    virtual float getObjectLinearDamping() const { return _entity->getDamping(); }
-    virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
+    virtual glm::vec3 getObjectPosition() const override { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
+    virtual glm::quat getObjectRotation() const override { return _entity->getRotation(); }
+    virtual glm::vec3 getObjectLinearVelocity() const override { return _entity->getVelocity(); }
+    virtual glm::vec3 getObjectAngularVelocity() const override { return _entity->getAngularVelocity(); }
+    virtual glm::vec3 getObjectGravity() const override { return _entity->getGravity(); }
+    virtual glm::vec3 getObjectLinearVelocityChange() const override;
 
-    virtual glm::vec3 getObjectPosition() const { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
-    virtual glm::quat getObjectRotation() const { return _entity->getRotation(); }
-    virtual glm::vec3 getObjectLinearVelocity() const { return _entity->getVelocity(); }
-    virtual glm::vec3 getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
-    virtual glm::vec3 getObjectGravity() const { return _entity->getGravity(); }
-    virtual glm::vec3 getObjectLinearVelocityChange() const;
+    virtual const QUuid getObjectID() const override { return _entity->getID(); }
 
-    virtual const QUuid& getObjectID() const { return _entity->getID(); }
+    virtual uint8_t getSimulationPriority() const override;
+    virtual QUuid getSimulatorID() const override;
+    virtual void bump(uint8_t priority) override;
 
-    virtual quint8 getSimulationPriority() const;
-    virtual QUuid getSimulatorID() const;
-    virtual void bump(quint8 priority);
-
-    EntityItemPointer getEntity() const { return _entity; }
+    EntityItemPointer getEntity() const { return _entityPtr.lock(); }
 
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
 
-    virtual QString getName();
+    virtual QString getName() const override;
 
-    virtual int16_t computeCollisionGroup();
-
-    // eternal logic can suggest a simuator priority bid for the next outgoing update
-    void setOutgoingPriority(quint8 priority);
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
     friend class PhysicalEntitySimulation;
 
 protected:
+    // changes _outgoingPriority only if priority is larger
+    void upgradeOutgoingPriority(uint8_t priority);
+
     #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
     bool entityTreeIsLocked() const;
     #endif
 
-    virtual bool isReadyToComputeShape();
-    virtual btCollisionShape* computeNewShape();
-    virtual void clearObjectBackPointer();
-    virtual void setMotionType(MotionType motionType);
+    bool isReadyToComputeShape() const override;
+    const btCollisionShape* computeNewShape() override;
+    void setShape(const btCollisionShape* shape) override;
+    void setMotionType(PhysicsMotionType motionType) override;
 
-    EntityItemPointer _entity;
+    // In the glorious future (when entities lib depends on physics lib) the EntityMotionState will be
+    // properly "owned" by the EntityItem and will be deleted by it in the dtor.  In pursuit of that
+    // state of affairs we can't keep a real EntityItemPointer as data member (it would produce a
+    // recursive dependency).  Instead we keep a EntityItemWeakPointer to break that dependency while
+    // still granting us the capability to generate EntityItemPointers as necessary (for external data
+    // structures that use the MotionState to get to the EntityItem).
+    EntityItemWeakPointer _entityPtr;
+    // Meanwhile we also keep a raw EntityItem* for internal stuff where the pointer is guaranteed valid.
+    EntityItem* _entity;
 
-    bool _sentInactive;   // true if body was inactive when we sent last update
-
-    // these are for the prediction of the remote server's simple extrapolation
-    uint32_t _lastStep; // last step of server extrapolation
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
     glm::vec3 _serverVelocity;
@@ -111,15 +111,18 @@ protected:
     glm::vec3 _serverAcceleration;
     QByteArray _serverActionData;
 
-    uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;
     glm::vec3 _measuredAcceleration;
-    float _measuredDeltaTime;
+    quint64 _nextOwnershipBid { 0 };
 
-    quint8 _accelerationNearlyGravityCount;
-    quint64 _nextOwnershipBid = NO_PRORITY;
-    uint32_t _loopsWithoutOwner;
-    quint8 _outgoingPriority = NO_PRORITY;
+    float _measuredDeltaTime;
+    uint32_t _lastMeasureStep;
+    uint32_t _lastStep; // last step of server extrapolation
+
+    uint8_t _loopsWithoutOwner;
+    mutable uint8_t _accelerationNearlyGravityCount;
+    uint8_t _numInactiveUpdates { 1 };
+    uint8_t _outgoingPriority { 0 };
 };
 
 #endif // hifi_EntityMotionState_h

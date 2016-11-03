@@ -14,7 +14,6 @@
 
 #include <iostream>
 
-#include <CoverageMap.h>
 #include <NodeData.h>
 #include <OctreeConstants.h>
 #include <OctreeElementBag.h>
@@ -30,8 +29,8 @@ class OctreeServer;
 class OctreeQueryNode : public OctreeQuery {
     Q_OBJECT
 public:
-    OctreeQueryNode();
-    virtual ~OctreeQueryNode();
+    OctreeQueryNode() = default;
+    virtual ~OctreeQueryNode() = default;
 
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
@@ -45,7 +44,7 @@ public:
 
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
-    
+
     unsigned int getAvailable() const { return _octreePacket->bytesAvailableForWrite(); }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
@@ -55,11 +54,10 @@ public:
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
     OctreeElementBag elementBag;
-    CoverageMap map;
     OctreeElementExtraEncodeData extraEncodeData;
 
-    ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }
-    ViewFrustum& getLastKnownViewFrustum() { return _lastKnownViewFrustum; }
+    void copyCurrentViewFrustum(ViewFrustum& viewOut) const;
+    void copyLastKnownViewFrustum(ViewFrustum& viewOut) const;
 
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
@@ -77,18 +75,9 @@ public:
     quint64 getLastTimeBagEmpty() const { return _lastTimeBagEmpty; }
     void setLastTimeBagEmpty() { _lastTimeBagEmpty = _sceneSendStartTime; }
 
-    bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
-    bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
-    bool getCurrentPacketFormatMatches() {
-        return (getCurrentPacketIsColor() == getWantColor() && getCurrentPacketIsCompressed() == getWantCompression());
-    }
-
     bool hasLodChanged() const { return _lodChanged; }
 
     OctreeSceneStats stats;
-
-    void initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
-    bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
 
     void dumpOutOfView();
 
@@ -100,7 +89,6 @@ public:
     void sceneStart(quint64 sceneSendStartTime) { _sceneSendStartTime = sceneSendStartTime; }
 
     void nodeKilled();
-    void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
     void octreePacketSent() { packetSent(*_octreePacket); }
@@ -108,55 +96,53 @@ public:
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 
-    void parseNackPacket(NLPacket& packet);
+    void parseNackPacket(ReceivedMessage& message);
     bool hasNextNackedPacket() const;
     const NLPacket* getNextNackedPacket();
-
-private slots:
-    void sendThreadFinished();
 
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
 
-    bool _viewSent;
+    bool _viewSent { false };
     std::unique_ptr<NLPacket> _octreePacket;
     bool _octreePacketWaiting;
 
-    char* _lastOctreePayload = nullptr;
-    unsigned int _lastOctreePacketLength;
-    int _duplicatePacketCount;
-    quint64 _firstSuppressedPacket;
+    unsigned int _lastOctreePacketLength { 0 };
+    int _duplicatePacketCount { 0 };
+    quint64 _firstSuppressedPacket { usecTimestampNow() };
 
-    int _maxSearchLevel;
-    int _maxLevelReachedInLastSearch;
+    int _maxSearchLevel { 1 };
+    int _maxLevelReachedInLastSearch { 1 };
+
+    mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
-    quint64 _lastTimeBagEmpty;
-    bool _viewFrustumChanging;
-    bool _viewFrustumJustStoppedChanging;
-    bool _currentPacketIsColor;
-    bool _currentPacketIsCompressed;
+    quint64 _lastTimeBagEmpty { 0 };
+    bool _viewFrustumChanging { false };
+    bool _viewFrustumJustStoppedChanging { true };
 
-    OctreeSendThread* _octreeSendThread;
+    OctreeSendThread* _octreeSendThread { nullptr };
 
     // watch for LOD changes
-    int _lastClientBoundaryLevelAdjust;
-    float _lastClientOctreeSizeScale;
-    bool _lodChanged;
-    bool _lodInitialized;
+    int _lastClientBoundaryLevelAdjust { 0 };
+    float _lastClientOctreeSizeScale { DEFAULT_OCTREE_SIZE_SCALE };
+    bool _lodChanged { false };
+    bool _lodInitialized { false };
 
-    OCTREE_PACKET_SEQUENCE _sequenceNumber;
+    OCTREE_PACKET_SEQUENCE _sequenceNumber { 0 };
 
-    quint64 _lastRootTimestamp;
+    quint64 _lastRootTimestamp { 0 };
 
-    PacketType _myPacketType;
-    bool _isShuttingDown;
+    PacketType _myPacketType { PacketType::Unknown };
+    bool _isShuttingDown { false };
 
     SentPacketHistory _sentPacketHistory;
     QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
 
     quint64 _sceneSendStartTime = 0;
+
+    std::array<char, udt::MAX_PACKET_SIZE> _lastOctreePayload;
 };
 
 #endif // hifi_OctreeQueryNode_h

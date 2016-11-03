@@ -14,17 +14,15 @@
 UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
                         EntityTreeElementPointer containingElement,
                         EntityItemPointer existingEntity,
-                        const EntityItemProperties& properties) :
+                        const AACube newQueryAACube) :
     _tree(tree),
     _existingEntity(existingEntity),
     _containingElement(containingElement),
     _containingElementCube(containingElement->getAACube()),
-    _properties(properties),
     _entityItemID(existingEntity->getEntityItemID()),
     _foundOld(false),
     _foundNew(false),
     _removeOld(false),
-    _dontMove(false), // assume we'll be moving
     _changeTime(usecTimestampNow()),
     _oldEntityCube(),
     _newEntityCube(),
@@ -41,85 +39,25 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
     // entity into the the element, or do we want to use the entities "relaxed" bounds
     // which can handle all potential rotations?
     // the getMaximumAACube is the relaxed form.
-    _oldEntityCube = _existingEntity->getMaximumAACube();
+    _oldEntityCube = _existingEntity->getQueryAACube();
     _oldEntityBox = _oldEntityCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); // clamp to domain bounds
 
-    // If the old properties doesn't contain the properties required to calculate a bounding box,
-    // get them from the existing entity. Registration point is required to correctly calculate
-    // the bounding box.
-    if (!_properties.registrationPointChanged()) {
-        _properties.setRegistrationPoint(_existingEntity->getRegistrationPoint());
-    }
-    
-    // If the new properties has position OR dimension changes, but not both, we need to
-    // get the old property value and set it in our properties in order for our bounds
-    // calculations to work.
-    if (_properties.containsPositionChange() && !_properties.containsDimensionsChange()) {
-        glm::vec3 oldDimensions= _existingEntity->getDimensions();
-        _properties.setDimensions(oldDimensions);
-
-        if (_wantDebug) {
-            qCDebug(entities) << "    ** setting properties dimensions - had position change, no dimension change **";
-        }
-
-    }
-    if (!_properties.containsPositionChange() && _properties.containsDimensionsChange()) {
-        glm::vec3 oldPosition= _existingEntity->getPosition();
-        _properties.setPosition(oldPosition);
-
-        if (_wantDebug) {
-            qCDebug(entities) << "    ** setting properties position - had dimensions change, no position change **";
-        }
-    }
-
-    // If our new properties don't have bounds details (no change to position, etc) or if this containing element would 
-    // be the best fit for our new properties, then just do the new portion of the store pass, since the change path will 
-    // be the same for both parts of the update
-    bool oldElementBestFit = _containingElement->bestFitBounds(_properties);
-    
-    // if we don't have bounds properties, then use our old clamped box to determine best fit
-    if (!_properties.containsBoundsProperties()) {
-        oldElementBestFit = _containingElement->bestFitBounds(_oldEntityBox);
-
-        if (_wantDebug) {
-            qCDebug(entities) << "    ** old Element best fit - no dimensions change, no position change **";
-        }
-
-    }
-    
-    // For some reason we've seen a case where the original containing element isn't a best fit for the old properties
-    // in this case we want to move it, even if the properties haven't changed.
-    if (!_properties.containsBoundsProperties() && !oldElementBestFit) {
-        _newEntityCube = _oldEntityCube;
-        _removeOld = true; // our properties are going to move us, so remember this for later processing
-
-        if (_wantDebug) {
-            qCDebug(entities) << "    **** UNUSUAL CASE ****  no changes, but not best fit... consider it a move.... **";
-        }
-
-
-    } else if (!_properties.containsBoundsProperties() || oldElementBestFit) {
-        _foundOld = true;
-        _newEntityCube = _oldEntityCube;
-        _dontMove = true;
-
-        if (_wantDebug) {
-            qCDebug(entities) << "    **** TYPICAL NO MOVE CASE ****";
-            qCDebug(entities) << "        _properties.containsBoundsProperties():" << _properties.containsBoundsProperties();
-            qCDebug(entities) << "                             oldElementBestFit:" << oldElementBestFit;
-        }
-
-    } else {
-        _newEntityCube = _properties.getMaximumAACube();
-        _removeOld = true; // our properties are going to move us, so remember this for later processing
-
-        if (_wantDebug) {
-            qCDebug(entities) << "    **** TYPICAL MOVE CASE ****";
-        }
-    }
-
+    _newEntityCube = newQueryAACube;
     _newEntityBox = _newEntityCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); // clamp to domain bounds
 
+    // set oldElementBestFit true if the entity was in the correct element before this operator was run.
+    bool oldElementBestFit = _containingElement->bestFitBounds(_oldEntityBox);
+
+    // For some reason we've seen a case where the original containing element isn't a best fit for the old properties
+    // in this case we want to move it, even if the properties haven't changed.
+    if (!oldElementBestFit) {
+        _oldEntityBox = _existingEntity->getElement()->getAACube();
+        _removeOld = true; // our properties are going to move us, so remember this for later processing
+
+        if (_wantDebug) {
+            qCDebug(entities) << "    **** UNUSUAL CASE ****  not best fit.... **";
+        }
+    }
 
     if (_wantDebug) {
         qCDebug(entities) << "    _entityItemID:" << _entityItemID;
@@ -176,7 +114,7 @@ bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElementPointer element
 
 bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-    
+
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if
     // and of the following are true:
@@ -185,7 +123,7 @@ bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
     //
     // Note: it's often the case that the branch in question contains both the old entity
     // and the new entity.
-    
+
     bool keepSearching = false; // assume we don't need to search any more
 
     bool subtreeContainsOld = subTreeContainsOldEntity(element);
@@ -257,7 +195,8 @@ bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
             qCDebug(entities) << "    NEW TREE CASE....";
             qCDebug(entities) << "    entityTreeElement=" << entityTreeElement.get();
             qCDebug(entities) << "    _containingElement=" << _containingElement.get();
-            qCDebug(entities) << "    entityTreeElement->bestFitBounds(_newEntityBox)=" << entityTreeElement->bestFitBounds(_newEntityBox);
+            qCDebug(entities) << "    entityTreeElement->bestFitBounds(_newEntityBox)="
+                              << entityTreeElement->bestFitBounds(_newEntityBox);
         }
 
         // If this element is the best fit for the new entity properties, then add/or update it
@@ -270,15 +209,8 @@ bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
             EntityTreeElementPointer oldElement = _existingEntity->getElement();
             // if we are the existing containing element, then we can just do the update of the entity properties
             if (entityTreeElement == oldElement) {
-
                 if (_wantDebug) {
                     qCDebug(entities) << "    *** This is the same OLD ELEMENT ***";
-                }
-            
-                // set the entity properties and mark our element as changed.
-                _existingEntity->setProperties(_properties);
-                if (_wantDebug) {
-                    qCDebug(entities) << "    *** set properties ***";
                 }
             } else {
                 // otherwise, this is an add case.
@@ -290,11 +222,6 @@ bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
                 }
                 entityTreeElement->addEntityItem(_existingEntity);
                 _tree->setContainingElement(_entityItemID, entityTreeElement);
-
-                _existingEntity->setProperties(_properties); // still need to update the properties!
-                if (_wantDebug) {
-                    qCDebug(entities) << "    *** ADDING ENTITY to ELEMENT and MAP and SETTING PROPERTIES ***";
-                }
             }
             _foundNew = true; // we found the new element
             _removeOld = false; // and it has already been removed from the old
@@ -308,7 +235,6 @@ bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
         qCDebug(entities) << "--------------------------------------------------";
     }
 
-    
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
@@ -329,9 +255,9 @@ bool UpdateEntityOperator::postRecursion(OctreeElementPointer element) {
     }
 
     // It's not OK to prune if we have the potential of deleting the original containig element.
-    // because if we prune the containing element then new might end up reallocating the same memory later 
+    // because if we prune the containing element then new might end up reallocating the same memory later
     // and that will confuse our logic.
-    // 
+    //
     // it's ok to prune if:
     // 1) we're not removing the old
     // 2) we are removing the old, but this subtree doesn't contain the old
@@ -340,17 +266,17 @@ bool UpdateEntityOperator::postRecursion(OctreeElementPointer element) {
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
         entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
     }
-    
+
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElementPointer UpdateEntityOperator::possiblyCreateChildAt(OctreeElementPointer element, int childIndex) { 
+OctreeElementPointer UpdateEntityOperator::possiblyCreateChildAt(OctreeElementPointer element, int childIndex) {
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new entity location.
-    // Check to see if 
+    // Check to see if
     if (!_foundNew) {
         float childElementScale = element->getScale() / 2.0f; // all of our children will be half our scale
-        
+
         // Note: because the entity's bounds might have been clamped to the domain. We want to check if the
         // bounds of the clamped box would fit in our child elements. It may be the case that the actual
         // bounds of the element would hang outside of the child elements cells.
@@ -365,5 +291,5 @@ OctreeElementPointer UpdateEntityOperator::possiblyCreateChildAt(OctreeElementPo
             }
         }
     }
-    return NULL; 
+    return NULL;
 }

@@ -3,10 +3,13 @@
 #include <QFile>
 #include <QImage>
 
+#include <ColorUtils.h>
+
 #include <StreamHelpers.h>
 
 #include "sdf_text3D_vert.h"
 #include "sdf_text3D_frag.h"
+#include "sdf_text3D_overlay_frag.h"
 
 #include "../RenderUtilsLogging.h"
 #include "FontFamilies.h"
@@ -44,15 +47,15 @@ struct QuadBuilder {
 
 
 
-static QHash<QString, Font*> LOADED_FONTS;
+static QHash<QString, Font::Pointer> LOADED_FONTS;
 
-Font* Font::load(QIODevice& fontFile) {
-    Font* result = new Font();
-    result->read(fontFile);
-    return result;
+Font::Pointer Font::load(QIODevice& fontFile) {
+    Pointer font = std::make_shared<Font>();
+    font->read(fontFile);
+    return font;
 }
 
-Font* Font::load(const QString& family) {
+Font::Pointer Font::load(const QString& family) {
     if (!LOADED_FONTS.contains(family)) {
 
         static const QString SDFF_COURIER_PRIME_FILENAME{ ":/CourierPrime.sdff" };
@@ -198,11 +201,11 @@ void Font::read(QIODevice& in) {
 
     image = image.convertToFormat(QImage::Format_RGBA8888);
 
-    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
-    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
     if (image.hasAlphaChannel()) {
-        formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
-        formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA);
+        formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+        formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::BGRA);
     }
     _texture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(),
                                    gpu::Sampler(gpu::Sampler::FILTER_MIN_POINT_MAG_LINEAR)));
@@ -216,12 +219,15 @@ void Font::setupGPU() {
 
         // Setup render pipeline
         {
-            auto vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(sdf_text3D_vert)));
-            auto pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(sdf_text3D_frag)));
-            gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+            auto vertexShader = gpu::Shader::createVertex(std::string(sdf_text3D_vert));
+            auto pixelShader = gpu::Shader::createPixel(std::string(sdf_text3D_frag));
+            auto pixelShaderOverlay = gpu::Shader::createPixel(std::string(sdf_text3D_overlay_frag));
+            gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
+            gpu::ShaderPointer programOverlay = gpu::Shader::createProgram(vertexShader, pixelShaderOverlay);
 
             gpu::Shader::BindingSet slotBindings;
             gpu::Shader::makeProgram(*program, slotBindings);
+            gpu::Shader::makeProgram(*programOverlay, slotBindings);
 
             _fontLoc = program->getTextures().findLocation("Font");
             _outlineLoc = program->getUniforms().findLocation("Outline");
@@ -233,7 +239,12 @@ void Font::setupGPU() {
             state->setBlendFunction(true,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+            _pipeline = gpu::Pipeline::create(program, state);
+
+            auto layeredState = std::make_shared<gpu::State>();
+            layeredState->setCullMode(gpu::State::CULL_BACK);
+            layeredState->setDepthTest(true, true, gpu::LESS_EQUAL);
+            _layeredPipeline = gpu::Pipeline::create(programOverlay, layeredState);
         }
 
         // Sanity checks
@@ -336,7 +347,7 @@ void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2
 }
 
 void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4* color,
-                      EffectType effectType, const glm::vec2& bounds) {
+                      EffectType effectType, const glm::vec2& bounds, bool layered) {
     if (str == "") {
         return;
     }
@@ -347,10 +358,13 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
 
     setupGPU();
 
-    batch.setPipeline(_pipeline);
+    batch.setPipeline(layered ? _layeredPipeline : _pipeline);
     batch.setResourceTexture(_fontLoc, _texture);
     batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
-    batch._glUniform4fv(_colorLoc, 1, (const float*)color);
+    
+    // need the gamma corrected color here
+    glm::vec4 lrgba = ColorUtils::sRGBToLinearVec4(*color);
+    batch._glUniform4fv(_colorLoc, 1, (const float*)&lrgba);
 
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);

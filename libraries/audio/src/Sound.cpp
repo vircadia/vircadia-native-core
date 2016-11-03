@@ -24,28 +24,23 @@
 #include <SharedUtil.h>
 
 #include "AudioRingBuffer.h"
-#include "AudioFormat.h"
-#include "AudioBuffer.h"
-#include "AudioEditBuffer.h"
 #include "AudioLogging.h"
+#include "AudioSRC.h"
+
 #include "Sound.h"
 
-static int soundMetaTypeId = qRegisterMetaType<Sound*>();
-
-QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in) {
-    return engine->newQObject(in.data());
+QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, const SharedSoundPointer& in) {
+    return engine->newQObject(new SoundScriptingInterface(in), QScriptEngine::ScriptOwnership);
 }
 
-void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer &out) {
-    out = SharedSoundPointer(qobject_cast<Sound*>(object.toQObject()));
+void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer& out) {
+    if (auto soundInterface = qobject_cast<SoundScriptingInterface*>(object.toQObject())) {
+        out = soundInterface->getSound();
+    }
 }
 
-QScriptValue soundPointerToScriptValue(QScriptEngine* engine, Sound* const& in) {
-    return engine->newQObject(in);
-}
-
-void soundPointerFromScriptValue(const QScriptValue &object, Sound* &out) {
-    out = qobject_cast<Sound*>(object.toQObject());
+SoundScriptingInterface::SoundScriptingInterface(SharedSoundPointer sound) : _sound(sound) {
+    QObject::connect(sound.data(), &Sound::ready, this, &SoundScriptingInterface::ready);
 }
 
 Sound::Sound(const QUrl& url, bool isStereo) :
@@ -59,42 +54,34 @@ Sound::Sound(const QUrl& url, bool isStereo) :
 void Sound::downloadFinished(const QByteArray& data) {
     // replace our byte array with the downloaded data
     QByteArray rawAudioByteArray = QByteArray(data);
-    QString fileName = getURL().fileName();
+    QString fileName = getURL().fileName().toLower();
 
-    const QString WAV_EXTENSION = ".wav";
-
+    static const QString WAV_EXTENSION = ".wav";
+    static const QString RAW_EXTENSION = ".raw";
     if (fileName.endsWith(WAV_EXTENSION)) {
 
-        QString headerContentType = "audio/x-wav";
-        //QByteArray headerContentType = reply->rawHeader("Content-Type");
+        QByteArray outputAudioByteArray;
 
-        // WAV audio file encountered
-        if (headerContentType == "audio/x-wav"
-            || headerContentType == "audio/wav"
-            || headerContentType == "audio/wave"
-            || fileName.endsWith(WAV_EXTENSION)) {
-
-            QByteArray outputAudioByteArray;
-
-            interpretAsWav(rawAudioByteArray, outputAudioByteArray);
-            downSample(outputAudioByteArray);
-        } else {
-            // check if this was a stereo raw file
-            // since it's raw the only way for us to know that is if the file was called .stereo.raw
-            if (fileName.toLower().endsWith("stereo.raw")) {
-                _isStereo = true;
-                qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << getURL() << "as stereo audio file.";
-            }
-
-            // Process as RAW file
-            downSample(rawAudioByteArray);
+        interpretAsWav(rawAudioByteArray, outputAudioByteArray);
+        downSample(outputAudioByteArray);
+    } else if (fileName.endsWith(RAW_EXTENSION)) {
+        // check if this was a stereo raw file
+        // since it's raw the only way for us to know that is if the file was called .stereo.raw
+        if (fileName.toLower().endsWith("stereo.raw")) {
+            _isStereo = true;
+            qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << getURL() << "as stereo audio file.";
         }
-        trimFrames();
+
+        // Process as RAW file
+        downSample(rawAudioByteArray);
     } else {
-        qCDebug(audio) << "Network reply without 'Content-Type'.";
+        qCDebug(audio) << "Unknown sound file type";
     }
 
+    finishedLoading(true);
+
     _isReady = true;
+    emit ready();
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {
@@ -104,57 +91,22 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
     // we want to convert it to the format that the audio-mixer wants
     // which is signed, 16-bit, 24Khz
 
-    int numSourceSamples = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
+    int numChannels = _isStereo ? 2 : 1;
+    AudioSRC resampler(48000, AudioConstants::SAMPLE_RATE, numChannels);
 
-    int numDestinationBytes = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
-    if (_isStereo && numSourceSamples % 2 != 0) {
-        numDestinationBytes += sizeof(AudioConstants::AudioSample);
-    }
+    // resize to max possible output
+    int numSourceFrames = rawAudioByteArray.size() / (numChannels * sizeof(AudioConstants::AudioSample));
+    int maxDestinationFrames = resampler.getMaxOutput(numSourceFrames);
+    int maxDestinationBytes = maxDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
+    _byteArray.resize(maxDestinationBytes);
 
+    int numDestinationFrames = resampler.render((int16_t*)rawAudioByteArray.data(), 
+                                                (int16_t*)_byteArray.data(), 
+                                                numSourceFrames);
+
+    // truncate to actual output
+    int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
     _byteArray.resize(numDestinationBytes);
-
-    int16_t* sourceSamples = (int16_t*) rawAudioByteArray.data();
-    int16_t* destinationSamples = (int16_t*) _byteArray.data();
-
-    if (_isStereo) {
-        for (int i = 0; i < numSourceSamples; i += 4) {
-            if (i + 2 >= numSourceSamples) {
-                destinationSamples[i / 2] = sourceSamples[i];
-                destinationSamples[(i / 2) + 1] = sourceSamples[i + 1];
-            } else {
-                destinationSamples[i / 2] = (sourceSamples[i] + sourceSamples[i + 2]) / 2;
-                destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] + sourceSamples[i + 3]) / 2;
-            }
-        }
-    } else {
-        for (int i = 1; i < numSourceSamples; i += 2) {
-            if (i + 1 >= numSourceSamples) {
-                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] + sourceSamples[i]) / 2;
-            } else {
-                destinationSamples[(i - 1) / 2] = ((sourceSamples[i - 1] + sourceSamples[i + 1]) / 4) + (sourceSamples[i] / 2);
-            }
-        }
-    }
-}
-
-void Sound::trimFrames() {
-
-    const uint32_t inputFrameCount = _byteArray.size() / sizeof(int16_t);
-    const uint32_t trimCount = 1024;  // number of leading and trailing frames to trim
-
-    if (inputFrameCount <= (2 * trimCount)) {
-        return;
-    }
-
-    int16_t* inputFrameData = (int16_t*)_byteArray.data();
-
-    AudioEditBufferFloat32 editBuffer(1, inputFrameCount);
-    editBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
-
-    editBuffer.linearFade(0, trimCount, true);
-    editBuffer.linearFade(inputFrameCount - trimCount, inputFrameCount, false);
-
-    editBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
 }
 
 //
@@ -276,6 +228,8 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
         if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
             qCDebug(audio) << "Error reading WAV file";
         }
+
+        _duration = (float) (outputAudioByteArraySize / (fileHeader.wave.sampleRate * fileHeader.wave.numChannels * fileHeader.wave.bitsPerSample / 8.0f));
 
     } else {
         qCDebug(audio) << "Could not read wav audio file header.";

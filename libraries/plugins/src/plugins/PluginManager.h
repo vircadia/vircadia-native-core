@@ -7,13 +7,29 @@
 //
 #pragma once
 
+#include <QObject>
+
 #include "Forward.h"
 
 class PluginManager : public QObject {
 public:
-  static PluginManager* getInstance();
+    static PluginManager* getInstance();
+    PluginManager();
 
-  const DisplayPluginList& getDisplayPlugins();
-  const InputPluginList& getInputPlugins();
-  void saveSettings();
+    const DisplayPluginList& getDisplayPlugins();
+    const InputPluginList& getInputPlugins();
+    const CodecPluginList& getCodecPlugins();
+
+    DisplayPluginList getPreferredDisplayPlugins();
+    void setPreferredDisplayPlugins(const QStringList& displays);
+
+    void disableDisplayPlugin(const QString& name);
+    void disableDisplays(const QStringList& displays);
+    void disableInputs(const QStringList& inputs);
+    void saveSettings();
+    void setContainer(PluginContainer* container) { _container = container; }
+
+    void shutdown();
+private:
+    PluginContainer* _container { nullptr };
 };

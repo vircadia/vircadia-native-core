@@ -1,0 +1,146 @@
+<!
+//  DeferredBufferRead.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 5/4/16.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not DEFERRED_BUFFER_READ_SLH@>
+<@def DEFERRED_BUFFER_READ_SLH@>
+
+<@include DeferredBuffer.slh@>
+
+// the albedo texture
+uniform sampler2D albedoMap;
+
+// the normal texture
+uniform sampler2D normalMap;
+
+// the specular texture
+uniform sampler2D specularMap;
+
+// the depth texture
+uniform sampler2D depthMap;
+
+// the obscurance texture
+uniform sampler2D obscuranceMap;
+
+// the lighting texture
+uniform sampler2D lightingMap;
+
+
+struct DeferredFragment {
+    vec4 position;
+    vec3 normal;
+    float metallic;
+    vec3 albedo;
+    float obscurance;
+    vec3 fresnel;
+    float roughness;
+    int mode;
+    float scattering;
+    float depthVal;
+};
+
+DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
+    vec4 normalVal;
+    vec4 diffuseVal;
+    vec4 specularVal;
+    
+    DeferredFragment frag;
+    frag.depthVal = -1.0;
+    normalVal = texture(normalMap, texcoord);
+    diffuseVal = texture(albedoMap, texcoord);
+    specularVal = texture(specularMap, texcoord);
+    frag.obscurance = texture(obscuranceMap, texcoord).x;
+
+    // Unpack the normal from the map
+    frag.normal = unpackNormal(normalVal.xyz);
+    frag.roughness = normalVal.a;
+
+    // Diffuse color and unpack the mode and the metallicness
+    frag.albedo = diffuseVal.xyz;
+    frag.scattering = 0.0;
+    unpackModeMetallic(diffuseVal.w, frag.mode, frag.metallic);
+
+    //frag.emissive = specularVal.xyz;
+    frag.obscurance = min(specularVal.w, frag.obscurance);
+
+
+    if (frag.mode == FRAG_MODE_SCATTERING) {
+        frag.scattering = specularVal.x;
+    }
+
+    if (frag.metallic <= 0.5) {
+        frag.metallic = 0.0;
+        frag.fresnel = vec3(0.03); // Default Di-electric fresnel value
+    } else {
+        frag.fresnel = vec3(diffuseVal.xyz);
+        frag.metallic = 1.0;
+    }
+
+    return frag;
+}
+
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+vec4 unpackDeferredPosition(DeferredFrameTransform deferredTransform, float depthValue, vec2 texcoord) {
+    int side = 0;
+    if (isStereo()) {
+        if (texcoord.x > 0.5) {
+            texcoord.x -= 0.5;
+            side = 1;
+        }
+        texcoord.x *= 2.0;
+    }
+    float Zeye = evalZeyeFromZdb(depthValue);
+
+    return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
+}
+
+DeferredFragment unpackDeferredFragment(DeferredFrameTransform deferredTransform, vec2 texcoord) {
+
+    float depthValue = texture(depthMap, texcoord).r;
+
+    DeferredFragment frag = unpackDeferredFragmentNoPosition(texcoord);
+
+    frag.depthVal = depthValue;
+    frag.position = unpackDeferredPosition(deferredTransform, frag.depthVal, texcoord);
+
+    return frag;
+}
+
+
+
+<@func declareDeferredCurvature()@>
+
+// the curvature texture
+uniform sampler2D curvatureMap;
+
+vec4 fetchCurvature(vec2 texcoord) {
+    return texture(curvatureMap, texcoord);
+}
+
+// the curvature texture
+uniform sampler2D diffusedCurvatureMap;
+
+vec4 fetchDiffusedCurvature(vec2 texcoord) {
+    return texture(diffusedCurvatureMap, texcoord);
+}
+
+void unpackMidLowNormalCurvature(vec2 texcoord, out vec4 midNormalCurvature, out vec4 lowNormalCurvature) {
+    midNormalCurvature = fetchCurvature(texcoord);
+    lowNormalCurvature = fetchDiffusedCurvature(texcoord);
+    midNormalCurvature.xyz = normalize((midNormalCurvature.xyz - 0.5f) * 2.0f);
+    lowNormalCurvature.xyz = normalize((lowNormalCurvature.xyz - 0.5f) * 2.0f);
+    midNormalCurvature.w = (midNormalCurvature.w * 2.0 - 1.0);
+    lowNormalCurvature.w = (lowNormalCurvature.w * 2.0 - 1.0);
+}
+<@endfunc@>
+
+<@endif@>

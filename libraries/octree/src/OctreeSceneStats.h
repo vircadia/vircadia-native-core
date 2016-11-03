@@ -20,6 +20,7 @@
 #include "JurisdictionMap.h"
 #include "OctreePacketData.h"
 #include "SequenceNumberStats.h"
+#include "OctalCode.h"
 
 #define GREENISH  0x40ff40d0
 #define YELLOWISH 0xffef40c0
@@ -89,13 +90,13 @@ public:
     void existsInPacketBitsWritten();
 
     /// Fix up tracking statistics in case where bitmasks were removed for some reason
-    void childBitsRemoved(bool includesExistsBits, bool includesColors);
+    void childBitsRemoved(bool includesExistsBits);
 
     /// Pack the details of the statistics into a buffer for sending as a network packet
     int packIntoPacket();
 
     /// Unpack the details of the statistics from a network packet
-    int unpackFromPacket(NLPacket& packet);
+    int unpackFromPacket(ReceivedMessage& packet);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
@@ -143,12 +144,13 @@ public:
     const char* getItemValue(Item item);
 
     /// Returns OctCode for root element of the jurisdiction of this particular octree server
-    unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
+    OctalCodePtr getJurisdictionRoot() const { return _jurisdictionRoot; }
 
     /// Returns list of OctCodes for end elements of the jurisdiction of this particular octree server
-    const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
+    const OctalCodePtrList& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
 
     bool isMoving() const { return _isMoving; }
+    bool isFullScene() const { return _isFullScene; }
     quint64 getTotalElements() const { return _totalElements; }
     quint64 getTotalInternal() const { return _totalInternal; }
     quint64 getTotalLeaves() const { return _totalLeaves; }
@@ -161,7 +163,7 @@ public:
     quint64 getLastFullTotalBytes() const { return _lastFullTotalBytes; }
 
     // Used in client implementations to track individual octree packets
-    void trackIncomingOctreePacket(NLPacket& packet, bool wasStatsPacket, int nodeClockSkewUsec);
+    void trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, qint64 nodeClockSkewUsec);
 
     quint32 getIncomingPackets() const { return _incomingPacket; }
     quint64 getIncomingBytes() const { return _incomingBytes; }
@@ -276,8 +278,8 @@ private:
     static const int MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
 
-    unsigned char* _jurisdictionRoot;
-    std::vector<unsigned char*> _jurisdictionEndNodes;
+    OctalCodePtr _jurisdictionRoot;
+    std::vector<OctalCodePtr> _jurisdictionEndNodes;
 };
 
 /// Map between element IDs and their reported OctreeSceneStats. Typically used by classes that need to know which elements sent

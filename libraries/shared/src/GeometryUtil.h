@@ -110,6 +110,22 @@ bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm
 bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk);
 int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk);
 
+// calculate the angle between a point on a sphere that is closest to the cone.
+float coneSphereAngle(const glm::vec3& coneCenter, const glm::vec3& coneDirection, const glm::vec3& sphereCenter, float sphereRadius);
+
+inline bool rayPlaneIntersection(const glm::vec3& planePosition, const glm::vec3& planeNormal,
+                                 const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distanceOut) {
+    float rayDirectionDotPlaneNormal = glm::dot(rayDirection, planeNormal);
+    const float PARALLEL_THRESHOLD = 0.0001f;
+    if (fabsf(rayDirectionDotPlaneNormal) > PARALLEL_THRESHOLD) {
+        float rayStartDotPlaneNormal = glm::dot(planePosition - rayStart, planeNormal);
+        distanceOut = rayStartDotPlaneNormal / rayDirectionDotPlaneNormal;
+        return true;
+    } else {
+        // ray is parallel to the plane
+        return false;
+    }
+}
 
 typedef glm::vec2 LineSegment2[2];
 

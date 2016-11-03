@@ -16,56 +16,52 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <FBXReader.h>
-
-struct AnimPose {
-    AnimPose() {}
-    explicit AnimPose(const glm::mat4& mat);
-    AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : scale(scaleIn), rot(rotIn), trans(transIn) {}
-    static const AnimPose identity;
-
-    glm::vec3 xformPoint(const glm::vec3& rhs) const;
-    glm::vec3 xformVector(const glm::vec3& rhs) const;  // really slow
-
-    glm::vec3 operator*(const glm::vec3& rhs) const; // same as xformPoint
-    AnimPose operator*(const AnimPose& rhs) const;
-
-    AnimPose inverse() const;
-    operator glm::mat4() const;
-
-    glm::vec3 scale;
-    glm::quat rot;
-    glm::vec3 trans;
-};
-
-inline QDebug operator<<(QDebug debug, const AnimPose& pose) {
-    debug << "AnimPose, trans = (" << pose.trans.x << pose.trans.y << pose.trans.z << "), rot = (" << pose.rot.x << pose.rot.y << pose.rot.z << pose.rot.w << "), scale = (" << pose.scale.x << pose.scale.y << pose.scale.z << ")";
-    return debug;
-}
-
-using AnimPoseVec = std::vector<AnimPose>;
+#include "AnimPose.h"
 
 class AnimSkeleton {
 public:
     using Pointer = std::shared_ptr<AnimSkeleton>;
     using ConstPointer = std::shared_ptr<const AnimSkeleton>;
 
-    AnimSkeleton(const FBXGeometry& fbxGeometry);
-    AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset);
+    explicit AnimSkeleton(const FBXGeometry& fbxGeometry);
+    explicit AnimSkeleton(const std::vector<FBXJoint>& joints);
     int nameToJointIndex(const QString& jointName) const;
     const QString& getJointName(int jointIndex) const;
     int getNumJoints() const;
 
     // absolute pose, not relative to parent
     const AnimPose& getAbsoluteBindPose(int jointIndex) const;
-    AnimPose getRootAbsoluteBindPoseByChildName(const QString& childName) const;
 
     // relative to parent pose
     const AnimPose& getRelativeBindPose(int jointIndex) const;
     const AnimPoseVec& getRelativeBindPoses() const { return _relativeBindPoses; }
 
+    // the default poses are the orientations of the joints on frame 0.
+    const AnimPose& getRelativeDefaultPose(int jointIndex) const;
+    const AnimPoseVec& getRelativeDefaultPoses() const { return _relativeDefaultPoses; }
+    const AnimPose& getAbsoluteDefaultPose(int jointIndex) const;
+    const AnimPoseVec& getAbsoluteDefaultPoses() const { return _absoluteDefaultPoses; }
+
+    // get pre transform which should include FBX pre potations
+    const AnimPose& getPreRotationPose(int jointIndex) const;
+
+    // get post transform which might include FBX offset transformations
+    const AnimPose& getPostRotationPose(int jointIndex) const;
+
     int getParentIndex(int jointIndex) const;
 
     AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;
+
+    void convertRelativePosesToAbsolute(AnimPoseVec& poses) const;
+    void convertAbsolutePosesToRelative(AnimPoseVec& poses) const;
+
+    void convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const;
+
+    void saveNonMirroredPoses(const AnimPoseVec& poses) const;
+    void restoreNonMirroredPoses(AnimPoseVec& poses) const;
+
+    void mirrorRelativePoses(AnimPoseVec& poses) const;
+    void mirrorAbsolutePoses(AnimPoseVec& poses) const;
 
 #ifndef NDEBUG
     void dump() const;
@@ -73,11 +69,18 @@ public:
 #endif
 
 protected:
-    void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset);
+    void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
 
     std::vector<FBXJoint> _joints;
     AnimPoseVec _absoluteBindPoses;
     AnimPoseVec _relativeBindPoses;
+    AnimPoseVec _relativeDefaultPoses;
+    AnimPoseVec _absoluteDefaultPoses;
+    AnimPoseVec _relativePreRotationPoses;
+    AnimPoseVec _relativePostRotationPoses;
+    mutable AnimPoseVec _nonMirroredPoses;
+    std::vector<int> _nonMirroredIndices;
+    std::vector<int> _mirrorMap;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

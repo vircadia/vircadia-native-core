@@ -1,0 +1,58 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  directional_light_shadow.frag
+//  fragment shader
+//
+//  Created by Zach Pomerantz on 1/18/2016.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include Shadow.slh@>
+<@include DeferredBufferRead.slh@>
+<@include DeferredGlobalLight.slh@>
+
+<$declareEvalLightmappedColor()$>
+<$declareEvalAmbientSphereGlobalColor(isScattering)$>
+
+in vec2 _texCoord0;
+out vec4 _fragColor;
+
+void main(void) {
+    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
+    DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
+
+    vec4 worldPos = getViewInverse() * vec4(frag.position.xyz, 1.0);
+    float shadowAttenuation = evalShadowAttenuation(worldPos);
+
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        discard;
+    } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
+        discard;
+    } else {
+        vec4 midNormalCurvature;
+        vec4 lowNormalCurvature;
+        if (frag.mode == FRAG_MODE_SCATTERING) {
+            unpackMidLowNormalCurvature(_texCoord0, midNormalCurvature, lowNormalCurvature);
+        }
+        vec3 color =  evalAmbientSphereGlobalColor(
+                        getViewInverse(),
+                        shadowAttenuation,
+                        frag.obscurance,
+                        frag.position.xyz,
+                        frag.normal,
+                        frag.albedo,
+                        frag.fresnel,
+                        frag.metallic,
+                        frag.roughness,
+                        frag.scattering,
+                        midNormalCurvature,
+                        lowNormalCurvature);
+                        
+        _fragColor = vec4(color, 1.0);
+    }
+}

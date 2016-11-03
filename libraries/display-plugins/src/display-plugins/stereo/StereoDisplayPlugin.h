@@ -7,21 +7,19 @@
 //
 #pragma once
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include "../OpenGLDisplayPlugin.h"
+class QScreen;
 
-class StereoDisplayPlugin : public WindowOpenGLDisplayPlugin {
+class StereoDisplayPlugin : public OpenGLDisplayPlugin {
     Q_OBJECT
+    using Parent = OpenGLDisplayPlugin;
 public:
-    StereoDisplayPlugin();
     virtual bool isStereo() const override final { return true; }
     virtual bool isSupported() const override final;
 
-    virtual void activate() override;
-    virtual void deactivate() override;
-
     virtual float getRecommendedAspectRatio() const override;
-    virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
-    
+    virtual glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
+
     // NOTE, because Stereo displays don't include head tracking, and therefore 
     // can't include roll or pitch, the eye separation is embedded into the projection
     // matrix.  However, this eliminates the possibility of easily mainpulating
@@ -31,6 +29,10 @@ public:
     // virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
 
 protected:
+    virtual bool internalActivate() override;
+    virtual void internalDeactivate() override;
     void updateScreen();
+
     float _ipd{ 0.064f };
+    QScreen* _screen;
 };

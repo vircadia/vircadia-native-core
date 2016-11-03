@@ -1,0 +1,115 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 7/5/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+
+<@func declareSkyboxMap()@>
+// declareSkyboxMap
+uniform samplerCube skyboxMap;
+
+vec4 evalSkyboxLight(vec3 direction, float lod) {
+    // textureQueryLevels is not available until #430, so we require explicit lod
+    // float mipmapLevel = lod * textureQueryLevels(skyboxMap);
+    return textureLod(skyboxMap, direction, lod);
+}
+<@endfunc@>
+
+<@func declareEvalAmbientSpecularIrradiance(supportAmbientSphere, supportAmbientMap, supportIfAmbientMapElseAmbientSphere)@>
+
+vec3 fresnelSchlickAmbient(vec3 fresnelColor, vec3 lightDir, vec3 halfDir, float gloss) {
+    return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5.0);
+}
+
+<@if supportAmbientMap@>
+<$declareSkyboxMap()$>
+<@endif@>
+
+vec3 evalAmbientSpecularIrradiance(Light light, vec3 fragEyeDir, vec3 fragNormal, float roughness, vec3 fresnel) {
+    vec3 direction = -reflect(fragEyeDir, fragNormal);
+    vec3 ambientFresnel = fresnelSchlickAmbient(fresnel, fragEyeDir, fragNormal, 1.0 - roughness);
+    vec3 specularLight;
+    <@if supportIfAmbientMapElseAmbientSphere@>
+        if (getLightHasAmbientMap(light))
+            <@endif@>
+            <@if supportAmbientMap@>
+        {
+            float levels = getLightAmbientMapNumMips(light);
+            float lod = min(floor((roughness)* levels), levels);
+            specularLight = evalSkyboxLight(direction, lod).xyz;
+        }
+    <@endif@>
+        <@if supportIfAmbientMapElseAmbientSphere@>
+        else
+        <@endif@>
+        <@if supportAmbientSphere@>
+    {
+        specularLight = evalSphericalLight(getLightAmbientSphere(light), direction).xyz;
+    }
+    <@endif@>
+
+        return specularLight * ambientFresnel;
+}
+<@endfunc@>
+
+<@func declareLightingAmbient(supportAmbientSphere, supportAmbientMap, supportIfAmbientMapElseAmbientSphere, supportScattering)@>
+
+<$declareEvalAmbientSpecularIrradiance($supportAmbientSphere$, $supportAmbientMap$, $supportIfAmbientMapElseAmbientSphere$)$>
+
+<@if supportScattering@>
+float curvatureAO(in float k) {
+    return 1.0f - (0.0022f * k * k) + (0.0776f * k) + 0.7369;
+}
+<@endif@>
+
+void evalLightingAmbient(out vec3 diffuse, out vec3 specular, Light light, vec3 eyeDir, vec3 normal,
+    float roughness, float metallic, vec3 fresnel, vec3 albedo, float obscurance
+<@if supportScattering@>
+    , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
+<@endif@>
+    ) {
+
+
+    // Diffuse from ambient
+    diffuse = (1.0 - metallic) * evalSphericalLight(getLightAmbientSphere(light), normal).xyz;
+
+    // Specular highlight from ambient
+    specular = evalAmbientSpecularIrradiance(light, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(light);
+
+
+<@if supportScattering@>
+    float ambientOcclusion = curvatureAO(lowNormalCurvature.w * 20.0f) * 0.5f;
+    float ambientOcclusionHF = curvatureAO(midNormalCurvature.w * 8.0f) * 0.5f;
+    ambientOcclusion = min(ambientOcclusion, ambientOcclusionHF);
+
+    obscurance = min(obscurance, ambientOcclusion);
+
+    if (scattering * isScatteringEnabled() > 0.0) {
+
+        // Diffuse from ambient
+        diffuse =  evalSphericalLight(getLightAmbientSphere(light), lowNormalCurvature.xyz).xyz;
+
+        specular = vec3(0.0);
+    }
+<@endif@>
+
+    if (!(isObscuranceEnabled() > 0.0)) {
+        obscurance = 1.0;
+    }
+
+    float lightEnergy = obscurance * getLightAmbientIntensity(light);
+
+    if (isAlbedoEnabled() > 0.0) {
+        diffuse *= albedo;
+    }
+
+    diffuse *= lightEnergy * isDiffuseEnabled() * isAmbientEnabled();
+    specular *= lightEnergy * isSpecularEnabled() * isAmbientEnabled();
+}
+
+<@endfunc@>

@@ -33,21 +33,25 @@ public:
 
     static const int DEFAULT_PERSIST_INTERVAL;
 
-    OctreePersistThread(OctreePointer tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL,
-                        bool wantBackup = false, const QJsonObject& settings = QJsonObject(),
-                        bool debugTimestampNow = false, QString persistAsFileType="svo");
+    OctreePersistThread(OctreePointer tree, const QString& filename, const QString& backupDirectory,
+                        int persistInterval = DEFAULT_PERSIST_INTERVAL, bool wantBackup = false,
+                        const QJsonObject& settings = QJsonObject(), bool debugTimestampNow = false, QString persistAsFileType="svo");
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
 
     void aboutToFinish(); /// call this to inform the persist thread that the owner is about to finish to support final persist
 
+    QString getPersistFilename() const { return _filename; }
+    QString getPersistFileMimeType() const;
+    QByteArray getPersistFileContents() const;
+
 signals:
     void loadCompleted();
 
 protected:
     /// Implements generic processing behavior for this thread.
-    virtual bool process();
+    virtual bool process() override;
 
     void persist();
     void backup();
@@ -60,6 +64,7 @@ protected:
 private:
     OctreePointer _tree;
     QString _filename;
+    QString _backupDirectory;
     int _persistInterval;
     bool _initialLoadComplete;
 

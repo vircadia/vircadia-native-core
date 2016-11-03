@@ -32,7 +32,7 @@ public:
 
     JurisdictionListener(NodeType_t type = NodeType::EntityServer);
     
-    virtual bool process();
+    virtual bool process() override;
 
     NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; }
 
@@ -47,7 +47,7 @@ public slots:
 protected:
     /// Callback for processing of received packets. Will process any queued PacketType::_JURISDICTION and update the
     /// jurisdiction map member variable
-    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    virtual void processPacket(QSharedPointer<ReceivedMessage> messsage, SharedNodePointer sendingNode) override;
 
 private:
     NodeToJurisdictionMap _jurisdictions;

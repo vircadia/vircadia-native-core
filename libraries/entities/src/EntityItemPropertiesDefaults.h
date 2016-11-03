@@ -18,11 +18,11 @@
 
 #include <NumericalConstants.h>
 
-// There is a minor performance gain when comparing/copying an existing glm::vec3 rather than 
+// There is a minor performance gain when comparing/copying an existing glm::vec3 rather than
 // creating a new one on the stack so we declare the ZERO_VEC3 constant as an optimization.
 const glm::vec3 ENTITY_ITEM_ZERO_VEC3 = glm::vec3(0.0f);
-const glm::vec3 ENTITY_ITEM_ONE_VEC3 = glm::vec3(1.0f, 1.0f, 1.0f);
-const glm::vec3 ENTITY_ITEM_HALF_VEC3 = ENTITY_ITEM_ONE_VEC3 / 2.0f;
+const glm::vec3 ENTITY_ITEM_ONE_VEC3 = glm::vec3(1.0f);
+const glm::vec3 ENTITY_ITEM_HALF_VEC3 = glm::vec3(0.5f);
 
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");
@@ -31,7 +31,6 @@ const QUuid ENTITY_ITEM_DEFAULT_SIMULATOR_ID = QUuid();
 
 const float ENTITY_ITEM_DEFAULT_ALPHA = 1.0f;
 const float ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
-const float ENTITY_ITEM_DEFAULT_GLOW_LEVEL = 0.0f;
 const bool ENTITY_ITEM_DEFAULT_VISIBLE = true;
 
 const QString ENTITY_ITEM_DEFAULT_SCRIPT = QString("");
@@ -65,15 +64,15 @@ const float ENTITY_ITEM_MAX_RESTITUTION = 0.99f;
 const float ENTITY_ITEM_DEFAULT_RESTITUTION = 0.5f;
 
 const float ENTITY_ITEM_MIN_FRICTION = 0.0f;
-const float ENTITY_ITEM_MAX_FRICTION = 0.99f;
+const float ENTITY_ITEM_MAX_FRICTION = 10.0f;
 const float ENTITY_ITEM_DEFAULT_FRICTION = 0.5f;
 
-const bool ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS = false;
-const bool ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE = false;
+const bool ENTITY_ITEM_DEFAULT_COLLISIONLESS = false;
+const bool ENTITY_ITEM_DEFAULT_DYNAMIC = false;
 const bool ENTITY_ITEM_DEFAULT_BILLBOARDED = false;
 
-const float ENTITY_ITEM_DEFAULT_CUTOFF = PI / 2;
-
 const QString ENTITY_ITEM_DEFAULT_NAME = QString("");
+
+const uint16_t ENTITY_ITEM_DEFAULT_DPI = 30;
 
 #endif // hifi_EntityItemPropertiesDefaults_h

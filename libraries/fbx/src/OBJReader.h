@@ -56,6 +56,8 @@ public:
     glm::vec3 specularColor;
     QByteArray diffuseTextureFilename;
     QByteArray specularTextureFilename;
+    bool used { false };
+    bool userSpecifiesUV { false };
     OBJMaterial() : shininess(96.0f), opacity(1.0f), diffuseColor(1.0f), specularColor(1.0f) {}
 };
 

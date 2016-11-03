@@ -23,7 +23,7 @@ Shader::Shader(Type type, const Source& source):
 {
 }
 
-Shader::Shader(Type type, Pointer& vertex, Pointer& pixel):
+Shader::Shader(Type type, const Pointer& vertex, const Pointer& pixel):
     _type(type)
 {
     _shaders.resize(2);
@@ -31,29 +31,45 @@ Shader::Shader(Type type, Pointer& vertex, Pointer& pixel):
     _shaders[PIXEL] = pixel;
 }
 
+Shader::Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel) :
+_type(type) {
+    _shaders.resize(3);
+    _shaders[VERTEX] = vertex;
+    _shaders[GEOMETRY] = geometry;
+    _shaders[PIXEL] = pixel;
+}
 
 Shader::~Shader()
 {
 }
 
-Shader* Shader::createVertex(const Source& source) {
-    Shader* shader = new Shader(VERTEX, source);
-    return shader;
+Shader::Pointer Shader::createVertex(const Source& source) {
+    return Pointer(new Shader(VERTEX, source));
 }
 
-Shader* Shader::createPixel(const Source& source) {
-    Shader* shader = new Shader(PIXEL, source);
-    return shader;
+Shader::Pointer Shader::createPixel(const Source& source) {
+    return Pointer(new Shader(PIXEL, source));
 }
 
-Shader* Shader::createProgram(Pointer& vertexShader, Pointer& pixelShader) {
-    if (vertexShader && vertexShader->getType() == VERTEX) {
-        if (pixelShader && pixelShader->getType() == PIXEL) {
-            Shader* shader = new Shader(PROGRAM, vertexShader, pixelShader);
-            return shader;
-        }
+Shader::Pointer Shader::createGeometry(const Source& source) {
+    return Pointer(new Shader(GEOMETRY, source));
+}
+
+Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& pixelShader) {
+    if (vertexShader && vertexShader->getType() == VERTEX &&
+        pixelShader && pixelShader->getType() == PIXEL) {
+        return Pointer(new Shader(PROGRAM, vertexShader, pixelShader));
     }
-    return nullptr;
+    return Pointer();
+}
+
+Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
+    if (vertexShader && vertexShader->getType() == VERTEX &&
+        geometryShader && geometryShader->getType() == GEOMETRY &&
+        pixelShader && pixelShader->getType() == PIXEL) {
+        return Pointer(new Shader(PROGRAM, vertexShader, geometryShader, pixelShader));
+    }
+    return Pointer();
 }
 
 void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& buffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {

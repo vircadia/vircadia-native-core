@@ -10,9 +10,16 @@
 //
 
 #include "SequenceNumberStats.h"
-#include "NetworkLogging.h"
 
 #include <limits>
+
+#include <LogHandler.h>
+
+#include "NetworkLogging.h"
+
+float PacketStreamStats::getLostRate() const {
+    return (_expectedReceived == 0) ? 0.0f : (float)_lost / (float)_expectedReceived;
+}
 
 SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, bool canDetectOutOfSync)
     : _lastReceivedSequence(0),
@@ -59,6 +66,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         arrivalInfo._status = OnTime;
         _lastReceivedSequence = incoming;
         _stats._expectedReceived++;
+
     } else { // out of order
 
         if (wantExtraDebugging) {
@@ -80,6 +88,9 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
             }
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             arrivalInfo._status = Unreasonable;
+
+            static const QString UNREASONABLE_SEQUENCE_REGEX { "unreasonable sequence number: \\d+ previous: \\d+" };
+            static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(UNREASONABLE_SEQUENCE_REGEX);
 
             qCDebug(networking) << "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence;
 
@@ -142,6 +153,9 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
                 // as unreasonable.
 
                 arrivalInfo._status = Unreasonable;
+
+                static const QString UNREASONABLE_SEQUENCE_REGEX { "unreasonable sequence number: \\d+ \\(possible duplicate\\)" };
+                static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(UNREASONABLE_SEQUENCE_REGEX);
 
                 qCDebug(networking) << "unreasonable sequence number:" << incoming << "(possible duplicate)";
 

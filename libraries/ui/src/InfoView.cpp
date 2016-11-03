@@ -37,7 +37,7 @@ QString fetchVersion(const QUrl& url) {
     return r.trimmed();
 }
 
-void InfoView::show(const QString& path, bool firstOrChangedOnly) {
+void InfoView::show(const QString& path, bool firstOrChangedOnly, QString urlQuery) {
     static bool registered{ false };
     if (!registered) {
         registerType();
@@ -49,6 +49,8 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly) {
     } else {
         url = QUrl::fromLocalFile(path);
     }
+    url.setQuery(urlQuery);
+
     if (firstOrChangedOnly) {
         const QString lastVersion = infoVersion.get();
         const QString version = fetchVersion(url);
@@ -66,7 +68,7 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly) {
     QString infoViewName(NAME + "_" + path);
     offscreenUi->show(QML, NAME + "_" + path, [=](QQmlContext* context, QObject* newObject){
         QQuickItem* item = dynamic_cast<QQuickItem*>(newObject);
-        item->setWidth(720);
+        item->setWidth(1024);
         item->setHeight(720);
         InfoView* newInfoView = newObject->findChild<InfoView*>();
         Q_ASSERT(newInfoView);

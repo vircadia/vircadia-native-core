@@ -8,12 +8,35 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtGlobal>
 #include "AnimNode.h"
 
-void AnimNode::removeChild(AnimNode::Pointer child) {
+AnimNode::Pointer AnimNode::getParent() {
+    return _parent.lock();
+}
+
+void AnimNode::addChild(Pointer child) {
+    _children.push_back(child);
+    child->_parent = shared_from_this();
+}
+
+void AnimNode::removeChild(Pointer child) {
     auto iter = std::find(_children.begin(), _children.end(), child);
     if (iter != _children.end()) {
         _children.erase(iter);
+        child->_parent.reset();
+    }
+}
+
+void AnimNode::replaceChild(Pointer oldChild, Pointer newChild) {
+    auto iter = std::find(_children.begin(), _children.end(), oldChild);
+    if (iter != _children.end()) {
+        oldChild->_parent.reset();
+        newChild->_parent = shared_from_this();
+        if (_skeleton) {
+            newChild->setSkeleton(_skeleton);
+        }
+        *iter = newChild;
     }
 }
 
@@ -22,7 +45,7 @@ AnimNode::Pointer AnimNode::getChild(int i) const {
     return _children[i];
 }
 
-void AnimNode::setSkeleton(const AnimSkeleton::Pointer skeleton) {
+void AnimNode::setSkeleton(AnimSkeleton::ConstPointer skeleton) {
     setSkeletonInternal(skeleton);
     for (auto&& child : _children) {
         child->setSkeleton(skeleton);

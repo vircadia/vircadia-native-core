@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="style.css">
+<script type="text/javascript" src="jquery-2.1.4.min.js"></script>
+<script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script type="text/javascript" src="eventBridgeLoader.js"></script>
+<script type="text/javascript">
+var properties = [];
+
+var sendWebEvent = function(data) {
+    console.log('sendWebEvent not initialized.');
+}
+
+PropertyInput = function(key, label, value, attributes) {
+    this.key = key;
+    this.label = label;
+    this.value = value;
+    this.attributes = attributes;
+    var self = this;
+    this.construct = function() {
+        self.widget = $('<div>').addClass('property').append(self.createLabel()).append(self.createValueDiv());
+        $('#properties-list').append(self.widget);
+    };
+    this.createValue =  self.__proto__.createValue;
+    this.getValue = self.__proto__.getValue;
+    this.createValueDiv = function() {
+        self.inputDiv = $('<div>').addClass('value').append(self.createValue());
+        return self.inputDiv;
+    };
+    this.addButton = function(id, buttonText) {
+        self.inputDiv.append($('<div>').append($('<input>').attr('type', 'button').attr('id', id).val(buttonText)));
+    };
+    this.createWidget = function() {
+        self.widget = $('<div>').addClass('property').append(self.createLabel()).append(self.inputDiv);
+        return self.widget;
+    };
+    this.createLabel = function() {
+        self.label = $('<div>').addClass('label').text(label);
+        return self.label;
+    };
+    this.setValue = function(value) {
+        self.input.val(value);
+    };
+    this.construct();
+};
+
+var valueChangeHandler = function() {
+
+    sendWebEvent({
+        action: 'value-change',
+        option: $(this).data('var-name'),
+        value: properties[$(this).data('var-name')].getValue()
+    });
+};
+
+NumberInput = function(key, label, value, attributes) {
+    PropertyInput.call(this, key, label, value, attributes);
+};
+NumberInput.prototype = Object.create(PropertyInput.prototype);
+NumberInput.prototype.constructor = NumberInput;
+NumberInput.prototype.createValue = function() {
+    this.input = $('<input>').data('var-name', this.key).attr('name', this.key).attr('type', 'number').val(this.value).on('change', valueChangeHandler);
+    if (this.attributes !== undefined) {
+        this.input.attr(this.attributes);
+    }
+    return this.input;
+};
+NumberInput.prototype.getValue = function() {
+    return parseFloat(this.input.val());
+};
+
+CoordinateInput = function(key, label, value, attributes) {
+    PropertyInput.call(this, key, label, value, attributes);
+};
+CoordinateInput.prototype = Object.create(PropertyInput.prototype);
+CoordinateInput.prototype.constructor = CoordinateInput;
+CoordinateInput.prototype.createValue = function() {
+    this.inputX = $('<input>').data('var-name', this.key).attr('name', this.key + '-x').attr('type', 'number').addClass('coord').val(this.value.x).on('change', valueChangeHandler);
+    this.inputY = $('<input>').data('var-name', this.key).attr('name', this.key + '-y').attr('type', 'number').addClass('coord').val(this.value.y).on('change', valueChangeHandler);
+    this.inputZ = $('<input>').data('var-name', this.key).attr('name', this.key + '-z').attr('type', 'number').addClass('coord').val(this.value.z).on('change', valueChangeHandler);
+    if (this.attributes !== undefined) {
+        this.inputX.attr(this.attributes);
+        this.inputY.attr(this.attributes);
+        this.inputZ.attr(this.attributes);
+    }
+    return [encapsulateInput(this.inputX, 'X'), encapsulateInput(this.inputY, 'Y'), encapsulateInput(this.inputZ, 'Z')];
+};
+CoordinateInput.prototype.getValue = function() {
+    return {x: parseFloat(this.inputX.val()), y: parseFloat(this.inputY.val()), z: parseFloat(this.inputZ.val())};
+};
+function encapsulateInput(input, label) {
+    return $('<div>').addClass('input-area').append(label + ' ').append(input);
+}
+
+function addHeader(label) {
+    $('#properties-list').append($('<div>').addClass('section-header').append($('<label>').text(label)));
+}
+
+$(function() {
+    addHeader('Stack Settings');
+    properties['numLayers'] = new NumberInput('numLayers', 'Layers', 17, {'min': 0, 'max': 300, 'step': 1});
+    properties['blocksPerLayer'] = new NumberInput('blocksPerLayer', 'Blocks per layer', 4, {'min': 1, 'max': 100, 'step': 1});
+    properties['blockSize'] = new CoordinateInput('blockSize', 'Block size', {x: 0.2, y: 0.1, z: 0.8}, {'min': 0.05, 'max': 20, 'step': 0.1});
+    properties['blockSpacing'] = new NumberInput('blockSpacing', 'Block spacing', properties['blockSize'].getValue().x / properties['blocksPerLayer'].getValue(), {'min': 0, 'max': 20, 'step': 0.01});
+    properties['blockSpacing'].addButton('btn-recalculate-spacing', 'Recalculate spacing');
+    $('#btn-recalculate-spacing').on('click', function() {
+        properties['blockSpacing'].setValue(properties['blockSize'].getValue().x / properties['blocksPerLayer'].getValue());
+    });
+    properties['blockHeightVariation'] = new NumberInput('blockHeightVariation', 'Block height variation (%)', 0.1, {'min': 0, 'max': 1, 'step': 0.01});
+    addHeader('Physics Settings');
+    properties['gravity'] = new CoordinateInput('gravity', 'Gravity', {x: 0, y: -2.8, z: 0}, {'step': 0.01});
+    properties['density'] = new NumberInput('density', 'Density', 4000, {'min': 0, 'max': 4000, 'step': 1});
+    properties['dampingFactor'] = new NumberInput('dampingFactor', 'Damping factor', 0.98, {'min': 0, 'max': 1, 'step': 0.01});
+    properties['angularDampingFactor'] = new NumberInput('angularDampingFactor', 'Angular damping factor', 0.8, {'min': 0, 'max': 1, 'step': 0.01});
+    properties['friction'] = new NumberInput('friction', 'Friction', 0.99, {'min': 0, 'max': 1, 'step': 0.01});
+    properties['restitution'] = new NumberInput('restitution', 'Restitution', 0.0, {'min': 0, 'max': 1, 'step': 0.01});
+    addHeader('Spawn Settings');
+    properties['spawnDistance'] = new NumberInput('spawnDistance', 'Spawn distance (meters)', 3);
+    properties['blockYawOffset'] = new NumberInput('blockYawOffset', 'Block yaw offset (degrees)', 45, {'min': 0, 'max': 360, 'step': 1});
+    properties['baseDimension'] = new CoordinateInput('baseDimension', 'Base dimension', {x: 7, y: 2, z: 7}, {'min': 0.5, 'max': 200, 'step': 0.1});
+    addHeader('Actions');
+    $('#properties-list')
+        .append($('<input>').val('factory reset').attr('type', 'button').on('click', function() { sendWebEvent({action: 'factory-reset'}); }))
+        .append($('<input>').val('save as default').attr('type', 'button').on('click', function() { sendWebEvent({action: 'save-default'}); }))
+        .append($('<input>').val('cleanup planky').attr('type', 'button').on('click', function() { sendWebEvent({action: 'cleanup'}); }));
+
+    openEventBridge(function() {
+        EventBridge.scriptEventReceived.connect(function(data) {
+            data = JSON.parse(data);
+            if (data.action == 'load') {
+                $.each(data.options, function(option, value) {
+                    properties[option].setValue(value);
+                });
+            }
+        });
+        sendWebEvent = function(data) {
+            EventBridge.emitWebEvent(JSON.stringify(data));
+        };
+        sendWebEvent({action: 'loaded'});
+    });
+});
+</script>
+</head>
+<body class="properties">
+    <div id="properties-list"></div>
+</body>
+</html>

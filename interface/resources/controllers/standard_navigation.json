@@ -1,0 +1,51 @@
+{
+    "name": "Standard to Action",
+    "when": "Application.NavigationFocused",
+    "channels": [
+        { "from": "Standard.DU", "to": "Actions.UiNavVertical" },
+        { "from": "Standard.DD", "to": "Actions.UiNavVertical", "filters": "invert" },
+        { "from": "Standard.DL", "to": "Actions.UiNavLateral", "filters": "invert" },
+        { "from": "Standard.DR", "to": "Actions.UiNavLateral" },
+        { "from": "Standard.LB", "to": "Actions.UiNavGroup","filters": "invert" },
+        { "from": "Standard.RB", "to": "Actions.UiNavGroup" },
+        { "from": [ "Standard.A", "Standard.X" ], "to": "Actions.UiNavSelect" },
+        { "from": [ "Standard.B", "Standard.Y" ], "to": "Actions.UiNavBack" },
+        { "from": [ "Standard.RTClick", "Standard.LTClick" ], "to": "Actions.UiNavSelect" },
+        {
+            "from": "Standard.LX", "to": "Actions.UiNavLateral",
+            "filters": [
+                { "type": "deadZone", "min": 0.95 },
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.4 }
+            ]
+        },
+        { 
+            "from": "Standard.LY", "to": "Actions.UiNavVertical", 
+            "filters": [
+                "invert",
+                { "type": "deadZone", "min": 0.95 },
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.4 }
+            ]
+        },
+        { 
+            "from": "Standard.RX", "to": "Actions.UiNavLateral",
+            "filters": [
+                { "type": "deadZone", "min": 0.95 },
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.4 }
+            ]
+        },
+        { 
+            "from": "Standard.RY", "to": "Actions.UiNavVertical",
+            "filters": [
+                "invert",
+                { "type": "deadZone", "min": 0.95 },
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.4 }
+            ]
+        }
+    ]
+}
+
+

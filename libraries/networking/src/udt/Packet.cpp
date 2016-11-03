@@ -11,9 +11,31 @@
 
 #include "Packet.h"
 
+#include <array>
+
+#include <LogHandler.h>
+
+#include "Socket.h"
+
 using namespace udt;
 
-static int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
+int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
+
+using Key = uint64_t;
+static const std::array<Key, 4> KEYS {{
+    0x0,
+    0x6362726973736574,
+    0x7362697261726461,
+    0x72687566666d616e,
+}};
+
+void xorHelper(char* start, int size, Key key) {
+    auto current = start;
+    auto xorValue = reinterpret_cast<const char*>(&key);
+    for (int i = 0; i < size; ++i) {
+        *(current++) ^= *(xorValue + (i % sizeof(Key)));
+    }
+}
 
 int Packet::localHeaderSize(bool isPartOfMessage) {
     return sizeof(Packet::SequenceNumberAndBitField) +
@@ -69,44 +91,48 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
     readHeader();
 
     adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage), _payloadSize > 0);
+
+    if (getObfuscationLevel() != Packet::NoObfuscation) {
+#ifdef UDT_CONNECTION_DEBUG
+        QString debugString = "Unobfuscating packet %1 with level %2";
+        debugString = debugString.arg(QString::number((uint32_t)getSequenceNumber()),
+                                      QString::number(getObfuscationLevel()));
+
+        if (isPartOfMessage()) {
+            debugString += "\n";
+            debugString += "    Message Number: %1, Part Number: %2.";
+            debugString = debugString.arg(QString::number(getMessageNumber()),
+                                          QString::number(getMessagePartNumber()));
+        }
+
+        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Unobfuscating packet .*");
+        qDebug() << qPrintable(debugString);
+#endif
+
+        obfuscate(NoObfuscation); // Undo obfuscation
+    }
 }
 
-Packet::Packet(const Packet& other) :
-    BasePacket(other)
-{
-    _isReliable = other._isReliable;
-    _isPartOfMessage = other._isPartOfMessage;
-    _sequenceNumber = other._sequenceNumber;
+Packet::Packet(const Packet& other) : BasePacket(other) {
+    copyMembers(other);
 }
 
 Packet& Packet::operator=(const Packet& other) {
     BasePacket::operator=(other);
-    
-    _isReliable = other._isReliable;
-    _isPartOfMessage = other._isPartOfMessage;
-    _sequenceNumber = other._sequenceNumber;
+
+    copyMembers(other);
 
     return *this;
 }
 
-Packet::Packet(Packet&& other) :
-    BasePacket(std::move(other))
-{
-    _isReliable = other._isReliable;
-    _isPartOfMessage = other._isPartOfMessage;
-    _sequenceNumber = other._sequenceNumber;
-    _packetPosition = other._packetPosition;
-    _messageNumber = other._messageNumber;
+Packet::Packet(Packet&& other) : BasePacket(std::move(other)) {
+    copyMembers(other);
 }
 
 Packet& Packet::operator=(Packet&& other) {
     BasePacket::operator=(std::move(other));
-    
-    _isReliable = other._isReliable;
-    _isPartOfMessage = other._isPartOfMessage;
-    _sequenceNumber = other._sequenceNumber;
-    _packetPosition = other._packetPosition;
-    _messageNumber = other._messageNumber;
+
+    copyMembers(other);
 
     return *this;
 }
@@ -124,13 +150,27 @@ void Packet::writeSequenceNumber(SequenceNumber sequenceNumber) const {
     writeHeader();
 }
 
-static const uint32_t RELIABILITY_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 2);
-static const uint32_t MESSAGE_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 3);
-static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
+void Packet::obfuscate(ObfuscationLevel level) {
+    auto obfuscationKey = KEYS[getObfuscationLevel()] ^ KEYS[level]; // Undo old and apply new one.
+    if (obfuscationKey != 0) {
+        xorHelper(getData() + localHeaderSize(isPartOfMessage()),
+                  getDataSize() - localHeaderSize(isPartOfMessage()), obfuscationKey);
 
-static const uint8_t PACKET_POSITION_OFFSET = 30;
-static const uint32_t PACKET_POSITION_MASK = uint32_t(0x03) << PACKET_POSITION_OFFSET;
-static const uint32_t MESSAGE_NUMBER_MASK = ~PACKET_POSITION_MASK;
+        // Update members and header
+        _obfuscationLevel = level;
+        writeHeader();
+    }
+}
+
+void Packet::copyMembers(const Packet& other) {
+    _isReliable = other._isReliable;
+    _isPartOfMessage = other._isPartOfMessage;
+    _obfuscationLevel = other._obfuscationLevel;
+    _sequenceNumber = other._sequenceNumber;
+    _packetPosition = other._packetPosition;
+    _messageNumber = other._messageNumber;
+    _messagePartNumber = other._messagePartNumber;
+}
 
 void Packet::readHeader() const {
     SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
@@ -139,10 +179,12 @@ void Packet::readHeader() const {
     
     _isReliable = (bool) (*seqNumBitField & RELIABILITY_BIT_MASK); // Only keep reliability bit
     _isPartOfMessage = (bool) (*seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
-    _sequenceNumber = SequenceNumber{ *seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
+    _obfuscationLevel = (ObfuscationLevel)((*seqNumBitField & OBFUSCATION_LEVEL_MASK) >> OBFUSCATION_LEVEL_OFFSET);
+    _sequenceNumber = SequenceNumber{ *seqNumBitField & SEQUENCE_NUMBER_MASK }; // Remove the bit field
 
     if (_isPartOfMessage) {
         MessageNumberAndBitField* messageNumberAndBitField = seqNumBitField + 1;
+
         _messageNumber = *messageNumberAndBitField & MESSAGE_NUMBER_MASK;
         _packetPosition = static_cast<PacketPosition>(*messageNumberAndBitField >> PACKET_POSITION_OFFSET);
 
@@ -162,6 +204,10 @@ void Packet::writeHeader() const {
     
     if (_isReliable) {
         *seqNumBitField |= RELIABILITY_BIT_MASK;
+    }
+
+    if (_obfuscationLevel != NoObfuscation) {
+        *seqNumBitField |= (_obfuscationLevel << OBFUSCATION_LEVEL_OFFSET);
     }
     
     if (_isPartOfMessage) {

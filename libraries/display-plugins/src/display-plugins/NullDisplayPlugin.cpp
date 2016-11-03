@@ -9,11 +9,13 @@
 //
 #include "NullDisplayPlugin.h"
 
-const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
+#include <QtGui/QImage>
+#include <ui-plugins/PluginContainer.h>
+#include <FramebufferCache.h>
+#include <gpu/Frame.h>
+#include <gpu/Context.h>
 
-const QString & NullDisplayPlugin::getName() const {
-    return NAME;
-}
+const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 
 glm::uvec2 NullDisplayPlugin::getRecommendedRenderSize() const {
     return glm::uvec2(100, 100);
@@ -23,11 +25,12 @@ bool NullDisplayPlugin::hasFocus() const {
     return false;
 }
 
-void NullDisplayPlugin::preRender() {}
-void NullDisplayPlugin::preDisplay() {}
-void NullDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize) {}
-void NullDisplayPlugin::finishFrame() {}
+void NullDisplayPlugin::submitFrame(const gpu::FramePointer& frame) {
+    if (frame) {
+        _gpuContext->consumeFrameUpdates(frame);
+    }
+}
 
-void NullDisplayPlugin::activate() {}
-void NullDisplayPlugin::deactivate() {}
-void NullDisplayPlugin::stop() {}
+QImage NullDisplayPlugin::getScreenshot(float aspectRatio) const {
+    return QImage();
+}

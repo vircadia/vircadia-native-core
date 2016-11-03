@@ -25,18 +25,7 @@
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-DataServerAccountInfo::DataServerAccountInfo() :
-    _accessToken(),
-    _username(),
-    _xmppPassword(),
-    _discourseApiKey(),
-    _walletID(),
-    _balance(0),
-    _hasBalance(false),
-    _privateKey()
-{
-
-}
+const QString DataServerAccountInfo::EMPTY_KEY = QString();
 
 DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) : QObject() {
     _accessToken = otherInfo._accessToken;
@@ -44,9 +33,10 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _xmppPassword = otherInfo._xmppPassword;
     _discourseApiKey = otherInfo._discourseApiKey;
     _walletID = otherInfo._walletID;
-    _balance = otherInfo._balance;
-    _hasBalance = otherInfo._hasBalance;
     _privateKey = otherInfo._privateKey;
+    _domainID = otherInfo._domainID;
+    _temporaryDomainID = otherInfo._temporaryDomainID;
+    _temporaryDomainApiKey = otherInfo._temporaryDomainApiKey;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -63,9 +53,10 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_xmppPassword, otherInfo._xmppPassword);
     swap(_discourseApiKey, otherInfo._discourseApiKey);
     swap(_walletID, otherInfo._walletID);
-    swap(_balance, otherInfo._balance);
-    swap(_hasBalance, otherInfo._hasBalance);
     swap(_privateKey, otherInfo._privateKey);
+    swap(_domainID, otherInfo._domainID);
+    swap(_temporaryDomainID, otherInfo._temporaryDomainID);
+    swap(_temporaryDomainApiKey, otherInfo._temporaryDomainApiKey);
 }
 
 void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
@@ -98,23 +89,6 @@ void DataServerAccountInfo::setWalletID(const QUuid& walletID) {
     }
 }
 
-void DataServerAccountInfo::setBalance(qint64 balance) {
-    if (!_hasBalance || _balance != balance) {
-        _balance = balance;
-        _hasBalance = true;
-
-        emit balanceChanged(_balance);
-    }
-}
-
-void DataServerAccountInfo::setBalanceFromJSON(QNetworkReply& requestReply) {
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
-    if (jsonObject["status"].toString() == "success") {
-        qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toDouble();
-        setBalance(balanceInSatoshis);
-    }
-}
-
 bool DataServerAccountInfo::hasProfile() const {
     return _username.length() > 0;
 }
@@ -128,59 +102,63 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
 }
 
 QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionToken) {
-    
-        if (!_privateKey.isEmpty()) {
-            const char* privateKeyData = _privateKey.constData();
-            RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
-                                                   reinterpret_cast<const unsigned char**>(&privateKeyData),
-                                                   _privateKey.size());
-            if (rsaPrivateKey) {
-                QByteArray lowercaseUsername = _username.toLower().toUtf8();
-                QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()),
-                                                                        QCryptographicHash::Sha256);
-                
-                QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
-                unsigned int usernameSignatureSize = 0;
-                
-                int encryptReturn = RSA_sign(NID_sha256,
-                                             reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
-                                             usernameWithToken.size(),
-                                             reinterpret_cast<unsigned char*>(usernameSignature.data()),
-                                             &usernameSignatureSize,
-                                             rsaPrivateKey);
-                
-                // free the private key RSA struct now that we are done with it
-                RSA_free(rsaPrivateKey);
+    auto lowercaseUsername = _username.toLower().toUtf8();
+    auto plaintext = lowercaseUsername.append(connectionToken.toRfc4122());
 
-                if (encryptReturn == -1) {
-                    qCDebug(networking) << "Error encrypting username signature.";
-                    qCDebug(networking) << "Will re-attempt on next domain-server check in.";
-                } else {
-                    qDebug(networking) << "Returning username" << _username << "signed with connection UUID" << uuidStringWithoutCurlyBraces(connectionToken);
-                    return usernameSignature;
-                }
-                
-            } else {
-                qCDebug(networking) << "Could not create RSA struct from QByteArray private key.";
-                qCDebug(networking) << "Will re-attempt on next domain-server check in.";
-            }
-        }
-    return QByteArray();
+    auto signature = signPlaintext(plaintext);
+    if (!signature.isEmpty()) {
+        qDebug(networking) << "Returning username" << _username
+            << "signed with connection UUID" << uuidStringWithoutCurlyBraces(connectionToken);
+    } else {
+        qCDebug(networking) << "Error signing username with connection token";
+        qCDebug(networking) << "Will re-attempt on next domain-server check in.";
+    }
+
+    return signature;
 }
 
-void DataServerAccountInfo::setPrivateKey(const QByteArray& privateKey) {
-    _privateKey = privateKey;
-    
+QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
+    if (!_privateKey.isEmpty()) {
+        const char* privateKeyData = _privateKey.constData();
+        RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
+                                               reinterpret_cast<const unsigned char**>(&privateKeyData),
+                                               _privateKey.size());
+        if (rsaPrivateKey) {
+            QByteArray signature(RSA_size(rsaPrivateKey), 0);
+            unsigned int signatureBytes = 0;
+
+            QByteArray hashedPlaintext = QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256);
+
+            int encryptReturn = RSA_sign(NID_sha256,
+                                         reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
+                                         hashedPlaintext.size(),
+                                         reinterpret_cast<unsigned char*>(signature.data()),
+                                         &signatureBytes,
+                                         rsaPrivateKey);
+
+            // free the private key RSA struct now that we are done with it
+            RSA_free(rsaPrivateKey);
+
+            if (encryptReturn != -1) {
+                return signature;
+            }
+        } else {
+            qCDebug(networking) << "Could not create RSA struct from QByteArray private key.";
+        }
+    }
+    return QByteArray();
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
     out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey
-        << info._walletID << info._privateKey;
+        << info._walletID << info._privateKey << info._domainID
+        << info._temporaryDomainID << info._temporaryDomainApiKey;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
     in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey
-        >> info._walletID >> info._privateKey;
+        >> info._walletID >> info._privateKey >> info._domainID
+        >> info._temporaryDomainID >> info._temporaryDomainApiKey;
     return in;
 }

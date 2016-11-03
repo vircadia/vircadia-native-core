@@ -18,26 +18,22 @@
 #include <QHash>
 #include <QObject>
 
-class CoverageMap;
-class ReadBitstreamToTreeParams;
-class Octree;
-class OctreeElement;
-class OctreeElementBag;
-class OctreePacketData;
-class Shape;
-typedef std::shared_ptr<Octree> OctreePointer;
-
-
 #include <shared/ReadWriteLockable.h>
 #include <SimpleMovingAverage.h>
+#include <ViewFrustum.h>
 
 #include "JurisdictionMap.h"
-#include "ViewFrustum.h"
 #include "OctreeElement.h"
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
 
+class ReadBitstreamToTreeParams;
+class Octree;
+class OctreeElement;
+class OctreePacketData;
+class Shape;
+using OctreePointer = std::shared_ptr<Octree>;
 
 extern QVector<QString> PERSIST_EXTENSIONS;
 
@@ -56,12 +52,8 @@ typedef QHash<uint, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;
-const bool NO_COLOR               = false;
-const bool WANT_COLOR             = true;
 const bool COLLAPSE_EMPTY_TREE    = true;
 const bool DONT_COLLAPSE          = false;
-const bool NO_OCCLUSION_CULLING   = false;
-const bool WANT_OCCLUSION_CULLING = true;
 
 const int DONT_CHOP              = 0;
 const int NO_BOUNDARY_ADJUST     = 0;
@@ -69,27 +61,24 @@ const int LOW_RES_MOVING_ADJUST  = 1;
 const quint64 IGNORE_LAST_SENT  = 0;
 
 #define IGNORE_SCENE_STATS       NULL
-#define IGNORE_VIEW_FRUSTUM      NULL
 #define IGNORE_COVERAGE_MAP      NULL
 #define IGNORE_JURISDICTION_MAP  NULL
 
 class EncodeBitstreamParams {
 public:
+    ViewFrustum viewFrustum;
+    ViewFrustum lastViewFrustum;
+    quint64 lastViewFrustumSent;
     int maxEncodeLevel;
     int maxLevelReached;
-    const ViewFrustum* viewFrustum;
-    bool includeColor;
     bool includeExistsBits;
     int chopLevels;
-    bool deltaViewFrustum;
-    const ViewFrustum* lastViewFrustum;
-    bool wantOcclusionCulling;
+    bool deltaView;
+    bool recurseEverything { false };
     int boundaryLevelAdjust;
     float octreeElementSizeScale;
-    quint64 lastViewFrustumSent;
     bool forceSendScene;
     OctreeSceneStats* stats;
-    CoverageMap* map;
     JurisdictionMap* jurisdictionMap;
     OctreeElementExtraEncodeData* extraEncodeData;
 
@@ -110,14 +99,9 @@ public:
 
     EncodeBitstreamParams(
         int maxEncodeLevel = INT_MAX,
-        const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM,
-        bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
         int  chopLevels = 0,
-        bool deltaViewFrustum = false,
-        const ViewFrustum* lastViewFrustum = IGNORE_VIEW_FRUSTUM,
-        bool wantOcclusionCulling = NO_OCCLUSION_CULLING,
-        CoverageMap* map = IGNORE_COVERAGE_MAP,
+        bool useDeltaView = false,
         int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         float octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
         quint64 lastViewFrustumSent = IGNORE_LAST_SENT,
@@ -125,25 +109,22 @@ public:
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
         JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
         OctreeElementExtraEncodeData* extraEncodeData = NULL) :
+            lastViewFrustumSent(lastViewFrustumSent),
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
-            viewFrustum(viewFrustum),
-            includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             chopLevels(chopLevels),
-            deltaViewFrustum(deltaViewFrustum),
-            lastViewFrustum(lastViewFrustum),
-            wantOcclusionCulling(wantOcclusionCulling),
+            deltaView(useDeltaView),
             boundaryLevelAdjust(boundaryLevelAdjust),
             octreeElementSizeScale(octreeElementSizeScale),
-            lastViewFrustumSent(lastViewFrustumSent),
             forceSendScene(forceSendScene),
             stats(stats),
-            map(map),
             jurisdictionMap(jurisdictionMap),
             extraEncodeData(extraEncodeData),
             stopReason(UNKNOWN)
-    {}
+    {
+        lastViewFrustum.invalidate();
+    }
 
     void displayStopReason() {
         printf("StopReason: ");
@@ -179,6 +160,8 @@ public:
             case OCCLUDED: return QString("OCCLUDED"); break;
         }
     }
+
+    std::function<void(const QUuid& dataID, quint64 itemLastEdited)> trackSend { [](const QUuid&, quint64){} };
 };
 
 class ReadElementBufferToTreeArgs {
@@ -191,7 +174,6 @@ public:
 
 class ReadBitstreamToTreeParams {
 public:
-    bool includeColor;
     bool includeExistsBits;
     OctreeElementPointer destinationElement;
     QUuid sourceUUID;
@@ -202,14 +184,12 @@ public:
     int entitiesPerPacket = 0;
 
     ReadBitstreamToTreeParams(
-        bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
         OctreeElementPointer destinationElement = NULL,
         QUuid sourceUUID = QUuid(),
         SharedNodePointer sourceNode = SharedNodePointer(),
         bool wantImportProgress = false,
         PacketVersion bitstreamVersion = 0) :
-            includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             destinationElement(destinationElement),
             sourceUUID(sourceUUID),
@@ -236,7 +216,7 @@ public:
                     return thisVersion == versionForPacketType(expectedDataPacketType()); }
     virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
-    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
+    virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& sourceNode) { return 0; }
                     
     virtual bool recurseChildrenWithData() const { return true; }
@@ -298,13 +278,6 @@ public:
         TryLock
     } lockType;
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                             const QVector<QUuid>& entityIdsToInclude = QVector<QUuid>(),
-                             void** intersectedObject = NULL,
-                             Octree::lockType lockType = Octree::TryLock,
-                             bool* accurateResult = NULL,
-                             bool precisionPicking = false);
 
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, void** penetratedObject = NULL,
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
@@ -323,13 +296,14 @@ public:
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
-    void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
+    void loadOctreeFile(const char* fileName);
 
     // Octree exporters
-    void writeToFile(const char* filename, OctreeElementPointer element = NULL, QString persistAsFileType = "svo");
-    void writeToJSONFile(const char* filename, OctreeElementPointer element = NULL, bool doGzip = false);
-    void writeToSVOFile(const char* filename, OctreeElementPointer element = NULL);
-    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) = 0;
+    bool writeToFile(const char* filename, OctreeElementPointer element = NULL, QString persistAsFileType = "svo");
+    bool writeToJSONFile(const char* filename, OctreeElementPointer element = NULL, bool doGzip = false);
+    bool writeToSVOFile(const char* filename, OctreeElementPointer element = NULL);
+    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
+                            bool skipThoseWithBadParents) = 0;
 
     // Octree importers
     bool readFromFile(const char* filename);
@@ -365,7 +339,7 @@ public:
 
     bool getIsClient() const { return !_isServer; } /// Is this a client based tree. Allows guards for certain operations
     void setIsClient(bool isClient) { _isServer = !isClient; }
-    
+
     virtual void dumpTree() { }
     virtual void pruneTree() { }
 
@@ -375,7 +349,6 @@ public:
     virtual quint64 getAverageUpdateTime() const { return 0;  }
     virtual quint64 getAverageCreateTime() const { return 0;  }
     virtual quint64 getAverageLoggingTime() const { return 0;  }
-
 
 signals:
     void importSize(float x, float y, float z);
@@ -391,7 +364,7 @@ protected:
     int encodeTreeBitstreamRecursion(OctreeElementPointer element,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
                                      EncodeBitstreamParams& params, int& currentEncodeLevel,
-                                     const ViewFrustum::location& parentLocationThisView) const;
+                                     const ViewFrustum::intersection& parentLocationThisView) const;
 
     static bool countOctreeElementsOperation(OctreeElementPointer element, void* extraData);
 
@@ -409,7 +382,5 @@ protected:
     bool _isViewing;
     bool _isServer;
 };
-
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_Octree_h

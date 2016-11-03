@@ -20,7 +20,7 @@ class ShutdownEventListener : public QObject, public QAbstractNativeEventFilter 
 public:
     static ShutdownEventListener& getInstance();
 
-    virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result);
+    virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result) override;
 private:
     ShutdownEventListener(QObject* parent = 0);
 };

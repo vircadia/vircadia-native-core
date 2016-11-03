@@ -1,8 +1,10 @@
-cmake_minimum_required(VERSION 2.8.12.2)
+cmake_minimum_required(VERSION 3.2)
 
 if (USE_ANDROID_TOOLCHAIN)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
   set(ANDROID_NATIVE_API_LEVEL 19)
+  set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi-clang3.5)
+  set(ANDROID_STL c++_shared)
 endif ()
 
 if (WIN32)
@@ -15,7 +17,7 @@ endif ()
 
 if (POLICY CMP0043)
   cmake_policy(SET CMP0043 OLD)
-endif () 
+endif ()
 
 if (POLICY CMP0042)
   cmake_policy(SET CMP0042 OLD)
@@ -26,19 +28,32 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 
 project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
-set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG") 
+set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
-  # set path for Microsoft SDKs
-  # if get build error about missing 'glu32' this path is likely wrong
-  # Uncomment the line with 8.1 if running Windows 8.1
+
+  if (NOT WINDOW_SDK_PATH)
+    set(DEBUG_DISCOVERED_SDK_PATH TRUE)
+  endif()
+
+  # sets path for Microsoft SDKs
+  # if you get build error about missing 'glu32' this path is likely wrong
   if (MSVC10)
-    set(WINDOW_SDK_PATH "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
+    set(WINDOW_SDK_PATH "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 " CACHE PATH "Windows SDK PATH")
   elseif (MSVC12)
-    set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\x86 ")
+    if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+      set(WINDOW_SDK_FOLDER "x64")
+    else()
+      set(WINDOW_SDK_FOLDER "x86")
+    endif()
+    set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\${WINDOW_SDK_FOLDER}" CACHE PATH "Windows SDK PATH")
   endif ()
-  message (WINDOW_SDK_PATH= ${WINDOW_SDK_PATH})
+
+  if (DEBUG_DISCOVERED_SDK_PATH)
+    message(STATUS "The discovered Windows SDK path is ${WINDOW_SDK_PATH}")
+  endif ()
+
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${WINDOW_SDK_PATH})
   # /wd4351 disables warning C4351: new behavior: elements of array will be default initialized
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /wd4351")
@@ -51,26 +66,41 @@ if (WIN32)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /OPT:REF /OPT:ICF")
 else ()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fno-strict-aliasing -Wno-unused-parameter")
-  if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Woverloaded-virtual -Wdouble-promotion")
+      if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "5.1") # gcc 5.1 and on have suggest-override
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
+      endif ()
   endif ()
 endif(WIN32)
 
-if ((NOT MSVC12) AND (NOT MSVC14))
-  include(CheckCXXCompilerFlag)
-  CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-  CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-
-  if (COMPILER_SUPPORTS_CXX11)
-  	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-  elseif(COMPILER_SUPPORTS_CXX0X)
-  	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-  else()
-    message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.3")
+    # GLM 0.9.8 on Ubuntu 14 (gcc 4.4) has issues with the simd declarations 
+    add_definitions(-DGLM_FORCE_PURE)
   endif()
+endif()
+
+if (NOT ANDROID)
+  if ((NOT MSVC12) AND (NOT MSVC14))
+    include(CheckCXXCompilerFlag)
+    CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+    CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+
+    if (COMPILER_SUPPORTS_CXX11)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    elseif(COMPILER_SUPPORTS_CXX0X)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    else()
+      message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+    endif()
+  endif ()
+else ()
+  # assume that the toolchain selected for android has C++11 support
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif ()
 
-if (APPLE) 
+if (APPLE)
   set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++0x")
   set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --stdlib=libc++")
@@ -80,16 +110,16 @@ if (NOT ANDROID_LIB_DIR)
   set(ANDROID_LIB_DIR $ENV{ANDROID_LIB_DIR})
 endif ()
 
-if (ANDROID)  
+if (ANDROID)
   if (NOT ANDROID_QT_CMAKE_PREFIX_PATH)
-    set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.4/android_armv7/lib/cmake)
+    set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.5/android_armv7/lib/cmake)
   else ()
     set(QT_CMAKE_PREFIX_PATH ${ANDROID_QT_CMAKE_PREFIX_PATH})
   endif ()
-  
+
   set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
-  
+
   if (ANDROID_LIB_DIR)
     list(APPEND CMAKE_FIND_ROOT_PATH ${ANDROID_LIB_DIR})
   endif ()
@@ -101,6 +131,8 @@ else ()
     get_filename_component(QT_CMAKE_PREFIX_PATH "${Qt5_DIR}/.." REALPATH)
   endif ()
 endif ()
+
+set(QT_DIR $ENV{QT_DIR})
 
 if (WIN32)
     if (NOT EXISTS ${QT_CMAKE_PREFIX_PATH})
@@ -114,34 +146,34 @@ get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
-  
+
   exec_program(sw_vers ARGS -productVersion  OUTPUT_VARIABLE OSX_VERSION)
   string(REGEX MATCH "^[0-9]+\\.[0-9]+" OSX_VERSION ${OSX_VERSION})
   message(STATUS "Detected OS X version = ${OSX_VERSION}")
-  
+
   set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
-  
+
   # set our OS X deployment target
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
-  
+
   # find the SDK path for the desired SDK
   find_path(
-    _OSX_DESIRED_SDK_PATH 
-    NAME MacOSX${OSX_SDK}.sdk 
+    _OSX_DESIRED_SDK_PATH
+    NAME MacOSX${OSX_SDK}.sdk
     HINTS ${OSX_SDK_PATH}
     PATHS /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
           /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
   )
-  
+
   if (NOT _OSX_DESIRED_SDK_PATH)
     message(STATUS "Could not find OS X ${OSX_SDK} SDK. Will fall back to default. If you want a specific SDK, please pass OSX_SDK and optionally OSX_SDK_PATH to CMake.")
   else ()
     message(STATUS "Found OS X ${OSX_SDK} SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk")
-    
+
     # set that as the SDK to use
     set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
   endif ()
-  
+
 endif ()
 
 # Hide automoc folders (for IDEs)
@@ -165,9 +197,9 @@ else ()
   set(UPPER_CMAKE_BUILD_TYPE DEBUG)
 endif ()
 
-set(HIFI_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-set(MACRO_DIR "${HIFI_CMAKE_DIR}/macros")
-set(EXTERNAL_PROJECT_DIR "${HIFI_CMAKE_DIR}/externals")
+set(HF_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(MACRO_DIR "${HF_CMAKE_DIR}/macros")
+set(EXTERNAL_PROJECT_DIR "${HF_CMAKE_DIR}/externals")
 
 file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
@@ -185,26 +217,19 @@ set(EXTERNAL_PROJECT_PREFIX "project")
 set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
 setup_externals_binary_dir()
 
-# setup options to grab external project dependencies
-option(GET_BULLET "Get Bullet library automatically as external project" 1)
-option(GET_GLM "Get GLM library automatically as external project" 1)
-option(GET_GVERB "Get Gverb library automatically as external project" 1)
-option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
-option(GET_LIBOVR "Get LibOVR library automatically as external project" 1)
-option(GET_VHACD "Get V-HACD library automatically as external project" 1)
-option(GET_POLYVOX "Get polyvox library automatically as external project" 1)
-option(GET_OPENVR "Get OpenVR library automatically as external project" 1)
-option(GET_BOOSTCONFIG "Get Boost-config library automatically as external project" 1)
-option(GET_OGLPLUS "Get OGLplus library automatically as external project" 1)
-option(GET_GLEW "Get GLEW library automatically as external project" 1)
-
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
+option(GET_QUAZIP "Get QuaZip library automatically as external project" 1)
 
-option(GET_SDL2 "Get SDL2 library automatically as external project" 0)
 
 if (WIN32)
   add_paths_to_fixup_libs("${QT_DIR}/bin")
 endif ()
+
+if (NOT DEFINED SERVER_ONLY)
+  set(SERVER_ONLY 0)
+endif()
+
+set_packaging_parameters()
 
 # add subdirectories for all targets
 if (NOT ANDROID)
@@ -214,14 +239,20 @@ if (NOT ANDROID)
   set_target_properties(domain-server PROPERTIES FOLDER "Apps")
   add_subdirectory(ice-server)
   set_target_properties(ice-server PROPERTIES FOLDER "Apps")
-  add_subdirectory(interface)
-  set_target_properties(interface PROPERTIES FOLDER "Apps")
-  add_subdirectory(tests)
+  add_subdirectory(server-console)
+  if (NOT SERVER_ONLY)
+    add_subdirectory(interface)
+    set_target_properties(interface PROPERTIES FOLDER "Apps")
+    add_subdirectory(tests)
+  endif()
+  add_subdirectory(plugins)
   add_subdirectory(tools)
-endif ()
+endif()
 
 if (ANDROID OR DESKTOP_GVR)
+  add_subdirectory(interface)
   add_subdirectory(gvr-interface)
+  add_subdirectory(plugins)
 endif ()
 
 if (DEFINED ENV{HIFI_MEMORY_DEBUGGING})
@@ -232,3 +263,5 @@ if (HIFI_MEMORY_DEBUGGING)
     MESSAGE("-- Memory debugging is enabled")
   endif (UNIX)
 endif ()
+
+generate_installers()

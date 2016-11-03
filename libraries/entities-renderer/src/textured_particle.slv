@@ -10,21 +10,124 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Inputs.slh@>
-
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-out vec4 _color;
-out vec2 _texCoord0;
+struct Radii {
+    float start;
+    float middle;
+    float finish;
+    float spread;
+};
+struct Colors {
+    vec4 start;
+    vec4 middle;
+    vec4 finish;
+    vec4 spread;
+};
+
+struct ParticleUniforms {
+    Radii radius;
+    Colors color;
+    vec4 lifespan; // x is lifespan, 3 spare floats
+};
+
+layout(std140) uniform particleBuffer {
+    ParticleUniforms particle;
+};
+
+in vec3 inPosition;
+in vec2 inColor; // This is actual Lifetime + Seed
+
+out vec4 varColor;
+out vec2 varTexcoord;
+
+const int NUM_VERTICES_PER_PARTICLE = 4;
+// This ordering ensures that un-rotated particles render upright in the viewer.
+const vec4 UNIT_QUAD[NUM_VERTICES_PER_PARTICLE] = vec4[NUM_VERTICES_PER_PARTICLE](
+    vec4(-1.0, 1.0, 0.0, 0.0),
+    vec4(-1.0, -1.0, 0.0, 0.0),
+    vec4(1.0, 1.0, 0.0, 0.0),
+    vec4(1.0, -1.0, 0.0, 0.0)
+);
+
+float bezierInterpolate(float y1, float y2, float y3, float u) {
+    // https://en.wikipedia.org/wiki/Bezier_curve
+    return (1.0 - u) * (1.0 - u) * y1 + 2.0 * (1.0 - u) * u * y2 + u * u * y3;
+}
+
+float interpolate3Points(float y1, float y2, float y3, float u) {
+    // Makes the interpolated values intersect the middle value.
+
+    if ((u <= 0.5f && y1 == y2) || (u >= 0.5f && y2 == y3)) {
+        // Flat line.
+        return y2;
+    }
+
+    float halfSlope;
+    if ((y2 >= y1 && y2 >= y3) || (y2 <= y1 && y2 <= y3)) {
+        // U or inverted-U shape.
+        // Make the slope at y2 = 0, which means that the control points half way between the value points have the value y2.
+        halfSlope = 0.0f;
+
+    } else {
+        // L or inverted and/or mirrored L shape.
+        // Make the slope at y2 be the slope between y1 and y3, up to a maximum of double the minimum of the slopes between y1
+        // and y2, and y2 and y3. Use this slope to calculate the control points half way between the value points.
+        // Note: The maximum ensures that the control points and therefore the interpolated values stay between y1 and y3.
+        halfSlope = (y3 - y1) / 2.0f;
+        float slope12 = y2 - y1;
+        float slope23 = y3 - y2;
+        if (abs(halfSlope) > abs(slope12)) {
+            halfSlope = slope12;
+        } else if (abs(halfSlope) > abs(slope23)) {
+            halfSlope = slope23;
+        }
+    }
+
+    float stepU = step(0.5f, u);  // 0.0 if u < 0.5, 1.0 otherwise.
+    float slopeSign = 2.0f * stepU - 1.0f; // -1.0 if u < 0.5, 1.0 otherwise
+    float start = (1.0f - stepU) * y1 + stepU * y2;  // y1 if u < 0.5, y2 otherwise
+    float middle = y2 + slopeSign * halfSlope;
+    float finish = (1.0f - stepU) * y2 + stepU * y3; // y2 if u < 0.5, y3 otherwise
+    float v = 2.0f * u - step(0.5f, u);  // 0.0-0.5 -> 0.0-1.0 and 0.5-1.0 -> 0.0-1.0
+    return bezierInterpolate(start, middle, finish, v);
+}
+
+vec4 interpolate3Vec4(vec4 y1, vec4 y2, vec4 y3, float u) {
+    return vec4(interpolate3Points(y1.x, y2.x, y3.x, u),
+                interpolate3Points(y1.y, y2.y, y3.y, u),
+                interpolate3Points(y1.z, y2.z, y3.z, u),
+                interpolate3Points(y1.w, y2.w, y3.w, u));
+}
 
 void main(void) {
-    // pass along the color & uvs to fragment shader
-    _color = inColor;
-    _texCoord0 = inTexCoord0.xy;
-
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    
+    // Which icon are we dealing with ?
+    int particleID = gl_VertexID / NUM_VERTICES_PER_PARTICLE;
+    // Which quad vertex pos?
+    int twoTriID = gl_VertexID - particleID * NUM_VERTICES_PER_PARTICLE;
+
+    // Particle properties
+    float age = inColor.x / particle.lifespan.x;
+    float seed = inColor.y;
+
+    // Pass the texcoord and the z texcoord is representing the texture icon
+    // Offset for corrected vertex ordering.
+    varTexcoord = vec2((UNIT_QUAD[twoTriID].xy -1.0) * vec2(0.5, -0.5)); 
+    varColor = interpolate3Vec4(particle.color.start, particle.color.middle, particle.color.finish, age);
+
+    // anchor point in eye space
+    float radius = interpolate3Points(particle.radius.start, particle.radius.middle, particle.radius.finish, age);
+    vec4 quadPos = radius * UNIT_QUAD[twoTriID];
+
+    vec4 anchorPoint;
+    vec4 _inPosition = vec4(inPosition, 1.0);
+    <$transformModelToEyePos(cam, obj, _inPosition, anchorPoint)$>
+
+    vec4 eyePos = anchorPoint + quadPos;
+    <$transformEyeToClipPos(cam, eyePos, gl_Position)$>
 }

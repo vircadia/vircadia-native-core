@@ -22,32 +22,36 @@ class Image3DOverlay : public Billboard3DOverlay {
 
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Image3DOverlay();
     Image3DOverlay(const Image3DOverlay* image3DOverlay);
+    ~Image3DOverlay();
+    virtual void render(RenderArgs* args) override;
 
-    virtual void render(RenderArgs* args);
+    virtual void update(float deltatime) override;
 
-    virtual void update(float deltatime);
+    virtual const render::ShapeKey getShapeKey() override;
 
     // setters
     void setURL(const QString& url);
     void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                        BoxFace& face, glm::vec3& surfaceNormal);
+                                        BoxFace& face, glm::vec3& surfaceNormal) override;
 
-    virtual Image3DOverlay* createClone() const;
+    virtual Image3DOverlay* createClone() const override;
 
 private:
     QString _url;
     NetworkTexturePointer _texture;
+    bool _emissive { false };
 
     QRect _fromImage; // where from in the image to sample
+    int _geometryId { 0 };
 };
 
 #endif // hifi_Image3DOverlay_h

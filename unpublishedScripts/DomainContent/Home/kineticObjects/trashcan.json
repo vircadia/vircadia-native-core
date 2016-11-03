@@ -1,0 +1,37 @@
+{
+    "Entities": [{
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/trashcan/Trash-Can-4.obj",
+        "created": "2016-03-15T23:06:41Z",
+        "name": "home_model_Trashcan",
+        "dimensions": {
+            "x": 0.4264354407787323,
+            "y": 0.50489801168441772,
+            "z": 0.42643532156944275
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{e9693784-4264-4dd5-baa7-fd165b2645c8}",
+        "modelURL": "atp:/kineticObjects/trashcan/Trach-Can-3.fbx",
+        "queryAACube": {
+            "scale": 0.78652161359786987,
+            "x": -0.39326080679893494,
+            "y": -0.39326080679893494,
+            "z": -0.39326080679893494
+        },
+        "rotation": {
+            "w": -0.46858930587768555,
+            "x": 7.62939453125e-05,
+            "y": 0.88342106342315674,
+            "z": -4.57763671875e-05
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 57
+}

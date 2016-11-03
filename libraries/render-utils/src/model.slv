@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  model.vert
+//  model.slv
 //  vertex shader
 //
 //  Created by Andrzej Kapolka on 10/14/13.
@@ -12,31 +12,31 @@
 //
 
 <@include gpu/Inputs.slh@>
-
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
-const int MAX_TEXCOORDS = 2;
+<@include MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
 
-uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
-
+out vec3 _color;
+out float _alpha;
+out vec2 _texCoord0;
+out vec2 _texCoord1;
 out vec4 _position;
 out vec3 _normal;
-out vec3 _color;
-out vec2 _texCoord0;
 
 void main(void) {
-    
-    // pass along the diffuse color
-    _color = inColor.xyz;
+    _color = colorToLinearRGB(inColor.xyz);
+    _alpha = inColor.w;
 
-    // and the texture coordinates
-    _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
 }

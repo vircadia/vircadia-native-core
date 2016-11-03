@@ -19,18 +19,12 @@ macro(LINK_HIFI_LIBRARIES)
     endif ()
   
     include_directories("${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src")
+    include_directories("${CMAKE_BINARY_DIR}/libraries/${HIFI_LIBRARY}/shaders")
 
     add_dependencies(${TARGET_NAME} ${HIFI_LIBRARY})
-  
+
     # link the actual library - it is static so don't bubble it up
     target_link_libraries(${TARGET_NAME} ${HIFI_LIBRARY})
-    
-    # ask the library what its include dependencies are and link them
-    get_target_property(LINKED_TARGET_DEPENDENCY_INCLUDES ${HIFI_LIBRARY} DEPENDENCY_INCLUDES)
-
-    if(LINKED_TARGET_DEPENDENCY_INCLUDES)
-      list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES ${LINKED_TARGET_DEPENDENCY_INCLUDES})
-    endif()
   endforeach()
 
   setup_memory_debugger()

@@ -10,82 +10,123 @@
 <@if not GPU_TRANSFORM_STATE_SLH@>
 <@def GPU_TRANSFORM_STATE_SLH@>
 
-<@func declareStandardTransform()@>
-struct TransformObject { 
-    mat4 _model;
-    mat4 _modelInverse;
-};
-
-struct TransformCamera { 
+<@func declareStandardCameraTransform()@>
+struct TransformCamera {
     mat4 _view;
     mat4 _viewInverse;
     mat4 _projectionViewUntranslated;
     mat4 _projection;
     mat4 _projectionInverse;
     vec4 _viewport;
+    vec4 _stereoInfo;
 };
-
-layout(std140) uniform transformObjectBuffer {
-    TransformObject _object;
-};
-TransformObject getTransformObject() {
-    return _object;
-}
 
 layout(std140) uniform transformCameraBuffer {
     TransformCamera _camera;
 };
+
 TransformCamera getTransformCamera() {
     return _camera;
 }
+
+vec3 getEyeWorldPos() {
+    return _camera._viewInverse[3].xyz;
+}
+
+
+bool cam_isStereo() {
+    return _camera._stereoInfo.x > 0.0;
+}
+
+float cam_getStereoSide() {
+    return _camera._stereoInfo.y;
+}
+
+<@endfunc@>
+
+
+<@func declareStandardObjectTransform()@>
+struct TransformObject {
+    mat4 _model;
+    mat4 _modelInverse;
+};
+
+layout(location=15) in ivec2 _drawCallInfo;
+
+<@if FALSE @>
+// Disable SSBOs for now
+layout(std140) buffer transformObjectBuffer {
+    TransformObject _object[];
+};
+TransformObject getTransformObject() {
+    return _object[_drawCallInfo.x];
+}
+<@else@>
+uniform samplerBuffer transformObjectBuffer;
+
+TransformObject getTransformObject() {
+    int offset = 8 * _drawCallInfo.x;
+    TransformObject object;
+    object._model[0] = texelFetch(transformObjectBuffer, offset);
+    object._model[1] = texelFetch(transformObjectBuffer, offset + 1);
+    object._model[2] = texelFetch(transformObjectBuffer, offset + 2);
+    object._model[3] = texelFetch(transformObjectBuffer, offset + 3);
+
+    object._modelInverse[0] = texelFetch(transformObjectBuffer, offset + 4);
+    object._modelInverse[1] = texelFetch(transformObjectBuffer, offset + 5);
+    object._modelInverse[2] = texelFetch(transformObjectBuffer, offset + 6);
+    object._modelInverse[3] = texelFetch(transformObjectBuffer, offset + 7);
+
+    return object;
+}
+<@endif@>
+<@endfunc@>
+
+
+<@func declareStandardTransform()@>
+<$declareStandardCameraTransform()$>
+<$declareStandardObjectTransform()$>
 <@endfunc@>
 
 <@func transformCameraViewport(cameraTransform, viewport)@>
      <$viewport$> = <$cameraTransform$>._viewport;
 <@endfunc@>
 
+<@func transformModelToEyeWorldAlignedPos(cameraTransform, objectTransform, modelPos, eyeWorldAlignedPos)@>
+    <!// Bring the model pos in the world aligned space centered on the eye axis !>
+    { // _transformModelToEyeWorldAlignedPos
+        highp mat4 _mv = <$objectTransform$>._model;
+        _mv[3].xyz -= <$cameraTransform$>._viewInverse[3].xyz;
+        highp vec4 _eyeWApos = (_mv * <$modelPos$>);
+        <$eyeWorldAlignedPos$> = _eyeWApos;
+    }
+<@endfunc@>
+
 <@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
-    <!// Equivalent to the following but hoppefully a tad more accurate
-      //return camera._projection * camera._view * object._model * pos; !>
     { // transformModelToClipPos
-        vec4 _eyepos = (<$objectTransform$>._model * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
-        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
     }
 <@endfunc@>
 
-<@func transformInstancedModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
-    <!// Equivalent to the following but hoppefully a tad more accurate
-      //return camera._projection * camera._view * object._model * pos; !>
-    { // transformModelToClipPos
-        vec4 _eyepos = (inInstanceTransform * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
-        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
+<@func transformModelToEyeAndClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos)@>
+    { // transformModelToEyeAndClipPos
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
     }
 <@endfunc@>
 
-<@func $transformModelToEyeAndClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos)@>
-    <!// Equivalent to the following but hoppefully a tad more accurate
-      //return camera._projection * camera._view * object._model * pos; !>
-    { // transformModelToClipPos
-        vec4 _worldpos = (<$objectTransform$>._model * <$modelPos$>);
-        <$eyePos$> = (<$cameraTransform$>._view * _worldpos);
-        vec4 _eyepos =(<$objectTransform$>._model * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
-        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
-      //  <$eyePos$> = (<$cameraTransform$>._projectionInverse * <$clipPos$>);
+<@func transformModelToEyePos(cameraTransform, objectTransform, modelPos, eyePos)@>
+    { // transformModelToEyePos
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
     }
 <@endfunc@>
-
-<@func $transformInstancedModelToEyeAndClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos)@>
-    <!// Equivalent to the following but hoppefully a tad more accurate
-      //return camera._projection * camera._view * object._model * pos; !>
-    { // transformModelToClipPos
-        vec4 _worldpos = (inInstanceTransform * <$modelPos$>);
-        <$eyePos$> = (<$cameraTransform$>._view * _worldpos);
-        vec4 _eyepos =(inInstanceTransform * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
-        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
-      //  <$eyePos$> = (<$cameraTransform$>._projectionInverse * <$clipPos$>);
-    }
-<@endfunc@>
-
 
 <@func transformModelToWorldPos(objectTransform, modelPos, worldPos)@>
     { // transformModelToWorldPos
@@ -93,9 +134,13 @@ TransformCamera getTransformCamera() {
     }
 <@endfunc@>
 
-<@func transformInstancedModelToWorldPos(objectTransform, modelPos, worldPos)@>
-    { // transformModelToWorldPos
-        <$worldPos$> = (inInstanceTransform * <$modelPos$>);
+<@func transformModelToWorldDir(cameraTransform, objectTransform, modelDir, worldDir)@>
+    { // transformModelToEyeDir
+        vec3 mr0 = <$objectTransform$>._modelInverse[0].xyz;
+        vec3 mr1 = <$objectTransform$>._modelInverse[1].xyz;
+        vec3 mr2 = <$objectTransform$>._modelInverse[2].xyz;
+
+        <$worldDir$> = vec3(dot(mr0, <$modelDir$>), dot(mr1, <$modelDir$>), dot(mr2, <$modelDir$>));
     }
 <@endfunc@>
 
@@ -113,21 +158,6 @@ TransformCamera getTransformCamera() {
     }
 <@endfunc@>
 
-<@func transformInstancedModelToEyeDir(cameraTransform, objectTransform, modelDir, eyeDir)@>
-    { // transformModelToEyeDir
-        mat4 modelInverse = inverse(inInstanceTransform);
-        vec3 mr0 = vec3(modelInverse[0].x, modelInverse[1].x, modelInverse[2].x);
-        vec3 mr1 = vec3(modelInverse[0].y, modelInverse[1].y, modelInverse[2].y);
-        vec3 mr2 = vec3(modelInverse[0].z, modelInverse[1].z, modelInverse[2].z);
-
-        vec3 mvc0 = vec3(dot(<$cameraTransform$>._viewInverse[0].xyz, mr0), dot(<$cameraTransform$>._viewInverse[0].xyz, mr1), dot(<$cameraTransform$>._viewInverse[0].xyz, mr2));
-        vec3 mvc1 = vec3(dot(<$cameraTransform$>._viewInverse[1].xyz, mr0), dot(<$cameraTransform$>._viewInverse[1].xyz, mr1), dot(<$cameraTransform$>._viewInverse[1].xyz, mr2));
-        vec3 mvc2 = vec3(dot(<$cameraTransform$>._viewInverse[2].xyz, mr0), dot(<$cameraTransform$>._viewInverse[2].xyz, mr1), dot(<$cameraTransform$>._viewInverse[2].xyz, mr2));
-
-        <$eyeDir$> = vec3(dot(mvc0, <$modelDir$>), dot(mvc1, <$modelDir$>), dot(mvc2, <$modelDir$>));
-    }
-<@endfunc@>
-
 <@func transformEyeToWorldDir(cameraTransform, eyeDir, worldDir)@>
     { // transformEyeToWorldDir
         <$worldDir$> = vec3(<$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
@@ -136,7 +166,13 @@ TransformCamera getTransformCamera() {
 
 <@func transformClipToEyeDir(cameraTransform, clipPos, eyeDir)@>
     { // transformClipToEyeDir
-        <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0));
+        <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0)); // Must be 1.0 here
+    }
+<@endfunc@>
+
+<@func transformEyeToClipPos(cameraTransform, eyePos, clipPos)@>
+    { // transformEyeToClipPos
+        <$clipPos$> = <$cameraTransform$>._projection * vec4(<$eyePos$>.xyz, 1.0);
     }
 <@endfunc@>
 

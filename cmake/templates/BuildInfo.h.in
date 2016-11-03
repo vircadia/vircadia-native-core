@@ -1,0 +1,20 @@
+//
+//  BuildInfo.h.in
+//  cmake/macros
+//
+//  Created by Stephen Birarda on 1/14/16.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#define USE_STABLE_GLOBAL_SERVICES @USE_STABLE_GLOBAL_SERVICES@
+
+namespace BuildInfo {
+    const QString MODIFIED_ORGANIZATION = "@BUILD_ORGANIZATION@";
+    const QString VERSION = "@BUILD_VERSION@";
+    const QString BUILD_BRANCH = "@BUILD_BRANCH@";
+    const QString BUILD_GLOBAL_SERVICES = "@BUILD_GLOBAL_SERVICES@";
+}
+

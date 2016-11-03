@@ -21,27 +21,23 @@
 #include "OffscreenUi.h"
 
 // FIXME break up the rendering code (VrMenu) and the code for mirroring a Widget based menu in QML
-class VrMenu : public QQuickItem {
+class VrMenu : public QObject {
     Q_OBJECT
-    HIFI_QML_DECL_LAMBDA
-
 public:
-    static void executeOrQueue(std::function<void(VrMenu*)> f);
-    static void executeQueuedLambdas();
-    VrMenu(QQuickItem* parent = nullptr);
+    VrMenu(OffscreenUi* parent = nullptr);
     void addMenu(QMenu* menu);
     void addAction(QMenu* parent, QAction* action);
+    void addSeparator(QMenu* parent);
     void insertAction(QAction* before, QAction* action);
     void removeAction(QAction* action);
-
-    void setRootMenu(QObject* rootMenu);
 
 protected:
     QObject* _rootMenu{ nullptr };
     QObject* findMenuObject(const QString& name);
 
-    static VrMenu* _instance;
     friend class MenuUserData;
+    friend class OffscreenUi;
+    const unsigned int _userDataId { QObject::registerUserData() };
 };
 
 #endif // hifi_VrMenu_h

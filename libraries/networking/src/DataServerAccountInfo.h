@@ -22,8 +22,9 @@ const float SATOSHIS_PER_CREDIT = 100000000.0f;
 
 class DataServerAccountInfo : public QObject {
     Q_OBJECT
+    const static QString EMPTY_KEY;
 public:
-    DataServerAccountInfo();
+    DataServerAccountInfo() {};
     DataServerAccountInfo(const DataServerAccountInfo& otherInfo);
     DataServerAccountInfo& operator=(const DataServerAccountInfo& otherInfo);
 
@@ -42,17 +43,18 @@ public:
     
     const QUuid& getWalletID() const { return _walletID; }
     void setWalletID(const QUuid& walletID);
-    
+
     QByteArray getUsernameSignature(const QUuid& connectionToken);
     bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
-    void setPrivateKey(const QByteArray& privateKey);
+    void setPrivateKey(const QByteArray& privateKey) { _privateKey = privateKey; }
 
-    qint64 getBalance() const { return _balance; }
-    float getBalanceInSatoshis() const { return _balance / SATOSHIS_PER_CREDIT; }
-    void setBalance(qint64 balance);
-    bool hasBalance() const { return _hasBalance; }
-    void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
-    Q_INVOKABLE void setBalanceFromJSON(QNetworkReply& requestReply);
+    QByteArray signPlaintext(const QByteArray& plaintext);
+
+    void setDomainID(const QUuid& domainID) { _domainID = domainID; }
+    const QUuid& getDomainID() const { return _domainID; }
+
+    void setTemporaryDomain(const QUuid& domainID, const QString& key) { _temporaryDomainID = domainID; _temporaryDomainApiKey = key; }
+    const QString& getTemporaryDomainKey(const QUuid& domainID) { return domainID == _temporaryDomainID ? _temporaryDomainApiKey : EMPTY_KEY; }
 
     bool hasProfile() const;
 
@@ -60,8 +62,7 @@ public:
 
     friend QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info);
     friend QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info);
-signals:
-    qint64 balanceChanged(qint64 newBalance);
+
 private:
     void swap(DataServerAccountInfo& otherInfo);
 
@@ -70,8 +71,9 @@ private:
     QString _xmppPassword;
     QString _discourseApiKey;
     QUuid _walletID;
-    qint64 _balance;
-    bool _hasBalance;
+    QUuid _domainID;
+    QUuid _temporaryDomainID;
+    QString _temporaryDomainApiKey;
     QByteArray _privateKey;
 
 };

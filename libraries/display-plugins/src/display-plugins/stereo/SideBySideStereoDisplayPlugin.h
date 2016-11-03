@@ -13,10 +13,12 @@ class QScreen;
 
 class SideBySideStereoDisplayPlugin : public StereoDisplayPlugin {
     Q_OBJECT
+    using Parent = StereoDisplayPlugin;
 public:
-    SideBySideStereoDisplayPlugin();
-    virtual const QString& getName() const override;
+    virtual const QString& getName() const override { return NAME; }
+    virtual grouping getGrouping() const override { return ADVANCED; }
     virtual glm::uvec2 getRecommendedRenderSize() const override;
+
 private:
     static const QString NAME;
 };

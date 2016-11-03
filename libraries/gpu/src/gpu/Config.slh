@@ -13,11 +13,11 @@
 
 <@if GLPROFILE == PC_GL @>
     <@def GPU_FEATURE_PROFILE GPU_CORE@>
-    <@def VERSION_HEADER #version 410 core@>
+    <@def VERSION_HEADER //PC 410 core@>
 <@elif GLPROFILE == MAC_GL @>
     <@def GPU_FEATURE_PROFILE GPU_CORE@>
-    <@def VERSION_HEADER #version 410 core@>
+    <@def VERSION_HEADER //MAC 410 core@>
 <@else@>
     <@def GPU_FEATURE_PROFILE GPU_CORE@>
-    <@def VERSION_HEADER #version 410 core@>
+    <@def VERSION_HEADER //410 core@>
 <@endif@>

@@ -16,12 +16,14 @@
 RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
                                                        OctreeElementPointer top,
                                                        QScriptEngine* engine,
-                                                       bool skipDefaultValues) :
+                                                       bool skipDefaultValues,
+                                                       bool skipThoseWithBadParents) :
         RecurseOctreeOperator(),
         _map(map),
         _top(top),
         _engine(engine),
-        _skipDefaultValues(skipDefaultValues)
+        _skipDefaultValues(skipDefaultValues),
+        _skipThoseWithBadParents(skipThoseWithBadParents)
 {
     // if some element "top" was given, only save information for that element and its children.
     if (_top) {
@@ -47,6 +49,10 @@ bool RecurseOctreeToMapOperator::postRecursion(OctreeElementPointer element) {
     QVariantList entitiesQList = qvariant_cast<QVariantList>(_map["Entities"]);
 
     entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
+        if (_skipThoseWithBadParents && !entityItem->isParentIDValid()) {
+            return;  // we weren't able to resolve a parent from _parentID, so don't save this entity.
+        }
+
         EntityItemProperties properties = entityItem->getProperties();
         QScriptValue qScriptValues;
         if (_skipDefaultValues) {

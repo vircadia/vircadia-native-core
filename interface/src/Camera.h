@@ -24,10 +24,15 @@ enum CameraMode
     CAMERA_MODE_FIRST_PERSON,
     CAMERA_MODE_MIRROR,
     CAMERA_MODE_INDEPENDENT,
+    CAMERA_MODE_ENTITY,
     NUM_CAMERA_MODES
 };
 
 Q_DECLARE_METATYPE(CameraMode);
+
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((unused))
+#endif
 static int cameraModeId = qRegisterMetaType<CameraMode>();
 
 class Camera : public QObject {
@@ -36,10 +41,13 @@ class Camera : public QObject {
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString)
+    Q_PROPERTY(QUuid cameraEntity READ getCameraEntity WRITE setCameraEntity)
+    Q_PROPERTY(QVariantMap frustum READ getViewFrustum CONSTANT)
+
 public:
     Camera();
 
-    void initialize(); // instantly put the camera at the ideal position and rotation. 
+    void initialize(); // instantly put the camera at the ideal position and orientation. 
 
     void update( float deltaTime );
 
@@ -49,24 +57,28 @@ public:
     void loadViewFrustum(ViewFrustum& frustum) const;
     ViewFrustum toViewFrustum() const;
 
-public slots:
-    QString getModeString() const;
-    void setModeString(const QString& mode);
-
-    glm::quat getRotation() const { return _rotation; }
-    void setRotation(const glm::quat& rotation);
-
-    glm::vec3 getPosition() const { return _position; }
-    void setPosition(const glm::vec3& position);
-
-    glm::quat getOrientation() const { return getRotation(); }
-    void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
+    EntityItemPointer getCameraEntityPointer() const { return _cameraEntity; }
 
     const glm::mat4& getTransform() const { return _transform; }
     void setTransform(const glm::mat4& transform);
 
     const glm::mat4& getProjection() const { return _projection; }
     void setProjection(const glm::mat4& projection);
+
+    QVariantMap getViewFrustum();
+
+public slots:
+    QString getModeString() const;
+    void setModeString(const QString& mode);
+
+    glm::vec3 getPosition() const { return _position; }
+    void setPosition(const glm::vec3& position);
+
+    glm::quat getOrientation() const { return _orientation; }
+    void setOrientation(const glm::quat& orientation);
+
+    QUuid getCameraEntity() const;
+    void setCameraEntity(QUuid entityID);
 
     PickRay computePickRay(float x, float y);
 
@@ -94,9 +106,10 @@ private:
 
     // derived
     glm::vec3 _position;
-    glm::quat _rotation;
+    glm::quat _orientation;
     bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;
+    EntityItemPointer _cameraEntity;
 };
 
 #endif // hifi_Camera_h

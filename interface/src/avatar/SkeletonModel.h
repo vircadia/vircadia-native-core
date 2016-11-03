@@ -18,6 +18,10 @@
 class Avatar;
 class MuscleConstraint;
 
+class SkeletonModel;
+using SkeletonModelPointer = std::shared_ptr<SkeletonModel>;
+using SkeletonModelWeakPointer = std::weak_ptr<SkeletonModel>;
+
 /// A skeleton loaded from a model.
 class SkeletonModel : public Model {
     Q_OBJECT
@@ -27,19 +31,20 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
     ~SkeletonModel();
 
-    virtual void initJointStates(QVector<JointState> states) override;
+    virtual void initJointStates() override;
 
     virtual void simulate(float deltaTime, bool fullUpdate = true) override;
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
     void updateAttitude();
 
-    void renderIKConstraints(gpu::Batch& batch);
-
     /// Returns the index of the left hand joint, or -1 if not found.
-    int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
+    int getLeftHandJointIndex() const { return isActive() ? getFBXGeometry().leftHandJointIndex : -1; }
 
     /// Returns the index of the right hand joint, or -1 if not found.
-    int getRightHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().rightHandJointIndex : -1; }
+    int getRightHandJointIndex() const { return isActive() ? getFBXGeometry().rightHandJointIndex : -1; }
+
+    bool getLeftGrabPosition(glm::vec3& position) const;
+    bool getRightGrabPosition(glm::vec3& position) const;
 
     /// Retrieve the position of the left hand
     /// \return true whether or not the position was found
@@ -82,10 +87,6 @@ public:
     bool getNeckPosition(glm::vec3& neckPosition) const;
 
     bool getLocalNeckPosition(glm::vec3& neckPosition) const;
-    
-    /// Returns the rotation of the neck joint's parent from default orientation
-    /// \return whether or not the neck was found
-    bool getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const;
 
     /// Retrieve the positions of up to two eye meshes.
     /// \return whether or not both eye meshes were found
@@ -95,7 +96,7 @@ public:
     /// \return whether or not the head was found.
     glm::vec3 getDefaultEyeModelPosition() const;
 
-    void renderBoundingCollisionShapes(gpu::Batch& batch, float alpha);
+    void renderBoundingCollisionShapes(gpu::Batch& batch, float scale, float alpha);
     float getBoundingCapsuleRadius() const { return _boundingCapsuleRadius; }
     float getBoundingCapsuleHeight() const { return _boundingCapsuleHeight; }
     const glm::vec3 getBoundingCapsuleOffset() const { return _boundingCapsuleLocalOffset; }
@@ -114,24 +115,7 @@ protected:
 
     void computeBoundingShape();
 
-    /// \param jointIndex index of joint in model
-    /// \param position position of joint in model-frame
-    void applyHandPosition(int jointIndex, const glm::vec3& position);
-
-    void applyPalmData(int jointIndex, PalmData& palm);
 private:
-
-    void renderJointConstraints(gpu::Batch& batch, int jointIndex);
-    void renderOrientationDirections(gpu::Batch& batch, int jointIndex,
-                                     glm::vec3 position, const glm::quat& orientation, float size);
-
-    struct OrientationLineIDs {
-        int _up;
-        int _front;
-        int _right;
-    };
-    QHash<int, OrientationLineIDs> _jointOrientationLines;
-    int _triangleFanID;
 
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 

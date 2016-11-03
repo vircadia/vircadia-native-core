@@ -1,5 +1,7 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Windows specific instructions are found in this file.
 
+Interface can be built as 32 or 64 bit.
+
 ###Visual Studio 2013
 
 You can use the Community or Professional editions of Visual Studio 2013.
@@ -16,7 +18,7 @@ If using Visual Studio 2013 and building as a Visual Studio 2013 project you nee
 
 ####nmake
 
-Some of the external projects may require nmake to compile and install. If it is not installed at the location listed below, please ensure that it is in your PATH so CMake can find it when required. 
+Some of the external projects may require nmake to compile and install. If it is not installed at the location listed below, please ensure that it is in your PATH so CMake can find it when required.
 
 We expect nmake.exe to be located at the following path.
 
@@ -25,25 +27,26 @@ We expect nmake.exe to be located at the following path.
 ###Qt
 You can use the online installer or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.
 
-NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules.
+* [Download the online installer](http://www.qt.io/download-open-source/#section-2)
+    * When it asks you to select components, ONLY select one of the following, 32- or 64-bit to match your build preference:
+        * Qt > Qt 5.6.1 > **msvc2013 32-bit**
+        * Qt > Qt 5.6.1 > **msvc2013 64-bit**
 
-* [Download the online installer](http://qt-project.org/downloads)
-    * When it asks you to select components, ONLY select the following:
-        * Qt > Qt 5.4.1 > **msvc2013 32-bit OpenGL**
-
-* [Download the offline installer](http://download.qt.io/official_releases/qt/5.4/5.4.1/qt-opensource-windows-x86-msvc2013_opengl-5.4.1.exe)
+* Download the offline installer, 32- or 64-bit to match your build preference:
+    * [32-bit](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013-5.6.1-1.exe)
+    * [64-bit](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013_64-5.6.1-1.exe)
 
 Once Qt is installed, you need to manually configure the following:
-* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.4.1\msvc2013_opengl\lib\cmake` directory.
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.6.1\msvc2013\lib\cmake` or `Qt\5.6.1\msvc2013_64\lib\cmake` directory.
   * You can set an environment variable from Control Panel > System > Advanced System Settings > Environment Variables > New
 
 ###External Libraries
 
-As it stands, Hifi/Interface is a 32-bit application, so all libraries should also be 32-bit.
+All libraries should be 32- or 64-bit to match your build preference.
 
-CMake will need to know where the headers and libraries for required external dependencies are. 
+CMake will need to know where the headers and libraries for required external dependencies are.
 
-We use CMake's `fixup_bundle` to find the DLLs all of our exectuable targets require, and then copy them beside the executable in a post-build step. If `fixup_bundle` is having problems finding a DLL, you can fix it manually on your end by adding the folder containing that DLL to your path. Let us know which DLL CMake had trouble finding, as it is possible a tweak to our CMake files is required.
+We use CMake's `fixup_bundle` to find the DLLs all of our executable targets require, and then copy them beside the executable in a post-build step. If `fixup_bundle` is having problems finding a DLL, you can fix it manually on your end by adding the folder containing that DLL to your path. Let us know which DLL CMake had trouble finding, as it is possible a tweak to our CMake files is required.
 
 The recommended route for CMake to find the external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
@@ -69,26 +72,22 @@ Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll
     QSslSocket: cannot resolve SSL_CTX_set_next_proto_select_cb
     QSslSocket: cannot resolve SSL_get0_next_proto_negotiated
 
-To prevent these problems, install OpenSSL yourself. Download the following binary packages [from this website](http://slproweb.com/products/Win32OpenSSL.html):
-* Visual C++ 2008 Redistributables
-* Win32 OpenSSL v1.0.1p
+To prevent these problems, install OpenSSL yourself. Download one of the following binary packages [from this website](http://slproweb.com/products/Win32OpenSSL.html):
+* Win32 OpenSSL v1.0.1q
+* Win64 OpenSSL v1.0.1q
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
-
-####zlib
-
-Install zlib from
-
-  [Zlib for Windows](http://gnuwin32.sourceforge.net/packages/zlib.htm)
-
-and fix a header file, as described here:
-
-  [zlib zconf.h bug](http://sourceforge.net/p/gnuwin32/bugs/169/)
 
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.
 
+For 32-bit builds:
+
     cmake .. -G "Visual Studio 12"
+
+For 64-bit builds:
+
+    cmake .. -G "Visual Studio 12 Win64"
 
 Open %HIFI_DIR%\build\hifi.sln and compile.
 
@@ -99,3 +98,7 @@ If you need to debug Interface, you can run interface from within Visual Studio 
 * In the Solution Explorer, right click interface and click Set as StartUp Project
 * Set the "Working Directory" for the Interface debugging sessions to the Debug output directory so that your application can load resources. Do this: right click interface and click Properties, choose Debugging from Configuration Properties, set Working Directory to .\Debug
 * Now you can run and debug interface through Visual Studio
+
+For better performance when running debug builds, set the environment variable ```_NO_DEBUG_HEAP``` to ```1```
+
+http://preshing.com/20110717/the-windows-heap-is-slow-when-launched-from-the-debugger/

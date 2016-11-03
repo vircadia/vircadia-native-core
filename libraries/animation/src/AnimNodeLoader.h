@@ -13,9 +13,9 @@
 
 #include <memory>
 
+#include <QNetworkReply>
 #include <QString>
 #include <QUrl>
-#include <QtNetwork/QNetworkReply>
 
 #include "AnimNode.h"
 
@@ -25,7 +25,7 @@ class AnimNodeLoader : public QObject {
     Q_OBJECT
 
 public:
-    AnimNodeLoader(const QUrl& url);
+    explicit AnimNodeLoader(const QUrl& url);
 
 signals:
     void success(AnimNode::Pointer node);
@@ -36,12 +36,13 @@ protected:
     static AnimNode::Pointer load(const QByteArray& contents, const QUrl& jsonUrl);
 
 protected slots:
-    void onRequestDone(const QByteArray& data);
+    void onRequestDone(const QByteArray data);
     void onRequestError(QNetworkReply::NetworkError error);
 
 protected:
     QUrl _url;
-    Resource* _resource;
+    QSharedPointer<Resource> _resource;
+
 private:
 
     // no copies

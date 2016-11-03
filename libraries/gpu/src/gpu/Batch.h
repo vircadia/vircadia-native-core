@@ -14,6 +14,9 @@
 #include <vector>
 #include <mutex>
 #include <functional>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <shared/NsightHelpers.h>
 
 #include "Framebuffer.h"
 #include "Pipeline.h"
@@ -22,24 +25,17 @@
 #include "Texture.h"
 #include "Transform.h"
 
-
-#if defined(NSIGHT_FOUND)
-    class ProfileRange {
-    public:
-        ProfileRange(const char *name);
-        ~ProfileRange();
-    };
-#define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
-#else
-#define PROFILE_RANGE(name)
-#endif
-
 class QDebug;
-
+#define BATCH_PREALLOCATE_MIN 128
 namespace gpu {
 
 enum ReservedSlot {
+
+#ifdef GPU_SSBO_DRAW_CALL_INFO
     TRANSFORM_OBJECT_SLOT = 6,
+#else
+    TRANSFORM_OBJECT_SLOT = 31,
+#endif
     TRANSFORM_CAMERA_SLOT = 7,
 };
 
@@ -55,61 +51,57 @@ class Batch {
 public:
     typedef Stream::Slot Slot;
 
+
+    class DrawCallInfo {
+    public:
+        using Index = uint16_t;
+
+        DrawCallInfo(Index idx) : index(idx) {}
+
+        Index index { 0 };
+        uint16_t unused { 0 }; // Reserved space for later
+
+    };
+    // Make sure DrawCallInfo has no extra padding
+    static_assert(sizeof(DrawCallInfo) == 4, "DrawCallInfo size is incorrect.");
+
+    using DrawCallInfoBuffer = std::vector<DrawCallInfo>;
+
     struct NamedBatchData {
         using BufferPointers = std::vector<BufferPointer>;
         using Function = std::function<void(gpu::Batch&, NamedBatchData&)>;
 
-        std::once_flag _once;
-        BufferPointers _buffers;
-        size_t _count{ 0 };
-        Function _function;
+        BufferPointers buffers;
+        Function function;
+        DrawCallInfoBuffer drawCallInfos;
+
+        size_t count() const { return drawCallInfos.size(); }
 
         void process(Batch& batch) {
-            if (_function) {
-                _function(batch, *this);
+            if (function) {
+                function(batch, *this);
             }
         }
     };
 
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
 
-    class CacheState {
-    public:
-        size_t commandsSize;
-        size_t offsetsSize;
-        size_t paramsSize;
-        size_t dataSize;
+    DrawCallInfoBuffer _drawCallInfos;
+    static size_t _drawCallInfosMax;
 
-        size_t buffersSize;
-        size_t texturesSize;
-        size_t streamFormatsSize;
-        size_t transformsSize;
-        size_t pipelinesSize;
-        size_t framebuffersSize;
-        size_t queriesSize;
+    mutable std::string _currentNamedCall;
 
-        CacheState() : commandsSize(0), offsetsSize(0), paramsSize(0), dataSize(0), buffersSize(0), texturesSize(0), 
-            streamFormatsSize(0), transformsSize(0), pipelinesSize(0), framebuffersSize(0), queriesSize(0) { }
+    const DrawCallInfoBuffer& getDrawCallInfoBuffer() const;
+    DrawCallInfoBuffer& getDrawCallInfoBuffer();
 
-        CacheState(size_t commandsSize, size_t offsetsSize, size_t paramsSize, size_t dataSize, size_t buffersSize,
-            size_t texturesSize, size_t streamFormatsSize, size_t transformsSize, size_t pipelinesSize, 
-            size_t framebuffersSize, size_t queriesSize) : 
-            commandsSize(commandsSize), offsetsSize(offsetsSize), paramsSize(paramsSize), dataSize(dataSize), 
-            buffersSize(buffersSize), texturesSize(texturesSize), streamFormatsSize(streamFormatsSize), 
-            transformsSize(transformsSize), pipelinesSize(pipelinesSize), framebuffersSize(framebuffersSize), queriesSize(queriesSize) { }
-    };
+    void captureDrawCallInfo();
+    void captureNamedDrawCallInfo(std::string name);
 
     Batch();
-    Batch(const CacheState& cacheState);
     explicit Batch(const Batch& batch);
     ~Batch();
 
     void clear();
-    
-    void preExecute();
-
-    CacheState getCacheState();
-
 
     // Batches may need to override the context level stereo settings
     // if they're performing framebuffer copy operations, like the 
@@ -132,13 +124,8 @@ public:
     void multiDrawIndirect(uint32 numCommands, Primitive primitiveType);
     void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
-
-    void setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function);
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
     BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
-    void setNamedBuffer(const std::string& instanceName, BufferPointer& buffer, uint8_t index = 0);
-
-    
 
     // Input Stage
     // InputFormat
@@ -183,7 +170,8 @@ public:
     // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
     // with the ModelTransform to create the equivalent of the gl ModelViewMatrix
     void setModelTransform(const Transform& model);
-    void setViewTransform(const Transform& view);
+    void resetViewTransform() { setViewTransform(Transform(), false); }
+    void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
@@ -221,6 +209,9 @@ public:
     // with xy and zw the bounding corners of the rect region.
     void blit(const FramebufferPointer& src, const Vec4i& srcRect, const FramebufferPointer& dst, const Vec4i& dstRect);
 
+    // Generate the mips for a texture
+    void generateTextureMips(const TexturePointer& texture);
+
     // Query Section
     void beginQuery(const QueryPointer& query);
     void endQuery(const QueryPointer& query);
@@ -229,14 +220,15 @@ public:
     // Reset the stage caches and states
     void resetStages();
 
+    // Debugging
+    void pushProfileRange(const char* name);
+    void popProfileRange();
+
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
     // For now, instead of calling the raw gl Call, use the equivalent call on the batch so the call is beeing recorded
     // THe implementation of these functions is in GLBackend.cpp
-
-    void _glActiveBindTexture(unsigned int unit, unsigned int target, unsigned int texture);
-
     void _glUniform1i(int location, int v0);
     void _glUniform1f(int location, float v0);
     void _glUniform2f(int location, float v0, float v1);
@@ -245,6 +237,7 @@ public:
     void _glUniform3fv(int location, int count, const float* value);
     void _glUniform4fv(int location, int count, const float* value);
     void _glUniform4iv(int location, int count, const int* value);
+    void _glUniformMatrix3fv(int location, int count, unsigned char transpose, const float* value);
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
     void _glUniform(int location, int v0) {
@@ -265,6 +258,10 @@ public:
 
     void _glUniform(int location, const glm::vec4& v) {
         _glUniform4f(location, v.x, v.y, v.z, v.w);
+    }
+
+    void _glUniform(int location, const glm::mat3& v) {
+        _glUniformMatrix3fv(location, 1, false, glm::value_ptr(v));
     }
 
     void _glColor4f(float red, float green, float blue, float alpha);
@@ -298,6 +295,7 @@ public:
         COMMAND_setFramebuffer,
         COMMAND_clearFramebuffer,
         COMMAND_blit,
+        COMMAND_generateTextureMips,
 
         COMMAND_beginQuery,
         COMMAND_endQuery,
@@ -307,11 +305,12 @@ public:
 
         COMMAND_runLambda,
 
+        COMMAND_startNamedCall,
+        COMMAND_stopNamedCall,
+
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
         // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-        COMMAND_glActiveBindTexture,
-
         COMMAND_glUniform1i,
         COMMAND_glUniform1f,
         COMMAND_glUniform2f,
@@ -320,14 +319,18 @@ public:
         COMMAND_glUniform3fv,
         COMMAND_glUniform4fv,
         COMMAND_glUniform4iv,
+        COMMAND_glUniformMatrix3fv,
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glColor4f,
 
+        COMMAND_pushProfileRange,
+        COMMAND_popProfileRange,
+
         NUM_COMMANDS,
     };
     typedef std::vector<Command> Commands;
-    typedef std::vector<uint32> CommandOffsets;
+    typedef std::vector<size_t> CommandOffsets;
 
     const Commands& getCommands() const { return _commands; }
     const CommandOffsets& getCommandOffsets() const { return _commandOffsets; }
@@ -335,11 +338,17 @@ public:
     class Param {
     public:
         union {
+#if (QT_POINTER_SIZE == 8)
+            size_t _size;
+#endif            
             int32 _int;
             uint32 _uint;
-            float   _float;
-            char _chars[4];
+            float _float;
+            char _chars[sizeof(size_t)];
         };
+#if (QT_POINTER_SIZE == 8)
+        Param(size_t val) : _size(val) {}
+#endif            
         Param(int32 val) : _int(val) {}
         Param(uint32 val) : _uint(val) {}
         Param(float val) : _float(val) {}
@@ -357,19 +366,29 @@ public:
         typedef T Data;
         Data _data;
         Cache<T>(const Data& data) : _data(data) {}
+        static size_t _max;
 
         class Vector {
         public:
             std::vector< Cache<T> > _items;
 
+            Vector() {
+                _items.reserve(_max);
+            }
+
+            ~Vector() {
+                _max = std::max(_items.size(), _max);
+            }
+
+
             size_t size() const { return _items.size(); }
-            uint32 cache(const Data& data) {
-                uint32 offset = _items.size();
-                _items.push_back(Cache<T>(data));
+            size_t cache(const Data& data) {
+                size_t offset = _items.size();
+                _items.emplace_back(data);
                 return offset;
             }
 
-            Data get(uint32 offset) {
+            Data get(uint32 offset) const {
                 if (offset >= _items.size()) {
                     return Data();
                 }
@@ -389,14 +408,22 @@ public:
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
+    typedef Cache<std::string>::Vector StringCaches;
     typedef Cache<std::function<void()>>::Vector LambdaCache;
 
     // Cache Data in a byte array if too big to fit in Param
     // FOr example Mat4s are going there
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
-    uint32 cacheData(uint32 size, const void* data);
-    Byte* editData(uint32 offset) {
+    size_t cacheData(size_t size, const void* data);
+    Byte* editData(size_t offset) {
+        if (offset >= _data.size()) {
+            return 0;
+        }
+        return (_data.data() + offset);
+    }
+
+    const Byte* readData(size_t offset) const {
         if (offset >= _data.size()) {
             return 0;
         }
@@ -404,9 +431,29 @@ public:
     }
 
     Commands _commands;
+    static size_t _commandsMax;
+
     CommandOffsets _commandOffsets;
+    static size_t _commandOffsetsMax;
+
     Params _params;
+    static size_t _paramsMax;
+
     Bytes _data;
+    static size_t _dataMax;
+
+    // SSBO class... layout MUST match the layout in Transform.slh
+    class TransformObject {
+    public:
+        Mat4 _model;
+        Mat4 _modelInverse;
+    };
+
+    using TransformObjects = std::vector<TransformObject>;
+    bool _invalidModel { true };
+    Transform _currentModel;
+    TransformObjects _objects;
+    static size_t _objectsMax;
 
     BufferCaches _buffers;
     TextureCaches _textures;
@@ -416,6 +463,8 @@ public:
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
     LambdaCache _lambdas;
+    StringCaches _profileRanges;
+    StringCaches _names;
 
     NamedBatchDataMap _namedData;
 
@@ -423,12 +472,49 @@ public:
     bool _enableSkybox{ false };
 
 protected:
+    friend class Context;
+    friend class Frame;
+
+    // Apply all the named calls to the end of the batch
+    // and prepare updates for the render shadow copies of the buffers
+    void finishFrame(BufferUpdates& updates);
+
+    // Directly copy from the main data to the render thread shadow copy
+    // MUST only be called on the render thread
+    // MUST only be called on batches created on the render thread
+    void flush();
+
+    void startNamedCall(const std::string& name);
+    void stopNamedCall();
+
     // Maybe useful but shoudln't be public. Please convince me otherwise
     void runLambda(std::function<void()> f);
+
+    void captureDrawCallInfoImpl();
 };
+
+template <typename T>
+size_t Batch::Cache<T>::_max = BATCH_PREALLOCATE_MIN;
 
 }
 
-QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
+#if defined(NSIGHT_FOUND)
+
+class ProfileRangeBatch {
+public:
+    ProfileRangeBatch(gpu::Batch& batch, const char *name);
+    ~ProfileRangeBatch();
+
+private:
+    gpu::Batch& _batch;
+};
+
+#define PROFILE_RANGE_BATCH(batch, name) ProfileRangeBatch profileRangeThis(batch, name);
+
+#else
+
+#define PROFILE_RANGE_BATCH(batch, name) 
+
+#endif
 
 #endif

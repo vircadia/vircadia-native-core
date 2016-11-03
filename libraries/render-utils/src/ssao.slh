@@ -1,0 +1,383 @@
+<!
+//  AmbientOcclusion.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 1/1/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not SSAO_SLH@>
+<@def SSAO_SLH@>
+
+<@func declarePackOcclusionDepth()@>
+
+const float FAR_PLANE_Z = -300.0;
+
+float CSZToDephtKey(float z) {
+    return clamp(z * (1.0 / FAR_PLANE_Z), 0.0, 1.0);
+}
+vec3 packOcclusionDepth(float occlusion, float depth) {
+    // Round to the nearest 1/256.0
+    float temp = floor(depth * 256.0);
+    return vec3(occlusion, temp * (1.0 / 256.0), depth * 256.0 - temp);
+}
+vec2 unpackOcclusionDepth(vec3 raw) {
+    float z = raw.y * (256.0 / 257.0) + raw.z * (1.0 / 257.0);
+    return vec2(raw.x, z);
+}
+<@endfunc@>
+
+<@func declareAmbientOcclusion()@>
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+struct AmbientOcclusionParams {
+    vec4 _resolutionInfo;
+    vec4 _radiusInfo;
+    vec4 _ditheringInfo;
+    vec4 _sampleInfo;
+    vec4 _blurInfo;
+    float _gaussianCoefs[8];
+};
+
+uniform ambientOcclusionParamsBuffer {
+    AmbientOcclusionParams params;
+};
+
+
+float getPerspectiveScale() {
+    
+    return (params._resolutionInfo.z);
+}
+int getResolutionLevel() {
+    
+    return int(params._resolutionInfo.x);
+}
+
+float getRadius() {
+    return params._radiusInfo.x;
+}
+float getRadius2() {
+    return params._radiusInfo.y;
+}
+float getInvRadius6() {
+    return params._radiusInfo.z;
+}
+float getObscuranceScaling() {
+    return params._radiusInfo.z * params._radiusInfo.w;
+}
+
+float isDitheringEnabled() {
+    return params._ditheringInfo.x;
+}
+float getFrameDithering() {
+    return params._ditheringInfo.y;
+}
+float isBorderingEnabled() {
+    return params._ditheringInfo.w;
+}
+
+float getFalloffBias() {
+    return params._ditheringInfo.z;
+}
+
+float getNumSamples() {
+    return params._sampleInfo.x;
+}
+float getInvNumSamples() {
+    return params._sampleInfo.y;
+}
+float getNumSpiralTurns() {
+    return params._sampleInfo.z;
+}
+
+int doFetchMips() {
+    return int(params._sampleInfo.w);
+}
+
+float getBlurEdgeSharpness() {
+    return params._blurInfo.x;
+}
+
+#ifdef CONSTANT_GAUSSIAN
+const int BLUR_RADIUS = 4;
+const float gaussian[BLUR_RADIUS + 1] =
+// KEEP this dead code for eventual performance improvment
+//    float[](0.356642, 0.239400, 0.072410, 0.009869);
+//    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // stddev = 1.0
+float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
+//float[](0.197413, 0.17467, 0.12098,0.065591,0.040059);
+//      float[](0.111220, 0.107798, 0.098151, 0.083953, 0.067458, 0.050920, 0.036108); // stddev = 3.0
+
+int getBlurRadius() {
+    return BLUR_RADIUS;
+}
+
+float getBlurCoef(int c) {
+    return gaussian[c];
+}
+#else
+int getBlurRadius() {
+    return int(params._blurInfo.y);
+}
+
+float getBlurCoef(int c) {
+    return params._gaussianCoefs[c];
+}
+#endif
+
+<@endfunc@>
+
+<@func declareSamplingDisk()@>
+
+float getAngleDitheringWorldPos(in vec3 pixelWorldPos) {
+    vec3 worldPosFract = fract(pixelWorldPos * 1.0);
+
+    ivec3 pixelPos = ivec3(worldPosFract * 256);
+
+    return isDitheringEnabled() * ((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) + (3 * pixelPos.y ^ pixelPos.z + pixelPos.x * pixelPos.z)) * 10 + getFrameDithering();
+}
+
+float getAngleDithering(in ivec2 pixelPos) {
+    // Hash function used in the AlchemyAO paper
+    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
+}
+
+float evalDiskRadius(float Zeye, vec2 imageSize) {
+    // Choose the screen-space sample radius
+    // proportional to the projected area of the sphere
+    float ssDiskRadius = -( getProjScale(getResolutionLevel()) * getRadius() / Zeye ) * getPerspectiveScale();
+
+    // clamp the disk to fit in the image otherwise too many unknown
+    ssDiskRadius = min(ssDiskRadius, imageSize.y * 0.5);
+
+    return ssDiskRadius;
+}
+
+const float TWO_PI = 6.28;
+
+vec3 getUnitTapLocation(int sampleNumber, float spinAngle){
+    // Radius relative to ssR
+    float alpha = float(sampleNumber + 0.5) * getInvNumSamples();
+    float angle = alpha * (getNumSpiralTurns() * TWO_PI) + spinAngle;
+    return vec3(cos(angle), sin(angle), alpha);
+}
+
+vec3 getTapLocation(int sampleNumber, float spinAngle, float outerRadius) {
+    vec3 tap = getUnitTapLocation(sampleNumber, spinAngle);
+    tap.xy *= tap.z;
+    tap *= outerRadius;
+    return tap;
+}
+
+vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius, vec2 pixelPos, vec2 imageSize) {
+    vec3 tap = getTapLocation(sampleNumber, spinAngle, outerRadius);
+    vec2 tapPos = pixelPos + tap.xy;
+
+    if (!(isBorderingEnabled() > 0.0)) {
+        return tap;
+    }
+    bool redoTap = false;
+
+    if ((tapPos.x < 0.5)) {
+        tapPos.x = -tapPos.x;
+        redoTap = true;
+    } else if ((tapPos.x > imageSize.x - 0.5)) {
+        tapPos.x -= (imageSize.x - tapPos.x);
+        redoTap = true;
+    }
+
+    if ((tapPos.y < 0.5)) {
+        tapPos.y = -tapPos.y;
+        redoTap = true;
+    } else if ((tapPos.y > imageSize.y - 0.5)) {
+        tapPos.y -= (imageSize.y - tapPos.y);
+        redoTap = true;
+    }
+/*
+    if ((tapPos.x < 0.5)) {
+        tapPos.x = 0.5;
+        redoTap = true;
+    } else if ((tapPos.x > imageSize.x - 0.5)) {
+        tapPos.x = imageSize.x - 0.5;
+        redoTap = true;
+    }
+
+    if ((tapPos.y < 0.5)) {
+        tapPos.y = 0.5;
+        redoTap = true;
+    } else if ((tapPos.y > imageSize.y - 0.5)) {
+        tapPos.y = imageSize.y - 0.5;
+        redoTap = true;
+    }
+*/
+   
+    if (redoTap) {
+        tap.xy = tapPos - pixelPos;
+        tap.z = length(tap.xy);
+        tap.z = 0;  
+    }
+    
+    return tap;
+}
+
+<@endfunc@>
+
+
+<@func declareFetchDepthPyramidMap()@>
+
+
+// the depth pyramid texture
+uniform sampler2D pyramidMap;
+
+float getZEye(ivec2 pixel, int level) {
+    return -texelFetch(pyramidMap, pixel, level).x;
+}
+
+const int LOG_MAX_OFFSET = 3;
+const int MAX_MIP_LEVEL = 5;
+int evalMipFromRadius(float radius) {
+    //  mipLevel = floor(log(ssR / MAX_OFFSET));
+    return clamp(findMSB(int(radius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
+}
+
+
+vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+    ivec2 ssP = ivec2(tap.xy) + ssC;
+    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
+
+
+    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
+
+    vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
+
+    vec3 P;
+    P.xy = tapUV;
+    P.z = -texture(pyramidMap, fetchUV).x;
+
+   return P;
+}
+
+vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+    int mipLevel = evalMipFromRadius(tap.z * doFetchMips());
+
+    ivec2 ssP = ivec2(tap.xy) + ssC;
+    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
+
+    // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
+    // Manually clamp to the texture size because texelFetch bypasses the texture unit
+   //  ivec2 mipSize = textureSize(pyramidMap, mipLevel);
+   ivec2 mipSize = max(ivec2(imageSize) >> mipLevel, ivec2(1));
+
+    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), mipSize - ivec2(1));
+   
+    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
+    vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
+    // vec2 tapUV = (vec2(mipP) + vec2(0.5)) / vec2(mipSize);
+
+    vec3 P;
+    P.xy = tapUV;
+  //  P.z = -texelFetch(pyramidMap, mipP, mipLevel).x;
+    P.z = -textureLod(pyramidMap, fetchUV, float(mipLevel)).x;
+
+   return P;
+}
+
+
+
+<@endfunc@>
+
+
+<@func declareEvalObscurance()@>
+
+float evalAO(in vec3 C, in vec3 n_C, in vec3 Q) {
+    vec3 v = Q - C;
+    float vv = dot(v, v);
+    float vn = dot(v, n_C);
+
+    // Fall off function as recommended in SAO paper
+    const float epsilon = 0.01;
+    float f = max(getRadius2() - vv, 0.0);
+    return f * f * f * max((vn - getFalloffBias()) / (epsilon + vv), 0.0);
+}
+
+<@endfunc@>
+
+<@func declareBlurPass(axis)@>
+
+<$declarePackOcclusionDepth()$>
+<$declareAmbientOcclusion()$>
+
+// the source occlusion texture
+uniform sampler2D occlusionMap;
+
+vec2 fetchOcclusionDepthRaw(ivec2 coords, out vec3 raw) {
+    raw = texelFetch(occlusionMap, coords, 0).xyz;
+    return unpackOcclusionDepth(raw);
+}
+
+vec2 fetchOcclusionDepth(ivec2 coords) {
+    return unpackOcclusionDepth(texelFetch(occlusionMap, coords, 0).xyz);
+}
+
+const int RADIUS_SCALE = 1;
+const float BLUR_WEIGHT_OFFSET = 0.05;
+const float BLUR_EDGE_SCALE = 2000.0;
+
+vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
+    ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
+    ivec2 ssP = (ssC + tapOffset);
+
+    if ((ssP.x < side.y || ssP.x >= side.z + side.y) || (ssP.y < 0 || ssP.y >= int(getWidthHeight(getResolutionLevel()).y))) {
+        return vec2(0.0);
+    }
+    vec2 tapOZ = fetchOcclusionDepth(ssC + tapOffset);
+
+    // spatial domain: offset gaussian tap
+    float weight = BLUR_WEIGHT_OFFSET + getBlurCoef(abs(r));
+
+    // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
+    weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * BLUR_EDGE_SCALE) * abs(tapOZ.y - key));
+    
+    return vec2(tapOZ.x * weight, weight);
+}
+
+vec3 getBlurredOcclusion(vec2 coord) {
+    ivec2 ssC = ivec2(coord);
+
+    // Stereo side info
+    ivec4 side = getStereoSideInfo(ssC.x, getResolutionLevel());
+
+    vec3 rawSample;
+    vec2 occlusionDepth = fetchOcclusionDepthRaw(ssC, rawSample);
+    float key = occlusionDepth.y;
+    
+    // Central pixel contribution
+    float mainWeight = getBlurCoef(0);
+    vec2 weightedSums = vec2(occlusionDepth.x * mainWeight, mainWeight);
+
+    // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
+    int blurRadius = getBlurRadius();
+    // negative side first
+    for (int r = -blurRadius; r <= -1; ++r) {
+        weightedSums += evalTapWeightedValue(side.xyz, r, ssC, key);
+    }
+    // then positive side
+    for (int r = 1; r <= blurRadius; ++r) {
+        weightedSums += evalTapWeightedValue(side.xyz, r, ssC, key);
+    }
+
+    // Final normalization
+    const float epsilon = 0.0001;
+    float result = weightedSums.x / (weightedSums.y + epsilon);
+    
+    rawSample.x = result;
+    return rawSample;
+}
+
+<@endfunc@>
+
+
+<@endif@>

@@ -18,7 +18,9 @@ public:
 
     int size() const { return _numRotations; }
 
-    void add(const glm::quat& rotation);
+    /// \param rotation rotation to add
+    /// \param weight contribution factor of this rotation to total accumulation
+    void add(const glm::quat& rotation, float weight = 1.0f);
 
     glm::quat getAverage();
 

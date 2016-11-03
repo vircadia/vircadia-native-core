@@ -22,40 +22,45 @@ quat Quat::normalize(const glm::quat& q) {
     return glm::normalize(q);
 }
 
+quat Quat::conjugate(const glm::quat& q) {
+    return glm::conjugate(q);
+}
+
 glm::quat Quat::rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return ::rotationBetween(v1, v2);
 }
 
 glm::quat Quat::lookAt(const glm::vec3& eye, const glm::vec3& center, const glm::vec3& up) {
-    return glm::quat_cast(glm::lookAt(eye, center, up));
+    return glm::inverse(glm::quat_cast(glm::lookAt(eye, center, up)));  // OpenGL view matrix is inverse of our camera matrix.
 }
 
 glm::quat Quat::lookAtSimple(const glm::vec3& eye, const glm::vec3& center) {
     auto dir = glm::normalize(center - eye);
     // if the direction is nearly aligned with the Y axis, then use the X axis for 'up'
-    if (dir.x < 0.001f && dir.z < 0.001f) {
+    const float MAX_ABS_Y_COMPONENT = 0.9999991f;
+    if (fabsf(dir.y) > MAX_ABS_Y_COMPONENT) {
         return lookAt(eye, center, Vectors::UNIT_X);
     }
     return lookAt(eye, center, Vectors::UNIT_Y);
 }
 
-glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) { 
-    return q1 * q2; 
+glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) {
+    return q1 * q2;
 }
 
-glm::quat Quat::fromVec3Degrees(const glm::vec3& eulerAngles) { 
-    return glm::quat(glm::radians(eulerAngles)); 
+glm::quat Quat::fromVec3Degrees(const glm::vec3& eulerAngles) {
+    return glm::quat(glm::radians(eulerAngles));
 }
 
-glm::quat Quat::fromVec3Radians(const glm::vec3& eulerAngles) { 
-    return glm::quat(eulerAngles); 
+glm::quat Quat::fromVec3Radians(const glm::vec3& eulerAngles) {
+    return glm::quat(eulerAngles);
 }
 
-glm::quat Quat::fromPitchYawRollDegrees(float pitch, float yaw, float roll) { 
+glm::quat Quat::fromPitchYawRollDegrees(float pitch, float yaw, float roll) {
     return glm::quat(glm::radians(glm::vec3(pitch, yaw, roll)));
 }
 
-glm::quat Quat::fromPitchYawRollRadians(float pitch, float yaw, float roll) { 
+glm::quat Quat::fromPitchYawRollRadians(float pitch, float yaw, float roll) {
     return glm::quat(glm::vec3(pitch, yaw, roll));
 }
 
@@ -64,15 +69,15 @@ glm::quat Quat::inverse(const glm::quat& q) {
 }
 
 glm::vec3 Quat::getFront(const glm::quat& orientation) {
-    return orientation * IDENTITY_FRONT;
+    return orientation * Vectors::FRONT;
 }
 
 glm::vec3 Quat::getRight(const glm::quat& orientation) {
-    return orientation * IDENTITY_RIGHT;
+    return orientation * Vectors::RIGHT;
 }
 
 glm::vec3 Quat::getUp(const glm::quat& orientation) {
-    return orientation * IDENTITY_UP;
+    return orientation * Vectors::UP;
 }
 
 glm::vec3 Quat::safeEulerAngles(const glm::quat& orientation) {
@@ -109,11 +114,11 @@ float Quat::dot(const glm::quat& q1, const glm::quat& q2) {
     return glm::dot(q1, q2);
 }
 
-void Quat::print(const QString& lable, const glm::quat& q) {
-    qCDebug(scriptengine) << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
+void Quat::print(const QString& label, const glm::quat& q) {
+    qCDebug(scriptengine) << qPrintable(label) << q.x << "," << q.y << "," << q.z << "," << q.w;
 }
 
-bool Quat::equal(const glm::vec3& q1, const glm::vec3& q2) {
+bool Quat::equal(const glm::quat& q1, const glm::quat& q2) {
     return q1 == q2;
 }
 

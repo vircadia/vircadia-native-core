@@ -23,6 +23,7 @@
 
 #include <NLPacket.h>
 #include <Node.h>
+#include <OctalCode.h>
 
 class JurisdictionMap {
 public:
@@ -41,8 +42,8 @@ public:
 
     // application constructors
     JurisdictionMap(const char* filename);
-    JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
     JurisdictionMap(const char* rootHextString, const char* endNodesHextString);
+
     ~JurisdictionMap();
 
     Area isMyJurisdiction(const unsigned char* nodeOctalCode, int childIndex) const;
@@ -50,13 +51,14 @@ public:
     bool writeToFile(const char* filename);
     bool readFromFile(const char* filename);
 
-    unsigned char* getRootOctalCode() const { return _rootOctalCode; }
-    unsigned char* getEndNodeOctalCode(int index) const { return _endNodes[index]; }
-    int getEndNodeCount() const { return _endNodes.size(); }
+    // Provide an atomic way to get both the rootOctalCode and endNodeOctalCodes.
+    std::tuple<OctalCodePtr, OctalCodePtrList> getRootAndEndNodeOctalCodes() const;
+    OctalCodePtr getRootOctalCode() const;
+    OctalCodePtrList getEndNodeOctalCodes() const;
 
-    void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
+    void copyContents(const OctalCodePtr& rootCodeIn, const OctalCodePtrList& endNodesIn);
 
-    int unpackFromPacket(NLPacket& packet);
+    int unpackFromPacket(ReceivedMessage& message);
     std::unique_ptr<NLPacket> packIntoPacket();
 
     /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available
@@ -69,11 +71,11 @@ public:
 
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead
-    void clear();
-    void init(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
+    void init(OctalCodePtr rootOctalCode, const OctalCodePtrList& endNodes);
 
-    unsigned char* _rootOctalCode;
-    std::vector<unsigned char*> _endNodes;
+    mutable std::mutex _octalCodeMutex;
+    OctalCodePtr _rootOctalCode { nullptr };
+    OctalCodePtrList _endNodes;
     NodeType_t _nodeType;
 };
 

@@ -18,19 +18,19 @@ class MovingPercentile {
 public:
     MovingPercentile(int numSamples, float percentile = 0.5f);
 
-    void updatePercentile(float sample);
-    float getValueAtPercentile() const { return _valueAtPercentile; }
+    void updatePercentile(qint64 sample);
+    qint64 getValueAtPercentile() const { return _valueAtPercentile; }
 
 private:
     const int _numSamples;
     const float _percentile;
 
-    QList<float> _samplesSorted;
+    QList<qint64> _samplesSorted;
     QList<int> _sampleIds;      // incrementally assigned, is cyclic
     int _newSampleId;
 
     int _indexOfPercentile;
-    float _valueAtPercentile;
+    qint64 _valueAtPercentile;
 };
 
 #endif

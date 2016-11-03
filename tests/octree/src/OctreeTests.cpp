@@ -670,9 +670,8 @@ void OctreeTests::byteCountCodingTests() {
 }
 
 void OctreeTests::modelItemTests() {
-    bool verbose = true;
-    
 #if 0 // TODO - repair/replace these
+    bool verbose = true;
 
     //verbose = true;
     EntityTreeElementExtraEncodeData modelTreeElementExtraEncodeData;
@@ -796,3 +795,35 @@ void OctreeTests::modelItemTests() {
 #endif 
 }
 
+void OctreeTests::elementAddChildTests() {
+    EntityTreePointer tree = std::make_shared<EntityTree>();
+    auto elem = tree->createNewElement();
+    QCOMPARE((bool)elem->getChildAtIndex(0), false);
+    elem->addChildAtIndex(0);
+    QCOMPARE((bool)elem->getChildAtIndex(0), true);
+
+    const int MAX_CHILD_INDEX = 8;
+    for (int i = 0; i < MAX_CHILD_INDEX; i++) {
+        for (int j = 0; j < MAX_CHILD_INDEX; j++) {
+            auto e = tree->createNewElement();
+
+            // add a single child.
+            auto firstChild = e->addChildAtIndex(i);
+            QCOMPARE(e->getChildAtIndex(i), firstChild);
+
+            if (i != j) {
+                // add a second child.
+                auto secondChild = e->addChildAtIndex(j);
+                QCOMPARE(e->getChildAtIndex(i), firstChild);
+                QCOMPARE(e->getChildAtIndex(j), secondChild);
+
+                // remove scecond child.
+                e->removeChildAtIndex(j);
+
+                QCOMPARE((bool)e->getChildAtIndex(j), false);
+            }
+
+            QCOMPARE(e->getChildAtIndex(i), firstChild);
+        }
+    }
+}

@@ -149,7 +149,7 @@ void OctreeEditPacketSender::queuePendingPacketToNodes(std::unique_ptr<NLPacket>
         _pendingPacketsLock.lock();
         _preServerSingleMessagePackets.push_back(std::move(packet));
         // if we've saved MORE than our max, then clear out the oldest packet...
-        int allPendingMessages = _preServerSingleMessagePackets.size() + _preServerEdits.size();
+        int allPendingMessages = (int)(_preServerSingleMessagePackets.size() + _preServerEdits.size());
         if (allPendingMessages > _maxPendingMessages) {
             _preServerSingleMessagePackets.pop_front();
         }
@@ -210,7 +210,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray&
             _preServerEdits.push_back(messagePair);
 
             // if we've saved MORE than out max, then clear out the oldest packet...
-            int allPendingMessages = _preServerSingleMessagePackets.size() + _preServerEdits.size();
+            int allPendingMessages = (int)(_preServerSingleMessagePackets.size() + _preServerEdits.size());
             if (allPendingMessages > _maxPendingMessages) {
                 _preServerEdits.pop_front();
             }
@@ -315,7 +315,7 @@ void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::uniqu
     _releaseQueuedPacketMutex.unlock();
 }
 
-std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType type, int nodeClockSkew) {
+std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType type, qint64 nodeClockSkew) {
     auto newPacket = NLPacket::create(type);
 
     // skip over sequence number for now; will be packed when packet is ready to be sent out
@@ -339,7 +339,7 @@ bool OctreeEditPacketSender::process() {
     return PacketSender::process();
 }
 
-void OctreeEditPacketSender::processNackPacket(NLPacket& packet, SharedNodePointer sendingNode) {
+void OctreeEditPacketSender::processNackPacket(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // parse sending node from packet, retrieve packet history for that node
 
     // if packet history doesn't exist for the sender node (somehow), bail
@@ -350,9 +350,9 @@ void OctreeEditPacketSender::processNackPacket(NLPacket& packet, SharedNodePoint
     const SentPacketHistory& sentPacketHistory = _sentPacketHistories[sendingNode->getUUID()];
 
     // read sequence numbers and queue packets for resend
-    while (packet.bytesLeftToRead() > 0) {
+    while (message.getBytesLeftToRead() > 0) {
         unsigned short int sequenceNumber;
-        packet.readPrimitive(&sequenceNumber);
+        message.readPrimitive(&sequenceNumber);
         
         // retrieve packet from history
         const NLPacket* packet = sentPacketHistory.getPacket(sequenceNumber);

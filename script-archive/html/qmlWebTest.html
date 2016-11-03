@@ -1,0 +1,27 @@
+<html>
+<head>
+<title>Properties</title>
+<script type="text/javascript" src="jquery-2.1.4.min.js"></script>
+<script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script type="text/javascript" src="eventBridgeLoader.js"></script>
+<script>
+    window.onload = function() { 
+        openEventBridge(function() {
+            EventBridge.scriptEventReceived.connect(function(message) {
+                console.log("HTML side received message: " + message); 
+            });
+        });
+    }
+
+    testClick = function() {
+        EventBridge.emitWebEvent(["Foo", "Bar", { "baz": 1} ]);
+    }
+</script>
+</head>
+
+<body class="properties">
+    <button name="Test" title="Test" onclick="testClick()">Test</button>
+</body>
+
+</html>
+</body>

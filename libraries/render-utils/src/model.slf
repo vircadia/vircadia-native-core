@@ -15,25 +15,45 @@
 
 <@include model/Material.slh@>
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 
 in vec4 _position;
 in vec3 _normal;
 in vec3 _color;
 in vec2 _texCoord0;
+in vec2 _texCoord1;
 
 
 void main(void) {
-    // Fetch diffuse map
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
-
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
+
+    float opacity = 1.0;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <$discardTransparent(opacity)$>;
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color;
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
+    vec3 emissive = getMaterialEmissive(mat);
+    <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+
+    float scattering = getMaterialScattering(mat);
 
     packDeferredFragment(
         normalize(_normal.xyz), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * _color,
-        getMaterialSpecular(mat),
-        getMaterialShininess(mat));
+        opacity,
+        albedo,
+        roughness,
+        getMaterialMetallic(mat),
+        emissive,
+        occlusionTex,
+        scattering);
 }

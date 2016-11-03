@@ -51,7 +51,7 @@ public slots:
     bool hasPacketsToSend() const { return _packetSender->hasPacketsToSend(); }
 
     /// how many packets are there in the send queue waiting to be sent
-    int packetsToSendCount() const { return _packetSender->packetsToSendCount(); }
+    int packetsToSendCount() const { return (int)_packetSender->packetsToSendCount(); }
 
     /// returns the packets per second send rate of this object over its lifetime
     float getLifetimePPS() const { return _packetSender->getLifetimePPS(); }

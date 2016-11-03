@@ -1,0 +1,226 @@
+{
+    "Entities": [{
+        "collisionsWillMove": 1,
+        "created": "2016-03-31T23:06:57Z",
+        "dimensions": {
+            "x": 0.28182807564735413,
+            "y": 0.25535506010055542,
+            "z": 0.14865440130233765
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{13efcd51-8cae-4052-951d-9ec6f7214f26}",
+        "modelURL": "atp:/kineticObjects/Zombie_Rabbit.fbx",
+        "name": "home_model_Zombie_Rabbit.fbx",
+        "position": {
+            "x": 0.529541015625,
+            "y": 0.572784423828125,
+            "z": 0.6578216552734375
+        },
+        "queryAACube": {
+            "scale": 0.40832754969596863,
+            "x": 0.32537722587585449,
+            "y": 0.36862063407897949,
+            "z": 0.45365786552429199
+        },
+        "rotation": {
+            "w": 0.83144879341125488,
+            "x": -1.52587890625e-05,
+            "y": -0.55562674999237061,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionsWillMove": 1,
+        "created": "2016-03-31T23:06:57Z",
+        "dimensions": {
+            "x": 0.34797310829162598,
+            "y": 0.4468902051448822,
+            "z": 0.33542871475219727
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{3b956925-2489-4e80-925b-d503658c007a}",
+        "modelURL": "atp:/kineticObjects/Robot.fbx",
+        "name": "home_model_Robot.fbx",
+        "position": {
+            "x": 0.3660888671875,
+            "y": 0.664794921875,
+            "z": 0.38057708740234375
+        },
+        "queryAACube": {
+            "scale": 0.65826177597045898,
+            "x": 0.036957979202270508,
+            "y": 0.33566403388977051,
+            "z": 0.051446199417114258
+        },
+        "rotation": {
+            "w": 0.86916911602020264,
+            "x": -0.0001373291015625,
+            "y": -0.49446862936019897,
+            "z": -0.0001678466796875
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionsWillMove": 1,
+        "created": "2016-03-31T22:45:06Z",
+        "dimensions": {
+            "x": 0.1394726037979126,
+            "y": 0.49765011668205261,
+            "z": 0.13870064914226532
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{f0a9669c-3a27-4511-a1ea-cec6bd70dc87}",
+        "modelURL": "atp:/kineticObjects/Fizzy_Pop.fbx",
+        "name": "home_model_Fizzy_Pop.fbx",
+        "position": {
+            "x": 0,
+            "y": 0.690338134765625,
+            "z": 0.06630706787109375
+        },
+        "queryAACube": {
+            "scale": 0.53511321544647217,
+            "x": -0.26755660772323608,
+            "y": 0.42278152704238892,
+            "z": -0.20124953985214233
+        },
+        "rotation": {
+            "w": -0.33333331346511841,
+            "x": -4.57763671875e-05,
+            "y": 0.94277870655059814,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionsWillMove": 1,
+        "created": "2016-03-31T23:06:57Z",
+        "dimensions": {
+            "x": 0.18462549149990082,
+            "y": 0.20482274889945984,
+            "z": 0.22557833790779114
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{323fac35-f1d3-4b76-837f-b158c2f269aa}",
+        "modelURL": "atp:/kineticObjects/Zombie_Cat.fbx",
+        "name": "home_model_Zombie_Cat.fbx",
+        "position": {
+            "x": 0.6685791015625,
+            "y": 0,
+            "z": 1.0860137939453125
+        },
+        "queryAACube": {
+            "scale": 0.35626468062400818,
+            "x": 0.49044674634933472,
+            "y": -0.17813234031200409,
+            "z": 0.90788143873214722
+        },
+        "rotation": {
+            "w": 0.73727011680603027,
+            "x": -1.52587890625e-05,
+            "y": -0.67562371492385864,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionsWillMove": 1,
+        "created": "2016-03-31T22:47:17Z",
+        "dimensions": {
+            "x": 0.42468345165252686,
+            "y": 0.25432091951370239,
+            "z": 0.35341560840606689
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{97b1b14b-f52e-47c5-91e9-53e93a69d232}",
+        "modelURL": "atp:/kineticObjects/Ninja_House.fbx",
+        "name": "home_model_Ninja_House.fbx",
+        "position": {
+            "x": 0.065185546875,
+            "y": 0.006011962890625,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 0.60822510719299316,
+            "x": -0.23892700672149658,
+            "y": -0.29810059070587158,
+            "z": -0.30411255359649658
+        },
+        "rotation": {
+            "w": 0.9695124626159668,
+            "x": -0.0001373291015625,
+            "y": 0.24492251873016357,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionsWillMove": 1,
+        "created": "2016-03-31T22:49:28Z",
+        "dimensions": {
+            "x": 0.36405211687088013,
+            "y": 0.32572725415229797,
+            "z": 0.36405211687088013
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{f053e31e-f446-494a-85ee-6bb76608b41b}",
+        "modelURL": "atp:/kineticObjects/PropagandaOrnament.fbx",
+        "name": "home_model_PropagandaOrnament.fbx",
+        "position": {
+            "x": 0.5653076171875,
+            "y": 0.0426025390625,
+            "z": 0.74505615234375
+        },
+        "queryAACube": {
+            "scale": 0.6092340350151062,
+            "x": 0.2606905996799469,
+            "y": -0.2620144784450531,
+            "z": 0.4404391348361969
+        },
+        "rotation": {
+            "w": 0.89004349708557129,
+            "x": -0.0001678466796875,
+            "y": -0.45589381456375122,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 57
+}

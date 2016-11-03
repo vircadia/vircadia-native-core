@@ -10,56 +10,59 @@
 //
 
 #include "MixedProcessedAudioStream.h"
+#include "AudioLogging.h"
 
-static const int STEREO_FACTOR = 2;
+MixedProcessedAudioStream::MixedProcessedAudioStream(int numFramesCapacity, int numStaticJitterFrames)
+    : InboundAudioStream(AudioConstants::STEREO, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
+        numFramesCapacity, numStaticJitterFrames) {}
 
-MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings)
-    : InboundAudioStream(numFrameSamples, numFramesCapacity, settings)
-{
+void MixedProcessedAudioStream::outputFormatChanged(int sampleRate, int channelCount) {
+    _outputSampleRate = sampleRate;
+    _outputChannelCount = channelCount;
+    int deviceOutputFrameFrames = networkToDeviceFrames(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / AudioConstants::STEREO);
+    int deviceOutputFrameSamples = deviceOutputFrameFrames * AudioConstants::STEREO;
+    _ringBuffer.resizeForFrameSize(deviceOutputFrameSamples);
 }
 
-void MixedProcessedAudioStream::outputFormatChanged(int outputFormatChannelCountTimesSampleRate) {
-    _outputFormatChannelsTimesSampleRate = outputFormatChannelCountTimesSampleRate;
-    int deviceOutputFrameSize = networkToDeviceSamples(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
-    _ringBuffer.resizeForFrameSize(deviceOutputFrameSize);
+int MixedProcessedAudioStream::writeDroppableSilentFrames(int silentFrames) {
+    int deviceSilentFrames = networkToDeviceFrames(silentFrames);
+    int deviceSilentFramesWritten = InboundAudioStream::writeDroppableSilentFrames(deviceSilentFrames);
+    emit addedSilence(deviceToNetworkFrames(deviceSilentFramesWritten));
+    return deviceSilentFramesWritten;
 }
 
-int MixedProcessedAudioStream::writeDroppableSilentSamples(int silentSamples) {
-    
-    int deviceSilentSamplesWritten = InboundAudioStream::writeDroppableSilentSamples(networkToDeviceSamples(silentSamples));
-    
-    emit addedSilence(deviceToNetworkSamples(deviceSilentSamplesWritten) / STEREO_FACTOR);
-
-    return deviceSilentSamplesWritten;
+int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int frames) {
+    int deviceFrames = networkToDeviceFrames(frames);
+    int deviceFramesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(deviceFrames);
+    emit addedLastFrameRepeatedWithFade(deviceToNetworkFrames(deviceFramesWritten));
+    return deviceFramesWritten;
 }
 
-int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int samples) {
+int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
+    QByteArray decodedBuffer;
+    if (_decoder) {
+        _decoder->decode(packetAfterStreamProperties, decodedBuffer);
+    } else {
+        decodedBuffer = packetAfterStreamProperties;
+    }
 
-    int deviceSamplesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(networkToDeviceSamples(samples));
-
-    emit addedLastFrameRepeatedWithFade(deviceToNetworkSamples(deviceSamplesWritten) / STEREO_FACTOR);
-    
-    return deviceSamplesWritten;
-}
-
-int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples) {
-
-    emit addedStereoSamples(packetAfterStreamProperties);
+    emit addedStereoSamples(decodedBuffer);
 
     QByteArray outputBuffer;
-    emit processSamples(packetAfterStreamProperties, outputBuffer);
+    emit processSamples(decodedBuffer, outputBuffer);
 
     _ringBuffer.writeData(outputBuffer.data(), outputBuffer.size());
-    
+    qCDebug(audiostream, "Wrote %d samples to buffer (%d available)", outputBuffer.size() / (int)sizeof(int16_t), getSamplesAvailable());
+
     return packetAfterStreamProperties.size();
 }
 
-int MixedProcessedAudioStream::networkToDeviceSamples(int networkSamples) {
-    return (quint64)networkSamples * (quint64)_outputFormatChannelsTimesSampleRate / (quint64)(STEREO_FACTOR
-                                                                                               * AudioConstants::SAMPLE_RATE);
+int MixedProcessedAudioStream::networkToDeviceFrames(int networkFrames) {
+    return ((quint64)networkFrames * _outputChannelCount * _outputSampleRate) /
+        (quint64)(AudioConstants::STEREO * AudioConstants::SAMPLE_RATE);
 }
 
-int MixedProcessedAudioStream::deviceToNetworkSamples(int deviceSamples) {
-    return (quint64)deviceSamples * (quint64)(STEREO_FACTOR * AudioConstants::SAMPLE_RATE)
-        / (quint64)_outputFormatChannelsTimesSampleRate;
+int MixedProcessedAudioStream::deviceToNetworkFrames(int deviceFrames) {
+    return (quint64)deviceFrames * (quint64)(AudioConstants::STEREO * AudioConstants::SAMPLE_RATE) /
+        (_outputSampleRate * _outputChannelCount);
 }

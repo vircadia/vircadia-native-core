@@ -15,6 +15,7 @@
 #include <OctreeEditPacketSender.h>
 
 #include "EntityItem.h"
+#include "AvatarData.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
 class EntityEditPacketSender :  public OctreeEditPacketSender {
@@ -22,23 +23,33 @@ class EntityEditPacketSender :  public OctreeEditPacketSender {
 public:
     EntityEditPacketSender();
 
+    void setMyAvatar(AvatarData* myAvatar) { _myAvatar = myAvatar; }
+    AvatarData* getMyAvatar() { return _myAvatar; }
+    void clearAvatarEntity(QUuid entityID) { assert(_myAvatar); _myAvatar->clearAvatarEntity(entityID); }
+
+    void queueEditAvatarEntityMessage(PacketType type, EntityTreePointer entityTree,
+                                      EntityItemID entityItemID, const EntityItemProperties& properties);
+
+
     /// Queues an array of several voxel edit messages. Will potentially send a pending multi-command packet. Determines
     /// which voxel-server node or nodes the packet should be sent to. Can be called even before voxel servers are known, in
     /// which case up to MaxPendingMessages will be buffered and processed when voxel servers are known.
     /// NOTE: EntityItemProperties assumes that all distances are in meter units
-    void queueEditEntityMessage(PacketType type, EntityItemID modelID, const EntityItemProperties& properties);
+    void queueEditEntityMessage(PacketType type, EntityTreePointer entityTree,
+                                EntityItemID entityItemID, const EntityItemProperties& properties);
+
 
     void queueEraseEntityMessage(const EntityItemID& entityItemID);
 
     // My server type is the model server
-    virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, int clockSkew);
+    virtual char getMyNodeType() const override { return NodeType::EntityServer; }
+    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew) override;
 
 public slots:
-    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void toggleNackPackets() { _shouldProcessNack = !_shouldProcessNack; }
+    void processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 private:
-    bool _shouldProcessNack = true;
+    AvatarData* _myAvatar { nullptr };
+    QScriptEngine _scriptEngine;
 };
 #endif // hifi_EntityEditPacketSender_h

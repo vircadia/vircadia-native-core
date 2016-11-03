@@ -14,13 +14,14 @@
 #include <gpu/Batch.h>
 #include <GeometryCache.h>
 
-#include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 
 #include "RenderableLineEntityItem.h"
 
 EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableLineEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableLineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableLineEntityItem::updateGeometry() {
@@ -51,9 +52,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(transform);
 
     if (getLinePoints().size() > 1) {
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+        DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
         DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
     }
-
-    RenderableDebugableEntityItem::render(this, args);
 };

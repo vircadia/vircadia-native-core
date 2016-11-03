@@ -31,7 +31,7 @@ class PickRay;
 class OverlayPropertyResult {
 public:
     OverlayPropertyResult();
-    QScriptValue value;
+    QVariant value;
 };
 
 Q_DECLARE_METATYPE(OverlayPropertyResult);
@@ -62,7 +62,6 @@ class Overlays : public QObject {
 
 public:
     Overlays();
-    ~Overlays();
 
     void init();
     void update(float deltatime);
@@ -73,9 +72,11 @@ public:
     Overlay::Pointer getOverlay(unsigned int id) const;
     OverlayPanel::Pointer getPanel(unsigned int id) const { return _panels[id]; }
 
+    void cleanupAllOverlays();
+
 public slots:
     /// adds an overlay with the specific properties
-    unsigned int addOverlay(const QString& type, const QScriptValue& properties);
+    unsigned int addOverlay(const QString& type, const QVariant& properties);
 
     /// adds an overlay that's already been created
     unsigned int addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
@@ -86,9 +87,13 @@ public slots:
 
     /// edits an overlay updating only the included properties, will return the identified OverlayID in case of
     /// successful edit, if the input id is for an unknown overlay this function will have no effect
-    bool editOverlay(unsigned int id, const QScriptValue& properties);
+    bool editOverlay(unsigned int id, const QVariant& properties);
 
-    /// deletes a particle
+    /// edits an overlay updating only the included properties, will return the identified OverlayID in case of
+    /// successful edit, if the input id is for an unknown overlay this function will have no effect
+    bool editOverlays(const QVariant& propertiesById);
+
+    /// deletes an overlay
     void deleteOverlay(unsigned int id);
 
     /// get the string type of the overlay used in addOverlay
@@ -122,10 +127,10 @@ public slots:
     unsigned int addPanel(OverlayPanel::Pointer panel);
 
     /// creates and adds a panel based on a set of properties
-    unsigned int addPanel(const QScriptValue& properties);
+    unsigned int addPanel(const QVariant& properties);
 
     /// edit the properties of a panel
-    void editPanel(unsigned int panelId, const QScriptValue& properties);
+    void editPanel(unsigned int panelId, const QVariant& properties);
 
     /// get a property of a panel
     OverlayPropertyResult getPanelProperty(unsigned int panelId, const QString& property);

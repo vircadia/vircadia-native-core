@@ -1,6 +1,7 @@
 set(TARGET_NAME udt-test)
 setup_hifi_project()
 
-link_hifi_libraries(networking shared)
+set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
 
-copy_dlls_beside_windows_executable()
+link_hifi_libraries(networking shared)
+package_libraries_for_deployment()

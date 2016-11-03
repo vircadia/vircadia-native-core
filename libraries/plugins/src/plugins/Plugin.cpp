@@ -7,12 +7,10 @@
 //
 #include "Plugin.h"
 
-PluginContainer* Plugin::CONTAINER{ nullptr };
-
 QString Plugin::UNKNOWN_PLUGIN_ID("unknown");
 
 void Plugin::setContainer(PluginContainer* container) {
-    CONTAINER = container;
+    _container = container;
 }
 
 bool Plugin::isSupported() const { return true; }

@@ -30,11 +30,14 @@
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <SoundCache.h>
+#include <ResourceScriptingInterface.h>
 
 #include "AssignmentFactory.h"
 #include "AssignmentActionFactory.h"
 
 #include "AssignmentClient.h"
+#include "AssignmentClientLogging.h"
+#include "avatars/ScriptableAvatar.h"
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
@@ -47,17 +50,21 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogUtils::init();
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
- 
+
+    DependencyManager::set<AccountManager>();
+
+    auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();
     auto addressManager = DependencyManager::set<AddressManager>();
 
     // create a NodeList as an unassigned client, must be after addressManager
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned, listenPort);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
-    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
+    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>(false);
 
     DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();
     auto actionFactory = DependencyManager::set<AssignmentActionFactory>();
+    DependencyManager::set<ResourceScriptingInterface>();
 
     // setup a thread for the NodeList and its PacketReceiver
     QThread* nodeThread = new QThread(this);
@@ -74,7 +81,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
     // make sure we output process IDs for a child AC otherwise it's insane to parse
-    LogHandler::getInstance().setShouldOutputPID(true);
+    LogHandler::getInstance().setShouldOutputProcessID(true);
 
     // setup our _requestAssignment member variable from the passed arguments
     _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, assignmentPool);
@@ -82,7 +89,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     // check for a wallet UUID on the command line or in the config
     // this would represent where the user running AC wants funds sent to
     if (!walletUUID.isNull()) {
-        qDebug() << "The destination wallet UUID for credits is" << uuidStringWithoutCurlyBraces(walletUUID);
+        qCDebug(assignment_client) << "The destination wallet UUID for credits is" << uuidStringWithoutCurlyBraces(walletUUID);
         _requestAssignment.setWalletUUID(walletUUID);
     }
 
@@ -93,23 +100,23 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     }
 
     _assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerPort, true);
-    _assignmentServerSocket.setObjectName("AssigmentServer");
+    _assignmentServerSocket.setObjectName("AssignmentServer");
     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
 
-    qDebug() << "Assignment server socket is" << _assignmentServerSocket;
+    qCDebug(assignment_client) << "Assignment server socket is" << _assignmentServerSocket;
 
     // call a timer function every ASSIGNMENT_REQUEST_INTERVAL_MSECS to ask for assignment, if required
-    qDebug() << "Waiting for assignment -" << _requestAssignment;
+    qCDebug(assignment_client) << "Waiting for assignment -" << _requestAssignment;
 
     if (_assignmentServerHostname != "localhost") {
-        qDebug () << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
+        qCDebug(assignment_client) << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
     }
 
     connect(&_requestTimer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
     _requestTimer.start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
 
     // connections to AccountManager for authentication
-    connect(&AccountManager::getInstance(), &AccountManager::authRequired,
+    connect(DependencyManager::get<AccountManager>().data(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
 
     // Create Singleton objects on main thread
@@ -120,7 +127,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, assignmentMonitorPort);
         _assignmentClientMonitorSocket.setObjectName("AssignmentClientMonitor");
 
-        qDebug() << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
+        qCDebug(assignment_client) << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
 
         // Hook up a timer to send this child's status to the Monitor once per second
         setUpStatusToMonitor();
@@ -131,7 +138,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 }
 
 void AssignmentClient::stopAssignmentClient() {
-    qDebug() << "Forced stop of assignment-client.";
+    qCDebug(assignment_client) << "Forced stop of assignment-client.";
 
     _requestTimer.stop();
     _statsTimerACM.stop();
@@ -198,7 +205,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 }
 
 void AssignmentClient::sendAssignmentRequest() {
-    if (!_currentAssignment) {
+    if (!_currentAssignment && !_isAssigned) {
 
         auto nodeList = DependencyManager::get<NodeList>();
 
@@ -207,14 +214,14 @@ void AssignmentClient::sendAssignmentRequest() {
             quint16 localAssignmentServerPort;
             if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, localAssignmentServerPort)) {
                 if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
-                    qDebug() << "Port for local assignment server read from shared memory is"
+                    qCDebug(assignment_client) << "Port for local assignment server read from shared memory is"
                         << localAssignmentServerPort;
 
                     _assignmentServerSocket.setPort(localAssignmentServerPort);
                     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
                 }
             } else {
-                qDebug() << "Failed to read local assignment server port from shared memory"
+                qCWarning(assignment_client) << "Failed to read local assignment server port from shared memory"
                     << "- will send assignment request to previous assignment server socket.";
             }
         }
@@ -223,23 +230,29 @@ void AssignmentClient::sendAssignmentRequest() {
     }
 }
 
-void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet) {
-    qDebug() << "Received a PacketType::CreateAssignment - attempting to unpack.";
-
-    // construct the deployed assignment from the packet data
-    _currentAssignment = AssignmentFactory::unpackAssignment(*packet);
+void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessage> message) {
+    qCDebug(assignment_client) << "Received a PacketType::CreateAssignment - attempting to unpack.";
 
     if (_currentAssignment) {
-        qDebug() << "Received an assignment -" << *_currentAssignment;
+        qCWarning(assignment_client) << "Received a PacketType::CreateAssignment while still running an active assignment. Ignoring.";
+        return;
+    }
+
+    // construct the deployed assignment from the packet data
+    _currentAssignment = AssignmentFactory::unpackAssignment(*message);
+
+    if (_currentAssignment && !_isAssigned) {
+        qDebug(assignment_client) << "Received an assignment -" << *_currentAssignment;
+        _isAssigned = true;
 
         auto nodeList = DependencyManager::get<NodeList>();
 
         // switch our DomainHandler hostname and port to whoever sent us the assignment
 
-        nodeList->getDomainHandler().setSockAddr(packet->getSenderSockAddr(), _assignmentServerHostname);
+        nodeList->getDomainHandler().setSockAddr(message->getSenderSockAddr(), _assignmentServerHostname);
         nodeList->getDomainHandler().setAssignmentUUID(_currentAssignment->getUUID());
 
-        qDebug() << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
+        qCDebug(assignment_client) << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
 
         // start the deployed assignment
         QThread* workerThread = new QThread;
@@ -267,20 +280,20 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> pac
         // Starts an event loop, and emits workerThread->started()
         workerThread->start();
     } else {
-        qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
+        qCWarning(assignment_client) << "Received an assignment that could not be unpacked. Re-requesting.";
     }
 }
 
-void AssignmentClient::handleStopNodePacket(QSharedPointer<NLPacket> packet) {
-    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+void AssignmentClient::handleStopNodePacket(QSharedPointer<ReceivedMessage> message) {
+    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
     
     if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
-            senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-        qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";
-
+        senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
+        
+        qCDebug(assignment_client) << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";
         QCoreApplication::quit();
     } else {
-        qDebug() << "Got a stop packet from other than localhost.";
+        qCWarning(assignment_client) << "Got a stop packet from other than localhost.";
     }
 }
 
@@ -294,13 +307,13 @@ void AssignmentClient::handleAuthenticationRequest() {
     QString username = sysEnvironment.value(DATA_SERVER_USERNAME_ENV);
     QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
 
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
     if (!username.isEmpty() && !password.isEmpty()) {
         // ask the account manager to log us in from the env variables
-        accountManager.requestAccessToken(username, password);
+        accountManager->requestAccessToken(username, password);
     } else {
-        qDebug() << "Authentication was requested against" << qPrintable(accountManager.getAuthURL().toString())
+        qCWarning(assignment_client) << "Authentication was requested against" << qPrintable(accountManager->getAuthURL().toString())
             << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
             << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Unable to authenticate.";
 
@@ -309,17 +322,16 @@ void AssignmentClient::handleAuthenticationRequest() {
 }
 
 void AssignmentClient::assignmentCompleted() {
-
     // we expect that to be here the previous assignment has completely cleaned up
     assert(_currentAssignment.isNull());
 
-    // reset our current assignment pointer to NULL now that it has been deleted
-    _currentAssignment = NULL;
+    // reset our current assignment pointer to null now that it has been deleted
+    _currentAssignment = nullptr;
 
     // reset the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
-    qDebug() << "Assignment finished or never started - waiting for new assignment.";
+    qCDebug(assignment_client) << "Assignment finished or never started - waiting for new assignment.";
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -330,4 +342,6 @@ void AssignmentClient::assignmentCompleted() {
     nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();
     nodeList->resetNodeInterestSet();
+    
+    _isAssigned = false;
 }

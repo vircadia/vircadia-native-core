@@ -32,7 +32,9 @@ const QString PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL = QString("");
 const QString PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL = QString("");
 
 EntityItemPointer PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<PolyVoxEntityItem>(entityID, properties);
+    EntityItemPointer entity { new PolyVoxEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 QByteArray PolyVoxEntityItem::makeEmptyVoxelData(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) {
@@ -49,7 +51,7 @@ QByteArray PolyVoxEntityItem::makeEmptyVoxelData(quint16 voxelXSize, quint16 vox
     return newVoxelData;
 }
 
-PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID) :
     EntityItem(entityItemID),
     _voxelVolumeSize(PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
     _voxelData(PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
@@ -59,48 +61,50 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     _yTextureURL(PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL),
     _zTextureURL(PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL) {
     _type = EntityTypes::PolyVox;
-    setProperties(properties);
 }
 
 void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
-    QWriteLocker(&this->_voxelDataLock);
+    withWriteLock([&] {
+        assert((int)_voxelVolumeSize.x == _voxelVolumeSize.x);
+        assert((int)_voxelVolumeSize.y == _voxelVolumeSize.y);
+        assert((int)_voxelVolumeSize.z == _voxelVolumeSize.z);
 
-    assert((int)_voxelVolumeSize.x == _voxelVolumeSize.x);
-    assert((int)_voxelVolumeSize.y == _voxelVolumeSize.y);
-    assert((int)_voxelVolumeSize.z == _voxelVolumeSize.z);
+        _voxelVolumeSize = glm::vec3(roundf(voxelVolumeSize.x), roundf(voxelVolumeSize.y), roundf(voxelVolumeSize.z));
+        if (_voxelVolumeSize.x < 1) {
+            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to 1";
+            _voxelVolumeSize.x = 1;
+        }
+        if (_voxelVolumeSize.x > MAX_VOXEL_DIMENSION) {
+            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to max";
+            _voxelVolumeSize.x = MAX_VOXEL_DIMENSION;
+        }
 
-    _voxelVolumeSize = glm::vec3(roundf(voxelVolumeSize.x), roundf(voxelVolumeSize.y), roundf(voxelVolumeSize.z));
-    if (_voxelVolumeSize.x < 1) {
-        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to 1";
-        _voxelVolumeSize.x = 1;
-    }
-    if (_voxelVolumeSize.x > MAX_VOXEL_DIMENSION) {
-        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to max";
-        _voxelVolumeSize.x = MAX_VOXEL_DIMENSION;
-    }
+        if (_voxelVolumeSize.y < 1) {
+            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to 1";
+            _voxelVolumeSize.y = 1;
+        }
+        if (_voxelVolumeSize.y > MAX_VOXEL_DIMENSION) {
+            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to max";
+            _voxelVolumeSize.y = MAX_VOXEL_DIMENSION;
+        }
 
-    if (_voxelVolumeSize.y < 1) {
-        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to 1";
-        _voxelVolumeSize.y = 1;
-    }
-    if (_voxelVolumeSize.y > MAX_VOXEL_DIMENSION) {
-        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to max";
-        _voxelVolumeSize.y = MAX_VOXEL_DIMENSION;
-    }
-
-    if (_voxelVolumeSize.z < 1) {
-        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to 1";
-        _voxelVolumeSize.z = 1;
-    }
-    if (_voxelVolumeSize.z > MAX_VOXEL_DIMENSION) {
-        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to max";
-        _voxelVolumeSize.z = MAX_VOXEL_DIMENSION;
-    }
+        if (_voxelVolumeSize.z < 1) {
+            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to 1";
+            _voxelVolumeSize.z = 1;
+        }
+        if (_voxelVolumeSize.z > MAX_VOXEL_DIMENSION) {
+            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to max";
+            _voxelVolumeSize.z = MAX_VOXEL_DIMENSION;
+        }
+    });
 }
 
-const glm::vec3& PolyVoxEntityItem::getVoxelVolumeSize() const {
-    QWriteLocker locker(&this->_voxelDataLock);
-    return _voxelVolumeSize;
+glm::vec3 PolyVoxEntityItem::getVoxelVolumeSize() const {
+    glm::vec3 voxelVolumeSize;
+    withReadLock([&] {
+        voxelVolumeSize = _voxelVolumeSize;
+    });
+    return voxelVolumeSize;
 }
 
 
@@ -225,12 +229,16 @@ void PolyVoxEntityItem::debugDump() const {
 }
 
 void PolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
-    QWriteLocker(&this->_voxelDataLock);
-    _voxelData = voxelData;
-    _voxelDataDirty = true;
+    withWriteLock([&] {
+        _voxelData = voxelData;
+        _voxelDataDirty = true;
+    });
 }
 
 const QByteArray PolyVoxEntityItem::getVoxelData() const {
-    QReadLocker(&this->_voxelDataLock);
-    return _voxelData;
+    QByteArray voxelDataCopy;
+    withReadLock([&] {
+        voxelDataCopy = _voxelData;
+    });
+    return voxelDataCopy;
 }

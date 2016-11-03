@@ -12,10 +12,10 @@
 <@def MODEL_MATERIAL_SLH@>
 
 struct Material { 
-    vec4 _diffuse;
-    vec4 _specular;
-    vec4 _emissive;
-    vec4 _spare;
+    vec4 _emissiveOpacity;
+    vec4 _albedoRoughness;
+    vec4 _fresnelMetallic;
+    vec4 _scatteringSpare2Key;
 };
 
 uniform materialBuffer {
@@ -26,41 +26,40 @@ Material getMaterial() {
     return _mat;
 }
 
-<! // TODO: use this code for correct gamma correction
-/*
-float componentSRGBToLinear(float cs) {
-    // sRGB to linear conversion
-    //      {  cs / 12.92,                 cs <= 0.04045
-    // cl = {
-    //      {  ((cs + 0.055)/1.055)^2.4,   cs >  0.04045
-    // constants:
-    // T = 0.04045
-    // A = 1 / 1.055 = 0.94786729857
-    // B = 0.055 * A = 0.05213270142
-    // C = 1 / 12.92 = 0.0773993808
-    // G = 2.4
-    const float T = 0.04045;
-    const float A = 0.947867;
-    const float B = 0.052132;
-    const float C = 0.077399;
-    const float G = 2.4;
+vec3 getMaterialEmissive(Material m) { return m._emissiveOpacity.rgb; }
+float getMaterialOpacity(Material m) { return m._emissiveOpacity.a; }
 
-    if (cs > T) {
-        return pow((cs * A + B), G);
-    } else {
-        return cs * C;
-    }
-}
+vec3 getMaterialAlbedo(Material m) { return m._albedoRoughness.rgb; }
+float getMaterialRoughness(Material m) { return m._albedoRoughness.a; }
 
-vec3 SRGBToLinear(vec3 srgb) {
-    return vec3(componentSRGBToLinear(srgb.x),componentSRGBToLinear(srgb.y),componentSRGBToLinear(srgb.z));
-}
-vec3 getMaterialDiffuse(Material m) { return (gl_FragCoord.x < 800 ? SRGBToLinear(m._diffuse.rgb) : m._diffuse.rgb); }
-*/!>
+vec3 getMaterialFresnel(Material m) { return m._fresnelMetallic.rgb; }
+float getMaterialMetallic(Material m) { return m._fresnelMetallic.a; }
 
-float getMaterialOpacity(Material m) { return m._diffuse.a; }
-vec3 getMaterialDiffuse(Material m) { return m._diffuse.rgb; }
-vec3 getMaterialSpecular(Material m) { return m._specular.rgb; }
-float getMaterialShininess(Material m) { return m._specular.a; }
+float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
+
+float getMaterialScattering(Material m) { return m._scatteringSpare2Key.x; }
+
+int getMaterialKey(Material m) { return floatBitsToInt(m._scatteringSpare2Key.w); }
+
+const int EMISSIVE_VAL_BIT              = 0x00000001;
+const int UNLIT_VAL_BIT                 = 0x00000002;
+const int ALBEDO_VAL_BIT                = 0x00000004;
+const int METALLIC_VAL_BIT              = 0x00000008;
+const int GLOSSY_VAL_BIT                = 0x00000010;
+const int OPACITY_VAL_BIT               = 0x00000020;
+const int OPACITY_MASK_MAP_BIT          = 0x00000040;
+const int OPACITY_TRANSLUCENT_MAP_BIT   = 0x00000080;
+const int SCATTERING_VAL_BIT            = 0x00000100;
+
+
+const int EMISSIVE_MAP_BIT              = 0x00000200;
+const int ALBEDO_MAP_BIT                = 0x00000400;
+const int METALLIC_MAP_BIT              = 0x00000800;
+const int ROUGHNESS_MAP_BIT             = 0x00001000;
+const int NORMAL_MAP_BIT                = 0x00002000;
+const int OCCLUSION_MAP_BIT             = 0x00004000;
+const int LIGHTMAP_MAP_BIT              = 0x00008000;
+const int SCATTERING_MAP_BIT            = 0x00010000;
+
 
 <@endif@>

@@ -30,30 +30,36 @@ public:
     virtual ~Skybox() {};
  
     void setColor(const Color& color);
-    const Color getColor() const { return _dataBuffer.get<Data>()._color; }
+    const Color getColor() const { return _schemaBuffer.get<Schema>().color; }
 
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
 
-    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
+    virtual bool empty() { return _empty; }
+    virtual void clear();
 
+    void prepare(gpu::Batch& batch, int textureSlot = SKYBOX_SKYMAP_SLOT, int bufferSlot = SKYBOX_CONSTANTS_SLOT) const;
+    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
 
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
 
 protected:
-    gpu::TexturePointer _cubemap;
+    static const int SKYBOX_SKYMAP_SLOT { 0 };
+    static const int SKYBOX_CONSTANTS_SLOT { 0 };
 
-    class Data {
+    class Schema {
     public:
-        glm::vec3 _color{ 1.0f, 1.0f, 1.0f };
-        float _blend = 1.0f;
+        glm::vec3 color { 0.0f, 0.0f, 0.0f };
+        float blend { 0.0f };
     };
 
-    mutable gpu::BufferView _dataBuffer;
+    void updateSchemaBuffer() const;
 
-    void updateDataBuffer() const;
+    mutable gpu::BufferView _schemaBuffer;
+    gpu::TexturePointer _cubemap;
+    bool _empty{ true };
 };
-typedef std::shared_ptr< Skybox > SkyboxPointer;
+typedef std::shared_ptr<Skybox> SkyboxPointer;
 
 };
 

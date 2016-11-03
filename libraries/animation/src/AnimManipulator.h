@@ -30,18 +30,32 @@ public:
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     struct JointVar {
-        JointVar(const QString& varIn, const QString& jointNameIn) : var(varIn), jointName(jointNameIn), jointIndex(-1), hasPerformedJointLookup(false) {}
+        enum class Type {
+            AbsoluteRotation = 0,
+            AbsolutePosition,
+            RelativeRotation,
+            RelativePosition,
+            NumTypes
+        };
+
+        JointVar(const QString& varIn, const QString& jointNameIn, Type typeIn) : var(varIn), jointName(jointNameIn), type(typeIn), jointIndex(-1), hasPerformedJointLookup(false) {}
         QString var = "";
         QString jointName = "";
+        Type type = Type::AbsoluteRotation;
         int jointIndex = -1;
         bool hasPerformedJointLookup = false;
+        bool isRelative = false;
     };
 
     void addJointVar(const JointVar& jointVar);
+    void removeAllJointVars();
 
 protected:
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
+
+    AnimPose computeRelativePoseFromJointVar(const AnimVariantMap& animVars, const JointVar& jointVar,
+                                             const AnimPose& defaultRelPose, const AnimPoseVec& underPoses);
 
     AnimPoseVec _poses;
     float _alpha;

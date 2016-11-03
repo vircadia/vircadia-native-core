@@ -15,7 +15,7 @@
 
 using namespace udt;
 
-static int packetListMetaTypeId = qRegisterMetaType<PacketList*>("PacketList*");
+int packetListMetaTypeId = qRegisterMetaType<PacketList*>("PacketList*");
 
 std::unique_ptr<PacketList> PacketList::create(PacketType packetType, QByteArray extendedHeader,
                                                bool isReliable, bool isOrdered) {
@@ -48,6 +48,10 @@ PacketList::PacketList(PacketList&& other) :
     _isOrdered(other._isOrdered),
     _extendedHeader(std::move(other._extendedHeader))
 {
+}
+
+HifiSockAddr PacketList::getSenderSockAddr() const {
+    return _packets.size() > 0 ? _packets.front()->getSenderSockAddr() : HifiSockAddr();
 }
 
 void PacketList::startSegment() {
@@ -117,7 +121,7 @@ void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
     }
 }
 
-QByteArray PacketList::getMessage() {
+QByteArray PacketList::getMessage() const {
     size_t sizeBytes = 0;
 
     for (const auto& packet : _packets) {
@@ -125,7 +129,7 @@ QByteArray PacketList::getMessage() {
     }
 
     QByteArray data;
-    data.reserve(sizeBytes);
+    data.reserve((int)sizeBytes);
 
     for (auto& packet : _packets) {
         data.append(packet->getPayload(), packet->getPayloadSize());
@@ -153,6 +157,12 @@ void PacketList::preparePackets(MessageNumber messageNumber) {
 }
 
 const qint64 PACKET_LIST_WRITE_ERROR = -1;
+
+qint64 PacketList::writeString(const QString& string) {
+    QByteArray data = string.toUtf8();
+    writePrimitive(static_cast<uint32_t>(data.length()));
+    return writeData(data.constData(), data.length());
+}
 
 qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     auto sizeRemaining = maxSize;

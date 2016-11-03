@@ -10,58 +10,76 @@
 
 #include "AudioEffectOptions.h"
 
-static const QString MAX_ROOM_SIZE_HANDLE = "maxRoomSize";
-static const QString ROOM_SIZE_HANDLE = "roomSize";
+static const QString BANDWIDTH_HANDLE = "bandwidth";
+static const QString PRE_DELAY_HANDLE = "preDelay";
+static const QString LATE_DELAY_HANDLE = "lateDelay";
 static const QString REVERB_TIME_HANDLE = "reverbTime";
-static const QString DAMPIMG_HANDLE = "damping";
-static const QString SPREAD_HANDLE = "spread";
-static const QString INPUT_BANDWIDTH_HANDLE = "inputBandwidth";
-static const QString EARLY_LEVEL_HANDLE = "earlyLevel";
-static const QString TAIL_LEVEL_HANDLE = "tailLevel";
-static const QString DRY_LEVEL_HANDLE = "dryLevel";
-static const QString WET_LEVEL_HANDLE = "wetLevel";
+static const QString EARLY_DIFFUSION_HANDLE = "earlyDiffusion";
+static const QString LATE_DIFFUSION_HANDLE = "lateDiffusion";
+static const QString ROOM_SIZE_HANDLE = "roomSize";
+static const QString DENSITY_HANDLE = "density";
+static const QString BASS_MULT_HANDLE = "bassMult";
+static const QString BASS_FREQ_HANDLE = "bassFreq";
+static const QString HIGH_GAIN_HANDLE = "highGain";
+static const QString HIGH_FREQ_HANDLE = "highFreq";
+static const QString MOD_RATE_HANDLE = "modRate";
+static const QString MOD_DEPTH_HANDLE = "modDepth";
+static const QString EARLY_GAIN_HANDLE = "earlyGain";
+static const QString LATE_GAIN_HANDLE = "lateGain";
+static const QString EARLY_MIX_LEFT_HANDLE = "earlyMixLeft";
+static const QString EARLY_MIX_RIGHT_HANDLE = "earlyMixRight";
+static const QString LATE_MIX_LEFT_HANDLE = "lateMixLeft";
+static const QString LATE_MIX_RIGHT_HANDLE = "lateMixRight";
+static const QString WET_DRY_MIX_HANDLE = "wetDryMix";
 
-AudioEffectOptions::AudioEffectOptions(QScriptValue arguments) :
-    _maxRoomSize(50.0f),
-    _roomSize(50.0f),
-    _reverbTime(4.0f),
-    _damping(0.5f),
-    _spread(15.0f),
-    _inputBandwidth(0.75f),
-    _earlyLevel(-22.0f),
-    _tailLevel(-28.0f),
-    _dryLevel(0.0f),
-    _wetLevel(6.0f) {
-        if (arguments.property(MAX_ROOM_SIZE_HANDLE).isNumber()) {
-            _maxRoomSize = arguments.property(MAX_ROOM_SIZE_HANDLE).toNumber();
-        }
-        if (arguments.property(ROOM_SIZE_HANDLE).isNumber()) {
-            _roomSize = arguments.property(ROOM_SIZE_HANDLE).toNumber();
-        }
-        if (arguments.property(REVERB_TIME_HANDLE).isNumber()) {
-            _reverbTime = arguments.property(REVERB_TIME_HANDLE).toNumber();
-        }
-        if (arguments.property(DAMPIMG_HANDLE).isNumber()) {
-            _damping = arguments.property(DAMPIMG_HANDLE).toNumber();
-        }
-        if (arguments.property(SPREAD_HANDLE).isNumber()) {
-            _spread = arguments.property(SPREAD_HANDLE).toNumber();
-        }
-        if (arguments.property(INPUT_BANDWIDTH_HANDLE).isNumber()) {
-            _inputBandwidth = arguments.property(INPUT_BANDWIDTH_HANDLE).toNumber();
-        }
-        if (arguments.property(EARLY_LEVEL_HANDLE).isNumber()) {
-            _earlyLevel = arguments.property(EARLY_LEVEL_HANDLE).toNumber();
-        }
-        if (arguments.property(TAIL_LEVEL_HANDLE).isNumber()) {
-            _tailLevel = arguments.property(TAIL_LEVEL_HANDLE).toNumber();
-        }
-        if (arguments.property(DRY_LEVEL_HANDLE).isNumber()) {
-            _dryLevel = arguments.property(DRY_LEVEL_HANDLE).toNumber();
-        }
-        if (arguments.property(WET_LEVEL_HANDLE).isNumber()) {
-            _wetLevel = arguments.property(WET_LEVEL_HANDLE).toNumber();
-        }
+static const float BANDWIDTH_DEFAULT = 10000.0f;
+static const float PRE_DELAY_DEFAULT = 20.0f;
+static const float LATE_DELAY_DEFAULT = 0.0f;
+static const float REVERB_TIME_DEFAULT = 2.0f;
+static const float EARLY_DIFFUSION_DEFAULT = 100.0f;
+static const float LATE_DIFFUSION_DEFAULT = 100.0f;
+static const float ROOM_SIZE_DEFAULT = 50.0f;
+static const float DENSITY_DEFAULT = 100.0f;
+static const float BASS_MULT_DEFAULT = 1.5f;
+static const float BASS_FREQ_DEFAULT = 250.0f;
+static const float HIGH_GAIN_DEFAULT = -6.0f;
+static const float HIGH_FREQ_DEFAULT = 3000.0f;
+static const float MOD_RATE_DEFAULT = 2.3f;
+static const float MOD_DEPTH_DEFAULT = 50.0f;
+static const float EARLY_GAIN_DEFAULT = 0.0f;
+static const float LATE_GAIN_DEFAULT = 0.0f;
+static const float EARLY_MIX_LEFT_DEFAULT = 20.0f;
+static const float EARLY_MIX_RIGHT_DEFAULT = 20.0f;
+static const float LATE_MIX_LEFT_DEFAULT = 90.0f;
+static const float LATE_MIX_RIGHT_DEFAULT = 90.0f;
+static const float WET_DRY_MIX_DEFAULT = 50.0f;
+
+static void setOption(QScriptValue arguments, const QString name, float defaultValue, float& variable) {
+    variable = arguments.property(name).isNumber() ? (float)arguments.property(name).toNumber() : defaultValue;
+}
+
+AudioEffectOptions::AudioEffectOptions(QScriptValue arguments) {
+    setOption(arguments, BANDWIDTH_HANDLE, BANDWIDTH_DEFAULT, _bandwidth);
+    setOption(arguments, PRE_DELAY_HANDLE, PRE_DELAY_DEFAULT, _preDelay);
+    setOption(arguments, LATE_DELAY_HANDLE, LATE_DELAY_DEFAULT, _lateDelay);
+    setOption(arguments, REVERB_TIME_HANDLE, REVERB_TIME_DEFAULT, _reverbTime);
+    setOption(arguments, EARLY_DIFFUSION_HANDLE, EARLY_DIFFUSION_DEFAULT, _earlyDiffusion);
+    setOption(arguments, LATE_DIFFUSION_HANDLE, LATE_DIFFUSION_DEFAULT, _lateDiffusion);
+    setOption(arguments, ROOM_SIZE_HANDLE, ROOM_SIZE_DEFAULT, _roomSize);
+    setOption(arguments, DENSITY_HANDLE, DENSITY_DEFAULT, _density);
+    setOption(arguments, BASS_MULT_HANDLE, BASS_MULT_DEFAULT, _bassMult);
+    setOption(arguments, BASS_FREQ_HANDLE, BASS_FREQ_DEFAULT, _bassFreq);
+    setOption(arguments, HIGH_GAIN_HANDLE, HIGH_GAIN_DEFAULT, _highGain);
+    setOption(arguments, HIGH_FREQ_HANDLE, HIGH_FREQ_DEFAULT, _highFreq);
+    setOption(arguments, MOD_RATE_HANDLE, MOD_RATE_DEFAULT, _modRate);
+    setOption(arguments, MOD_DEPTH_HANDLE, MOD_DEPTH_DEFAULT, _modDepth);
+    setOption(arguments, EARLY_GAIN_HANDLE, EARLY_GAIN_DEFAULT, _earlyGain);
+    setOption(arguments, LATE_GAIN_HANDLE, LATE_GAIN_DEFAULT, _lateGain);
+    setOption(arguments, EARLY_MIX_LEFT_HANDLE, EARLY_MIX_LEFT_DEFAULT, _earlyMixLeft);
+    setOption(arguments, EARLY_MIX_RIGHT_HANDLE, EARLY_MIX_RIGHT_DEFAULT, _earlyMixRight);
+    setOption(arguments, LATE_MIX_LEFT_HANDLE, LATE_MIX_LEFT_DEFAULT, _lateMixLeft);
+    setOption(arguments, LATE_MIX_RIGHT_HANDLE, LATE_MIX_RIGHT_DEFAULT, _lateMixRight);
+    setOption(arguments, WET_DRY_MIX_HANDLE, WET_DRY_MIX_DEFAULT, _wetDryMix);
 }
 
 AudioEffectOptions::AudioEffectOptions(const AudioEffectOptions &other) : QObject() {
@@ -69,17 +87,28 @@ AudioEffectOptions::AudioEffectOptions(const AudioEffectOptions &other) : QObjec
 }
 
 AudioEffectOptions& AudioEffectOptions::operator=(const AudioEffectOptions &other) {
-    _maxRoomSize = other._maxRoomSize;
-    _roomSize = other._roomSize;
+    _bandwidth = other._bandwidth;
+    _preDelay = other._preDelay;
+    _lateDelay = other._lateDelay;
     _reverbTime = other._reverbTime;
-    _damping = other._damping;
-    _spread = other._spread;
-    _inputBandwidth = other._inputBandwidth;
-    _earlyLevel = other._earlyLevel;
-    _tailLevel = other._tailLevel;
-    _dryLevel = other._dryLevel;
-    _wetLevel = other._wetLevel;
-    
+    _earlyDiffusion = other._earlyDiffusion;
+    _lateDiffusion = other._lateDiffusion;
+    _roomSize = other._roomSize;
+    _density = other._density;
+    _bassMult = other._bassMult;
+    _bassFreq = other._bassFreq;
+    _highGain = other._highGain;
+    _highFreq = other._highFreq;
+    _modRate = other._modRate;
+    _modDepth = other._modDepth;
+    _earlyGain = other._earlyGain;
+    _lateGain = other._lateGain;
+    _earlyMixLeft = other._earlyMixLeft;
+    _earlyMixRight = other._earlyMixRight;
+    _lateMixLeft = other._lateMixLeft;
+    _lateMixRight = other._lateMixRight;
+    _wetDryMix = other._wetDryMix;
+     
     return *this;
 }
 

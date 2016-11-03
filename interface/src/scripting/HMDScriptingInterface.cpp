@@ -13,24 +13,70 @@
 
 #include <QtScript/QScriptContext>
 
-#include "display-plugins/DisplayPlugin.h"
 #include <avatar/AvatarManager.h>
+#include <display-plugins/DisplayPlugin.h>
+#include <display-plugins/CompositorHelper.h>
+#include <OffscreenUi.h>
+#include <plugins/PluginUtils.h>
+
 #include "Application.h"
 
 HMDScriptingInterface::HMDScriptingInterface() {
+    connect(qApp, &Application::activeDisplayPluginChanged, [this]{
+        emit displayModeChanged(isHMDMode());
+    });
+}
+
+glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const {
+    glm::vec3 result;
+    qApp->getApplicationCompositor().calculateRayUICollisionPoint(position, direction, result);
+    return result;
+}
+
+glm::vec2 HMDScriptingInterface::overlayFromWorldPoint(const glm::vec3& position) const {
+    return qApp->getApplicationCompositor().overlayFromSphereSurface(position);
+}
+
+glm::vec3 HMDScriptingInterface::worldPointFromOverlay(const glm::vec2& overlay) const {
+    return qApp->getApplicationCompositor().sphereSurfaceFromOverlay(overlay);
+}
+
+glm::vec2 HMDScriptingInterface::sphericalToOverlay(const glm::vec2 & position) const {
+    return qApp->getApplicationCompositor().sphericalToOverlay(position);
+}
+
+glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) const {
+    return qApp->getApplicationCompositor().overlayToSpherical(position);
+}
+
+bool HMDScriptingInterface::isHMDAvailable() {
+    return PluginUtils::isHMDAvailable();
+}
+
+bool HMDScriptingInterface::isHandControllerAvailable() {
+    return PluginUtils::isHandControllerAvailable();
+}
+
+void HMDScriptingInterface::requestShowHandControllers() {
+    _showHandControllersCount++;
+    emit shouldShowHandControllersChanged();
+}
+
+void HMDScriptingInterface::requestHideHandControllers() {
+    _showHandControllersCount--;
+    emit shouldShowHandControllersChanged();
+}
+
+bool HMDScriptingInterface::shouldShowHandControllers() const {
+    return _showHandControllersCount > 0;
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();
     if (instance->getHUDLookAtPosition3D(hudIntersection)) {
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::vec3 sphereCenter = myAvatar->getDefaultEyePosition();
-        glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * (hudIntersection - sphereCenter);
-        glm::quat rotation = ::rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), direction);
-        glm::vec3 eulers = ::safeEulerAngles(rotation);
-        return qScriptValueFromValue<glm::vec2>(engine, qApp->getApplicationCompositor()
-            .sphericalToOverlay(glm::vec2(eulers.y, -eulers.x)));
+        glm::vec2 overlayPos = qApp->getApplicationCompositor().overlayFromSphereSurface(hudIntersection);
+        return qScriptValueFromValue<glm::vec2>(engine, overlayPos);
     }
     return QScriptValue::NullValue;
 }
@@ -42,14 +88,6 @@ QScriptValue HMDScriptingInterface::getHUDLookAtPosition3D(QScriptContext* conte
         return qScriptValueFromValue<glm::vec3>(engine, result);
     }
     return QScriptValue::NullValue;
-}
-
-void HMDScriptingInterface::toggleMagnifier() {
-    qApp->getApplicationCompositor().toggleMagnifier();
-}
-
-bool HMDScriptingInterface::getMagnifier() const {
-    return qApp->getApplicationCompositor().hasMagnifier();
 }
 
 bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {
@@ -65,7 +103,7 @@ bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {
 }
 
 glm::mat4 HMDScriptingInterface::getWorldHMDMatrix() const {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     return myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
 }
 
@@ -81,4 +119,68 @@ glm::quat HMDScriptingInterface::getOrientation() const {
         return glm::normalize(glm::quat_cast(getWorldHMDMatrix()));
     }
     return glm::quat();
+}
+
+bool HMDScriptingInterface::isMounted() const{
+    auto displayPlugin = qApp->getActiveDisplayPlugin();
+    return (displayPlugin->isHmd() && displayPlugin->isDisplayVisible());
+}
+
+QString HMDScriptingInterface::preferredAudioInput() const {
+    return qApp->getActiveDisplayPlugin()->getPreferredAudioInDevice();
+}
+
+QString HMDScriptingInterface::preferredAudioOutput() const {
+    return qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
+}
+
+bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
+        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
+    });
+    return qApp->getActiveDisplayPlugin()->setHandLaser(hands,
+        enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
+        color, direction);
+}
+
+bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
+        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
+    });
+
+
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto sensorToWorld = myAvatar->getSensorToWorldMatrix();
+    auto worldToSensor = glm::inverse(sensorToWorld);
+    auto sensorStart = ::transformPoint(worldToSensor, worldStart);
+    auto sensorDirection = ::transformVectorFast(worldToSensor, direction);
+
+    return qApp->getActiveDisplayPlugin()->setExtraLaser(enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
+        color, sensorStart, sensorDirection);
+}
+
+void HMDScriptingInterface::disableExtraLaser() const {
+    setExtraLaser(vec3(0), false, vec4(0), vec3(0));
+}
+
+void HMDScriptingInterface::disableHandLasers(int hands) const {
+    setHandLasers(hands, false, vec4(0), vec3(0));
+}
+
+bool HMDScriptingInterface::suppressKeyboard() {
+    return qApp->getActiveDisplayPlugin()->suppressKeyboard();
+}
+
+void HMDScriptingInterface::unsuppressKeyboard() {
+    qApp->getActiveDisplayPlugin()->unsuppressKeyboard();
+}
+
+bool HMDScriptingInterface::isKeyboardVisible() {
+    return qApp->getActiveDisplayPlugin()->isKeyboardVisible();
+}
+
+void HMDScriptingInterface::centerUI() {
+    QMetaObject::invokeMethod(qApp, "centerUI", Qt::QueuedConnection);
 }

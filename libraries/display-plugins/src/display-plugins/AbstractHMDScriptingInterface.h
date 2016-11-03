@@ -31,6 +31,7 @@ public:
 
 signals:
     void IPDScaleChanged();
+    void displayModeChanged(bool isHMDMode);
 
 private:
     float _IPDScale{ 1.0 };

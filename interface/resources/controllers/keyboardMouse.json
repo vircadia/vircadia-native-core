@@ -1,0 +1,121 @@
+{
+    "name": "Keyboard/Mouse to Actions",
+    "channels": [
+
+        { "from": "Keyboard.A", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.D", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.A", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.D", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.E", "when": "Keyboard.Shift", "to": "Actions.BOOM_IN", "filters": [ { "type": "scale", "scale": 0.05 } ] },
+        { "from": "Keyboard.C", "when": "Keyboard.Shift", "to": "Actions.BOOM_OUT", "filters": [ { "type": "scale", "scale": 0.05 } ] },
+        { "from": "Keyboard.S", "when": "Keyboard.Shift", "to": "Actions.PITCH_DOWN" },
+        { "from": "Keyboard.W", "when": "Keyboard.Shift", "to": "Actions.PITCH_UP" },
+
+
+        { "comment" : "Mouse turn need to be small continuous increments",
+          "from": { "makeAxis" : [
+                [ "Keyboard.MouseMoveLeft" ],
+                [ "Keyboard.MouseMoveRight" ] 
+            ]
+          },
+          "when": [ "Application.InHMD", "Application.SnapTurn", "Keyboard.RightMouseButton" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.2 },
+                { "type": "scale", "scale": 22.5 }
+            ]
+        },
+
+        { "comment" : "Touchpad turn need to be small continuous increments, but without the RMB constraint",
+          "from": { "makeAxis" : [
+                [ "Keyboard.TouchpadLeft" ],
+                [ "Keyboard.TouchpadRight" ] 
+            ] 
+          },
+          "when": [ "Application.InHMD", "Application.SnapTurn" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.2 },
+                { "type": "scale", "scale": 22.5 }
+            ]
+        },
+
+        { "from": { "makeAxis" : [
+                ["Keyboard.A", "Keyboard.Left" ],
+                ["Keyboard.D", "Keyboard.Right"]
+            ]
+          },
+          "when": [ "Application.InHMD", "Application.SnapTurn" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "pulse", "interval": 0.5, "resetOnZero": true },
+                { "type": "scale", "scale": 22.5 }
+            ]
+        },
+
+        { "from": { "makeAxis" : [
+                ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
+                ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"]
+            ]
+          },
+          "when": "Application.CameraFirstPerson",
+          "to": "Actions.Yaw"
+        },
+        { "from": { "makeAxis" : [
+                ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
+                ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"]
+            ]
+          },
+          "when": "Application.CameraThirdPerson",
+          "to": "Actions.Yaw"
+        },
+        { "from": { "makeAxis" : [ ["Keyboard.A"], ["Keyboard.D"] ] },
+          "when": "Application.CameraFSM",
+          "to": "Actions.Yaw"
+        },
+
+        { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
+          "when": "Keyboard.RightMouseButton",
+          "to": "Actions.Yaw"
+        },
+
+        { "from": "Keyboard.W", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.S", "to": "Actions.LONGITUDINAL_BACKWARD" },
+        { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" },
+        { "from": "Keyboard.E", "to": "Actions.VERTICAL_UP" },
+        { "from": "Keyboard.Left", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.Right", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.Left", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.Right", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.Down", "when": "Keyboard.Shift", "to": "Actions.PITCH_DOWN" },
+        { "from": "Keyboard.Up", "when": "Keyboard.Shift", "to": "Actions.PITCH_UP" },
+        { "from": "Keyboard.Up", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.Up", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.Down", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
+        { "from": "Keyboard.Down", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
+
+        { "from": "Keyboard.PgDown", "to": "Actions.VERTICAL_DOWN" },
+        { "from": "Keyboard.PgUp", "to": "Actions.VERTICAL_UP" },
+
+        { "from": "Keyboard.MouseMoveUp", "when": "Keyboard.RightMouseButton", "to": "Actions.PITCH_UP" },
+        { "from": "Keyboard.MouseMoveDown", "when": "Keyboard.RightMouseButton", "to": "Actions.PITCH_DOWN" },
+
+        { "from": "Keyboard.TouchpadDown", "to": "Actions.PITCH_DOWN" },
+        { "from": "Keyboard.TouchpadUp", "to": "Actions.PITCH_UP" },
+
+        { "from": "Keyboard.MouseWheelUp", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.MouseWheelDown", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.MouseWheelLeft", "to": "Actions.BOOM_OUT", "filters": [ { "type": "scale", "scale": 0.02 } ]},
+        { "from": "Keyboard.MouseWheelRight", "to": "Actions.BOOM_IN", "filters": [ { "type": "scale", "scale": 0.02 } ]},
+
+        { "from": "Keyboard.Space", "to": "Actions.SHIFT" },
+        { "from": "Keyboard.R", "to": "Actions.ACTION1" },
+        { "from": "Keyboard.T", "to": "Actions.ACTION2" },
+        { "from": "Keyboard.RightMouseClicked", "to": "Actions.ContextMenu" }
+    ]
+}

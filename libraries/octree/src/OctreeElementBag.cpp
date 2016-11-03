@@ -12,54 +12,29 @@
 #include "OctreeElementBag.h"
 #include <OctalCode.h>
 
-OctreeElementBag::OctreeElementBag() : 
-    _bagElements()
-{
-    OctreeElement::addDeleteHook(this);
-    _hooked = true;
-}
-
-OctreeElementBag::~OctreeElementBag() {
-    unhookNotifications();
-    deleteAll();
-}
-
-void OctreeElementBag::unhookNotifications() {
-    if (_hooked) {
-        OctreeElement::removeDeleteHook(this);
-        _hooked = false;
-    }
-}
-
-void OctreeElementBag::elementDeleted(OctreeElementPointer element) {
-    remove(element); // note: remove can safely handle nodes that aren't in it, so we don't need to check contains()
-}
-
-
 void OctreeElementBag::deleteAll() {
-    _bagElements.clear();
+    _bagElements = Bag();
 }
 
+/// does the bag contain elements?
+/// if all of the contained elements are expired, they will not report as empty, and
+/// a single last item will be returned by extract as a null pointer
+bool OctreeElementBag::isEmpty() {
+    return _bagElements.empty();
+}
 
 void OctreeElementBag::insert(OctreeElementPointer element) {
-    _bagElements.insert(element);
+    _bagElements[element.get()] = element;
 }
 
 OctreeElementPointer OctreeElementBag::extract() {
-    OctreeElementPointer result = NULL;
+    OctreeElementPointer result;
 
-    if (_bagElements.size() > 0) {
-        QSet<OctreeElementPointer>::iterator front = _bagElements.begin();
-        result = *front;
-        _bagElements.erase(front);
+    // Find the first element still alive
+    Bag::iterator it = _bagElements.begin();
+    while (it != _bagElements.end() && !result) {
+        result = it->second.lock();
+        it = _bagElements.erase(it);
     }
     return result;
-}
-
-bool OctreeElementBag::contains(OctreeElementPointer element) {
-    return _bagElements.contains(element);
-}
-
-void OctreeElementBag::remove(OctreeElementPointer element) {
-    _bagElements.remove(element);
 }

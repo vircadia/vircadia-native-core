@@ -28,7 +28,7 @@ private slots:
     void menuItemTriggered();
 
 public slots:
-    void addMenu(const QString& menuName);
+    void addMenu(const QString& menuName, const QString& grouping = QString());
     void removeMenu(const QString& menuName);
     bool menuExists(const QString& menuName);
 
@@ -42,8 +42,14 @@ public slots:
     void removeMenuItem(const QString& menuName, const QString& menuitem);
     bool menuItemExists(const QString& menuName, const QString& menuitem);
 
+    void addActionGroup(const QString& groupName, const QStringList& actionList,
+                        const QString& selected = QString());
+    void removeActionGroup(const QString& groupName);
+    
     bool isOptionChecked(const QString& menuOption);
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
+
+    void triggerOption(const QString& menuOption);
     
 signals:
     void menuItemEvent(const QString& menuItem);

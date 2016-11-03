@@ -12,11 +12,9 @@
 #ifndef hifi_Billboardable_h
 #define hifi_Billboardable_h
 
-#include <QScriptValue>
-
 #include <glm/gtc/quaternion.hpp>
+#include <QVariant>
 
-class QScriptEngine;
 class QString;
 class Transform;
 
@@ -26,8 +24,8 @@ public:
     void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
 protected:
-    void setProperties(const QScriptValue& properties);
-    QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
+    void setProperties(const QVariantMap& properties);
+    QVariant getProperty(const QString& property);
 
     void pointTransformAtCamera(Transform& transform, glm::quat offsetRotation = {1, 0, 0, 0});
 

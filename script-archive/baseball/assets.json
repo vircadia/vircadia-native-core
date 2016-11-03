@@ -1,0 +1,105 @@
+{
+  "assets": {
+    "crowd-boos.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/crowd-boos.wav",
+      "atp_url": "atp:c632c92b166ade60aa16b23ff1dfdf712856caeb83bd9311980b2d5edac821af.wav",
+      "attribution": "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    },
+    "crowd-cheers-organ.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/crowd-cheers-organ.wav",
+      "atp_url": "atp:b8044401a846ed29f881a0b9b80cf1ba41f26327180c28fc9c70d144f9b70045.wav",
+      "attribution": "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    },
+    "crowd-medium.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/crowd-medium.wav",
+      "atp_url": "atp:0821bf2ac60dd2f356dfdd948e8bb89c23984dc3584612f6c815765154f02cae.wav",
+      "attribution": "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    },
+    "baseball-hitting-bat-1.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-1.wav",
+      "atp_url": "atp:6f0b691a0c9c9ece6557d97fe242b1faec4020fe26efc9c17327993b513c5fe5.wav",
+      "attribution": "CC BY 3.0 - Credit: https://www.freesound.org/people/SocializedArtist45/"
+    },
+    "baseball-hitting-bat-set-1.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-1.wav",
+      "atp_url": "atp:5be5806205158ebdc5c3623ceb7ae73315028b51ffeae24292aff7042e3fa6a9.wav",
+      "attribution": "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
+    },
+    "baseball-hitting-bat-set-2.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-2.wav",
+      "atp_url": "atp:e68661374e2145c480809c26134782aad11e0de456c7802170c7abccc4028873.wav",
+      "attribution": "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
+    },
+    "baseball-hitting-bat-set-3.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-3.wav",
+      "atp_url": "atp:787e3c9af17dd3929527787176ede83d6806260e63ddd5a4cef48cd22e32c6f7.wav",
+      "attribution": "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
+    },
+    "baseball-hitting-bat-set-4.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-4.wav",
+      "atp_url": "atp:fc65383431a6238c7a4749f0f6f061f75a604ed5e17d775ab1b2955609e67ebb.wav",
+      "attribution": "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
+    },
+    "chatter-loop.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/chatter-loop.wav",
+      "atp_url": "atp:d9978e693035d4e2b5c7b546c8cccfb2dde5677834d9eed5206ccb2da55b4732.wav",
+      "attribution": "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    },
+    "zorba-organ.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/zorba-organ.wav",
+      "atp_url": "atp:1ee58f4d929fdef7c2989cd8be964952a24cdd653d80f57b6a89a2ae8e3029e1.wav",
+      "attribution": "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    },
+    "charge-organ.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/charge-organ.wav",
+      "atp_url": "atp:cefaba2d5f1a378382ee046716bffcf6b6a40676649b23a1e81a996efe22d7d3.wav",
+      "attribution": "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    },
+    "ball-game.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/ball-game.wav",
+      "atp_url": "atp:fb41e37f8f8f7b78e546ac78800df6e39edaa09b2df4bfa0afdd8d749dac38b8.wav",
+      "attribution": "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    },
+    "clapping.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/clapping.wav",
+      "atp_url": "atp:44a83a788ccfd2924e35c902c34808b24dbd0309d000299ce01a355f91cf8115.wav",
+      "attribution": "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    },
+    "pop1.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/pop1.wav",
+      "atp_url": "atp:a2bf79c95fe74c2c6c9188acc7230f7cd1b0f6008f2c81954ecd93eca0497ec6.wav"
+    },
+    "pop2.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/pop2.wav",
+      "atp_url": "atp:901067ebc2cda4c0d86ec02fcca2ed901e85f9097ad68bbde78b4cad8eaf2ed7.wav"
+    },
+    "pop3.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/pop3.wav",
+      "atp_url": "atp:830312930577cb1ea36ba2d743e957debbacceb441b20addead5a6faa05a3771.wav"
+    },
+    "pop4.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/pop4.wav",
+      "atp_url": "atp:62e80d0a9f084cf731bcc66ca6e9020ee88587417071a281eee3167307b53560.wav"
+    },
+    "fire1.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/fire1.wav",
+      "atp_url": "atp:ee6afe565576c4546c6d6cd89c1af532484c9b60ab30574d6b40c2df022f7260.wav",
+      "attribution": "CC BY 3.0 - Credir: dcsimon - https://www.freesound.org/people/dcsimon/sounds/160720/"
+    },
+    "fire2.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/fire2.wav",
+      "atp_url": "atp:91ef19ba1c78be82d3fd06530cd05ceb90d1e75f4204c66819c208c55da049ef.wav",
+      "attribution": "CC BY 3.0 - Credit: dcsimon - https://www.freesound.org/people/dcsimon/sounds/160720/"
+    },
+    "fire3.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/fire3.wav",
+      "atp_url": "atp:ee56993daf775012cf49293bfd5971eec7e5c396642f8bfbea902ba8f47b56cd.wav",
+      "attribution": "CC BY 3.0 - Credit: dcsimon - https://www.freesound.org/people/dcsimon/sounds/160720/"
+    },
+    "fire4.wav": {
+      "s3_url": "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/fire4.wav",
+      "atp_url": "atp:37775d267f00f82242a7e7f61f3f3d7bf64a54c5a3799e7f2540fa5f6b79bd02.wav",
+      "attribution": "CC BY 3.0 - Credit: dcsimon - https://www.freesound.org/people/dcsimon/sounds/160720/"
+    }
+  }
+}

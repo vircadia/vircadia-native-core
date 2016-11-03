@@ -11,7 +11,6 @@
 <@if not SKINNING_SLH@>
 <@def SKINNING_SLH@>
 
-const int MAX_TEXCOORDS = 2;
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
 

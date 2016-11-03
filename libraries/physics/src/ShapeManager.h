@@ -26,10 +26,9 @@ public:
     ~ShapeManager();
 
     /// \return pointer to shape
-    btCollisionShape* getShape(const ShapeInfo& info);
+    const btCollisionShape* getShape(const ShapeInfo& info);
 
     /// \return true if shape was found and released
-    bool releaseShape(const ShapeInfo& info);
     bool releaseShape(const btCollisionShape* shape);
 
     /// delete shapes that have zero references
@@ -39,16 +38,17 @@ public:
     int getNumShapes() const { return _shapeMap.size(); }
     int getNumReferences(const ShapeInfo& info) const;
     int getNumReferences(const btCollisionShape* shape) const;
-    bool hasShape(const btCollisionShape* shape) const; 
+    bool hasShape(const btCollisionShape* shape) const;
 
 private:
-    bool releaseShape(const DoubleHashKey& key);
+    bool releaseShapeByKey(const DoubleHashKey& key);
 
-    struct ShapeReference {
+    class ShapeReference {
+    public:
         int refCount;
-        btCollisionShape* shape;
+        const btCollisionShape* shape;
         DoubleHashKey key;
-        ShapeReference() : refCount(0), shape(NULL) {}
+        ShapeReference() : refCount(0), shape(nullptr) {}
     };
 
     btHashMap<DoubleHashKey, ShapeReference> _shapeMap;

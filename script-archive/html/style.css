@@ -1,0 +1,377 @@
+* {
+}
+
+body {
+    margin: 0;
+    padding: 0;
+
+    background-color: rgb(76, 76, 76);
+    color: rgb(204, 204, 204);
+    font-family: Arial;
+    font-size: 9.0pt;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.selectable {
+    -webkit-touch-callout: text;
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+
+    cursor: text;
+}
+
+.color-box {
+    display: inline-block;
+    width: 15pt;
+    height: 15pt;
+    border: 0.75pt solid black;
+    margin: 1.5pt;
+    cursor: pointer;
+}
+
+.color-box.highlight {
+    width: 13.5pt;
+    height: 13.5pt;
+    border: 1.5pt solid black;
+}
+
+.section-header, .sub-section-header {
+    background: #AAA;
+    border-bottom: 0.75pt solid #CCC;
+    background-color: #333333;
+    color: #999;
+    padding: 3pt;
+    padding-top: 6pt;
+}
+
+.section-header label, .sub-section-header label {
+    font-weight: bold;
+    font-size: 11pt;
+}
+
+.sub-section-header {
+    padding-top: 4px;
+}
+
+.sub-section-header label {
+    font-size: 9pt;
+}
+
+.multi-property-section {
+}
+
+.property-section {
+    display: block;
+    margin: 10 10;
+    height: 22.5pt;
+}
+
+
+.property-section label {
+    font-weight: bold;
+}
+
+.property-section span {
+    float: right;
+}
+
+.grid-section {
+}
+
+input[type=button] {
+    cursor: pointer;
+    background-color: #608e96;
+    border-color: #608e96;
+    border-radius: 3.75pt;
+    padding: 3.75pt 7.5pt;
+    border: 0;
+    color: #fff;
+    font-weight: bold;
+}
+
+#entity-list-header {
+    padding: 0.5em;
+}
+
+#search-area {
+    padding: 0.5em;
+    box-sizing: border-box;
+    padding-right: 6em;
+}
+
+#filter {
+    width: 99%;
+}
+
+#radius-and-unit {
+    width: 6em;
+    float: right;
+    margin-right: -6em;
+}
+
+#radius {
+    width: 4em;
+}
+
+textarea, input {
+    margin: 0;
+    padding: 1.5pt;
+    border: 0.75pt solid #999;
+    background-color: #eee;
+}
+
+textarea {
+    width: 100%;
+    resize: vertical;
+}
+
+.update-url-version{
+    width:17px;
+    height:17px;
+    float:right;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARCAQAAACRZI9xAAABAUlEQVQoz33RvyvEARjH8SdlUX6UbhFJfgwmE3aTxWEiitxqN/gH7IxCKTcymLiJFIOJsihiUKcrCYnuXoZv+F45n2d4lvfz6fPpCSFs6BO1JllvLmXk5F37dC0vJ5NGmlBxoFp7Rn6RDpRRtG5KtynrijhLoBBGQcllKkFWAXsyCbKEFxeGqmJmFZFLkE639vX+12hCSVft0nUR8RbLcRN/aSHGIqL2tVYPconL32qLtaiL88Rl0qtXc+pTDv1OPGMlidtgS8Wp2RR05FEFM98/GlRQ9mTHvB7jVt2rKGPAT9xh2z6qfnToHV1SjZpN23Tl051di1oco9W/pdttaBRfEhFXOZV7vEsAAAAASUVORK5CYII=);
+    padding:0 !important;
+    margin:0 2px 0 0 !important;
+}
+
+input.url {
+    width:85%;
+    padding-right: 20px;
+}
+
+input.coord {
+    width: 7em;
+    display: block;
+}
+
+input.no-spin::-webkit-outer-spin-button,
+input.no-spin::-webkit-inner-spin-button {
+    display: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+table#entity-table {
+    border-collapse: collapse;
+    font-family: Sans-Serif;
+    font-size: 9pt;
+    width: 100%;
+}
+
+#entity-table tr {
+    cursor: pointer;
+    border-bottom: 0.75pt solid rgb(63, 63, 63)
+}
+
+#entity-table tr.selected {
+    color: rgb(43, 43, 43);
+    background-color: #AAA;
+}
+
+#entity-table th {
+    background-color: #333;
+    color: #fff;
+    border: 0pt black solid;
+    text-align: left;
+    word-wrap: nowrap;
+    white-space: nowrap;
+}
+
+#entity-table td {
+    font-size: 9.0pt;
+    border: 0pt black solid;
+    word-wrap: nowrap;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#entity-table td.url {
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+th#entity-type {
+    width: 33.75pt;
+}
+
+
+
+div.input-area {
+    display: inline-block;
+    font-size: 9pt;
+}
+
+input {
+}
+
+#type, #id {
+    font-size: 9.0pt;
+}
+
+#type label, #id label {
+    color: rgb(150, 150, 150);
+}
+
+input, textarea {
+    background-color: rgb(63, 63, 63);
+    color: rgb(255, 255, 255);
+    border: none;
+    font-size: 9pt;
+}
+
+input:disabled, textarea:disabled {
+    background-color: rgb(63, 63, 63);
+    color: rgb(160, 160, 160);
+}
+
+#properties-list input[type=checkbox] {
+    vertical-align: bottom;
+}
+
+#properties-list input[type=button] {
+    cursor: pointer;
+    background-color: rgb(51, 102, 102);
+    border-color: #608e96;
+    border-radius: 3.75pt;
+    padding: 3.75pt 7.5pt;
+    border: 0;
+    color: rgb(204, 204, 204);
+}
+
+#properties-list input[type=button]:disabled {
+    background-color: rgb(41, 82, 82);
+    color: rgb(160, 160, 160);
+}
+
+#properties-list .property {
+    padding: 4pt;
+    border-bottom: 0.75pt solid rgb(63, 63, 63);
+    min-height: 12pt;
+}
+
+
+table#properties-list {
+    border: none;
+    border-collapse: collapse;
+    width: 100%;
+    background-color: #efefef;
+    font-family: Arial;
+    table-layout: fixed;
+}
+
+#properties-list {
+    border-bottom: 0.75pt solid #e5e5e5;
+}
+
+.sub-props-checkbox-group {
+    margin-left: 20px;
+}
+
+#properties-list .label {
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    height: 1.2em;
+}
+
+#properties-list .label input[type=button] {
+    float: right;
+    padding: 0 5px 1px;
+}
+
+#properties-list .value > div{
+    padding: 3pt 0;
+}
+
+col#col-label {
+    width: 97.5pt;
+}
+
+div.outer {
+    position: relative;
+}
+div.inner {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    position: absolute;
+    width: 100%;
+}
+
+td {
+    vertical-align: top;
+}
+
+#no-entities {
+    display: none;
+    font-size: 120%;
+    padding: 10pt;
+    font-weight: bold;
+    font-style: italic;
+}
+
+input[type="number"] {
+    position: relative;
+}
+
+/* Spin Buttons modified  - credit for original implementation goes to http://jsfiddle.net/Volker_E/WwfW9/ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    background: #FFF url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKUlEQVQYlWNgwAT/sYhhKPiPT+F/LJgEsHv37v+EMGkmkuImoh2NoQAANlcun/q4OoYAAAAASUVORK5CYII=) no-repeat center center;
+    width: 0.9em;
+    height: 4px;
+    opacity: 0.5; /* shows Spin Buttons per default (Chrome >= 39) */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover,
+input[type="number"]::-webkit-inner-spin-button:active{
+    opacity: .8;
+}
+
+input#property-name {
+    width: 100%;
+}
+
+.color-picker {
+	width: 50px;
+	height: 10px;
+	margin: 5px;
+	border: 1px solid white;
+}
+
+.prop-x {
+    color:red !important;
+    background: rgba(255, 0, 0, .9);
+    height:2px !important;
+}
+
+.prop-y {
+    color:green !important;
+    background: rgba(0, 255, 0, .9);
+    height:2px !important;
+}
+
+.prop-z{
+    color:blue !important;
+    background: rgba(0, 0, 255, .9);
+    height:2px !important;
+}

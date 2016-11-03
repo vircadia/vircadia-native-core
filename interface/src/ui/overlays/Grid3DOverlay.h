@@ -19,20 +19,37 @@ class Grid3DOverlay : public Planar3DOverlay {
 
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Grid3DOverlay();
     Grid3DOverlay(const Grid3DOverlay* grid3DOverlay);
+    ~Grid3DOverlay();
 
-    virtual void render(RenderArgs* args);
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    virtual AABox getBounds() const override;
 
-    virtual Grid3DOverlay* createClone() const;
+    virtual void render(RenderArgs* args) override;
+    virtual const render::ShapeKey getShapeKey() override;
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
+
+    virtual Grid3DOverlay* createClone() const override;
+
+    // Grids are UI tools, and may not be intersected (pickable)
+    virtual bool findRayIntersection(const glm::vec3&, const glm::vec3&, float&, BoxFace&, glm::vec3&) override { return false; }
 
 private:
-    float _minorGridWidth;
-    int _majorGridEvery;
+    void updateGrid();
+
+    bool _followCamera { true };
+
+    int _majorGridEvery { 5 };
+    float _majorGridRowDivisions;
+    float _majorGridColDivisions;
+
+    float _minorGridEvery { 1.0f };
+    float _minorGridRowDivisions;
+    float _minorGridColDivisions;
+    int _geometryId { 0 };
 };
 
 #endif // hifi_Grid3DOverlay_h

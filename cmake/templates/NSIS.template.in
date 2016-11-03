@@ -1,0 +1,1020 @@
+; CPack install script designed for a nmake build
+
+;--------------------------------
+; You must define these values
+
+  !define VERSION "@CPACK_PACKAGE_VERSION@"
+  !define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
+  !define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
+
+;--------------------------------
+;Variables
+
+  Var MUI_TEMP
+  Var STARTMENU_FOLDER
+  Var START_MENU
+
+;--------------------------------
+;Include Modern UI
+
+  !include "MUI2.nsh"
+  !include "InstallOptions.nsh"
+
+  ;Default installation folder
+  InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
+
+;--------------------------------
+;Include WinVer to get Windows version
+
+  !include "WinVer.nsh"
+
+;--------------------------------
+;General
+  ; leverage the UAC NSIS plugin to promote uninstaller to elevated privileges
+  !include UAC.nsh
+
+  ; Set name prior to inner loop so uninstaller has correct values
+  Name "@CPACK_NSIS_PACKAGE_NAME@"
+  BrandingText " "
+  ManifestDPIAware true
+
+  !ifdef INNER
+    !echo "Inner invocation"                  ; just to see what's going on
+
+    ; Require user only for temp installer
+    RequestExecutionLevel user
+
+    OutFile "$%TEMP%\tempinstaller.exe"       ; not really important where this is
+    SetCompress off                           ; for speed
+  !else
+    !echo "Outer invocation"
+
+    ; Require administrator access
+    RequestExecutionLevel admin
+
+    ; Call makensis again, defining INNER.  This writes an installer for us which, when
+    ; it is invoked, will just write the uninstaller to some location, and then exit.
+    ; Be sure to substitute the name of this script here.
+
+    !system "$\"${NSISDIR}\makensis$\" /DINNER project.nsi" = 0
+
+    ; Require administrator access
+    RequestExecutionLevel admin
+
+    ; So now run that installer we just created as %TEMP%\tempinstaller.exe.  Since it
+    ; calls quit the return value isn't zero.
+
+    !system "$%TEMP%\tempinstaller.exe" = 2
+
+    ; The Inner invocation has written an uninstaller binary for us.
+    ; We need to sign it if it's a production or PR build.
+    !if @PRODUCTION_BUILD@ == 1
+      !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
+    !endif
+
+    ; Good.  Now we can carry on writing the real installer.
+
+    ;Output file
+    OutFile "@CPACK_TOPLEVEL_DIRECTORY@/@CPACK_OUTPUT_FILE_NAME@"
+
+    ;Set compression
+    SetCompressor @CPACK_NSIS_COMPRESSOR@
+  !endif
+
+@CPACK_NSIS_DEFINES@
+
+  !include Sections.nsh
+
+;--- Component support macros: ---
+; The code for the add/remove functionality is from:
+;   http://nsis.sourceforge.net/Add/Remove_Functionality
+; It has been modified slightly and extended to provide
+; inter-component dependencies.
+Var AR_SecFlags
+Var AR_RegFlags
+@CPACK_NSIS_SECTION_SELECTED_VARS@
+
+; Loads the "selected" flag for the section named SecName into the
+; variable VarName.
+!macro LoadSectionSelectedIntoVar SecName VarName
+ SectionGetFlags ${${SecName}} $${VarName}
+ IntOp $${VarName} $${VarName} & ${SF_SELECTED}  ;Turn off all other bits
+!macroend
+
+; Loads the value of a variable... can we get around this?
+!macro LoadVar VarName
+  IntOp $R0 0 + $${VarName}
+!macroend
+
+; Sets the value of a variable
+!macro StoreVar VarName IntValue
+  IntOp $${VarName} 0 + ${IntValue}
+!macroend
+
+!macro InitSection SecName
+  ;  This macro reads component installed flag from the registry and
+  ;changes checked state of the section on the components page.
+  ;Input: section index constant name specified in Section command.
+
+  ClearErrors
+  ;Reading component status from registry
+  ReadRegDWORD $AR_RegFlags HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\Components\${SecName}" "Installed"
+  IfErrors "default_${SecName}"
+    ;Status will stay default if registry value not found
+    ;(component was never installed)
+  IntOp $AR_RegFlags $AR_RegFlags & ${SF_SELECTED} ;Turn off all other bits
+  SectionGetFlags ${${SecName}} $AR_SecFlags  ;Reading default section flags
+  IntOp $AR_SecFlags $AR_SecFlags & 0xFFFE  ;Turn lowest (enabled) bit off
+  IntOp $AR_SecFlags $AR_RegFlags | $AR_SecFlags      ;Change lowest bit
+
+  ; Note whether this component was installed before
+  !insertmacro StoreVar ${SecName}_was_installed $AR_RegFlags
+  IntOp $R0 $AR_RegFlags & $AR_RegFlags
+
+  ;Writing modified flags
+  SectionSetFlags ${${SecName}} $AR_SecFlags
+
+ "default_${SecName}:"
+ ; The client is always selected by default
+ ${If} ${SecName} == @CLIENT_COMPONENT_NAME@
+   SectionSetFlags ${${SecName}} 17
+ ${EndIf}
+
+ !insertmacro LoadSectionSelectedIntoVar ${SecName} ${SecName}_selected
+!macroend
+
+!macro FinishSection SecName
+  ;  This macro reads section flag set by user and removes the section
+  ;if it is not selected.
+  ;Then it writes component installed flag to registry
+  ;Input: section index constant name specified in Section command.
+
+  SectionGetFlags ${${SecName}} $AR_SecFlags  ;Reading section flags
+  ;Checking lowest bit:
+  IntOp $AR_SecFlags $AR_SecFlags & ${SF_SELECTED}
+  IntCmp $AR_SecFlags 1 "leave_${SecName}"
+    ;Section is not selected:
+
+    ; NOTE: The default CPack template calls Section uninstall macro and writes zero installed flag
+    ; We do not do that here because it would absolutely cause issues with shared dependencies
+
+    ;!insertmacro "Remove_${${SecName}}"
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\Components\${SecName}" \
+      "Installed" 0
+
+    Goto "exit_${SecName}"
+
+ "leave_${SecName}:"
+    ;Section is selected:
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\Components\${SecName}" \
+  "Installed" 1
+
+ "exit_${SecName}:"
+!macroend
+
+!macro RemoveSection_CPack SecName
+  ;  This macro is used to call section's Remove_... macro
+  ;from the uninstaller.
+  ;Input: section index constant name specified in Section command.
+
+  !insertmacro "Remove_${${SecName}}"
+!macroend
+
+; Determine whether the selection of SecName changed
+!macro MaybeSelectionChanged SecName
+  !insertmacro LoadVar ${SecName}_selected
+  SectionGetFlags ${${SecName}} $R1
+  IntOp $R1 $R1 & ${SF_SELECTED} ;Turn off all other bits
+
+  ; See if the status has changed:
+  IntCmp $R0 $R1 "${SecName}_unchanged"
+  !insertmacro LoadSectionSelectedIntoVar ${SecName} ${SecName}_selected
+
+  IntCmp $R1 ${SF_SELECTED} "${SecName}_was_selected"
+  !insertmacro "Deselect_required_by_${SecName}"
+  goto "${SecName}_unchanged"
+
+  "${SecName}_was_selected:"
+  !insertmacro "Select_${SecName}_depends"
+
+  "${SecName}_unchanged:"
+!macroend
+;--- End of Add/Remove macros ---
+
+;--------------------------------
+;Interface Settings
+
+  !define MUI_HEADERIMAGE
+  !define MUI_HEADERIMAGE_BITMAP "@INSTALLER_HEADER_IMAGE@"
+  !define MUI_HEADERIMAGE_UNBITMAP "@UNINSTALLER_HEADER_IMAGE@"
+  !define MUI_ABORTWARNING
+
+###########################################
+#            Utility Functions            #
+###########################################
+
+Function ConditionalAddToRegisty
+  Pop $0
+  Pop $1
+  StrCmp "$0" "" ConditionalAddToRegisty_EmptyString
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" \
+    "$1" "$0"
+    ;MessageBox MB_OK "Set Registry: '$1' to '$0'"
+    DetailPrint "Set install registry entry: '$1' to '$0'"
+  ConditionalAddToRegisty_EmptyString:
+FunctionEnd
+
+;--------------------------------
+
+!ifdef CPACK_USES_DOWNLOAD
+Function DownloadFile
+    IfFileExists $INSTDIR\* +2
+    CreateDirectory $INSTDIR
+    Pop $0
+
+    ; Skip if already downloaded
+    IfFileExists $INSTDIR\$0 0 +2
+    Return
+
+    StrCpy $1 "@CPACK_DOWNLOAD_SITE@"
+
+  try_again:
+    NSISdl::download "$1/$0" "$INSTDIR\$0"
+
+    Pop $1
+    StrCmp $1 "success" success
+    StrCmp $1 "Cancelled" cancel
+    MessageBox MB_OK "Download failed: $1"
+  cancel:
+    Return
+  success:
+FunctionEnd
+!endif
+
+;--------------------------------
+; Installation types
+
+Section "-Previous Install Cleanup"
+  ; Remove the resources folder so we don't end up including removed QML files
+  RMDir /r "$INSTDIR\resources"
+SectionEnd
+
+@CPACK_NSIS_INSTALLATION_TYPES@
+
+;--------------------------------
+; Component sections
+@CPACK_NSIS_COMPONENT_SECTIONS@
+
+;--------------------------------
+; Define some macro setting for the gui
+@CPACK_NSIS_INSTALLER_MUI_ICON_CODE@
+@CPACK_NSIS_INSTALLER_ICON_CODE@
+@CPACK_NSIS_INSTALLER_MUI_COMPONENTS_DESC@
+@CPACK_NSIS_INSTALLER_MUI_FINISHPAGE_RUN_CODE@
+
+;--------------------------------
+;Pages
+  !insertmacro MUI_PAGE_WELCOME
+
+  !insertmacro MUI_PAGE_LICENSE "@CPACK_RESOURCE_FILE_LICENSE@"
+  !insertmacro MUI_PAGE_DIRECTORY
+
+  ;Start Menu Folder Page Configuration
+  !define MUI_STARTMENUPAGE_REGISTRY_ROOT "HKLM"
+  !define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+  !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "Start Menu Folder"
+  !insertmacro MUI_PAGE_STARTMENU Application $STARTMENU_FOLDER
+
+  @CPACK_NSIS_PAGE_COMPONENTS@
+
+  Page custom PostInstallOptionsPage ReadPostInstallOptions
+
+  !insertmacro MUI_PAGE_INSTFILES
+
+  !insertmacro MUI_UNPAGE_CONFIRM
+  !insertmacro MUI_UNPAGE_INSTFILES
+
+;--------------------------------
+;Languages
+
+  !insertmacro MUI_LANGUAGE "English" ;first language is the default language
+  !insertmacro MUI_LANGUAGE "Albanian"
+  !insertmacro MUI_LANGUAGE "Arabic"
+  !insertmacro MUI_LANGUAGE "Basque"
+  !insertmacro MUI_LANGUAGE "Belarusian"
+  !insertmacro MUI_LANGUAGE "Bosnian"
+  !insertmacro MUI_LANGUAGE "Breton"
+  !insertmacro MUI_LANGUAGE "Bulgarian"
+  !insertmacro MUI_LANGUAGE "Croatian"
+  !insertmacro MUI_LANGUAGE "Czech"
+  !insertmacro MUI_LANGUAGE "Danish"
+  !insertmacro MUI_LANGUAGE "Dutch"
+  !insertmacro MUI_LANGUAGE "Estonian"
+  !insertmacro MUI_LANGUAGE "Farsi"
+  !insertmacro MUI_LANGUAGE "Finnish"
+  !insertmacro MUI_LANGUAGE "French"
+  !insertmacro MUI_LANGUAGE "German"
+  !insertmacro MUI_LANGUAGE "Greek"
+  !insertmacro MUI_LANGUAGE "Hebrew"
+  !insertmacro MUI_LANGUAGE "Hungarian"
+  !insertmacro MUI_LANGUAGE "Icelandic"
+  !insertmacro MUI_LANGUAGE "Indonesian"
+  !insertmacro MUI_LANGUAGE "Irish"
+  !insertmacro MUI_LANGUAGE "Italian"
+  !insertmacro MUI_LANGUAGE "Japanese"
+  !insertmacro MUI_LANGUAGE "Korean"
+  !insertmacro MUI_LANGUAGE "Kurdish"
+  !insertmacro MUI_LANGUAGE "Latvian"
+  !insertmacro MUI_LANGUAGE "Lithuanian"
+  !insertmacro MUI_LANGUAGE "Luxembourgish"
+  !insertmacro MUI_LANGUAGE "Macedonian"
+  !insertmacro MUI_LANGUAGE "Malay"
+  !insertmacro MUI_LANGUAGE "Mongolian"
+  !insertmacro MUI_LANGUAGE "Norwegian"
+  !insertmacro MUI_LANGUAGE "Polish"
+  !insertmacro MUI_LANGUAGE "Portuguese"
+  !insertmacro MUI_LANGUAGE "PortugueseBR"
+  !insertmacro MUI_LANGUAGE "Romanian"
+  !insertmacro MUI_LANGUAGE "Russian"
+  !insertmacro MUI_LANGUAGE "Serbian"
+  !insertmacro MUI_LANGUAGE "SerbianLatin"
+  !insertmacro MUI_LANGUAGE "SimpChinese"
+  !insertmacro MUI_LANGUAGE "Slovak"
+  !insertmacro MUI_LANGUAGE "Slovenian"
+  !insertmacro MUI_LANGUAGE "Spanish"
+  !insertmacro MUI_LANGUAGE "Swedish"
+  !insertmacro MUI_LANGUAGE "Thai"
+  !insertmacro MUI_LANGUAGE "TradChinese"
+  !insertmacro MUI_LANGUAGE "Turkish"
+  !insertmacro MUI_LANGUAGE "Ukrainian"
+  !insertmacro MUI_LANGUAGE "Welsh"
+
+
+;--------------------------------
+;Reserve Files
+
+  ;These files should be inserted before other files in the data block
+  ;Keep these lines before any File command
+  ;Only for solid compression (by default, solid compression is enabled for BZIP2 and LZMA)
+
+  ReserveFile "@POST_INSTALL_OPTIONS_PATH@"
+  ; Make sure nsDialogs is included before we use it
+  !include "nsdialogs.nsh"
+
+;--------------------------------
+; Post Install Options
+
+Var PostInstallDialog
+Var DesktopClientCheckbox
+Var DesktopServerCheckbox
+Var ServerStartupCheckbox
+Var LaunchNowCheckbox
+Var CurrentOffset
+Var OffsetUnits
+Var CopyFromProductionCheckbox
+
+!macro SetPostInstallOption Checkbox OptionName Default
+  ; reads the value for the given post install option to the registry
+  ReadRegStr $0 HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}"
+
+  ${If} $0 == "NO"
+    ; the value in the registry says it should not be checked
+    ${NSD_SetState} ${Checkbox} ${BST_UNCHECKED}
+  ${ElseIf} $0 == "YES"
+    ; the value in the registry says it should be checked
+    ${NSD_SetState} ${Checkbox} ${BST_CHECKED}
+  ${Else}
+    ; the value in the registry was not in the expected format, use default
+    ${NSD_SetState} ${Checkbox} ${Default}
+  ${EndIf}
+!macroend
+
+Function PostInstallOptionsPage
+  !insertmacro MUI_HEADER_TEXT "Setup Options" ""
+
+  nsDialogs::Create 1018
+  Pop $PostInstallDialog
+
+  ${If} $PostInstallDialog == error
+    Abort
+  ${EndIf}
+
+  StrCpy $CurrentOffset 0
+  StrCpy $OffsetUnits u
+
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @INTERFACE_HF_SHORTCUT_NAME@"
+    Pop $DesktopClientCheckbox
+    IntOp $CurrentOffset $CurrentOffset + 15
+
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
+  ${EndIf}
+
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
+    Pop $DesktopServerCheckbox
+
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $DesktopServerCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
+
+    IntOp $CurrentOffset $CurrentOffset + 15
+
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
+    Pop $ServerStartupCheckbox
+
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
+
+    IntOp $CurrentOffset $CurrentOffset + 15
+  ${EndIf}
+
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
+  ${Else}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
+  ${EndIf}
+
+  Pop $LaunchNowCheckbox
+
+  ; set the checkbox state depending on what is present in the registry
+  !insertmacro SetPostInstallOption $LaunchNowCheckbox @LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+
+  ${If} @PR_BUILD@ == 1
+    ; a PR build defaults all install options expect LaunchNowCheckbox and the settings copy to unchecked
+    ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+      ${NSD_SetState} $DesktopClientCheckbox ${BST_UNCHECKED}
+    ${EndIf}
+
+    ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+      ${NSD_SetState} $DesktopServerCheckbox ${BST_UNCHECKED}
+      ${NSD_SetState} $ServerStartupCheckbox ${BST_UNCHECKED}
+    ${EndIf}
+
+    ; push the offset
+    IntOp $CurrentOffset $CurrentOffset + 15
+
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Copy settings and content from production install"
+    Pop $CopyFromProductionCheckbox
+
+    ${NSD_SetState} $CopyFromProductionCheckbox ${BST_CHECKED}
+  ${EndIf}
+
+  nsDialogs::Show
+FunctionEnd
+
+!macro WritePostInstallOption OptionName Option
+  ; writes the value for the given post install option to the registry
+  WriteRegStr HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}" ${Option}
+!macroend
+
+Var DesktopClientState
+Var DesktopServerState
+Var ServerStartupState
+Var LaunchNowState
+Var CopyFromProductionState
+
+Function ReadPostInstallOptions
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ; check if the user asked for a desktop shortcut to High Fidelity
+    ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
+  ${EndIf}
+
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ; check if the user asked for a desktop shortcut to Sandbox
+    ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
+
+    ; check if the user asked to have Sandbox launched every startup
+    ${NSD_GetState} $ServerStartupCheckbox $ServerStartupState
+  ${EndIf}
+
+  ${If} @PR_BUILD@ == 1
+    ; check if we need to copy settings/content from production for this PR build
+    ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
+  ${EndIf}
+
+  ; check if we need to launch an application post-install
+  ${NSD_GetState} $LaunchNowCheckbox $LaunchNowState
+FunctionEnd
+
+Function HandlePostInstallOptions
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ; check if the user asked for a desktop shortcut to High Fidelity
+    ${If} $DesktopClientState == ${BST_CHECKED}
+      CreateShortCut "$DESKTOP\@INTERFACE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
+      !insertmacro WritePostInstallOption "@CLIENT_DESKTOP_SHORTCUT_REG_KEY@" YES
+    ${Else}
+      !insertmacro WritePostInstallOption @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ NO
+    ${EndIf}
+
+  ${EndIf}
+
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ; check if the user asked for a desktop shortcut to Sandbox
+    ${If} $DesktopServerState == ${BST_CHECKED}
+      CreateShortCut "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+      !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
+    ${Else}
+      !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
+    ${EndIf}
+
+    ; check if the user asked to have Sandbox launched every startup
+    ${If} $ServerStartupState == ${BST_CHECKED}
+      ; in case we added a shortcut in the global context, pull that now
+      SetShellVarContext all
+      Delete "$SMSTARTUP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
+
+      ; make a startup shortcut in this user's current context
+      SetShellVarContext current
+      CreateShortCut "$SMSTARTUP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+
+      ; reset the shell var context back
+      SetShellVarContext all
+
+      !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
+    ${Else}
+      !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ NO
+    ${EndIf}
+  ${EndIf}
+
+  ${If} @PR_BUILD@ == 1
+
+    ; check if we need to copy settings/content from production for this PR build
+    ${If} $CopyFromProductionState == ${BST_CHECKED}
+      SetShellVarContext current
+
+      StrCpy $0 "$APPDATA\@BUILD_ORGANIZATION@"
+
+      ; we need to copy whatever is in the data folder for production build to the data folder for this build
+      CreateDirectory $0
+
+      ClearErrors
+
+      ; copy the data from production build to this PR build
+      CopyFiles "$APPDATA\High Fidelity\*" $0
+
+      ; handle an error in copying files
+      IfErrors 0 NoError
+
+      MessageBox mb_IconStop|mb_TopMost|mb_SetForeground \
+      "There was a problem copying your production content and settings to $0 for this PR build.$\r$\n$\r$\nPlease copy them manually."
+
+      NoError:
+
+      SetShellVarContext all
+    ${EndIf}
+  ${EndIf}
+
+  ${If} $LaunchNowState == ${BST_CHECKED}
+    !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ YES
+
+    ; both launches use the explorer trick in case the user has elevated permissions for the installer
+    ; it won't be possible to use this approach if either application should be launched with a command line param
+    ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+      ; create shortcut with ARGUMENTS
+      CreateShortCut "$TEMP\SandboxShortcut.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@" "-- --launchInterface"
+      Exec '"$WINDIR\explorer.exe" "$TEMP\SandboxShortcut.lnk"'
+    ${Else}
+      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
+    ${EndIf}
+  ${Else}
+    !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ NO
+  ${EndIf}
+FunctionEnd
+
+;--------------------------------
+;Installer Sections
+
+Section "-Core installation"
+  ;The following delete blocks are temporary and can be removed once users who had the initial installer have updated
+
+  ;Delete any server-console files installed before it was placed in sub-folder
+  Delete "$INSTDIR\server-console.exe"
+  RMDir /r "$INSTDIR\locales"
+  RMDir /r "$INSTDIR\resources\app"
+  Delete "$INSTDIR\resources\atom.asar"
+  Delete "$INSTDIR\build-info.json"
+  Delete "$INSTDIR\content_resources_200_percent.pak"
+  Delete "$INSTDIR\content_shell.pak"
+  Delete "$INSTDIR\LICENSE"
+  Delete "$INSTDIR\LICENSES.chromium.html"
+  Delete "$INSTDIR\natives_blob.bin"
+  Delete "$INSTDIR\node.dll"
+  Delete "$INSTDIR\pdf.dll"
+  Delete "$INSTDIR\snapshot_blob.bin"
+  Delete "$INSTDIR\ui_resources_200_percent.pak"
+  Delete "$INSTDIR\vccorlib120.dll"
+  Delete "$INSTDIR\version"
+  Delete "$INSTDIR\xinput1_3.dll"
+
+  ; The installer includes two different Qt audio plugins.
+  ; On Windows 8 and above, only qtaudio_wasapi.dll should be installed.
+  ; On Windows 7 and below, only qtaudio_windows.dll should be installed.
+  ${If} ${AtLeastWin8}
+    Delete "$INSTDIR\audio\qtaudio_windows.dll"
+    Delete "$INSTDIR\audio\qtaudio_windows.pdb"
+  ${Else}
+    Delete "$INSTDIR\audio\qtaudio_wasapi.dll"
+    Delete "$INSTDIR\audio\qtaudio_wasapi.pdb"
+  ${EndIf}
+
+  ; Delete old desktop shortcuts before they were renamed during Sandbox rename
+  Delete "$DESKTOP\@PRE_SANDBOX_INTERFACE_SHORTCUT_NAME@.lnk"
+  Delete "$DESKTOP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
+
+  ; Delete old Start Menu shortcuts before Sandbox rename
+  Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@PRE_SANDBOX_INTERFACE_SHORTCUT_NAME@.lnk"
+  Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
+
+  ; Delete old startup item for Server Console before Sandbox rename
+  SetShellVarContext current
+  Delete "$SMSTARTUP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
+  SetShellVarContext all
+
+  ; Rename the incorrectly cased Raleway font
+  Rename "$INSTDIR\resources\qml\styles-uit\RalewaySemibold.qml" "$INSTDIR\resources\qml\styles-uit\RalewaySemiBold.qml"
+
+  ; Remove the Old Interface directory and vcredist_x64.exe (from installs prior to Server Console)
+  RMDir /r "$INSTDIR\Interface"
+  Delete "$INSTDIR\vcredist_x64.exe"
+
+  ;Use the entire tree produced by the INSTALL target.  Keep the
+  ;list of directories here in sync with the RMDir commands below.
+  SetOutPath "$INSTDIR"
+  @CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS@
+  @CPACK_NSIS_FULL_INSTALL@
+
+  ;Store installation folder
+  WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "" $INSTDIR
+
+  ;Package the signed uninstaller produced by the inner loop
+  !ifndef INNER
+    ; this packages the signed uninstaller
+    File $%TEMP%\@UNINSTALLER_NAME@
+  !endif
+
+  Push "DisplayName"
+  Push "@CPACK_NSIS_DISPLAY_NAME@"
+  Call ConditionalAddToRegisty
+  Push "DisplayVersion"
+  Push "@CPACK_PACKAGE_VERSION@"
+  Call ConditionalAddToRegisty
+  Push "Publisher"
+  Push "@CPACK_PACKAGE_VENDOR@"
+  Call ConditionalAddToRegisty
+  Push "UninstallString"
+  Push "$INSTDIR\@UNINSTALLER_NAME@"
+  Call ConditionalAddToRegisty
+  Push "NoRepair"
+  Push "1"
+  Call ConditionalAddToRegisty
+
+  !ifdef CPACK_NSIS_ADD_REMOVE
+  ;Create add/remove functionality
+  Push "ModifyPath"
+  Push "$INSTDIR\AddRemove.exe"
+  Call ConditionalAddToRegisty
+  !else
+  Push "NoModify"
+  Push "1"
+  Call ConditionalAddToRegisty
+  !endif
+
+  ; Package the add/remove icon file
+  File "@ADD_REMOVE_ICON_PATH@"
+
+  ; Optional registration
+  Push "DisplayIcon"
+  Push "$INSTDIR\@CPACK_NSIS_INSTALLED_ICON_NAME@"
+  Call ConditionalAddToRegisty
+  Push "HelpLink"
+  Push "@CPACK_NSIS_HELP_LINK@"
+  Call ConditionalAddToRegisty
+  Push "URLInfoAbout"
+  Push "@CPACK_NSIS_URL_INFO_ABOUT@"
+  Call ConditionalAddToRegisty
+  Push "Contact"
+  Push "@CPACK_NSIS_CONTACT@"
+  Call ConditionalAddToRegisty
+  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
+
+  ;Create shortcuts
+
+  CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
+@CPACK_NSIS_CREATE_ICONS@
+@CPACK_NSIS_CREATE_ICONS_EXTRA@
+
+  ; Conditional handling for Interface specific options
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
+      "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
+
+    ${If} "@PRODUCTION_BUILD@" == "1"
+      ; hifi:// protocol handler registry entries
+      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@' '' 'URL:High Fidelity Protocol'
+      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@' 'URL Protocol' ''
+      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@\DefaultIcon' '' '$INSTDIR\@INTERFACE_WIN_EXEC_NAME@,1'
+      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@\shell\open\command' '' '$INSTDIR\@INTERFACE_WIN_EXEC_NAME@ --url "%1"'
+    ${EndIf}
+
+  ${EndIf}
+
+  ; Conditional handling for server console shortcut
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
+      "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+  ${EndIf}
+
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
+
+  ; Write special uninstall registry entries
+  Push "StartMenu"
+  Push "$STARTMENU_FOLDER"
+  Call ConditionalAddToRegisty
+
+  !insertmacro MUI_STARTMENU_WRITE_END
+
+@CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
+
+  ; Handle whichever post install options were set
+  Call HandlePostInstallOptions
+
+SectionEnd
+
+!include nsProcess.nsh
+
+!macro PromptForRunningApplication applicationName displayName action prompter
+  !define UniqueID ${__LINE__}
+
+  Prompt_${UniqueID}:
+
+    ${nsProcess::FindProcess} ${applicationName} $R0
+
+    ${If} $R0 == 0
+
+      ; the process is running, ask the user to close it
+      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION \
+        "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it and click Retry to continue." \
+        /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
+
+      ; If the user decided to cancel, stop the current installer/uninstaller
+      Abort
+
+    ${EndIf}
+
+  !undef UniqueID
+!macroend
+
+!macro CheckForRunningApplications action prompter
+  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "@INTERFACE_DISPLAY_NAME@"  ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "@CONSOLE_DISPLAY_NAME@" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "@DS_DISPLAY_NAME@" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "@AC_DISPLAY_NAME@" ${action} ${prompter}
+!macroend
+
+;--------------------------------
+; determine admin versus local install
+Function un.onInit
+
+  ; In order for the uninstaller to be able to remove itself, we have to do some trickery here.
+  ; If the $EXEPATH does not contain the $TEMP dir, this instance is not the copied one
+  ; so we move it to the $TEMP dir and then execute the copied uninstaller.
+
+  ${If} $EXEDIR != $TEMP
+    CopyFiles /SILENT $EXEPATH $TEMP\@UNINSTALLER_NAME@
+    ExecWait '"$Temp\@UNINSTALLER_NAME@" _?=$INSTDIR' $0
+    SetErrorLevel $0
+    Quit
+  ${EndIf}
+
+  ; make sure none of the installed applications are still running
+  !insertmacro CheckForRunningApplications "uninstalled" "Uninstaller"
+  ${nsProcess::Unload}
+
+  ; attempt to elevate the uninstaller to admin status
+  uac_tryagain:
+  !insertmacro UAC_RunElevated
+  ${Switch} $0
+  ${Case} 0
+    ${IfThen} $1 = 1 ${|} Quit ${|} ;we are the outer process, the inner process has done its work, we are done
+    ${IfThen} $3 <> 0 ${|} ${Break} ${|} ;we are admin, let the show go on
+    ${If} $1 = 3 ;RunAs completed successfully, but with a non-admin user
+      MessageBox mb_YesNo|mb_IconExclamation|mb_TopMost|mb_SetForeground "The uninstaller requires admin privileges, try again" /SD IDNO IDYES uac_tryagain IDNO 0
+    ${EndIf}
+    ;fall-through and die
+
+  ${Case} 1223
+    MessageBox mb_IconStop|mb_TopMost|mb_SetForeground "The uninstaller requires admin privileges, aborting!"
+    Quit
+  ${Case} 1062
+    MessageBox mb_IconStop|mb_TopMost|mb_SetForeground "Logon service not running, aborting!"
+    Quit
+  ${Default}
+    MessageBox mb_IconStop|mb_TopMost|mb_SetForeground "Unable to elevate, error $0"
+    Quit
+  ${EndSwitch}
+
+FunctionEnd
+
+;--- Add/Remove callback functions: ---
+!macro SectionList MacroName
+  ;This macro used to perform operation on multiple sections.
+  ;List all of your components in following manner here.
+@CPACK_NSIS_COMPONENT_SECTION_LIST@
+!macroend
+
+Section -FinishComponents
+  ;Removes unselected components and writes component status to registry
+  !insertmacro SectionList "FinishSection"
+
+!ifdef CPACK_NSIS_ADD_REMOVE
+  ; Get the name of the installer executable
+  System::Call 'kernel32::GetModuleFileNameA(i 0, t .R0, i 1024) i r1'
+  StrCpy $R3 $R0
+
+  ; Strip off the last 13 characters, to see if we have AddRemove.exe
+  StrLen $R1 $R0
+  IntOp $R1 $R0 - 13
+  StrCpy $R2 $R0 13 $R1
+  StrCmp $R2 "AddRemove.exe" addremove_installed
+
+  ; We're not running AddRemove.exe, so install it
+  CopyFiles $R3 $INSTDIR\AddRemove.exe
+
+  addremove_installed:
+!endif
+SectionEnd
+;--- End of Add/Remove callback functions ---
+
+;--------------------------------
+; Component dependencies
+Function .onSelChange
+  !insertmacro SectionList MaybeSelectionChanged
+
+  ; if neither component is selected, disable the install button
+  ${IfNot} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${AndIfNot} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    GetDlgItem $0 $HWNDPARENT 1
+    EnableWindow $0 0
+  ${Else}
+    GetDlgItem $0 $HWNDPARENT 1
+    EnableWindow $0 1
+  ${EndIf}
+FunctionEnd
+
+;--------------------------------
+;Uninstaller Section
+
+; the normal uninstaller section is only defined for inner (they're not needed in the "outer"
+; installer and will just cause warnings because there is no WriteInstaller command)
+
+!ifdef INNER
+Section "Uninstall"
+
+  ; use all users context for data/startup folders
+  SetShellVarContext all
+
+  ReadRegStr $START_MENU HKLM \
+   "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "StartMenu"
+  ;MessageBox MB_OK "Start menu is in: $START_MENU"
+
+@CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS@
+
+  ;Remove files we installed.
+  ;Keep the list of directories here in sync with the File commands above.
+@CPACK_NSIS_DELETE_FILES@
+@CPACK_NSIS_DELETE_DIRECTORIES@
+
+!ifdef CPACK_NSIS_ADD_REMOVE
+  ;Remove the add/remove program
+  Delete "$INSTDIR\AddRemove.exe"
+!endif
+
+  ;Remove the Add/Remove icon
+  Delete "$INSTDIR\@CPACK_NSIS_INSTALLED_ICON_NAME@"
+
+  ;Remove the uninstaller itself.
+  Delete "$INSTDIR\@UNINSTALLER_NAME@"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+
+  ;Remove the installation directory if it is empty.
+  RMDir "$INSTDIR"
+
+  ; Remove the registry entries.
+  DeleteRegKey HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+
+  ; Removes all optional components
+  !insertmacro SectionList "RemoveSection_CPack"
+
+  !insertmacro MUI_STARTMENU_GETFOLDER Application $MUI_TEMP
+
+  Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@INTERFACE_SHORTCUT_NAME@.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
+  Delete "$DESKTOP\@INTERFACE_HF_SHORTCUT_NAME@.lnk"
+  Delete "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk"
+
+  ; if it exists, delete the startup shortcut for the current user
+  SetShellVarContext current
+  Delete "$SMSTARTUP\@CONSOLE_HF_SHORTCUT_NAME@.lnk"
+  SetShellVarContext all
+
+@CPACK_NSIS_DELETE_ICONS@
+@CPACK_NSIS_DELETE_ICONS_EXTRA@
+
+  ;Delete High Fidelity protocol handling, if installed
+  ${If} "@PRODUCTION_BUILD@" == "1"
+    DeleteRegKey HKCR '@HIGH_FIDELITY_PROTOCOL@'
+  ${EndIf}
+
+  ;Delete post-install option information from registry
+  DeleteRegKey HKLM '@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@'
+
+  ;Delete empty start menu parent diretories
+  StrCpy $MUI_TEMP "$SMPROGRAMS\$MUI_TEMP"
+
+  startMenuDeleteLoop:
+    ClearErrors
+    RMDir $MUI_TEMP
+    GetFullPathName $MUI_TEMP "$MUI_TEMP\.."
+
+    IfErrors startMenuDeleteLoopDone
+
+    StrCmp "$MUI_TEMP" "$SMPROGRAMS" startMenuDeleteLoopDone startMenuDeleteLoop
+  startMenuDeleteLoopDone:
+
+  ; If the user changed the shortcut, then untinstall may not work. This should
+  ; try to fix it.
+  StrCpy $MUI_TEMP "$START_MENU"
+  Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@INTERFACE_SHORTCUT_NAME@.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
+@CPACK_NSIS_DELETE_ICONS_EXTRA@
+
+  ;Delete empty start menu parent diretories
+  StrCpy $MUI_TEMP "$SMPROGRAMS\$MUI_TEMP"
+
+  secondStartMenuDeleteLoop:
+    ClearErrors
+    RMDir $MUI_TEMP
+    GetFullPathName $MUI_TEMP "$MUI_TEMP\.."
+
+    IfErrors secondStartMenuDeleteLoopDone
+
+    StrCmp "$MUI_TEMP" "$SMPROGRAMS" secondStartMenuDeleteLoopDone secondStartMenuDeleteLoop
+  secondStartMenuDeleteLoopDone:
+
+  DeleteRegKey /ifempty HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+
+SectionEnd
+!endif
+
+InstallDirRegKey HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" ""
+
+Function .onInit
+
+  !ifdef INNER
+    ; If INNER is defined, then we aren't supposed to do anything except write out
+    ; the installer.  This is better than processing a command line option as it means
+    ; this entire code path is not present in the final (real) installer.
+
+    WriteUninstaller "$%TEMP%\@UNINSTALLER_NAME@"
+
+    ; just bail out quickly when running the "inner" installer
+    Quit
+  !endif
+
+  ; make sure none of the installed applications are still running
+  !insertmacro CheckForRunningApplications "installed" "Installer"
+  ${nsProcess::Unload}
+
+  StrCmp "@CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL@" "ON" 0 inst
+
+  ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "UninstallString"
+  StrCmp $0 "" inst
+
+  MessageBox MB_YESNOCANCEL|MB_ICONEXCLAMATION \
+  "@CPACK_NSIS_PACKAGE_NAME@ is already installed. $\n$\nDo you want to uninstall the old version before installing the new one?" \
+  IDYES uninst IDNO inst
+  Abort
+
+;Run the uninstaller
+uninst:
+  ClearErrors
+  StrLen $2 "\Uninstall.exe"
+  StrCpy $3 $0 -$2 # remove "\Uninstall.exe" from UninstallString to get path
+  ExecWait '$0 _?=$3' ;Do not copy the uninstaller to a temp file
+
+  IfErrors uninst_failed inst
+uninst_failed:
+  MessageBox MB_OK|MB_ICONSTOP "Uninstall failed."
+  Abort
+
+
+inst:
+  ; Reads components status for registry
+  !insertmacro SectionList "InitSection"
+
+  ; use all users for context of data/startup folders
+  SetShellVarContext all
+FunctionEnd

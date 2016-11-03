@@ -11,28 +11,47 @@
 
 #include "ResourceManager.h"
 
-#include "AssetResourceRequest.h"
-#include "FileResourceRequest.h"
-#include "HTTPResourceRequest.h"
+#include <QNetworkDiskCache>
+#include <QStandardPaths>
+#include <QThread>
 
 #include <SharedUtil.h>
 
+
+#include "AssetResourceRequest.h"
+#include "FileResourceRequest.h"
+#include "HTTPResourceRequest.h"
+#include "NetworkAccessManager.h"
+
+
+QThread ResourceManager::_thread;
 ResourceManager::PrefixMap ResourceManager::_prefixMap;
 QMutex ResourceManager::_prefixMapLock;
 
 
 void ResourceManager::setUrlPrefixOverride(const QString& prefix, const QString& replacement) {
     QMutexLocker locker(&_prefixMapLock);
-    _prefixMap[prefix] = replacement;
+    if (replacement.isEmpty()) {
+        _prefixMap.erase(prefix);
+    } else {
+        _prefixMap[prefix] = replacement;
+    }
 }
 
 QString ResourceManager::normalizeURL(const QString& urlString) {
     QString result = urlString;
-    QMutexLocker locker(&_prefixMapLock);
-    foreach(const auto& entry, _prefixMap) {
+    PrefixMap copy;
+
+    {
+        QMutexLocker locker(&_prefixMapLock);
+        copy = _prefixMap;
+    }
+
+    foreach(const auto& entry, copy) {
         const auto& prefix = entry.first;
         const auto& replacement = entry.second;
         if (result.startsWith(prefix)) {
+            qDebug() << "Replacing " << prefix << " with " << replacement;
             result.replace(0, prefix.size(), replacement);
         }
     }
@@ -56,18 +75,44 @@ QUrl ResourceManager::normalizeURL(const QUrl& originalUrl) {
     return url;
 }
 
+void ResourceManager::init() {
+    _thread.setObjectName("Resource Manager Thread");
+
+    auto assetClient = DependencyManager::set<AssetClient>();
+    assetClient->moveToThread(&_thread);
+    QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::init);
+
+    _thread.start();
+}
+
+void ResourceManager::cleanup() {
+    // cleanup the AssetClient thread
+    DependencyManager::destroy<AssetClient>();
+    _thread.quit();
+    _thread.wait();
+}
+
 ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const QUrl& url) {
     auto normalizedURL = normalizeURL(url);
     auto scheme = normalizedURL.scheme();
+
+    ResourceRequest* request = nullptr;
+
     if (scheme == URL_SCHEME_FILE) {
-        return new FileResourceRequest(parent, normalizedURL);
+        request = new FileResourceRequest(normalizedURL);
     } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
-        return new HTTPResourceRequest(parent, normalizedURL);
+        request = new HTTPResourceRequest(normalizedURL);
     } else if (scheme == URL_SCHEME_ATP) {
-        return new AssetResourceRequest(parent, normalizedURL);
+        request = new AssetResourceRequest(normalizedURL);
+    } else {
+        qDebug() << "Unknown scheme (" << scheme << ") for URL: " << url.url();
+        return nullptr;
     }
+    Q_ASSERT(request);
 
-    qDebug() << "Unknown scheme (" << scheme << ") for URL: " << url.url();
-
-    return nullptr;
+    if (parent) {
+        QObject::connect(parent, &QObject::destroyed, request, &QObject::deleteLater);
+    }
+    request->moveToThread(&_thread);
+    return request;
 }

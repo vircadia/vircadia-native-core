@@ -1,0 +1,226 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/8/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@if not SUBSURFACE_SCATTERING_SLH@>
+<@def SUBSURFACE_SCATTERING_SLH@>
+
+<@func declareSubsurfaceScatteringProfileSource()@>
+
+float gaussian(float v, float r) {
+    const float _PI = 3.14159265358979523846;
+    return (1.0 / sqrt(2.0 * _PI * v)) * exp(-(r*r) / (2.0 * v));
+}
+
+vec3 scatter(float r) {
+    // r is the distance expressed in millimeter
+    // returns the scatter reflectance
+    // Values from GPU Gems 3 "Advanced Skin Rendering".
+    // Originally taken from real life samples.
+    const vec4 profile[6] = vec4[6](
+        vec4(0.0064, 0.233, 0.455, 0.649),
+        vec4(0.0484, 0.100, 0.336, 0.344),
+        vec4(0.1870, 0.118, 0.198, 0.000),
+        vec4(0.5670, 0.113, 0.007, 0.007),
+        vec4(1.9900, 0.358, 0.004, 0.000),
+        vec4(7.4100, 0.078, 0.000, 0.000)
+        );
+    const int profileNum = 6;
+
+    vec3 ret = vec3(0.0);
+    for (int i = 0; i < profileNum; i++) {
+        float v = profile[i].x * 1.414;
+        float g = gaussian(v, r);
+        ret += g * profile[i].yzw;
+    }
+
+    return ret;
+}
+
+<@endfunc@>
+
+<@func declareSubsurfaceScatteringGenerateProfileMap()@>
+<$declareSubsurfaceScatteringProfileSource()$>
+
+vec3 generateProfile(vec2 uv) {
+    return scatter(uv.x * 2.0);
+}
+
+<@endfunc@>
+
+<@func declareSubsurfaceScatteringProfileMap()@>
+
+uniform sampler2D scatteringProfile;
+
+vec3 scatter(float r) {
+    return texture(scatteringProfile, vec2(r * 0.5, 0.5)).rgb;
+}
+
+<@endfunc@>
+
+
+<@func declareSkinSpecularLighting()@>
+
+uniform sampler2D scatteringSpecularBeckmann;
+
+float fetchSpecularBeckmann(float ndoth, float roughness) {
+    return pow( 2.0 * texture(scatteringSpecularBeckmann, vec2(ndoth, roughness)).r, 10.0);
+}
+
+float fresnelReflectance(vec3 H, vec3 V, float Fo) {
+    float base = 1.0 - dot(V, H);
+    float exponential = pow(base, 5.0);
+    return exponential + Fo * (1.0 - exponential);
+}
+
+float skinSpecular(vec3 N, vec3 L, vec3 V, float roughness, float intensity) {
+    float result = 0.0;
+    float ndotl = dot(N, L);
+    if (ndotl > 0.0) {
+        vec3 h = L + V;
+        vec3 H = normalize(h);
+        float ndoth = dot(N, H);
+        float PH = fetchSpecularBeckmann(ndoth, roughness);
+        float F = fresnelReflectance(H, V, 0.028);
+        float frSpec = max(PH * F / dot(h, h), 0.0);
+        result = ndotl * intensity * frSpec;
+    }
+
+    return result;
+}
+
+<@endfunc@>
+
+<@func declareSubsurfaceScatteringIntegrate(NumIntegrationSteps)@>
+
+
+vec3 integrate(float cosTheta, float skinRadius) {
+    // Angle from lighting direction.
+    float theta = acos(cosTheta);
+    vec3 totalWeights = vec3(0.0);
+    vec3 totalLight = vec3(0.0);
+
+    const float _PI = 3.14159265358979523846;
+    const float step = 2.0 * _PI / <$NumIntegrationSteps$>;
+    float a = -(_PI);
+
+
+    while (a <= (_PI)) {
+        float sampleAngle = theta + a;
+        float diffuse = clamp(cos(sampleAngle), 0.0, 1.0);
+        //if (diffuse < 0.0) diffuse = 0.0;
+        //if (diffuse > 1.0) diffuse = 1.0;
+
+        // Distance.
+        float sampleDist = abs(2.0 * skinRadius * sin(a * 0.5));
+
+        // Profile Weight.
+        vec3 weights = scatter(sampleDist);
+
+        totalWeights += weights;
+        totalLight += diffuse * weights;
+        a += step;
+    }
+
+    vec3 result = (totalLight / totalWeights);
+    return clamp(result, vec3(0.0), vec3(1.0));
+
+}
+<@endfunc@>
+
+<@func declareSubsurfaceScatteringResource()@>
+
+uniform sampler2D scatteringLUT;
+
+vec3 fetchBRDF(float LdotN, float curvature) {
+    return texture(scatteringLUT, vec2( clamp(LdotN * 0.5 + 0.5, 0.0, 1.0), clamp(2.0 * curvature, 0.0, 1.0))).xyz;
+}
+
+vec3 fetchBRDFSpectrum(vec3 LdotNSpectrum, float curvature) {
+    return vec3(
+        fetchBRDF(LdotNSpectrum.r, curvature).r,
+        fetchBRDF(LdotNSpectrum.g, curvature).g,
+        fetchBRDF(LdotNSpectrum.b, curvature).b);
+}
+
+// Subsurface Scattering parameters
+struct ScatteringParameters {
+    vec4 normalBendInfo; // R, G, B, factor
+    vec4 curvatureInfo;// Offset, Scale, level
+    vec4 debugFlags;
+};
+
+uniform subsurfaceScatteringParametersBuffer {
+    ScatteringParameters parameters;
+};
+
+vec3 getBendFactor() {
+    return parameters.normalBendInfo.xyz * parameters.normalBendInfo.w;
+}
+
+float getScatteringLevel() {
+    return parameters.curvatureInfo.z;
+}
+
+bool showBRDF() {
+    return parameters.curvatureInfo.w > 0.0;
+}
+
+bool showCurvature() {
+    return parameters.debugFlags.x > 0.0;
+}
+bool showDiffusedNormal() {
+    return parameters.debugFlags.y > 0.0;
+}
+
+
+float tuneCurvatureUnsigned(float curvature) {
+    return abs(curvature) * parameters.curvatureInfo.y + parameters.curvatureInfo.x;
+}
+
+float unpackCurvature(float packedCurvature) {
+    return (packedCurvature * 2.0 - 1.0);
+}
+
+vec3 evalScatteringBentNdotL(vec3 normal, vec3 midNormal, vec3 lowNormal, vec3 lightDir) {
+    vec3 bendFactorSpectrum = getBendFactor();
+    // vec3 rN = normalize(mix(normal, lowNormal, bendFactorSpectrum.x));
+    vec3 rN = normalize(mix(midNormal, lowNormal, bendFactorSpectrum.x));
+    vec3 gN = normalize(mix(midNormal, lowNormal, bendFactorSpectrum.y));
+    vec3 bN = normalize(mix(midNormal, lowNormal, bendFactorSpectrum.z));
+
+    vec3 NdotLSpectrum = vec3(dot(rN, lightDir), dot(gN, lightDir), dot(bN, lightDir));
+
+    return NdotLSpectrum;
+}
+
+
+
+<@endfunc@>
+
+<@func declareSubsurfaceScatteringBRDF()@>
+<$declareSubsurfaceScatteringResource()$>
+
+vec3 evalSkinBRDF(vec3 lightDir, vec3 normal, vec3 midNormal, vec3 lowNormal, float curvature) {
+    if (showDiffusedNormal()) {
+        return lowNormal * 0.5 + vec3(0.5);
+    }
+    if (showCurvature()) {
+        return (curvature > 0.0 ? vec3(curvature, 0.0, 0.0) : vec3(0.0, 0.0, -curvature));
+    }
+
+    vec3 bentNdotL = evalScatteringBentNdotL(normal, midNormal, lowNormal, lightDir);
+
+    float tunedCurvature = tuneCurvatureUnsigned(curvature);
+
+    vec3 brdf = fetchBRDFSpectrum(bentNdotL, tunedCurvature);
+    return brdf;
+}
+
+<@endfunc@>
+
+<@endif@>

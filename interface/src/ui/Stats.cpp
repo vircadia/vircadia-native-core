@@ -23,6 +23,9 @@
 #include <LODManager.h>
 #include <OffscreenUi.h>
 #include <PerfStat.h>
+#include <plugins/DisplayPlugin.h>
+
+#include <gl/Context.h>
 
 #include "BandwidthRecorder.h"
 #include "Menu.h"
@@ -54,7 +57,9 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
 bool Stats::includeTimingRecord(const QString& name) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
-            if (name.startsWith("/idle/update/myAvatar/")) {
+            if (name.startsWith("/idle/update/physics/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+            } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
                     return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
                 }
@@ -91,6 +96,8 @@ bool Stats::includeTimingRecord(const QString& name) {
         } \
     }
 
+extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
+extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
     if (!force) {
@@ -110,13 +117,23 @@ void Stats::updateStats(bool force) {
         PerformanceTimer::setActive(shouldDisplayTimingDetail);
     }
 
-
     auto nodeList = DependencyManager::get<NodeList>();
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
-    STAT_UPDATE(serverCount, nodeList->size());
-    STAT_UPDATE(framerate, (int)qApp->getFps());
+    STAT_UPDATE(serverCount, (int)nodeList->size());
+    STAT_UPDATE(framerate, qApp->getFps());
+    if (qApp->getActiveDisplayPlugin()) {
+        auto displayPlugin = qApp->getActiveDisplayPlugin();
+        STAT_UPDATE(renderrate, displayPlugin->renderRate());
+        STAT_UPDATE(presentrate, displayPlugin->presentRate());
+        STAT_UPDATE(presentnewrate, displayPlugin->newFramePresentRate());
+        STAT_UPDATE(presentdroprate, qApp->getActiveDisplayPlugin()->droppedFrameRate());
+    } else {
+        STAT_UPDATE(presentrate, -1);
+        STAT_UPDATE(presentnewrate, -1);
+        STAT_UPDATE(presentdroprate, -1);
+    }
     STAT_UPDATE(simrate, (int)qApp->getAverageSimsPerSecond());
     STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
 
@@ -126,43 +143,42 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
     STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
 
-    // Second column: ping
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
-        SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
-        SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
-        STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
-        STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
-        STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
+    STAT_UPDATE_FLOAT(assetMbpsIn, (float)bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(assetMbpsOut, (float)bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
 
-        //// Now handle entity servers, since there could be more than one, we average their ping times
-        int totalPingOctree = 0;
-        int octreeServerCount = 0;
-        int pingOctreeMax = 0;
-        nodeList->eachNode([&](const SharedNodePointer& node) {
-            // TODO: this should also support entities
-            if (node->getType() == NodeType::EntityServer) {
-                totalPingOctree += node->getPingMs();
-                octreeServerCount++;
-                if (pingOctreeMax < node->getPingMs()) {
-                    pingOctreeMax = node->getPingMs();
-                }
+    // Second column: ping
+    SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
+    SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+    SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
+    SharedNodePointer messageMixerNode = nodeList->soloNodeOfType(NodeType::MessagesMixer);
+    STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
+    STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
+    STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
+    STAT_UPDATE(messagePing, messageMixerNode ? messageMixerNode->getPingMs() : -1);
+
+    //// Now handle entity servers, since there could be more than one, we average their ping times
+    int totalPingOctree = 0;
+    int octreeServerCount = 0;
+    int pingOctreeMax = 0;
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        // TODO: this should also support entities
+        if (node->getType() == NodeType::EntityServer) {
+            totalPingOctree += node->getPingMs();
+            octreeServerCount++;
+            if (pingOctreeMax < node->getPingMs()) {
+                pingOctreeMax = node->getPingMs();
             }
-        });
-        
-        // update the entities ping with the average for all connected entity servers
-        STAT_UPDATE(entitiesPing, octreeServerCount ? totalPingOctree / octreeServerCount : -1);
-    } else {
-        // -2 causes the QML to hide the ping column
-        STAT_UPDATE(audioPing, -2);
-    }
-    
+        }
+    });
+
+    // update the entities ping with the average for all connected entity servers
+    STAT_UPDATE(entitiesPing, octreeServerCount ? totalPingOctree / octreeServerCount : -1);
 
     // Third column, avatar stats
-    MyAvatar* myAvatar = avatarManager->getMyAvatar();
+    auto myAvatar = avatarManager->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
-    STAT_UPDATE_FLOAT(velocity, glm::length(myAvatar->getVelocity()), 0.1f);
+    STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getVelocity()), 0.01f);
     STAT_UPDATE_FLOAT(yaw, myAvatar->getBodyYaw(), 0.1f);
     if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
@@ -190,8 +206,29 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerPps, -1);
         }
 
-        STAT_UPDATE(downloads, ResourceCache::getLoadingRequests().size());
+        auto loadingRequests = ResourceCache::getLoadingRequests();
+        STAT_UPDATE(downloads, loadingRequests.size());
+        STAT_UPDATE(downloadLimit, ResourceCache::getRequestLimit())
         STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
+
+        // See if the active download urls have changed
+        bool shouldUpdateUrls = _downloads != _downloadUrls.size();
+        if (!shouldUpdateUrls) {
+            for (int i = 0; i < _downloads; i++) {
+                if (loadingRequests[i]->getURL().toString() != _downloadUrls[i]) {
+                    shouldUpdateUrls = true;
+                    break;
+                }
+            }
+        }
+        // If the urls have changed, update the list
+        if (shouldUpdateUrls) {
+            _downloadUrls.clear();
+            foreach (const auto& resource, loadingRequests) {
+                _downloadUrls << resource->getURL().toString();
+            }
+            emit downloadUrlsChanged();
+        }
         // TODO fix to match original behavior
         //stringstream downloads;
         //downloads << "Downloads: ";
@@ -224,6 +261,12 @@ void Stats::updateStats(bool force) {
             } else {
                 sendingModeStream << "S";
             }
+            if (stats.isFullScene()) {
+                sendingModeStream << "F";
+            }
+            else {
+                sendingModeStream << "p";
+            }
         }
 
         // calculate server node totals
@@ -247,6 +290,23 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(sendingMode, sendingModeResult);
     }
 
+    STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
+    STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemoryUsage()));
+    STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
+    STAT_UPDATE(gpuTexturesSparse, (int)gpu::Context::getTextureGPUSparseCount());
+
+    STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
+
+    STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
+    STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUMemoryUsage()));
+    STAT_UPDATE(gpuTextureVirtualMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUVirtualMemoryUsage()));
+    STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUFramebufferMemoryUsage()));
+    STAT_UPDATE(gpuTextureSparseMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUSparseMemoryUsage()));
+    STAT_UPDATE(gpuSparseTextureEnabled, gpu::Texture::getEnableSparseTextures() ? 1 : 0);
+    STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory()));
+    STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
+    STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
+
     // Incoming packets
     QLocale locale(QLocale::English);
     auto voxelPacketsToProcess = qApp->getOctreePacketProcessor().packetsToProcessCount();
@@ -268,7 +328,7 @@ void Stats::updateStats(bool force) {
     if (voxelPacketsToProcess == 0) {
         _resetRecentMaxPacketsSoon = true;
     } else if (voxelPacketsToProcess > _recentMaxPackets) {
-        _recentMaxPackets = voxelPacketsToProcess;
+        _recentMaxPackets = (int)voxelPacketsToProcess;
     }
 
     // Server Octree Elements
@@ -297,7 +357,7 @@ void Stats::updateStats(bool force) {
         // we will also include room for 1 line per timing record and a header of 4 lines
         // Timing details...
 
-        // First iterate all the records, and for the ones that should be included, insert them into 
+        // First iterate all the records, and for the ones that should be included, insert them into
         // a new Map sorted by average time...
         bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
         QMap<float, QString> sortedRecords;
@@ -322,7 +382,7 @@ void Stats::updateStats(bool force) {
             QString functionName = j.value();
             const PerformanceTimerRecord& record = allRecords.value(functionName);
             perfLines += QString("%1: %2 [%3]\n").
-                arg(QString(qPrintable(functionName)), 90, noBreakingSpace).
+                arg(QString(qPrintable(functionName)), -80, noBreakingSpace).
                 arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3, noBreakingSpace).
                 arg((int)record.getCount(), 6, 10, noBreakingSpace);
             linesDisplayed++;
@@ -342,14 +402,14 @@ void Stats::setRenderDetails(const RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {
-        STAT_UPDATE(meshOpaque, details._opaque._rendered);
-        STAT_UPDATE(meshTranslucent, details._opaque._rendered);
-        STAT_UPDATE(opaqueConsidered, details._opaque._considered);
-        STAT_UPDATE(opaqueOutOfView, details._opaque._outOfView);
-        STAT_UPDATE(opaqueTooSmall, details._opaque._tooSmall);
-        STAT_UPDATE(translucentConsidered, details._translucent._considered);
-        STAT_UPDATE(translucentOutOfView, details._translucent._outOfView);
-        STAT_UPDATE(translucentTooSmall, details._translucent._tooSmall);
+        STAT_UPDATE(itemConsidered, details._item._considered);
+        STAT_UPDATE(itemOutOfView, details._item._outOfView);
+        STAT_UPDATE(itemTooSmall, details._item._tooSmall);
+        STAT_UPDATE(itemRendered, details._item._rendered);
+        STAT_UPDATE(shadowConsidered, details._shadow._considered);
+        STAT_UPDATE(shadowOutOfView, details._shadow._outOfView);
+        STAT_UPDATE(shadowTooSmall, details._shadow._tooSmall);
+        STAT_UPDATE(shadowRendered, details._shadow._rendered);
     }
 }
 
@@ -357,7 +417,7 @@ void Stats::setRenderDetails(const RenderDetails& details) {
 /*
 // display expanded or contracted stats
 void Stats::display(
-        int voxelPacketsToProcess) 
+        int voxelPacketsToProcess)
 {
     // iterate all the current voxel stats, and list their sending modes, and total voxel counts
 

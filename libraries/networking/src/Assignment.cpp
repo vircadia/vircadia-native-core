@@ -12,11 +12,13 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
+#include "ServerPathUtils.h"
 
 #include <QtCore/QDataStream>
 
-#include <ApplicationVersion.h>
+#include <BuildInfo.h>
 #include "Assignment.h"
+#include <QtCore/QStandardPaths>
 
 Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
     switch (nodeType) {
@@ -30,6 +32,8 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::EntityServerType;
         case NodeType::AssetServer:
             return Assignment::AssetServerType;
+        case NodeType::MessagesMixer:
+            return Assignment::MessagesMixerType;
         default:
             return Assignment::AllTypes;
     }
@@ -62,24 +66,24 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
     } else if (_command == Assignment::RequestCommand) {
-        _nodeVersion = BUILD_VERSION;
+        _nodeVersion = BuildInfo::VERSION;
     }
 }
 
-Assignment::Assignment(NLPacket& packet) :
+Assignment::Assignment(ReceivedMessage& message) :
     _pool(),
     _location(GlobalLocation),
     _payload(),
     _walletUUID(),
     _nodeVersion()
 {
-    if (packet.getType() == PacketType::RequestAssignment) {
+    if (message.getType() == PacketType::RequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (packet.getType() == PacketType::CreateAssignment) {
+    } else if (message.getType() == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
     }
     
-    QDataStream packetStream(&packet);
+    QDataStream packetStream(message.getMessage());
     
     packetStream >> *this;
 }
@@ -89,7 +93,7 @@ Assignment::Assignment(NLPacket& packet) :
 #endif
 
 
-Assignment::Assignment(const Assignment& otherAssignment) {
+Assignment::Assignment(const Assignment& otherAssignment) : QObject() {
     _uuid = otherAssignment._uuid;
     _command = otherAssignment._command;
     _type = otherAssignment._type;
@@ -131,6 +135,8 @@ const char* Assignment::getTypeName() const {
             return "asset-server";
         case Assignment::EntityServerType:
             return "entity-server";
+        case Assignment::MessagesMixerType:
+            return "messages-mixer";
         default:
             return "unknown";
     }

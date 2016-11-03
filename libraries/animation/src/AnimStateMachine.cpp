@@ -46,14 +46,31 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
     }
 
     assert(_currentState);
-    auto currentStateNode = _currentState->getNode();
+    auto currentStateNode = _children[_currentState->getChildIndex()];
     assert(currentStateNode);
 
     if (_duringInterp) {
         _alpha += _alphaVel * dt;
         if (_alpha < 1.0f) {
-            if (_poses.size() > 0 && _nextPoses.size() > 0 && _prevPoses.size() > 0) {
-                ::blend(_poses.size(), &_prevPoses[0], &_nextPoses[0], _alpha, &_poses[0]);
+            AnimPoseVec* nextPoses = nullptr;
+            AnimPoseVec* prevPoses = nullptr;
+            AnimPoseVec localNextPoses;
+            if (_interpType == InterpType::SnapshotBoth) {
+                // interp between both snapshots
+                prevPoses = &_prevPoses;
+                nextPoses = &_nextPoses;
+            } else if (_interpType == InterpType::SnapshotPrev) {
+                // interp between the prev snapshot and evaluated next target.
+                // this is useful for interping into a blend
+                localNextPoses = currentStateNode->evaluate(animVars, dt, triggersOut);
+                prevPoses = &_prevPoses;
+                nextPoses = &localNextPoses;
+            } else {
+                assert(false);
+            }
+
+            if (_poses.size() > 0 && nextPoses && prevPoses && nextPoses->size() > 0 && prevPoses->size() > 0) {
+                ::blend(_poses.size(), &(prevPoses->at(0)), &(nextPoses->at(0)), _alpha, &_poses[0]);
             }
         } else {
             _duringInterp = false;
@@ -79,23 +96,39 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointe
 
     const float FRAMES_PER_SECOND = 30.0f;
 
-    auto prevStateNode = _currentState->getNode();
-    auto nextStateNode = desiredState->getNode();
+    auto prevStateNode = _children[_currentState->getChildIndex()];
+    auto nextStateNode = _children[desiredState->getChildIndex()];
 
     _duringInterp = true;
     _alpha = 0.0f;
     float duration = std::max(0.001f, animVars.lookup(desiredState->_interpDurationVar, desiredState->_interpDuration));
     _alphaVel = FRAMES_PER_SECOND / duration;
-    _prevPoses = _poses;
-    nextStateNode->setCurrentFrame(desiredState->_interpTarget);
+    _interpType = (InterpType)animVars.lookup(desiredState->_interpTypeVar, (int)desiredState->_interpType);
 
     // because dt is 0, we should not encounter any triggers
     const float dt = 0.0f;
     Triggers triggers;
-    _nextPoses = nextStateNode->evaluate(animVars, dt, triggers);
-#if WANT_DEBUG
-    qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID() << "duration =" << duration << "targetFrame =" << desiredState->_interpTarget;
+
+    if (_interpType == InterpType::SnapshotBoth) {
+        // snapshot previous pose.
+        _prevPoses = _poses;
+        // snapshot next pose at the target frame.
+        nextStateNode->setCurrentFrame(desiredState->_interpTarget);
+        _nextPoses = nextStateNode->evaluate(animVars, dt, triggers);
+    } else if (_interpType == InterpType::SnapshotPrev) {
+        // snapshot previoius pose
+        _prevPoses = _poses;
+        // no need to evaluate _nextPoses we will do it dynamically during the interp,
+        // however we need to set the current frame.
+        nextStateNode->setCurrentFrame(desiredState->_interpTarget - duration);
+    } else {
+        assert(false);
+    }
+
+#ifdef WANT_DEBUG
+    qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID() << "duration =" << duration << "targetFrame =" << desiredState->_interpTarget << "interpType = " << (int)_interpType;
 #endif
+
     _currentState = desiredState;
 }
 

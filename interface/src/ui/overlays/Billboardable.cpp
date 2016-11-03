@@ -14,18 +14,18 @@
 #include <Application.h>
 #include <Transform.h>
 
-void Billboardable::setProperties(const QScriptValue &properties) {
-    QScriptValue isFacingAvatar = properties.property("isFacingAvatar");
+void Billboardable::setProperties(const QVariantMap& properties) {
+    auto isFacingAvatar = properties["isFacingAvatar"];
     if (isFacingAvatar.isValid()) {
-        setIsFacingAvatar(isFacingAvatar.toVariant().toBool());
+        setIsFacingAvatar(isFacingAvatar.toBool());
     }
 }
 
-QScriptValue Billboardable::getProperty(QScriptEngine* scriptEngine, const QString &property) {
+QVariant Billboardable::getProperty(const QString &property) {
     if (property == "isFacingAvatar") {
         return isFacingAvatar();
     }
-    return QScriptValue();
+    return QVariant();
 }
 
 void Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offsetRotation) {

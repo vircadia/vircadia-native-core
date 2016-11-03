@@ -13,19 +13,21 @@
 //
 
 <@include gpu/Inputs.slh@>
-
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 <@include Skinning.slh@>
 
-uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
+<@include MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
 
 out vec4 _position;
 out vec2 _texCoord0;
+out vec2 _texCoord1;
 out vec3 _normal;
 out vec3 _color;
+out float _alpha;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
@@ -33,16 +35,17 @@ void main(void) {
 
     skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, position, interpolatedNormal);
 
-    // pass along the diffuse color
-    _color = inColor.rgb;
+    // pass along the color
+    _color = colorToLinearRGB(inColor.rgb);
+    _alpha = inColor.a;
 
-    // and the texture coordinates
-    _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;
-    
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
+
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
-    _normal = interpolatedNormal.xyz;
+    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, _normal.xyz)$>
 }

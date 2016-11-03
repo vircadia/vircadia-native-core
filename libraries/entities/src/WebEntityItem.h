@@ -9,7 +9,7 @@
 #ifndef hifi_WebEntityItem_h
 #define hifi_WebEntityItem_h
 
-#include "EntityItem.h" 
+#include "EntityItem.h"
 
 class WebEntityItem : public EntityItem {
 public:
@@ -17,45 +17,51 @@ public:
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    
+    WebEntityItem(const EntityItemID& entityItemID);
+
     ALLOW_INSTANTIATION // This class can be instantiated
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensions(const glm::vec3& value);
-    virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
-    
+    virtual void setDimensions(const glm::vec3& value) override;
+    virtual ShapeType getShapeType() const override { return SHAPE_TYPE_BOX; }
+
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
-    virtual bool setProperties(const EntityItemProperties& properties);
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual bool setProperties(const EntityItemProperties& properties) override;
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
-    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
-    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
-                                    OctreeElement::AppendState& appendState) const;
+                                    int& propertyCount,
+                                    OctreeElement::AppendState& appendState) const override;
 
-    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                bool& somethingChanged);
+                                                bool& somethingChanged) override;
 
-    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking) const;
+                         void** intersectedObject, bool precisionPicking) const override;
 
     virtual void setSourceUrl(const QString& value);
     const QString& getSourceUrl() const;
 
+    virtual bool wantsHandControllerPointerEvents() const override { return true; }
+
+    void setDPI(uint16_t value);
+    uint16_t getDPI() const;
+
 protected:
     QString _sourceUrl;
+    uint16_t _dpi;
 };
 
 #endif // hifi_WebEntityItem_h

@@ -18,7 +18,7 @@ const float AnimationLoop::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
 
 AnimationLoop::AnimationLoop() :
     _fps(30.0f),
-    _loop(false),
+    _loop(true),
     _hold(false),
     _startAutomatically(false),
     _firstFrame(0.0f),
@@ -40,6 +40,7 @@ AnimationLoop::AnimationLoop(const AnimationDetails& animationDetails) :
     _lastFrame(animationDetails.lastFrame),
     _running(animationDetails.running),
     _currentFrame(animationDetails.currentFrame),
+    _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME),
     _resetOnRunning(true),
     _lastSimulated(usecTimestampNow())
 {
@@ -55,6 +56,7 @@ AnimationLoop::AnimationLoop(float fps, bool loop, bool hold, bool startAutomati
     _lastFrame(lastFrame),
     _running(running),
     _currentFrame(currentFrame),
+    _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME),
     _resetOnRunning(true),
     _lastSimulated(usecTimestampNow())
 {

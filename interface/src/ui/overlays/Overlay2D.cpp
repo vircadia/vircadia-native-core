@@ -23,49 +23,44 @@ AABox Overlay2D::getBounds() const {
                  glm::vec3(_bounds.width(), _bounds.height(), 0.01f));
 }
 
-void Overlay2D::setProperties(const QScriptValue& properties) {
+void Overlay2D::setProperties(const QVariantMap& properties) {
     Overlay::setProperties(properties);
     
-    QScriptValue bounds = properties.property("bounds");
+    auto bounds = properties["bounds"];
     if (bounds.isValid()) {
-        QRect boundsRect;
-        boundsRect.setX(bounds.property("x").toVariant().toInt());
-        boundsRect.setY(bounds.property("y").toVariant().toInt());
-        boundsRect.setWidth(bounds.property("width").toVariant().toInt());
-        boundsRect.setHeight(bounds.property("height").toVariant().toInt());
-        setBounds(boundsRect);
+        bool valid;
+        auto rect = qRectFromVariant(bounds, valid);
+        setBounds(rect);
     } else {
         QRect oldBounds = _bounds;
         QRect newBounds = oldBounds;
-        
-        if (properties.property("x").isValid()) {
-            newBounds.setX(properties.property("x").toVariant().toInt());
+        if (properties["x"].isValid()) {
+            newBounds.setX(properties["x"].toInt());
         } else {
             newBounds.setX(oldBounds.x());
         }
-        if (properties.property("y").isValid()) {
-            newBounds.setY(properties.property("y").toVariant().toInt());
+        if (properties["y"].isValid()) {
+            newBounds.setY(properties["y"].toInt());
         } else {
             newBounds.setY(oldBounds.y());
         }
-        if (properties.property("width").isValid()) {
-            newBounds.setWidth(properties.property("width").toVariant().toInt());
+        if (properties["width"].isValid()) {
+            newBounds.setWidth(properties["width"].toInt());
         } else {
             newBounds.setWidth(oldBounds.width());
         }
-        if (properties.property("height").isValid()) {
-            newBounds.setHeight(properties.property("height").toVariant().toInt());
+        if (properties["height"].isValid()) {
+            newBounds.setHeight(properties["height"].toInt());
         } else {
             newBounds.setHeight(oldBounds.height());
         }
         setBounds(newBounds);
-        //qDebug() << "set bounds to " << getBounds();
     }
 }
 
-QScriptValue Overlay2D::getProperty(const QString& property) {
+QVariant Overlay2D::getProperty(const QString& property) {
     if (property == "bounds") {
-        return qRectToScriptValue(_scriptEngine, _bounds);
+        return qRectToVariant(_bounds);
     }
     if (property == "x") {
         return _bounds.x();

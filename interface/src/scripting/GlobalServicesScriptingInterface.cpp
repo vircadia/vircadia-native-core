@@ -17,9 +17,10 @@
 #include "GlobalServicesScriptingInterface.h"
 
 GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    connect(&accountManager, &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
-    connect(&accountManager, &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
+    connect(accountManager.data(), &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
+    connect(accountManager.data(), &AccountManager::loginComplete, this, &GlobalServicesScriptingInterface::connected);
 
     _downloading = false;
     QTimer* checkDownloadTimer = new QTimer(this);
@@ -33,9 +34,10 @@ GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
 }
 
 GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    disconnect(&accountManager, &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
-    disconnect(&accountManager, &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    disconnect(accountManager.data(), &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
+    disconnect(accountManager.data(), &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
+    disconnect(accountManager.data(), &AccountManager::loginComplete, this, &GlobalServicesScriptingInterface::connected);
 }
 
 GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance() {
@@ -44,7 +46,7 @@ GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance(
 }
 
 const QString& GlobalServicesScriptingInterface::getUsername() const {
-    return AccountManager::getInstance().getAccountInfo().getUsername();
+    return DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
 }
 
 void GlobalServicesScriptingInterface::loggedOut() {
@@ -120,7 +122,7 @@ void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoR
 
 DownloadInfoResult GlobalServicesScriptingInterface::getDownloadInfo() {
     DownloadInfoResult result;
-    foreach(Resource* resource, ResourceCache::getLoadingRequests()) {
+    foreach(const auto& resource, ResourceCache::getLoadingRequests()) {
         result.downloading.append(resource->getProgress() * 100.0f);
     }
     result.pending = ResourceCache::getPendingRequestCount();
@@ -142,6 +144,3 @@ void GlobalServicesScriptingInterface::updateDownloadInfo() {
     emit downloadInfoChanged(getDownloadInfo());
 }
 
-void GlobalServicesScriptingInterface::editFriends() {
-    QMetaObject::invokeMethod(qApp, "showFriendsWindow");
-}

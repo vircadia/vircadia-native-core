@@ -1,0 +1,141 @@
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-Regular.ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-ExtraLight.ttf');
+    font-weight: 200;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-SemiBold.ttf');
+    font-weight: bold;
+    font-style: normal;
+}
+
+body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    color: #414141;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    cursor: default;
+    font-variant-numeric: lining-nums;
+    -moz-font-feature-settings: "lnum";
+    -webkit-font-feature-settings: "lnum";
+    font-feature-settings: "lnum";
+}
+
+* {
+    font-family: "Raleway", "Open Sans", Arial, Helvetica, sans-serif;
+    font-size: 13.5pt;
+    line-height: 130%;
+}
+
+a:link,
+a:visited,
+a:hover,
+a:active {
+    font-weight: bold;
+    color: #2D88A4;
+}
+
+a:hover {
+    font-weight: bold;
+    color: #00B4EF;
+}
+
+h1 {
+    font-weight: normal;
+    color: #6D7472;
+    font-size: 30pt;
+    margin: 0;
+    padding: 0;
+}
+
+h2 {
+    color: #6D7472;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+}
+
+.header-title {
+    padding-top: 80px;
+}
+
+.content {
+    margin: 0 110px;
+}
+
+.column {
+    display: inline-block;
+    float: left;
+    padding-top: 26px;
+}
+
+.column.left {
+    width: 415px;
+    padding-right: 120px;
+}
+
+.column.center {
+    width: 565px;
+}
+
+.column.right {
+    z-index: -1;
+    float: right;
+    padding-top: 16px;
+    padding-left: 60px;
+    position: absolute;
+    right: -30px;
+}
+
+.top {
+    height: 168px;
+    border-bottom: 2px solid #F5F6F6;
+}
+
+.middle {
+    width: 1364px;
+    /* 1584 - (110 * 2) */
+    position: absolute;
+    top: 168px;
+    bottom: 98px;
+}
+
+.bottom {
+    width: 100%;
+    position: absolute;
+    height: 98px;
+    background-color: #F5F6F6;
+    bottom: 0;
+    /* padding-top: 34px; */
+}
+
+#main-content {
+    height: 350px;
+}
+
+.footer {
+    padding-top: 34px;
+}
+
+.header-right {
+    /* float: right; */
+    position: absolute;
+    top: 63px;
+    right: 114px;
+}
+
+input[type="checkbox"] {
+    -webkit-transform: scale(1.4);
+    display: inline-block;
+}

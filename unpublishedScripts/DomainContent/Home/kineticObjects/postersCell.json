@@ -1,0 +1,89 @@
+{
+    "Entities": [{
+        "color": {
+            "blue": 117,
+            "green": 117,
+            "red": 117
+        },
+        "created": "2016-03-23T17:14:01Z",
+        "dimensions": {
+            "x": 0.20582196116447449,
+            "y": 0.032061770558357239,
+            "z": 0.14119282364845276
+        },
+        "id": "{fb17c832-d450-4293-a9b5-5b2d0425e8fc}",
+        "name": "home_model_posterNail",
+        "position" : {
+            "x": -0.05,
+            "y": 0.4,
+            "z": 0.1
+        },
+        "rotation": {
+            "w": 0.96362245082855225,
+            "x": -1.52587890625e-05,
+            "y": 0.26723122596740723,
+            "z": -1.52587890625e-05
+        },
+        "queryAACube": {
+            "scale": 0.25164666771888733,
+            "x": 1103.68896484375,
+            "y": 461.6612548828125,
+            "z": 2.9730765819549561
+        },
+        "type": "Box",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/posters/Poster2.obj",
+        "created": "2016-03-23T19:05:25Z",
+        "dimensions": {
+            "x": 0.057196967303752899,
+            "y": 1.1607639789581299,
+            "z": 0.87844705581665039
+        },
+        "dynamic": 0,
+        "id": "{9eec1faa-9e1a-4d76-abeb-a1b1175a44d5}",
+        "modelURL": "atp:/kineticObjects/posters/Cellscience-Poster-2.fbx",
+        "name": "home_model_posterCell",
+        "queryAACube": {
+            "scale": 1.4568163156509399,
+            "x": 1103.1385498046875,
+            "y": 460.5538330078125,
+            "z": 2.2970359325408936
+        },
+        "rotation": {"x":0.000021114425180712715,"y":-0.9585217833518982,"z":-0.000005921703177591553,"w":0.285019189119339},
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    },
+     {
+        "color": {
+            "blue": 255,
+            "green": 0,
+            "red": 255
+        },
+        "name": "home_sphere_cellsciencePortkey",
+        "href": "hifi://cellscience",
+        "script": "atp:/switches/portkey.js",
+        "visible": false,
+        "dimensions": {
+            "x": 0.111,
+            "y": 0.111,
+            "z": 0.111
+        },
+        "position": {
+            "x": 0.0,
+            "y": -0.2,
+            "z": 0.0
+        },
+        "queryAACube": {
+            "scale": 0.25831151008605957,
+            "x": -0.12915575504302979,
+            "y": -0.12915575504302979,
+            "z": -0.10074388980865479
+        },
+        "type": "Sphere",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}, \"grabbableKey\": {\"wantsTrigger\": true}}"
+    }],
+    "Version": 57
+}

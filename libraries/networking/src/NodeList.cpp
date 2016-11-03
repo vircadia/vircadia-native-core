@@ -19,7 +19,6 @@
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 
-#include <ApplicationVersion.h>
 #include <LogHandler.h>
 #include <UUID.h>
 
@@ -32,14 +31,16 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 
+const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 
-NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
+NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
     _domainHandler(this),
     _numNoReplyDomainCheckIns(0),
-    _assignmentServerSocket()
+    _assignmentServerSocket(),
+    _keepAlivePingTimer(this)
 {
     setCustomDeleter([](Dependency* dependency){
         static_cast<NodeList*>(dependency)->deleteLater();
@@ -49,7 +50,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // handle domain change signals from AddressManager
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequired,
-            &_domainHandler, &DomainHandler::setHostnameAndPort);
+            &_domainHandler, &DomainHandler::setSocketAndID);
 
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &_domainHandler, &DomainHandler::setIceServerHostnameAndID);
@@ -59,7 +60,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // in case we don't know how to talk to DS when a path change is requested
     // fire off any pending DS path query when we get socket information
-    connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendPendingDSPathQuery);
+    connect(&_domainHandler, &DomainHandler::connectedToDomain, this, &NodeList::sendPendingDSPathQuery);
 
     // send a domain server check in immediately once the DS socket is known
     connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendDomainServerCheckIn);
@@ -79,14 +80,33 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // send a ping punch immediately
     connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
 
+    auto accountManager = DependencyManager::get<AccountManager>();
+    
+    // assume that we may need to send a new DS check in anytime a new keypair is generated 
+    connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
+
     // clear out NodeList when login is finished
-    connect(&AccountManager::getInstance(), &AccountManager::loginComplete , this, &NodeList::reset);
+    connect(accountManager.data(), &AccountManager::loginComplete , this, &NodeList::reset);
 
     // clear our NodeList when logout is requested
-    connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
+    connect(accountManager.data(), &AccountManager::logoutComplete , this, &NodeList::reset);
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
+    connect(this, &LimitedNodeList::nodeSocketUpdated, this, &NodeList::startNodeHolePunch);
+
+    // anytime we get a new node we may need to re-send our set of ignored node IDs to it
+    connect(this, &LimitedNodeList::nodeActivated, this, &NodeList::maybeSendIgnoreSetToNode);
+    
+    // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
+    _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS);
+    connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
+    connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
+    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
+
+    // set our sockAddrBelongsToDomainOrNode method as the connection creation filter for the udt::Socket
+    using std::placeholders::_1;
+    _nodeSocket.setConnectionCreationFilterOperator(std::bind(&NodeList::sockAddrBelongsToDomainOrNode, this, _1));
 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
@@ -98,48 +118,61 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
     packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processDomainServerConnectionTokenPacket");
-    packetReceiver.registerMessageListener(PacketType::DomainSettings, &_domainHandler, "processSettingsPacketList");
+    packetReceiver.registerListener(PacketType::DomainConnectionDenied, &_domainHandler, "processDomainServerConnectionDeniedPacket");
+    packetReceiver.registerListener(PacketType::DomainSettings, &_domainHandler, "processSettingsPacketList");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
+    packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
 }
 
-qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
+qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendStats", Qt::QueuedConnection,
+                                  Q_ARG(QJsonObject, statsObject),
+                                  Q_ARG(HifiSockAddr, destination));
+        return 0;
+    }
+
     auto statsPacketList = NLPacketList::create(PacketType::NodeJsonStats, QByteArray(), true, true);
 
     QJsonDocument jsonDocument(statsObject);
     statsPacketList->write(jsonDocument.toBinaryData());
 
     sendPacketList(std::move(statsPacketList), destination);
-
-    // enumerate the resulting strings, breaking them into MTU sized packets
     return 0;
 }
 
-qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
+qint64 NodeList::sendStatsToDomainServer(QJsonObject statsObject) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendStatsToDomainServer", Qt::QueuedConnection,
+                                  Q_ARG(QJsonObject, statsObject));
+        return 0;
+    }
+
     return sendStats(statsObject, _domainHandler.getSockAddr());
 }
 
-void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode) {
+void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& sendingNode) {
     PingType_t pingType;
     
     quint64 ourOriginalTime, othersReplyTime;
     
-    packet->seek(0);
+    message.seek(0);
     
-    packet->readPrimitive(&pingType);
-    packet->readPrimitive(&ourOriginalTime);
-    packet->readPrimitive(&othersReplyTime);
+    message.readPrimitive(&pingType);
+    message.readPrimitive(&ourOriginalTime);
+    message.readPrimitive(&othersReplyTime);
 
     quint64 now = usecTimestampNow();
-    int pingTime = now - ourOriginalTime;
-    int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
+    qint64 pingTime = now - ourOriginalTime;
+    qint64 oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
 
     // The other node's expected time should be our original time plus the one way flight time
     // anything other than that is clock skew
     quint64 othersExpectedReply = ourOriginalTime + oneWayFlightTime;
-    int clockSkew = othersReplyTime - othersExpectedReply;
+    qint64 clockSkew = othersReplyTime - othersExpectedReply;
 
     sendingNode->setPingMs(pingTime / 1000);
     sendingNode->updateClockSkewUsec(clockSkew);
@@ -147,6 +180,7 @@ void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePo
     const bool wantDebug = false;
 
     if (wantDebug) {
+        auto averageClockSkew = sendingNode->getClockSkewUsec();
         qCDebug(networking) << "PING_REPLY from node " << *sendingNode << "\n" <<
         "                     now: " << now << "\n" <<
         "                 ourTime: " << ourOriginalTime << "\n" <<
@@ -154,16 +188,16 @@ void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePo
         "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
         "         othersReplyTime: " << othersReplyTime << "\n" <<
         "    othersExprectedReply: " << othersExpectedReply << "\n" <<
-        "               clockSkew: " << clockSkew  << "\n" <<
-        "       average clockSkew: " << sendingNode->getClockSkewUsec();
+        "               clockSkew: " << clockSkew << "[" << formatUsecTime(clockSkew) << "]" << "\n" <<
+        "       average clockSkew: " << averageClockSkew << "[" << formatUsecTime(averageClockSkew) << "]";
     }
 }
 
-void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     
     // send back a reply
-    auto replyPacket = constructPingReplyPacket(*packet);
-    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+    auto replyPacket = constructPingReplyPacket(*message);
+    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
     sendPacket(std::move(replyPacket), *sendingNode, senderSockAddr);
 
     // If we don't have a symmetric socket for this node and this socket doesn't match
@@ -176,24 +210,34 @@ void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePoin
     }
 }
 
-void NodeList::processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void NodeList::processPingReplyPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // activate the appropriate socket for this node, if not yet updated
-    activateSocketFromNodeCommunication(packet, sendingNode);
+    activateSocketFromNodeCommunication(*message, sendingNode);
 
     // set the ping time for this node for stat collection
-    timePingReply(packet, sendingNode);
+    timePingReply(*message, sendingNode);
 }
 
-void NodeList::processICEPingPacket(QSharedPointer<NLPacket> packet) {
+void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     // send back a reply
-    auto replyPacket = constructICEPingReplyPacket(*packet, _domainHandler.getICEClientID());
-    sendPacket(std::move(replyPacket), packet->getSenderSockAddr());
+    auto replyPacket = constructICEPingReplyPacket(*message, _domainHandler.getICEClientID());
+    sendPacket(std::move(replyPacket), message->getSenderSockAddr());
 }
 
 void NodeList::reset() {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "reset", Qt::BlockingQueuedConnection);
+        return;
+    }
+
     LimitedNodeList::reset();
 
     _numNoReplyDomainCheckIns = 0;
+
+    // lock and clear our set of ignored IDs
+    _ignoredSetLock.lockForWrite();
+    _ignoredNodeIDs.clear();
+    _ignoredSetLock.unlock();
 
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
@@ -218,6 +262,16 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 }
 
 void NodeList::sendDomainServerCheckIn() {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendDomainServerCheckIn", Qt::QueuedConnection);
+        return;
+    }
+
+    if (_isShuttingDown) {
+        qCDebug(networking) << "Refusing to send a domain-server check in while shutting down.";
+        return;
+    }
+
     if (_publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
         qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
@@ -225,7 +279,6 @@ void NodeList::sendDomainServerCheckIn() {
         qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
-        bool isUsingDTLS = false;
 
         PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
@@ -247,11 +300,33 @@ void NodeList::sendDomainServerCheckIn() {
 
         }
 
+        // check if we're missing a keypair we need to verify ourselves with the domain-server
+        auto accountManager = DependencyManager::get<AccountManager>();
+        const QUuid& connectionToken = _domainHandler.getConnectionToken();
+
+        bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull();
+
+        if (requiresUsernameSignature && !accountManager->getAccountInfo().hasPrivateKey()) {
+            qWarning() << "A keypair is required to present a username signature to the domain-server"
+                << "but no keypair is present. Waiting for keypair generation to complete.";
+            accountManager->generateNewUserKeypair();
+
+            // don't send the check in packet - wait for the keypair first
+            return;
+        }
+
         auto domainPacket = NLPacket::create(domainPacketType);
         
         QDataStream packetStream(domainPacket.get());
 
         if (domainPacketType == PacketType::DomainConnectRequest) {
+
+#if (PR_BUILD || DEV_BUILD)
+            if (_shouldSendNewerVersion) {
+                domainPacket->setVersion(versionForPacketType(domainPacketType) + 1);
+            }
+#endif
+
             QUuid connectUUID;
 
             if (!_domainHandler.getAssignmentUUID().isNull()) {
@@ -267,39 +342,36 @@ void NodeList::sendDomainServerCheckIn() {
 
             // pack the connect UUID for this connect request
             packetStream << connectUUID;
+
+            // include the protocol version signature in our connect request
+            QByteArray protocolVersionSig = protocolVersionsSignature();
+            packetStream.writeBytes(protocolVersionSig.constData(), protocolVersionSig.size());
         }
 
-        // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
-        
-        // if this is a connect request, and we can present a username signature, send it along
-        if (!_domainHandler.isConnected() ) {
-            
-            DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
+        // pack our data to send to the domain-server including
+        // the hostname information (so the domain-server can see which place name we came in on)
+        packetStream << _ownerType.load() << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
+
+        if (!_domainHandler.isConnected()) {
+            DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
             packetStream << accountInfo.getUsername();
-            
-            // get connection token from the domain-server
-            const QUuid& connectionToken = _domainHandler.getConnectionToken();
-            
-            if (!connectionToken.isNull()) {
-                
-                const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
-                
-                if (!usernameSignature.isEmpty()) {
-                    packetStream << usernameSignature;
-                }
+
+            // if this is a connect request, and we can present a username signature, send it along
+            if (requiresUsernameSignature && accountManager->getAccountInfo().hasPrivateKey()) {
+                const QByteArray& usernameSignature = accountManager->getAccountInfo().getUsernameSignature(connectionToken);
+                packetStream << usernameSignature;
             }
         }
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
-        if (!isUsingDTLS) {
-            sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
-        }
+        sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
 
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
             // so emit our signal that says that
+            qDebug() << "Limit of silent domain checkins reached";
             emit limitOfSilentDomainCheckInsReached();
         }
 
@@ -337,7 +409,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     // only send a path query if we know who our DS is or is going to be
     if (_domainHandler.isSocketKnown()) {
         // construct the path query packet
-        auto pathQueryPacket = NLPacket::create(PacketType::DomainServerPathQuery);
+        auto pathQueryPacket = NLPacket::create(PacketType::DomainServerPathQuery, -1, true);
 
         // get the UTF8 representation of path query
         QByteArray pathQueryUTF8 = newPath.toUtf8();
@@ -364,34 +436,34 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     }
 }
 
-void NodeList::processDomainServerPathResponse(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> message) {
     // This is a response to a path query we theoretically made.
     // In the future we may want to check that this was actually from our DS and for a query we actually made.
 
     // figure out how many bytes the path query is
     quint16 numPathBytes;
-    packet->readPrimitive(&numPathBytes);
+    message->readPrimitive(&numPathBytes);
 
     // pull the path from the packet
-    if (packet->bytesLeftToRead() < numPathBytes) {
+    if (message->getBytesLeftToRead() < numPathBytes) {
         qCDebug(networking) << "Could not read query path from DomainServerPathQueryResponse. Bailing.";
         return;
     }
     
-    QString pathQuery = QString::fromUtf8(packet->getPayload() + packet->pos(), numPathBytes);
-    packet->seek(packet->pos() + numPathBytes);
+    QString pathQuery = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numPathBytes);
+    message->seek(message->getPosition() + numPathBytes);
 
     // figure out how many bytes the viewpoint is
     quint16 numViewpointBytes;
-    packet->readPrimitive(&numViewpointBytes);
+    message->readPrimitive(&numViewpointBytes);
 
-    if (packet->bytesLeftToRead() < numViewpointBytes) {
+    if (message->getBytesLeftToRead() < numViewpointBytes) {
         qCDebug(networking) << "Could not read resulting viewpoint from DomainServerPathQueryReponse. Bailing";
         return;
     }
     
     // pull the viewpoint from the packet
-    QString viewpoint = QString::fromUtf8(packet->getPayload() + packet->pos(), numViewpointBytes);
+    QString viewpoint = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numViewpointBytes);
     
     // Hand it off to the AddressManager so it can handle it as a relative viewpoint
     if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
@@ -413,7 +485,7 @@ void NodeList::handleICEConnectionToDomainServer() {
 
         LimitedNodeList::sendPeerQueryToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
-                                                  _domainHandler.getICEDomainID());
+                                                  _domainHandler.getPendingDomainID());
     }
 }
 
@@ -426,7 +498,7 @@ void NodeList::pingPunchForDomainServer() {
 
         if (_domainHandler.getICEPeer().getConnectionAttempts() == 0) {
             qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
-                << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
+                << uuidStringWithoutCurlyBraces(_domainHandler.getPendingDomainID());
         } else {
             if (_domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
                 // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat
@@ -453,18 +525,19 @@ void NodeList::pingPunchForDomainServer() {
     }
 }
 
-void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedMessage> message) {
     if (_domainHandler.getSockAddr().isNull()) {
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
     // read in the connection token from the packet, then send domain-server checkin
-    _domainHandler.setConnectionToken(QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
+    _domainHandler.setConnectionToken(QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
     sendDomainServerCheckIn();
 }
 
-void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
     if (_domainHandler.getSockAddr().isNull()) {
+        qWarning() << "IGNORING DomainList packet while not connected to a Domain Server";
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
@@ -472,18 +545,21 @@ void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
 
+    // emit our signal so listeners know we just heard from the DS
+    emit receivedDomainServerList();
+
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
-    QDataStream packetStream(packet.data());
-    
+    QDataStream packetStream(message->getMessage());
+
     // grab the domain's ID from the beginning of the packet
     QUuid domainUUID;
     packetStream >> domainUUID;
 
-    // if this was the first domain-server list from this domain, we've now connected
-    if (!_domainHandler.isConnected()) {
-        _domainHandler.setUUID(domainUUID);
-        _domainHandler.setIsConnected(true);
+    if (_domainHandler.isConnected() && _domainHandler.getUUID() != domainUUID) {
+        // Recieved packet from different domain.
+        qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" << _domainHandler.getUUID();
+        return;
     }
 
     // pull our owner UUID from the packet, it's always the first thing
@@ -491,26 +567,40 @@ void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
     packetStream >> newUUID;
     setSessionUUID(newUUID);
 
-    quint8 thisNodeCanAdjustLocks;
-    packetStream >> thisNodeCanAdjustLocks;
-    setThisNodeCanAdjustLocks((bool) thisNodeCanAdjustLocks);
+    // if this was the first domain-server list from this domain, we've now connected
+    if (!_domainHandler.isConnected()) {
+        _domainHandler.setUUID(domainUUID);
+        _domainHandler.setIsConnected(true);
 
-    quint8 thisNodeCanRez;
-    packetStream >> thisNodeCanRez;
-    setThisNodeCanRez((bool) thisNodeCanRez);
-    
+        // in case we didn't use a place name to get to this domain,
+        // give the address manager a chance to lookup a default one now
+        DependencyManager::get<AddressManager>()->lookupShareableNameForDomainID(domainUUID);
+    }
+
+    // pull the permissions/right/privileges for this node out of the stream
+    NodePermissions newPermissions;
+    packetStream >> newPermissions;
+    setPermissions(newPermissions);
+
     // pull each node in the packet
-    while (packetStream.device()->pos() < packet->getPayloadSize()) {
+    while (packetStream.device()->pos() < message->getSize()) {
         parseNodeFromPacketStream(packetStream);
     }
 }
 
-void NodeList::processDomainServerAddedNode(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerAddedNode(QSharedPointer<ReceivedMessage> message) {
     // setup a QDataStream
-    QDataStream packetStream(packet.data());
+    QDataStream packetStream(message->getMessage());
 
     // use our shared method to pull out the new node
     parseNodeFromPacketStream(packetStream);
+}
+
+void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> message) {
+    // read the UUID from the packet, remove it if it exists
+    QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    qDebug() << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
+    killNodeWithUUID(nodeUUID);
 }
 
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
@@ -518,10 +608,9 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     qint8 nodeType;
     QUuid nodeUUID, connectionUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
-    bool canAdjustLocks;
-    bool canRez;
+    NodePermissions permissions;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -532,8 +621,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, canAdjustLocks, canRez,
-                                             connectionUUID);
+                                             nodeLocalSocket, permissions, connectionUUID);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
@@ -599,9 +687,9 @@ void NodeList::handleNodePingTimeout() {
     }
 }
 
-void NodeList::activateSocketFromNodeCommunication(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode) {
+void NodeList::activateSocketFromNodeCommunication(ReceivedMessage& message, const SharedNodePointer& sendingNode) {
     // deconstruct this ping packet to see if it is a public or local reply
-    QDataStream packetStream(packet.data());
+    QDataStream packetStream(message.getMessage());
 
     quint8 pingType;
     packetStream >> pingType;
@@ -618,5 +706,112 @@ void NodeList::activateSocketFromNodeCommunication(QSharedPointer<NLPacket> pack
 
     if (sendingNode->getType() == NodeType::AudioMixer) {
        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetAudioMixerSocket);
+    }
+}
+
+void NodeList::stopKeepalivePingTimer() {
+    if (_keepAlivePingTimer.isActive()) {
+        _keepAlivePingTimer.stop();
+    }
+}
+
+void NodeList::sendKeepAlivePings() {
+    eachMatchingNode([this](const SharedNodePointer& node)->bool {
+        return _nodeTypesOfInterest.contains(node->getType());
+    }, [&](const SharedNodePointer& node) {
+        sendPacket(constructPingPacket(), *node);
+    });
+}
+
+bool NodeList::sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr) {
+    return _domainHandler.getSockAddr() == sockAddr || LimitedNodeList::sockAddrBelongsToNode(sockAddr);
+}
+
+void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
+    // enumerate the nodes to send a reliable ignore packet to each that can leverage it
+
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
+            if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
+                return true;
+            } else {
+                return false;
+            }
+        }, [&nodeID, this](const SharedNodePointer& destinationNode) {
+            // create a reliable NLPacket with space for the ignore UUID
+            auto ignorePacket = NLPacket::create(PacketType::NodeIgnoreRequest, NUM_BYTES_RFC4122_UUID, true);
+
+            // write the node ID to the packet
+            ignorePacket->write(nodeID.toRfc4122());
+
+            qDebug() << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            // send off this ignore packet reliably to the matching node
+            sendPacket(std::move(ignorePacket), *destinationNode);
+        });
+
+        QReadLocker setLocker { &_ignoredSetLock };
+
+        // add this nodeID to our set of ignored IDs
+        _ignoredNodeIDs.insert(nodeID);
+
+        emit ignoredNode(nodeID);
+
+    } else {
+        qWarning() << "NodeList::ignoreNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
+    }
+}
+
+bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
+    QReadLocker setLocker { &_ignoredSetLock };
+    return _ignoredNodeIDs.find(nodeID) != _ignoredNodeIDs.cend();
+}
+
+void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
+    if (newNode->getType() == NodeType::AudioMixer || newNode->getType() == NodeType::AvatarMixer) {
+        // this is a mixer that we just added - it's unlikely it knows who we were previously ignoring in this session,
+        // so send that list along now (assuming it isn't empty)
+
+        QReadLocker setLocker { &_ignoredSetLock };
+
+        if (_ignoredNodeIDs.size() > 0) {
+            // setup a packet list so we can send the stream of ignore IDs
+            auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+
+            // enumerate the ignored IDs and write them to the packet list
+            auto it = _ignoredNodeIDs.cbegin();
+            while (it != _ignoredNodeIDs.end()) {
+                ignorePacketList->write(it->toRfc4122());
+                ++it;
+            }
+
+            // send this NLPacketList to the new node
+            sendPacketList(std::move(ignorePacketList), *newNode);
+        }
+    }
+}
+
+void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
+    // send a request to domain-server to kick the node with the given session ID
+    // the domain-server will handle the persistence of the kick (via username or IP)
+
+    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+        if (getThisNodeCanKick()) {
+            // setup the packet
+            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID, true);
+
+            // write the node ID to the packet
+            kickPacket->write(nodeID.toRfc4122());
+
+            qDebug() << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            sendPacket(std::move(kickPacket), _domainHandler.getSockAddr());
+        } else {
+            qWarning() << "You do not have permissions to kick in this domain."
+                << "Request to kick node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+        }
+    } else {
+        qWarning() << "NodeList::kickNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
+
     }
 }

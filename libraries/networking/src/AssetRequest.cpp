@@ -20,11 +20,19 @@
 #include "NodeList.h"
 #include "ResourceCache.h"
 
-AssetRequest::AssetRequest(const QString& hash, const QString& extension) :
-    QObject(),
-    _hash(hash),
-    _extension(extension)
+AssetRequest::AssetRequest(const QString& hash) :
+    _hash(hash)
 {
+}
+
+AssetRequest::~AssetRequest() {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    if (_assetRequestID) {
+        assetClient->cancelGetAssetRequest(_assetRequestID);
+    }
+    if (_assetInfoRequestID) {
+        assetClient->cancelGetAssetInfoRequest(_assetInfoRequestID);
+    }
 }
 
 void AssetRequest::start() {
@@ -35,6 +43,15 @@ void AssetRequest::start() {
 
     if (_state != NotStarted) {
         qCWarning(asset_client) << "AssetRequest already started.";
+        return;
+    }
+
+    // in case we haven't parsed a valid hash, return an error now
+    if (!isValidHash(_hash)) {
+        _error = InvalidHash;
+        _state = Finished;
+
+        emit finished(this);
         return;
     }
     
@@ -53,9 +70,13 @@ void AssetRequest::start() {
     _state = WaitingForInfo;
     
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->getAssetInfo(_hash, _extension, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
+    _assetInfoRequestID = assetClient->getAssetInfo(_hash,
+            [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
+
+        _assetInfoRequestID = AssetClient::INVALID_MESSAGE_ID;
+
         _info = info;
-        
+
         if (!responseReceived) {
             _error = NetworkError;
         } else if (serverError != AssetServerError::NoError) {
@@ -85,8 +106,17 @@ void AssetRequest::start() {
         int start = 0, end = _info.size;
         
         auto assetClient = DependencyManager::get<AssetClient>();
-        assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
-                                                                                const QByteArray& data) {
+        auto that = QPointer<AssetRequest>(this); // Used to track the request's lifetime
+        auto hash = _hash;
+        _assetRequestID = assetClient->getAsset(_hash, start, end,
+                [this, that, hash, start, end](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
+            if (!that) {
+                qCWarning(asset_client) << "Got reply for dead asset request " << hash << "- error code" << _error;
+                // If the request is dead, return
+                return;
+            }
+            _assetRequestID = AssetClient::INVALID_MESSAGE_ID;
+
             if (!responseReceived) {
                 _error = NetworkError;
             } else if (serverError != AssetServerError::NoError) {
@@ -124,6 +154,12 @@ void AssetRequest::start() {
             
             _state = Finished;
             emit finished(this);
+        }, [this, that](qint64 totalReceived, qint64 total) {
+            if (!that) {
+                // If the request is dead, return
+                return;
+            }
+            emit progress(totalReceived, total);
         });
     });
 }

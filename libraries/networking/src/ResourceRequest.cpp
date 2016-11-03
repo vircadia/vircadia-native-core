@@ -11,12 +11,16 @@
 
 #include "ResourceRequest.h"
 
-ResourceRequest::ResourceRequest(QObject* parent, const QUrl& url) :
-    QObject(parent),
-    _url(url) {
-}
+#include <QtCore/QThread>
+
+ResourceRequest::ResourceRequest(const QUrl& url) : _url(url) { }
 
 void ResourceRequest::send() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "send", Qt::QueuedConnection);
+        return;
+    }
+    
     Q_ASSERT(_state == NotStarted);
 
     _state = InProgress;

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>High Fidelity</title>
+        <script src="splash.js"></script>
+        <link rel="stylesheet" type="text/css" href="splash.css"></link>
+    </head>
+    <body onload="ready()">
+        <div class="top content">
+            <div class="header-title">
+                <h1>Hello Worlds!</h1>
+            </div>
+            <div class="header-right">
+                <img src="images/console-hf-logo-2x.png" width=300px />
+            </div>
+        </div>
+        <div class="middle content">
+            <div id="main-content">
+                <div class="column left">
+                    <p>
+                        <h2>What now?</h2>
+High Fidelity is now installed and your Home domain is ready for you to explore. To start you off, we've put a few things in your home to play around with and learn the ropes.
+                    </p>
+
+                    <p>
+You can make your home yours by uploading your own models and scripts.
+
+                    </p>
+
+                    <p>
+                        <em>To get started exploring and creating,</em> <a target="_blank" href="https://docs.highfidelity.com/docs/explore">check out our Quick-start Guide</a>
+                    </p>
+                </div>
+                <div class="column center">
+                    <p>
+                        <h2>How do I use it?</h2>
+                        You can manage your server by clicking on the High Fidelity icon in your
+                        <script>
+                            var osType = require('os').type();
+                            document.write(osType == 'Windows_NT' ? 'system tray.' : 'menu bar.');
+                        </script>
+                        In the menu that opens, you can:
+                    </p>
+
+                    <p>
+                        <ul>
+                            <li>go to your 'Home,' automatically launching High Fidelity</li>
+                            <li>administer basic function like starting and stopping your server</li>
+                            <li>access your server's settings and logs</li>
+                        </ul>
+                    </p>
+
+                    <p>
+                        <em>For more information on managing your server,</em> <a target="_blank" href="https://docs.highfidelity.com/">visit our documentation</a>
+                    </p>
+                </div>
+                <div class="column right">
+                    <script>
+                        var osType = require('os').type();
+                        menuBarImageURL = '';
+                        if (osType == 'Windows_NT') {
+                            menuBarImageURL = "images/console-menubar-windows-2x.png";
+                        } else {
+                            menuBarImageURL = "images/console-menubar-osx-2x.png";
+                        }
+                        document.write('<img src="' + menuBarImageURL + '" width=384px/>');
+                    </script>
+                </div>
+            </div>
+        </div>
+        <div class="bottom">
+            <div class="content footer">
+                <input type="checkbox" id="suppress-splash"> </input>
+                <label for="suppress-splash">
+                    Don't show this screen next time
+                </label>
+            </div>
+        </div>
+    </body>
+</html>

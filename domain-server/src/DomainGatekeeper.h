@@ -19,6 +19,8 @@
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
 
+#include <DomainHandler.h>
+
 #include <NLPacket.h>
 #include <Node.h>
 #include <UUIDHasher.h>
@@ -40,17 +42,32 @@ public:
     void preloadAllowedUserPublicKeys();
     
     void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
+
+    static void sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr);
 public slots:
-    void processConnectRequestPacket(QSharedPointer<NLPacket> packet);
-    void processICEPingPacket(QSharedPointer<NLPacket> packet);
-    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
-    void processICEPeerInformationPacket(QSharedPointer<NLPacket> packet);
+    void processConnectRequestPacket(QSharedPointer<ReceivedMessage> message);
+    void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
+    void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
+    void processICEPeerInformationPacket(QSharedPointer<ReceivedMessage> message);
 
     void publicKeyJSONCallback(QNetworkReply& requestReply);
-    
+    void publicKeyJSONErrorCallback(QNetworkReply& requestReply);
+
+    void getIsGroupMemberJSONCallback(QNetworkReply& requestReply);
+    void getIsGroupMemberErrorCallback(QNetworkReply& requestReply);
+
+    void getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply);
+    void getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply);
+
+    void refreshGroupsCache();
+
 signals:
+    void killNode(SharedNodePointer node);
     void connectedNode(SharedNodePointer node);
-    
+
+public slots:
+    void updateNodePermissions();
+
 private slots:
     void handlePeerPingTimeout();
 private:
@@ -59,21 +76,20 @@ private:
     SharedNodePointer processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                  const QString& username,
                                                  const QByteArray& usernameSignature);
-    SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection);
+    SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection,
+                                                        QUuid nodeID = QUuid());
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
-    bool isVerifiedAllowedUser(const QString& username, const QByteArray& usernameSignature,
-                               const HifiSockAddr& senderSockAddr);
-    bool isWithinMaxCapacity(const QString& username, const QByteArray& usernameSignature,
-                             bool& verifiedUsername,
-                             const HifiSockAddr& senderSockAddr);
+    bool isWithinMaxCapacity();
     
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
                                        const HifiSockAddr& senderSockAddr);
     
     void sendConnectionTokenPacket(const QString& username, const HifiSockAddr& senderSockAddr);
-    void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr);
+    static void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
+            DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown,
+            QString extraInfo = QString());
     
     void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
     
@@ -87,6 +103,15 @@ private:
     
     QHash<QString, QUuid> _connectionTokenHash;
     QHash<QString, QByteArray> _userPublicKeys;
+    QSet<QString> _inFlightPublicKeyRequests; // keep track of which we've already asked for
+    QSet<QString> _domainOwnerFriends; // keep track of friends of the domain owner
+    QSet<QString> _inFlightGroupMembershipsRequests; // keep track of which we've already asked for
+
+    NodePermissions setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress);
+
+    void getGroupMemberships(const QString& username);
+    // void getIsGroupMember(const QString& username, const QUuid groupID);
+    void getDomainOwnerFriendsList();
 };
 
 

@@ -8,43 +8,54 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 #include "Engine.h"
 
-#include "DrawTask.h"
-using namespace render;
+#include <QtCore/QFile>
 
+#include <PathUtils.h>
+
+#include <gpu/Context.h>
+
+#include "EngineStats.h"
+
+using namespace render;
 
 Engine::Engine() :
     _sceneContext(std::make_shared<SceneContext>()),
-    _renderContext(std::make_shared<RenderContext>())
-{
+    _renderContext(std::make_shared<RenderContext>()) {
+    addJob<EngineStats>("Stats");
 }
 
-void Engine::registerScene(const ScenePointer& scene) {
-    _sceneContext->_scene = scene;
-}
+void Engine::load() {
+    auto config = getConfiguration();
+    const QString configFile= "config/render.json";
 
-void Engine::setRenderContext(const RenderContext& renderContext) {
-    (*_renderContext) = renderContext;
-}
-
-void Engine::addTask(const TaskPointer& task) {
-    if (task) {
-        _tasks.push_back(task);
+    QUrl path(PathUtils::resourcesPath() + configFile);
+    QFile file(path.toString());
+    if (!file.exists()) {
+        qWarning() << "Engine configuration file" << path << "does not exist";
+    } else if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Engine configuration file" << path << "cannot be opened";
+    } else {
+        QString data = file.readAll();
+        file.close();
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8(), &error);
+        if (error.error == error.NoError) {
+            config->setPresetList(doc.object());
+            qDebug() << "Engine configuration file" << path << "loaded";
+        } else {
+            qWarning() << "Engine configuration file" << path << "failed to load:" <<
+                error.errorString() << "at offset" << error.offset;
+        }
     }
 }
 
 void Engine::run() {
-    for (auto task : _tasks) {
-        task->run(_sceneContext, _renderContext);
-    }
-}
-
-void Engine::buildStandardTaskPipeline() {
-    if (!_tasks.empty()) {
-        _tasks.clear();
+    for (auto job : _jobs) {
+        job.run(_sceneContext, _renderContext);
     }
 
-    addTask(std::make_shared<DrawSceneTask>());
 }
 

@@ -14,12 +14,14 @@
 #ifndef hifi_OctreeSendThread_h
 #define hifi_OctreeSendThread_h
 
+#include <atomic>
+
 #include <GenericThread.h>
-#include <OctreeElementBag.h>
 
-#include "OctreeQueryNode.h"
-
+class OctreeQueryNode;
 class OctreeServer;
+
+using AtomicUIntStat = std::atomic<uintmax_t>;
 
 /// Threaded processor for sending octree packets to a single client
 class OctreeSendThread : public GenericThread {
@@ -29,30 +31,37 @@ public:
     virtual ~OctreeSendThread();
 
     void setIsShuttingDown();
+    bool isShuttingDown() { return _isShuttingDown; }
+    
+    QUuid getNodeUuid() const { return _nodeUuid; }
 
-    static quint64 _totalBytes;
-    static quint64 _totalWastedBytes;
-    static quint64 _totalPackets;
+    static AtomicUIntStat _totalBytes;
+    static AtomicUIntStat _totalWastedBytes;
+    static AtomicUIntStat _totalPackets;
 
-    static quint64 _usleepTime;
-    static quint64 _usleepCalls;
+    static AtomicUIntStat _totalSpecialBytes;
+    static AtomicUIntStat _totalSpecialPackets;
+
+    static AtomicUIntStat _usleepTime;
+    static AtomicUIntStat _usleepCalls;
 
 protected:
     /// Implements generic processing behavior for this thread.
-    virtual bool process();
+    virtual bool process() override;
 
 private:
-    OctreeServer* _myServer;
-    SharedNodePointer _node;
-    QUuid _nodeUUID;
-
-    int handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
-    int packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged);
+    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent, bool dontSuppressDuplicate = false);
+    int packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
+    
+    
+    OctreeServer* _myServer { nullptr };
+    QWeakPointer<Node> _node;
+    QUuid _nodeUuid;
 
     OctreePacketData _packetData;
 
-    int _nodeMissingCount;
-    bool _isShuttingDown;
+    int _nodeMissingCount { 0 };
+    bool _isShuttingDown { false };
 };
 
 #endif // hifi_OctreeSendThread_h

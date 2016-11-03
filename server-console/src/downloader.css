@@ -1,0 +1,145 @@
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-Regular.ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-ExtraLight.ttf');
+    font-weight: 200;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-SemiBold.ttf');
+    font-weight: bold;
+    font-style: normal;
+}
+
+
+* {
+    font-family: "Raleway", "Open Sans", Arial, Helvetica, sans-serif;
+    line-height: 130%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    color: #808785;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 13.5pt;
+    -webkit-touch-callout: none;    -webkit-user-select: none;
+    cursor: default;
+    overflow: hidden;
+    font-variant-numeric: lining-nums;
+    -moz-font-feature-settings: "lnum";
+    -webkit-font-feature-settings: "lnum";
+    font-feature-settings: "lnum";
+}
+
+#error-message {
+    background-color: #F7F8F8;
+    color: #EB4C5F;
+    padding: 20px;
+    margin: 20px 120px 0 120px;
+}
+
+.selectable {
+    -webkit-touch-callout: text;
+    -webkit-user-select: text;
+    cursor: text;
+}
+
+progress {
+    height: 1px;
+    width: 300px;
+    -webkit-appearance: none;
+}
+
+progress[value]::-webkit-progress-bar {
+    background-color: #DADADA;
+    /* border-radius: 2px; */
+}
+
+progress[value]::-webkit-progress-value {
+    background-color: #21B7D4;
+    /* border-radius: 2px; */
+}
+
+#progress-bytes {
+    font-weight: lighter;
+    color: #BBBBBB;
+    margin-top: 10px;
+}
+
+#download-summary {
+    margin-top: 80px;
+}
+
+.state {
+    padding-top: 100px;
+}
+
+h1 {
+    font-size: 29pt;
+    font-weight: normal;
+}
+
+#cancel-area {
+    margin-top: 100px;
+}
+
+a:link,
+a:visited,
+a:hover,
+a:active {
+    color: #B4B4B4;
+}
+
+a:hover {
+    color: #2D88A4;
+}
+
+.one {
+    opacity: 0;
+    animation: dot 2.3s infinite;
+    animation-delay: 0.0s;
+}
+
+.two {
+    opacity: 0;
+    animation: dot 2.3s infinite;
+    animation-delay: 0.2s;
+}
+
+.three {
+    opacity: 0;
+    animation: dot 2.3s infinite;
+    animation-delay: 0.3s;
+}
+
+@-webkit-keyframes dot {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes dot {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}

@@ -37,12 +37,10 @@ public:
         SKIN_CLUSTER_INDEX = 5,
         SKIN_CLUSTER_WEIGHT = 6,
         TEXCOORD1 = 7,
-        INSTANCE_SCALE = 8,
-        INSTANCE_TRANSLATE = 9,
-        INSTANCE_XFM = 10,
+        NUM_INPUT_SLOTS = TEXCOORD1 + 1,
 
-        // Instance XFM is a mat4, and as such takes up 4 slots
-        NUM_INPUT_SLOTS = INSTANCE_XFM + 4,
+
+        DRAW_CALL_INFO = 15, // Reserve last input slot for draw call infos
     };
 
     typedef uint8 Slot;
@@ -50,7 +48,7 @@ public:
     // Frequency describer
     enum Frequency {
         PER_VERTEX = 0,
-        PER_INSTANCE,
+        PER_INSTANCE = 1,
     };
 
     // The attribute description
@@ -93,29 +91,25 @@ public:
         };
         typedef std::map< Slot, ChannelInfo > ChannelMap;
 
-        Format() :
-            _attributes(),
-            _elementTotalSize(0) {}
-        ~Format() {}
-
-        uint32 getNumAttributes() const { return _attributes.size(); }
+        size_t getNumAttributes() const { return _attributes.size(); }
         const AttributeMap& getAttributes() const { return _attributes; }
 
-        uint8 getNumChannels() const { return _channels.size(); }
+        size_t getNumChannels() const { return _channels.size(); }
         const ChannelMap& getChannels() const { return _channels; }
         Offset getChannelStride(Slot channel) const { return _channels.at(channel)._stride; }
 
-        uint32 getElementTotalSize() const { return _elementTotalSize; }
+        size_t getElementTotalSize() const { return _elementTotalSize; }
 
         bool setAttribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = PER_VERTEX);
         bool setAttribute(Slot slot, Frequency frequency = PER_VERTEX);
         bool setAttribute(Slot slot, Slot channel, Frequency frequency = PER_VERTEX);
 
+        bool hasAttribute(Slot slot) const { return (_attributes.find(slot) != _attributes.end()); }
 
     protected:
         AttributeMap _attributes;
         ChannelMap _channels;
-        uint32 _elementTotalSize;
+        uint32 _elementTotalSize { 0 };
 
         void evaluateCache();
     };
@@ -129,10 +123,7 @@ typedef std::vector< Offset > Offsets;
 // A Buffer Stream can be assigned to the Batch to set several stream channels in one call
 class BufferStream {
 public:
-    typedef Offsets Strides;
-
-    BufferStream();
-    ~BufferStream();
+    using Strides = Offsets;
 
     void clear() { _buffers.clear(); _offsets.clear(); _strides.clear(); }
     void addBuffer(const BufferPointer& buffer, Offset offset, Offset stride);
@@ -140,7 +131,7 @@ public:
     const Buffers& getBuffers() const { return _buffers; }
     const Offsets& getOffsets() const { return _offsets; }
     const Strides& getStrides() const { return _strides; }
-    uint32 getNumBuffers() const { return _buffers.size(); }
+    size_t getNumBuffers() const { return _buffers.size(); }
 
     BufferStream makeRangedStream(uint32 offset, uint32 count = -1) const;
 

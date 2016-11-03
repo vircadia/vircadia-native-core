@@ -26,22 +26,23 @@ const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 70;
 
 
 EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result{ new PolyLineEntityItem(entityID, properties) };
-    return result;
+    EntityItemPointer entity{ new PolyLineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) :
 EntityItem(entityItemID),
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
+_normalsChanged(true),
+_strokeWidthsChanged(true),
 _points(QVector<glm::vec3>(0.0f)),
-_vertices(QVector<glm::vec3>(0.0f)),
 _normals(QVector<glm::vec3>(0.0f)),
-_strokeWidths(QVector<float>(0.0f))
+_strokeWidths(QVector<float>(0.0f)),
+_textures("")
 {
     _type = EntityTypes::PolyLine;
-    _created = properties.getCreated();
-    setProperties(properties);
 }
 
 EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -56,9 +57,7 @@ EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desir
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
-
-    properties._glowLevel = getGlowLevel();
-    properties._glowLevelChanged = false;
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     return properties;
 }
 
@@ -72,6 +71,7 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(normals, setNormals);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -85,6 +85,7 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     }
     return somethingChanged;
 }
+
 
 bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
@@ -101,48 +102,16 @@ bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     return true;
 }
 
+
 bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
     _strokeWidths = strokeWidths;
+    _strokeWidthsChanged = true;
     return true;
 }
 
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     _normals = normals;
-    if (_points.size() < 2 || _normals.size() < 2) {
-        return false;
-    }
-
-    int minVectorSize = _normals.size();
-    if (_points.size() < minVectorSize) {
-        minVectorSize = _points.size();
-    }
-    if (_strokeWidths.size() < minVectorSize) {
-        minVectorSize = _strokeWidths.size();
-    }
-
-    _vertices.clear();
-    glm::vec3 v1, v2, tangent, binormal, point;
-
-    for (int i = 0; i < minVectorSize - 1; i++) {
-        float width = _strokeWidths.at(i);
-        point = _points.at(i);
-
-        tangent = _points.at(i + 1) - point;
-        glm::vec3 normal = normals.at(i);
-        binormal = glm::normalize(glm::cross(tangent, normal)) * width;
-
-        //This checks to make sure binormal is not a NAN
-        assert(binormal.x == binormal.x);
-        v1 = point + binormal;
-        v2 = point - binormal;
-        _vertices << v1 << v2;
-    }
-    //for last point we can just assume binormals are same since it represents last two vertices of quad
-    point = _points.at(minVectorSize - 1);
-    v1 = point + binormal;
-    v2 = point - binormal;
-    _vertices << v1 << v2;
-
+    _normalsChanged = true;
     return true;
 }
 
@@ -195,6 +164,7 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>, setNormals);
     READ_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
+    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
     return bytesRead;
 }
@@ -208,6 +178,7 @@ EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParam
     requestedProperties += PROP_LINE_POINTS;
     requestedProperties += PROP_NORMALS;
     requestedProperties += PROP_STROKE_WIDTHS;
+    requestedProperties += PROP_TEXTURES;
     return requestedProperties;
 }
 
@@ -227,6 +198,7 @@ void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
     APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, getLinePoints());
     APPEND_ENTITY_PROPERTY(PROP_NORMALS, getNormals());
     APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, getStrokeWidths());
+    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
 }
 
 void PolyLineEntityItem::debugDump() const {

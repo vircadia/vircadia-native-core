@@ -22,7 +22,7 @@ EntityTreeHeadlessViewer::~EntityTreeHeadlessViewer() {
 void EntityTreeHeadlessViewer::init() {
     OctreeHeadlessViewer::init();
     if (!_simulation) {
-        SimpleEntitySimulation* simpleSimulation = new SimpleEntitySimulation();
+        SimpleEntitySimulationPointer simpleSimulation { new SimpleEntitySimulation() };
         EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
         simpleSimulation->setEntityTree(entityTree);
         entityTree->setSimulation(simpleSimulation);
@@ -39,6 +39,6 @@ void EntityTreeHeadlessViewer::update() {
     }
 }
 
-void EntityTreeHeadlessViewer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(packet, sourceNode);
+void EntityTreeHeadlessViewer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }

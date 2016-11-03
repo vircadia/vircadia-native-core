@@ -62,10 +62,12 @@ void AvatarInputs::update() {
     if (!Menu::getInstance()) {
         return;
     }
-    AI_UPDATE(mirrorVisible, Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !qApp->isHMDMode()
+    AI_UPDATE(mirrorVisible, Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror) && !qApp->isHMDMode()
         && !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror));
     AI_UPDATE(cameraEnabled, !Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking));
     AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
+    AI_UPDATE(isHMD, qApp->isHMDMode());
+    AI_UPDATE(showAudioTools, Menu::getInstance()->isOptionChecked(MenuOption::AudioTools));
 
     auto audioIO = DependencyManager::get<AudioClient>();
     const float AUDIO_METER_AVERAGING = 0.5;
@@ -128,7 +130,7 @@ void AvatarInputs::toggleZoom() {
 }
 
 void AvatarInputs::closeMirror() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
+        Menu::getInstance()->triggerOption(MenuOption::MiniMirror);
     }
 }

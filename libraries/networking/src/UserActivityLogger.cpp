@@ -17,6 +17,8 @@
 #include "NetworkLogging.h"
 
 #include "UserActivityLogger.h"
+#include <DependencyManager.h>
+#include "AddressManager.h"
 
 static const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
 
@@ -25,19 +27,16 @@ UserActivityLogger& UserActivityLogger::getInstance() {
     return sharedInstance;
 }
 
-UserActivityLogger::UserActivityLogger() : _disabled(false) {
-}
-
 void UserActivityLogger::disable(bool disable) {
-    _disabled = disable;
+    _disabled.set(disable);
 }
 
 void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCallbackParameters params) {
-    if (_disabled) {
+    if (_disabled.get()) {
         return;
     }
     
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
     QHttpMultiPart* multipart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
     
     // Adding the action name
@@ -54,36 +53,42 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
         multipart->append(detailsPart);
     }
-    qCDebug(networking) << "Logging activity" << action;
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
-        params.jsonCallbackReceiver = this;
-        params.jsonCallbackMethod = "requestFinished";
         params.errorCallbackReceiver = this;
         params.errorCallbackMethod = "requestError";
     }
     
-    accountManager.sendRequest(USER_ACTIVITY_URL,
-                               AccountManagerAuth::Required,
+    accountManager->sendRequest(USER_ACTIVITY_URL,
+                               AccountManagerAuth::Optional,
                                QNetworkAccessManager::PostOperation,
                                params, NULL, multipart);
-}
-
-void UserActivityLogger::requestFinished(QNetworkReply& requestReply) {
-    // qCDebug(networking) << object;
 }
 
 void UserActivityLogger::requestError(QNetworkReply& errorReply) {
     qCDebug(networking) << errorReply.error() << "-" << errorReply.errorString();
 }
 
-void UserActivityLogger::launch(QString applicationVersion) {
+void UserActivityLogger::launch(QString applicationVersion, bool previousSessionCrashed, int previousSessionRuntime) {
     const QString ACTION_NAME = "launch";
     QJsonObject actionDetails;
     QString VERSION_KEY = "version";
+    QString CRASH_KEY = "previousSessionCrashed";
+    QString RUNTIME_KEY = "previousSessionRuntime";
     actionDetails.insert(VERSION_KEY, applicationVersion);
+    actionDetails.insert(CRASH_KEY, previousSessionCrashed);
+    actionDetails.insert(RUNTIME_KEY, previousSessionRuntime);
     
+    logAction(ACTION_NAME, actionDetails);
+}
+
+void UserActivityLogger::insufficientGLVersion(const QJsonObject& glData) {
+    const QString ACTION_NAME = "insufficient_gl";
+    QJsonObject actionDetails;
+    QString GL_DATA = "glData";
+    actionDetails.insert(GL_DATA, glData);
+
     logAction(ACTION_NAME, actionDetails);
 }
 
@@ -120,6 +125,19 @@ void UserActivityLogger::changedDomain(QString domainURL) {
 }
 
 void UserActivityLogger::connectedDevice(QString typeOfDevice, QString deviceName) {
+    static QStringList DEVICE_BLACKLIST = {
+        "Desktop",
+        "NullDisplayPlugin",
+        "3D TV - Side by Side Stereo",
+        "3D TV - Interleaved",
+
+        "Keyboard/Mouse"
+    };
+
+    if (DEVICE_BLACKLIST.contains(deviceName)) {
+        return;
+    }
+
     const QString ACTION_NAME = "connected_device";
     QJsonObject actionDetails;
     const QString TYPE_OF_DEVICE = "type_of_device";
@@ -143,12 +161,37 @@ void UserActivityLogger::loadedScript(QString scriptName) {
 
 }
 
-void UserActivityLogger::wentTo(QString destinationType, QString destinationName) {
+void UserActivityLogger::wentTo(AddressManager::LookupTrigger lookupTrigger, QString destinationType, QString destinationName) {
+    // Only accept these types of triggers. Other triggers are usually used internally in AddressManager.
+    QString trigger;
+    switch (lookupTrigger) {
+        case AddressManager::UserInput:
+            trigger = "UserInput";
+            break;
+        case AddressManager::Back:
+            trigger = "Back";
+            break;
+        case AddressManager::Forward:
+            trigger = "Forward";
+            break;
+        case AddressManager::StartupFromSettings:
+            trigger = "StartupFromSettings";
+            break;
+        case AddressManager::Suggestions:
+            trigger = "Suggestions";
+            break;
+        default:
+            return;
+    }
+
+
     const QString ACTION_NAME = "went_to";
     QJsonObject actionDetails;
+    const QString TRIGGER_TYPE_KEY = "trigger";
     const QString DESTINATION_TYPE_KEY = "destination_type";
     const QString DESTINATION_NAME_KEY = "detination_name";
     
+    actionDetails.insert(TRIGGER_TYPE_KEY, trigger);
     actionDetails.insert(DESTINATION_TYPE_KEY, destinationType);
     actionDetails.insert(DESTINATION_NAME_KEY, destinationName);
     

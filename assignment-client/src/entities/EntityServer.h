@@ -14,19 +14,31 @@
 
 #include "../octree/OctreeServer.h"
 
+#include <memory>
+
 #include "EntityItem.h"
 #include "EntityServerConsts.h"
 #include "EntityTree.h"
 
 /// Handles assignments of type EntityServer - sending entities to various clients.
+
+struct ViewerSendingStats {
+    quint64 lastSent;
+    quint64 lastEdited;
+};
+
+class SimpleEntitySimulation;
+using SimpleEntitySimulationPointer = std::shared_ptr<SimpleEntitySimulation>;
+
+
 class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
 public:
-    EntityServer(NLPacket& packet);
+    EntityServer(ReceivedMessage& message);
     ~EntityServer();
 
     // Subclasses must implement these methods
-    virtual OctreeQueryNode* createOctreeQueryNode() override ;
+    virtual std::unique_ptr<OctreeQueryNode> createOctreeQueryNode() override ;
     virtual char getMyNodeType() const override { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
     virtual const char* getMyServerName() const override { return MODEL_SERVER_NAME; }
@@ -41,20 +53,29 @@ public:
     virtual int sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) override;
 
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) override;
-    virtual bool readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
+    virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
+    virtual QString serverSubclassStats() override;
+
+    virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) override;
+    virtual void trackViewerGone(const QUuid& sessionID) override;
 
 public slots:
+    virtual void nodeAdded(SharedNodePointer node) override;
+    virtual void nodeKilled(SharedNodePointer node) override;
     void pruneDeletedEntities();
 
 protected:
     virtual OctreePointer createTree() override;
 
 private slots:
-    void handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
-    EntitySimulation* _entitySimulation;
+    SimpleEntitySimulationPointer _entitySimulation;
     QTimer* _pruneDeletedEntitiesTimer = nullptr;
+
+    QReadWriteLock _viewerSendingStatsLock;
+    QMap<QUuid, QMap<QUuid, ViewerSendingStats>> _viewerSendingStats;
 };
 
 #endif // hifi_EntityServer_h

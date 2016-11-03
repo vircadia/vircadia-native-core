@@ -3,29 +3,27 @@ import QtQuick 2.3
 import QtQuick.Controls 1.3
 import QtQuick.Controls.Styles 1.3
 import QtGraphicalEffects 1.0
-import "controls"
-import "styles"
 
-DialogContainer {
+import "controls-uit"
+import "styles" as HifiStyles
+import "styles-uit"
+import "windows"
+
+ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
-
+    HifiStyles.HifiConstants { id: hifistyles }
     objectName: "UpdateDialog"
-
-    implicitWidth: updateDialog.implicitWidth
-    implicitHeight: updateDialog.implicitHeight
-
-    x: parent ? parent.width / 2 - width / 2 : 0
-    y: parent ? parent.height / 2 - height / 2 : 0
-    property int maximumX: parent ? parent.width - width : 0
-    property int maximumY: parent ? parent.height - height : 0
-
+    width: updateDialog.implicitWidth
+    height: updateDialog.implicitHeight
+    resizable: false
+    anchors.centerIn: parent
     UpdateDialog {
         id: updateDialog
-        
+
         implicitWidth: backgroundRectangle.width
         implicitHeight: backgroundRectangle.height
-        
+
         readonly property int contentWidth: 500
         readonly property int logoSize: 60
         readonly property int borderWidth: 30
@@ -38,34 +36,18 @@ DialogContainer {
 
         signal triggerBuildDownload
         signal closeUpdateDialog
-        
+
         Rectangle {
             id: backgroundRectangle
             color: "#ffffff"
 
             width: updateDialog.contentWidth + updateDialog.borderWidth * 2
             height: mainContent.height + updateDialog.borderWidth * 2 - updateDialog.closeMargin / 2
-
-            MouseArea {
-                width: parent.width
-                height: parent.height
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    verticalCenter: parent.verticalCenter
-                }
-                drag {
-                    target: root
-                    minimumX: 0
-                    minimumY: 0
-                    maximumX: root.parent ? root.maximumX : 0
-                    maximumY: root.parent ? root.maximumY : 0
-                }
-            }
         }
 
         Image {
             id: logo
-            source: "../images/interface-logo.svg"
+            source: "../images/hifi-logo.svg"
             width: updateDialog.logoSize
             height: updateDialog.logoSize
             anchors {
@@ -83,7 +65,7 @@ DialogContainer {
                 topMargin: updateDialog.borderWidth
                 top: parent.top
             }
-            
+
             Rectangle {
                 id: header
                 width: parent.width - updateDialog.logoSize - updateDialog.inputSpacing
@@ -94,7 +76,7 @@ DialogContainer {
                     text: "Update Available"
                     font {
                         family: updateDialog.fontFamily
-                        pixelSize: hifi.fonts.pixelSize * 1.5
+                        pixelSize: hifistyles.fonts.pixelSize * 1.5
                         weight: Font.DemiBold
                     }
                     color: "#303030"
@@ -105,10 +87,10 @@ DialogContainer {
                     text: updateDialog.updateAvailableDetails
                     font {
                         family: updateDialog.fontFamily
-                        pixelSize: hifi.fonts.pixelSize * 0.6
+                        pixelSize: hifistyles.fonts.pixelSize * 0.6
                         letterSpacing: -0.5
                     }
-                    color: hifi.colors.text
+                    color: hifistyles.colors.text
                     anchors {
                         top: updateAvailable.bottom
                     }
@@ -135,12 +117,12 @@ DialogContainer {
                     Text {
                         id: releaseNotes
                         wrapMode: Text.Wrap
-                        width: parent.width - updateDialog.closeMargin
+                        width: parent.parent.width - updateDialog.closeMargin
                         text: updateDialog.releaseNotes
-                        color: hifi.colors.text
+                        color: hifistyles.colors.text
                         font {
                             family: updateDialog.fontFamily
-                            pixelSize: hifi.fonts.pixelSize * 0.65
+                            pixelSize: hifistyles.fonts.pixelSize * 0.65
                         }
                     }
                 }
@@ -162,7 +144,7 @@ DialogContainer {
                         color: "#0c9ab4"  // Same as logo
                         font {
                             family: updateDialog.fontFamily
-                            pixelSize: hifi.fonts.pixelSize * 1.2
+                            pixelSize: hifistyles.fonts.pixelSize * 1.2
                             weight: Font.DemiBold
                         }
                         anchors {
@@ -174,7 +156,7 @@ DialogContainer {
                     MouseArea {
                         id: cancelButtonAction
                         anchors.fill: parent
-                        onClicked: updateDialog.closeDialog()
+                        onClicked: root.shown = false
                         cursorShape: "PointingHandCursor"
                     }
                 }
@@ -190,7 +172,7 @@ DialogContainer {
                         color: "#0c9ab4"  // Same as logo
                         font {
                             family: updateDialog.fontFamily
-                            pixelSize: hifi.fonts.pixelSize * 1.2
+                            pixelSize: hifistyles.fonts.pixelSize * 1.2
                             weight: Font.DemiBold
                         }
                         anchors {

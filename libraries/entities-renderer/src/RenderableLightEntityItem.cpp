@@ -20,36 +20,41 @@
 #include "RenderableLightEntityItem.h"
 
 EntityItemPointer RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableLightEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableLightEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableLightEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLightEntityItem::render");
     assert(getType() == EntityTypes::Light);
+    checkFading();
+
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
-    float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
+    float largestDiameter = glm::compMax(dimensions);
 
     glm::vec3 color = toGlm(getXColor());
 
-    float intensity = getIntensity();
+    float intensity = getIntensity() * (_isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f);
+    float falloffRadius = getFalloffRadius();
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
 
     if (_isSpotlight) {
         DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f,
-            color, intensity, rotation, exponent, cutoff);
+            color, intensity, falloffRadius, rotation, exponent, cutoff);
     } else {
         DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f,
-            color, intensity);
+            color, intensity, falloffRadius);
     }
     
 #ifdef WANT_DEBUG
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter());
-    DependencyManager::get<DeferredLightingEffect>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
+    DependencyManager::get<GeometryCache>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
 #endif
 };
 

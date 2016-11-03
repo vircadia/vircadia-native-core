@@ -21,25 +21,31 @@ class RenderableZoneEntityItem : public ZoneEntityItem  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     
-    RenderableZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    ZoneEntityItem(entityItemID, properties),
-    _model(NULL),
-    _needsInitialSimulation(true)
+    RenderableZoneEntityItem(const EntityItemID& entityItemID) :
+        ZoneEntityItem(entityItemID),
+        _model(NULL),
+        _needsInitialSimulation(true)
     { }
     
-    virtual bool setProperties(const EntityItemProperties& properties);
+    virtual bool setProperties(const EntityItemProperties& properties) override;
+    virtual void somethingChangedNotification() override;
+
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                 bool& somethingChanged);
+                                                 bool& somethingChanged) override;
 
-    virtual void render(RenderArgs* args);
-    virtual bool contains(const glm::vec3& point) const;
+    virtual void render(RenderArgs* args) override;
+    virtual bool contains(const glm::vec3& point) const override;
     
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
     
 private:
+    virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
+    virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
+    void notifyBoundChanged();
+
     Model* getModel();
     void initialSimulation();
     void updateGeometry();
@@ -50,7 +56,7 @@ private:
     Model* _model;
     bool _needsInitialSimulation;
     
-    render::ItemID _myMetaItem;
+    render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 };
 
 #endif // hifi_RenderableZoneEntityItem_h

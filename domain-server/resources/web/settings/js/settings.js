@@ -2,13 +2,24 @@ var Settings = {
   showAdvanced: false,
   METAVERSE_URL: 'https://metaverse.highfidelity.com',
   ADVANCED_CLASS: 'advanced-setting',
+  DEPRECATED_CLASS: 'deprecated-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
   DATA_COL_CLASS: 'value-col',
+  DATA_CATEGORY_CLASS: 'value-category',
   ADD_ROW_BUTTON_CLASS: 'add-row',
   ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
   DEL_ROW_BUTTON_CLASS: 'del-row',
   DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
+  ADD_CATEGORY_BUTTON_CLASS: 'add-category',
+  ADD_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-plus add-category',
+  TOGGLE_CATEGORY_COLUMN_CLASS: 'toggle-category',
+  TOGGLE_CATEGORY_SPAN_CLASS: 'toggle-category-icon',
+  TOGGLE_CATEGORY_SPAN_CLASSES: 'glyphicon toggle-category-icon',
+  TOGGLE_CATEGORY_EXPANDED_CLASS: 'glyphicon-triangle-bottom',
+  TOGGLE_CATEGORY_CONTRACTED_CLASS: 'glyphicon-triangle-right',
+  DEL_CATEGORY_BUTTON_CLASS: 'del-category',
+  DEL_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-remove del-category',
   MOVE_UP_BUTTON_CLASS: 'move-up',
   MOVE_UP_SPAN_CLASSES: 'glyphicon glyphicon-chevron-up move-up',
   MOVE_DOWN_BUTTON_CLASS: 'move-down',
@@ -31,11 +42,14 @@ var Settings = {
 };
 
 var viewHelpers = {
-  getFormGroup: function(keypath, setting, values, isAdvanced, isLocked) {
-    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "' data-keypath='" + keypath + "'>";
+  getFormGroup: function(keypath, setting, values, isAdvanced) {
+    form_group = "<div class='form-group " +
+        (isAdvanced ? Settings.ADVANCED_CLASS : "") + " " +
+        (setting.deprecated ? Settings.DEPRECATED_CLASS : "" ) + "' " + 
+        "data-keypath='" + keypath + "'>";
     setting_value = _(values).valueForKeyPath(keypath);
 
-    if (typeof setting_value == 'undefined' || setting_value === null) {
+    if (_.isUndefined(setting_value) || _.isNull(setting_value)) {
       if (_.has(setting, 'default')) {
         setting_value = setting.default;
       } else {
@@ -44,16 +58,13 @@ var viewHelpers = {
     }
 
     label_class = 'control-label';
-    if (isLocked) {
-      label_class += ' locked';
-    }
 
     function common_attrs(extra_classes) {
-      extra_classes = (typeof extra_classes !== 'undefined' ? extra_classes : "");
+      extra_classes = (!_.isUndefined(extra_classes) ? extra_classes : "");
       return " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
         + " " + Settings.TRIGGER_CHANGE_CLASS + " " + extra_classes + "' data-short-name='"
         + setting.name + "' name='" + keypath + "' "
-        + "id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath) + "'";
+        + "id='" + (!_.isUndefined(setting.html_id) ? setting.html_id : keypath) + "'";
     }
 
     if (setting.type === 'checkbox') {
@@ -61,9 +72,8 @@ var viewHelpers = {
         form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
       }
 
-      form_group += "<div class='toggle-checkbox-container" + (isLocked ? " disabled" : "") + "'>"
-      form_group += "<input type='checkbox'" + common_attrs('toggle-checkbox') + (setting_value ? "checked" : "")
-      form_group += (isLocked ? " disabled" : "") + "/>"
+      form_group += "<div class='toggle-checkbox-container'>"
+      form_group += "<input type='checkbox'" + common_attrs('toggle-checkbox') + (setting_value ? "checked" : "") + "/>"
 
       if (setting.help) {
         form_group += "<span class='help-block checkbox-help'>" + setting.help + "</span>";
@@ -78,7 +88,7 @@ var viewHelpers = {
       }
 
       if (input_type === 'table') {
-        form_group += makeTable(setting, keypath, setting_value, isLocked)
+        form_group += makeTable(setting, keypath, setting_value)
       } else {
         if (input_type === 'select') {
           form_group += "<select class='form-control' data-hidden-input='" + keypath + "'>'"
@@ -97,12 +107,10 @@ var viewHelpers = {
 
           if (setting.href) {
             form_group += "<a href='" + setting.href + "'style='display: block;' role='button'"
-              + (isLocked ? " disabled" : "")
               + common_attrs("btn " + setting.classes) + " target='_blank'>"
               + setting.button_label + "</a>";
           } else {
-            form_group += "<button " + common_attrs("btn " + setting.classes)
-              + (isLocked ? " disabled" : "") + ">"
+            form_group += "<button " + common_attrs("btn " + setting.classes) + ">"
               + setting.button_label + "</button>";
           }
 
@@ -114,7 +122,7 @@ var viewHelpers = {
 
           form_group += "<input type='" + input_type + "'" +  common_attrs() +
             "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") +
-            "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+            "' value='" + setting_value + "'/>"
         }
 
         form_group += "<span class='help-block'>" + setting.help + "</span>"
@@ -125,6 +133,20 @@ var viewHelpers = {
     return form_group
   }
 }
+
+var qs = (function(a) {
+    if (a == "") return {};
+    var b = {};
+    for (var i = 0; i < a.length; ++i)
+    {
+        var p=a[i].split('=', 2);
+        if (p.length == 1)
+            b[p[0]] = "";
+        else
+            b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+    }
+    return b;
+})(window.location.search.substr(1).split('&'));
 
 $(document).ready(function(){
   /*
@@ -148,19 +170,31 @@ $(document).ready(function(){
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
-    addTableRow(this);
+    addTableRow($(this).closest('tr'));
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
-    deleteTableRow(this);
+    deleteTableRow($(this).closest('tr'));
+  });
+
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.ADD_CATEGORY_BUTTON_CLASS, function(){
+    addTableCategory($(this).closest('tr'));
+  });
+
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_CATEGORY_BUTTON_CLASS, function(){
+    deleteTableCategory($(this).closest('tr'));
+  });
+
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.TOGGLE_CATEGORY_COLUMN_CLASS, function(){
+    toggleTableCategory($(this).closest('tr'));
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
-    moveTableRow(this, true);
+    moveTableRow($(this).closest('tr'), true);
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_DOWN_BUTTON_CLASS, function(){
-    moveTableRow(this, false);
+    moveTableRow($(this).closest('tr'), false);
   });
 
   $('#' + Settings.FORM_ID).on('keyup', function(e){
@@ -182,10 +216,11 @@ $(document).ready(function(){
           }
 
           if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click();
+            sibling.find("." + Settings.ADD_CATEGORY_BUTTON_CLASS).click();
 
             // set focus to the first input in the new row
-            $target.closest('table').find('tr.inputs input:first').focus()
+            $target.closest('table').find('tr.inputs input:first').focus();
           }
         }
 
@@ -216,6 +251,27 @@ $(document).ready(function(){
     $(this).attr('data-changed', true);
 
     badgeSidebarForDifferences($(this));
+  });
+
+  // Bootstrap switch in table
+  $('#' + Settings.FORM_ID).on('change', 'input.table-checkbox', function () {
+    // Bootstrap switches in table: set the changed data attribute for all rows in table.
+    var row = $(this).closest('tr');
+    if (row.hasClass("value-row")) {  // Don't set attribute on input row switches prior to it being added to table.
+      row.find('td.' + Settings.DATA_COL_CLASS + ' input').attr('data-changed', true);
+      updateDataChangedForSiblingRows(row, true);
+      badgeSidebarForDifferences($(this));
+    }
+  });
+
+  $('#' + Settings.FORM_ID).on('change', 'input.table-time', function() {
+    // Bootstrap switches in table: set the changed data attribute for all rows in table.
+    var row = $(this).closest('tr');
+    if (row.hasClass("value-row")) {  // Don't set attribute on input row switches prior to it being added to table.
+      row.find('td.' + Settings.DATA_COL_CLASS + ' input').attr('data-changed', true);
+      updateDataChangedForSiblingRows(row, true);
+      badgeSidebarForDifferences($(this));
+    }
   });
 
   $('.advanced-toggle').click(function(){
@@ -272,8 +328,79 @@ $(document).ready(function(){
 
   // $('body').scrollspy({ target: '#setup-sidebar'})
 
-  reloadSettings();
+  reloadSettings(function(success){
+    if (success) {
+      handleAction();
+    } else {
+      swal({
+        title: '',
+        type: 'error',
+        text: "There was a problem loading the domain settings.\nPlease refresh the page to try again.",
+      });
+    }
+  });
 });
+
+function handleAction() {
+  // check if we were passed an action to handle
+  var action = qs["action"];
+
+  if (action == "share") {
+    // figure out if we already have a stored domain ID
+    if (Settings.data.values.metaverse.id.length > 0) {
+      // we need to ask the API what a shareable name for this domain is
+      getDomainFromAPI(function(data){
+        // check if we have owner_places (for a real domain) or a name (for a temporary domain)
+        if (data && data.status == "success") {
+          var shareName;
+          if (data.domain.owner_places) {
+            shareName = data.domain.owner_places[0].name
+          } else if (data.domain.name) {
+            shareName = data.domain.name;
+          }
+
+          var shareLink = "hifi://" + shareName;
+
+          console.log(shareLink);
+
+          // show a dialog with a copiable share URL
+          swal({
+            title: "Share",
+            type: "input",
+            inputPlaceholder: shareLink,
+            inputValue: shareLink,
+            text: "Copy this URL to invite friends to your domain.",
+            closeOnConfirm: true
+          });
+
+          $('.sweet-alert input').select();
+
+        } else {
+          // show an error alert
+          swal({
+            title: '',
+            type: 'error',
+            text: "There was a problem retreiving domain information from High Fidelity API.",
+            confirmButtonText: 'Try again',
+            showCancelButton: true,
+            closeOnConfirm: false
+          }, function(isConfirm){
+            if (isConfirm) {
+              // they want to try getting domain share info again
+              showSpinnerAlert("Requesting domain information...")
+              handleAction();
+            } else {
+              swal.close();
+            }
+          });
+        }
+      });
+    } else {
+      // no domain ID present, just show the share dialog
+      createTemporaryDomain();
+    }
+  }
+}
 
 function dynamicButton(button_id, text) {
   return $("<button type='button' id='" + button_id + "' class='btn btn-primary'>" + text + "</button>");
@@ -330,10 +457,8 @@ function setupHFAccountButton() {
     $("[data-keypath='metaverse.automatic_networking']").hide();
   }
 
-  var tokenLocked = _(Settings.data).valueForKeyPath("locked.metaverse.access_token");
-
   // use the existing getFormGroup helper to ask for a button
-  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values, false, tokenLocked);
+  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values);
 
   // add the button group to the top of the metaverse panel
   $('#metaverse .panel-body').prepend(buttonGroup);
@@ -351,6 +476,8 @@ function disonnectHighFidelityAccount() {
   }, function(){
     // we need to post to settings to clear the access-token
     $(Settings.ACCESS_TOKEN_SELECTOR).val('').change();
+    // reset the domain id to get a new temporary name
+    $(Settings.DOMAIN_ID_SELECTOR).val('').change();
     saveSettings();
   });
 }
@@ -449,7 +576,7 @@ function createNewDomainID(description, justConnected) {
   // get the JSON object ready that we'll use to create a new domain
   var domainJSON = {
     "domain": {
-       "description": description
+       "private_description": description
     },
     "access_token": $(Settings.ACCESS_TOKEN_SELECTOR).val()
   }
@@ -521,7 +648,7 @@ function setupPlacesTable() {
     label: 'Places',
     html_id: Settings.PLACES_TABLE_ID,
     help: "The following places currently point to this domain.</br>To point places to this domain, "
-      + " go to the <a href='https://metaverse.highfidelity.com/user/places'>My Places</a> "
+      + " go to the <a href='" + Settings.METAVERSE_URL + "/user/places'>My Places</a> "
       + "page in your High Fidelity Metaverse account.",
     read_only: true,
     columns: [
@@ -542,7 +669,7 @@ function setupPlacesTable() {
   }
 
   // get a table for the places
-  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values, false, false);
+  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values);
 
   // append the places table in the right place
   $('#places_paths .panel-body').prepend(placesTableGroup);
@@ -577,27 +704,31 @@ function placeTableRowForPlaceObject(place) {
   return placeTableRow(place.name, placePathOrIndex, false);
 }
 
-function reloadPlacesOrTemporaryName() {
+function getDomainFromAPI(callback) {
   // we only need to do this if we have a current domain ID
   var domainID = Settings.data.values.metaverse.id;
   if (domainID.length > 0) {
     var domainURL = Settings.METAVERSE_URL + "/api/v1/domains/" + domainID;
 
-    $.getJSON(domainURL, function(data){
-      // check if we have owner_places (for a real domain) or a name (for a temporary domain)
-      if (data.status == "success") {
-        if (data.domain.owner_places) {
-          // add a table row for each of these names
-          _.each(data.domain.owner_places, function(place){
-            $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRowForPlaceObject(place));
-          });
-        } else if (data.domain.name) {
-          // add a table row for this temporary domain name
-          $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name, '/', true));
-        }
-      }
-    });
+    $.getJSON(domainURL, callback).fail(callback);
   }
+}
+
+function reloadPlacesOrTemporaryName() {
+  getDomainFromAPI(function(data){
+    // check if we have owner_places (for a real domain) or a name (for a temporary domain)
+    if (data.status == "success") {
+      if (data.domain.owner_places) {
+        // add a table row for each of these names
+        _.each(data.domain.owner_places, function(place){
+          $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRowForPlaceObject(place));
+        });
+      } else if (data.domain.name) {
+        // add a table row for this temporary domain name
+        $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name, '/', true));
+      }
+    }
+  })
 }
 
 function appendDomainIDButtons() {
@@ -638,8 +769,8 @@ function chooseFromHighFidelityDomains(clickedButton) {
         _.each(data.data.domains, function(domain){
           var domainString = "";
 
-          if (domain.description) {
-            domainString += '"' + domain.description + '" - ';
+          if (domain.private_description) {
+            domainString += '"' + domain.private_description + '" - ';
           }
 
           domainString += domain.id;
@@ -659,7 +790,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_buttons["success"] = {
           label: 'Create new domain',
           callback: function() {
-            window.open("https://metaverse.highfidelity.com/user/domains", '_blank');
+            window.open(Settings.METAVERSE_URL + "/user/domains", '_blank');
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." +
@@ -689,7 +820,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
 function createTemporaryDomain() {
   swal({
     title: 'Create temporary place name',
-    text: "This will create a temporary place name and domain ID (valid for 30 days)"
+    text: "This will create a temporary place name and domain ID"
       + " so other users can easily connect to your domain.</br></br>"
       + "In order to make your domain reachable, this will also enable full automatic networking.",
     showCancelButton: true,
@@ -728,7 +859,7 @@ function createTemporaryDomain() {
   });
 }
 
-function reloadSettings() {
+function reloadSettings(callback) {
   $.getJSON('/settings.json', function(data){
     _.extend(data, viewHelpers)
 
@@ -738,10 +869,8 @@ function reloadSettings() {
     Settings.data = data;
     Settings.initialValues = form2js('settings-form', ".", false, cleanupFormValues, true);
 
-    if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
-      // append the domain selection modal, as long as it's not locked
-      appendDomainIDButtons();
-    }
+    // append the domain selection modal
+    appendDomainIDButtons();
 
     // call our method to setup the HF account button
     setupHFAccountButton();
@@ -752,11 +881,13 @@ function reloadSettings() {
     // setup any bootstrap switches
     $('.toggle-checkbox').bootstrapSwitch();
 
-    // add tooltip to locked settings
-    $('label.locked').tooltip({
-      placement: 'right',
-      title: 'This setting is in the master config file and cannot be changed'
-    });
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // call the callback now that settings are loaded
+    callback(true);
+  }).fail(function() {
+    // call the failure object since settings load faild
+    callback(false)
   });
 }
 
@@ -772,6 +903,15 @@ function saveSettings() {
   // grab a JSON representation of the form via form2js
   var formJSON = form2js('settings-form', ".", false, cleanupFormValues, true);
 
+  // check if we've set the basic http password - if so convert it to base64
+  if (formJSON["security"]) {
+    var password = formJSON["security"]["http_password"];
+    if (password && password.length > 0) {
+      formJSON["security"]["http_password"] = sha256_digest(password);
+    }
+  }
+
+  console.log("----- SAVING ------");
   console.log(formJSON);
 
   // re-enable all inputs
@@ -791,9 +931,10 @@ $('body').on('click', '.save-button', function(e){
   return false;
 });
 
-function makeTable(setting, keypath, setting_value, isLocked) {
+function makeTable(setting, keypath, setting_value) {
   var isArray = !_.has(setting, 'key');
-  var isHash = !isArray;
+  var categoryKey = setting.categorize_by_key;
+  var isCategorized = !!categoryKey && isArray;
 
   if (!isArray && setting.can_order) {
     setting.can_order = false;
@@ -805,9 +946,33 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "<span class='help-block'>" + setting.help + "</span>"
   }
 
-  html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name
-    + "' name='" + keypath + "' id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath)
-    + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
+  var nonDeletableRowKey = setting["non-deletable-row-key"];
+  var nonDeletableRowValues = setting["non-deletable-row-values"];
+
+  html += "<table class='table table-bordered' " +
+                 "data-short-name='" + setting.name + "' name='" + keypath + "' " +
+                 "id='" + (!_.isUndefined(setting.html_id) ? setting.html_id : keypath) + "' " +
+                 "data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
+
+  if (setting.caption) {
+    html += "<caption>" + setting.caption + "</caption>"
+  }
+
+  // Column groups
+  if (setting.groups) {
+    html += "<tr class='headers'>"
+    _.each(setting.groups, function (group) {
+        html += "<td colspan='" + group.span  + "'><strong>" + group.label + "</strong></td>"
+    })
+    if (!setting.read_only) {
+        if (setting.can_order) {
+            html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
+                    "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
+        }
+        html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
+    }
+    html += "</tr>"
+  }
 
   // Column names
   html += "<tr class='headers'>"
@@ -820,24 +985,43 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
   }
 
+  var numVisibleColumns = 0;
   _.each(setting.columns, function(col) {
-    html += "<td class='data " + (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
+    if (!col.hidden) numVisibleColumns++;
+    html += "<td " + (col.hidden ? "style='display: none;'" : "") + "class='data " +
+      (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
   })
 
-  if (!isLocked && !setting.read_only) {
+  if (!setting.read_only) {
     if (setting.can_order) {
+      numVisibleColumns++;
       html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
               "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
     }
-    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
+    numVisibleColumns++;
+    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>";
   }
 
   // populate rows in the table from existing values
   var row_num = 1;
 
   if (keypath.length > 0 && _.size(setting_value) > 0) {
+    var rowIsObject = setting.columns.length > 1;
+
     _.each(setting_value, function(row, rowIndexOrName) {
-      html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">"
+      var categoryPair = {};
+      var categoryValue = "";
+      if (isCategorized) {
+        categoryValue = rowIsObject ? row[categoryKey] : row;
+        categoryPair[categoryKey] = categoryValue;
+        if (_.findIndex(setting_value, categoryPair) === rowIndexOrName) {
+          html += makeTableCategoryHeader(categoryKey, categoryValue, numVisibleColumns, setting.can_add_new_categories, "");
+        }
+      }
+
+      html += "<tr class='" + Settings.DATA_ROW_CLASS + "' " +
+                   (isCategorized ? ("data-category='" + categoryValue + "'") : "") + " " +
+                   (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">";
 
       if (setting.numbered === true) {
         html += "<td class='numbered'>" + row_num + "</td>"
@@ -847,10 +1031,12 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           html += "<td class='key'>" + rowIndexOrName + "</td>"
       }
 
+      var isNonDeletableRow = !setting.can_add_new_rows;
+
       _.each(setting.columns, function(col) {
 
+        var colValue, colName;
         if (isArray) {
-          rowIsObject = setting.columns.length > 1;
           colValue = rowIsObject ? row[col.name] : row;
           colName = keypath + "[" + rowIndexOrName + "]" + (rowIsObject ? "." + col.name : "");
         } else {
@@ -858,48 +1044,96 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           colName = keypath + "." + rowIndexOrName + "." + col.name;
         }
 
-        // setup the td for this column
-        html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>";
+        isNonDeletableRow = isNonDeletableRow
+          || (nonDeletableRowKey === col.name && nonDeletableRowValues.indexOf(colValue) !== -1);
 
-        // add the actual value to the td so it is displayed
-        html += colValue;
+        if (isArray && col.type === "checkbox" && col.editable) {
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+              "<input type='checkbox' class='form-control table-checkbox' " +
+                     "name='" + colName + "'" + (colValue ? " checked" : "") + "/>" +
+            "</td>";
+        } else if (isArray && col.type === "time" && col.editable) {
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+              "<input type='time' class='form-control table-time' name='" + colName + "' " +
+                     "value='" + (colValue || col.default || "00:00") + "'/>" +
+            "</td>";
+        } else {
+          // Use a hidden input so that the values are posted.
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "' " + (col.hidden ? "style='display: none;'" : "") +
+                "name='" + colName + "'>" +
+              colValue +
+              "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>" +
+            "</td>";
+        }
 
-        // for values to be posted properly we add a hidden input to this td
-        html += "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>";
+      });
 
-        html += "</td>";
-      })
-
-      if (!isLocked && !setting.read_only) {
+      if (!setting.read_only) {
         if (setting.can_order) {
           html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
                   "'><a href='javascript:void(0);' class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a>"
                   + "<a href='javascript:void(0);' class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></a></td>"
         }
-        html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-                "'><a href='javascript:void(0);' class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></a></td>"
+        if (isNonDeletableRow) {
+          html += "<td></td>";
+        } else {
+          html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES
+                  + "'><a href='javascript:void(0);' class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></a></td>";
+        }
       }
 
       html += "</tr>"
+
+      if (isCategorized && setting.can_add_new_rows && _.findLastIndex(setting_value, categoryPair) === rowIndexOrName) {
+        html += makeTableInputs(setting, categoryPair, categoryValue);
+      }
 
       row_num++
     });
   }
 
   // populate inputs in the table for new values
-  if (!isLocked && !setting.read_only) {
-     html += makeTableInputs(setting)
+  if (!setting.read_only) {
+    if (setting.can_add_new_categories) {
+      html += makeTableCategoryInput(setting, numVisibleColumns);
+    }
+    if (setting.can_add_new_rows || setting.can_add_new_categories) {
+      html += makeTableInputs(setting, {}, "");
+    }
   }
   html += "</table>"
 
   return html;
 }
 
-function makeTableInputs(setting) {
-  var html = "<tr class='inputs'>"
+function makeTableCategoryHeader(categoryKey, categoryValue, numVisibleColumns, canRemove, message) {
+  var html =
+    "<tr class='" + Settings.DATA_CATEGORY_CLASS + "' data-key='" + categoryKey + "' data-category='" + categoryValue + "'>" +
+      "<td colspan='" + (numVisibleColumns - 1) + "' class='" + Settings.TOGGLE_CATEGORY_COLUMN_CLASS + "'>" +
+        "<span class='" + Settings.TOGGLE_CATEGORY_SPAN_CLASSES + " " + Settings.TOGGLE_CATEGORY_EXPANDED_CLASS + "'></span>" +
+        "<span message='" + message + "'>" + categoryValue + "</span>" +
+      "</td>" +
+      ((canRemove) ? (
+        "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'>" +
+          "<a href='javascript:void(0);' class='" + Settings.DEL_CATEGORY_SPAN_CLASSES + "'></a>" +
+        "</td>"
+      ) : (
+        "<td></td>"
+      )) +
+    "</tr>";
+  return html;
+}
+
+function makeTableInputs(setting, initialValues, categoryValue) {
+  var html = "<tr class='inputs'" + (setting.can_add_new_categories && !categoryValue ? " hidden" : "") + " " +
+                  (categoryValue ? ("data-category='" + categoryValue + "'") : "") + " " +
+                  (setting.categorize_by_key ? ("data-keep-field='" + setting.categorize_by_key + "'") : "") + ">";
 
   if (setting.numbered === true) {
-    html += "<td class='numbered'></td>"
+    html += "<td class='numbered'></td>";
   }
 
   if (setting.key) {
@@ -909,20 +1143,50 @@ function makeTableInputs(setting) {
   }
 
   _.each(setting.columns, function(col) {
-    html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
-             <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
-             value='" + (col.default ? col.default : "") + "' data-default='" + (col.default ? col.default : "") + "'>\
-             </td>"
+    var defaultValue = _.has(initialValues, col.name) ? initialValues[col.name] : col.default;
+    if (col.type === "checkbox") {
+      html +=
+        "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+          "<input type='checkbox' class='form-control table-checkbox' " +
+                 "name='" + col.name + "'" + (defaultValue ? " checked" : "") + "/>" +
+        "</td>";
+    } else {
+      html +=
+        "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
+            "name='" + col.name + "'>" +
+          "<input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' " +
+                 "value='" + (defaultValue || "") + "' data-default='" + (defaultValue || "") + "'" +
+                 (col.readonly ? " readonly" : "") + ">" +
+        "</td>";
+    }
   })
 
   if (setting.can_order) {
     html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'></td>"
   }
-    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-            "'><a href='javascript:void(0);' class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></a></td>"
+  html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
+    "'><a href='javascript:void(0);' class='" + Settings.ADD_ROW_SPAN_CLASSES + "'></a></td>"
   html += "</tr>"
 
   return html
+}
+
+function makeTableCategoryInput(setting, numVisibleColumns) {
+  var canAddRows = setting.can_add_new_rows;
+  var categoryKey = setting.categorize_by_key;
+  var placeholder = setting.new_category_placeholder || "";
+  var message = setting.new_category_message || "";
+  var html =
+    "<tr class='" + Settings.DATA_CATEGORY_CLASS + " inputs' data-can-add-rows='" + canAddRows + "' " +
+        "data-key='" + categoryKey + "' data-message='" + message + "'>" +
+      "<td colspan='" + (numVisibleColumns - 1) + "'>" +
+        "<input type='text' class='form-control' placeholder='" + placeholder + "'/>" +
+      "</td>" +
+      "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'>" +
+        "<a href='javascript:void(0);' class='" + Settings.ADD_CATEGORY_SPAN_CLASSES + "'></a>" +
+      "</td>" +
+    "</tr>";
+  return html;
 }
 
 function badgeSidebarForDifferences(changedElement) {
@@ -963,13 +1227,12 @@ function badgeSidebarForDifferences(changedElement) {
   $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
 }
 
-function addTableRow(add_glyphicon) {
-  var row = $(add_glyphicon).closest('tr')
+function addTableRow(row) {
+  var table = row.parents('table');
+  var isArray = table.data('setting-type') === 'array';
+  var keepField = row.data("keep-field");
 
-  var table = row.parents('table')
-  var isArray = table.data('setting-type') === 'array'
-
-  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS)
+  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS);
 
   if (!isArray) {
     // Check key spaces
@@ -1024,11 +1287,11 @@ function addTableRow(add_glyphicon) {
       } else {
         $(element).html(1)
       }
-  } else if ($(element).hasClass(Settings.REORDER_BUTTONS_CLASS)) {
-    $(element).html("<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'><a href='javascript:void(0);'"
-        + " class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a><a href='javascript:void(0);' class='"
-        + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
-  } else if ($(element).hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
+    } else if ($(element).hasClass(Settings.REORDER_BUTTONS_CLASS)) {
+      $(element).html("<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'><a href='javascript:void(0);'"
+                      + " class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a><a href='javascript:void(0);' class='"
+                      + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
+    } else if ($(element).hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
       // Change buttons
       var anchor = $(element).children("a")
       anchor.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
@@ -1039,8 +1302,26 @@ function addTableRow(add_glyphicon) {
       input.remove()
     } else if ($(element).hasClass(Settings.DATA_COL_CLASS)) {
       // Hide inputs
-      var input = $(element).children("input")
-      input.attr("type", "hidden")
+      var input = $(element).find("input")
+      var isCheckbox = false;
+      var isTime = false;
+      if (input.hasClass("table-checkbox")) {
+        input = $(input).parent();
+        isCheckbox = true;
+      } else if (input.hasClass("table-time")) {
+        input = $(input).parent();
+        isTime = true;
+      }
+
+      var val = input.val();
+      if (isCheckbox) {
+        // don't hide the checkbox
+        val = $(input).find("input").is(':checked');
+      } else if (isTime) {
+        // don't hide the time
+      } else {
+        input.attr("type", "hidden")
+      }
 
       if (isArray) {
         var row_index = row.siblings('.' + Settings.DATA_ROW_CLASS).length
@@ -1049,21 +1330,31 @@ function addTableRow(add_glyphicon) {
         // are there multiple columns or just one?
         // with multiple we have an array of Objects, with one we have an array of whatever the value type is
         var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
-        input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+
+        if (isCheckbox) {
+          $(input).find("input").attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+        } else {
+          input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+        }
       } else {
         input.attr("name", full_name + "." + $(element).attr("name"))
       }
 
-      input.attr("data-changed", "true")
-
-      $(element).append(input.val())
+      if (isCheckbox) {
+        $(input).find("input").attr("data-changed", "true");
+      } else {
+        input.attr("data-changed", "true");
+        $(element).append(val);
+      }
     } else {
       console.log("Unknown table element")
     }
-  })
+  });
 
-  input_clone.find('input').each(function(){
-    $(this).val($(this).attr('data-default'));
+  input_clone.children('td').each(function () {
+    if ($(this).attr("name") !== keepField) {
+      $(this).find("input").val($(this).attr('data-default'));
+    }
   });
 
   if (isArray) {
@@ -1075,44 +1366,132 @@ function addTableRow(add_glyphicon) {
 
   badgeSidebarForDifferences($(table))
 
-  row.parent().append(input_clone)
+  row.after(input_clone)
 }
 
-function deleteTableRow(delete_glyphicon) {
-  var row = $(delete_glyphicon).closest('tr')
+function deleteTableRow($row) {
+  var $table = $row.closest('table');
+  var categoryName = $row.data("category");
+  var isArray = $table.data('setting-type') === 'array';
 
-  var table = $(row).closest('table')
-  var isArray = table.data('setting-type') === 'array'
-
-  row.empty();
+  $row.empty();
 
   if (!isArray) {
-    row.html("<input type='hidden' class='form-control' name='"
-      + row.attr('name') + "' data-changed='true' value=''>");
+    $row.html("<input type='hidden' class='form-control' name='" + $row.attr('name') + "' data-changed='true' value=''>");
   } else {
-    if (table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
-      updateDataChangedForSiblingRows(row)
+    if ($table.find('.' + Settings.DATA_ROW_CLASS + "[data-category='" + categoryName + "']").length <= 1) {
+      // This is the last row of the category, so delete the header
+      $table.find('.' + Settings.DATA_CATEGORY_CLASS + "[data-category='" + categoryName + "']").remove();
+    }
+
+    if ($table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
+      updateDataChangedForSiblingRows($row);
 
       // this isn't the last row - we can just remove it
-      row.remove()
+      $row.remove();
     } else {
       // this is the last row, we can't remove it completely since we need to post an empty array
-
-      row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
-      row.addClass('empty-array-row')
-
-      row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '')
-        + "' data-changed='true' value=''>");
+      $row
+        .removeClass(Settings.DATA_ROW_CLASS)
+        .removeClass(Settings.NEW_ROW_CLASS)
+        .removeAttr("data-category")
+        .addClass('empty-array-row')
+        .html("<input type='hidden' class='form-control' name='" + $table.attr("name").replace('[]', '') + "' " +
+              "data-changed='true' value=''>");
     }
   }
 
   // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
-  badgeSidebarForDifferences($(table))
+  badgeSidebarForDifferences($table);
 }
 
-function moveTableRow(move_glyphicon, move_up) {
-  var row = $(move_glyphicon).closest('tr')
+function addTableCategory($categoryInputRow) {
+  var $input = $categoryInputRow.find("input").first();
+  var categoryValue = $input.prop("value");
+  if (!categoryValue || $categoryInputRow.closest("table").find("tr[data-category='" + categoryValue + "']").length !== 0) {
+    $categoryInputRow.addClass("has-warning");
 
+    setTimeout(function () {
+      $categoryInputRow.removeClass("has-warning");
+    }, 400);
+
+    return;
+  }
+
+  var $rowInput = $categoryInputRow.next(".inputs").clone();
+  if (!$rowInput) {
+    console.error("Error cloning inputs");
+  }
+
+  var canAddRows = $categoryInputRow.data("can-add-rows");
+  var message = $categoryInputRow.data("message");
+  var categoryKey = $categoryInputRow.data("key");
+  var width = 0;
+  $categoryInputRow
+    .children("td")
+    .each(function () {
+      width += $(this).prop("colSpan") || 1;
+    });
+
+  $input
+    .prop("value", "")
+    .focus();
+
+  $rowInput.find("td[name='" + categoryKey + "'] > input").first()
+    .prop("value", categoryValue);
+  $rowInput
+    .attr("data-category", categoryValue)
+    .addClass(Settings.NEW_ROW_CLASS);
+
+  var $newCategoryRow = $(makeTableCategoryHeader(categoryKey, categoryValue, width, true, " - " + message));
+  $newCategoryRow.addClass(Settings.NEW_ROW_CLASS);
+
+  $categoryInputRow
+    .before($newCategoryRow)
+    .before($rowInput);
+
+  if (canAddRows) {
+    $rowInput.removeAttr("hidden");
+  } else {
+    addTableRow($rowInput);
+  }
+}
+
+function deleteTableCategory($categoryHeaderRow) {
+  var categoryName = $categoryHeaderRow.data("category");
+
+  $categoryHeaderRow
+    .closest("table")
+    .find("tr[data-category='" + categoryName + "']")
+    .each(function () {
+      if ($(this).hasClass(Settings.DATA_ROW_CLASS)) {
+        deleteTableRow($(this));
+      } else {
+        $(this).remove();
+      }
+    });
+}
+
+function toggleTableCategory($categoryHeaderRow) {
+  var $icon = $categoryHeaderRow.find("." + Settings.TOGGLE_CATEGORY_SPAN_CLASS).first();
+  var categoryName = $categoryHeaderRow.data("category");
+  var wasExpanded = $icon.hasClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS);
+  if (wasExpanded) {
+    $icon
+      .addClass(Settings.TOGGLE_CATEGORY_CONTRACTED_CLASS)
+      .removeClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS);
+  } else {
+    $icon
+      .addClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS)
+      .removeClass(Settings.TOGGLE_CATEGORY_CONTRACTED_CLASS);
+  }
+  $categoryHeaderRow
+    .closest("table")
+    .find("tr[data-category='" + categoryName + "']")
+    .toggleClass("contracted", wasExpanded);
+}
+
+function moveTableRow(row, move_up) {
   var table = $(row).closest('table')
   var isArray = table.data('setting-type') === 'array'
   if (!isArray) {

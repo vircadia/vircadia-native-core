@@ -12,98 +12,41 @@
 #ifndef hifi_render_Engine_h
 #define hifi_render_Engine_h
 
-#include "Scene.h"
+#include <SettingHandle.h>
 
+#include "Context.h"
+#include "Task.h"
 namespace render {
 
+    // The render engine holds all render tasks, and is itself a render task.
+    // State flows through tasks to jobs via the render and scene contexts -
+    // the engine should not be known from its jobs.
+    class Engine : public Task {
+    public:
 
-class SceneContext {
-public:
-    ScenePointer _scene;
-  
-    SceneContext() {}
-};
-typedef std::shared_ptr<SceneContext> SceneContextPointer;
+        Engine();
+        ~Engine() = default;
 
+        // Load any persisted settings, and set up the presets
+        // This should be run after adding all jobs, and before building ui
+        void load();
 
-class RenderContext {
-public:
-    RenderArgs* args;
+        // Register the scene
+        void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }
 
-    bool _cullOpaque = true;
-    bool _sortOpaque = true;
-    bool _renderOpaque = true;
-    bool _cullTransparent = true;
-    bool _sortTransparent = true;
-    bool _renderTransparent = true;
+        // Push a RenderContext
+        void setRenderContext(const RenderContext& renderContext) { (*_renderContext) = renderContext; }
+        RenderContextPointer getRenderContext() const { return _renderContext; }
 
-    int _numFeedOpaqueItems = 0;
-    int _numDrawnOpaqueItems = 0;
-    int _maxDrawnOpaqueItems = -1;
-    
-    int _numFeedTransparentItems = 0;
-    int _numDrawnTransparentItems = 0;
-    int _maxDrawnTransparentItems = -1;
+        // Render a frame
+        // A frame must have a scene registered and a context set to render
+        void run();
 
-    int _numFeedOverlay3DItems = 0;
-    int _numDrawnOverlay3DItems = 0;
-    int _maxDrawnOverlay3DItems = -1;
-
-    bool _drawItemStatus = false;
-    bool _drawHitEffect = false;
-
-    bool _occlusionStatus = false;
-    bool _fxaaStatus = false;
-
-    RenderContext() {}
-};
-typedef std::shared_ptr<RenderContext> RenderContextPointer;
-
-// THe base class for a task that runs on the SceneContext
-class Task {
-public:
-    Task() {}
-    ~Task() {}
-
-    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {}
-
-protected:
-};
-typedef std::shared_ptr<Task> TaskPointer;
-typedef std::vector<TaskPointer> Tasks;
-
-// The root of the takss, the Engine, should not be known from the Tasks,
-// The SceneContext is what navigates from the engine down to the Tasks
-class Engine {
-public:
-
-    Engine();
-    ~Engine() {}
-
-    // Register the scene should be [art of the init phase before running the engine
-    void registerScene(const ScenePointer& scene);
-
-    // Push a RenderContext
-    void setRenderContext(const RenderContext& renderContext);
-    RenderContextPointer getRenderContext() const { return _renderContext; }
-
-    void addTask(const TaskPointer& task);
-    const Tasks& getTasks() const { return _tasks; }
-
-
-    void run();
-
-    // standard pipeline of tasks
-    void buildStandardTaskPipeline();
-
-protected:
-
-    Tasks _tasks;
-
-    SceneContextPointer _sceneContext;
-    RenderContextPointer _renderContext;
-};
-typedef std::shared_ptr<Engine> EnginePointer;
+    protected:
+        SceneContextPointer _sceneContext;
+        RenderContextPointer _renderContext;
+    };
+    using EnginePointer = std::shared_ptr<Engine>;
 
 }
 

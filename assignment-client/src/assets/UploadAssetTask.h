@@ -19,17 +19,19 @@
 #include <QtCore/QRunnable>
 #include <QtCore/QSharedPointer>
 
+#include "ReceivedMessage.h"
+
 class NLPacketList;
 class Node;
 
 class UploadAssetTask : public QRunnable {
 public:
-    UploadAssetTask(QSharedPointer<NLPacketList> packetList, QSharedPointer<Node> senderNode, const QDir& resourcesDir);
-    
-    void run();
-    
+    UploadAssetTask(QSharedPointer<ReceivedMessage> message, QSharedPointer<Node> senderNode, const QDir& resourcesDir);
+
+    void run() override;
+
 private:
-    QSharedPointer<NLPacketList> _packetList;
+    QSharedPointer<ReceivedMessage> _receivedMessage;
     QSharedPointer<Node> _senderNode;
     QDir _resourcesDir;
 };

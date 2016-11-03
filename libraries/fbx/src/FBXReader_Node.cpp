@@ -9,16 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <iostream>
-#include <QBuffer>
-#include <QDataStream>
-#include <QIODevice>
-#include <QStringList>
-#include <QTextStream>
-#include <QtDebug>
-#include <QtEndian>
-#include <QFileInfo>
 #include "FBXReader.h"
+
+#include <iostream>
+#include <QtCore/QBuffer>
+#include <QtCore/QDataStream>
+#include <QtCore/QIODevice>
+#include <QtCore/QStringList>
+#include <QtCore/QTextStream>
+#include <QtCore/QDebug>
+#include <QtCore/QtEndian>
+#include <QtCore/QFileInfo>
+
+#include <shared/NsightHelpers.h>
+#include "ModelFormatLogging.h"
 
 template<class T> int streamSize() {
     return sizeof(T);
@@ -47,6 +51,9 @@ template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
         in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
         position += compressedLength;
         QByteArray uncompressed = qUncompress(compressed);
+        if (uncompressed.isEmpty()) { // answers empty byte array if corrupt
+            throw QString("corrupt fbx file");
+        }
         QDataStream uncompressedIn(uncompressed);
         uncompressedIn.setByteOrder(QDataStream::LittleEndian);
         uncompressedIn.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
@@ -134,17 +141,35 @@ QVariant parseBinaryFBXProperty(QDataStream& in, int& position) {
     }
 }
 
-FBXNode parseBinaryFBXNode(QDataStream& in, int& position) {
-    qint32 endOffset;
-    quint32 propertyCount;
-    quint32 propertyListLength;
+FBXNode parseBinaryFBXNode(QDataStream& in, int& position, bool has64BitPositions = false) {
+    qint64 endOffset;
+    quint64 propertyCount;
+    quint64 propertyListLength;
     quint8 nameLength;
 
-    in >> endOffset;
-    in >> propertyCount;
-    in >> propertyListLength;
+    // FBX 2016 and beyond uses 64bit positions in the node headers, pre-2016 used 32bit values
+    // our code generally doesn't care about the size that much, so we will use 64bit values
+    // from here on out, but if the file is an older format we read the stream into temp 32bit 
+    // values and then assign to our actual 64bit values.
+    if (has64BitPositions) {
+        in >> endOffset;
+        in >> propertyCount;
+        in >> propertyListLength;
+        position += sizeof(quint64) * 3;
+    } else {
+        qint32 tempEndOffset;
+        quint32 tempPropertyCount;
+        quint32 tempPropertyListLength;
+        in >> tempEndOffset;
+        in >> tempPropertyCount;
+        in >> tempPropertyListLength;
+        position += sizeof(quint32) * 3;
+        endOffset = tempEndOffset;
+        propertyCount = tempPropertyCount;
+        propertyListLength = tempPropertyListLength;
+    }
     in >> nameLength;
-    position += sizeof(quint32) * 3 + sizeof(quint8);
+    position += sizeof(quint8);
 
     FBXNode node;
     const int MIN_VALID_OFFSET = 40;
@@ -160,7 +185,7 @@ FBXNode parseBinaryFBXNode(QDataStream& in, int& position) {
     }
 
     while (endOffset > position) {
-        FBXNode child = parseBinaryFBXNode(in, position);
+        FBXNode child = parseBinaryFBXNode(in, position, has64BitPositions);
         if (child.name.isNull()) {
             return node;
 
@@ -296,6 +321,7 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
 }
 
 FBXNode FBXReader::parseFBX(QIODevice* device) {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, device);
     // verify the prolog
     const QByteArray BINARY_PROLOG = "Kaydara FBX Binary  ";
     if (device->peek(BINARY_PROLOG.size()) != BINARY_PROLOG) {
@@ -320,15 +346,24 @@ FBXNode FBXReader::parseFBX(QIODevice* device) {
     // see http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/ for an explanation
     // of the FBX binary format
 
-    // skip the rest of the header
-    const int HEADER_SIZE = 27;
-    in.skipRawData(HEADER_SIZE);
-    int position = HEADER_SIZE;
+    // The first 27 bytes contain the header.
+    //   Bytes 0 - 20: Kaydara FBX Binary  \x00(file - magic, with 2 spaces at the end, then a NULL terminator).
+    //   Bytes 21 - 22: [0x1A, 0x00](unknown but all observed files show these bytes).
+    //   Bytes 23 - 26 : unsigned int, the version number. 7300 for version 7.3 for example.
+    const int HEADER_BEFORE_VERSION = 23;
+    const quint32 VERSION_FBX2016 = 7500;
+    in.skipRawData(HEADER_BEFORE_VERSION);
+    int position = HEADER_BEFORE_VERSION;
+    quint32 fileVersion;
+    in >> fileVersion;
+    position += sizeof(fileVersion);
+    qCDebug(modelformat) << "fileVersion:" << fileVersion;
+    bool has64BitPositions = (fileVersion >= VERSION_FBX2016);
 
     // parse the top-level node
     FBXNode top;
     while (device->bytesAvailable()) {
-        FBXNode next = parseBinaryFBXNode(in, position);
+        FBXNode next = parseBinaryFBXNode(in, position, has64BitPositions);
         if (next.name.isNull()) {
             return top;
 

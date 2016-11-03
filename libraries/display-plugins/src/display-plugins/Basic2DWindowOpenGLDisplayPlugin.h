@@ -7,30 +7,33 @@
 //
 #pragma once
 
-#include "WindowOpenGLDisplayPlugin.h"
+#include "OpenGLDisplayPlugin.h"
+
+const float TARGET_FRAMERATE_Basic2DWindowOpenGL = 60.0f;
 
 class QScreen;
-class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
+class QAction;
+
+class Basic2DWindowOpenGLDisplayPlugin : public OpenGLDisplayPlugin {
     Q_OBJECT
-
+    using Parent = OpenGLDisplayPlugin;
 public:
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override { return NAME; }
 
-    virtual void activate() override;
-    virtual void deactivate() override;
+    virtual float getTargetFrameRate() const override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
 
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
+    virtual bool internalActivate() override;
 
     virtual bool isThrottled() const override;
 
 protected:
-    int getDesiredInterval() const;
     mutable bool _isThrottled = false;
 
 private:
-    void updateFramerate();
     static const QString NAME;
     QScreen* getFullscreenTarget();
-    uint32_t _framerateTarget{ 0 };
+    std::vector<QAction*> _framerateActions;
+    QAction* _vsyncAction { nullptr };
+    uint32_t _framerateTarget { 0 };
     int _fullscreenTarget{ -1 };
 };

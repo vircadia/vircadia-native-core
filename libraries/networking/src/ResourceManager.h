@@ -29,8 +29,15 @@ public:
     static void setUrlPrefixOverride(const QString& prefix, const QString& replacement);
     static QString normalizeURL(const QString& urlString);
     static QUrl normalizeURL(const QUrl& url);
+
     static ResourceRequest* createResourceRequest(QObject* parent, const QUrl& url);
+
+    static void init();
+    static void cleanup();
+
 private:
+    static QThread _thread;
+
     using PrefixMap = std::map<QString, QString>;
 
     static PrefixMap _prefixMap;

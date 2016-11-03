@@ -23,30 +23,29 @@ ShapeManager::~ShapeManager() {
     int numShapes = _shapeMap.size();
     for (int i = 0; i < numShapes; ++i) {
         ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
-        delete shapeRef->shape;
+        ShapeFactory::deleteShape(shapeRef->shape);
     }
     _shapeMap.clear();
 }
 
-btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
+const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     if (info.getType() == SHAPE_TYPE_NONE) {
-        return NULL;
+        return nullptr;
     }
-    // Very small or large objects are not supported.
-    float diagonal = 4.0f * glm::length2(info.getHalfExtents());
     const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
-    //const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e6f;  // 1000 m cube
-    if (diagonal < MIN_SHAPE_DIAGONAL_SQUARED /* || diagonal > MAX_SHAPE_DIAGONAL_SQUARED*/ ) {
+    if (4.0f * glm::length2(info.getHalfExtents()) < MIN_SHAPE_DIAGONAL_SQUARED) {
+        // tiny shapes are not supported
         // qCDebug(physics) << "ShapeManager::getShape -- not making shape due to size" << diagonal;
-        return NULL;
+        return nullptr;
     }
+
     DoubleHashKey key = info.getHash();
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         shapeRef->refCount++;
         return shapeRef->shape;
     }
-    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
+    const btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     if (shape) {
         ShapeReference newRef;
         newRef.refCount = 1;
@@ -58,15 +57,15 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
 }
 
 // private helper method
-bool ShapeManager::releaseShape(const DoubleHashKey& key) {
+bool ShapeManager::releaseShapeByKey(const DoubleHashKey& key) {
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         if (shapeRef->refCount > 0) {
             shapeRef->refCount--;
             if (shapeRef->refCount == 0) {
                 _pendingGarbage.push_back(key);
-                const int MAX_GARBAGE_CAPACITY = 127;
-                if (_pendingGarbage.size() > MAX_GARBAGE_CAPACITY) {
+                const int MAX_SHAPE_GARBAGE_CAPACITY = 255;
+                if (_pendingGarbage.size() > MAX_SHAPE_GARBAGE_CAPACITY) {
                     collectGarbage();
                 }
             }
@@ -82,16 +81,12 @@ bool ShapeManager::releaseShape(const DoubleHashKey& key) {
     return false;
 }
 
-bool ShapeManager::releaseShape(const ShapeInfo& info) {
-    return releaseShape(info.getHash());
-}
-
 bool ShapeManager::releaseShape(const btCollisionShape* shape) {
     int numShapes = _shapeMap.size();
     for (int i = 0; i < numShapes; ++i) {
         ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
         if (shape == shapeRef->shape) {
-            return releaseShape(shapeRef->key);
+            return releaseShapeByKey(shapeRef->key);
         }
     }
     return false;
@@ -103,17 +98,7 @@ void ShapeManager::collectGarbage() {
         DoubleHashKey& key = _pendingGarbage[i];
         ShapeReference* shapeRef = _shapeMap.find(key);
         if (shapeRef && shapeRef->refCount == 0) {
-            // if the shape we're about to delete is compound, delete the children first.
-            if (shapeRef->shape->getShapeType() == COMPOUND_SHAPE_PROXYTYPE) {
-                const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shapeRef->shape);
-                const int numChildShapes = compoundShape->getNumChildShapes();
-                for (int i = 0; i < numChildShapes; i ++) {
-                    const btCollisionShape* childShape = compoundShape->getChildShape(i);
-                    delete childShape;
-                }
-            }
-
-            delete shapeRef->shape;
+            ShapeFactory::deleteShape(shapeRef->shape);
             _shapeMap.remove(key);
         }
     }

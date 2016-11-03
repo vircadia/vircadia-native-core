@@ -20,16 +20,16 @@
 #include <udt/PacketHeaders.h>
 #include <RenderArgs.h>
 #include <SharedUtil.h>
+#include <ViewFrustum.h>
 
 #include "Octree.h"
 #include "OctreePacketData.h"
-#include "ViewFrustum.h"
 
 class OctreeRenderer;
 
 
 // Generic client side Octree renderer class.
-class OctreeRenderer : public QObject {
+class OctreeRenderer : public QObject, public QEnableSharedFromThis<OctreeRenderer> {
     Q_OBJECT
 public:
     OctreeRenderer();
@@ -39,13 +39,11 @@ public:
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
     virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { }
-    virtual float getSizeScale() const { return DEFAULT_OCTREE_SIZE_SCALE; }
-    virtual int getBoundaryLevelAdjust() const { return 0; }
 
     virtual void setTree(OctreePointer newTree);
 
     /// process incoming data
-    virtual void processDatagram(NLPacket& packet, SharedNodePointer sourceNode);
+    virtual void processDatagram(ReceivedMessage& message, SharedNodePointer sourceNode);
 
     /// initialize and GPU/rendering related resources
     virtual void init();
@@ -53,8 +51,8 @@ public:
     /// render the content of the octree
     virtual void render(RenderArgs* renderArgs);
 
-    ViewFrustum* getViewFrustum() const { return _viewFrustum; }
-    void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
+    const ViewFrustum& getViewFrustum() const { return _viewFrustum; }
+    void setViewFrustum(const ViewFrustum& viewFrustum) { _viewFrustum = viewFrustum; }
 
     static bool renderOperation(OctreeElementPointer element, void* extraData);
 
@@ -77,7 +75,7 @@ protected:
 
     OctreePointer _tree;
     bool _managedTree;
-    ViewFrustum* _viewFrustum;
+    ViewFrustum _viewFrustum;
 
     SimpleMovingAverage _elementsPerPacket;
     SimpleMovingAverage _entitiesPerPacket;

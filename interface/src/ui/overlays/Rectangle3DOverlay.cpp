@@ -19,15 +19,33 @@ QString const Rectangle3DOverlay::TYPE = "rectangle3d";
 Rectangle3DOverlay::Rectangle3DOverlay() :
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _rectGeometryIds.size(); ++i) {
+        _rectGeometryIds[i] = geometryCache->allocateID();
+    }
+    qDebug() << "Building rect3d overlay";
 }
 
 Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay) :
     Planar3DOverlay(rectangle3DOverlay),
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _rectGeometryIds.size(); ++i) {
+        _rectGeometryIds[i] = geometryCache->allocateID();
+    }
+    qDebug() << "Building rect3d overlay";
 }
 
 Rectangle3DOverlay::~Rectangle3DOverlay() {
+    qDebug() << "Destryoing rect3d overlay";
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryCacheID);
+        for (size_t i = 0; i < _rectGeometryIds.size(); ++i) {
+            geometryCache->releaseID(_rectGeometryIds[i]);
+        }
+    }
 }
 
 void Rectangle3DOverlay::render(RenderArgs* args) {
@@ -53,23 +71,25 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
         transform.setRotation(rotation);
 
         batch->setModelTransform(transform);
+        auto geometryCache = DependencyManager::get<GeometryCache>();
 
         if (getIsSolid()) {
             glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
             glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
-            DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, rectangleColor);
+            geometryCache->bindSimpleProgram(*batch);
+            geometryCache->renderQuad(*batch, topLeft, bottomRight, rectangleColor, _geometryCacheID);
         } else {
-            auto geometryCache = DependencyManager::get<GeometryCache>();
+            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             if (getIsDashedLine()) {
                 glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
                 glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
                 glm::vec3 point3(halfDimensions.x, halfDimensions.y, 0.0f);
                 glm::vec3 point4(-halfDimensions.x, halfDimensions.y, 0.0f);
 
-                geometryCache->renderDashedLine(*batch, point1, point2, rectangleColor);
-                geometryCache->renderDashedLine(*batch, point2, point3, rectangleColor);
-                geometryCache->renderDashedLine(*batch, point3, point4, rectangleColor);
-                geometryCache->renderDashedLine(*batch, point4, point1, rectangleColor);
+                geometryCache->renderDashedLine(*batch, point1, point2, rectangleColor, _rectGeometryIds[0]);
+                geometryCache->renderDashedLine(*batch, point2, point3, rectangleColor, _rectGeometryIds[1]);
+                geometryCache->renderDashedLine(*batch, point3, point4, rectangleColor, _rectGeometryIds[2]);
+                geometryCache->renderDashedLine(*batch, point4, point1, rectangleColor, _rectGeometryIds[3]);
             } else {
                 if (halfDimensions != _previousHalfDimensions) {
                     QVector<glm::vec3> border;
@@ -88,7 +108,15 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     }
 }
 
-void Rectangle3DOverlay::setProperties(const QScriptValue &properties) {
+const render::ShapeKey Rectangle3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withOwnPipeline();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
+}
+
+void Rectangle3DOverlay::setProperties(const QVariantMap& properties) {
     Planar3DOverlay::setProperties(properties);
 }
 

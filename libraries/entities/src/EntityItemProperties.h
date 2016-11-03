@@ -15,7 +15,6 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtx/extented_min_max.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -30,12 +29,12 @@
 #include <ShapeInfo.h>
 
 #include "AnimationPropertyGroup.h"
-#include "AtmospherePropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesDefaults.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "LightEntityItem.h"
 #include "LineEntityItem.h"
 #include "ParticleEffectEntityItem.h"
 #include "PolyVoxEntityItem.h"
@@ -50,7 +49,7 @@ const quint64 UNKNOWN_CREATED_TIME = 0;
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
-/// all units for position, dimensions, etc are in meter units
+/// all units for SI units (meter, second, radian, etc) 
 class EntityItemProperties {
     friend class EntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ModelEntityItem; // TODO: consider removing this friend relationship and use public methods
@@ -64,9 +63,12 @@ class EntityItemProperties {
     friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class ShapeEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;
+
+    void merge(const EntityItemProperties& other);
 
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
@@ -83,7 +85,9 @@ public:
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
     EntityPropertyFlags getChangedProperties() const;
 
-    AACube getMaximumAACube() const;
+    bool parentDependentPropertyChanged() const; // was there a changed in a property that requires parent info to interpret?
+    bool parentRelatedPropertyChanged() const; // parentDependentPropertyChanged or parentID or parentJointIndex
+
     AABox getAABox() const;
 
     void debugDump() const;
@@ -125,12 +129,14 @@ public:
     DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT);
     DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING);
-    DEFINE_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool, ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS);
-    DEFINE_PROPERTY(PROP_COLLISIONS_WILL_MOVE, CollisionsWillMove, collisionsWillMove, bool, ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE);
-    DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, false);
-    DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, 1.0f);
-    DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float, 0.0f);
-    DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float, ENTITY_ITEM_DEFAULT_CUTOFF);
+    DEFINE_PROPERTY(PROP_COLLISIONLESS, Collisionless, collisionless, bool, ENTITY_ITEM_DEFAULT_COLLISIONLESS);
+    DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint8_t, ENTITY_COLLISION_MASK_DEFAULT);
+    DEFINE_PROPERTY(PROP_DYNAMIC, Dynamic, dynamic, bool, ENTITY_ITEM_DEFAULT_DYNAMIC);
+    DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, LightEntityItem::DEFAULT_IS_SPOTLIGHT);
+    DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, LightEntityItem::DEFAULT_INTENSITY);
+    DEFINE_PROPERTY(PROP_FALLOFF_RADIUS, FalloffRadius, falloffRadius, float, LightEntityItem::DEFAULT_FALLOFF_RADIUS);
+    DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float, LightEntityItem::DEFAULT_EXPONENT);
+    DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float, LightEntityItem::DEFAULT_CUTOFF);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool, ENTITY_ITEM_DEFAULT_LOCKED);
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString, ENTITY_ITEM_DEFAULT_USER_DATA);
@@ -159,18 +165,15 @@ public:
     DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD);
     DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float, ParticleEffectEntityItem::DEFAULT_RADIUS_START);
     DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH);
+    DEFINE_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool, ParticleEffectEntityItem::DEFAULT_EMITTER_SHOULD_TRAIL);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR);
-    DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY);
-    DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float, ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION);
+    DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE);
     DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray, PolyVoxEntityItem::DEFAULT_VOXEL_DATA);
     DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
-    DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
@@ -191,12 +194,35 @@ public:
     DEFINE_PROPERTY_REF(PROP_X_P_NEIGHBOR_ID, XPNeighborID, xPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_PARENT_ID, ParentID, parentID, QUuid, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, quint16, -1);
+    DEFINE_PROPERTY_REF(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube, AACube());
+    DEFINE_PROPERTY_REF(PROP_SHAPE, Shape, shape, QString, "Sphere");
+
+    // these are used when bouncing location data into and out of scripts
+    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glmQuat, ENTITY_ITEM_DEFAULT_ROTATION);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+
+    DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
+    DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
+    DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());
+    DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>, QVector<glm::vec3>());
+
+    DEFINE_PROPERTY(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool, ZoneEntityItem::DEFAULT_FLYING_ALLOWED);
+    DEFINE_PROPERTY(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool, ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED);
+
+    DEFINE_PROPERTY(PROP_CLIENT_ONLY, ClientOnly, clientOnly, bool, false);
+    DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
+
+    DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
 
 public:
-    float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
+    float getMaxDimension() const { return glm::compMax(_dimensions); }
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
@@ -205,9 +231,7 @@ public:
     bool containsPositionChange() const { return _positionChanged; }
     bool containsDimensionsChange() const { return _dimensionsChanged; }
 
-    float getGlowLevel() const { return _glowLevel; }
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
-    void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
 
     static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
@@ -218,7 +242,6 @@ public:
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                                        EntityItemID& entityID, EntityItemProperties& properties);
 
-    bool glowLevelChanged() const { return _glowLevelChanged; }
     bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
 
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
@@ -232,14 +255,16 @@ public:
     const glm::vec3& getNaturalPosition() const { return _naturalPosition; }
     void calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max);
     
-    const QStringList& getTextureNames() const { return _textureNames; }
-    void setTextureNames(const QStringList& value) { _textureNames = value; }
+    const QVariantMap& getTextureNames() const { return _textureNames; }
+    void setTextureNames(const QVariantMap& value) { _textureNames = value; }
 
     QString getSimulatorIDAsString() const { return _simulationOwner.getID().toString().mid(1,36).toUpper(); }
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
 
     void setLinePointsDirty() {_linePointsChanged = true; }
+
+    void setQueryAACubeDirty() { _queryAACubeChanged = true; }
 
     void setCreated(QDateTime& v);
 
@@ -254,10 +279,30 @@ public:
     void setActionDataDirty() { _actionDataChanged = true; }
 
     QList<QString> listChangedProperties();
-    
+
     bool getDimensionsInitialized() const { return _dimensionsInitialized; }
     void setDimensionsInitialized(bool dimensionsInitialized) { _dimensionsInitialized = dimensionsInitialized; }
-    
+
+    void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
+    void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
+
+    // render info related items
+    size_t getRenderInfoVertexCount() const { return _renderInfoVertexCount; }
+    void setRenderInfoVertexCount(size_t value) { _renderInfoVertexCount = value; }
+    int getRenderInfoTextureCount() const { return _renderInfoTextureCount; }
+    void setRenderInfoTextureCount(int value) { _renderInfoTextureCount = value; }
+    size_t getRenderInfoTextureSize() const { return _renderInfoTextureSize; }
+    void setRenderInfoTextureSize(size_t value) { _renderInfoTextureSize = value; }
+    int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
+    void setRenderInfoDrawCalls(int value) { _renderInfoDrawCalls = value; }
+    bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
+    void setRenderInfoHasTransparent(bool value) { _renderInfoHasTransparent = value; }
+
+
+protected:
+    QString getCollisionMaskAsString() const;
+    void setCollisionMaskFromString(const QString& maskString);
+
 private:
     QUuid _id;
     bool _idSet;
@@ -265,19 +310,23 @@ private:
     EntityTypes::EntityType _type;
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
 
-    float _glowLevel;
     float _localRenderAlpha;
-    bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _defaultSettings;
-    bool _dimensionsInitialized = false; // Only true if creating an entity localy with no dimensions properties
+    bool _dimensionsInitialized = true; // Only false if creating an entity localy with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
     QVector<SittingPoint> _sittingPoints;
-    QStringList _textureNames;
+    QVariantMap _textureNames;
     glm::vec3 _naturalDimensions;
     glm::vec3 _naturalPosition;
+
+    size_t _renderInfoVertexCount { 0 };
+    int _renderInfoTextureCount { 0 };
+    size_t _renderInfoTextureSize { 0 };
+    int _renderInfoDrawCalls { 0 };
+    bool _renderInfoHasTransparent { false };
 
     EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
 };
@@ -318,6 +367,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Damping, damping, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Restitution, restitution, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Friction, friction, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Created, created, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ScriptTimestamp, scriptTimestamp, "");
@@ -335,10 +385,11 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, RegistrationPoint, registrationPoint, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularVelocity, angularVelocity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularDamping, angularDamping, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, IgnoreForCollisions, ignoreForCollisions, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionsWillMove, collisionsWillMove, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Collisionless, collisionless, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dynamic, dynamic, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsSpotlight, isSpotlight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Intensity, intensity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, FalloffRadius, falloffRadius, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Exponent, exponent, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cutoff, cutoff, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
@@ -389,8 +440,22 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YPNeighborID, yPNeighborID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZPNeighborID, zPNeighborID, "");
 
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentID, parentID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentJointIndex, parentJointIndex, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, QueryAACube, queryAACube, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointRotationsSet, jointRotationsSet, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointRotations, jointRotations, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslationsSet, jointTranslationsSet, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslations, jointTranslations, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, FlyingAllowed, flyingAllowed, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, GhostingAllowed, ghostingAllowed, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ClientOnly, clientOnly, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, OwningAvatarID, owningAvatarID, "");
+
     properties.getAnimation().debugDump();
-    properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
     properties.getStage().debugDump();
 

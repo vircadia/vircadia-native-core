@@ -12,15 +12,22 @@
 #include <cstring>
 #include <stdio.h>
 
-#include <UUID.h>
-
-#include "Node.h"
-#include "SharedUtil.h"
-
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 
+#include <UUID.h>
+
+#include "NetworkLogging.h"
+#include "NodePermissions.h"
+#include "SharedUtil.h"
+
+#include "Node.h"
+
 const QString UNKNOWN_NodeType_t_NAME = "Unknown";
+
+int NodePtrMetaTypeId = qRegisterMetaType<Node*>("Node*");
+int sharedPtrNodeMetaTypeId = qRegisterMetaType<QSharedPointer<Node>>("QSharedPointer<Node>");
+int sharedNodePtrMetaTypeId = qRegisterMetaType<SharedNodePointer>("SharedNodePointer");
 
 namespace NodeType {
     QHash<NodeType_t, QString> TypeNameHash;
@@ -32,6 +39,7 @@ void NodeType::init() {
     TypeNameHash.insert(NodeType::Agent, "Agent");
     TypeNameHash.insert(NodeType::AudioMixer, "Audio Mixer");
     TypeNameHash.insert(NodeType::AvatarMixer, "Avatar Mixer");
+    TypeNameHash.insert(NodeType::MessagesMixer, "Messages Mixer");
     TypeNameHash.insert(NodeType::AssetServer, "Asset Server");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
 }
@@ -42,26 +50,20 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, bool canAdjustLocks, bool canRez, const QUuid& connectionSecret,
+           const HifiSockAddr& localSocket, const NodePermissions& permissions, const QUuid& connectionSecret,
            QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _connectionSecret(connectionSecret),
-    _linkedData(NULL),
     _isAlive(true),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
     _clockSkewMovingPercentile(30, 0.8f),   // moving 80th percentile of 30 samples
-    _canAdjustLocks(canAdjustLocks),
-    _canRez(canRez)
+    _permissions(permissions)
 {
     // Update socket's object name
     setType(_type);
-}
-
-Node::~Node() {
-    delete _linkedData;
 }
 
 void Node::setType(char type) {
@@ -73,20 +75,38 @@ void Node::setType(char type) {
     _symmetricSocket.setObjectName(typeString);
 }
 
-void Node::updateClockSkewUsec(int clockSkewSample) {
-    _clockSkewMovingPercentile.updatePercentile((float)clockSkewSample);
-    _clockSkewUsec = (int)_clockSkewMovingPercentile.getValueAtPercentile();
+void Node::updateClockSkewUsec(qint64 clockSkewSample) {
+    _clockSkewMovingPercentile.updatePercentile(clockSkewSample);
+    _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
+void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {    
+    while (message->getBytesLeftToRead()) {
+        // parse out the UUID being ignored from the packet
+        QUuid ignoredUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        addIgnoredNode(ignoredUUID);
+    }
+}
+
+void Node::addIgnoredNode(const QUuid& otherNodeID) {
+    if (!otherNodeID.isNull() && otherNodeID != _uuid) {
+        qCDebug(networking) << "Adding" << uuidStringWithoutCurlyBraces(otherNodeID) << "to ignore set for"
+        << uuidStringWithoutCurlyBraces(_uuid);
+
+        // add the session UUID to the set of ignored ones for this listening node
+        _ignoredNodeIDSet.insert(otherNodeID);
+    } else {
+        qCWarning(networking) << "Node::addIgnoredNode called with null ID or ID of ignoring node.";
+    }
+}
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._type;
     out << node._uuid;
     out << node._publicSocket;
     out << node._localSocket;
-    out << node._canAdjustLocks;
-    out << node._canRez;
-
+    out << node._permissions;
     return out;
 }
 
@@ -95,9 +115,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._uuid;
     in >> node._publicSocket;
     in >> node._localSocket;
-    in >> node._canAdjustLocks;
-    in >> node._canRez;
-
+    in >> node._permissions;
     return in;
 }
 

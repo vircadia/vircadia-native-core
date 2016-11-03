@@ -1,0 +1,44 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  grid.slf
+//  fragment shader
+//
+//  Created by Zach Pomerantz on 2/16/2016.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Paint.slh@>
+
+struct Grid {
+    vec4 period;
+    vec4 offset;
+    vec4 edge;
+};
+
+uniform gridBuffer { Grid grid; };
+Grid getGrid() { return grid; }
+
+in vec2 varTexCoord0;
+in vec4 varColor;
+
+out vec4 outFragColor;
+
+void main(void) {
+    Grid grid = getGrid();
+
+    float alpha;
+    if (grid.edge.z == 0.0) {
+        alpha = paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.edge.xy);
+    } else {
+        alpha = paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.edge);
+    }
+    if (alpha == 0.0) {
+        discard;
+    }
+
+    outFragColor = vec4(varColor.xyz, varColor.w * alpha);
+}

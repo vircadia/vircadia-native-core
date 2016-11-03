@@ -16,35 +16,49 @@
 
 <@include model/Material.slh@>
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
-
-// the normal map texture
-uniform sampler2D normalMap;
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, _SCRIBE_NULL, EMISSIVE, OCCLUSION, SCATTERING)$>
 
 in vec4 _position;
 in vec2 _texCoord0;
+in vec2 _texCoord1;
 in vec3 _normal;
 in vec3 _tangent;
 in vec3 _color;
 
 void main(void) {
-    // compute the view normal from the various bits
-    vec3 normalizedNormal = normalize(_normal.xyz);
-    vec3 normalizedTangent = normalize(_tangent.xyz);
-    vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
-    vec3 localNormal = normalize(vec3(texture(normalMap, _texCoord0.st)) - vec3(0.5, 0.5, 0.5));
-    vec4 viewNormal = vec4(normalizedTangent * localNormal.x +
-        normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
-
-    vec4 diffuse = texture(diffuseMap, _texCoord0.st);
-
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, _SCRIBE_NULL, emissiveTex, scatteringTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
+
+    float opacity = 1.0;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <$discardTransparent(opacity)$>;
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color;
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
+    vec3 emissive = getMaterialEmissive(mat);
+    <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+
+    vec3 viewNormal;
+    <$tangentToViewSpace(normalTex, _normal, _tangent, viewNormal)$>
+
+    float scattering = getMaterialScattering(mat);
+    <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
 
     packDeferredFragment(
-        normalize(viewNormal.xyz), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * _color,
-        getMaterialSpecular(mat),
-        getMaterialShininess(mat));
+        viewNormal, 
+        opacity,
+        albedo,
+        roughness,
+        getMaterialMetallic(mat),
+        emissive,
+        occlusionTex,
+        scattering);
 }

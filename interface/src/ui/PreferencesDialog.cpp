@@ -1,302 +1,314 @@
 //
-//  PreferencesDialog.cpp
-//  interface/src/ui
-//
-//  Created by Stojce Slavkovski on 2/20/14.
-//  Copyright 2014 High Fidelity, Inc.
+//  Re-created Bradley Austin Davis on 2016/01/22
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QFileDialog>
-#include <QFont>
+#include "PreferencesDialog.h"
 
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
-#include <input-plugins/SixenseManager.h> // TODO: This should be replaced with InputDevice/InputPlugin, or something similar
 #include <NetworkingConstants.h>
+#include <ScriptEngines.h>
+#include <OffscreenUi.h>
+#include <Preferences.h>
+#include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
 #include "DialogsManager.h"
-#include "MainWindow.h"
 #include "LODManager.h"
 #include "Menu.h"
-#include "PreferencesDialog.h"
 #include "Snapshot.h"
 #include "UserActivityLogger.h"
-#include "UIUtil.h"
 
+#include "AmbientOcclusionEffect.h"
+#include "AntialiasingEffect.h"
+#include "RenderShadowTask.h"
 
-const int PREFERENCES_HEIGHT_PADDING = 20;
+void setupPreferences() {
+    auto preferences = DependencyManager::get<Preferences>();
 
-PreferencesDialog::PreferencesDialog(QWidget* parent) :
-    QDialog(parent) {
-        
-    setAttribute(Qt::WA_DeleteOnClose);
-
-    ui.setupUi(this);
-    loadPreferences();
-
-    ui.outputBufferSizeSpinner->setMinimum(MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
-    ui.outputBufferSizeSpinner->setMaximum(MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
-
-    connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
-    connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
-    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, qApp, &Application::loadDefaultScripts);
-
-    connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
-    connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
-        DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, "");
-        this->fullAvatarURLChanged(url, "");
-    });
-    connect(qApp, &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
-
-    // move dialog to left side
-    move(parentWidget()->geometry().topLeft());
-    setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
-
-    UIUtil::scaleWidgetFontSizes(this);
-}
-
-void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
-    ui.appearanceDescription->setText(newValue);
-    const QString APPEARANCE_LABEL_TEXT("Appearance: ");
-    ui.appearanceLabel->setText(APPEARANCE_LABEL_TEXT + modelName);
-}
-
-void PreferencesDialog::accept() {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
-    _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
-    savePreferences();
-    close();
-    delete _marketplaceWindow;
-    _marketplaceWindow = NULL;
-}
-
-void PreferencesDialog::restoreLastGoodAvatar() {
-    const QString& url = _lastGoodAvatarURL.toString();
-    fullAvatarURLChanged(url, _lastGoodAvatarName);
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, _lastGoodAvatarName);
-}
-
-void PreferencesDialog::reject() {
-    restoreLastGoodAvatar();
-    QDialog::reject();
-}
-
-void PreferencesDialog::openSnapshotLocationBrowser() {
-    QString dir = QFileDialog::getExistingDirectory(this, tr("Snapshots Location"),
-                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
-                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if (!dir.isNull() && !dir.isEmpty()) {
-        ui.snapshotLocationEdit->setText(dir);
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    static const QString AVATAR_BASICS { "Avatar Basics" };
+    {
+        auto getter = [=]()->QString { return myAvatar->getDisplayName(); };
+        auto setter = [=](const QString& value) { myAvatar->setDisplayName(value); };
+        auto preference = new EditPreference(AVATAR_BASICS, "Avatar display name (optional)", getter, setter);
+        preference->setPlaceholderText("Not showing a name");
+        preferences->addPreference(preference);
     }
-}
 
-void PreferencesDialog::openScriptsLocationBrowser() {
-    QString dir = QFileDialog::getExistingDirectory(this, tr("Scripts Location"),
-                                                    ui.scriptsLocationEdit->text(),
-                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if (!dir.isNull() && !dir.isEmpty()) {
-        ui.scriptsLocationEdit->setText(dir);
+    {
+        auto getter = [=]()->QString { return myAvatar->getCollisionSoundURL(); };
+        auto setter = [=](const QString& value) { myAvatar->setCollisionSoundURL(value); };
+        auto preference = new EditPreference(AVATAR_BASICS, "Avatar collision sound URL (optional)", getter, setter);
+        preference->setPlaceholderText("Enter the URL of a sound to play when you bump into something");
+        preferences->addPreference(preference);
     }
-}
-void PreferencesDialog::openFullAvatarModelBrowser() {
-    const auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
-    const auto WIDTH = 900;
-    const auto HEIGHT = 700;
-    if (!_marketplaceWindow) {
-        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+
+    {
+        auto getter = [=]()->QString { return myAvatar->getFullAvatarURLFromPreferences().toString(); };
+        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); };
+        auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance", getter, setter);
+        preferences->addPreference(preference);
     }
-    _marketplaceWindow->setVisible(true);
 
-}
+    {
+        auto getter = [=]()->bool { return myAvatar->getSnapTurn(); };
+        auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap turn when in HMD", getter, setter));
+    }
+    {
+        auto getter = [=]()->bool { return myAvatar->getClearOverlayWhenMoving(); };
+        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
+    }
 
-void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
+    // UI
+    {
+        auto getter = []()->bool { return qApp->getSettingConstrainToolbarPosition(); };
+        auto setter = [](bool value) { qApp->setSettingConstrainToolbarPosition(value); };
+        preferences->addPreference(new CheckPreference("UI", "Constrain Toolbar Position to Horizontal Center", getter, setter));
+    }
+
+    // Snapshots
+    static const QString SNAPSHOTS { "Snapshots" };
+    {
+        auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
+        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
+        auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
+        preferences->addPreference(preference);
+    }
+
+    // Scripts
+    {
+        auto getter = []()->QString { return DependencyManager::get<ScriptEngines>()->getScriptsLocation(); };
+        auto setter = [](const QString& value) { DependencyManager::get<ScriptEngines>()->setScriptsLocation(value); };
+        preferences->addPreference(new BrowsePreference("Scripts", "Load scripts from this directory", getter, setter));
+    }
+
+    preferences->addPreference(new ButtonPreference("Scripts", "Load Default Scripts", [] {
+        DependencyManager::get<ScriptEngines>()->loadDefaultScripts();
+    }));
+
+    {
+        auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
+        auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
+        preferences->addPreference(new CheckPreference("Privacy", "Send data", getter, setter));
+    }
     
-    // keep buttons panel at the bottom
-    ui.buttonsPanel->setGeometry(0,
-                                 size().height() - ui.buttonsPanel->height(),
-                                 size().width(),
-                                 ui.buttonsPanel->height());
-    
-    // set width and height of srcollarea to match bottom panel and width
-    ui.scrollArea->setGeometry(ui.scrollArea->geometry().x(), ui.scrollArea->geometry().y(),
-                               size().width(),
-                               size().height() - ui.buttonsPanel->height() - ui.scrollArea->geometry().y());
-    
-}
+    static const QString LOD_TUNING("Level of Detail Tuning");
+    {
+        auto getter = []()->float { return DependencyManager::get<LODManager>()->getDesktopLODDecreaseFPS(); };
+        auto setter = [](float value) { DependencyManager::get<LODManager>()->setDesktopLODDecreaseFPS(value); };
+        auto preference = new SpinnerPreference(LOD_TUNING, "Minimum desktop FPS", getter, setter);
+        preference->setMin(0);
+        preference->setMax(120);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
 
-void PreferencesDialog::loadPreferences() {
-    
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    Menu* menuInstance = Menu::getInstance();
+    {
+        auto getter = []()->float { return DependencyManager::get<LODManager>()->getHMDLODDecreaseFPS(); };
+        auto setter = [](float value) { DependencyManager::get<LODManager>()->setHMDLODDecreaseFPS(value); };
+        auto preference = new SpinnerPreference(LOD_TUNING, "Minimum HMD FPS", getter, setter);
+        preference->setMin(0);
+        preference->setMax(120);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
 
-    _displayNameString = myAvatar->getDisplayName();
-    ui.displayNameEdit->setText(_displayNameString);
+    static const QString AVATAR_TUNING { "Avatar Tuning" };
+    {
+        auto getter = [=]()->float { return myAvatar->getRealWorldFieldOfView(); };
+        auto setter = [=](float value) { myAvatar->setRealWorldFieldOfView(value); };
+        auto preference = new SpinnerPreference(AVATAR_TUNING, "Real world vertical field of view (angular size of monitor)", getter, setter);
+        preference->setMin(1);
+        preference->setMax(180);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->float { return qApp->getFieldOfView(); };
+        auto setter = [](float value) { qApp->setFieldOfView(value); };
+        auto preference = new SpinnerPreference(AVATAR_TUNING, "Vertical field of view", getter, setter);
+        preference->setMin(1);
+        preference->setMax(180);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getUniformScale(); };
+        auto setter = [=](float value) { myAvatar->setTargetScaleVerbose(value); }; // The hell?
+        auto preference = new SpinnerPreference(AVATAR_TUNING, "Avatar scale (default is 1.0)", getter, setter);
+        preference->setMin(0.01f);
+        preference->setMax(99.9f);
+        preference->setDecimals(2);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
+        auto setter = [](float value) { DependencyManager::get<DdeFaceTracker>()->setEyeClosingThreshold(value); };
+        preferences->addPreference(new SliderPreference(AVATAR_TUNING, "Camera binary eyelid threshold", getter, setter));
+    }
+    {
+        auto getter = []()->float { return FaceTracker::getEyeDeflection(); };
+        auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
+        preferences->addPreference(new SliderPreference(AVATAR_TUNING, "Face tracker eye deflection", getter, setter));
+    }
+    {
+        auto getter = []()->QString { return DependencyManager::get<Faceshift>()->getHostname(); };
+        auto setter = [](const QString& value) { DependencyManager::get<Faceshift>()->setHostname(value); };
+        auto preference = new EditPreference(AVATAR_TUNING, "Faceshift hostname", getter, setter);
+        preference->setPlaceholderText("localhost");
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->QString { return myAvatar->getAnimGraphOverrideUrl().toString(); };
+        auto setter = [=](const QString& value) { myAvatar->setAnimGraphOverrideUrl(QUrl(value)); };
+        auto preference = new EditPreference(AVATAR_TUNING, "Avatar animation JSON", getter, setter);
+        preference->setPlaceholderText("default");
+        preferences->addPreference(preference);
+    }
 
-    ui.collisionSoundURLEdit->setText(myAvatar->getCollisionSoundURL());
+    static const QString AVATAR_CAMERA { "Avatar Camera" };
+    {
+        auto getter = [=]()->float { return myAvatar->getPitchSpeed(); };
+        auto setter = [=](float value) { myAvatar->setPitchSpeed(value); };
+        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Camera pitch speed (degrees/second)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(360.0f);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getYawSpeed(); };
+        auto setter = [=](float value) { myAvatar->setYawSpeed(value); };
+        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Camera yaw speed (degrees/second)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(360.0f);
+        preferences->addPreference(preference);
+    }
 
-    _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
-    _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
-    fullAvatarURLChanged(_lastGoodAvatarURL.toString(), _lastGoodAvatarName);
-
-    ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
-
-    ui.snapshotLocationEdit->setText(Snapshot::snapshotsLocation.get());
-
-    ui.scriptsLocationEdit->setText(qApp->getScriptsLocation());
-
-    ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
-                                     ui.pupilDilationSlider->maximum());
-    
-    auto dde = DependencyManager::get<DdeFaceTracker>();
-    ui.ddeEyeClosingThresholdSlider->setValue(dde->getEyeClosingThreshold() * 
-                                              ui.ddeEyeClosingThresholdSlider->maximum());
-
-    ui.faceTrackerEyeDeflectionSider->setValue(FaceTracker::getEyeDeflection() *
-                                               ui.faceTrackerEyeDeflectionSider->maximum());
-    
-    auto faceshift = DependencyManager::get<Faceshift>();
-    ui.faceshiftHostnameEdit->setText(faceshift->getHostname());
-
-    auto audio = DependencyManager::get<AudioClient>();
-    MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
-
-    ui.dynamicJitterBuffersCheckBox->setChecked(stream.getDynamicJitterBuffers());
-    ui.staticDesiredJitterBufferFramesSpin->setValue(stream.getDesiredJitterBufferFrames());
-    ui.maxFramesOverDesiredSpin->setValue(stream.getMaxFramesOverDesired());
-    ui.useStdevForJitterCalcCheckBox->setChecked(stream.getUseStDevForJitterCalc());
-    ui.windowStarveThresholdSpin->setValue(stream.getWindowStarveThreshold());
-    ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->setValue(
-            stream.getWindowSecondsForDesiredCalcOnTooManyStarves());
-    ui.windowSecondsForDesiredReductionSpin->setValue(stream.getWindowSecondsForDesiredReduction());
-    ui.repetitionWithFadeCheckBox->setChecked(stream.getRepetitionWithFade());
-
-    ui.outputBufferSizeSpinner->setValue(audio->getOutputBufferSize());
-
-    ui.outputStarveDetectionCheckBox->setChecked(audio->getOutputStarveDetectionEnabled());
-    ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
-    ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
-
-    ui.realWorldFieldOfViewSpin->setValue(myAvatar->getRealWorldFieldOfView());
-
-    ui.fieldOfViewSpin->setValue(qApp->getFieldOfView());
-    
-    ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
-    
-    ui.avatarScaleSpin->setValue(myAvatar->getScale());
-    ui.avatarAnimationEdit->setText(myAvatar->getAnimGraphUrl());
-    
-    ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
-
-#if 0
-    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationCompositor().getHmdUIAngularSize());
+    static const QString AUDIO("Audio");
+    {
+        auto getter = []()->bool { return !DependencyManager::get<AudioClient>()->getReceivedAudioStream().dynamicJitterBufferEnabled(); };
+        auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setDynamicJitterBufferEnabled(!value); };
+        auto preference = new CheckPreference(AUDIO, "Disable dynamic jitter buffer", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getStaticJitterBufferFrames(); };
+        auto setter = [](float value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setStaticJitterBufferFrames(value); };
+        auto preference = new SpinnerPreference(AUDIO, "Static jitter buffer frames", getter, setter);
+        preference->setMin(0);
+        preference->setMax(2000);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->bool { return !DependencyManager::get<AudioClient>()->getOutputStarveDetectionEnabled(); };
+        auto setter = [](bool value) { DependencyManager::get<AudioClient>()->setOutputStarveDetectionEnabled(!value); };
+        auto preference = new CheckPreference(AUDIO, "Disable output starve detection", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getOutputBufferSize(); };
+        auto setter = [](float value) { DependencyManager::get<AudioClient>()->setOutputBufferSize(value); };
+        auto preference = new SpinnerPreference(AUDIO, "Output buffer initial frames", getter, setter);
+        preference->setMin(AudioClient::MIN_BUFFER_FRAMES);
+        preference->setMax(AudioClient::MAX_BUFFER_FRAMES);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
+#if DEV_BUILD || PR_BUILD
+    {
+        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->isSimulatingJitter(); };
+        auto setter = [](bool value) { return DependencyManager::get<AudioClient>()->setIsSimulatingJitter(value); };
+        auto preference = new CheckPreference(AUDIO, "Packet jitter simulator", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getGateThreshold(); };
+        auto setter = [](float value) { return DependencyManager::get<AudioClient>()->setGateThreshold(value); };
+        auto preference = new SpinnerPreference(AUDIO, "Packet throttle threshold", getter, setter);
+        preference->setMin(1);
+        preference->setMax(200);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
 #endif
 
-    ui.sixenseReticleMoveSpeedSpin->setValue(InputDevice::getReticleMoveSpeed());
-
-    // LOD items
-    auto lodManager = DependencyManager::get<LODManager>();
-    ui.desktopMinimumFPSSpin->setValue(lodManager->getDesktopLODDecreaseFPS());
-    ui.hmdMinimumFPSSpin->setValue(lodManager->getHMDLODDecreaseFPS());
-}
-
-void PreferencesDialog::savePreferences() {
-    
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-    bool shouldDispatchIdentityPacket = false;
-    
-    QString displayNameStr(ui.displayNameEdit->text());
-    if (displayNameStr != _displayNameString) {
-        myAvatar->setDisplayName(displayNameStr);
-        UserActivityLogger::getInstance().changedDisplayName(displayNameStr);
-        shouldDispatchIdentityPacket = true;
+    {
+        auto getter = []()->float { return qApp->getMaxOctreePacketsPerSecond(); };
+        auto setter = [](float value) { qApp->setMaxOctreePacketsPerSecond(value); };
+        auto preference = new SpinnerPreference("Octree", "Max packets sent each second", getter, setter);
+        preference->setMin(60);
+        preference->setMax(6000);
+        preference->setStep(10);
+        preferences->addPreference(preference);
     }
 
-    if (shouldDispatchIdentityPacket) {
-        myAvatar->sendIdentityPacket();
-    }
-    
-    myAvatar->setCollisionSoundURL(ui.collisionSoundURLEdit->text());
 
-    // MyAvatar persists its own data. If it doesn't agree with what the user has explicitly accepted, set it back to old values.
-    if (_lastGoodAvatarURL != myAvatar->getFullAvatarURLFromPreferences()) {
-        restoreLastGoodAvatar();
-    }
-
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
-        != ui.sendDataCheckBox->isChecked()) {
-        Menu::getInstance()->triggerOption(MenuOption::DisableActivityLogger);
+    {
+        auto getter = []()->float { return qApp->getApplicationCompositor().getHmdUIAngularSize(); };
+        auto setter = [](float value) { qApp->getApplicationCompositor().setHmdUIAngularSize(value); };
+        auto preference = new SpinnerPreference("HMD", "UI horizontal angular size (degrees)", getter, setter);
+        preference->setMin(30);
+        preference->setMax(160);
+        preference->setStep(1);
+        preferences->addPreference(preference);
     }
 
-    if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
-        Snapshot::snapshotsLocation.set(ui.snapshotLocationEdit->text());
+
+    {
+        auto getter = []()->float { return controller::InputDevice::getReticleMoveSpeed(); };
+        auto setter = [](float value) { controller::InputDevice::setReticleMoveSpeed(value); };
+        auto preference = new SpinnerPreference("Sixense Controllers", "Reticle movement speed", getter, setter);
+        preference->setMin(0);
+        preference->setMax(100);
+        preference->setStep(1);
+        preferences->addPreference(preference);
     }
 
-    if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
-        qApp->setScriptsLocation(ui.scriptsLocationEdit->text());
-    }
+    {
+        static const QString RENDER("Graphics");
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
 
-    myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());
-    myAvatar->setLeanScale(ui.leanScaleSpin->value());
-    myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
-    if (myAvatar->getAnimGraphUrl() != ui.avatarAnimationEdit->text()) { // If changed, destroy the old and start with the new
-        bool isEnabled = myAvatar->getEnableAnimGraph();
-        myAvatar->setEnableAnimGraph(false);
-        myAvatar->setAnimGraphUrl(ui.avatarAnimationEdit->text());
-        if (isEnabled) {
-            myAvatar->setEnableAnimGraph(true);
+        auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
+        {
+            auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
+            auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
+            auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
+            preference->setItems(ambientOcclusionConfig->getPresetList());
+            preferences->addPreference(preference);
+        }
+
+        auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
+        {
+            auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
+            auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
+            auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
+            preference->setItems(shadowConfig->getPresetList());
+            preferences->addPreference(preference);
         }
     }
+    {
+        static const QString RENDER("Networking");
 
-    myAvatar->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
-    
-    qApp->setFieldOfView(ui.fieldOfViewSpin->value());
-    
-    auto dde = DependencyManager::get<DdeFaceTracker>();
-    dde->setEyeClosingThreshold(ui.ddeEyeClosingThresholdSlider->value() / 
-                                (float)ui.ddeEyeClosingThresholdSlider->maximum());
-
-    FaceTracker::setEyeDeflection(ui.faceTrackerEyeDeflectionSider->value() /
-                                (float)ui.faceTrackerEyeDeflectionSider->maximum());
-    
-    auto faceshift = DependencyManager::get<Faceshift>();
-    faceshift->setHostname(ui.faceshiftHostnameEdit->text());
-    
-    qApp->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
-
-    qApp->getApplicationCompositor().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
-    
-    InputDevice::setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
-
-    auto audio = DependencyManager::get<AudioClient>();
-    MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
-    
-    stream.setDynamicJitterBuffers(ui.dynamicJitterBuffersCheckBox->isChecked());
-    stream.setStaticDesiredJitterBufferFrames(ui.staticDesiredJitterBufferFramesSpin->value());
-    stream.setMaxFramesOverDesired(ui.maxFramesOverDesiredSpin->value());
-    stream.setUseStDevForJitterCalc(ui.useStdevForJitterCalcCheckBox->isChecked());
-    stream.setWindowStarveThreshold(ui.windowStarveThresholdSpin->value());
-    stream.setWindowSecondsForDesiredCalcOnTooManyStarves(ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value());
-    stream.setWindowSecondsForDesiredReduction(ui.windowSecondsForDesiredReductionSpin->value());
-    stream.setRepetitionWithFade(ui.repetitionWithFadeCheckBox->isChecked());
-
-    QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
-
-    audio->setOutputStarveDetectionEnabled(ui.outputStarveDetectionCheckBox->isChecked());
-    audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
-    audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
-
-    qApp->resizeGL();
-
-    // LOD items
-    auto lodManager = DependencyManager::get<LODManager>();
-    lodManager->setDesktopLODDecreaseFPS(ui.desktopMinimumFPSSpin->value());
-    lodManager->setHMDLODDecreaseFPS(ui.hmdMinimumFPSSpin->value());
+        auto nodelist = DependencyManager::get<NodeList>();
+        {
+            static const int MIN_PORT_NUMBER { 0 };
+            static const int MAX_PORT_NUMBER { 65535 };
+            auto getter = [nodelist] { return static_cast<int>(nodelist->getSocketLocalPort()); };
+            auto setter = [nodelist](int preset) { nodelist->setSocketLocalPort(static_cast<quint16>(preset)); };
+            auto preference = new IntSpinnerPreference(RENDER, "Listening Port", getter, setter);
+            preference->setMin(MIN_PORT_NUMBER);
+            preference->setMax(MAX_PORT_NUMBER);
+            preferences->addPreference(preference);
+        }
+    }
 }

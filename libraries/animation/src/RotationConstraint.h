@@ -28,6 +28,16 @@ public:
     /// \return true if rotation is clamped
     virtual bool apply(glm::quat& rotation) const = 0;
 
+    /// \return true if this constraint is part of lower spine
+    virtual bool isLowerSpine() const { return false; }
+
+    /// \param rotation rotation to allow
+    /// \brief clear previous adjustment and adjust constraint limits to allow rotation
+    virtual void dynamicallyAdjustLimits(const glm::quat& rotation) {}
+
+    /// \brief reset any remembered joint limit history
+    virtual void clearHistory() {};
+
 protected:
     glm::quat _referenceRotation = glm::quat();
 };

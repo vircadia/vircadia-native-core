@@ -25,7 +25,7 @@ class RotationConstraint;
 class AnimInverseKinematics : public AnimNode {
 public:
 
-    AnimInverseKinematics(const QString& id);
+    explicit AnimInverseKinematics(const QString& id);
     virtual ~AnimInverseKinematics() override;
 
     void loadDefaultPoses(const AnimPoseVec& poses);
@@ -37,9 +37,12 @@ public:
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) override;
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
+    void clearIKJointLimitHistory();
+
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
+    int solveTargetWithCCD(const IKTarget& target, AnimPoseVec& absolutePoses);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     // for AnimDebugDraw rendering
@@ -54,9 +57,9 @@ protected:
     AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
 
     struct IKTargetVar {
-        IKTargetVar(const QString& jointNameIn, 
-                const QString& positionVarIn, 
-                const QString& rotationVarIn, 
+        IKTargetVar(const QString& jointNameIn,
+                const QString& positionVarIn,
+                const QString& rotationVarIn,
                 const QString& typeVarIn) :
             positionVar(positionVarIn),
             rotationVar(rotationVarIn),
@@ -79,12 +82,14 @@ protected:
     AnimPoseVec _relativePoses; // current relative poses
 
     // experimental data for moving hips during IK
-    int _headIndex = -1;
-    glm::vec3 _hipsOffset = Vectors::ZERO;
+    glm::vec3 _hipsOffset { Vectors::ZERO };
+    int _headIndex { -1 };
+    int _hipsIndex { -1 };
+    int _hipsParentIndex { -1 };
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm
-    int _maxTargetIndex = 0;
+    int _maxTargetIndex { 0 };
 };
 
 #endif // hifi_AnimInverseKinematics_h

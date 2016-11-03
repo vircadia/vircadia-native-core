@@ -12,7 +12,10 @@
 #ifndef hifi_ScriptCache_h
 #define hifi_ScriptCache_h
 
+#include <mutex>
 #include <ResourceCache.h>
+
+using contentAvailableCallback = std::function<void(const QString& scriptOrURL, const QString& contents, bool isURL, bool contentAvailable)>;
 
 class ScriptUser {
 public:
@@ -20,15 +23,23 @@ public:
     virtual void errorInLoadingScript(const QUrl& url) = 0;
 };
 
-using contentAvailableCallback = std::function<void(const QString& scriptOrURL, const QString& contents, bool isURL, bool contentAvailable)>;
+class ScriptRequest {
+public:
+    std::vector<contentAvailableCallback> scriptUsers { };
+    int numRetries { 0 };
+};
 
 /// Interface for loading scripts
 class ScriptCache : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+
 public:
     void clearCache();
+    Q_INVOKABLE void clearATPScriptsFromCache();
     void getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload = false);
 
 
@@ -46,7 +57,8 @@ private slots:
 private:
     ScriptCache(QObject* parent = NULL);
     
-    QMultiMap<QUrl, contentAvailableCallback> _contentCallbacks;
+    Mutex _containerLock;
+    QMap<QUrl, ScriptRequest> _activeScriptRequests;
     
     QHash<QUrl, QString> _scriptCache;
     QMultiMap<QUrl, ScriptUser*> _scriptUsers;

@@ -15,6 +15,7 @@
 #include <QScrollBar>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include <ScriptEngines.h>
 #include <PathUtils.h>
 
 #include "Application.h"
@@ -84,7 +85,7 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
 
     // if scriptEngine is NULL then create one and keep track of it using _ownScriptEngine
     _ownScriptEngine = scriptEngine == NULL;
-    _scriptEngine = _ownScriptEngine ? qApp->loadScript(QString(), false) : scriptEngine;
+    _scriptEngine = _ownScriptEngine ? DependencyManager::get<ScriptEngines>()->loadScript(QString(), false) : scriptEngine;
 
     connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
     connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
@@ -106,8 +107,11 @@ void JSConsole::executeCommand(const QString& command) {
 
 QScriptValue JSConsole::executeCommandInWatcher(const QString& command) {
     QScriptValue result;
+    static const QString filename = "JSConcole";
     QMetaObject::invokeMethod(_scriptEngine, "evaluate", Qt::ConnectionType::BlockingQueuedConnection,
-        Q_RETURN_ARG(QScriptValue, result), Q_ARG(const QString&, command));
+                              Q_RETURN_ARG(QScriptValue, result),
+                              Q_ARG(const QString&, command),
+                              Q_ARG(const QString&, filename));
     return result;
 }
 

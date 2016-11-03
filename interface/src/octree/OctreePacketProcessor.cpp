@@ -23,11 +23,11 @@ OctreePacketProcessor::OctreePacketProcessor() {
                                                   this, "handleOctreePacket");
 }
 
-void OctreePacketProcessor::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    queueReceivedPacket(packet, senderNode);
+void OctreePacketProcessor::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    queueReceivedPacket(message, senderNode);
 }
 
-void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "OctreePacketProcessor::processPacket()");
 
@@ -39,41 +39,42 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     
     bool wasStatsPacket = false;
 
-    PacketType octreePacketType = packet->getType();
+    PacketType octreePacketType = message->getType();
 
     // note: PacketType_OCTREE_STATS can have PacketType_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
     if (octreePacketType == PacketType::OctreeStats) {
-        int statsMessageLength = qApp->processOctreeStats(*packet, sendingNode);
+        int statsMessageLength = qApp->processOctreeStats(*message, sendingNode);
 
         wasStatsPacket = true;
-        int piggybackBytes = packet->getPayloadSize() - statsMessageLength;
+        int piggybackBytes = message->getSize() - statsMessageLength;
         
         if (piggybackBytes) {
             // construct a new packet from the piggybacked one
             auto buffer = std::unique_ptr<char[]>(new char[piggybackBytes]);
-            memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggybackBytes);
+            memcpy(buffer.get(), message->getRawMessage() + statsMessageLength, piggybackBytes);
             
-            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggybackBytes, packet->getSenderSockAddr());
-            packet = QSharedPointer<NLPacket>(newPacket.release());
+            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggybackBytes, message->getSenderSockAddr());
+            message = QSharedPointer<ReceivedMessage>::create(*newPacket);
         } else {
             // Note... stats packets don't have sequence numbers, so we don't want to send those to trackIncomingVoxelPacket()
             return; // bail since no piggyback data
         }
     } // fall through to piggyback message
 
-    PacketType packetType = packet->getType();
+    PacketType packetType = message->getType();
 
     // check version of piggyback packet against expected version
-    if (packet->getVersion() != versionForPacketType(packet->getType())) {
+    if (message->getVersion() != versionForPacketType(message->getType())) {
         static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
 
-        const QUuid& senderUUID = packet->getSourceID();
+        const QUuid& senderUUID = message->getSourceID();
         if (!versionDebugSuppressMap.contains(senderUUID, packetType)) {
             
+            qDebug() << "Was stats packet? " << wasStatsPacket;
             qDebug() << "OctreePacketProcessor - piggyback packet version mismatch on" << packetType << "- Sender"
-                << senderUUID << "sent" << (int) packet->getVersion() << "but"
+                << senderUUID << "sent" << (int) message->getVersion() << "but"
                 << (int) versionForPacketType(packetType) << "expected.";
 
             emit packetVersionMismatch();
@@ -83,21 +84,27 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         return; // bail since piggyback version doesn't match
     }
 
-    qApp->trackIncomingOctreePacket(*packet, sendingNode, wasStatsPacket);
+    qApp->trackIncomingOctreePacket(*message, sendingNode, wasStatsPacket);
     
     // seek back to beginning of packet after tracking
-    packet->seek(0);
+    message->seek(0);
 
     switch(packetType) {
         case PacketType::EntityErase: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                qApp->getEntities()->processEraseMessage(*packet, sendingNode);
+                auto renderer = qApp->getEntities();
+                if (renderer) {
+                    renderer->processEraseMessage(*message, sendingNode);
+                }
             }
         } break;
 
         case PacketType::EntityData: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                qApp->getEntities()->processDatagram(*packet, sendingNode);
+                auto renderer = qApp->getEntities();
+                if (renderer) {
+                    renderer->processDatagram(*message, sendingNode);
+                }
             }
         } break;
 

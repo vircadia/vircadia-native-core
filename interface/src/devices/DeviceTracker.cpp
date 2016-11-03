@@ -20,7 +20,7 @@ DeviceTracker::SingletonData::~SingletonData() {
 }
 
 int DeviceTracker::getNumDevices() {
-    return Singleton::get()->_devicesMap.size();
+    return (int)Singleton::get()->_devicesMap.size();
 }
 
 DeviceTracker::ID DeviceTracker::getDeviceID(const Name& name) {
@@ -58,7 +58,7 @@ DeviceTracker::ID DeviceTracker::registerDevice(const Name& name, DeviceTracker*
     }
 
     // Good to register the device
-    deviceID = Singleton::get()->_devicesVector.size();
+    deviceID = (ID)Singleton::get()->_devicesVector.size();
     Singleton::get()->_devicesMap.insert(Map::value_type(name, deviceID));
     Singleton::get()->_devicesVector.push_back(device);
     device->assignIDAndName(deviceID, name);
