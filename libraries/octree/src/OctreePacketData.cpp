@@ -451,6 +451,9 @@ bool OctreePacketData::appendValue(const QVector<bool>& value) {
                 bit = 0;
             }
         }
+        if (bit != 0) {
+            destinationBuffer++;
+        }
         int boolsSize = destinationBuffer - start;
         success = append(start, boolsSize);
         if (success) {
