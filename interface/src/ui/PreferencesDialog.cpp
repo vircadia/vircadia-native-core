@@ -68,6 +68,13 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
 
+    // UI
+    {
+        auto getter = []()->bool { return qApp->getSettingConstrainToolbarPosition(); };
+        auto setter = [](bool value) { qApp->setSettingConstrainToolbarPosition(value); };
+        preferences->addPreference(new CheckPreference("UI", "Constrain Toolbar Position to Horizontal Center", getter, setter));
+    }
+
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
     {
