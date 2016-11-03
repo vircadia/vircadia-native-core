@@ -51,8 +51,9 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
-        // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings.
-        x: settings.firstRun ? (desktop.width - sysToolbar.width) / 2 : sysToolbar.x;
+        anchors.horizontalCenter: settings.systemToolbarHorizontalConstraint ? desktop.horizontalCenter : undefined;
+        // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
+        x: sysToolbar.x
         y: 50
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
@@ -61,7 +62,7 @@ OriginalDesktop.Desktop {
 
     Settings {
         id: settings
-        property bool firstRun: true
+        property bool systemToolbarHorizontalConstraint: true
     }
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;
