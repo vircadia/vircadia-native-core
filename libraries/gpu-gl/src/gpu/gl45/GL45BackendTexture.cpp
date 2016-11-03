@@ -158,7 +158,7 @@ void GL45Backend::initTextureManagementStage() {
 
     // But now let s refine the behavior based on vendor
     std::string vendor { (const char*)glGetString(GL_VENDOR) };
-    if ((vendor.compare("AMD") <= 0) || (vendor.compare("INTEL") <= 0)) {
+    if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos) || (vendor.find("INTEL") != std::string::npos)) {
         qCDebug(gpugllogging) << "GPU is sparse capable but force it off, vendor = " << vendor.c_str();
         _textureManagement._sparseCapable = false;
     } else {

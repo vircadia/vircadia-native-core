@@ -85,7 +85,8 @@ public:
 
     void getStats(ContextStats& stats) const { stats = _stats; }
 
-
+    virtual bool isTextureManagementSparseEnabled() const = 0;
+    virtual bool isTextureManagementIncrementalTransferEnabled() const = 0;
 
     // These should only be accessed by Backend implementation to repport the buffer and texture allocations,
     // they are NOT public calls
@@ -215,7 +216,7 @@ public:
     static Size getTextureGPUFramebufferMemoryUsage();
     static Size getTextureGPUSparseMemoryUsage();
     static uint32_t getTextureGPUTransferCount();
-    
+
 protected:
     Context(const Context& context);
 
