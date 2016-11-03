@@ -730,7 +730,7 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
-    if (length * sizeof(bool) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
+    if (length / 8 > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
     }
