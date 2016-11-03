@@ -35,10 +35,12 @@ bool PluginUtils::isHandControllerAvailable() {
 
 bool isSubdeviceContainingNameAvailable(QString name) {
     for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
-        auto subdeviceNames = inputPlugin->getSubdeviceNames();
-        for (auto& name : subdeviceNames) {
-            if (name.contains(name)) {
-                return true;
+        if (inputPlugin->isActive()) {
+            auto subdeviceNames = inputPlugin->getSubdeviceNames();
+            for (auto& subdeviceName : subdeviceNames) {
+                if (subdeviceName.contains(name)) {
+                    return true;
+                }
             }
         }
     }
