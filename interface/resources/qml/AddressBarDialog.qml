@@ -21,20 +21,23 @@ import "controls-uit" as HifiControls
 Window {
     id: root
     HifiConstants { id: hifi }
+    HifiStyles.HifiConstants { id: hifiStyleConstants }
 
     objectName: "AddressBarDialog"
-    frame: HiddenFrame {}
-    hideBackground: true
+    title: "Go To"
 
     shown: false
     destroyOnHidden: false
     resizable: false
-    scale: 1.25  // Make this dialog a little larger than normal
+    pinnable: false;
 
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
 
-    onShownChanged: addressBarDialog.observeShownChanged(shown);
+    onShownChanged: {
+        addressBarDialog.keyboardEnabled = HMD.active;
+        addressBarDialog.observeShownChanged(shown);
+    }
     Component.onCompleted: {
         root.parentChanged.connect(center);
         center();
@@ -70,11 +73,12 @@ Window {
     AddressBarDialog {
         id: addressBarDialog
 
+        property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + (keyboardRaised ? 200 : 0)
+        implicitHeight: backgroundImage.height + (keyboardEnabled ? keyboard.height : 0) + cardHeight;
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -93,8 +97,7 @@ Window {
             spacing: hifi.layout.spacing;
             clip: true;
             anchors {
-                bottom: backgroundImage.top;
-                bottomMargin: 2 * hifi.layout.spacing;
+                bottom: backgroundImage.top
                 horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
@@ -129,12 +132,16 @@ Window {
                 verticalCenter: scroll.verticalCenter;
             }
         }
+
         Image {
             id: backgroundImage
             source: "../images/address-bar.svg"
-            width: 576 * root.scale
-            height: 80 * root.scale
-            property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
+            width: 720
+            height: 100
+            anchors {
+                bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
+            }
+            property int inputAreaHeight: 70
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
             ToolbarButton {
@@ -181,7 +188,7 @@ Window {
 
             HifiStyles.RalewayLight {
                 id: notice;
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.50;
+                font.pixelSize: hifi.fonts.pixelSize * 0.50;
                 anchors {
                     top: parent.top
                     topMargin: parent.inputAreaStep + 12
@@ -210,7 +217,7 @@ Window {
                     topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
                     bottomMargin: parent.inputAreaStep
                 }
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
+                font.pixelSize: hifi.fonts.pixelSize * 0.75
                 cursorVisible: false
                 onTextChanged: {
                     filterChoicesByText();
@@ -259,7 +266,6 @@ Window {
         Window {
             width: 938
             height: 625
-            scale: 0.8  // Reset scale of Window to 1.0 (counteract address bar's scale value of 1.25)
             HifiControls.WebView {
                 anchors.fill: parent;
                 id: storyCardHTML;
@@ -274,35 +280,18 @@ Window {
                 verticalCenter: backgroundImage.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
             }
+            z: 100
         }
 
-        // virtual keyboard, letters
         HifiControls.Keyboard {
-            id: keyboard1
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-        }
-
-        HifiControls.KeyboardPunctuation {
-            id: keyboard2
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
+            id: keyboard
+            raised: parent.keyboardEnabled  // Ignore keyboardRaised; keep keyboard raised if enabled (i.e., in HMD).
+            numeric: parent.punctuationMode
+            anchors {
+                bottom: parent.bottom
+                left: parent.left
+                right: parent.right
+            }
         }
     }
 
@@ -442,10 +431,10 @@ Window {
     function updateLocationText(enteringAddress) {
         if (enteringAddress) {
             notice.text = "Go to a place, @user, path or network address";
-            notice.color = "gray";
+            notice.color = hifiStyleConstants.colors.baseGrayHighlight;
         } else {
             notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
-            notice.color = AddressManager.isConnected ? "gray" : "crimson";
+            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.baseGrayHighlight : hifiStyleConstants.colors.redHighlight;
             // Display hostname, which includes ip address, localhost, and other non-placenames.
             location.text = (AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
         }

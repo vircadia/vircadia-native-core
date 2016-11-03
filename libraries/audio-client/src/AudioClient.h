@@ -148,12 +148,14 @@ public slots:
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
     void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
 
-    void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
+    void sendDownstreamAudioStatsPacket() { _stats.publish(); }
     void handleAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
     void toggleMute();
+
+    void beforeAboutToQuit();
 
     virtual void setIsStereoInput(bool stereo) override;
 
@@ -332,6 +334,8 @@ private:
     CodecPluginPointer _codec;
     QString _selectedCodecName;
     Encoder* _encoder { nullptr }; // for outbound mic stream
+
+    QThread* _checkDevicesThread { nullptr };
 };
 
 

@@ -55,6 +55,17 @@ void StagePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(stage, automaticHourDay, bool, setAutomaticHourDay);
 }
 
+void StagePropertyGroup::merge(const StagePropertyGroup& other) {
+    COPY_PROPERTY_IF_CHANGED(sunModelEnabled);
+    COPY_PROPERTY_IF_CHANGED(latitude);
+    COPY_PROPERTY_IF_CHANGED(longitude);
+    COPY_PROPERTY_IF_CHANGED(altitude);
+    COPY_PROPERTY_IF_CHANGED(day);
+    COPY_PROPERTY_IF_CHANGED(hour);
+    COPY_PROPERTY_IF_CHANGED(automaticHourDay);
+}
+
+
 void StagePropertyGroup::debugDump() const {
     qDebug() << "   StagePropertyGroup: ---------------------------------------------";
     qDebug() << "     _sunModelEnabled:" << _sunModelEnabled;

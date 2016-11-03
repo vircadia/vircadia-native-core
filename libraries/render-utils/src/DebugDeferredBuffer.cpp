@@ -237,6 +237,14 @@ DebugDeferredBuffer::DebugDeferredBuffer() {
     CustomPipeline pipeline;
     pipeline.info = QFileInfo(QString::fromStdString(CUSTOM_FILE));
     _customPipelines.emplace(CUSTOM_FILE, pipeline);
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
+
+DebugDeferredBuffer::~DebugDeferredBuffer() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string customFile) {
@@ -410,6 +418,14 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
             batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
         }
 
+        auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+        assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
+        auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
+        const auto& globalShadow = lightAndShadow.second;
+        if (globalShadow) {
+            batch.setResourceTexture(Shadow, globalShadow->map);
+        }
+
         if (linearDepthTarget) {
             batch.setResourceTexture(LinearDepth, linearDepthTarget->getLinearDepthTexture());
             batch.setResourceTexture(HalfLinearDepth, linearDepthTarget->getHalfLinearDepthTexture());
@@ -426,7 +442,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(_size.x, _size.y);
         const glm::vec2 topRight(_size.z, _size.w);
-        geometryBuffer->renderQuad(batch, bottomLeft, topRight, color);
+        geometryBuffer->renderQuad(batch, bottomLeft, topRight, color, _geometryId);
 
 
         batch.setResourceTexture(Albedo, nullptr);

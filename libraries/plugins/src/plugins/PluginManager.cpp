@@ -276,4 +276,30 @@ void PluginManager::saveSettings() {
     saveInputPluginSettings(getInputPlugins());
 }
 
+void PluginManager::shutdown() {
+    for (auto inputPlugin : getInputPlugins()) {
+        if (inputPlugin->isActive()) {
+            inputPlugin->deactivate();
+        }
+    }
+
+    for (auto displayPlugins : getDisplayPlugins()) {
+        if (displayPlugins->isActive()) {
+            displayPlugins->deactivate();
+        }
+    }
+
+    auto loadedPlugins = getLoadedPlugins();
+    // Now grab the dynamic plugins
+    for (auto loader : getLoadedPlugins()) {
+        InputProvider* inputProvider = qobject_cast<InputProvider*>(loader->instance());
+        if (inputProvider) {
+            inputProvider->destroyInputPlugins();
+        }
+        DisplayProvider* displayProvider = qobject_cast<DisplayProvider*>(loader->instance());
+        if (displayProvider) {
+            displayProvider->destroyDisplayPlugins();
+        }
+    }
+}
 #endif

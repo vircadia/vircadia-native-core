@@ -20,9 +20,10 @@ public:
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }
 
-    Cube3DOverlay() {}
+    Cube3DOverlay();
     Cube3DOverlay(const Cube3DOverlay* cube3DOverlay);
-    
+    ~Cube3DOverlay();
+
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
 
@@ -37,6 +38,8 @@ public:
 
 private:
     float _borderSize;
+    // edges on a cube
+    std::array<int, 12> _geometryIds;
 };
 
  

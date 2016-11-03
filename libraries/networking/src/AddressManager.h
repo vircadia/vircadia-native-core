@@ -23,9 +23,10 @@
 #include "AccountManager.h"
 
 const QString HIFI_URL_SCHEME = "hifi";
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
+
+extern const QString DEFAULT_HIFI_ADDRESS;
+
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
-const QString SANDBOX_STATUS_URL = "http://localhost:60332/status";
 const QString INDEX_PATH = "/";
 
 const QString GET_PLACE = "/api/v1/places/%1";
@@ -58,9 +59,9 @@ public:
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
 
-    QUrl currentAddress() const;
+    QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;
-    QUrl currentShareableAddress() const;
+    QUrl currentShareableAddress(bool domainOnly = false) const;
     QUrl currentFacingShareableAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;
@@ -77,11 +78,6 @@ public:
 
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
-
-    /// determines if the local sandbox is likely running. It does not account for custom setups, and is only 
-    /// intended to detect the standard local sandbox install.
-    void ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
-                                   std::function<void()> localSandboxNotRunningDoThat);
 
 public slots:
     void handleLookupString(const QString& lookupString, bool fromSuggestions = false);

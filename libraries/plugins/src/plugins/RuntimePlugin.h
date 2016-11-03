@@ -19,6 +19,7 @@ public:
     virtual ~DisplayProvider() {}
 
     virtual DisplayPluginList getDisplayPlugins() = 0;
+    virtual void destroyDisplayPlugins() = 0;
 };
 
 #define DisplayProvider_iid "com.highfidelity.plugins.display"
@@ -29,6 +30,7 @@ class InputProvider {
 public:
     virtual ~InputProvider() {}
     virtual InputPluginList getInputPlugins() = 0;
+    virtual void destroyInputPlugins() = 0;
 };
 
 #define InputProvider_iid "com.highfidelity.plugins.input"

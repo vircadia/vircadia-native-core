@@ -15,7 +15,7 @@
 #include <controllers/Forward.h>
 
 void logWarning(const char* what);
-void logFatal(const char* what);
+void logCritical(const char* what);
 bool oculusAvailable();
 ovrSession acquireOculusSession();
 void releaseOculusSession();

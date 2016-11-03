@@ -33,7 +33,7 @@ FocusScope {
         }
 
     }
-
+    
     onHeightChanged: d.handleSizeChanged();
 
     onWidthChanged: d.handleSizeChanged();

@@ -23,7 +23,7 @@ void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desire
 
     if (_animationLoop) {
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FPS, Animation, animation, FPS, fps, _animationLoop->getFPS);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FRAME_INDEX, Animation, animation, CurrentFrame, currentFrame, _animationLoop->getFPS);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FRAME_INDEX, Animation, animation, CurrentFrame, currentFrame, _animationLoop->getCurrentFrame);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_PLAYING, Animation, animation, Running, running, _animationLoop->getRunning);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop, _animationLoop->getLoop);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame, _animationLoop->getFirstFrame);
@@ -77,6 +77,27 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, setCurrentFrame, getCurrentFrame);
     }
 
+}
+
+void AnimationPropertyGroup::merge(const AnimationPropertyGroup& other) {
+    COPY_PROPERTY_IF_CHANGED(url);
+    if (_animationLoop) {
+        _fps = _animationLoop->getFPS();
+        _currentFrame = _animationLoop->getCurrentFrame();
+        _running = _animationLoop->getRunning();
+        _loop = _animationLoop->getLoop();
+        _firstFrame = _animationLoop->getFirstFrame();
+        _lastFrame = _animationLoop->getLastFrame();
+        _hold = _animationLoop->getHold();
+    } else {
+        COPY_PROPERTY_IF_CHANGED(fps);
+        COPY_PROPERTY_IF_CHANGED(currentFrame);
+        COPY_PROPERTY_IF_CHANGED(running);
+        COPY_PROPERTY_IF_CHANGED(loop);
+        COPY_PROPERTY_IF_CHANGED(firstFrame);
+        COPY_PROPERTY_IF_CHANGED(lastFrame);
+        COPY_PROPERTY_IF_CHANGED(hold);
+    }
 }
 
 void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {

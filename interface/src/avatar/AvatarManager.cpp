@@ -36,6 +36,7 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "AvatarManager.h"
+#include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
@@ -208,11 +209,15 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     auto rawRenderableAvatar = std::static_pointer_cast<Avatar>(newAvatar);
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    render::PendingChanges pendingChanges;
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
-        rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
+    if (scene) {
+        render::PendingChanges pendingChanges;
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+            rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+    } else {
+        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }
-    scene->enqueuePendingChanges(pendingChanges);
 
     return newAvatar;
 }

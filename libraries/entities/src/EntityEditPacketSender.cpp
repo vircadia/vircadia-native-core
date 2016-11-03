@@ -63,8 +63,8 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
 
     // the properties that get serialized into the avatar identity packet should be the entire set
     // rather than just the ones being edited.
-    entity->setProperties(properties);
     EntityItemProperties entityProperties = entity->getProperties();
+    entityProperties.merge(properties);
 
     QScriptValue scriptProperties = EntityItemNonDefaultPropertiesToScriptValue(&_scriptEngine, entityProperties);
     QVariant variantProperties = scriptProperties.toVariant();

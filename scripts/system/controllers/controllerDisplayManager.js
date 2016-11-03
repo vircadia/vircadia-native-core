@@ -1,49 +1,26 @@
-if (!Function.prototype.bind) {
-  Function.prototype.bind = function(oThis) {
-    if (typeof this !== 'function') {
-      // closest thing possible to the ECMAScript 5
-      // internal IsCallable function
-      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
-    }
+//
+//  controllerDisplayManager.js
+//
+//  Created by Anthony J. Thibault on 10/20/16
+//  Originally created by Ryan Huffman on 9/21/2016
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-    var aArgs   = Array.prototype.slice.call(arguments, 1),
-        fToBind = this,
-        fNOP    = function() {},
-        fBound  = function() {
-          return fToBind.apply(this instanceof fNOP
-                 ? this
-                 : oThis,
-                 aArgs.concat(Array.prototype.slice.call(arguments)));
-        };
+/* globals ControllerDisplayManager:true createControllerDisplay deleteControllerDisplay
+   VIVE_CONTROLLER_CONFIGURATION_LEFT VIVE_CONTROLLER_CONFIGURATION_RIGHT */
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
-    if (this.prototype) {
-      // Function.prototype doesn't have a prototype property
-      fNOP.prototype = this.prototype;
-    }
-    fBound.prototype = new fNOP();
-
-    return fBound;
-  };
-}
-
-Script.setTimeout(function() { print('timeout') }, 100);
+(function () {
 
 Script.include("controllerDisplay.js");
 Script.include("viveControllerConfiguration.js");
 
-function debug() {
-    var args = Array.prototype.slice.call(arguments);
-    args.unshift("CONTROLLER DEBUG:");
-    print.apply(this, args);
-}
+var HIDE_CONTROLLERS_ON_EQUIP = false;
 
-var zeroPosition = { x: 0, y: 0, z: 0 };
-var zeroRotation = { x: 0, y: 0, z: 0, w: 1 };
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-// Management of controller display                                          //
-///////////////////////////////////////////////////////////////////////////////
+//
+// Management of controller display
+//
 ControllerDisplayManager = function() {
     var self = this;
     var controllerLeft = null;
@@ -51,30 +28,24 @@ ControllerDisplayManager = function() {
     var controllerCheckerIntervalID = null;
 
     this.setLeftVisible = function(visible) {
-        print("settings controller display to visible");
         if (controllerLeft) {
-            print("doign it...", visible);
             controllerLeft.setVisible(visible);
         }
     };
 
     this.setRightVisible = function(visible) {
-        print("settings controller display to visible");
         if (controllerRight) {
-            print("doign it...", visible);
             controllerRight.setVisible(visible);
         }
     };
 
     function updateControllers() {
-        if (HMD.active) {
+        if (HMD.active && HMD.shouldShowHandControllers()) {
             if ("Vive" in Controller.Hardware) {
                 if (!controllerLeft) {
-                    debug("Found vive left!");
                     controllerLeft = createControllerDisplay(VIVE_CONTROLLER_CONFIGURATION_LEFT);
                 }
                 if (!controllerRight) {
-                    debug("Found vive right!");
                     controllerRight = createControllerDisplay(VIVE_CONTROLLER_CONFIGURATION_RIGHT);
                 }
                 // We've found the controllers, we no longer need to look for active controllers
@@ -83,17 +54,14 @@ ControllerDisplayManager = function() {
                     controllerCheckerIntervalID = null;
                 }
             } else {
-                debug("HMD active, but no controllers found");
                 self.deleteControllerDisplays();
-                if (controllerCheckerIntervalID == null) {
+                if (!controllerCheckerIntervalID) {
                     controllerCheckerIntervalID = Script.setInterval(updateControllers, 1000);
                 }
             }
         } else {
-            debug("HMD inactive");
             // We aren't in HMD mode, we no longer need to look for active controllers
             if (controllerCheckerIntervalID) {
-                debug("Clearing controller checker interval");
                 Script.clearInterval(controllerCheckerIntervalID);
                 controllerCheckerIntervalID = null;
             }
@@ -101,41 +69,35 @@ ControllerDisplayManager = function() {
         }
     }
 
-    Messages.subscribe('Controller-Display');
     var handleMessages = function(channel, message, sender) {
+        var i, data, name, visible;
         if (!controllerLeft && !controllerRight) {
             return;
         }
 
         if (sender === MyAvatar.sessionUUID) {
             if (channel === 'Controller-Display') {
-                var data = JSON.parse(message);
-                var name = data.name;
-                var visible = data.visible;
-                //c.setDisplayAnnotation(name, visible);
+                data = JSON.parse(message);
+                name = data.name;
+                visible = data.visible;
                 if (controllerLeft) {
                     if (name in controllerLeft.annotations) {
-                        debug("hiding");
-                        for (var i = 0; i < controllerLeft.annotations[name].length; ++i) {
-                            debug("hiding", i);
+                        for (i = 0; i < controllerLeft.annotations[name].length; ++i) {
                             Overlays.editOverlay(controllerLeft.annotations[name][i], { visible: visible });
                         }
                     }
                 }
                 if (controllerRight) {
                     if (name in controllerRight.annotations) {
-                        debug("hiding");
-                        for (var i = 0; i < controllerRight.annotations[name].length; ++i) {
-                            debug("hiding", i);
+                        for (i = 0; i < controllerRight.annotations[name].length; ++i) {
                             Overlays.editOverlay(controllerRight.annotations[name][i], { visible: visible });
                         }
                     }
                 }
             } else if (channel === 'Controller-Display-Parts') {
-                debug('here part');
-                var data = JSON.parse(message);
-                for (var name in data) {
-                    var visible = data[name];
+                data = JSON.parse(message);
+                for (name in data) {
+                    visible = data[name];
                     if (controllerLeft) {
                         controllerLeft.setPartVisible(name, visible);
                     }
@@ -144,8 +106,8 @@ ControllerDisplayManager = function() {
                     }
                 }
             } else if (channel === 'Controller-Set-Part-Layer') {
-                var data = JSON.parse(message);
-                for (var name in data) {
+                data = JSON.parse(message);
+                for (name in data) {
                     var layer = data[name];
                     if (controllerLeft) {
                         controllerLeft.setLayerForPart(name, layer);
@@ -154,20 +116,19 @@ ControllerDisplayManager = function() {
                         controllerRight.setLayerForPart(name, layer);
                     }
                 }
-            } else if (channel == 'Hifi-Object-Manipulation') {// && sender == MyAvatar.sessionUUID) {
-                //print("got manip");
-                var data = JSON.parse(message);
-                //print("post data", data);
-                var visible = data.action != 'equip';
-                //print("Calling...");
-                if (data.joint == "LeftHand") {
-                    self.setLeftVisible(visible);
-                 } else if (data.joint == "RightHand") {
-                    self.setRightVisible(visible);
-                 }
+            } else if (channel === 'Hifi-Object-Manipulation') {
+                if (HIDE_CONTROLLERS_ON_EQUIP) {
+                    data = JSON.parse(message);
+                    visible = data.action !== 'equip';
+                    if (data.joint === "LeftHand") {
+                        self.setLeftVisible(visible);
+                    } else if (data.joint === "RightHand") {
+                        self.setRightVisible(visible);
+                    }
+                }
             }
         }
-    }
+    };
 
     Messages.messageReceived.connect(handleMessages);
 
@@ -183,12 +144,24 @@ ControllerDisplayManager = function() {
     };
 
     this.destroy = function() {
-        print("Destroying controller display");
         Messages.messageReceived.disconnect(handleMessages);
+
+        HMD.displayModeChanged.disconnect(updateControllers);
+        HMD.shouldShowHandControllersChanged.disconnect(updateControllers);
+
         self.deleteControllerDisplays();
     };
 
     HMD.displayModeChanged.connect(updateControllers);
+    HMD.shouldShowHandControllersChanged.connect(updateControllers);
 
     updateControllers();
-}
+};
+
+var controllerDisplayManager = new ControllerDisplayManager();
+
+Script.scriptEnding.connect(function () {
+    controllerDisplayManager.destroy();
+});
+
+}());

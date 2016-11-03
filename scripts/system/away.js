@@ -54,7 +54,6 @@ var AWAY_INTRO = {
 var isEnabled = true;
 var wasMuted; // unknonwn?
 var isAway = false; // we start in the un-away state
-var wasOverlaysVisible = Menu.isOptionChecked("Overlays");
 var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
 var eventMapping = Controller.newMapping(eventMappingName);
 var avatarPosition = MyAvatar.position;
@@ -178,11 +177,7 @@ function goAway(fromStartup) {
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
 
-    // remember the View > Overlays state...
-    wasOverlaysVisible = Menu.isOptionChecked("Overlays");
-
-    // show overlays so that people can see the "Away" message
-    Menu.setIsOptionChecked("Overlays", true);
+    HMD.requestShowHandControllers();
 
     // tell the Reticle, we want to stop capturing the mouse until we come back
     Reticle.allowMouseCapture = false;
@@ -222,6 +217,8 @@ function goActive() {
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
 
+    HMD.requestHideHandControllers();
+
     // update the UI sphere to be centered about the current HMD orientation.
     HMD.centerUI();
 
@@ -232,9 +229,6 @@ function goActive() {
     MyAvatar.centerBody();
 
     hideOverlay();
-
-    // restore overlays state to what it was when we went "away"
-    Menu.setIsOptionChecked("Overlays", wasOverlaysVisible);
 
     // tell the Reticle, we are ready to capture the mouse again and it should be visible
     Reticle.allowMouseCapture = true;
@@ -310,9 +304,9 @@ function setEnabled(value) {
 
 var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
 var handleMessage = function(channel, message, sender) {
-    print("Got away message");
-    if (channel == CHANNEL_AWAY_ENABLE) {
-        setEnabled(message == 'enable');
+    if (channel === CHANNEL_AWAY_ENABLE && sender === MyAvatar.sessionUUID) {
+        print("away.js | Got message on Hifi-Away-Enable: ", message);
+        setEnabled(message === 'enable');
     }
 }
 Messages.subscribe(CHANNEL_AWAY_ENABLE);
@@ -349,6 +343,8 @@ Script.scriptEnding.connect(function () {
     Controller.disableMapping(eventMappingName);
     Controller.mousePressEvent.disconnect(goActive);
     Controller.keyPressEvent.disconnect(maybeGoActive);
+    Messages.messageReceived.disconnect(handleMessage);
+    Messages.unsubscribe(CHANNEL_AWAY_ENABLE);
 });
 
 if (HMD.active && !HMD.mounted) {

@@ -471,8 +471,8 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     const float INITIAL_MSECS_NO_FADE = 20.0f;
     const float MSECS_FADE_TO_ZERO = 320.0f;
 
-    const float INITIAL_FRAMES_NO_FADE = INITIAL_MSECS_NO_FADE * AudioConstants::NETWORK_FRAME_MSECS;
-    const float FRAMES_FADE_TO_ZERO = MSECS_FADE_TO_ZERO * AudioConstants::NETWORK_FRAME_MSECS;
+    const float INITIAL_FRAMES_NO_FADE = INITIAL_MSECS_NO_FADE / AudioConstants::NETWORK_FRAME_MSECS;
+    const float FRAMES_FADE_TO_ZERO = MSECS_FADE_TO_ZERO / AudioConstants::NETWORK_FRAME_MSECS;
 
     const float SAMPLE_RANGE = std::numeric_limits<int16_t>::max();
 
@@ -480,8 +480,6 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
         return 1.0f;
     } else if (indexOfRepeat <= INITIAL_FRAMES_NO_FADE + FRAMES_FADE_TO_ZERO) {
         return pow(SAMPLE_RANGE, -(indexOfRepeat - INITIAL_FRAMES_NO_FADE) / FRAMES_FADE_TO_ZERO);
-
-        //return 1.0f - ((indexOfRepeat - INITIAL_FRAMES_NO_FADE) / FRAMES_FADE_TO_ZERO);
     }
     return 0.0f;
 }

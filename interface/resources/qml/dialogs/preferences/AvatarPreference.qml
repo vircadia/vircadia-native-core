@@ -74,11 +74,6 @@ Preference {
             colorScheme: hifi.colorSchemes.dark
         }
 
-        Component {
-            id: avatarBrowserBuilder;
-            AvatarBrowser { }
-        }
-
         Button {
             id: button
             text: "Browse"
@@ -87,12 +82,12 @@ Preference {
                 verticalCenter: dataTextField.verticalCenter
             }
             onClicked: {
-                root.browser = avatarBrowserBuilder.createObject(desktop);
+                // Load dialog via OffscreenUi so that JavaScript EventBridge is available.
+                root.browser = OffscreenUi.load("dialogs/preferences/AvatarBrowser.qml");
                 root.browser.windowDestroyed.connect(function(){
                     root.browser = null;
-                })
+                });
             }
         }
-
     }
 }

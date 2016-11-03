@@ -46,7 +46,7 @@ void OculusDisplayPlugin::cycleDebugOutput() {
 
 void OculusDisplayPlugin::customizeContext() {
     Parent::customizeContext();
-    _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_SRGBA_32, _renderTargetSize.x, _renderTargetSize.y));
+    _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OculusOutput", gpu::Element::COLOR_SRGBA_32, _renderTargetSize.x, _renderTargetSize.y));
     ovrTextureSwapChainDesc desc = { };
     desc.Type = ovrTexture_2D;
     desc.ArraySize = 1;
@@ -59,13 +59,15 @@ void OculusDisplayPlugin::customizeContext() {
 
     ovrResult result = ovr_CreateTextureSwapChainGL(_session, &desc, &_textureSwapChain);
     if (!OVR_SUCCESS(result)) {
-        logFatal("Failed to create swap textures");
+        logCritical("Failed to create swap textures");
+        return;
     }
 
     int length = 0;
     result = ovr_GetTextureSwapChainLength(_session, _textureSwapChain, &length);
     if (!OVR_SUCCESS(result) || !length) {
-        qFatal("Unable to count swap chain textures");
+        logCritical("Unable to count swap chain textures");
+        return;
     }
     for (int i = 0; i < length; ++i) {
         GLuint chainTexId;
@@ -83,6 +85,7 @@ void OculusDisplayPlugin::customizeContext() {
     _sceneLayer.ColorTexture[0] = _textureSwapChain;
     // not needed since the structure was zeroed on init, but explicit
     _sceneLayer.ColorTexture[1] = nullptr;
+    _customized = true;
 }
 
 void OculusDisplayPlugin::uncustomizeContext() {
@@ -97,10 +100,15 @@ void OculusDisplayPlugin::uncustomizeContext() {
 
     ovr_DestroyTextureSwapChain(_session, _textureSwapChain);
     _textureSwapChain = nullptr;
+    _outputFramebuffer.reset();
+    _customized = false;
     Parent::uncustomizeContext();
 }
 
 void OculusDisplayPlugin::hmdPresent() {
+    if (!_customized) {
+        return;
+    }
 
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
@@ -162,4 +170,8 @@ QString OculusDisplayPlugin::getPreferredAudioOutDevice() const {
         return QString();
     }
     return AudioClient::friendlyNameForAudioDevice(buffer);
+}
+
+OculusDisplayPlugin::~OculusDisplayPlugin() {
+    qDebug() << "Destroying OculusDisplayPlugin";
 }

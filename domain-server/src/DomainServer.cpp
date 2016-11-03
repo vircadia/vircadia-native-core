@@ -519,7 +519,7 @@ void DomainServer::setupNodeListAndAssignments() {
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 
-    // set a custum packetVersionMatch as the verify packet operator for the udt::Socket
+    // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::packetVersionMatch);
 }
 
@@ -2267,7 +2267,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
                 QByteArray viewpointUTF8 = responseViewpoint.toUtf8();
 
                 // prepare a packet for the response
-                auto pathResponsePacket = NLPacket::create(PacketType::DomainServerPathResponse);
+                auto pathResponsePacket = NLPacket::create(PacketType::DomainServerPathResponse, -1, true);
 
                 // check the number of bytes the viewpoint is
                 quint16 numViewpointBytes = viewpointUTF8.size();

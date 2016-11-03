@@ -34,7 +34,7 @@
         { "from": "Vive.RSCenter", "to": "Standard.RightPrimaryThumb" },
         { "from": "Vive.RightApplicationMenu", "to": "Standard.RightSecondaryThumb" },
 
-        { "from": "Vive.LeftHand", "to": "Standard.LeftHand" },
-        { "from": "Vive.RightHand", "to": "Standard.RightHand" }
+        { "from": "Vive.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ]  },
+        { "from": "Vive.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ]  }
     ]
 }

@@ -29,6 +29,14 @@
 
 
 Antialiasing::Antialiasing() {
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
+
+Antialiasing::~Antialiasing() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
@@ -41,11 +49,10 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 
     if (!_antialiasingBuffer) {
         // Link the antialiasing FBO to texture
-        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
         auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
-        _antialiasingTexture->setSource("Antialiasing::_antialiasingTexture");
         _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
     }
 
@@ -151,7 +158,7 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         glm::vec2 topRight(1.0f, 1.0f);
         glm::vec2 texCoordTopLeft(0.0f, 0.0f);
         glm::vec2 texCoordBottomRight(1.0f, 1.0f);
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color, _geometryId);
 
 
         // Blend step
@@ -160,6 +167,6 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());
 
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color, _geometryId);
     });
 }

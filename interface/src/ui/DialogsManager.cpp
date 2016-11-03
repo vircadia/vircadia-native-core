@@ -21,6 +21,7 @@
 #include "AddressBarDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
+#include "ConnectionFailureDialog.h"
 #include "DiskCacheEditor.h"
 #include "DomainConnectionDialog.h"
 #include "HMDToolsDialog.h"
@@ -57,6 +58,14 @@ void DialogsManager::showAddressBar() {
 void DialogsManager::showFeed() {
     AddressBarDialog::show();
     emit setUseFeed(true);
+}
+
+void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
+    if (visible) {
+        ConnectionFailureDialog::show();
+    } else {
+        ConnectionFailureDialog::hide();
+    }
 }
 
 void DialogsManager::toggleDiskCacheEditor() {
@@ -97,20 +106,6 @@ void DialogsManager::cachesSizeDialog() {
         _cachesSizeDialog->show();
     }
     _cachesSizeDialog->raise();
-}
-
-void DialogsManager::audioStatsDetails() {
-    if (! _audioStatsDialog) {
-        _audioStatsDialog = new AudioStatsDialog(qApp->getWindow());
-        connect(_audioStatsDialog, SIGNAL(closed()), _audioStatsDialog, SLOT(deleteLater()));
-        
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_audioStatsDialog->windowHandle());
-        }
-        
-        _audioStatsDialog->show();
-    }
-    _audioStatsDialog->raise();
 }
 
 void DialogsManager::bandwidthDetails() {

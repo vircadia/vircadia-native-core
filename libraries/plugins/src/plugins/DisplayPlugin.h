@@ -115,6 +115,10 @@ public:
         return false;
     }
 
+    virtual bool setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) {
+        return false;
+    }
+
     virtual bool suppressKeyboard() { return false;  }
     virtual void unsuppressKeyboard() {};
     virtual bool isKeyboardVisible() { return false; }
@@ -135,6 +139,7 @@ public:
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
     virtual float getTargetFrameRate() const { return 0.0f; }
+    virtual bool hasAsyncReprojection() const { return false; }
 
     /// Returns a boolean value indicating whether the display is currently visible 
     /// to the user.  For monitor displays, false might indicate that a screensaver,

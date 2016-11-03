@@ -37,6 +37,12 @@
 #include <CrashReporter.h>
 #endif
 
+#ifdef Q_OS_WIN
+extern "C" {
+    typedef int(__stdcall * CHECKMINSPECPROC) ();
+}
+#endif
+
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
     static QString BUG_SPLAT_DATABASE = "interface_alpha";
@@ -128,22 +134,9 @@ int main(int argc, const char* argv[]) {
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
     parser.parse(arguments);
-    if (parser.isSet(runServerOption)) {
-        QString applicationDirPath = QFileInfo(arguments[0]).path();
-        QString serverPath = applicationDirPath + "/server-console/server-console.exe";
-        qDebug() << "Application dir path is: " << applicationDirPath;
-        qDebug() << "Server path is: " << serverPath;
-        QStringList args;
-        if (parser.isSet(serverContentPathOption)) {
-            QString serverContentPath = QFileInfo(arguments[0]).path() + "/" + parser.value(serverContentPathOption);
-            args << "--" << "--contentPath" << serverContentPath;
-        }
-        qDebug() << QFileInfo(arguments[0]).path();
-        qDebug() << QProcess::startDetached(serverPath, args);
-
-        // Sleep a short amount of time to give the server a chance to start
-        usleep(2000000);
-    }
+    bool runServer = parser.isSet(runServerOption);
+    bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
+    QString serverContentPathOptionValue = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
 
     QElapsedTimer startupTime;
     startupTime.start();
@@ -166,10 +159,32 @@ int main(int argc, const char* argv[]) {
 
     SteamClient::init();
 
+#ifdef Q_OS_WIN
+    // If we're running in steam mode, we need to do an explicit check to ensure we're up to the required min spec
+    if (SteamClient::isRunning()) {
+        QString appPath;
+        {
+            char filename[MAX_PATH];
+            GetModuleFileName(NULL, filename, MAX_PATH);
+            QFileInfo appInfo(filename);
+            appPath = appInfo.absolutePath();
+        }
+        QString openvrDllPath = appPath + "/plugins/openvr.dll";
+        HMODULE openvrDll;
+        CHECKMINSPECPROC checkMinSpecPtr;
+        if ((openvrDll = LoadLibrary(openvrDllPath.toLocal8Bit().data())) && 
+            (checkMinSpecPtr = (CHECKMINSPECPROC)GetProcAddress(openvrDll, "CheckMinSpec"))) {
+            if (!checkMinSpecPtr()) {
+                return -1;
+            }
+        }
+    }
+#endif
+
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
-        Application app(argc, const_cast<char**>(argv), startupTime);
+        Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {
@@ -223,7 +238,6 @@ int main(int argc, const char* argv[]) {
         QTranslator translator;
         translator.load("i18n/interface_en");
         app.installTranslator(&translator);
-
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
         server.close();

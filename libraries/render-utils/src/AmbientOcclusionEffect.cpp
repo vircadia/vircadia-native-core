@@ -75,11 +75,11 @@ void AmbientOcclusionFramebuffer::allocate() {
     auto height = _frameSize.y;
     
     _occlusionTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
-    _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
     _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
    
     _occlusionBlurredTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
-    _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusionBlurred"));
     _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
 }
 

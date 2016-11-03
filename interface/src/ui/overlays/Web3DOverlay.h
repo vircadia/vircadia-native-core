@@ -47,6 +47,7 @@ private:
     QString _url;
     float _dpi;
     vec2 _resolution{ 640, 480 };
+    int _geometryId { 0 };
 };
 
 #endif // hifi_Web3DOverlay_h

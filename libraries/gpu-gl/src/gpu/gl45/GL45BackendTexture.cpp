@@ -252,6 +252,9 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 
     if (_transferrable && Texture::getEnableSparseTextures()) {
         _sparseInfo.maybeMakeSparse();
+        if (_sparseInfo.sparse) {
+            Backend::incrementTextureGPUSparseCount();
+        }
     }
 }
 
@@ -261,6 +264,7 @@ GL45Texture::~GL45Texture() {
         qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
     }
     if (_sparseInfo.sparse) {
+        Backend::decrementTextureGPUSparseCount();
         // Remove this texture from the candidate list of derezzable textures
         {
             auto mipLevels = usedMipLevels();
@@ -300,6 +304,7 @@ GL45Texture::~GL45Texture() {
         }
 
         auto size = _size;
+        const_cast<GLuint&>(_size) = 0;
         _textureTransferHelper->queueExecution([id, size, destructionFunctions] {
             for (auto function : destructionFunctions) {
                 function();
@@ -307,6 +312,7 @@ GL45Texture::~GL45Texture() {
             glDeleteTextures(1, &id);
             Backend::decrementTextureGPUCount();
             Backend::updateTextureGPUMemoryUsage(size, 0);
+            Backend::updateTextureGPUSparseMemoryUsage(size, 0);
         });
     }
 }
@@ -316,7 +322,9 @@ void GL45Texture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GL45Texture::generateMips() const {
-    qCDebug(gpugl45logging) << "Generating mipmaps for " << _source.c_str();
+    if (_transferrable) {
+        qCDebug(gpugl45logging) << "Generating mipmaps for " << _source.c_str();
+    }
     glGenerateTextureMipmap(_id);
     (void)CHECK_GL_ERROR();
 }
@@ -338,7 +346,9 @@ void GL45Texture::updateSize() const {
         qFatal("Compressed textures not yet supported");
     }
 
-    if (_transferrable) {
+    if (_transferrable && _sparseInfo.sparse) {
+        auto size = _allocatedPages * _sparseInfo.pageBytes;
+        Backend::updateTextureGPUSparseMemoryUsage(_size, size);
         setSize(_allocatedPages * _sparseInfo.pageBytes);
     } else {
         setSize(_virtualSize);

@@ -20,7 +20,7 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
-Script.include("/~/system/libraries/controllers.js");
+Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
 //
@@ -204,7 +204,7 @@ function overlayFromWorldPoint(point) {
 }
 
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
-    var controllerPose = getControllerWorldLocation(activeHand, true);
+    var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will return head pose if hand pose is invalid (third eye)
     if (!controllerPose.valid) {
         return; // Controller is cradled.
     }
@@ -447,12 +447,20 @@ function clearSystemLaser() {
         return;
     }
     HMD.disableHandLasers(BOTH_HUD_LASERS);
+    HMD.disableExtraLaser();
     systemLaserOn = false;
     weMovedReticle = true;
     Reticle.position = { x: -1, y: -1 };
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+
+    if (!HMD.isHandControllerAvailable()) {
+        var position = MyAvatar.getHeadPosition();
+        var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
+        return HMD.setExtraLaser(position, true, color, direction);
+    }
+
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
 }
 
@@ -471,7 +479,12 @@ function update() {
     if (!Menu.isOptionChecked("First Person")) {
         return off(); // What to do? menus can be behind hand!
     }
-    if (!Window.hasFocus() || !Reticle.allowMouseCapture) {
+    if ((!Window.hasFocus() && !HMD.active) || !Reticle.allowMouseCapture) {
+        // In desktop it's pretty clear when another app is on top. In that case we bail, because
+        // hand controllers might be sputtering "valid" data and that will keep someone from deliberately
+        // using the mouse on another app. (Fogbugz case 546.)
+        // However, in HMD, you might not realize you're not on top, and you wouldn't be able to operate
+        // other apps anyway. So in that case, we DO keep going even though we're not on top. (Fogbugz 1831.)
         return off(); // Don't mess with other apps or paused mouse activity
     }
     leftTrigger.update();
@@ -479,15 +492,28 @@ function update() {
     if (!activeTrigger.state) {
         return off(); // No trigger
     }
+    if (getGrabCommunications()) {
+        return off();
+    }
     var hudPoint2d = activeHudPoint2d(activeHand);
     if (!hudPoint2d) {
         return off();
     }
+
+
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {
         if (HMD.active) {
             Reticle.depth = hudReticleDistance();
+
+            if (!HMD.isHandControllerAvailable()) {
+                var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+                var position = MyAvatar.getHeadPosition();
+                var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
+                HMD.setExtraLaser(position, true, color, direction);
+            }
         }
+
         if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
             // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
             systemLaserOn = setColoredLaser();
@@ -502,10 +528,15 @@ function update() {
     clearSystemLaser();
     Reticle.visible = false;
 }
-setupHandler(Script.update, update);
+
+var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
+var updateIntervalTimer = Script.setInterval(function(){
+    update();
+}, BASIC_TIMER_INTERVAL);
+
 
 // Check periodically for changes to setup.
-var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
+var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
 function checkSettings() {
     updateFieldOfView();
     updateRecommendedArea();
@@ -515,6 +546,7 @@ checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
+    Script.clearInterval(updateIntervalTimer);
     OffscreenFlags.navigationFocusDisabled = false;
 });
 

@@ -20,7 +20,7 @@
                     print("TutorialStartZone | Parent ID is: ", parentID);
                     if (parentID) {
                         print("TutorialStartZone | Sending start");
-                        Entities.callEntityMethod(parentID, 'start');
+                        Entities.callEntityMethod(parentID, 'onEnteredStartZone');
                     } else {
                         print("TutorialStartZone | ERROR: No parent id found on tutorial start zone");
                     }
@@ -29,7 +29,7 @@
                 sendStart();
             } else {
                 print("TutorialStartZone | User tried to go to tutorial with HMD and hand controllers, sending back to /");
-                Window.alert("To proceed with this tutorial, please connect your VR headset and hand controllers.");
+                Window.alert("To proceed with this tutorial, please connect your Vive headset and hand controllers.");
                 location = "/";
             }
         },
@@ -37,6 +37,12 @@
             print("TutorialStartZone | Exited the tutorial start area");
             if (this.sendStartIntervalID) {
                 Script.clearInterval(this.sendStartIntervalID);
+            }
+            var parentID = Entities.getEntityProperties(this.entityID, 'parentID').parentID;
+            print("TutorialStartZone | Parent ID is: ", parentID);
+            if (parentID) {
+                print("TutorialStartZone | Sending onLeftStartZone");
+                Entities.callEntityMethod(parentID, 'on');
             }
         }
     };
