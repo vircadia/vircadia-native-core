@@ -686,6 +686,10 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+    if (length * sizeof(glm::vec3) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
+        result.resize(0);
+        return sizeof(uint16_t);
+    }
     result.resize(length);
     memcpy(result.data(), dataBytes, length * sizeof(glm::vec3));
     return sizeof(uint16_t) + length * sizeof(glm::vec3);
@@ -695,6 +699,10 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+    if (length * sizeof(glm::quat) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
+        result.resize(0);
+        return sizeof(uint16_t);
+    }
     result.resize(length);
 
     const unsigned char *start = dataBytes;
@@ -709,6 +717,10 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+    if (length * sizeof(float) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
+        result.resize(0);
+        return sizeof(uint16_t);
+    }
     result.resize(length);
     memcpy(result.data(), dataBytes, length * sizeof(float));
     return sizeof(uint16_t) + length * sizeof(float);
@@ -718,6 +730,10 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+    if (length * sizeof(bool) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
+        result.resize(0);
+        return sizeof(uint16_t);
+    }
     result.resize(length);
 
     int bit = 0;
