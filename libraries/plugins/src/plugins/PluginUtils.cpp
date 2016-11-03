@@ -48,7 +48,7 @@ bool isSubdeviceContainingNameAvailable(QString name) {
 };
 
 bool PluginUtils::isViveControllerAvailable() {
-    return isSubdeviceContainingNameAvailable("Vive");
+    return isSubdeviceContainingNameAvailable("OpenVR");
 };
 
 bool PluginUtils::isXboxControllerAvailable() {
