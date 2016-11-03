@@ -51,19 +51,24 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
-        anchors.horizontalCenter: settings.systemToolbarHorizontalConstraint ? desktop.horizontalCenter : undefined;
+        anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x
         y: 50
+    }
+    Settings {
+        id: settings;
+        category: "toolbar";
+        property bool constrainToolbarToCenterX: true;
+    }
+    function setConstrainToolbarToCenterX(constrain) { // Learn about c++ preference change.
+        settings.constrainToolbarToCenterX = constrain;
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
         map[sysToolbar.objectName] = sysToolbar;
         return map; })({});
 
-    Settings {
-        id: settings
-        property bool systemToolbarHorizontalConstraint: true
-    }
+
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;
         WebEngine.settings.javascriptCanAccessClipboard = false;

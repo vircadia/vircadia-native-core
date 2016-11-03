@@ -2153,6 +2153,7 @@ void Application::setFieldOfView(float fov) {
 
 void Application::setSettingConstrainToolbarPosition(bool setting) {
     _constrainToolbarPosition.set(setting);
+    DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
 }
 
 void Application::aboutApp() {
