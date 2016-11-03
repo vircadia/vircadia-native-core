@@ -96,7 +96,7 @@ Rectangle {
         property string replaceFBXDownload:    'var element = $("a[data-extension=\'fbx\']:first");
                                                 element.unbind("click");
                                                 element.bind("click", function(event) {
-                                                    console.log("Initiate Clara.io FBX file download");
+                                                    console.log("Initiate Clara.io FBX file download for {uuid}");
                                                     window.open("https://clara.io/api/scenes/{uuid}/export/fbx?fbxVersion=7.4&fbxEmbedTextures=true&centerScene=true&alignSceneGound=true");
                                                     return false;
                                                 });'
@@ -105,7 +105,7 @@ Rectangle {
             desktop.currentUrl = hoveredUrl;
 
             if (desktop.isClaraFBXZipDownload(desktop.currentUrl)) {
-                var doReplaceFBXDownload = replaceFBXDownload.replace("{uuid}", desktop.currentUrl.slice(desktop.currentUrl.lastIndexOf("/") + 1, -1));
+                var doReplaceFBXDownload = replaceFBXDownload.replace(/{uuid}/g, desktop.currentUrl.slice(desktop.currentUrl.lastIndexOf("/") + 1, -1));
                 runJavaScript(doReplaceFBXDownload);
             }
 
