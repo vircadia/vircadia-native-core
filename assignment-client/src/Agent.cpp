@@ -424,7 +424,7 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
         },
             [&](const SharedNodePointer& node) {
             qDebug() << "sending KillAvatar message to Audio Mixers";
-            auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+            auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID, true);
             packet->write(getSessionUUID().toRfc4122());
             nodeList->sendPacket(std::move(packet), *node);
         });
@@ -475,7 +475,7 @@ void Agent::setIsAvatar(bool isAvatar) {
             },
                 [&](const SharedNodePointer& node) {
                 qDebug() << "sending KillAvatar message to Avatar and Audio Mixers";
-                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID, true);
                 packet->write(getSessionUUID().toRfc4122());
                 nodeList->sendPacket(std::move(packet), *node);
             });

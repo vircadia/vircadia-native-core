@@ -607,7 +607,7 @@ void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, 
         nodeList->eachNode([sendingNode](const SharedNodePointer& node){
             auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
             if (listenerClientData) {
-                listenerClientData->removeHRTFForStream(sendingNode->getUUID(), QUuid());
+                listenerClientData->removeHRTFForStream(sendingNode->getUUID());
             }
         });
     }
