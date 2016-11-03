@@ -144,6 +144,8 @@ public:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {return false; }
 
+    virtual glm::quat getLocalJointRotation(int index) const {return glm::quat(); }
+    virtual glm::vec3 getLocalJointTranslation(int index) const {return glm::vec3(); }
     virtual bool setLocalJointRotation(int index, const glm::quat& rotation) { return false; }
     virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) { return false; }
 

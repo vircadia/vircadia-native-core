@@ -1017,6 +1017,40 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
     return glm::vec3(0.0f);
 }
 
+bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) {
+    // TODO -- write this
+    assert(false);
+    abort();
+    return false;
+}
+
+bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
+    // TODO -- write this
+    assert(false);
+    abort();
+    return false;
+}
+
+glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {
+    if (_model) {
+        glm::quat result;
+        if (_model->getJointRotation(index, result)) {
+            return result;
+        }
+    }
+    return glm::quat();
+}
+
+glm::vec3 RenderableModelEntityItem::getLocalJointTranslation(int index) const {
+    if (_model) {
+        glm::vec3 result;
+        if (_model->getJointTranslation(index, result)) {
+            return result;
+        }
+    }
+    return glm::vec3();
+}
+
 bool RenderableModelEntityItem::setLocalJointRotation(int index, const glm::quat& rotation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
