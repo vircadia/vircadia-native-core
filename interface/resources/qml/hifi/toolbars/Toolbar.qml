@@ -25,13 +25,13 @@ Window {
     property real buttonSize: 50;
     property var buttons: []
     property var container: horizontal ? row : column
-	property bool constrainToolbarToCenterX: false
+    property bool constrainToolbarToCenterX: false
             
     Settings {
         category: "toolbar/" + window.objectName
         property alias x: window.x
         property alias y: window.y
-		property alias constrainToolbarToCenterX: window.constrainToolbarToCenterX
+        property alias constrainToolbarToCenterX: window.constrainToolbarToCenterX
     }
 
     onHorizontalChanged: {

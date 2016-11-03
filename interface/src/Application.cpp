@@ -2152,7 +2152,7 @@ void Application::setFieldOfView(float fov) {
 }
 
 void Application::setSettingConstrainToolbarPosition(bool setting) {
-	_constrainToolbarPosition.set(setting);
+    _constrainToolbarPosition.set(setting);
 }
 
 void Application::aboutApp() {
