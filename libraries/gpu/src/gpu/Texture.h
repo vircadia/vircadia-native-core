@@ -147,6 +147,7 @@ class Texture : public Resource {
 
     static std::atomic<bool> _enableSparseTextures;
     static std::atomic<bool> _enableIncrementalTextureTransfers;
+
 public:
     static uint32_t getTextureCPUCount();
     static Size getTextureCPUMemoryUsage();

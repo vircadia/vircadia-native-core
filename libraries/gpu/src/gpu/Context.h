@@ -125,6 +125,7 @@ protected:
     friend class Context;
     ContextStats _stats;
     StereoState _stereo;
+
 };
 
 class Context {
@@ -214,7 +215,7 @@ public:
     static Size getTextureGPUFramebufferMemoryUsage();
     static Size getTextureGPUSparseMemoryUsage();
     static uint32_t getTextureGPUTransferCount();
-
+    
 protected:
     Context(const Context& context);
 
@@ -269,7 +270,6 @@ protected:
     static std::atomic<Size> _textureGPUVirtualMemoryUsage;
     static std::atomic<Size> _textureGPUFramebufferMemoryUsage;
     static std::atomic<uint32_t> _textureGPUTransferCount;
-
 
     friend class Backend;
 };

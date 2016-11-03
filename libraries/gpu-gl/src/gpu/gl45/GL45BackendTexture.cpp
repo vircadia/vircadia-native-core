@@ -148,6 +148,22 @@ uint32_t SparseInfo::getPageCount(const uvec3& dimensions) const {
     return pageCounts.x * pageCounts.y * pageCounts.z;
 }
 
+
+
+void GL45Backend::initTextureManagementStage() {
+
+    // enable the Sparse Texture on gl45
+    _textureManagement._sparseCapable = true;
+    _textureManagement._incrementalTransferCapable = true;
+
+    // But now let s refine the behavior based on vendor
+    std::string vendor { (const char*)glGetString(GL_VENDOR) };
+    if ((vendor.compare("AMD") <= 0) || (vendor.compare("INTEL") <= 0)) {
+        qCDebug(gpugllogging, "GPU is sparse capable but force it off %s\n", vendor);
+        _textureManagement._sparseCapable = false;
+    }
+}
+
 using TransferState = GL45Backend::GL45Texture::TransferState;
 
 TransferState::TransferState(GL45Texture& texture) : texture(texture) {
@@ -250,7 +266,8 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
 
-    if (_transferrable && Texture::getEnableSparseTextures()) {
+    auto theBackend = _backend.lock();
+    if (_transferrable && theBackend && theBackend->isTextureManagementSparseEnabled()) {
         _sparseInfo.maybeMakeSparse();
         if (_sparseInfo.sparse) {
             Backend::incrementTextureGPUSparseCount();
@@ -362,7 +379,8 @@ void GL45Texture::startTransfer() {
 }
 
 bool GL45Texture::continueTransfer() {
-    if (!Texture::getEnableIncrementalTextureTransfers()) {
+    auto backend = _backend.lock();
+    if (!backend || !backend->isTextureManagementIncrementalTransferEnabled()) {
         size_t maxFace = GL_TEXTURE_CUBE_MAP == _target ? CUBE_NUM_FACES : 1;
         for (uint8_t face = 0; face < maxFace; ++face) {
             for (uint16_t mipLevel = _minMip; mipLevel <= _maxMip; ++mipLevel) {
