@@ -868,6 +868,12 @@ function onContentLoaded() {
         homeServer.start();
     }
 
+    // If we were launched with the launchInterface option, then we need to launch interface now
+    if (argv.launchInterface) {
+        log.debug("Interface launch requested... argv.launchInterface:", argv.launchInterface);
+        startInterface();
+    }
+
     // If we were launched with the shutdownWatcher option, then we need to watch for the interface app
     // shutting down. The interface app will regularly update a running state file which we will check.
     // If the file doesn't exist or stops updating for a significant amount of time, we will shut down.
