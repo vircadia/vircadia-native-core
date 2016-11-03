@@ -86,6 +86,7 @@ OriginalDesktop.Desktop {
     // Accept a download through the webview
     property bool webViewProfileSetup: false
     property string currentUrl: ""
+    property string downloadUrl: ""
     property string adaptedPath: ""
     property string tempDir: ""
     property bool autoAdd: false
@@ -97,16 +98,17 @@ OriginalDesktop.Desktop {
 
     function initWebviewProfileHandlers(profile) {
         console.log("The webview url in desktop is: " + currentUrl);
+        downloadUrl = currentUrl;
         if (webViewProfileSetup) return;
         webViewProfileSetup = true;
 
         profile.downloadRequested.connect(function(download){
             console.log("Download start: " + download.state);
-            adaptedPath = File.convertUrlToPath(currentUrl);
+            adaptedPath = File.convertUrlToPath(downloadUrl);
             tempDir = File.getTempDir();
             console.log("Temp dir created: " + tempDir);
             download.path = tempDir + "/" + adaptedPath;
-            if (isClaraFBXZipDownload(currentUrl)) {
+            if (isClaraFBXZipDownload(downloadUrl)) {
                 download.path += "fbx.zip";
             }
             console.log("Path where object should download: " + download.path);
@@ -119,7 +121,7 @@ OriginalDesktop.Desktop {
 
         profile.downloadFinished.connect(function(download){
             if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-                File.runUnzip(download.path, currentUrl, autoAdd);
+                File.runUnzip(download.path, downloadUrl, autoAdd);
             } else {
                 console.log("The download was corrupted, state: " + download.state);
             }
