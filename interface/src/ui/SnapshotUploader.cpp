@@ -57,9 +57,9 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
             callbackParams,
             QJsonDocument(rootObject).toJson());
 
-    }
-    else {
+    } else {
         emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(contents);
+        delete this;
     }
 }
 
