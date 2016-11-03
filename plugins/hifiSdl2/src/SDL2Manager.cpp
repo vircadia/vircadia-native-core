@@ -163,15 +163,19 @@ void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrati
                     Joystick::Pointer joystick = std::make_shared<Joystick>(id, controller);
                     _openJoysticks[id] = joystick;
                     userInputMapper->registerDevice(joystick);
+                    QString name = SDL_GameControllerName(controller);
                     emit joystickAdded(joystick.get());
-                    emit subdeviceConnected(getName(), SDL_GameControllerName(controller));
+                    emit subdeviceConnected(getName(), name);
+                    _subdeviceNames << name;
                 }
             } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
                 if (_openJoysticks.contains(event.cdevice.which)) {
                     Joystick::Pointer joystick = _openJoysticks[event.cdevice.which];
                     _openJoysticks.remove(event.cdevice.which);
                     userInputMapper->removeDevice(joystick->getDeviceID());
+                    QString name = SDL_GameControllerName(joystick->getGameController());
                     emit joystickRemoved(joystick.get());
+                    _subdeviceNames.removeOne(name);
                 }
             }
         }
