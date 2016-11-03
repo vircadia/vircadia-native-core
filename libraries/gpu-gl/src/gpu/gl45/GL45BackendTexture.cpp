@@ -161,6 +161,8 @@ void GL45Backend::initTextureManagementStage() {
     if ((vendor.compare("AMD") <= 0) || (vendor.compare("INTEL") <= 0)) {
         qCDebug(gpugllogging) << "GPU is sparse capable but force it off, vendor = " << vendor.c_str();
         _textureManagement._sparseCapable = false;
+    } else {
+        qCDebug(gpugllogging) << "GPU is sparse capable, vendor = " << vendor.c_str();
     }
 }
 
