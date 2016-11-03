@@ -71,7 +71,7 @@ void setupPreferences() {
     // UI
     {
         auto getter = []()->bool { return qApp->getSettingConstrainToolbarPosition(); };
-        auto setter = [](bool value) { qApp->setSettingConstrainToolbarPosition(!value); };
+        auto setter = [](bool value) { qApp->setSettingConstrainToolbarPosition(value); };
         preferences->addPreference(new CheckPreference("UI", "Constrain Toolbar Position to Horizontal Center", getter, setter));
     }
 
