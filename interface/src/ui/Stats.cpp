@@ -290,6 +290,12 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(sendingMode, sendingModeResult);
     }
 
+    auto& GPUContext = qApp->getGPUContext();
+
+    // Update Frame timing (in ms)
+    STAT_UPDATE(gpuFrameTime, (float) GPUContext->getFrameTimerGPUAverage());
+    STAT_UPDATE(batchFrameTime, (float)GPUContext->getFrameTimerBatchAverage());
+
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemoryUsage()));
     STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());

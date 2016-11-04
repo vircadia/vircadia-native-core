@@ -190,6 +190,15 @@ Item {
                     id: octreeCol
                     spacing: 4; x: 4; y: 4;
                     StatText {
+                        text: "  Frame timing:"
+                    }
+                    StatText {
+                        text: "      Batch: " + root.batchFrameTime.toFixed(1) + " ms"
+                    }
+                    StatText {
+                        text: "      GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                    }
+                    StatText {
                         text: "Triangles: " + root.triangles +
                             " / Material Switches: " + root.materialSwitches
                     }
