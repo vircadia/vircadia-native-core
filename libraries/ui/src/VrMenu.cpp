@@ -12,6 +12,7 @@
 
 #include <QtQml>
 #include <QMenuBar>
+#include <QDebug>
 
 #include "OffscreenUi.h"
 
@@ -217,6 +218,7 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
 }
 
 class QQuickMenuBase;
+class QQuickMenu1;
 
 void VrMenu::removeAction(QAction* action) {
     if (!action) {
@@ -228,10 +230,33 @@ void VrMenu::removeAction(QAction* action) {
         qWarning("Attempted to remove menu action with no found QML object");
         return;
     }
-    
+
+    QObject* parent = action->menu();
+    QObject* qmlParent = nullptr;
+
+    QMenu* parentMenu = dynamic_cast<QMenu*>(parent);
+    if (parentMenu) {
+        MenuUserData* MenuUserData = MenuUserData::forObject(parentMenu->menuAction());
+        if (!MenuUserData) {
+            return;
+        }
+        qmlParent = findMenuObject(MenuUserData->uuid.toString());
+    } else if (dynamic_cast<QMenuBar*>(parent)) {
+        qmlParent = _rootMenu;
+    } else {
+        Q_ASSERT(false);
+    }
+
     QObject* item = findMenuObject(userData->uuid.toString());
-    QObject* menu = item->parent();
-    // Proxy QuickItem requests through the QML layer
-    QQuickMenuBase* qmlItem = reinterpret_cast<QQuickMenuBase*>(item);
-    QMetaObject::invokeMethod(menu, "removeItem", Qt::DirectConnection, Q_ARG(QQuickMenuBase*, qmlItem));
+
+    QQuickMenu1* menu = nullptr;
+    QMetaObject::invokeMethod(item, "parentMenu", Qt::DirectConnection, Q_RETURN_ARG(QQuickMenu1*, menu));
+
+    if (!menu) {
+        return;
+    }
+    QQuickMenuBase* menuItem = reinterpret_cast<QQuickMenuBase*>(item);
+    QObject* baseMenu = reinterpret_cast<QObject*>(menu);
+
+    QMetaObject::invokeMethod(baseMenu, "removeItem", Qt::DirectConnection, Q_ARG(QQuickMenuBase*, menuItem));
 }
