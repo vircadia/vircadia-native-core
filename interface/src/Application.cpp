@@ -5661,6 +5661,8 @@ void Application::updateDisplayMode() {
 
     static std::once_flag once;
     std::call_once(once, [&] {
+        bool first = true;
+
         // first sort the plugins into groupings: standard, advanced, developer
         DisplayPluginList standard;
         DisplayPluginList advanced;
