@@ -34,6 +34,10 @@ void Context::beginFrame(const glm::mat4& renderPose) {
     _frameActive = true;
     _currentFrame = std::make_shared<Frame>();
     _currentFrame->pose = renderPose;
+
+    if (!_frameRangeTimer) {
+        _frameRangeTimer = std::make_shared<RangeTimer>("gpu::Frame");
+    }
 }
 
 void Context::appendFrameBatch(Batch& batch) {
@@ -182,6 +186,10 @@ void Context::setFreeGPUMemory(Size size) {
 Size Context::getFreeGPUMemory() {
     return _freeGPUMemory.load();
 }
+
+Size Context::getUsedGPUMemory() {
+    return getTextureGPUMemoryUsage() + getBufferGPUMemoryUsage();
+};
 
 void Context::incrementBufferGPUCount() {
     static std::atomic<uint32_t> max { 0 };
