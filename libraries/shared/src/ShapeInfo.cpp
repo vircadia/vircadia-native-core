@@ -114,8 +114,7 @@ float ShapeInfo::computeVolume() const {
             break;
         }
         case SHAPE_TYPE_SPHERE: {
-            float radius = _halfExtents.x;
-            volume = 4.0f * PI * radius * radius * radius / 3.0f;
+            volume = 4.0f * PI * _halfExtents.x * _halfExtents.y * _halfExtents.z / 3.0f;
             break;
         }
         case SHAPE_TYPE_CYLINDER_Y: {
