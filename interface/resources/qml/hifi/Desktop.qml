@@ -51,14 +51,23 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
-        // These values will be overridden by sysToolbar.x/y if there is a saved position in Settings
-        // On exit, the sysToolbar position is saved to settings
-        x: 30
+        anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
+        // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
+        x: sysToolbar.x
         y: 50
+    }
+    Settings {
+        id: settings;
+        category: "toolbar";
+        property bool constrainToolbarToCenterX: true;
+    }
+    function setConstrainToolbarToCenterX(constrain) { // Learn about c++ preference change.
+        settings.constrainToolbarToCenterX = constrain;
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
         map[sysToolbar.objectName] = sysToolbar;
         return map; })({});
+
 
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;
@@ -66,12 +75,17 @@ OriginalDesktop.Desktop {
         WebEngine.settings.spatialNavigationEnabled = false;
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
 
-        var toggleHudButton = sysToolbar.addButton({
-            objectName: "hudToggle",
-            imageURL: "../../../icons/hud.svg",
-            visible: true,
-            pinned: true,
+        [ // Allocate the standard buttons in the correct order. They will get images, etc., via scripts.
+            "hmdToggle", "mute", "mod", "help",
+            "hudToggle",
+            "com.highfidelity.interface.system.editButton", "marketplace", "snapshot", "goto"
+        ].forEach(function (name) {
+            sysToolbar.addButton({objectName: name});
         });
+        var toggleHudButton = sysToolbar.findButton("hudToggle");
+        toggleHudButton.imageURL = "../../../icons/hud.svg";
+        toggleHudButton.pinned = true;
+        sysToolbar.updatePinned(); // automatic when adding buttons only IFF button is pinned at creation.
 
         toggleHudButton.buttonState = Qt.binding(function(){
             return desktop.pinned ? 1 : 0

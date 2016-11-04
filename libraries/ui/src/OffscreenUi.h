@@ -52,6 +52,7 @@ public:
     void setPinned(bool pinned = true);
 
     void togglePinned();
+    void setConstrainToolbarToCenterX(bool constrained);
 
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
     void addMenuInitializer(std::function<void(VrMenu*)> f);

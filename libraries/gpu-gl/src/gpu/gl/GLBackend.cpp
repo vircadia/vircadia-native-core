@@ -56,6 +56,7 @@ BackendPointer GLBackend::createBackend() {
     }
     result->initInput();
     result->initTransform();
+    result->initTextureManagementStage();
 
     INSTANCE = result.get();
     void* voidInstance = &(*result);
