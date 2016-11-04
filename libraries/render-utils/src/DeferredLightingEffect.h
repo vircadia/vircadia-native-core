@@ -30,6 +30,7 @@
 #include "LightStage.h"
 #include "SurfaceGeometryPass.h"
 #include "SubsurfaceScattering.h"
+#include "AmbientOcclusionEffect.h"
 
 class RenderArgs;
 struct LightLocations;
@@ -138,7 +139,7 @@ public:
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
-        const gpu::FramebufferPointer& lowCurvatureNormalFramebuffer,
+        const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
         const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
 };
 
@@ -160,25 +161,11 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 };
 
-
-class RenderDeferredConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(double gpuTime READ getGpuTime)
-public:
-    RenderDeferredConfig() : render::Job::Config(true) {}
-
-    double getGpuTime() { return gpuTime; }
-    
-    double gpuTime{ 0.0 };
-
-signals:
-    void dirty();
-};
-
+using RenderDeferredConfig = render::GPUJobConfig;
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet6 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet6 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer>;
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 

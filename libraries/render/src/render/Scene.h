@@ -55,7 +55,7 @@ typedef std::queue<PendingChanges> PendingChangesQueue;
 class Scene {
 public:
     Scene(glm::vec3 origin, float size);
-    ~Scene() {}
+    ~Scene();
 
     // This call is thread safe, can be called from anywhere to allocate a new ID
     ItemID allocateID();

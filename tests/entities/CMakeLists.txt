@@ -7,6 +7,6 @@ setup_hifi_project(Network Script)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
 # link in the shared libraries
-link_hifi_libraries(entities avatars shared octree gpu model fbx networking animation audio)
+link_hifi_libraries(entities avatars shared octree gpu model fbx networking animation audio gl)
 
 package_libraries_for_deployment()

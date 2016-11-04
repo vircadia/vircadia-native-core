@@ -26,10 +26,12 @@ public:
     void render(RenderArgs* args) override;
     void setUserData(const QString& value) override;
 
-    SIMPLE_RENDERABLE();
+    bool isTransparent() override;
 
 private:
-    QSharedPointer<Procedural> _procedural;
+    std::unique_ptr<Procedural> _procedural { nullptr };
+
+    SIMPLE_RENDERABLE();
 };
 
 

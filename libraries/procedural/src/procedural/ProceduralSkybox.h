@@ -20,13 +20,14 @@
 class ProceduralSkybox: public model::Skybox {
 public:
     ProceduralSkybox();
-    virtual ~ProceduralSkybox() {};
+    ~ProceduralSkybox() override {};
 
     void parse(const QString& userData) { _procedural.parse(userData); }
 
-    virtual void clear() override;
+    bool empty() override;
+    void clear() override;
 
-    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const override;
+    void render(gpu::Batch& batch, const ViewFrustum& frustum) const override;
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox);
 
 protected:

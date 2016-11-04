@@ -55,7 +55,7 @@ void SoftAttachmentModel::updateClusterMatrices(glm::vec3 modelPosition, glm::qu
 
             // TODO: cache these look ups as an optimization
             int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);
-            glm::mat4 jointMatrix(glm::mat4::_null);
+            glm::mat4 jointMatrix;
             if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride->getJointStateCount()) {
                 jointMatrix = _rigOverride->getJointTransform(jointIndexOverride);
             } else {

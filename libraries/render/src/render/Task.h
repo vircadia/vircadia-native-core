@@ -47,19 +47,19 @@ public:
     template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
     template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
 
-    
+
     // access potential sub varyings contained in this one.
     Varying operator[] (uint8_t index) const { return (*_concept)[index]; }
     uint8_t length() const { return (*_concept).length(); }
 
     template <class T> Varying getN (uint8_t index) const { return get<T>()[index]; }
     template <class T> Varying editN (uint8_t index) { return edit<T>()[index]; }
-    
+
 protected:
     class Concept {
     public:
         virtual ~Concept() = default;
-    
+
         virtual Varying operator[] (uint8_t index) const = 0;
         virtual uint8_t length() const = 0;
     };
@@ -69,12 +69,12 @@ protected:
 
         Model(const Data& data) : _data(data) {}
         virtual ~Model() = default;
-        
-        virtual Varying operator[] (uint8_t index) const {
+
+        virtual Varying operator[] (uint8_t index) const override {
             Varying var;
             return var;
         }
-        virtual uint8_t length() const { return 0; }
+        virtual uint8_t length() const override { return 0; }
 
         Data _data;
     };
@@ -334,9 +334,9 @@ protected:
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
-    Q_PROPERTY(quint64 cpuRunTime READ getCPUTRunTime NOTIFY newStats())
+    Q_PROPERTY(double cpuRunTime READ getCPURunTime NOTIFY newStats()) //ms
 
-    quint64 _CPURunTime{ 0 };
+    double _msCPURunTime{ 0.0 };
 public:
     using Persistent = PersistentConfig<JobConfig>;
 
@@ -362,10 +362,10 @@ public:
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
-    // Running Time measurement 
+    // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
-    void setCPURunTime(quint64 ustime) { _CPURunTime = ustime; emit newStats(); }
-    quint64 getCPUTRunTime() const { return _CPURunTime; }
+    void setCPURunTime(double mstime) { _msCPURunTime = mstime; emit newStats(); }
+    double getCPURunTime() const { return _msCPURunTime; }
 
 public slots:
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
@@ -418,6 +418,46 @@ template <class T, class I, class O> void jobRun(T& data, const SceneContextPoin
     data.run(sceneContext, renderContext, input, output);
 }
 
+class GPUJobConfig : public JobConfig {
+    Q_OBJECT
+    Q_PROPERTY(double gpuRunTime READ getGPURunTime)
+    Q_PROPERTY(double batchRunTime READ getBatchRunTime)
+
+    double _msGPURunTime { 0.0 };
+    double _msBatchRunTime { 0.0 };
+public:
+    using Persistent = PersistentConfig<GPUJobConfig>;
+
+    GPUJobConfig() = default;
+    GPUJobConfig(bool enabled) : JobConfig(enabled) {}
+
+    // Running Time measurement on GPU and for Batch execution
+    void setGPUBatchRunTime(double msGpuTime, double msBatchTime) { _msGPURunTime = msGpuTime; _msBatchRunTime = msBatchTime; }
+    double getGPURunTime() const { return _msGPURunTime; }
+    double getBatchRunTime() const { return _msBatchRunTime; }
+};
+
+class GPUTaskConfig : public TaskConfig {
+    Q_OBJECT
+    Q_PROPERTY(double gpuRunTime READ getGPURunTime)
+    Q_PROPERTY(double batchRunTime READ getBatchRunTime)
+
+    double _msGPURunTime { 0.0 };
+    double _msBatchRunTime { 0.0 };
+public:
+
+    using Persistent = PersistentConfig<GPUTaskConfig>;
+
+
+    GPUTaskConfig() = default;
+    GPUTaskConfig(bool enabled) : TaskConfig(enabled) {}
+
+    // Running Time measurement on GPU and for Batch execution
+    void setGPUBatchRunTime(double msGpuTime, double msBatchTime) { _msGPURunTime = msGpuTime; _msBatchRunTime = msBatchTime; }
+    double getGPURunTime() const { return _msGPURunTime; }
+    double getBatchRunTime() const { return _msBatchRunTime; }
+};
+
 class Job {
 public:
     using Config = JobConfig;
@@ -439,7 +479,7 @@ public:
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
 
     protected:
-        void setCPURunTime(quint64 ustime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(ustime); }
+        void setCPURunTime(double mstime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(mstime); }
 
         QConfigPointer _config;
 
@@ -457,8 +497,8 @@ public:
         Varying _input;
         Varying _output;
 
-        const Varying getInput() const { return _input; }
-        const Varying getOutput() const { return _output; }
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
@@ -466,11 +506,11 @@ public:
             applyConfiguration();
         }
 
-        void applyConfiguration() {
+        void applyConfiguration() override {
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->isEnabled()) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
@@ -502,7 +542,7 @@ public:
 
         _concept->run(sceneContext, renderContext);
 
-        _concept->setCPURunTime(usecTimestampNow() - start);
+        _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
     }
 
     protected:
@@ -528,8 +568,8 @@ public:
         Varying _input;
         Varying _output;
 
-        const Varying getInput() const { return _input; }
-        const Varying getOutput() const { return _output; }
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
@@ -540,11 +580,11 @@ public:
             applyConfiguration();
         }
 
-        void applyConfiguration() {
+        void applyConfiguration() override {
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
@@ -609,7 +649,7 @@ public:
     void configure(const QObject& configuration) {
         for (auto& job : _jobs) {
             job.applyConfiguration();
-            
+
         }
     }
 
@@ -621,6 +661,5 @@ protected:
 };
 
 }
-
 
 #endif // hifi_render_Task_h

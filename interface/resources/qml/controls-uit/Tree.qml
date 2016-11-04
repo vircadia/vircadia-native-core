@@ -199,6 +199,11 @@ TreeView {
                         unfocusHelper.forceActiveFocus();
                     }
                 }
+
+                onReadOnlyChanged: {
+                    // Have to explicily set keyboardRaised because automatic setting fails because readOnly is true at the time.
+                    keyboardRaised = activeFocus;
+                }
             }
         }
     }

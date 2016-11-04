@@ -15,13 +15,19 @@
 #include <mutex>
 #include <ResourceCache.h>
 
+using contentAvailableCallback = std::function<void(const QString& scriptOrURL, const QString& contents, bool isURL, bool contentAvailable)>;
+
 class ScriptUser {
 public:
     virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents) = 0;
     virtual void errorInLoadingScript(const QUrl& url) = 0;
 };
 
-using contentAvailableCallback = std::function<void(const QString& scriptOrURL, const QString& contents, bool isURL, bool contentAvailable)>;
+class ScriptRequest {
+public:
+    std::vector<contentAvailableCallback> scriptUsers { };
+    int numRetries { 0 };
+};
 
 /// Interface for loading scripts
 class ScriptCache : public QObject, public Dependency {
@@ -33,6 +39,7 @@ class ScriptCache : public QObject, public Dependency {
 
 public:
     void clearCache();
+    Q_INVOKABLE void clearATPScriptsFromCache();
     void getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload = false);
 
 
@@ -51,7 +58,7 @@ private:
     ScriptCache(QObject* parent = NULL);
     
     Mutex _containerLock;
-    QMultiMap<QUrl, contentAvailableCallback> _contentCallbacks;
+    QMap<QUrl, ScriptRequest> _activeScriptRequests;
     
     QHash<QUrl, QString> _scriptCache;
     QMultiMap<QUrl, ScriptUser*> _scriptUsers;

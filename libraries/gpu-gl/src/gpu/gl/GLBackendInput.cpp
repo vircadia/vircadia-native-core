@@ -15,7 +15,7 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setInputFormat(const Batch& batch, size_t paramOffset) {
     Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
     if (format != _input._format) {
         _input._format = format;
@@ -33,7 +33,7 @@ void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
     }
 }
 
-void GLBackend::do_setInputBuffer(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setInputBuffer(const Batch& batch, size_t paramOffset) {
     Offset stride = batch._params[paramOffset + 0]._uint;
     Offset offset = batch._params[paramOffset + 1]._uint;
     BufferPointer buffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
@@ -94,7 +94,6 @@ void GLBackend::syncInputStateCache() {
     //_input._defaultVAO
     glBindVertexArray(_input._defaultVAO);
 }
-
 
 void GLBackend::updateInput() {
     if (_input._invalidFormat || _input._invalidBuffers.any()) {
@@ -214,7 +213,7 @@ void GLBackend::resetInputStage() {
     // THe vertex array binding MUST be reset in the specific Backend versions as they use different techniques
 }
 
-void GLBackend::do_setIndexBuffer(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setIndexBuffer(const Batch& batch, size_t paramOffset) {
     _input._indexBufferType = (Type)batch._params[paramOffset + 2]._uint;
     _input._indexBufferOffset = batch._params[paramOffset + 0]._uint;
 
@@ -231,7 +230,7 @@ void GLBackend::do_setIndexBuffer(Batch& batch, size_t paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_setIndirectBuffer(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setIndirectBuffer(const Batch& batch, size_t paramOffset) {
     _input._indirectBufferOffset = batch._params[paramOffset + 1]._uint;
     _input._indirectBufferStride = batch._params[paramOffset + 2]._uint;
 

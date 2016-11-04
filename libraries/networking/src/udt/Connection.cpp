@@ -45,6 +45,20 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
     // set the initial RTT and flow window size on congestion control object
     _congestionControl->setRTT(_rtt);
     _congestionControl->setMaxCongestionWindowSize(_flowWindowSize);
+
+    // Setup packets
+    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
+                            + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t) + sizeof(int32_t);
+    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
+    static const int ACK2_PAYLOAD_BYTES = sizeof(SequenceNumber);
+    static const int NAK_PACKET_PAYLOAD_BYTES = 2 * sizeof(SequenceNumber);
+    static const int HANDSHAKE_ACK_PAYLOAD_BYTES = sizeof(SequenceNumber);
+
+    _ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
+    _lightACKPacket = ControlPacket::create(ControlPacket::LightACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
+    _ack2Packet = ControlPacket::create(ControlPacket::ACK2, ACK2_PAYLOAD_BYTES);
+    _lossReport = ControlPacket::create(ControlPacket::NAK, NAK_PACKET_PAYLOAD_BYTES);
+    _handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, HANDSHAKE_ACK_PAYLOAD_BYTES);
 }
 
 Connection::~Connection() {
@@ -104,12 +118,14 @@ SendQueue& Connection::getSendQueue() {
         QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
         QObject::connect(_sendQueue.get(), &SendQueue::timeout, this, &Connection::queueTimeout);
         QObject::connect(_sendQueue.get(), &SendQueue::shortCircuitLoss, this, &Connection::queueShortCircuitLoss);
+
         
         // set defaults on the send queue from our congestion control object and estimatedTimeout()
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
         _sendQueue->setSyncInterval(_synInterval);
         _sendQueue->setEstimatedTimeout(estimatedTimeout());
         _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+        _sendQueue->setProbePacketEnabled(_congestionControl->shouldProbe());
 
         // give the randomized sequence number to the congestion control object
         _congestionControl->setInitialSendSequenceNumber(_sendQueue->getCurrentSequenceNumber());
@@ -136,13 +152,13 @@ void Connection::queueInactive() {
 }
 
 void Connection::queueTimeout() {
-    updateCongestionControlAndSendQueue([this]{
+    updateCongestionControlAndSendQueue([this] {
         _congestionControl->onTimeout();
     });
 }
 
 void Connection::queueShortCircuitLoss(quint32 sequenceNumber) {
-    updateCongestionControlAndSendQueue([this, sequenceNumber]{
+    updateCongestionControlAndSendQueue([this, sequenceNumber] {
         _congestionControl->onLoss(SequenceNumber { sequenceNumber }, SequenceNumber { sequenceNumber });
     });
 }
@@ -209,9 +225,11 @@ void Connection::sync() {
         // reset the number of light ACKs or non SYN ACKs during this sync interval
         _lightACKsDuringSYN = 1;
         _acksDuringSYN = 1;
-        
-        // we send out a periodic ACK every rate control interval
-        sendACK();
+
+        if (_congestionControl->_ackInterval > 1) {
+            // we send out a periodic ACK every rate control interval
+            sendACK();
+        }
         
         if (_lossList.getLength() > 0) {
             // check if we need to re-transmit a loss list
@@ -246,12 +264,17 @@ void Connection::sync() {
     }
 }
 
-void Connection::recordSentPackets(int dataSize, int payloadSize) {
-    _stats.recordSentPackets(payloadSize, dataSize);
+void Connection::recordSentPackets(int wireSize, int payloadSize,
+                                   SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
+    _stats.recordSentPackets(payloadSize, wireSize);
+
+    _congestionControl->onPacketSent(wireSize, seqNum, timePoint);
 }
 
-void Connection::recordRetransmission() {
+void Connection::recordRetransmission(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
     _stats.record(ConnectionStats::Stats::Retransmission);
+
+    _congestionControl->onPacketSent(wireSize, seqNum, timePoint);
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
@@ -279,26 +302,23 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // update the last sent ACK
     _lastSentACK = nextACKNumber;
-    
-    // setup the ACK packet, make it static so we can re-use it
-    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
-                                                + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t) + sizeof(int32_t);
-    static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
-    ackPacket->reset(); // We need to reset it every time.
+
+
+    _ackPacket->reset(); // We need to reset it every time.
     
     // pack in the ACK sub-sequence number
-    ackPacket->writePrimitive(++_currentACKSubSequenceNumber);
+    _ackPacket->writePrimitive(++_currentACKSubSequenceNumber);
     
     // pack in the ACK number
-    ackPacket->writePrimitive(nextACKNumber);
+    _ackPacket->writePrimitive(nextACKNumber);
     
     // pack in the RTT and variance
-    ackPacket->writePrimitive(_rtt);
+    _ackPacket->writePrimitive(_rtt);
     
     // pack the available buffer size, in packets
     // in our implementation we have no hard limit on receive buffer size, send the default value
-    ackPacket->writePrimitive((int32_t) udt::CONNECTION_RECEIVE_BUFFER_SIZE_PACKETS);
-    
+    _ackPacket->writePrimitive((int32_t) udt::MAX_PACKETS_IN_FLIGHT);
+
     if (wasCausedBySyncTimeout) {
         // grab the up to date packet receive speed and estimated bandwidth
         int32_t packetReceiveSpeed = _receiveWindow.getPacketReceiveSpeed();
@@ -309,15 +329,15 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         _stats.recordEstimatedBandwidth(estimatedBandwidth);
         
         // pack in the receive speed and estimatedBandwidth
-        ackPacket->writePrimitive(packetReceiveSpeed);
-        ackPacket->writePrimitive(estimatedBandwidth);
+        _ackPacket->writePrimitive(packetReceiveSpeed);
+        _ackPacket->writePrimitive(estimatedBandwidth);
     }
     
     // record this as the last ACK send time
     lastACKSendTime = p_high_resolution_clock::now();
     
     // have the socket send off our packet
-    _parentSocket->writeBasePacket(*ackPacket, _destination);
+    _parentSocket->writeBasePacket(*_ackPacket, _destination);
     
     Q_ASSERT_X(_sentACKs.empty() || _sentACKs.back().first + 1 == _currentACKSubSequenceNumber,
                "Connection::sendACK", "Adding an invalid ACK to _sentACKs");
@@ -339,35 +359,27 @@ void Connection::sendLightACK() {
         return;
     }
     
-    // create the light ACK packet, make it static so we can re-use it
-    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
-    static auto lightACKPacket = ControlPacket::create(ControlPacket::LightACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
-    
     // reset the lightACKPacket before we go to write the ACK to it
-    lightACKPacket->reset();
+    _lightACKPacket->reset();
     
     // pack in the ACK
-    lightACKPacket->writePrimitive(nextACKNumber);
+    _lightACKPacket->writePrimitive(nextACKNumber);
     
     // have the socket send off our packet immediately
-    _parentSocket->writeBasePacket(*lightACKPacket, _destination);
+    _parentSocket->writeBasePacket(*_lightACKPacket, _destination);
     
     _stats.record(ConnectionStats::Stats::SentLightACK);
 }
 
 void Connection::sendACK2(SequenceNumber currentACKSubSequenceNumber) {
-    // setup a static ACK2 packet we will re-use
-    static const int ACK2_PAYLOAD_BYTES = sizeof(SequenceNumber);
-    static auto ack2Packet = ControlPacket::create(ControlPacket::ACK2, ACK2_PAYLOAD_BYTES);
-    
     // reset the ACK2 Packet before writing the sub-sequence number to it
-    ack2Packet->reset();
+    _ack2Packet->reset();
     
     // write the sub sequence number for this ACK2
-    ack2Packet->writePrimitive(currentACKSubSequenceNumber);
+    _ack2Packet->writePrimitive(currentACKSubSequenceNumber);
     
     // send the ACK2 packet
-    _parentSocket->writeBasePacket(*ack2Packet, _destination);
+    _parentSocket->writeBasePacket(*_ack2Packet, _destination);
     
     // update the last sent ACK2 and the last ACK2 send time
     _lastSentACK2 = currentACKSubSequenceNumber;
@@ -376,19 +388,16 @@ void Connection::sendACK2(SequenceNumber currentACKSubSequenceNumber) {
 }
 
 void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
-    // create the loss report packet, make it static so we can re-use it
-    static const int NAK_PACKET_PAYLOAD_BYTES = 2 * sizeof(SequenceNumber);
-    static auto lossReport = ControlPacket::create(ControlPacket::NAK, NAK_PACKET_PAYLOAD_BYTES);
-    lossReport->reset(); // We need to reset it every time.
+    _lossReport->reset(); // We need to reset it every time.
     
     // pack in the loss report
-    lossReport->writePrimitive(_lastReceivedSequenceNumber + 1);
+    _lossReport->writePrimitive(_lastReceivedSequenceNumber + 1);
     if (_lastReceivedSequenceNumber + 1 != sequenceNumberRecieved - 1) {
-        lossReport->writePrimitive(sequenceNumberRecieved - 1);
+        _lossReport->writePrimitive(sequenceNumberRecieved - 1);
     }
     
     // have the parent socket send off our packet immediately
-    _parentSocket->writeBasePacket(*lossReport, _destination);
+    _parentSocket->writeBasePacket(*_lossReport, _destination);
     
     // record our last NAK time
     _lastNAKTime = p_high_resolution_clock::now();
@@ -426,17 +435,24 @@ SequenceNumber Connection::nextACK() const {
     }
 }
 
+void Connection::sendHandshakeRequest() {
+    auto handshakeRequestPacket = ControlPacket::create(ControlPacket::HandshakeRequest, 0);
+    _parentSocket->writeBasePacket(*handshakeRequestPacket, _destination);
+
+    _didRequestHandshake = true;
+}
+
 bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize) {
     
     if (!_hasReceivedHandshake) {
         // Refuse to process any packets until we've received the handshake
         // Send handshake request to re-request a handshake
-        auto handshakeRequestPacket = ControlPacket::create(ControlPacket::HandshakeRequest, 0);
-        _parentSocket->writeBasePacket(*handshakeRequestPacket, _destination);
 
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Received packet before receiving handshake, sending HandshakeRequest";
 #endif
+
+        sendHandshakeRequest();
 
         return false;
     }
@@ -468,23 +484,24 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         } else {
             _lossList.append(_lastReceivedSequenceNumber + 1, sequenceNumber - 1);
         }
-        
-        // Send a NAK packet
-        sendNAK(sequenceNumber);
-        
-        // figure out when we should send the next loss report, if we haven't heard anything back
-        _nakInterval = estimatedTimeout();
-        
-        int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
-        if (receivedPacketsPerSecond > 0) {
-            // the NAK interval is at least the _minNAKInterval
-            // but might be the time required for all lost packets to be retransmitted
-            _nakInterval += (int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond));
-        }
-        
-        // the NAK interval is at least the _minNAKInterval but might be the value calculated above, if that is larger
-        _nakInterval = std::max(_nakInterval, _minNAKInterval);
 
+        if (_congestionControl->shouldNAK()) {
+            // Send a NAK packet
+            sendNAK(sequenceNumber);
+
+            // figure out when we should send the next loss report, if we haven't heard anything back
+            _nakInterval = estimatedTimeout();
+
+            int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
+            if (receivedPacketsPerSecond > 0) {
+                // the NAK interval is at least the _minNAKInterval
+                // but might be the time required for all lost packets to be retransmitted
+                _nakInterval += (int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond));
+            }
+
+            // the NAK interval is at least the _minNAKInterval but might be the value calculated above, if that is larger
+            _nakInterval = std::max(_nakInterval, _minNAKInterval);
+        }
     }
     
     bool wasDuplicate = false;
@@ -501,7 +518,10 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     ++_packetsSinceACK;
     
     // check if we need to send an ACK, according to CC params
-    if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval * _acksDuringSYN) {
+    if (_congestionControl->_ackInterval == 1) {
+        // using a congestion control that ACKs every packet (like TCP Vegas)
+        sendACK(true);
+    } else if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval * _acksDuringSYN) {
         _acksDuringSYN++;
         sendACK(false);
     } else if (_congestionControl->_lightACKInterval > 0
@@ -519,7 +539,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     return !wasDuplicate;
 }
 
-void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processControl(ControlPacketPointer controlPacket) {
     
     // Simple dispatch to control packets processing methods based on their type.
     
@@ -577,7 +597,7 @@ void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
     }
 }
 
-void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processACK(ControlPacketPointer controlPacket) {
     // read the ACK sub-sequence number
     SequenceNumber currentACKSubSequenceNumber;
     controlPacket->readPrimitive(&currentACKSubSequenceNumber);
@@ -591,7 +611,8 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
-    if (sinceLastACK2.count() >= _synInterval || currentACKSubSequenceNumber == _lastSentACK2) {
+    if (_congestionControl->shouldACK2()
+        && (sinceLastACK2.count() >= _synInterval || currentACKSubSequenceNumber == _lastSentACK2)) {
         // Send ACK2 packet
         sendACK2(currentACKSubSequenceNumber);
         
@@ -671,14 +692,17 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     }
     
     // give this ACK to the congestion control and update the send queue parameters
-    updateCongestionControlAndSendQueue([this, ack](){
-        _congestionControl->onACK(ack);
+    updateCongestionControlAndSendQueue([this, ack, &controlPacket] {
+        if (_congestionControl->onACK(ack, controlPacket->getReceiveTime())) {
+            // the congestion control has told us it needs a fast re-transmit of ack + 1, add that now
+            _sendQueue->fastRetransmit(ack + 1);
+        }
     });
     
     _stats.record(ConnectionStats::Stats::ProcessedACK);
 }
 
-void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processLightACK(ControlPacketPointer controlPacket) {
     // read the ACKed sequence number
     SequenceNumber ack;
     controlPacket->readPrimitive(&ack);
@@ -702,7 +726,7 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
     _stats.record(ConnectionStats::Stats::ReceivedLightACK);
 }
 
-void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processACK2(ControlPacketPointer controlPacket) {
     // pull the sub sequence number from the packet
     SequenceNumber subSequenceNumber;
     controlPacket->readPrimitive(&subSequenceNumber);
@@ -742,7 +766,7 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
     _stats.record(ConnectionStats::Stats::ReceivedACK2);
 }
 
-void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processNAK(ControlPacketPointer controlPacket) {
     // read the loss report
     SequenceNumber start, end;
     controlPacket->readPrimitive(&start);
@@ -757,14 +781,14 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     getSendQueue().nak(start, end);
     
     // give the loss to the congestion control object and update the send queue parameters
-    updateCongestionControlAndSendQueue([this, start, end](){
+    updateCongestionControlAndSendQueue([this, start, end] {
         _congestionControl->onLoss(start, end);
     });
     
     _stats.record(ConnectionStats::Stats::ReceivedNAK);
 }
 
-void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processHandshake(ControlPacketPointer controlPacket) {
     SequenceNumber initialSequenceNumber;
     controlPacket->readPrimitive(&initialSequenceNumber);
     
@@ -782,18 +806,21 @@ void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) 
         _lastReceivedSequenceNumber = initialSequenceNumber - 1;
         _lastSentACK = initialSequenceNumber - 1;
     }
-    
-    // immediately respond with a handshake ACK
-    static auto handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, sizeof(SequenceNumber));
-    handshakeACK->seek(0);
-    handshakeACK->writePrimitive(initialSequenceNumber);
-    _parentSocket->writeBasePacket(*handshakeACK, _destination);
+
+    _handshakeACK->reset();
+    _handshakeACK->writePrimitive(initialSequenceNumber);
+    _parentSocket->writeBasePacket(*_handshakeACK, _destination);
     
     // indicate that handshake has been received
     _hasReceivedHandshake = true;
+
+    if (_didRequestHandshake) {
+        emit receiverHandshakeRequestComplete(_destination);
+        _didRequestHandshake = false;
+    }
 }
 
-void Connection::processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processHandshakeACK(ControlPacketPointer controlPacket) {
     // if we've decided to clean up the send queue then this handshake ACK should be ignored, it's useless
     if (_sendQueue) {
         SequenceNumber initialSequenceNumber;
@@ -807,7 +834,7 @@ void Connection::processHandshakeACK(std::unique_ptr<ControlPacket> controlPacke
     }
 }
 
-void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processTimeoutNAK(ControlPacketPointer controlPacket) {
     // Override SendQueue's LossList with the timeout NAK list
     getSendQueue().overrideNAKListFromPacket(*controlPacket);
     
@@ -817,7 +844,7 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
     _stats.record(ConnectionStats::Stats::ReceivedTimeoutNAK);
 }
 
-void Connection::processProbeTail(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processProbeTail(ControlPacketPointer controlPacket) {
     if (((uint32_t) _lastReceivedSequenceNumber & 0xF) == 0) {
         // this is the second packet in a probe set so we can estimate bandwidth
         // the sender sent this to us in lieu of sending new data (because they didn't have any)

@@ -1,5 +1,5 @@
 {
-  "version": 1.5,
+  "version": 1.7,
   "settings": [
     {
       "name": "metaverse",
@@ -381,21 +381,29 @@
           "advanced": false
         },
         {
+          "name": "maximum_user_capacity_redirect_location",
+          "label": "Redirect to Location on Maximum Capacity",
+          "help": "Is there another domain, you'd like to redirect clients to when the maximum number of avatars are connected.",
+          "placeholder": "",
+          "default": "",
+          "advanced": false
+        },
+        {
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",
-          "help": "Indicate which users or groups can have which <a data-toggle='tooltip' data-html=true title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>domain-wide permissions</a>.",
+          "help": "Indicate which types of users can have which <a data-toggle='tooltip' data-html=true title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>domain-wide permissions</a>.",
           "caption": "Standard Permissions",
           "can_add_new_rows": false,
 
           "groups": [
             {
-              "label": "User / Group",
+              "label": "Type of User",
               "span": 1
             },
             {
               "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
-              "span": 6
+              "span": 7
             }
           ],
 
@@ -409,7 +417,7 @@
               "label": "Connect",
               "type": "checkbox",
               "editable": true,
-              "default": true
+              "default": false
             },
             {
               "name": "id_can_adjust_locks",
@@ -442,6 +450,13 @@
             {
               "name": "id_can_connect_past_max_capacity",
               "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -452,33 +467,62 @@
           "non-deletable-row-values": ["localhost", "anonymous", "logged-in"]
         },
         {
-          "name": "permissions",
+          "name": "group_permissions",
           "type": "table",
-          "caption": "Permissions for Specific Users",
-          "can_add_new_rows": true,
+          "caption": "Permissions for Users in Groups",
+          "categorize_by_key": "permissions_id",
+          "can_add_new_categories": true,
+          "can_add_new_rows": false,
+          "new_category_placeholder": "Add Group",
+          "new_category_message": "Save and reload to see ranks",
 
           "groups": [
             {
-              "label": "User / Group",
+              "label": "Rank",
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
-              "span": 6
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in, as well as permissions from the previous section.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the per-account section, below.</p>'>?</a>",
+              "span": 7
             }
           ],
 
           "columns": [
             {
               "name": "permissions_id",
-              "label": ""
+              "label": "Group Name",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "rank_id",
+              "label": "Rank ID",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "rank_order",
+              "label": "Rank Order",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "rank_name",
+              "label": "",
+              "readonly": true
+            },
+            {
+              "name": "group_id",
+              "label": "Group ID",
+              "readonly": true,
+              "hidden": true
             },
             {
               "name": "id_can_connect",
               "label": "Connect",
               "type": "checkbox",
               "editable": true,
-              "default": true
+              "default": false
             },
             {
               "name": "id_can_adjust_locks",
@@ -511,6 +555,257 @@
             {
               "name": "id_can_connect_past_max_capacity",
               "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
+        },
+        {
+          "name": "group_forbiddens",
+          "type": "table",
+          "caption": "Permissions Denied to Users in Groups",
+          "categorize_by_key": "permissions_id",
+          "can_add_new_categories": true,
+          "can_add_new_rows": false,
+          "new_category_placeholder": "Add Blacklist Group",
+          "new_category_message": "Save and reload to see ranks",
+
+          "groups": [
+            {
+              "label": "Rank",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the per-account section, below.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": "Group Name",
+              "hidden": true
+            },
+            {
+              "name": "rank_id",
+              "label": "Rank ID",
+              "hidden": true
+            },
+            {
+              "name": "rank_order",
+              "label": "Rank Order",
+              "hidden": true
+            },
+            {
+              "name": "rank_name",
+              "label": "",
+              "readonly": true
+            },
+            {
+              "name": "group_id",
+              "label": "Group ID",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
+        },
+        {
+          "name": "ip_permissions",
+          "type": "table",
+          "caption": "Permissions for Users from IP Addresses",
+          "can_add_new_rows": true,
+          "groups": [
+            {
+              "label": "IP Address",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide IP Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users from specific IPs can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific IPs can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users from specific IPs can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users from specific IPs can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users from specific IPs can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users from specific IPs can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific IP will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). IP address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": ""
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
+        },
+        {
+          "name": "permissions",
+          "type": "table",
+          "caption": "Permissions for Specific Users",
+          "can_add_new_rows": true,
+
+          "groups": [
+            {
+              "label": "User",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level or group permissions that might otherwise apply to that user.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": ""
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -566,15 +861,6 @@
           "type": "string",
           "label": "Assets Path",
           "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
-          "default": "",
-          "advanced": true
-        },
-        {
-          "name": "max_bandwidth",
-          "type": "double",
-          "label": "Max Bandwidth Per User",
-          "help": "The maximum upstream bandwidth each user can use (in Mb/s).",
-          "placeholder": "10.0",
           "default": "",
           "advanced": true
         }
@@ -738,65 +1024,41 @@
           "name": "dynamic_jitter_buffer",
           "type": "checkbox",
           "label": "Dynamic Jitter Buffers",
-          "help": "Dynamically buffer client audio based on perceived jitter in packet receipt timing",
+          "help": "Dynamically buffer inbound audio streams based on perceived jitter in packet receipt timing.",
           "default": true,
           "advanced": true
         },
         {
           "name": "static_desired_jitter_buffer_frames",
           "label": "Static Desired Jitter Buffer Frames",
-          "help": "If dynamic jitter buffers is disabled, this determines the target number of frames maintained by the AudioMixer's jitter buffers",
+          "help": "If dynamic jitter buffers is disabled, this determines the size of the jitter buffers of inbound audio streams in the mixer. Higher numbers introduce more latency.",
           "placeholder": "1",
           "default": "1",
           "advanced": true
         },
         {
-          "name": "max_frames_over_desired",
-          "label": "Max Frames Over Desired",
-          "help": "The highest number of frames an AudioMixer's ringbuffer can exceed the desired jitter buffer frames by",
-          "placeholder": "10",
-          "default": "10",
-          "advanced": true
+            "name": "max_frames_over_desired",
+            "deprecated": true
         },
         {
-          "name": "use_stdev_for_desired_calc",
-          "type": "checkbox",
-          "label": "Stdev for Desired Jitter Frames Calc",
-          "help": "Use Philip's method (stdev of timegaps) to calculate desired jitter frames (otherwise Fred's max timegap method is used)",
-          "default": false,
-          "advanced": true
+            "name": "window_starve_threshold",
+            "deprecated": true
         },
         {
-          "name": "window_starve_threshold",
-          "label": "Window Starve Threshold",
-          "help": "If this many starves occur in an N-second window (N is the number in the next field), then the desired jitter frames will be re-evaluated using Window A.",
-          "placeholder": "3",
-          "default": "3",
-          "advanced": true
+            "name": "window_seconds_for_desired_calc_on_too_many_starves",
+            "deprecated": true
         },
         {
-          "name": "window_seconds_for_desired_calc_on_too_many_starves",
-          "label": "Timegaps Window (A) Seconds",
-          "help": "Window A contains a history of timegaps. Its max timegap is used to re-evaluate the desired jitter frames when too many starves occur within it.",
-          "placeholder": "50",
-          "default": "50",
-          "advanced": true
+            "name": "window_seconds_for_desired_reduction",
+            "deprecated": true
         },
         {
-          "name": "window_seconds_for_desired_reduction",
-          "label": "Timegaps Window (B) Seconds",
-          "help": "Window B contains a history of timegaps. Its max timegap is used as a ceiling for the desired jitter frames value.",
-          "placeholder": "10",
-          "default": "10",
-          "advanced": true
+            "name": "use_stdev_for_desired_calc",
+            "deprecated": true
         },
         {
-          "name": "repetition_with_fade",
-          "type": "checkbox",
-          "label": "Repetition with Fade",
-          "help": "Dropped frames and mixing during starves repeat the last frame, eventually fading to silence",
-          "default": false,
-          "advanced": true
+            "name": "repetition_with_fade",
+            "deprecated": true
         }
       ]
     },
@@ -819,6 +1081,14 @@
           "help": "The path to the file entities are stored in.<br/>If this path is relative it will be relative to the application data directory.<br/>The filename must end in .json.gz.",
           "placeholder": "models.json.gz",
           "default": "models.json.gz",
+          "advanced": true
+        },
+        {
+          "name": "backupDirectoryPath",
+          "label": "Entities Backup Directory Path",
+          "help": "The path to the directory to store backups in.<br/>If this path is relative it will be relative to the application data directory.",
+          "placeholder": "",
+          "default": "",
           "advanced": true
         },
         {

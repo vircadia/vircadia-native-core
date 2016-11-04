@@ -46,7 +46,7 @@ inline btTransform glmToBullet(const glm::mat4& m) {
 }
 
 inline glm::mat4 bulletToGLM(const btTransform& t) {
-    glm::mat4 m(glm::mat4::_null);
+    glm::mat4 m;
 
     const btMatrix3x3& basis = t.getBasis();
     // copy over 3x3 part

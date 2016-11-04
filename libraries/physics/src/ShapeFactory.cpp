@@ -10,7 +10,6 @@
 //
 
 #include <glm/gtx/norm.hpp>
-#include <BulletCollision/CollisionShapes/btShapeHull.h>
 
 #include <SharedUtil.h> // for MILLIMETERS_PER_METER
 
@@ -69,7 +68,6 @@ static const btVector3 _unitSphereDirections[NUM_UNIT_SPHERE_DIRECTIONS] = {
 
 // util method
 btConvexHullShape* createConvexHull(const ShapeInfo::PointList& points) {
-    //std::cout << "adebug createConvexHull() points.size() = " << points.size() << std::endl;  // adebug
     assert(points.size() > 0);
 
     btConvexHullShape* hull = new btConvexHullShape();
@@ -165,20 +163,31 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
     assert(info.getType() == SHAPE_TYPE_STATIC_MESH); // should only get here for mesh shapes
 
     const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
-    assert(pointCollection.size() == 1); // should only have one mesh
 
+    if (pointCollection.size() < 1) {
+        // no lists of points to work with
+        return nullptr;
+    }
+
+    // we only use the first point collection
     const ShapeInfo::PointList& pointList = pointCollection[0];
-    assert(pointList.size() > 2); // should have at least one triangle's worth of points
+    if (pointList.size() < 3) {
+        // not enough distinct points to make a non-degenerate triangle
+        return nullptr;
+    }
 
     const ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-    assert(triangleIndices.size() > 2); // should have at least one triangle's worth of indices
+    int32_t numIndices = triangleIndices.size();
+    if (numIndices < 3) {
+        // not enough indices to make a single triangle
+        return nullptr;
+    }
 
     // allocate mesh buffers
     btIndexedMesh mesh;
-    int32_t numIndices = triangleIndices.size();
     const int32_t VERTICES_PER_TRIANGLE = 3;
     mesh.m_numTriangles = numIndices / VERTICES_PER_TRIANGLE;
-    if (numIndices < INT16_MAX) {
+    if (numIndices < std::numeric_limits<int16_t>::max()) {
         // small number of points so we can use 16-bit indices
         mesh.m_triangleIndexBase = new unsigned char[sizeof(int16_t) * (size_t)numIndices];
         mesh.m_indexType = PHY_SHORT;
@@ -202,7 +211,7 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
         vertexData[j + 1] = point.y;
         vertexData[j + 2] = point.z;
     }
-    if (numIndices < INT16_MAX) {
+    if (numIndices < std::numeric_limits<int16_t>::max()) {
         int16_t* indices = static_cast<int16_t*>((void*)(mesh.m_triangleIndexBase));
         for (int32_t i = 0; i < numIndices; ++i) {
             indices[i] = (int16_t)triangleIndices[i];
@@ -238,18 +247,27 @@ void deleteStaticMeshArray(btTriangleIndexVertexArray* dataArray) {
     delete dataArray;
 }
 
-btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
+const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     int type = info.getType();
-    //std::cout << "adebug createShapeFromInfo() type = " << type << std::endl;  // adebug
     switch(type) {
         case SHAPE_TYPE_BOX: {
             shape = new btBoxShape(glmToBullet(info.getHalfExtents()));
         }
         break;
         case SHAPE_TYPE_SPHERE: {
-            float radius = info.getHalfExtents().x;
-            shape = new btSphereShape(radius);
+            glm::vec3 halfExtents = info.getHalfExtents();
+            float radius = halfExtents.x;
+            if (radius == halfExtents.y && radius == halfExtents.z) {
+                shape = new btSphereShape(radius);
+            } else {
+                ShapeInfo::PointList points;
+                points.reserve(NUM_UNIT_SPHERE_DIRECTIONS);
+                for (uint32_t i = 0; i < NUM_UNIT_SPHERE_DIRECTIONS; ++i) {
+                    points.push_back(bulletToGLM(_unitSphereDirections[i]) * halfExtents);
+                }
+                shape = createConvexHull(points);
+            }
         }
         break;
         case SHAPE_TYPE_CAPSULE_Y: {
@@ -330,29 +348,47 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
         break;
         case SHAPE_TYPE_STATIC_MESH: {
             btTriangleIndexVertexArray* dataArray = createStaticMeshArray(info);
-            shape = new StaticMeshShape(dataArray);
+            if (dataArray) {
+                shape = new StaticMeshShape(dataArray);
+            }
         }
         break;
     }
     if (shape) {
         if (glm::length2(info.getOffset()) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET) {
-            // this shape has an offset, which we support by wrapping the true shape
-            // in a btCompoundShape with a local transform
-            auto compound = new btCompoundShape();
-            btTransform trans;
-            trans.setIdentity();
-            trans.setOrigin(glmToBullet(info.getOffset()));
-            compound->addChildShape(trans, shape);
-            shape = compound;
+            // we need to apply an offset
+            btTransform offset;
+            offset.setIdentity();
+            offset.setOrigin(glmToBullet(info.getOffset()));
+
+            if (shape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
+                // this shape is already compound
+                // walk through the child shapes and adjust their transforms
+                btCompoundShape* compound = static_cast<btCompoundShape*>(shape);
+                int32_t numSubShapes = compound->getNumChildShapes();
+                for (int32_t i = 0; i < numSubShapes; ++i) {
+                    compound->updateChildTransform(i, offset * compound->getChildTransform(i), false);
+                }
+                compound->recalculateLocalAabb();
+            } else {
+                // wrap this shape in a compound
+                auto compound = new btCompoundShape();
+                compound->addChildShape(offset, shape);
+                shape = compound;
+            }
         }
     }
     return shape;
 }
 
-void ShapeFactory::deleteShape(btCollisionShape* shape) {
+void ShapeFactory::deleteShape(const btCollisionShape* shape) {
     assert(shape);
-    if (shape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
-        btCompoundShape* compoundShape = static_cast<btCompoundShape*>(shape);
+    // ShapeFactory is responsible for deleting all shapes, even the const ones that are stored
+    // in the ShapeManager, so we must cast to non-const here when deleting.
+    // so we cast to non-const here when deleting memory.
+    btCollisionShape* nonConstShape = const_cast<btCollisionShape*>(shape);
+    if (nonConstShape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
+        btCompoundShape* compoundShape = static_cast<btCompoundShape*>(nonConstShape);
         const int numChildShapes = compoundShape->getNumChildShapes();
         for (int i = 0; i < numChildShapes; i ++) {
             btCollisionShape* childShape = compoundShape->getChildShape(i);
@@ -364,7 +400,7 @@ void ShapeFactory::deleteShape(btCollisionShape* shape) {
             }
         }
     }
-    delete shape;
+    delete nonConstShape;
 }
 
 // the dataArray must be created before we create the StaticMeshShape

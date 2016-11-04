@@ -28,13 +28,14 @@ using SpatiallyNestableConstPointer = std::shared_ptr<const SpatiallyNestable>;
 
 enum class NestableType {
     Entity,
-    Avatar
+    Avatar,
+    Overlay
 };
 
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
 public:
     SpatiallyNestable(NestableType nestableType, QUuid id);
-    virtual ~SpatiallyNestable() { }
+    virtual ~SpatiallyNestable();
 
     virtual const QUuid getID() const;
     virtual void setID(const QUuid& id);
@@ -47,13 +48,23 @@ public:
 
     static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
     static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::vec3 worldToLocalVelocity(const glm::vec3& velocity, const QUuid& parentID,
+                                          int parentJointIndex, bool& success);
+    static glm::vec3 worldToLocalAngularVelocity(const glm::vec3& angularVelocity, const QUuid& parentID,
+                                                 int parentJointIndex, bool& success);
 
     static glm::vec3 localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
     static glm::quat localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::vec3 localToWorldVelocity(const glm::vec3& velocity,
+                                          const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::vec3 localToWorldAngularVelocity(const glm::vec3& angularVelocity,
+                                                 const QUuid& parentID, int parentJointIndex, bool& success);
 
     // world frame
     virtual const Transform getTransform(bool& success, int depth = 0) const;
+    virtual const Transform getTransform() const;
     virtual void setTransform(const Transform& transform, bool& success);
+    virtual bool setTransform(const Transform& transform);
 
     virtual Transform getParentTransform(bool& success, int depth = 0) const;
 
@@ -67,6 +78,10 @@ public:
     virtual glm::quat getOrientation(int jointIndex, bool& success) const;
     virtual void setOrientation(const glm::quat& orientation, bool& success, bool tellPhysics = true);
     virtual void setOrientation(const glm::quat& orientation);
+
+    // these are here because some older code uses rotation rather than orientation
+    virtual const glm::quat getRotation() const { return getOrientation(); }
+    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
 
     virtual glm::vec3 getVelocity(bool& success) const;
     virtual glm::vec3 getVelocity() const;
@@ -91,6 +106,7 @@ public:
 
     virtual glm::vec3 getScale() const;
     virtual void setScale(const glm::vec3& scale);
+    virtual void setScale(float value);
 
     // get world-frame values for a specific joint
     virtual const Transform getTransform(int jointIndex, bool& success, int depth = 0) const;
@@ -123,10 +139,10 @@ public:
 
     // this object's frame
     virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
-    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const = 0;
-    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const = 0;
-    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) = 0;
-    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) = 0;
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { return glm::quat(); }
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { return glm::vec3(); }
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {return false; }
 
     SpatiallyNestablePointer getThisPointer() const;
 
@@ -143,6 +159,8 @@ public:
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
     bool hasAncestorOfType(NestableType nestableType);
+    SpatiallyNestablePointer getParentPointer(bool& success) const;
+    static SpatiallyNestablePointer findByID(QUuid id, bool& success);
 
     void getLocalTransformAndVelocities(Transform& localTransform,
                                         glm::vec3& localVelocity,
@@ -158,7 +176,6 @@ protected:
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
-    SpatiallyNestablePointer getParentPointer(bool& success) const;
 
     mutable SpatiallyNestableWeakPointer _parent;
 
@@ -170,6 +187,7 @@ protected:
 
     virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
     virtual void dimensionsChanged() { } // called when a this object's dimensions have changed
+    virtual void parentDeleted() { } // called on children of a deleted parent
 
     // _queryAACube is used to decide where something lives in the octree
     mutable AACube _queryAACube;

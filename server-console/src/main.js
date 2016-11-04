@@ -42,6 +42,8 @@ const appIcon = path.join(__dirname, '../resources/console.png');
 const DELETE_LOG_FILES_OLDER_THAN_X_SECONDS = 60 * 60 * 24 * 7; // 7 Days
 const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
 
+const HOME_CONTENT_URL = "http://cachefly.highfidelity.com/home-tutorial-release-5572.tar.gz";
+
 function getBuildInfo() {
     var buildInfoPath = null;
 
@@ -62,7 +64,6 @@ function getBuildInfo() {
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
-        console.log('Build info path:', buildInfoPath);
         try {
             buildInfo = JSON.parse(fs.readFileSync(buildInfoPath));
         } catch (e) {
@@ -72,10 +73,7 @@ function getBuildInfo() {
 
     return buildInfo;
 }
-
 const buildInfo = getBuildInfo();
-
-console.log("build info", buildInfo);
 
 function getRootHifiDataDirectory() {
     var organization = "High Fidelity";
@@ -103,16 +101,26 @@ function getApplicationDataDirectory() {
     return path.join(getRootHifiDataDirectory(), '/Server Console');
 }
 
-console.log("Root hifi directory is: ", getRootHifiDataDirectory());
+// Configure log
+global.log = require('electron-log');
+const logFile = getApplicationDataDirectory() + '/log.txt';
+fs.ensureFileSync(logFile); // Ensure file exists
+log.transports.file.maxSize = 5 * 1024 * 1024;
+log.transports.file.file = logFile;
+
+log.debug("build info", buildInfo);
+log.debug("Root hifi directory is: ", getRootHifiDataDirectory());
 
 const ipcMain = electron.ipcMain;
 
 
 var isShuttingDown = false;
 function shutdown() {
+    log.debug("Normal shutdown (isShuttingDown: " + isShuttingDown +  ")");
     if (!isShuttingDown) {
         // if the home server is running, show a prompt before quit to ask if the user is sure
         if (homeServer.state == ProcessGroupStates.STARTED) {
+            log.debug("Showing shutdown dialog.");
             dialog.showMessageBox({
                 type: 'question',
                 buttons: ['Yes', 'No'],
@@ -126,16 +134,27 @@ function shutdown() {
     }
 }
 
+function forcedShutdown() {
+    log.debug("Forced shutdown (isShuttingDown: " + isShuttingDown +  ")");
+    if (!isShuttingDown) {
+        shutdownCallback(0);
+    }
+}
+
 function shutdownCallback(idx) {
+    log.debug("Entering shutdown callback.");
     if (idx == 0 && !isShuttingDown) {
         isShuttingDown = true;
 
+        log.debug("Saving user config");
         userConfig.save(configPath);
 
         if (logWindow) {
+            log.debug("Closing log window");
             logWindow.close();
         }
         if (homeServer) {
+            log.debug("Stoping home server");
             homeServer.stop();
         }
 
@@ -143,15 +162,20 @@ function shutdownCallback(idx) {
 
         if (homeServer.state == ProcessGroupStates.STOPPED) {
             // if the home server is already down, take down the server console now
-            app.quit();
+            log.debug("Quitting.");
+            app.exit(0);
         } else {
             // if the home server is still running, wait until we get a state change or timeout
             // before quitting the app
-            var timeoutID = setTimeout(app.quit, 5000);
+            log.debug("Server still shutting down. Waiting");
+            var timeoutID = setTimeout(function() {
+                app.exit(0);
+            }, 5000);
             homeServer.on('state-update', function(processGroup) {
                 if (processGroup.state == ProcessGroupStates.STOPPED) {
                     clearTimeout(timeoutID);
-                    app.quit();
+                    log.debug("Quitting.");
+                    app.exit(0);
                 }
             });
         }
@@ -159,36 +183,36 @@ function shutdownCallback(idx) {
 }
 
 function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
-    console.log("Deleting old log files in " + directoryPath);
+    log.debug("Deleting old log files in " + directoryPath);
 
     var filenames = [];
     try {
         filenames = fs.readdirSync(directoryPath);
     } catch (e) {
-        console.warn("Error reading contents of log file directory", e);
+        log.warn("Error reading contents of log file directory", e);
         return;
     }
 
     for (const filename of filenames) {
-        console.log("Checking", filename);
+        log.debug("Checking", filename);
         const absolutePath = path.join(directoryPath, filename);
         var stat = null;
         try {
             stat = fs.statSync(absolutePath);
         } catch (e) {
-            console.log("Error stat'ing file", absolutePath, e);
+            log.debug("Error stat'ing file", absolutePath, e);
             continue;
         }
         const curTime = Date.now();
         if (stat.isFile() && filename.search(filenameRegex) >= 0) {
             const ageInSeconds = (curTime - stat.mtime.getTime()) / 1000.0;
             if (ageInSeconds >= maxAgeInSeconds) {
-                console.log("\tDeleting:", filename, ageInSeconds);
+                log.debug("\tDeleting:", filename, ageInSeconds);
                 try {
                     fs.unlinkSync(absolutePath);
                 } catch (e) {
                     if (e.code != 'EBUSY') {
-                        console.warn("\tError deleting:", e);
+                        log.warn("\tError deleting:", e);
                     }
                 }
             }
@@ -198,8 +222,8 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
 
 var logPath = path.join(getApplicationDataDirectory(), '/logs');
 
-console.log("Log directory:", logPath);
-console.log("Data directory:", getRootHifiDataDirectory());
+log.debug("Log directory:", logPath);
+log.debug("Data directory:", getRootHifiDataDirectory());
 
 const configPath = path.join(getApplicationDataDirectory(), 'config.json');
 var userConfig = new Config();
@@ -207,8 +231,8 @@ userConfig.load(configPath);
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
-    console.error(err);
-    console.error(err.stack);
+    log.error(err);
+    log.error(err.stack);
 });
 
 var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) {
@@ -217,13 +241,14 @@ var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) 
 });
 
 if (shouldQuit) {
-    console.warn("Another instance of the Sandbox is already running - this instance will quit.");
-    app.quit();
+    log.warn("Another instance of the Sandbox is already running - this instance will quit.");
+    app.exit(0);
     return;
 }
 
 // Check command line arguments to see how to find binaries
 var argv = require('yargs').argv;
+
 var pathFinder = require('./modules/path-finder.js');
 
 var interfacePath = null;
@@ -265,12 +290,12 @@ function binaryMissingMessage(displayName, executableName, required) {
 
 if (!dsPath) {
     dialog.showErrorBox("Domain Server Not Found", binaryMissingMessage("domain-server", "domain-server", true));
-    app.quit();
+    app.exit(0);
 }
 
 if (!acPath) {
     dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client", "assignment-client", true));
-    app.quit();
+    app.exit(0);
 }
 
 function openFileBrowser(path) {
@@ -283,6 +308,10 @@ function openFileBrowser(path) {
     } else if (osType == "Linux") {
         childProcess.exec('xdg-open ' + path);
     }
+}
+
+function openLogDirectory() {
+    openFileBrowser(logPath);
 }
 
 // NOTE: this looks like it does nothing, but it's very important.
@@ -309,6 +338,7 @@ global.homeServer = null;
 global.domainServer = null;
 global.acMonitor = null;
 global.userConfig = userConfig;
+global.openLogDirectory = openLogDirectory;
 
 var LogWindow = function(ac, ds) {
     this.ac = ac;
@@ -401,6 +431,13 @@ var labels = {
             logWindow.open();
         }
     },
+    restoreBackup: {
+        label: 'Restore Backup Instructions',
+        click: function() {
+            var folder = getRootHifiDataDirectory() + "/Server Backup";
+            openBackupInstructions(folder);
+        }
+    },
     share: {
         label: 'Share',
         click: function() {
@@ -436,6 +473,7 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.stopServer);
         menuArray.push(labels.settings);
         menuArray.push(labels.viewLogs);
+        menuArray.push(labels.restoreBackup);
         menuArray.push(separator);
         menuArray.push(labels.share);
         menuArray.push(separator);
@@ -481,48 +519,163 @@ function updateTrayMenu(serverState) {
 
 const httpStatusPort = 60332;
 
+function backupResourceDirectories(folder) {
+    try {
+        fs.mkdirSync(folder);
+        log.debug("Created directory " + folder);
+
+        var dsBackup = path.join(folder, '/domain-server');
+        var acBackup = path.join(folder, '/assignment-client');
+
+        fs.copySync(getDomainServerClientResourcesDirectory(), dsBackup);
+        fs.copySync(getAssignmentClientResourcesDirectory(), acBackup);
+
+        fs.removeSync(getDomainServerClientResourcesDirectory());
+        fs.removeSync(getAssignmentClientResourcesDirectory());
+
+        return true;
+    } catch (e) {
+        log.debug(e);
+        return false;
+    }
+}
+
+function openBackupInstructions(folder) {
+    // Explain user how to restore server
+    var window = new BrowserWindow({
+        icon: appIcon,
+        width: 800,
+        height: 520,
+    });
+    window.loadURL('file://' + __dirname + '/content-update.html');
+    if (!debug) {
+        window.setMenu(null);
+    }
+    window.show();
+
+    electron.ipcMain.on('setSize', function(event, obj) {
+        window.setSize(obj.width, obj.height);
+    });
+    electron.ipcMain.on('ready', function() {
+        log.debug("got ready");
+        window.webContents.send('update', folder);
+    });
+}
+function backupResourceDirectoriesAndRestart() {
+    homeServer.stop();
+
+    var folder = getRootHifiDataDirectory() + "/Server Backup - " + Date.now();
+    if (backupResourceDirectories(folder)) {
+        maybeInstallDefaultContentSet(onContentLoaded);
+        openBackupInstructions(folder);
+    } else {
+        dialog.showMessageBox({
+            type: 'warning',
+            buttons: ['Ok'],
+            title: 'Update Error',
+            message: 'There was an error updating the content, aborting.'
+        }, function() {});
+    }
+}
+
+function checkNewContent() {
+    // Start downloading content set
+    var req = request.head({
+        url: HOME_CONTENT_URL
+    }, function (error, response, body) {
+        if (error === null) {
+            var localContent = Date.parse(userConfig.get('homeContentLastModified'));
+            var remoteContent = Date.parse(response.headers['last-modified']);
+
+            var shouldUpdate = isNaN(localContent) || (!isNaN(remoteContent) && (remoteContent > localContent));
+
+            var wantDebug = false;
+            if (wantDebug) {
+                log.debug('Last Modified: ' + response.headers['last-modified']);
+                log.debug(localContent + " " + remoteContent + " " + shouldUpdate + " " + new Date());
+                log.debug("Remote content is " + (shouldUpdate ? "newer" : "older") + " that local content.");
+            }
+
+            if (shouldUpdate) {
+              dialog.showMessageBox({
+                  type: 'question',
+                  buttons: ['Yes', 'No'],
+                  defaultId: 1,
+                  cancelId: 1,
+                  title: 'New home content',
+                  message: 'A newer version of the home content set is available.\nDo you wish to update?',
+                  noLink: true,
+              }, function(idx) {
+                  if (idx === 0) {
+                      dialog.showMessageBox({
+                          type: 'warning',
+                          buttons: ['Yes', 'No'],
+                          defaultId: 1,
+                          cancelId: 1,
+                          title: 'Are you sure?',
+                          message: 'Updating with the new content will remove all your current content and settings and place them in a backup folder.\nAre you sure?',
+                          noLink: true,
+                      }, function(idx) {
+                          if (idx === 0) {
+                              backupResourceDirectoriesAndRestart();
+                          }
+                      });
+                  } else {
+                      // They don't want to update, mark content set as current
+                      userConfig.set('homeContentLastModified', new Date());
+                  }
+              });
+            }
+        }
+    });
+}
+
+
 function maybeInstallDefaultContentSet(onComplete) {
     // Check for existing data
     const acResourceDirectory = getAssignmentClientResourcesDirectory();
 
-    console.log("Checking for existence of " + acResourceDirectory);
+    log.debug("Checking for existence of " + acResourceDirectory);
 
     var userHasExistingACData = true;
     try {
         fs.accessSync(acResourceDirectory);
-        console.log("Found directory " + acResourceDirectory);
+        log.debug("Found directory " + acResourceDirectory);
     } catch (e) {
-        console.log(e);
+        log.debug(e);
         userHasExistingACData = false;
     }
 
     const dsResourceDirectory = getDomainServerClientResourcesDirectory();
 
-    console.log("checking for existence of " + dsResourceDirectory);
+    log.debug("checking for existence of " + dsResourceDirectory);
 
     var userHasExistingDSData = true;
     try {
         fs.accessSync(dsResourceDirectory);
-        console.log("Found directory " + dsResourceDirectory);
+        log.debug("Found directory " + dsResourceDirectory);
     } catch (e) {
-        console.log(e);
+        log.debug(e);
         userHasExistingDSData = false;
     }
 
     if (userHasExistingACData || userHasExistingDSData) {
-        console.log("User has existing data, suppressing downloader");
+        log.debug("User has existing data, suppressing downloader");
         onComplete();
+
+        checkNewContent();
         return;
     }
 
-    console.log("Found contentPath:" + argv.contentPath);
+    log.debug("Found contentPath:" + argv.contentPath);
     if (argv.contentPath) {
         fs.copy(argv.contentPath, getRootHifiDataDirectory(), function (err) {
             if (err) {
-                console.log('Could not copy home content: ' + err);
-                return console.error(err)
+                log.debug('Could not copy home content: ' + err);
+                return log.error(err)
             }
-            console.log('Copied home content over to: ' + getRootHifiDataDirectory());
+            log.debug('Copied home content over to: ' + getRootHifiDataDirectory());
+            userConfig.set('homeContentLastModified', new Date());
             onComplete();
         });
         return;
@@ -548,11 +701,11 @@ function maybeInstallDefaultContentSet(onComplete) {
     window.on('closed', onComplete);
 
     electron.ipcMain.on('ready', function() {
-        console.log("got ready");
+        log.debug("got ready");
         var currentState = '';
 
         function sendStateUpdate(state, args) {
-            // console.log(state, window, args);
+            // log.debug(state, window, args);
             window.webContents.send('update', { state: state, args: args });
             currentState = state;
         }
@@ -561,7 +714,7 @@ function maybeInstallDefaultContentSet(onComplete) {
 
         // Start downloading content set
         var req = progress(request.get({
-            url: "http://cachefly.highfidelity.com/home.tgz"
+            url: HOME_CONTENT_URL
         }, function(error, responseMessage, responseData) {
             if (aborted) {
                 return;
@@ -586,10 +739,10 @@ function maybeInstallDefaultContentSet(onComplete) {
         });
 
         function extractError(err) {
-            console.log("Aborting request because gunzip/untar failed");
+            log.debug("Aborting request because gunzip/untar failed");
             aborted = true;
             req.abort();
-            console.log("ERROR" +  err);
+            log.debug("ERROR" +  err);
 
             sendStateUpdate('error', {
                 message: "Error installing resources."
@@ -601,7 +754,8 @@ function maybeInstallDefaultContentSet(onComplete) {
 
         req.pipe(gunzip).pipe(tar.extract(getRootHifiDataDirectory())).on('error', extractError).on('finish', function(){
             // response and decompression complete, return
-            console.log("Finished unarchiving home content set");
+            log.debug("Finished unarchiving home content set");
+            userConfig.set('homeContentLastModified', new Date());
             sendStateUpdate('complete');
         });
 
@@ -643,6 +797,7 @@ function maybeShowSplash() {
     }
 }
 
+
 const trayIconOS = (osType == "Darwin") ? "osx" : "win";
 var trayIcons = {};
 trayIcons[ProcessGroupStates.STARTED] = "console-tray-" + trayIconOS + ".png";
@@ -657,6 +812,97 @@ for (var key in trayIcons) {
 
 
 const notificationIcon = path.join(__dirname, '../resources/console-notification.png');
+
+function onContentLoaded() {
+    // Disable splash window for now.
+    // maybeShowSplash();
+
+    if (buildInfo.releaseType == 'PRODUCTION') {
+        var currentVersion = null;
+        try {
+            currentVersion = parseInt(buildInfo.buildIdentifier);
+        } catch (e) {
+        }
+
+        if (currentVersion !== null) {
+            const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
+            var hasShownUpdateNotification = false;
+            const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
+            updateChecker.on('update-available', function(latestVersion, url) {
+                if (!hasShownUpdateNotification) {
+                    notifier.notify({
+                        icon: notificationIcon,
+                        title: 'An update is available!',
+                        message: 'High Fidelity version ' + latestVersion + ' is available',
+                        wait: true,
+                        url: url
+                    });
+                    hasShownUpdateNotification = true;
+                }
+            });
+            notifier.on('click', function(notifierObject, options) {
+                log.debug("Got click", options.url);
+                shell.openExternal(options.url);
+            });
+        }
+    }
+
+    deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
+
+    if (dsPath && acPath) {
+        domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
+        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
+                                                                '--log-directory', logPath,
+                                                                '--http-status-port', httpStatusPort], httpStatusPort, logPath);
+        homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
+        logWindow = new LogWindow(acMonitor, domainServer);
+
+        var processes = {
+            home: homeServer
+        };
+
+        // handle process updates
+        homeServer.on('state-update', function(processGroup) { updateTrayMenu(processGroup.state); });
+
+        // start the home server
+        homeServer.start();
+    }
+
+    // If we were launched with the launchInterface option, then we need to launch interface now
+    if (argv.launchInterface) {
+        log.debug("Interface launch requested... argv.launchInterface:", argv.launchInterface);
+        startInterface();
+    }
+
+    // If we were launched with the shutdownWatcher option, then we need to watch for the interface app
+    // shutting down. The interface app will regularly update a running state file which we will check.
+    // If the file doesn't exist or stops updating for a significant amount of time, we will shut down.
+    if (argv.shutdownWatcher) {
+        log.debug("Shutdown watcher requested... argv.shutdownWatcher:", argv.shutdownWatcher);
+        var MAX_TIME_SINCE_EDIT = 5000; // 5 seconds between updates
+        var firstAttemptToCheck = new Date().getTime();
+        var shutdownWatchInterval = setInterval(function(){
+            var stats = fs.stat(argv.shutdownWatcher, function(err, stats) {
+                if (err) {
+                    var sinceFirstCheck = new Date().getTime() - firstAttemptToCheck;
+                    if (sinceFirstCheck > MAX_TIME_SINCE_EDIT) {
+                        log.debug("Running state file is missing, assume interface has shutdown... shutting down snadbox.");
+                        forcedShutdown();
+                        clearTimeout(shutdownWatchInterval);
+                    }
+                } else {
+                    var sinceEdit = new Date().getTime() - stats.mtime.getTime();
+                    if (sinceEdit > MAX_TIME_SINCE_EDIT) {
+                        log.debug("Running state of interface hasn't updated in MAX time... shutting down.");
+                        forcedShutdown();
+                        clearTimeout(shutdownWatchInterval);
+                    }
+                }
+            });
+        }, 1000);
+    }
+}
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -677,58 +923,5 @@ app.on('ready', function() {
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
-    maybeInstallDefaultContentSet(function() {
-        maybeShowSplash();
-
-        if (buildInfo.releaseType == 'PRODUCTION') {
-            var currentVersion = null;
-            try {
-                currentVersion = parseInt(buildInfo.buildIdentifier);
-            } catch (e) {
-            }
-
-            if (currentVersion !== null) {
-                const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
-                var hasShownUpdateNotification = false;
-                const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
-                updateChecker.on('update-available', function(latestVersion, url) {
-                    if (!hasShownUpdateNotification) {
-                        notifier.notify({
-                            icon: notificationIcon,
-                            title: 'An update is available!',
-                            message: 'High Fidelity version ' + latestVersion + ' is available',
-                            wait: true,
-                            url: url
-                        });
-                        hasShownUpdateNotification = true;
-                    }
-                });
-                notifier.on('click', function(notifierObject, options) {
-                    console.log("Got click", options.url);
-                    shell.openExternal(options.url);
-                });
-            }
-        }
-
-        deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
-
-        if (dsPath && acPath) {
-            domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
-            acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
-                                                                    '--log-directory', logPath,
-                                                                    '--http-status-port', httpStatusPort], httpStatusPort, logPath);
-            homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
-            logWindow = new LogWindow(acMonitor, domainServer);
-
-            var processes = {
-                home: homeServer
-            };
-
-            // handle process updates
-            homeServer.on('state-update', function(processGroup) { updateTrayMenu(processGroup.state); });
-
-            // start the home server
-            homeServer.start();
-        }
-    });
+    maybeInstallDefaultContentSet(onContentLoaded);
 });

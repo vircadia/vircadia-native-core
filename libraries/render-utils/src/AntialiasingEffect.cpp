@@ -29,12 +29,33 @@
 
 
 Antialiasing::Antialiasing() {
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
+
+Antialiasing::~Antialiasing() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
     int width = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
     int height = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height();
-    
+
+    if (_antialiasingBuffer && _antialiasingBuffer->getSize() != uvec2(width, height)) {
+        _antialiasingBuffer.reset();
+    }
+
+    if (!_antialiasingBuffer) {
+        // Link the antialiasing FBO to texture
+        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
+        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
+        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
+    }
+
     if (!_antialiasingPipeline) {
         auto vs = gpu::Shader::createVertex(std::string(fxaa_vert));
         auto ps = gpu::Shader::createPixel(std::string(fxaa_frag));
@@ -51,19 +72,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
-        // Link the antialiasing FBO to texture
-        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
-        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
-        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
-
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
-    }
-
-    if (width != _antialiasingBuffer->getWidth() || height != _antialiasingBuffer->getHeight()) {
-        _antialiasingBuffer->resize(width, height);
     }
 
     return _antialiasingPipeline;
@@ -119,7 +129,7 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         args->getViewFrustum().evalProjectionMatrix(projMat);
         args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+        batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 
         // FXAA step
@@ -148,7 +158,7 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         glm::vec2 topRight(1.0f, 1.0f);
         glm::vec2 texCoordTopLeft(0.0f, 0.0f);
         glm::vec2 texCoordBottomRight(1.0f, 1.0f);
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color, _geometryId);
 
 
         // Blend step
@@ -157,6 +167,6 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());
 
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color, _geometryId);
     });
 }

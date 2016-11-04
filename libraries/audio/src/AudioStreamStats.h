@@ -16,6 +16,13 @@
 
 class AudioStreamStats {
 public:
+    // Intermediate packets should have no flag set
+    // Unique packets should have both flags set
+    enum AppendFlag : quint8 {
+        START = 1,
+        END = 2
+    };
+
     AudioStreamStats()
         : _streamType(-1),
         _streamIdentifier(),
@@ -48,6 +55,7 @@ public:
 
     quint32 _framesAvailable;
     quint16 _framesAvailableAverage;
+    quint16 _unplayedMs;
     quint16 _desiredJitterBufferFrames;
     quint32 _starveCount;
     quint32 _consecutiveNotMixedCount;

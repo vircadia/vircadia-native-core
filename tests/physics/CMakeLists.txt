@@ -2,7 +2,7 @@
 # Declare dependencies
 macro (SETUP_TESTCASE_DEPENDENCIES)
   target_bullet()
-  link_hifi_libraries(shared physics)
+  link_hifi_libraries(shared physics gpu model)
   package_libraries_for_deployment()
 endmacro ()
 

@@ -36,7 +36,7 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     config->textureGPUTransferCount = gpu::Texture::getTextureGPUTransferCount();
 
     gpu::ContextStats gpuStats(_gpuStats);
-    renderContext->args->_context->getStats(_gpuStats);
+    renderContext->args->_context->getFrameStats(_gpuStats);
 
     config->frameAPIDrawcallCount = _gpuStats._DSNumAPIDrawcalls - gpuStats._DSNumAPIDrawcalls;
     config->frameDrawcallCount = _gpuStats._DSNumDrawcalls - gpuStats._DSNumDrawcalls;

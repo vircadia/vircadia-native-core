@@ -15,6 +15,7 @@
 #include <EntityItemProperties.h>
 #include <EntityEditPacketSender.h>
 #include <PhysicsCollisionGroups.h>
+#include <LogHandler.h>
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
@@ -46,7 +47,7 @@ bool entityTreeIsLocked() {
 
 
 EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
-    ObjectMotionState(shape),
+    ObjectMotionState(nullptr),
     _entityPtr(entity),
     _entity(entity.get()),
     _serverPosition(0.0f),
@@ -71,6 +72,9 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     assert(_entity);
     assert(entityTreeIsLocked());
     setMass(_entity->computeMass());
+    // we need the side-effects of EntityMotionState::setShape() so we call it explicitly here
+    // rather than pass the legit shape pointer to the ObjectMotionState ctor above.
+    setShape(shape);
 }
 
 EntityMotionState::~EntityMotionState() {
@@ -227,11 +231,17 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     bool positionSuccess;
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
     if (!positionSuccess) {
+        static QString repeatedMessage =
+            LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
+                                                              "setPosition failed.*");
         qDebug() << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
     }
     bool orientationSuccess;
     _entity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
     if (!orientationSuccess) {
+        static QString repeatedMessage =
+            LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
+                                                              "setOrientation failed.*");
         qDebug() << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
     }
     _entity->setVelocity(getBodyLinearVelocity());
@@ -264,11 +274,18 @@ bool EntityMotionState::isReadyToComputeShape() const {
 }
 
 // virtual and protected
-btCollisionShape* EntityMotionState::computeNewShape() {
+const btCollisionShape* EntityMotionState::computeNewShape() {
     ShapeInfo shapeInfo;
     assert(entityTreeIsLocked());
     _entity->computeShapeInfo(shapeInfo);
     return getShapeManager()->getShape(shapeInfo);
+}
+
+void EntityMotionState::setShape(const btCollisionShape* shape) {
+    if (_shape != shape) {
+        ObjectMotionState::setShape(shape);
+        _entity->setCollisionShape(_shape);
+    }
 }
 
 bool EntityMotionState::isCandidateForOwnership() const {

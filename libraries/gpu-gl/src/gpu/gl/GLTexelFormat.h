@@ -21,7 +21,7 @@ public:
     static GLTexelFormat evalGLTexelFormat(const Element& dstFormat) {
         return evalGLTexelFormat(dstFormat, dstFormat);
     }
-    static GLTexelFormat evalGLTexelFormatInternal(const Element& dstFormat);
+    static GLenum evalGLTexelFormatInternal(const Element& dstFormat);
 
     static GLTexelFormat evalGLTexelFormat(const Element& dstFormat, const Element& srcFormat);
 };

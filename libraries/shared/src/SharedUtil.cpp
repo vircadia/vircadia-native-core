@@ -22,11 +22,8 @@
 #include <glm/glm.hpp>
 
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 #ifdef Q_OS_WIN
+#include <windows.h>
 #include "CPUIdent.h"
 #include <Psapi.h>
 #endif
@@ -767,72 +764,79 @@ void disableQtBearerPoll() {
 
 void printSystemInformation() {
     // Write system information to log
-    qDebug() << "Build Information";
-    qDebug().noquote() << "\tBuild ABI: " << QSysInfo::buildAbi();
-    qDebug().noquote() << "\tBuild CPU Architecture: " << QSysInfo::buildCpuArchitecture();
+    qCDebug(shared) << "Build Information";
+    qCDebug(shared).noquote() << "\tBuild ABI: " << QSysInfo::buildAbi();
+    qCDebug(shared).noquote() << "\tBuild CPU Architecture: " << QSysInfo::buildCpuArchitecture();
 
-    qDebug().noquote() << "System Information";
-    qDebug().noquote() << "\tProduct Name: " << QSysInfo::prettyProductName();
-    qDebug().noquote() << "\tCPU Architecture: " << QSysInfo::currentCpuArchitecture();
-    qDebug().noquote() << "\tKernel Type: " << QSysInfo::kernelType();
-    qDebug().noquote() << "\tKernel Version: " << QSysInfo::kernelVersion();
+    qCDebug(shared).noquote() << "System Information";
+    qCDebug(shared).noquote() << "\tProduct Name: " << QSysInfo::prettyProductName();
+    qCDebug(shared).noquote() << "\tCPU Architecture: " << QSysInfo::currentCpuArchitecture();
+    qCDebug(shared).noquote() << "\tKernel Type: " << QSysInfo::kernelType();
+    qCDebug(shared).noquote() << "\tKernel Version: " << QSysInfo::kernelVersion();
 
     auto macVersion = QSysInfo::macVersion();
     if (macVersion != QSysInfo::MV_None) {
-        qDebug() << "\tMac Version: " << macVersion;
+        qCDebug(shared) << "\tMac Version: " << macVersion;
     }
 
     auto windowsVersion = QSysInfo::windowsVersion();
     if (windowsVersion != QSysInfo::WV_None) {
-        qDebug() << "\tWindows Version: " << windowsVersion;
+        qCDebug(shared) << "\tWindows Version: " << windowsVersion;
     }
 
 #ifdef Q_OS_WIN
     SYSTEM_INFO si;
     GetNativeSystemInfo(&si);
 
-    qDebug() << "SYSTEM_INFO";
-    qDebug().noquote() << "\tOEM ID: " << si.dwOemId;
-    qDebug().noquote() << "\tProcessor Architecture: " << si.wProcessorArchitecture;
-    qDebug().noquote() << "\tProcessor Type: " << si.dwProcessorType;
-    qDebug().noquote() << "\tProcessor Level: " << si.wProcessorLevel;
-    qDebug().noquote() << "\tProcessor Revision: "
+    qCDebug(shared) << "SYSTEM_INFO";
+    qCDebug(shared).noquote() << "\tOEM ID: " << si.dwOemId;
+    qCDebug(shared).noquote() << "\tProcessor Architecture: " << si.wProcessorArchitecture;
+    qCDebug(shared).noquote() << "\tProcessor Type: " << si.dwProcessorType;
+    qCDebug(shared).noquote() << "\tProcessor Level: " << si.wProcessorLevel;
+    qCDebug(shared).noquote() << "\tProcessor Revision: "
                        << QString("0x%1").arg(si.wProcessorRevision, 4, 16, QChar('0'));
-    qDebug().noquote() << "\tNumber of Processors: " << si.dwNumberOfProcessors;
-    qDebug().noquote() << "\tPage size: " << si.dwPageSize << " Bytes";
-    qDebug().noquote() << "\tMin Application Address: "
+    qCDebug(shared).noquote() << "\tNumber of Processors: " << si.dwNumberOfProcessors;
+    qCDebug(shared).noquote() << "\tPage size: " << si.dwPageSize << " Bytes";
+    qCDebug(shared).noquote() << "\tMin Application Address: "
                        << QString("0x%1").arg(qulonglong(si.lpMinimumApplicationAddress), 16, 16, QChar('0'));
-    qDebug().noquote() << "\tMax Application Address: "
+    qCDebug(shared).noquote() << "\tMax Application Address: "
                        << QString("0x%1").arg(qulonglong(si.lpMaximumApplicationAddress), 16, 16, QChar('0'));
 
     const double BYTES_TO_MEGABYTE = 1.0 / (1024 * 1024);
 
-    qDebug() << "MEMORYSTATUSEX";
+    qCDebug(shared) << "MEMORYSTATUSEX";
     MEMORYSTATUSEX ms;
     ms.dwLength = sizeof(ms);
     if (GlobalMemoryStatusEx(&ms)) {
-        qDebug().noquote() << QString("\tCurrent System Memory Usage: %1%").arg(ms.dwMemoryLoad);
-        qDebug().noquote() << QString("\tAvail Physical Memory: %1 MB").arg(ms.ullAvailPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tTotal Physical Memory: %1 MB").arg(ms.ullTotalPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tAvail in Page File:    %1 MB").arg(ms.ullAvailPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tTotal in Page File:    %1 MB").arg(ms.ullTotalPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tAvail Virtual Memory:  %1 MB").arg(ms.ullAvailVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tTotal Virtual Memory:  %1 MB").arg(ms.ullTotalVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tCurrent System Memory Usage: %1%").arg(ms.dwMemoryLoad);
+        qCDebug(shared).noquote()
+            << QString("\tAvail Physical Memory: %1 MB").arg(ms.ullAvailPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal Physical Memory: %1 MB").arg(ms.ullTotalPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tAvail in Page File:    %1 MB").arg(ms.ullAvailPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal in Page File:    %1 MB").arg(ms.ullTotalPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tAvail Virtual Memory:  %1 MB").arg(ms.ullAvailVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal Virtual Memory:  %1 MB").arg(ms.ullTotalVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
     } else {
-        qDebug() << "\tFailed to retrieve memory status: " << GetLastError();
+        qCDebug(shared) << "\tFailed to retrieve memory status: " << GetLastError();
     }
 
-    qDebug() << "CPUID";
+    qCDebug(shared) << "CPUID";
 
-    qDebug() << "\tCPU Vendor: " << CPUIdent::Vendor().c_str();
-    qDebug() << "\tCPU Brand:  " << CPUIdent::Brand().c_str();
+    qCDebug(shared) << "\tCPU Vendor: " << CPUIdent::Vendor().c_str();
+    qCDebug(shared) << "\tCPU Brand:  " << CPUIdent::Brand().c_str();
 
     for (auto& feature : CPUIdent::getAllFeatures()) {
-        qDebug().nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
+        qCDebug(shared).nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
     }
 #endif
 
-    qDebug() << "Environment Variables";
+    qCDebug(shared) << "Environment Variables";
     // List of env variables to include in the log. For privacy reasons we don't send all env variables.
     const QStringList envWhitelist = {
         "QTWEBENGINE_REMOTE_DEBUGGING"
@@ -840,7 +844,7 @@ void printSystemInformation() {
     auto envVariables = QProcessEnvironment::systemEnvironment();
     for (auto& env : envWhitelist)
     {
-        qDebug().noquote().nospace() << "\t" <<
+        qCDebug(shared).noquote().nospace() << "\t" <<
             (envVariables.contains(env) ? " = " + envVariables.value(env) : " NOT FOUND");
     }
 }
@@ -864,6 +868,146 @@ bool getMemoryInfo(MemoryInfo& info) {
     }
     info.processUsedMemoryBytes = pmc.PrivateUsage;
     info.processPeakUsedMemoryBytes = pmc.PeakPagefileUsage;
+
+    return true;
+#endif
+
+    return false;
+}
+
+// Largely taken from: https://msdn.microsoft.com/en-us/library/windows/desktop/ms683194(v=vs.85).aspx
+
+#ifdef Q_OS_WIN
+using LPFN_GLPI = BOOL(WINAPI*)(
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION,
+    PDWORD);
+
+DWORD CountSetBits(ULONG_PTR bitMask)
+{
+    DWORD LSHIFT = sizeof(ULONG_PTR) * 8 - 1;
+    DWORD bitSetCount = 0;
+    ULONG_PTR bitTest = (ULONG_PTR)1 << LSHIFT;
+    DWORD i;
+
+    for (i = 0; i <= LSHIFT; ++i) {
+        bitSetCount += ((bitMask & bitTest) ? 1 : 0);
+        bitTest /= 2;
+    }
+
+    return bitSetCount;
+}
+#endif
+
+bool getProcessorInfo(ProcessorInfo& info) {
+
+#ifdef Q_OS_WIN
+    LPFN_GLPI glpi;
+    bool done = false;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = NULL;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION ptr = NULL;
+    DWORD returnLength = 0;
+    DWORD logicalProcessorCount = 0;
+    DWORD numaNodeCount = 0;
+    DWORD processorCoreCount = 0;
+    DWORD processorL1CacheCount = 0;
+    DWORD processorL2CacheCount = 0;
+    DWORD processorL3CacheCount = 0;
+    DWORD processorPackageCount = 0;
+    DWORD byteOffset = 0;
+    PCACHE_DESCRIPTOR Cache;
+
+    glpi = (LPFN_GLPI)GetProcAddress(
+        GetModuleHandle(TEXT("kernel32")),
+        "GetLogicalProcessorInformation");
+    if (nullptr == glpi) {
+        qDebug() << "GetLogicalProcessorInformation is not supported.";
+        return false;
+    }
+
+    while (!done) {
+        DWORD rc = glpi(buffer, &returnLength);
+
+        if (FALSE == rc) {
+            if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+                if (buffer) {
+                    free(buffer);
+                }
+
+                buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(
+                    returnLength);
+
+                if (NULL == buffer) {
+                    qDebug() << "Error: Allocation failure";
+                    return false;
+                }
+            } else {
+                qDebug() << "Error " << GetLastError();
+                return false;
+            }
+        } else {
+            done = true;
+        }
+    }
+
+    ptr = buffer;
+
+    while (byteOffset + sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION) <= returnLength) {
+        switch (ptr->Relationship) {
+        case RelationNumaNode:
+            // Non-NUMA systems report a single record of this type.
+            numaNodeCount++;
+            break;
+
+        case RelationProcessorCore:
+            processorCoreCount++;
+
+            // A hyperthreaded core supplies more than one logical processor.
+            logicalProcessorCount += CountSetBits(ptr->ProcessorMask);
+            break;
+
+        case RelationCache:
+            // Cache data is in ptr->Cache, one CACHE_DESCRIPTOR structure for each cache. 
+            Cache = &ptr->Cache;
+            if (Cache->Level == 1) {
+                processorL1CacheCount++;
+            } else if (Cache->Level == 2) {
+                processorL2CacheCount++;
+            } else if (Cache->Level == 3) {
+                processorL3CacheCount++;
+            }
+            break;
+
+        case RelationProcessorPackage:
+            // Logical processors share a physical package.
+            processorPackageCount++;
+            break;
+
+        default:
+            qDebug() << "\nError: Unsupported LOGICAL_PROCESSOR_RELATIONSHIP value.\n";
+            break;
+        }
+        byteOffset += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+        ptr++;
+    }
+
+    qDebug() << "GetLogicalProcessorInformation results:";
+    qDebug() << "Number of NUMA nodes:" << numaNodeCount;
+    qDebug() << "Number of physical processor packages:" << processorPackageCount;
+    qDebug() << "Number of processor cores:" << processorCoreCount;
+    qDebug() << "Number of logical processors:" << logicalProcessorCount;
+    qDebug() << "Number of processor L1/L2/L3 caches:"
+        << processorL1CacheCount
+        << "/" << processorL2CacheCount
+        << "/" << processorL3CacheCount;
+
+    info.numPhysicalProcessorPackages = processorPackageCount;
+    info.numProcessorCores = processorCoreCount;
+    info.numLogicalProcessors = logicalProcessorCount;
+    info.numProcessorCachesL1 = processorL1CacheCount;
+    info.numProcessorCachesL2 = processorL2CacheCount;
+    info.numProcessorCachesL3 = processorL3CacheCount;
+
+    free(buffer);
 
     return true;
 #endif

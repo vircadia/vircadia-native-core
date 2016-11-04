@@ -21,8 +21,6 @@ import "messageDialog"
 ModalWindow {
     id: root
     HifiConstants { id: hifi }
-    implicitWidth: 640
-    implicitHeight: 320
     destroyOnCloseButton: true
     destroyOnHidden: true
     visible: true
@@ -70,7 +68,7 @@ ModalWindow {
         QtObject {
             id: d
             readonly property int minWidth: 480
-            readonly property int maxWdith: 1280
+            readonly property int maxWidth: 1280
             readonly property int minHeight: 120
             readonly property int maxHeight: 720
 
@@ -80,7 +78,7 @@ ModalWindow {
                         + (informativeTextContainer.text != "" ? informativeTextContainer.contentHeight + 3 * hifi.dimensions.contentSpacing.y : 0)
                         + buttons.height
                         + (content.state === "expanded" ? details.implicitHeight + hifi.dimensions.contentSpacing.y : 0)
-                root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth)
+                root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWidth) ? d.maxWidth : targetWidth)
                 root.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)
             }
         }

@@ -53,9 +53,6 @@ void Engine::load() {
 }
 
 void Engine::run() {
-    // Sync GPU state before beginning to render
-    _renderContext->args->_context->syncCache();
-
     for (auto job : _jobs) {
         job.run(_sceneContext, _renderContext);
     }

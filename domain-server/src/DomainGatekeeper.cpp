@@ -120,6 +120,102 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     }
 }
 
+NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress) {
+    NodePermissions userPerms;
+
+    userPerms.setAll(false);
+
+    if (isLocalUser) {
+        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
+#ifdef WANT_DEBUG
+        qDebug() << "|  user-permissions: is local user, so:" << userPerms;
+#endif
+    }
+
+    if (verifiedUsername.isEmpty()) {
+        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
+#ifdef WANT_DEBUG
+        qDebug() << "|  user-permissions: unverified or no username for" << userPerms.getID() << ", so:" << userPerms;
+#endif
+
+        if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
+            // this user comes from an IP we have in our permissions table, apply those permissions
+            userPerms = _server->_settingsManager.getPermissionsForIP(senderAddress);
+
+#ifdef WANT_DEBUG
+            qDebug() << "|  user-permissions: specific IP matches, so:" << userPerms;
+#endif
+        }
+    } else {
+        if (_server->_settingsManager.havePermissionsForName(verifiedUsername)) {
+            userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
+#ifdef WANT_DEBUG
+            qDebug() << "|  user-permissions: specific user matches, so:" << userPerms;
+#endif
+        } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
+            // this user comes from an IP we have in our permissions table, apply those permissions
+            userPerms = _server->_settingsManager.getPermissionsForIP(senderAddress);
+
+#ifdef WANT_DEBUG
+            qDebug() << "|  user-permissions: specific IP matches, so:" << userPerms;
+#endif
+        } else {
+            // they are logged into metaverse, but we don't have specific permissions for them.
+            userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
+#ifdef WANT_DEBUG
+            qDebug() << "|  user-permissions: user is logged-into metaverse, so:" << userPerms;
+#endif
+
+            // if this user is a friend of the domain-owner, give them friend's permissions
+            if (_domainOwnerFriends.contains(verifiedUsername)) {
+                userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameFriends);
+#ifdef WANT_DEBUG
+                qDebug() << "|  user-permissions: user is friends with domain-owner, so:" << userPerms;
+#endif
+            }
+
+            // if this user is a known member of a group, give them the implied permissions
+            foreach (QUuid groupID, _server->_settingsManager.getGroupIDs()) {
+                QUuid rankID = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                if (rankID != QUuid()) {
+                    userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID, rankID);
+
+                    GroupRank rank = _server->_settingsManager.getGroupRank(groupID, rankID);
+#ifdef WANT_DEBUG
+                    qDebug() << "|  user-permissions: user " << verifiedUsername << "is in group:" << groupID << " rank:"
+                             << rank.name << "so:" << userPerms;
+#endif
+                }
+            }
+
+            // if this user is a known member of a blacklist group, remove the implied permissions
+            foreach (QUuid groupID, _server->_settingsManager.getBlacklistGroupIDs()) {
+                QUuid rankID = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                if (rankID != QUuid()) {
+                    QUuid rankID = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                    if (rankID != QUuid()) {
+                        userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID, rankID);
+
+                        GroupRank rank = _server->_settingsManager.getGroupRank(groupID, rankID);
+#ifdef WANT_DEBUG
+                        qDebug() << "|  user-permissions: user is in blacklist group:" << groupID << " rank:" << rank.name
+                                 << "so:" << userPerms;
+#endif
+                    }
+                }
+            }
+        }
+
+        userPerms.setID(verifiedUsername);
+        userPerms.setVerifiedUserName(verifiedUsername);
+    }
+
+#ifdef WANT_DEBUG
+    qDebug() << "|  user-permissions: final:" << userPerms;
+#endif
+    return userPerms;
+}
+
 void DomainGatekeeper::updateNodePermissions() {
     // If the permissions were changed on the domain-server webpage (and nothing else was), a restart isn't required --
     // we reprocess the permissions map and update the nodes here.  The node list is frequently sent out to all
@@ -129,40 +225,35 @@ void DomainGatekeeper::updateNodePermissions() {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     limitedNodeList->eachNode([this, limitedNodeList, &nodesToKill](const SharedNodePointer& node){
-        QString username = node->getPermissions().getUserName();
-        NodePermissions userPerms(username);
+        // the id and the username in NodePermissions will often be the same, but id is set before
+        // authentication and verifiedUsername is only set once they user's key has been confirmed.
+        QString verifiedUsername = node->getPermissions().getVerifiedUserName();
+        NodePermissions userPerms(NodePermissionsKey(verifiedUsername, 0));
 
         if (node->getPermissions().isAssignment) {
             // this node is an assignment-client
             userPerms.isAssignment = true;
-            userPerms.canAdjustLocks = true;
-            userPerms.canRezPermanentEntities = true;
-            userPerms.canRezTemporaryEntities = true;
+            userPerms.permissions |= NodePermissions::Permission::canConnectToDomain;
+            userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
+            userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
+            userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
+            userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
         } else {
             // this node is an agent
-            userPerms.setAll(false);
-
             const QHostAddress& addr = node->getLocalSocket().getAddress();
             bool isLocalUser = (addr == limitedNodeList->getLocalSockAddr().getAddress() ||
                                 addr == QHostAddress::LocalHost);
-            if (isLocalUser) {
-                userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
-            }
 
-            if (username.isEmpty()) {
-                userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
-            } else {
-                if (_server->_settingsManager.havePermissionsForName(username)) {
-                    userPerms = _server->_settingsManager.getPermissionsForName(username);
-                } else {
-                    userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
-                }
-            }
+            // at this point we don't have a sending socket for packets from this node - assume it is the active socket
+            // or the public socket if we haven't activated a socket for the node yet
+            HifiSockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
+
+            userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, connectingAddr.getAddress());
         }
 
         node->setPermissions(userPerms);
 
-        if (!userPerms.canConnectToDomain) {
+        if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
             qDebug() << "node" << node->getUUID() << "no longer has permission to connect.";
             // hang up on this node
             nodesToKill << node;
@@ -215,17 +306,20 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     // cleanup the PendingAssignedNodeData for this assignment now that it's connecting
     _pendingAssignedNodes.erase(it);
 
-    // always allow assignment clients to create and destroy entities
     NodePermissions userPerms;
     userPerms.isAssignment = true;
-    userPerms.canAdjustLocks = true;
-    userPerms.canRezPermanentEntities = true;
-    userPerms.canRezTemporaryEntities = true;
+    userPerms.permissions |= NodePermissions::Permission::canConnectToDomain;
+    // always allow assignment clients to create and destroy entities
+    userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
+    userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
+    userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
+    userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
     newNode->setPermissions(userPerms);
     return newNode;
 }
 
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
+const QString MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION = "security.maximum_user_capacity_redirect_location";
 
 SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                                const QString& username,
@@ -234,64 +328,66 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     // start with empty permissions
-    NodePermissions userPerms(username);
+    NodePermissions userPerms(NodePermissionsKey(username, 0));
     userPerms.setAll(false);
 
     // check if this user is on our local machine - if this is true set permissions to those for a "localhost" connection
     QHostAddress senderHostAddress = nodeConnection.senderSockAddr.getAddress();
     bool isLocalUser =
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
-    if (isLocalUser) {
-        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
-        qDebug() << "user-permissions: is local user, so:" << userPerms;
-    }
 
-    if (!username.isEmpty() && usernameSignature.isEmpty()) {
-        // user is attempting to prove their identity to us, but we don't have enough information
-        sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
-        // ask for their public key right now to make sure we have it
-        requestUserPublicKey(username);
-        if (!userPerms.canConnectToDomain) {
+    QString verifiedUsername; // if this remains empty, consider this an anonymous connection attempt
+    if (!username.isEmpty()) {
+        if (usernameSignature.isEmpty()) {
+            // user is attempting to prove their identity to us, but we don't have enough information
+            sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
+            // ask for their public key right now to make sure we have it
+            requestUserPublicKey(username);
+            getGroupMemberships(username); // optimistically get started on group memberships
+#ifdef WANT_DEBUG
+            qDebug() << "stalling login because we have no username-signature:" << username;
+#endif
             return SharedNodePointer();
-        }
-    }
-
-    if (username.isEmpty()) {
-        // they didn't tell us who they are
-        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
-        qDebug() << "user-permissions: no username, so:" << userPerms;
-    } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
-        // they are sent us a username and the signature verifies it
-        if (_server->_settingsManager.havePermissionsForName(username)) {
-            // we have specific permissions for this user.
-            userPerms = _server->_settingsManager.getPermissionsForName(username);
-            qDebug() << "user-permissions: specific user matches, so:" << userPerms;
+        } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
+            // they sent us a username and the signature verifies it
+            getGroupMemberships(username);
+            verifiedUsername = username;
         } else {
-            // they are logged into metaverse, but we don't have specific permissions for them.
-            userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
-            qDebug() << "user-permissions: user is logged in, so:" << userPerms;
-        }
-        userPerms.setUserName(username);
-    } else {
-        // they sent us a username, but it didn't check out
-        requestUserPublicKey(username);
-        if (!userPerms.canConnectToDomain) {
+            // they sent us a username, but it didn't check out
+            requestUserPublicKey(username);
+#ifdef WANT_DEBUG
+            qDebug() << "stalling login because signature verification failed:" << username;
+#endif
             return SharedNodePointer();
         }
     }
 
-    qDebug() << "user-permissions: final:" << userPerms;
+    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, nodeConnection.senderSockAddr.getAddress());
 
-    if (!userPerms.canConnectToDomain) {
+    if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
-                                   nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::TooManyUsers);
+                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorized);
+#ifdef WANT_DEBUG
+        qDebug() << "stalling login due to permissions:" << username;
+#endif
         return SharedNodePointer();
     }
 
-    if (!userPerms.canConnectPastMaxCapacity && !isWithinMaxCapacity()) {
+    if (!userPerms.can(NodePermissions::Permission::canConnectPastMaxCapacity) && !isWithinMaxCapacity()) {
         // we can't allow this user to connect because we are at max capacity
+        QString redirectOnMaxCapacity;
+        const QVariant* redirectOnMaxCapacityVariant =
+            valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION);
+        if (redirectOnMaxCapacityVariant && redirectOnMaxCapacityVariant->canConvert<QString>()) {
+            redirectOnMaxCapacity = redirectOnMaxCapacityVariant->toString();
+            qDebug() << "Redirection domain:" << redirectOnMaxCapacity;
+        }
+
         sendConnectionDeniedPacket("Too many connected users.", nodeConnection.senderSockAddr,
-                                   DomainHandler::ConnectionRefusedReason::TooManyUsers);
+                DomainHandler::ConnectionRefusedReason::TooManyUsers, redirectOnMaxCapacity);
+#ifdef WANT_DEBUG
+        qDebug() << "stalling login due to max capacity:" << username;
+#endif
         return SharedNodePointer();
     }
 
@@ -305,10 +401,8 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             // we have a node that already has these exact sockets - this occurs if a node
             // is unable to connect to the domain
             hintNodeID = node->getUUID();
-
             return false;
         }
-
         return true;
     });
 
@@ -327,6 +421,10 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     // also add an interpolation to DomainServerNodeData so that servers can get username in stats
     nodeData->addOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
                                 uuidStringWithoutCurlyBraces(newNode->getUUID()), username);
+
+#ifdef WANT_DEBUG
+    qDebug() << "accepting login:" << username;
+#endif
 
     return newNode;
 }
@@ -365,11 +463,11 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
 bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            const QByteArray& usernameSignature,
                                            const HifiSockAddr& senderSockAddr) {
-
     // it's possible this user can be allowed to connect, but we need to check their username signature
-    QByteArray publicKeyArray = _userPublicKeys.value(username);
+    auto lowerUsername = username.toLower();
+    QByteArray publicKeyArray = _userPublicKeys.value(lowerUsername);
 
-    const QUuid& connectionToken = _connectionTokenHash.value(username.toLower());
+    const QUuid& connectionToken = _connectionTokenHash.value(lowerUsername);
 
     if (!publicKeyArray.isEmpty() && !connectionToken.isNull()) {
         // if we do have a public key for the user, check for a signature match
@@ -379,8 +477,8 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
         // first load up the public key into an RSA struct
         RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
 
-        QByteArray lowercaseUsername = username.toLower().toUtf8();
-        QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()),
+        QByteArray lowercaseUsernameUTF8 = lowerUsername.toUtf8();
+        QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsernameUTF8.append(connectionToken.toRfc4122()),
                                                                 QCryptographicHash::Sha256);
 
         if (rsaPublicKey) {
@@ -422,9 +520,7 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
         }
     } else {
         if (!senderSockAddr.isNull()) {
-            qDebug() << "Insufficient data to decrypt username signature - denying connection.";
-            sendConnectionDeniedPacket("Insufficient data", senderSockAddr,
-                DomainHandler::ConnectionRefusedReason::LoginError);
+            qDebug() << "Insufficient data to decrypt username signature - delaying connection.";
         }
     }
 
@@ -471,10 +567,20 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
         return;
     }
 
+    QString lowerUsername = username.toLower();
+    if (_inFlightPublicKeyRequests.contains(lowerUsername)) {
+        // public-key request for this username is already flight, not rerequesting
+        return;
+    }
+    _inFlightPublicKeyRequests += lowerUsername;
+
     // even if we have a public key for them right now, request a new one in case it has just changed
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;
     callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "publicKeyJSONErrorCallback";
+
 
     const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
 
@@ -485,28 +591,37 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
                                               QNetworkAccessManager::GetOperation, callbackParams);
 }
 
+QString extractUsernameFromPublicKeyRequest(QNetworkReply& requestReply) {
+    // extract the username from the request url
+    QString username;
+    const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
+    QRegExp usernameRegex(PUBLIC_KEY_URL_REGEX_STRING);
+    if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
+        username = usernameRegex.cap(1);
+    }
+    return username.toLower();
+}
+
 void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QString username = extractUsernameFromPublicKeyRequest(requestReply);
 
-    if (jsonObject["status"].toString() == "success") {
-        // figure out which user this is for
+    if (jsonObject["status"].toString() == "success" && !username.isEmpty()) {
+        // pull the public key as a QByteArray from this response
+        const QString JSON_DATA_KEY = "data";
+        const QString JSON_PUBLIC_KEY_KEY = "public_key";
 
-        const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
-        QRegExp usernameRegex(PUBLIC_KEY_URL_REGEX_STRING);
-
-        if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
-            QString username = usernameRegex.cap(1);
-
-            qDebug() << "Storing a public key for user" << username;
-
-            // pull the public key as a QByteArray from this response
-            const QString JSON_DATA_KEY = "data";
-            const QString JSON_PUBLIC_KEY_KEY = "public_key";
-
-            _userPublicKeys[username] =
-                QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
-        }
+        _userPublicKeys[username.toLower()] =
+            QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
     }
+
+    _inFlightPublicKeyRequests.remove(username);
+}
+
+void DomainGatekeeper::publicKeyJSONErrorCallback(QNetworkReply& requestReply) {
+    qDebug() << "publicKey api call failed:" << requestReply.error();
+    QString username = extractUsernameFromPublicKeyRequest(requestReply);
+    _inFlightPublicKeyRequests.remove(username);
 }
 
 void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr) {
@@ -519,22 +634,30 @@ void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& 
 }
 
 void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
-                                                  DomainHandler::ConnectionRefusedReason reasonCode) {
+                                                  DomainHandler::ConnectionRefusedReason reasonCode,
+                                                  QString extraInfo) {
     // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
-    QByteArray utfString = reason.toUtf8();
-    quint16 payloadSize = utfString.size();
+    QByteArray utfReasonString = reason.toUtf8();
+    quint16 reasonSize = utfReasonString.size();
+
+    QByteArray utfExtraInfo = extraInfo.toUtf8();
+    quint16 extraInfoSize = utfExtraInfo.size();
 
     // setup the DomainConnectionDenied packet
     auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied,
-                                                   payloadSize + sizeof(payloadSize) + sizeof(uint8_t));
+                                            sizeof(uint8_t) + // reasonCode
+                                            reasonSize + sizeof(reasonSize) +
+                                            extraInfoSize + sizeof(extraInfoSize));
 
     // pack in the reason the connection was denied (the client displays this)
-    if (payloadSize > 0) {
-        uint8_t reasonCodeWire = (uint8_t)reasonCode;
-        connectionDeniedPacket->writePrimitive(reasonCodeWire);
-        connectionDeniedPacket->writePrimitive(payloadSize);
-        connectionDeniedPacket->write(utfString);
-    }
+    uint8_t reasonCodeWire = (uint8_t)reasonCode;
+    connectionDeniedPacket->writePrimitive(reasonCodeWire);
+    connectionDeniedPacket->writePrimitive(reasonSize);
+    connectionDeniedPacket->write(utfReasonString);
+
+    // write the extra info as well
+    connectionDeniedPacket->writePrimitive(extraInfoSize);
+    connectionDeniedPacket->write(utfExtraInfo);
 
     // send the packet off
     DependencyManager::get<LimitedNodeList>()->sendPacket(std::move(connectionDeniedPacket), senderSockAddr);
@@ -644,4 +767,168 @@ void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage>
         // we had this NetworkPeer in our connecting list - add the right sock addr to our connected list
         sendingPeer->activateMatchingOrNewSymmetricSocket(message->getSenderSockAddr());
     }
+}
+
+void DomainGatekeeper::getGroupMemberships(const QString& username) {
+    // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
+    // will be received asynchronously and permissions will be updated as the answers come in.
+
+    QJsonObject json;
+    QSet<QString> groupIDSet;
+    foreach (QUuid groupID, _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs()) {
+        groupIDSet += groupID.toString().mid(1,36);
+    }
+
+    if (groupIDSet.isEmpty()) {
+        // if no groups are in the permissions settings, don't ask who is in which groups.
+        return;
+    }
+
+    QJsonArray groupIDs = QJsonArray::fromStringList(groupIDSet.toList());
+    json["groups"] = groupIDs;
+
+
+    // if we've already asked, wait for the answer before asking again
+    QString lowerUsername = username.toLower();
+    if (_inFlightGroupMembershipsRequests.contains(lowerUsername)) {
+        // public-key request for this username is already flight, not rerequesting
+        return;
+    }
+    _inFlightGroupMembershipsRequests += lowerUsername;
+
+
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "getIsGroupMemberJSONCallback";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
+
+    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/members/%2";
+    DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(username),
+                                                          AccountManagerAuth::Required,
+                                                          QNetworkAccessManager::PostOperation, callbackParams,
+                                                          QJsonDocument(json).toJson());
+
+}
+
+QString extractUsernameFromGroupMembershipsReply(QNetworkReply& requestReply) {
+    // extract the username from the request url
+    QString username;
+    const QString GROUP_MEMBERSHIPS_URL_REGEX_STRING = "api\\/v1\\/groups\\/members\\/([A-Za-z0-9_\\.]+)";
+    QRegExp usernameRegex(GROUP_MEMBERSHIPS_URL_REGEX_STRING);
+    if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
+        username = usernameRegex.cap(1);
+    }
+    return username.toLower();
+}
+
+void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply) {
+    // {
+    //     "data":{
+    //         "username":"sethalves",
+    //         "groups":{
+    //             "fd55479a-265d-4990-854e-3d04214ad1b0":{
+    //                 "name":"Blerg Blah",
+    //                 "rank":{
+    //                     "name":"admin",
+    //                     "order":1
+    //                 }
+    //             }
+    //         }
+    //     },
+    //     "status":"success"
+    // }
+
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    if (jsonObject["status"].toString() == "success") {
+        QJsonObject data = jsonObject["data"].toObject();
+        QJsonObject groups = data["groups"].toObject();
+        QString username = data["username"].toString();
+        _server->_settingsManager.clearGroupMemberships(username);
+        foreach (auto groupID, groups.keys()) {
+            QJsonObject group = groups[groupID].toObject();
+            QJsonObject rank = group["rank"].toObject();
+            QUuid rankID = QUuid(rank["id"].toString());
+            _server->_settingsManager.recordGroupMembership(username, groupID, rankID);
+        }
+    } else {
+        qDebug() << "getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
+    }
+
+    _inFlightGroupMembershipsRequests.remove(extractUsernameFromGroupMembershipsReply(requestReply));
+}
+
+void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply& requestReply) {
+    qDebug() << "getIsGroupMember api call failed:" << requestReply.error();
+    _inFlightGroupMembershipsRequests.remove(extractUsernameFromGroupMembershipsReply(requestReply));
+}
+
+void DomainGatekeeper::getDomainOwnerFriendsList() {
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "getDomainOwnerFriendsListJSONCallback";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "getDomainOwnerFriendsListErrorCallback";
+
+    const QString GET_FRIENDS_LIST_PATH = "api/v1/user/friends";
+    DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
+                                                          QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
+                                                          NULL, QVariantMap());
+}
+
+void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply) {
+    // {
+    //     status: "success",
+    //     data: {
+    //         friends: [
+    //             "chris",
+    //             "freidrica",
+    //             "G",
+    //             "huffman",
+    //             "leo",
+    //             "philip",
+    //             "ryan",
+    //             "sam",
+    //             "ZappoMan"
+    //         ]
+    //     }
+    // }
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    if (jsonObject["status"].toString() == "success") {
+        _domainOwnerFriends.clear();
+        QJsonArray friends = jsonObject["data"].toObject()["friends"].toArray();
+        for (int i = 0; i < friends.size(); i++) {
+            _domainOwnerFriends += friends.at(i).toString();
+        }
+    } else {
+        qDebug() << "getDomainOwnerFriendsList api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
+    }
+}
+
+void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply) {
+    qDebug() << "getDomainOwnerFriendsList api call failed:" << requestReply.error();
+}
+
+void DomainGatekeeper::refreshGroupsCache() {
+    // if agents are connected to this domain, refresh our cached information about groups and memberships in such.
+    getDomainOwnerFriendsList();
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        if (!node->getPermissions().isAssignment) {
+            // this node is an agent
+            const QString& verifiedUserName = node->getPermissions().getVerifiedUserName();
+            if (!verifiedUserName.isEmpty()) {
+                getGroupMemberships(verifiedUserName);
+            }
+        }
+    });
+
+    _server->_settingsManager.apiRefreshGroupInformation();
+
+    updateNodePermissions();
+
+#if WANT_DEBUG
+    _server->_settingsManager.debugDumpGroupsState();
+#endif
 }

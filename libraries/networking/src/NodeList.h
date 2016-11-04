@@ -51,11 +51,11 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
-    NodeType_t getOwnerType() const { return _ownerType; }
-    void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
+    NodeType_t getOwnerType() const { return _ownerType.load(); }
+    void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
-    qint64 sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination);
-    qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
+    Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, HifiSockAddr destination);
+    Q_INVOKABLE qint64 sendStatsToDomainServer(QJsonObject statsObject);
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     DomainHandler& getDomainHandler() { return _domainHandler; }
@@ -72,6 +72,8 @@ public:
 
     void ignoreNodeBySessionID(const QUuid& nodeID);
     bool isIgnoringNode(const QUuid& nodeID) const;
+
+    void kickNodeBySessionID(const QUuid& nodeID);
 
 public slots:
     void reset();
@@ -114,10 +116,10 @@ private slots:
     void maybeSendIgnoreSetToNode(SharedNodePointer node);
     
 private:
-    NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
-    NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
-    NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
-    void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
+    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { assert(false); } // Not implemented, needed for DependencyManager templates compile
+    NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
+    NodeList(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
+    void operator=(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
@@ -130,7 +132,9 @@ private:
 
     void pingPunchForInactiveNode(const SharedNodePointer& node);
 
-    NodeType_t _ownerType;
+    bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
+
+    std::atomic<NodeType_t> _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;

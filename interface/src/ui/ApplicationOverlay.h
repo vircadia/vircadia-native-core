@@ -26,8 +26,7 @@ public:
 
     void renderOverlay(RenderArgs* renderArgs);
 
-    gpu::TexturePointer acquireOverlay(); 
-    void releaseOverlay(gpu::TexturePointer pointer);
+    gpu::TexturePointer getOverlayTexture(); 
 
 private:
     void renderStatsAndLogs(RenderArgs* renderArgs);
@@ -41,16 +40,18 @@ private:
 
     float _alpha{ 1.0f };
     float _trailingAudioLoudness{ 0.0f };
-    uint32_t _uiTexture{ 0 };
 
     int _domainStatusBorder;
     int _magnifierBorder;
 
     ivec2 _previousBorderSize{ -1 };
 
+    gpu::TexturePointer _uiTexture;
     gpu::TexturePointer _overlayDepthTexture;
     gpu::TexturePointer _overlayColorTexture;
     gpu::FramebufferPointer _overlayFramebuffer;
+    int _qmlGeometryId { 0 };
+    int _rearViewGeometryId { 0 };
 };
 
 #endif // hifi_ApplicationOverlay_h

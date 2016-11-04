@@ -23,13 +23,12 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <PerfStat.h>
-#include <gl/OglplusHelpers.h>
 #include <ViewFrustum.h>
+#include <gpu/gl/GLbackend.h>
 
 #include <ui-plugins/PluginContainer.h>
-#include "OculusHelpers.h"
 
-using namespace oglplus;
+#include "OculusHelpers.h"
 
 const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
 
@@ -51,8 +50,8 @@ bool OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.predictedDisplayTime = _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo.predictedDisplayTime);
-    _currentRenderFrameInfo.rawRenderPose = _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
-    withRenderThreadLock([&]{
+    _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
+    withNonPresentThreadLock([&]{
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
     return Parent::beginFrameRender(frameIndex);
@@ -256,13 +255,13 @@ void OculusLegacyDisplayPlugin::hmdPresent() {
     memset(eyePoses, 0, sizeof(ovrPosef) * 2);
     eyePoses[0].Orientation = eyePoses[1].Orientation = ovrRotation;
     
-    GLint texture = oglplus::GetName(_compositeFramebuffer->color);
+    GLint texture = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0), false);
     auto sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glFlush();
     if (_hmdWindow->makeCurrent()) {
         glClearColor(0, 0.4, 0.8, 1);
         glClear(GL_COLOR_BUFFER_BIT);
-        ovrHmd_BeginFrame(_hmd, _currentPresentFrameIndex);
+        ovrHmd_BeginFrame(_hmd, _currentFrame->frameIndex);
         glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
         glDeleteSync(sync);
         ovr_for_each_eye([&](ovrEyeType eye) {

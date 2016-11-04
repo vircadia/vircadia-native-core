@@ -73,8 +73,7 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true,
-            showButtonDown: true
+            visible: true
         });
 
         toolBar.showTool(browseDirectoryButton, true);

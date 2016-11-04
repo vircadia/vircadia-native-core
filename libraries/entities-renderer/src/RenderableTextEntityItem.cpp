@@ -15,8 +15,6 @@
 #include <PerfStat.h>
 #include <Transform.h>
 
-
-
 #include "RenderableTextEntityItem.h"
 #include "GLMHelpers.h"
 
@@ -26,13 +24,24 @@ EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID
     return entity;
 }
 
+RenderableTextEntityItem::~RenderableTextEntityItem() { 
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_geometryID && geometryCache) {
+        geometryCache->releaseID(_geometryID);
+    }
+    delete _textRenderer;
+}
+
 void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Text);
+    checkFading();
     
     static const float SLIGHTLY_BEHIND = -0.005f;
-    glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), 1.0f);
-    glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), 1.0f);
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+    bool transparent = fadeRatio < 1.0f;
+    glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), fadeRatio);
+    glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), fadeRatio);
     glm::vec3 dimensions = getDimensions();
     
     // Render background
@@ -61,9 +70,12 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
     
     batch.setModelTransform(transformToTopLeft);
-    
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (!_geometryID) {
+        _geometryID = geometryCache->allocateID();
+    }
+    geometryCache->bindSimpleProgram(batch, false, transparent, false, false, true);
+    geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
     
     float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height

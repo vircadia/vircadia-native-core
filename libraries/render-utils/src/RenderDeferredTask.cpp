@@ -124,10 +124,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto linearDepthPassInputs = LinearDepthPass::Inputs(deferredFrameTransform, deferredFramebuffer).hasVarying();
     const auto linearDepthPassOutputs = addJob<LinearDepthPass>("LinearDepth", linearDepthPassInputs);
     const auto linearDepthTarget = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(0);
-    const auto linearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(2);
-    const auto halfLinearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(3);
-    const auto halfNormalTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(4);
-
     
     // Curvature pass
     const auto surfaceGeometryPassInputs = SurfaceGeometryPass::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
@@ -141,14 +137,17 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
 
     // AO job
-    addJob<AmbientOcclusionEffect>("AmbientOcclusion");
+    const auto ambientOcclusionInputs = AmbientOcclusionEffect::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
+    const auto ambientOcclusionOutputs = addJob<AmbientOcclusionEffect>("AmbientOcclusion", ambientOcclusionInputs);
+    const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
+    const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, scatteringResource).hasVarying();
-
+		surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
+	
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
@@ -175,11 +174,15 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
+		// Debugging Deferred buffer job
+		const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
+		addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+
         addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
-        // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer));
-        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+        const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
+        addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
+
 
         // Scene Octree Debuging job
         {
@@ -242,7 +245,7 @@ void EndGPURangeTimer::run(const render::SceneContextPointer& sceneContext, cons
     });
     
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = timer->getAverage();
+    config->setGPUBatchRunTime(timer->getGPUAverage(), timer->getBatchAverage());
 }
 
 
@@ -347,10 +350,10 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         // Needs to be distinct from the other batch because using the clear call 
         // while stereo is enabled triggers a warning
         if (_opaquePass) {
-            gpu::Batch batch;
-            batch.enableStereo(false);
-            batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, true);
-            args->_context->render(batch);
+            gpu::doInBatch(args->_context, [&](gpu::Batch& batch){
+                batch.enableStereo(false);
+                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, true);
+            });
         }
 
         // Render the items

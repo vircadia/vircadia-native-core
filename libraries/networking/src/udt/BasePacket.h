@@ -18,6 +18,8 @@
 
 #include <QtCore/QIODevice>
 
+#include <PortableHighResolutionClock.h>
+
 #include "../HifiSockAddr.h"
 #include "Constants.h"
 
@@ -70,9 +72,9 @@ public:
     
     // QIODevice virtual functions
     // WARNING: Those methods all refer to the payload ONLY and NOT the entire packet
-    virtual bool isSequential() const  { return false; }
-    virtual bool reset();
-    virtual qint64 size() const { return _payloadCapacity; }
+    virtual bool isSequential() const override { return false; }
+    virtual bool reset() override;
+    virtual qint64 size() const override { return _payloadCapacity; }
 
     using QIODevice::read; // Bring QIODevice::read methods to scope, otherwise they are hidden by folling method
     QByteArray read(qint64 maxSize);
@@ -80,6 +82,9 @@ public:
 
     qint64 writeString(const QString& string);
     QString readString();
+
+    void setReceiveTime(p_high_resolution_clock::time_point receiveTime) { _receiveTime = receiveTime; }
+    p_high_resolution_clock::time_point getReceiveTime() const { return _receiveTime; }
    
     template<typename T> qint64 peekPrimitive(T* data);
     template<typename T> qint64 readPrimitive(T* data);
@@ -94,8 +99,8 @@ protected:
     BasePacket& operator=(BasePacket&& other);
     
     // QIODevice virtual functions
-    virtual qint64 writeData(const char* data, qint64 maxSize);
-    virtual qint64 readData(char* data, qint64 maxSize);
+    virtual qint64 writeData(const char* data, qint64 maxSize) override;
+    virtual qint64 readData(char* data, qint64 maxSize) override;
     
     void adjustPayloadStartAndCapacity(qint64 headerSize, bool shouldDecreasePayloadSize = false);
     
@@ -108,6 +113,8 @@ protected:
     qint64 _payloadSize = 0;          // How much of the payload is actually used
     
     HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
+
+    p_high_resolution_clock::time_point _receiveTime; // captures the time the packet received (only used on receiving end)
 };
 
 template<typename T> qint64 BasePacket::peekPrimitive(T* data) {

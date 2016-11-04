@@ -51,7 +51,16 @@ public slots:
     void processICEPeerInformationPacket(QSharedPointer<ReceivedMessage> message);
 
     void publicKeyJSONCallback(QNetworkReply& requestReply);
-    
+    void publicKeyJSONErrorCallback(QNetworkReply& requestReply);
+
+    void getIsGroupMemberJSONCallback(QNetworkReply& requestReply);
+    void getIsGroupMemberErrorCallback(QNetworkReply& requestReply);
+
+    void getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply);
+    void getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply);
+
+    void refreshGroupsCache();
+
 signals:
     void killNode(SharedNodePointer node);
     void connectedNode(SharedNodePointer node);
@@ -79,7 +88,8 @@ private:
     
     void sendConnectionTokenPacket(const QString& username, const HifiSockAddr& senderSockAddr);
     static void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
-            DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown);
+            DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown,
+            QString extraInfo = QString());
     
     void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
     
@@ -93,6 +103,15 @@ private:
     
     QHash<QString, QUuid> _connectionTokenHash;
     QHash<QString, QByteArray> _userPublicKeys;
+    QSet<QString> _inFlightPublicKeyRequests; // keep track of which we've already asked for
+    QSet<QString> _domainOwnerFriends; // keep track of friends of the domain owner
+    QSet<QString> _inFlightGroupMembershipsRequests; // keep track of which we've already asked for
+
+    NodePermissions setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress);
+
+    void getGroupMemberships(const QString& username);
+    // void getIsGroupMember(const QString& username, const QUuid groupID);
+    void getDomainOwnerFriendsList();
 };
 
 

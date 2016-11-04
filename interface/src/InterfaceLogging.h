@@ -16,5 +16,6 @@
 
 Q_DECLARE_LOGGING_CATEGORY(interfaceapp)
 Q_DECLARE_LOGGING_CATEGORY(interfaceapp_timing)
+Q_DECLARE_LOGGING_CATEGORY(interfaceapp_deadlock)
 
 #endif // hifi_InterfaceLogging_h

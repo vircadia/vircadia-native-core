@@ -31,10 +31,12 @@
 #include <SettingHandle.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
+#include <AvatarData.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "AvatarManager.h"
+#include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
@@ -207,11 +209,15 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     auto rawRenderableAvatar = std::static_pointer_cast<Avatar>(newAvatar);
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    render::PendingChanges pendingChanges;
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
-        rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
+    if (scene) {
+        render::PendingChanges pendingChanges;
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+            rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+    } else {
+        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }
-    scene->enqueuePendingChanges(pendingChanges);
 
     return newAvatar;
 }
@@ -323,7 +329,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
         // an id of null. Thus this code handles any collision in which one of the participating objects is
         // my avatar. (Other user machines will make a similar analysis and inject sound for their collisions.)
         if (collision.idA.isNull() || collision.idB.isNull()) {
-            MyAvatar* myAvatar = getMyAvatar();
+            auto myAvatar = getMyAvatar();
             auto collisionSound = myAvatar->getCollisionSound();
             if (collisionSound) {
                 const auto characterController = myAvatar->getCharacterController();
@@ -367,7 +373,7 @@ void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
 
     ShapeInfo shapeInfo;
     avatar->computeShapeInfo(shapeInfo);
-    btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+    btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
     if (shape) {
         // we don't add to the simulation now, we put it on a list to be added later
         AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
@@ -399,7 +405,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
-    if (sessionID == _myAvatar->getSessionUUID()) {
+    if (sessionID == AVATAR_SELF_ID || sessionID == _myAvatar->getSessionUUID()) {
         return _myAvatar;
     }
 

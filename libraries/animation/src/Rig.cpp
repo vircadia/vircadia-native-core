@@ -295,6 +295,19 @@ void Rig::clearJointAnimationPriority(int index) {
     }
 }
 
+void Rig::clearIKJointLimitHistory() {
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            // only report clip nodes as valid roles.
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                ikNode->clearIKJointLimitHistory();
+            }
+            return true;
+        });
+    }
+}
+
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
     if (isIndexValid(index)) {
         if (valid) {
@@ -1080,7 +1093,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
             // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 handPosition = params.leftPosition;
-            glm::vec3 displacement(glm::vec3::_null);
+            glm::vec3 displacement;
             if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
                 handPosition -= displacement;
             }
@@ -1098,7 +1111,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
             // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 handPosition = params.rightPosition;
-            glm::vec3 displacement(glm::vec3::_null);
+            glm::vec3 displacement;
             if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
                 handPosition -= displacement;
             }

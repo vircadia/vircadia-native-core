@@ -11,7 +11,7 @@
 
 #include "GeometryCache.h"
 
-
+#include <qmath.h>
 #include <cmath>
 
 #include <QtCore/QThreadPool>
@@ -35,6 +35,8 @@
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
 #include "simple_textured_unlit_frag.h"
+#include "simple_opaque_web_browser_frag.h"
+#include "simple_transparent_web_browser_frag.h"
 #include "glowLine_vert.h"
 #include "glowLine_geom.h"
 #include "glowLine_frag.h"
@@ -371,6 +373,7 @@ void GeometryCache::buildShapes() {
     extrudePolygon<6>(_shapes[Hexagon], _shapeVertices, _shapeIndices);
     //Octagon,
     extrudePolygon<8>(_shapes[Octagon], _shapeVertices, _shapeIndices);
+
     //Quad,
     //Circle,
     //Torus,
@@ -397,26 +400,36 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
     return INSTANCED_SOLID_STREAM_FORMAT;
 }
 
-render::ShapePipelinePointer GeometryCache::_simplePipeline;
+render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
+render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
 render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
 
 GeometryCache::GeometryCache() :
 _nextID(0) {
     buildShapes();
-    GeometryCache::_simplePipeline =
-        std::make_shared<render::ShapePipeline>(getSimplePipeline(), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch) {
-        // Set the defaults needed for a simple program
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-            DependencyManager::get<TextureCache>()->getWhiteTexture());
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-            DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    }
-    );
+    GeometryCache::_simpleOpaquePipeline =
+        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, false), nullptr,
+            [](const render::ShapePipeline&, gpu::Batch& batch) {
+                // Set the defaults needed for a simple program
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+                    DependencyManager::get<TextureCache>()->getWhiteTexture());
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+            }
+        );
+    GeometryCache::_simpleTransparentPipeline =
+        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, true, true, false), nullptr,
+            [](const render::ShapePipeline&, gpu::Batch& batch) {
+                // Set the defaults needed for a simple program
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+                    DependencyManager::get<TextureCache>()->getWhiteTexture());
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+            }
+        );
     GeometryCache::_simpleWirePipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, true), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch) {}
-    );
+            [](const render::ShapePipeline&, gpu::Batch& batch) {});
 }
 
 GeometryCache::~GeometryCache() {
@@ -426,6 +439,34 @@ GeometryCache::~GeometryCache() {
     qCDebug(renderutils) << "    _line3DVBOs.size():" << _line3DVBOs.size();
     qCDebug(renderutils) << "    BatchItemDetails... population:" << GeometryCache::BatchItemDetails::population;
 #endif //def WANT_DEBUG
+}
+
+void GeometryCache::releaseID(int id) {
+    _registeredQuad3DTextures.remove(id);
+    _lastRegisteredQuad2DTexture.remove(id);
+    _registeredQuad2DTextures.remove(id);
+    _lastRegisteredQuad3D.remove(id);
+    _registeredQuad3D.remove(id);
+
+    _lastRegisteredQuad2D.remove(id);
+    _registeredQuad2D.remove(id);
+
+    _lastRegisteredBevelRects.remove(id);
+    _registeredBevelRects.remove(id);
+
+    _lastRegisteredLine3D.remove(id);
+    _registeredLine3DVBOs.remove(id);
+
+    _lastRegisteredLine2D.remove(id);
+    _registeredLine2DVBOs.remove(id);
+
+    _registeredVertices.remove(id);
+
+    _lastRegisteredDashedLines.remove(id);
+    _registeredDashedLines.remove(id);
+
+    _lastRegisteredGridBuffer.remove(id);
+    _registeredGridBuffers.remove(id);
 }
 
 void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
@@ -484,8 +525,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
     Vec2FloatPairPair key(majorKey, minorKey);
 
     // Make the gridbuffer
-    if ((registered && (!_registeredGridBuffers.contains(id) || _lastRegisteredGridBuffer[id] != key)) ||
-        (!registered && !_gridBuffers.contains(key))) {
+    if (registered && (!_registeredGridBuffers.contains(id) || _lastRegisteredGridBuffer[id] != key)) {
         GridSchema gridSchema;
         GridBuffer gridBuffer = std::make_shared<gpu::Buffer>(sizeof(GridSchema), (const gpu::Byte*) &gridSchema);
 
@@ -493,12 +533,8 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
             gridBuffer = _registeredGridBuffers[id];
         }
 
-        if (registered) {
-            _registeredGridBuffers[id] = gridBuffer;
-            _lastRegisteredGridBuffer[id] = key;
-        } else {
-            _gridBuffers[key] = gridBuffer;
-        }
+        _registeredGridBuffers[id] = gridBuffer;
+        _lastRegisteredGridBuffer[id] = key;
 
         gridBuffer.edit<GridSchema>().period = glm::vec4(majorRows, majorCols, minorRows, minorCols);
         gridBuffer.edit<GridSchema>().offset.x = -(majorEdge / majorRows) / 2;
@@ -511,7 +547,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
     }
 
     // Set the grid pipeline
-    useGridPipeline(batch, registered ? _registeredGridBuffers[id] : _gridBuffers[key], isLayered);
+    useGridPipeline(batch, _registeredGridBuffers[id], isLayered);
 
     renderQuad(batch, minCorner, maxCorner, MIN_TEX_COORD, MAX_TEX_COORD, color, id);
 }
@@ -764,7 +800,7 @@ void GeometryCache::renderVertices(gpu::Batch& batch, gpu::Primitive primitiveTy
 void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(glm::vec3(x, y, 0.0f), glm::vec3(width, height, bevelDistance));
-    BatchItemDetails& details = registered ? _registeredBevelRects[id] : _bevelRects[key];
+    BatchItemDetails& details = _registeredBevelRects[id];
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
         Vec3Pair& lastKey = _lastRegisteredBevelRects[id];
@@ -865,7 +901,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec4Pair key(glm::vec4(minCorner.x, minCorner.y, maxCorner.x, maxCorner.y), color);
-    BatchItemDetails& details = registered ? _registeredQuad2D[id] : _quad2D[key];
+    BatchItemDetails& details = _registeredQuad2D[id];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
@@ -950,14 +986,13 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner,
     const glm::vec4& color, int id) {
 
-    bool registered = (id != UNKNOWN_ID);
     Vec4PairVec4 key(Vec4Pair(glm::vec4(minCorner.x, minCorner.y, maxCorner.x, maxCorner.y),
         glm::vec4(texCoordMinCorner.x, texCoordMinCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y)),
         color);
-    BatchItemDetails& details = registered ? _registeredQuad2DTextures[id] : _quad2DTextures[key];
+    BatchItemDetails& details = _registeredQuad2DTextures[id];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registered && details.isCreated) {
+    if (details.isCreated) {
         Vec4PairVec4& lastKey = _lastRegisteredQuad2DTexture[id];
         if (lastKey != key) {
             details.clear();
@@ -1036,7 +1071,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3PairVec4 key(Vec3Pair(minCorner, maxCorner), color);
-    BatchItemDetails& details = registered ? _registeredQuad3D[id] : _quad3D[key];
+    BatchItemDetails& details = _registeredQuad3D[id];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
@@ -1132,7 +1167,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
         Vec4Pair(glm::vec4(texCoordTopLeft.x, texCoordTopLeft.y, texCoordBottomRight.x, texCoordBottomRight.y),
         color));
 
-    BatchItemDetails& details = registered ? _registeredQuad3DTextures[id] : _quad3DTextures[key];
+    BatchItemDetails& details = _registeredQuad3DTextures[id];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
@@ -1213,7 +1248,7 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
 
     bool registered = (id != UNKNOWN_ID);
     Vec3PairVec2Pair key(Vec3Pair(start, end), Vec2Pair(glm::vec2(color.x, color.y), glm::vec2(color.z, color.w)));
-    BatchItemDetails& details = registered ? _registeredDashedLines[id] : _dashedLines[key];
+    BatchItemDetails& details = _registeredDashedLines[id];
 
     // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
@@ -1382,7 +1417,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(p1, p2);
 
-    BatchItemDetails& details = registered ? _registeredLine3DVBOs[id] : _line3DVBOs[key];
+    BatchItemDetails& details = _registeredLine3DVBOs[id];
 
     int compactColor1 = ((int(color1.x * 255.0f) & 0xFF)) |
         ((int(color1.y * 255.0f) & 0xFF) << 8) |
@@ -1471,7 +1506,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
     bool registered = (id != UNKNOWN_ID);
     Vec2Pair key(p1, p2);
 
-    BatchItemDetails& details = registered ? _registeredLine2DVBOs[id] : _line2DVBOs[key];
+    BatchItemDetails& details = _registeredLine2DVBOs[id];
 
     int compactColor1 = ((int(color1.x * 255.0f) & 0xFF)) |
         ((int(color1.y * 255.0f) & 0xFF) << 8) |
@@ -1552,6 +1587,12 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
 
 void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
     const glm::vec4& color, float glowIntensity, float glowWidth, int id) {
+
+    // Disable glow lines on OSX
+#ifndef Q_OS_WIN
+    glowIntensity = 0.0f;
+#endif
+
     if (glowIntensity <= 0) {
         renderLine(batch, p1, p2, color, id);
         return;
@@ -1580,7 +1621,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
 
     Vec3Pair key(p1, p2);
     bool registered = (id != UNKNOWN_ID);
-    BatchItemDetails& details = registered ? _registeredLine3DVBOs[id] : _line3DVBOs[key];
+    BatchItemDetails& details = _registeredLine3DVBOs[id];
 
     int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
         ((int(color.y * 255.0f) & 0xFF) << 8) |
@@ -1697,6 +1738,7 @@ class SimpleProgramKey {
 public:
     enum FlagBit {
         IS_TEXTURED_FLAG = 0,
+        IS_TRANSPARENT_FLAG,
         IS_CULLED_FLAG,
         IS_UNLIT_FLAG,
         HAS_DEPTH_BIAS_FLAG,
@@ -1706,6 +1748,7 @@ public:
 
     enum Flag {
         IS_TEXTURED = (1 << IS_TEXTURED_FLAG),
+        IS_TRANSPARENT = (1 << IS_TRANSPARENT_FLAG),
         IS_CULLED = (1 << IS_CULLED_FLAG),
         IS_UNLIT = (1 << IS_UNLIT_FLAG),
         HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
@@ -1715,6 +1758,7 @@ public:
     bool isFlag(short flagNum) const { return bool((_flags & flagNum) != 0); }
 
     bool isTextured() const { return isFlag(IS_TEXTURED); }
+    bool isTransparent() const { return isFlag(IS_TRANSPARENT); }
     bool isCulled() const { return isFlag(IS_CULLED); }
     bool isUnlit() const { return isFlag(IS_UNLIT); }
     bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
@@ -1725,9 +1769,9 @@ public:
     int getRaw() const { return *reinterpret_cast<const int*>(this); }
 
 
-    SimpleProgramKey(bool textured = false, bool culled = true,
+    SimpleProgramKey(bool textured = false, bool transparent = false, bool culled = true,
         bool unlit = false, bool depthBias = false) {
-        _flags = (textured ? IS_TEXTURED : 0) | (culled ? IS_CULLED : 0) |
+        _flags = (textured ? IS_TEXTURED : 0) | (transparent ? IS_TRANSPARENT : 0) | (culled ? IS_CULLED : 0) |
             (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0);
     }
 
@@ -1742,8 +1786,70 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
     return a.getRaw() == b.getRaw();
 }
 
-void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool unlit, bool depthBiased) {
-    batch.setPipeline(getSimplePipeline(textured, culled, unlit, depthBiased));
+void GeometryCache::bindOpaqueWebBrowserProgram(gpu::Batch& batch) {
+    batch.setPipeline(getOpaqueWebBrowserProgram());
+    // Set a default normal map
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+                             DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+}
+
+gpu::PipelinePointer GeometryCache::getOpaqueWebBrowserProgram() {
+    static std::once_flag once;
+    std::call_once(once, [&]() {
+        auto VS = gpu::Shader::createVertex(std::string(simple_vert));
+        auto PS = gpu::Shader::createPixel(std::string(simple_opaque_web_browser_frag));
+
+        _simpleOpaqueWebBrowserShader = gpu::Shader::createProgram(VS, PS);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
+        gpu::Shader::makeProgram(*_simpleOpaqueWebBrowserShader, slotBindings);
+        auto state = std::make_shared<gpu::State>();
+        state->setCullMode(gpu::State::CULL_NONE);
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setBlendFunction(false,
+                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        _simpleOpaqueWebBrowserPipeline = gpu::Pipeline::create(_simpleOpaqueWebBrowserShader, state);
+    });
+
+    return _simpleOpaqueWebBrowserPipeline;
+}
+
+void GeometryCache::bindTransparentWebBrowserProgram(gpu::Batch& batch) {
+    batch.setPipeline(getTransparentWebBrowserProgram());
+    // Set a default normal map
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+                             DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+}
+
+gpu::PipelinePointer GeometryCache::getTransparentWebBrowserProgram() {
+    static std::once_flag once;
+    std::call_once(once, [&]() {
+        auto VS = gpu::Shader::createVertex(std::string(simple_vert));
+        auto PS = gpu::Shader::createPixel(std::string(simple_transparent_web_browser_frag));
+
+        _simpleTransparentWebBrowserShader = gpu::Shader::createProgram(VS, PS);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
+        gpu::Shader::makeProgram(*_simpleTransparentWebBrowserShader, slotBindings);
+        auto state = std::make_shared<gpu::State>();
+        state->setCullMode(gpu::State::CULL_NONE);
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setBlendFunction(true,
+                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        _simpleTransparentWebBrowserPipeline = gpu::Pipeline::create(_simpleTransparentWebBrowserShader, state);
+    });
+
+    return _simpleTransparentWebBrowserPipeline;
+}
+
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {
+    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -1755,8 +1861,8 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool cul
         DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
-gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled, bool unlit, bool depthBiased) {
-    SimpleProgramKey config { textured, culled, unlit, depthBiased };
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {
+    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased };
 
     // Compile the shaders
     static std::once_flag once;
@@ -1792,7 +1898,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled
         state->setDepthBias(1.0f);
         state->setDepthBiasSlopeScale(1.0f);
     }
-    state->setBlendFunction(false,
+    state->setBlendFunction(config.isTransparent(),
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 

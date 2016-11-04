@@ -167,6 +167,8 @@ void RenderablePolyLineEntityItem::update(const quint64& now) {
 }
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
+    checkFading();
+
     QWriteLocker lock(&_quadReadWriteLock);
     if (_points.size() < 2 || _normals.size () < 2 || _strokeWidths.size() < 2) {
         return;
@@ -203,6 +205,10 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
    
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
+
+    if (_isFading) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
+    }
 
     batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
 };

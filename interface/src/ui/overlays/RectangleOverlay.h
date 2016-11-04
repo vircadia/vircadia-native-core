@@ -14,14 +14,13 @@
 class RectangleOverlay : public QmlOverlay {
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
     static QUrl const URL;
 
     RectangleOverlay();
     RectangleOverlay(const RectangleOverlay* RectangleOverlay);
 
-    virtual RectangleOverlay* createClone() const;
+    virtual RectangleOverlay* createClone() const override;
 };
 
- 
 #endif // hifi_RectangleOverlay_h

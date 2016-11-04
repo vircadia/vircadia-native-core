@@ -123,7 +123,9 @@ glm::vec3 OBJTokenizer::getVec3() {
     return v;
 }
 glm::vec2 OBJTokenizer::getVec2() {
-    auto v = glm::vec2(getFloat(), 1.0f - getFloat());  // OBJ has an odd sense of u, v. Also N.B.: getFloat() has side-effect
+    float uCoord = getFloat();
+    float vCoord = 1.0f - getFloat();
+    auto v = glm::vec2(uCoord, vCoord);
     while (isNextTokenFloat()) {
         // there can be a w, but we don't handle that
         nextToken();
@@ -282,6 +284,7 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
     });
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest netRequest(url);
+    netRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);
     if (!qApp || aboutToQuit) {
         netReply->deleteLater();

@@ -35,6 +35,7 @@
 
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
+std::function<bool()> EntityItem::_entitiesShouldFadeFunction = [](){ return true; };
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID),
@@ -1211,11 +1212,21 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 
 void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
     // a TerseUpdate includes the transform and its derivatives
-    properties._position = getLocalPosition();
-    properties._velocity = getLocalVelocity();
-    properties._rotation = getLocalOrientation();
-    properties._angularVelocity = getLocalAngularVelocity();
-    properties._acceleration = _acceleration;
+    if (!properties._positionChanged) {
+        properties._position = getLocalPosition();
+    }
+    if (!properties._velocityChanged) {
+        properties._velocity = getLocalVelocity();
+    }
+    if (!properties._rotationChanged) {
+        properties._rotation = getLocalOrientation();
+    }
+    if (!properties._angularVelocityChanged) {
+        properties._angularVelocity = getLocalAngularVelocity();
+    }
+    if (!properties._accelerationChanged) {
+        properties._acceleration = _acceleration;
+    }
 
     properties._positionChanged = true;
     properties._velocityChanged = true;

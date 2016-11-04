@@ -79,11 +79,10 @@ void ModelOverlay::render(RenderArgs* args) {
         _model->removeFromScene(scene, pendingChanges);
         _model->addToScene(scene, pendingChanges);
     }
-    scene->enqueuePendingChanges(pendingChanges);
 
-    if (!_visible) {
-        return;
-    }
+    _model->setVisibleInScene(_visible, scene);
+
+    scene->enqueuePendingChanges(pendingChanges);
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
@@ -123,17 +122,8 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto texturesValue = properties["textures"];
     if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
         QVariantMap textureMap = texturesValue.toMap();
-        foreach(const QString& key, textureMap.keys()) {
-
-            QUrl newTextureURL = textureMap[key].toUrl();
-            qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
-
-            QMetaObject::invokeMethod(_model.get(), "setTextureWithNameToURL", Qt::AutoConnection,
-                                      Q_ARG(const QString&, key),
-                                      Q_ARG(const QUrl&, newTextureURL));
-
-            _modelTextures[key] = newTextureURL;  // Keep local track of textures for getProperty()
-        }
+        QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
+                                  Q_ARG(const QVariantMap&, textureMap));
     }
 }
 
@@ -177,4 +167,13 @@ bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const g
 
 ModelOverlay* ModelOverlay::createClone() const {
     return new ModelOverlay(this);
+}
+
+void ModelOverlay::locationChanged(bool tellPhysics) {
+    Base3DOverlay::locationChanged(tellPhysics);
+
+    if (_model && _model->isActive()) {
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    }
 }

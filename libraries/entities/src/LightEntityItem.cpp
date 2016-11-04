@@ -49,7 +49,7 @@ void LightEntityItem::setDimensions(const glm::vec3& value) {
         const float width = length * glm::sin(glm::radians(_cutoff));
         EntityItem::setDimensions(glm::vec3(width, width, length));
     } else {
-        float maxDimension = glm::max(value.x, value.y, value.z);
+        float maxDimension = glm::compMax(value);
         EntityItem::setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
     }
 }
@@ -82,7 +82,7 @@ void LightEntityItem::setIsSpotlight(bool value) {
             const float width = length * glm::sin(glm::radians(_cutoff));
             setDimensions(glm::vec3(width, width, length));
         } else {
-            float maxDimension = glm::max(dimensions.x, dimensions.y, dimensions.z);
+            float maxDimension = glm::compMax(dimensions);
             setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
         }
     }

@@ -92,13 +92,19 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
     switch(packetType) {
         case PacketType::EntityErase: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                qApp->getEntities()->processEraseMessage(*message, sendingNode);
+                auto renderer = qApp->getEntities();
+                if (renderer) {
+                    renderer->processEraseMessage(*message, sendingNode);
+                }
             }
         } break;
 
         case PacketType::EntityData: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                qApp->getEntities()->processDatagram(*message, sendingNode);
+                auto renderer = qApp->getEntities();
+                if (renderer) {
+                    renderer->processDatagram(*message, sendingNode);
+                }
             }
         } break;
 

@@ -47,7 +47,7 @@ public:
 
 protected:
     /// Implements generic processing behavior for this thread.
-    virtual bool process();
+    virtual bool process() override;
 
 private:
     int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent, bool dontSuppressDuplicate = false);

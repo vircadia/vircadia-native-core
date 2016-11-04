@@ -172,7 +172,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
         batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+        batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need

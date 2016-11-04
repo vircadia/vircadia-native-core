@@ -142,7 +142,7 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
+    batch.resetViewTransform();
 
     geometryCache->renderQuad(batch, x, y, w, h, backgroundColor, _audioScopeBackground);
     renderLineStrip(batch, _inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
@@ -250,8 +250,6 @@ int AudioScope::addSilenceToScope(QByteArray* byteArray, int frameOffset, int si
 }
 
 
-const int STEREO_FACTOR = 2;
-
 void AudioScope::addStereoSilenceToScope(int silentSamplesPerChannel) {
     if (!_isEnabled || _isPaused) {
         return;
@@ -265,10 +263,10 @@ void AudioScope::addStereoSamplesToScope(const QByteArray& samples) {
         return;
     }
     const int16_t* samplesData = reinterpret_cast<const int16_t*>(samples.data());
-    int samplesPerChannel = samples.size() / sizeof(int16_t) / STEREO_FACTOR;
+    int samplesPerChannel = samples.size() / sizeof(int16_t) / AudioConstants::STEREO;
     
-    addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, samplesData, samplesPerChannel, 0, STEREO_FACTOR);
-    _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, samplesData, samplesPerChannel, 1, STEREO_FACTOR);
+    addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, samplesData, samplesPerChannel, 0, AudioConstants::STEREO);
+    _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, samplesData, samplesPerChannel, 1, AudioConstants::STEREO);
     
     _scopeLastFrame = samples.right(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
 }
@@ -282,9 +280,9 @@ void AudioScope::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
         int samplesToWriteThisIteration = std::min(samplesRemaining, (int) AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
         float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
         addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, lastFrameData,
-                         samplesToWriteThisIteration, 0, STEREO_FACTOR, fade);
+                         samplesToWriteThisIteration, 0, AudioConstants::STEREO, fade);
         _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset,
-                                              lastFrameData, samplesToWriteThisIteration, 1, STEREO_FACTOR, fade);
+                                              lastFrameData, samplesToWriteThisIteration, 1, AudioConstants::STEREO, fade);
         
         samplesRemaining -= samplesToWriteThisIteration;
         indexOfRepeat++;

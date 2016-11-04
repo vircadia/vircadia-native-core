@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  users.js
 //  examples
@@ -8,6 +10,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
+
+// resolve these paths immediately
+var MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
+var BASE_URL = Script.resolvePath("assets/images/tools/");
 
 var PopUpMenu = function (properties) {
     var value = properties.value,
@@ -21,8 +29,7 @@ var PopUpMenu = function (properties) {
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
-        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH,
-        MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
+        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH;
 
     function positionDisplayOptions() {
         var y,
@@ -219,8 +226,7 @@ var PopUpMenu = function (properties) {
 
 var usersWindow = (function () {
 
-    var baseURL = Script.resolvePath("assets/images/tools/"),
-        WINDOW_WIDTH = 260,
+    var WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
         WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
         WINDOW_FONT = {
@@ -257,7 +263,7 @@ var usersWindow = (function () {
         WINDOW_BORDER_ALPHA = 0.5,
         windowBorder,
 
-        MIN_MAX_BUTTON_SVG = baseURL + "min-max-toggle.svg",
+        MIN_MAX_BUTTON_SVG = BASE_URL + "min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
@@ -289,7 +295,7 @@ var usersWindow = (function () {
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
         FRIENDS_BUTTON_SPACER = 6, // Space before add/remove friends button
-        FRIENDS_BUTTON_SVG = baseURL + "add-remove-friends.svg",
+        FRIENDS_BUTTON_SVG = BASE_URL + "add-remove-friends.svg",
         FRIENDS_BUTTON_SVG_WIDTH = 107,
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
         FRIENDS_BUTTON_WIDTH = FRIENDS_BUTTON_SVG_WIDTH,
@@ -375,7 +381,7 @@ var usersWindow = (function () {
 
         isLoggedIn = false,
         isVisible = true,
-        isMinimized = true,
+        isMinimized = false,
         isBorderVisible = false,
 
         viewport,
@@ -412,7 +418,9 @@ var usersWindow = (function () {
         }
 
         // Reserve space for title, friends button, and option controls
-        nonUsersHeight = WINDOW_MARGIN + windowLineHeight + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER
+        nonUsersHeight = WINDOW_MARGIN + windowLineHeight
+            + (shouldShowFriendsButton() ? FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT : 0)
+            + DISPLAY_SPACER
             + windowLineHeight + VISIBILITY_SPACER
             + windowLineHeight + WINDOW_BASE_MARGIN;
 
@@ -463,7 +471,7 @@ var usersWindow = (function () {
 
         Overlays.editOverlay(minimizeButton, {
             x: windowLeft + WINDOW_WIDTH - WINDOW_MARGIN / 2 - MIN_MAX_BUTTON_WIDTH,
-            y: windowTop + WINDOW_MARGIN / 2
+            y: windowTop + WINDOW_MARGIN
         });
 
         scrollbarBackgroundPosition.x = windowLeft + WINDOW_WIDTH - 0.5 * WINDOW_MARGIN - SCROLLBAR_BACKGROUND_WIDTH;
@@ -479,16 +487,22 @@ var usersWindow = (function () {
             y: scrollbarBarPosition.y
         });
 
+
         x = windowLeft + WINDOW_MARGIN;
-        y = windowPosition.y - FRIENDS_BUTTON_HEIGHT - DISPLAY_SPACER
+        y = windowPosition.y
+            - DISPLAY_SPACER
             - windowLineHeight - VISIBILITY_SPACER
             - windowLineHeight - WINDOW_BASE_MARGIN;
-        Overlays.editOverlay(friendsButton, {
-            x: x,
-            y: y
-        });
+        if (shouldShowFriendsButton()) {
+            y -= FRIENDS_BUTTON_HEIGHT;
+            Overlays.editOverlay(friendsButton, {
+                x: x,
+                y: y
+            });
+            y += FRIENDS_BUTTON_HEIGHT;
+        }
 
-        y += FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER;
+        y += DISPLAY_SPACER;
         displayControl.updatePosition(x, y);
 
         y += windowLineHeight + VISIBILITY_SPACER;
@@ -553,34 +567,38 @@ var usersWindow = (function () {
         });
 
         Overlays.editOverlay(windowHeading, {
-            text: linesOfUsers.length > 0 ? "Users online" : "No users online"
+            text: isLoggedIn ? (linesOfUsers.length > 0 ? "Users online" : "No users online") : "Users online - log in to view"
         });
+    }
+
+    function shouldShowFriendsButton() {
+        return isVisible && isLoggedIn && !isMinimized;
     }
 
     function updateOverlayVisibility() {
         Overlays.editOverlay(windowBorder, {
-            visible: isLoggedIn && isVisible && isBorderVisible
+            visible: isVisible && isBorderVisible
         });
         Overlays.editOverlay(windowPane, {
-            visible: isLoggedIn && isVisible
+            visible: isVisible
         });
         Overlays.editOverlay(windowHeading, {
-            visible: isLoggedIn && isVisible
+            visible: isVisible
         });
         Overlays.editOverlay(minimizeButton, {
-            visible: isLoggedIn && isVisible
+            visible: isVisible
         });
         Overlays.editOverlay(scrollbarBackground, {
-            visible: isLoggedIn && isVisible && isUsingScrollbars && !isMinimized
+            visible: isVisible && isUsingScrollbars && !isMinimized
         });
         Overlays.editOverlay(scrollbarBar, {
-            visible: isLoggedIn && isVisible && isUsingScrollbars && !isMinimized
+            visible: isVisible && isUsingScrollbars && !isMinimized
         });
         Overlays.editOverlay(friendsButton, {
-            visible: isLoggedIn && isVisible && !isMinimized
+            visible: shouldShowFriendsButton()
         });
-        displayControl.setVisible(isLoggedIn && isVisible && !isMinimized);
-        visibilityControl.setVisible(isLoggedIn && isVisible && !isMinimized);
+        displayControl.setVisible(isVisible && !isMinimized);
+        visibilityControl.setVisible(isVisible && !isMinimized);
     }
 
     function checkLoggedIn() {
@@ -588,6 +606,13 @@ var usersWindow = (function () {
 
         isLoggedIn = Account.isLoggedIn();
         if (isLoggedIn !== wasLoggedIn) {
+            if (wasLoggedIn) {
+                setMinimized(true);
+                calculateWindowHeight();
+                updateOverlayPositions();
+                updateUsersDisplay();
+            }
+
             updateOverlayVisibility();
         }
     }
@@ -646,11 +671,10 @@ var usersWindow = (function () {
                     }
                 }
 
+                checkLoggedIn();
                 calculateWindowHeight();
                 updateUsersDisplay();
                 updateOverlayPositions();
-
-                checkLoggedIn();
 
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
@@ -1015,7 +1039,7 @@ var usersWindow = (function () {
             color: WINDOW_HEADING_COLOR,
             alpha: WINDOW_HEADING_ALPHA,
             backgroundAlpha: 0.0,
-            text: "No users online",
+            text: "Users online",
             font: WINDOW_FONT,
             visible: false
         });
@@ -1120,6 +1144,7 @@ var usersWindow = (function () {
         if (VISIBILITY_VALUES.indexOf(myVisibility) === -1) {
             myVisibility = VISIBILITY_FRIENDS;
         }
+        GlobalServices.findableBy = myVisibility;
 
         visibilityControl = new PopUpMenu({
             prompt: VISIBILITY_PROMPT,
@@ -1168,7 +1193,7 @@ var usersWindow = (function () {
         pollUsers();
 
         // Set minimized at end - setup code does not handle `minimized == false` correctly
-        setMinimized(isValueTrue(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, false)));
+        setMinimized(isValueTrue(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, true)));
     }
 
     function tearDown() {
@@ -1189,3 +1214,5 @@ var usersWindow = (function () {
     setUp();
     Script.scriptEnding.connect(tearDown);
 }());
+
+}()); // END LOCAL_SCOPE

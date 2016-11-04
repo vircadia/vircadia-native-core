@@ -13,6 +13,7 @@ import "../../../interface/resources/qml/styles-uit"
 
 ApplicationWindow {
     id: appWindow
+    objectName: "MainWindow"
     visible: true
     width: 1280
     height: 800
@@ -92,9 +93,6 @@ ApplicationWindow {
             text: "Toggle Button Visible"
             onClicked: testButtons.lastButton.visible = !testButtons.lastButton.visible
         }
-
-
-
 
         // Error alerts
         /*
@@ -349,6 +347,11 @@ ApplicationWindow {
             onClicked: desktop.popupMenu(Qt.vector2d(mouseX, mouseY));
         }
         */
+
+        Browser {
+            url: "http://s3.amazonaws.com/DreamingContent/testUiDelegates.html"
+        }
+
 
         Window {
             id: blue

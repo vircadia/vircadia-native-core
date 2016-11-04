@@ -20,25 +20,25 @@ class AudioInjectorLocalBuffer : public QIODevice {
     Q_OBJECT
 public:
     AudioInjectorLocalBuffer(const QByteArray& rawAudioArray, QObject* parent);
-    
+
     void stop();
-    
-    bool seek(qint64 pos);
-    
-    qint64 readData(char* data, qint64 maxSize);
-    qint64 writeData(const char* data, qint64 maxSize) { return 0; }
-    
+
+    bool seek(qint64 pos) override;
+
+    qint64 readData(char* data, qint64 maxSize) override;
+    qint64 writeData(const char* data, qint64 maxSize) override { return 0; }
+
     void setShouldLoop(bool shouldLoop) { _shouldLoop = shouldLoop; }
     void setCurrentOffset(int currentOffset) { _currentOffset = currentOffset; }
     void setVolume(float volume) { _volume = glm::clamp(volume, 0.0f, 1.0f); }
-    
+
 private:
     qint64 recursiveReadFromFront(char* data, qint64 maxSize);
-    
+
     QByteArray _rawAudioArray;
     bool _shouldLoop;
     bool _isStopped;
-    
+
     int _currentOffset;
     float _volume;
 };

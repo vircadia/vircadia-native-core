@@ -41,9 +41,12 @@
 #include "NLPacketList.h"
 #include "PacketReceiver.h"
 #include "ReceivedMessage.h"
+#include "udt/ControlPacket.h"
 #include "udt/PacketHeaders.h"
 #include "udt/Socket.h"
 #include "UUIDHasher.h"
+
+const int INVALID_PORT = -1;
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
@@ -106,12 +109,15 @@ public:
     void setSessionUUID(const QUuid& sessionUUID);
 
     void setPermissions(const NodePermissions& newPermissions);
-    bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
-    bool getThisNodeCanRez() const { return _permissions.canRezPermanentEntities; }
-    bool getThisNodeCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
-    bool getThisNodeCanWriteAssets() const { return _permissions.canWriteToAssetServer; }
+    bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
+    bool getThisNodeCanRez() const { return _permissions.can(NodePermissions::Permission::canRezPermanentEntities); }
+    bool getThisNodeCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
+    bool getThisNodeCanWriteAssets() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
+    bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
 
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
+    Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
+
     QUdpSocket& getDTLSSocket();
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
@@ -141,6 +147,7 @@ public:
                                       const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS,
                                       const QUuid& connectionSecret = QUuid());
 
+    static bool parseSTUNResponse(udt::BasePacket* packet, QHostAddress& newPublicAddress, uint16_t& newPublicPort);
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
 
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
@@ -161,8 +168,8 @@ public:
     std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
     std::unique_ptr<NLPacket> constructPingReplyPacket(ReceivedMessage& message);
 
-    std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    std::unique_ptr<NLPacket> constructICEPingReplyPacket(ReceivedMessage& message, const QUuid& iceID);
+    static std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
+    static std::unique_ptr<NLPacket> constructICEPingReplyPacket(ReceivedMessage& message, const QUuid& iceID);
 
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
@@ -227,6 +234,12 @@ public:
     bool packetVersionMatch(const udt::Packet& packet);
     bool isPacketVerified(const udt::Packet& packet);
 
+    static void makeSTUNRequestPacket(char* stunRequestPacket);
+
+#if (PR_BUILD || DEV_BUILD)
+    void sendFakedHandshakeRequestToNode(SharedNodePointer node);
+#endif
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -242,14 +255,18 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
+    void dataReceived(quint8 channelType, int bytes);
 
     // QUuid might be zero for non-sourced packet types.
     void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
+    void nodeSocketUpdated(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
     void nodeActivated(SharedNodePointer);
+
+    void clientConnectionToNodeReset(SharedNodePointer);
 
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
@@ -258,16 +275,19 @@ signals:
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRezTmp);
     void canWriteAssetsChanged(bool canWriteAssets);
+    void canKickChanged(bool canKick);
 
 protected slots:
     void connectedForLocalSocketTest();
     void errorTestingLocalSocket();
+    
+    void clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr);
 
 protected:
-    LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
-    LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
-    void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
-    
+    LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
+    LimitedNodeList(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
+    void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
+
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                       const HifiSockAddr& overridenSockAddr);
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
@@ -276,8 +296,8 @@ protected:
     void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret = QUuid());
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
-    
-    bool packetSourceAndHashMatch(const udt::Packet& packet);
+
+    bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
     void handleNodeKill(const SharedNodePointer& node);
@@ -286,6 +306,8 @@ protected:
 
     void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
+
+    bool sockAddrBelongsToNode(const HifiSockAddr& sockAddr) { return findNodeWithAddr(sockAddr) != SharedNodePointer(); }
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;
@@ -299,9 +321,8 @@ protected:
 
     PacketReceiver* _packetReceiver;
 
-    // XXX can BandwidthRecorder be used for this?
-    int _numCollectedPackets;
-    int _numCollectedBytes;
+    std::atomic<int> _numCollectedPackets;
+    std::atomic<int> _numCollectedBytes;
 
     QElapsedTimer _packetStatTimer;
     NodePermissions _permissions;

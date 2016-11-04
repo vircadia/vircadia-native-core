@@ -17,6 +17,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QtGui/QWindow>
+
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
@@ -26,6 +28,7 @@
 #include <Transform.h>
 #include <Sound.h>
 #include <SpatiallyNestable.h>
+#include <Interpolate.h>
 
 #include "EntityItemID.h"
 #include "EntityItemPropertiesDefaults.h"
@@ -41,6 +44,7 @@ class EntityTreeElementExtraEncodeData;
 class EntityActionInterface;
 class EntityItemProperties;
 class EntityTree;
+class btCollisionShape;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
@@ -52,7 +56,7 @@ namespace render {
 }
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
-#define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
+#define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
 
 #define debugTime(T, N) qPrintable(QString("%1 [ %2 ago]").arg(T, 16, 10).arg(formatUsecTime(N - T), 15))
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
@@ -321,9 +325,7 @@ public:
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
-    // these are only needed because the names don't match
-    virtual const glm::quat getRotation() const { return getOrientation(); }
-    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
+    virtual void setCollisionShape(const btCollisionShape* shape) {}
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     virtual void updateRegistrationPoint(const glm::vec3& value);
@@ -435,6 +437,16 @@ public:
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
     void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
+    static void setEntitiesShouldFadeFunction(std::function<bool()> func) { _entitiesShouldFadeFunction = func; }
+    static std::function<bool()> getEntitiesShouldFadeFunction() { return _entitiesShouldFadeFunction; }
+    virtual bool isTransparent() { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
+
+    virtual bool wantsHandControllerPointerEvents() const { return false; }
+    virtual bool wantsKeyboardFocus() const { return false; }
+    virtual void setProxyWindow(QWindow* proxyWindow) {}
+    virtual QObject* getEventHandler() { return nullptr; }
+
+    virtual void emitScriptEvent(const QVariant& message) {}
 
 protected:
 
@@ -565,7 +577,9 @@ protected:
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
 
-
+    quint64 _fadeStartTime { usecTimestampNow() };
+    static std::function<bool()> _entitiesShouldFadeFunction;
+    bool _isFading { _entitiesShouldFadeFunction() };
 };
 
 #endif // hifi_EntityItem_h

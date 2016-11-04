@@ -52,6 +52,7 @@ public:
     void setTextures(const QVariantMap& textureMap);
 
     virtual bool areTexturesLoaded() const;
+    const QUrl& getAnimGraphOverrideUrl() const { return _animGraphOverrideUrl; }
 
 protected:
     friend class GeometryMappingResource;
@@ -63,6 +64,8 @@ protected:
 
     // Copied to each geometry, mutable throughout lifetime via setTextures
     NetworkMaterials _materials;
+
+    QUrl _animGraphOverrideUrl;
 
 private:
     mutable bool _areTexturesLoaded { false };
@@ -112,6 +115,9 @@ private:
     void startWatching();
     void stopWatching();
 
+signals:
+    void finished(bool success);
+
 private slots:
     void resourceFinished(bool success);
     void resourceRefreshed();
@@ -134,7 +140,7 @@ protected:
     friend class GeometryMappingResource;
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra);
+        const void* extra) override;
 
 private:
     ModelCache();

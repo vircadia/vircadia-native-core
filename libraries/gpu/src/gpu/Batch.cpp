@@ -46,6 +46,33 @@ Batch::Batch() {
     _drawCallInfos.reserve(_drawCallInfosMax);
 }
 
+Batch::Batch(const Batch& batch_) {
+    Batch& batch = *const_cast<Batch*>(&batch_);
+    _commands.swap(batch._commands);
+    _commandOffsets.swap(batch._commandOffsets);
+    _params.swap(batch._params);
+    _data.swap(batch._data);
+    _invalidModel = batch._invalidModel;
+    _currentModel = batch._currentModel;
+    _objects.swap(batch._objects);
+    _currentNamedCall = batch._currentNamedCall;
+
+    _buffers._items.swap(batch._buffers._items);
+    _textures._items.swap(batch._textures._items);
+    _streamFormats._items.swap(batch._streamFormats._items);
+    _transforms._items.swap(batch._transforms._items);
+    _pipelines._items.swap(batch._pipelines._items);
+    _framebuffers._items.swap(batch._framebuffers._items);
+    _drawCallInfos.swap(batch._drawCallInfos);
+    _queries._items.swap(batch._queries._items);
+    _lambdas._items.swap(batch._lambdas._items);
+    _profileRanges._items.swap(batch._profileRanges._items);
+    _names._items.swap(batch._names._items);
+    _namedData.swap(batch._namedData);
+    _enableStereo = batch._enableStereo;
+    _enableSkybox = batch._enableSkybox;
+}
+
 Batch::~Batch() {
     _commandsMax = std::max(_commands.size(), _commandsMax);
     _commandOffsetsMax = std::max(_commandOffsets.size(), _commandOffsetsMax);
@@ -205,10 +232,11 @@ void Batch::setModelTransform(const Transform& model) {
     _invalidModel = true;
 }
 
-void Batch::setViewTransform(const Transform& view) {
+void Batch::setViewTransform(const Transform& view, bool camera) {
     ADD_COMMAND(setViewTransform);
-
+    uint cameraFlag = camera ? 1 : 0;
     _params.emplace_back(_transforms.cache(view));
+    _params.emplace_back(cameraFlag);
 }
 
 void Batch::setProjectionTransform(const Mat4& proj) {
@@ -266,6 +294,11 @@ void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
 
 
 void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
+    if (texture && texture->getUsage().isExternal()) {
+        auto recycler = texture->getExternalRecycler();
+        Q_ASSERT(recycler);
+    }
+
     ADD_COMMAND(setResourceTexture);
 
     _params.emplace_back(_textures.cache(texture));
@@ -464,17 +497,6 @@ void Batch::captureNamedDrawCallInfo(std::string name) {
     std::swap(_currentNamedCall, name); // Restore _currentNamedCall
 }
 
-void Batch::preExecute() {
-    for (auto& mapItem : _namedData) {
-        auto& name = mapItem.first;
-        auto& instance = mapItem.second;
-
-        startNamedCall(name);
-        instance.process(*this);
-        stopNamedCall();
-    }
-}
-
 // Debugging
 void Batch::pushProfileRange(const char* name) {
 #if defined(NSIGHT_FOUND)
@@ -487,18 +509,6 @@ void Batch::popProfileRange() {
 #if defined(NSIGHT_FOUND)
     ADD_COMMAND(popProfileRange);
 #endif
-}
-
-#define GL_TEXTURE0 0x84C0
-
-void Batch::_glActiveBindTexture(uint32 unit, uint32 target, uint32 texture) {
-    // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine
-    setResourceTexture(unit - GL_TEXTURE0, nullptr);
-
-    ADD_COMMAND(glActiveBindTexture);
-    _params.emplace_back(texture);
-    _params.emplace_back(target);
-    _params.emplace_back(unit);
 }
 
 void Batch::_glUniform1i(int32 location, int32 v0) {
@@ -600,4 +610,67 @@ void Batch::_glColor4f(float red, float green, float blue, float alpha) {
     _params.emplace_back(blue);
     _params.emplace_back(green);
     _params.emplace_back(red);
+}
+
+void Batch::finishFrame(BufferUpdates& updates) {
+    for (auto& mapItem : _namedData) {
+        auto& name = mapItem.first;
+        auto& instance = mapItem.second;
+
+        startNamedCall(name);
+        instance.process(*this);
+        stopNamedCall();
+    }
+
+    for (auto& namedCallData : _namedData) {
+        for (auto& buffer : namedCallData.second.buffers) {
+            if (!buffer || !buffer->isDirty()) {
+                continue;
+            }
+            updates.emplace_back(buffer->getUpdate());
+        }
+    }
+
+    for (auto& bufferCacheItem : _buffers._items) {
+        const BufferPointer& buffer = bufferCacheItem._data;
+        if (!buffer || !buffer->isDirty()) {
+            continue;
+        }
+        updates.emplace_back(buffer->getUpdate());
+    }
+}
+
+void Batch::flush() {
+    for (auto& mapItem : _namedData) {
+        auto& name = mapItem.first;
+        auto& instance = mapItem.second;
+
+        auto& self = const_cast<Batch&>(*this);
+        self.startNamedCall(name);
+        instance.process(self);
+        self.stopNamedCall();
+    }
+
+    for (auto& namedCallData : _namedData) {
+        for (auto& buffer : namedCallData.second.buffers) {
+            if (!buffer) {
+                continue;
+            }
+            if (!buffer->isDirty()) {
+                continue;
+            }
+            buffer->flush();
+        }
+    }
+
+    for (auto& bufferCacheItem : _buffers._items) {
+        const BufferPointer& buffer = bufferCacheItem._data;
+        if (!buffer) {
+            continue;
+        }
+        if (!buffer->isDirty()) {
+            continue;
+        }
+        buffer->flush();
+    }
 }

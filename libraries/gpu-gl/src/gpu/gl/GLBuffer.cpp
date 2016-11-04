@@ -7,20 +7,24 @@
 //
 
 #include "GLBuffer.h"
+#include "GLBackend.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 
 GLBuffer::~GLBuffer() {
-    glDeleteBuffers(1, &_id);
-    Backend::decrementBufferGPUCount();
-    Backend::updateBufferGPUMemoryUsage(_size, 0);
+    if (_id) {
+        auto backend = _backend.lock();
+        if (backend) {
+            backend->releaseBuffer(_id, _size);
+        }
+    }
 }
 
-GLBuffer::GLBuffer(const Buffer& buffer, GLuint id) :
-    GLObject(buffer, id),
-    _size((GLuint)buffer._sysmem.getSize()),
-    _stamp(buffer._sysmem.getStamp())
+GLBuffer::GLBuffer(const std::weak_ptr<GLBackend>& backend, const Buffer& buffer, GLuint id) :
+    GLObject(backend, buffer, id),
+    _size((GLuint)buffer._renderSysmem.getSize()),
+    _stamp(buffer._renderSysmem.getStamp())
 {
     Backend::incrementBufferGPUCount();
     Backend::updateBufferGPUMemoryUsage(0, _size);

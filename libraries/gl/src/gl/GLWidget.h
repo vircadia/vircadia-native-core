@@ -10,31 +10,43 @@
 #ifndef hifi_GLWidget_h
 #define hifi_GLWidget_h
 
-#include <QGLWidget>
+#include <QtWidgets/QWidget>
+
+namespace gl {
+    class Context;
+}
+
+class QOpenGLContext;
 
 /// customized canvas that simply forwards requests/events to the singleton application
-class GLWidget : public QGLWidget {
+class GLWidget : public QWidget {
     Q_OBJECT
     
 public:
     GLWidget();
+    ~GLWidget();
     int getDeviceWidth() const;
     int getDeviceHeight() const;
     QSize getDeviceSize() const { return QSize(getDeviceWidth(), getDeviceHeight()); }
-    bool isVsyncSupported() const;
-    virtual void initializeGL() override;
+    QPaintEngine* paintEngine() const override;
+    void createContext();
+    bool makeCurrent();
+    void doneCurrent();
+    gl::Context* context() { return _context; }
+    QOpenGLContext* qglContext();
+
 
 protected:
+    virtual bool nativeEvent(const QByteArray &eventType, void *message, long *result) override;
     virtual bool event(QEvent* event) override;
-    virtual void paintEvent(QPaintEvent* event) override;
-    virtual void resizeEvent(QResizeEvent* event) override;
+    gl::Context* _context { nullptr };
 
 private slots:
     virtual bool eventFilter(QObject*, QEvent* event) override;
 
 private:
+    QPaintEngine* _paintEngine { nullptr };
     bool _vsyncSupported { false };
 };
-
 
 #endif // hifi_GLCanvas_h

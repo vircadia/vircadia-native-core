@@ -42,8 +42,8 @@ public:
     void queueEraseEntityMessage(const EntityItemID& entityItemID);
 
     // My server type is the model server
-    virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew);
+    virtual char getMyNodeType() const override { return NodeType::EntityServer; }
+    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew) override;
 
 public slots:
     void processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
