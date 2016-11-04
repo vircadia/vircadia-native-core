@@ -1037,6 +1037,9 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
     }
 
     int jointParentIndex = rig->getJointParentIndex(index);
+    if (jointParentIndex == -1) {
+        return setLocalJointRotation(index, rotation);
+    }
 
     bool success;
     AnimPose jointParentPose;
@@ -1067,6 +1070,9 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
     }
 
     int jointParentIndex = rig->getJointParentIndex(index);
+    if (jointParentIndex == -1) {
+        return setLocalJointTranslation(index, translation);
+    }
 
     bool success;
     AnimPose jointParentPose;
@@ -1084,7 +1090,7 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
     jointAbsolutePose.trans = translation;
 
     AnimPose jointRelativePose = jointParentInversePose * jointAbsolutePose;
-    return setLocalJointRotation(index, jointRelativePose.trans);
+    return setLocalJointTranslation(index, jointRelativePose.trans);
 }
 
 glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {
