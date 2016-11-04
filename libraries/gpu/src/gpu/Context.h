@@ -85,7 +85,8 @@ public:
 
     void getStats(ContextStats& stats) const { stats = _stats; }
 
-
+    virtual bool isTextureManagementSparseEnabled() const = 0;
+    virtual bool isTextureManagementIncrementalTransferEnabled() const = 0;
 
     // These should only be accessed by Backend implementation to repport the buffer and texture allocations,
     // they are NOT public calls
@@ -125,6 +126,7 @@ protected:
     friend class Context;
     ContextStats _stats;
     StereoState _stereo;
+
 };
 
 class Context {
@@ -277,7 +279,6 @@ protected:
     static std::atomic<Size> _textureGPUVirtualMemoryUsage;
     static std::atomic<Size> _textureGPUFramebufferMemoryUsage;
     static std::atomic<uint32_t> _textureGPUTransferCount;
-
 
     friend class Backend;
 };
