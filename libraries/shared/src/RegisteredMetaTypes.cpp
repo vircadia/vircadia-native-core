@@ -267,7 +267,7 @@ void quatFromScriptValue(const QScriptValue& object, glm::quat &quat) {
     // enforce normalized quaternion
     float length = glm::length(quat);
     if (length > FLT_EPSILON) {
-        quat /= sqrtf(length);
+        quat /= length;
     } else {
         quat = glm::quat();
     }
@@ -285,7 +285,7 @@ glm::quat quatFromVariant(const QVariant &object, bool& isValid) {
         // enforce normalized quaternion
         float length = glm::length(q);
         if (length > FLT_EPSILON) {
-            q /= sqrtf(length);
+            q /= length;
         } else {
             q = glm::quat();
         }
