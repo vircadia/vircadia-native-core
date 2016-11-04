@@ -17,7 +17,7 @@
 #include <QtGui/QVector2D>
 #include <QtGui/QVector3D>
 #include <QtGui/QQuaternion>
-#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <QAbstractSocket>
 
 #include "RegisteredMetaTypes.h"
@@ -265,9 +265,9 @@ void quatFromScriptValue(const QScriptValue& object, glm::quat &quat) {
     quat.w = object.property("w").toVariant().toFloat();
 
     // enforce normalized quaternion
-    float length2 = glm::length2(quat);
-    if (length2 > FLT_EPSILON) {
-        quat /= sqrtf(length2);
+    float length = glm::length(quat);
+    if (length > FLT_EPSILON) {
+        quat /= sqrtf(length);
     } else {
         quat = glm::quat();
     }
@@ -283,9 +283,9 @@ glm::quat quatFromVariant(const QVariant &object, bool& isValid) {
         q.w = qvec3.scalar();
 
         // enforce normalized quaternion
-        float length2 = glm::length2(q);
-        if (length2 > FLT_EPSILON) {
-            q /= sqrtf(length2);
+        float length = glm::length(q);
+        if (length > FLT_EPSILON) {
+            q /= sqrtf(length);
         } else {
             q = glm::quat();
         }
