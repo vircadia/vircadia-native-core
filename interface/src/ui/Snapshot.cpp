@@ -89,7 +89,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
 QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
 
     // adding URL to snapshot
-    QUrl currentURL = DependencyManager::get<AddressManager>()->currentAddress();
+    QUrl currentURL = DependencyManager::get<AddressManager>()->currentShareableAddress();
     shot.setText(URL, currentURL.toString());
 
     QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
@@ -146,7 +146,10 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
 void Snapshot::uploadSnapshot(const QString& filename) {
 
     const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
-    static SnapshotUploader uploader;
+    // Alternatively to parseSnapshotData, we could pass the inWorldLocation through the call chain. This way is less disruptive to existing code.
+    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
+    SnapshotUploader* uploader = new SnapshotUploader(snapshotData->getURL(), filename);
+    delete snapshotData;
     
     QFile* file = new QFile(filename);
     Q_ASSERT(file->exists());
@@ -163,7 +166,7 @@ void Snapshot::uploadSnapshot(const QString& filename) {
     multiPart->append(imagePart);
     
     auto accountManager = DependencyManager::get<AccountManager>();
-    JSONCallbackParameters callbackParams(&uploader, "uploadSuccess", &uploader, "uploadFailure");
+    JSONCallbackParameters callbackParams(uploader, "uploadSuccess", uploader, "uploadFailure");
 
     accountManager->sendRequest(SNAPSHOT_UPLOAD_URL,
                                 AccountManagerAuth::Required,
