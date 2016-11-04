@@ -308,6 +308,13 @@ void Rig::clearIKJointLimitHistory() {
     }
 }
 
+int Rig::getJointParentIndex(int childIndex) {
+    if (_animSkeleton && isIndexValid(childIndex)) {
+        return _animSkeleton->getParentIndex(childIndex);
+    }
+    return -1;
+}
+
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
     if (isIndexValid(index)) {
         if (valid) {
@@ -408,6 +415,16 @@ bool Rig::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& trans
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
         translation = _externalPoseSet._absolutePoses[jointIndex].trans;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Rig::getAbsoluteJointPoseInRigFrame(int jointIndex, AnimPose& returnPose) const {
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        returnPose = _externalPoseSet._absolutePoses[jointIndex];
         return true;
     } else {
         return false;

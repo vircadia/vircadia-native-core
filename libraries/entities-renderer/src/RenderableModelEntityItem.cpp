@@ -1028,17 +1028,63 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
 }
 
 bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) {
-    // TODO -- write this
-    assert(false);
-    abort();
-    return false;
+    if (!_model) {
+        return false;
+    }
+    RigPointer rig = _model->getRig();
+    if (!rig) {
+        return false;
+    }
+
+    int jointParentIndex = rig->getJointParentIndex(index);
+
+    bool success;
+    AnimPose jointParentPose;
+    success = rig->getAbsoluteJointPoseInRigFrame(jointParentIndex, jointParentPose);
+    if (!success) {
+        return false;
+    }
+    AnimPose jointParentInversePose = jointParentPose.inverse();
+
+    AnimPose jointAbsolutePose; // in rig frame
+    success = rig->getAbsoluteJointPoseInRigFrame(index, jointAbsolutePose);
+    if (!success) {
+        return false;
+    }
+    jointAbsolutePose.rot = rotation;
+
+    AnimPose jointRelativePose = jointParentInversePose * jointAbsolutePose;
+    return setLocalJointRotation(index, jointRelativePose.rot);
 }
 
 bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
-    // TODO -- write this
-    assert(false);
-    abort();
-    return false;
+    if (!_model) {
+        return false;
+    }
+    RigPointer rig = _model->getRig();
+    if (!rig) {
+        return false;
+    }
+
+    int jointParentIndex = rig->getJointParentIndex(index);
+
+    bool success;
+    AnimPose jointParentPose;
+    success = rig->getAbsoluteJointPoseInRigFrame(jointParentIndex, jointParentPose);
+    if (!success) {
+        return false;
+    }
+    AnimPose jointParentInversePose = jointParentPose.inverse();
+
+    AnimPose jointAbsolutePose; // in rig frame
+    success = rig->getAbsoluteJointPoseInRigFrame(index, jointAbsolutePose);
+    if (!success) {
+        return false;
+    }
+    jointAbsolutePose.trans = translation;
+
+    AnimPose jointRelativePose = jointParentInversePose * jointAbsolutePose;
+    return setLocalJointRotation(index, jointRelativePose.trans);
 }
 
 glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {
