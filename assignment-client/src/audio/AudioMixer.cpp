@@ -591,10 +591,10 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     // enumerate the connected listeners to remove HRTF objects for the disconnected node
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->eachNode([](const SharedNodePointer& node) {
+    nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            clientData->removeHRTFsForNode(node->getUUID());
+            clientData->removeHRTFsForNode(killedNode->getUUID());
         }
     });
 }
