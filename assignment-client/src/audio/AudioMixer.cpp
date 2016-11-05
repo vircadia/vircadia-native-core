@@ -93,6 +93,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
@@ -590,13 +591,28 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     // enumerate the connected listeners to remove HRTF objects for the disconnected node
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->eachNode([](const SharedNodePointer& node) {
+    nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            clientData->removeHRTFsForNode(node->getUUID());
+            clientData->removeHRTFsForNode(killedNode->getUUID());
         }
     });
 }
+
+void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+    if (clientData) {
+        clientData->removeAgentAvatarAudioStream();
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->eachNode([sendingNode](const SharedNodePointer& node){
+            auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+            if (listenerClientData) {
+                listenerClientData->removeHRTFForStream(sendingNode->getUUID());
+            }
+        });
+    }
+}
+
 
 void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     sendingNode->parseIgnoreRequestMessage(packet);

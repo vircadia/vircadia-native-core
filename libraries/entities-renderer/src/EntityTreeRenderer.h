@@ -45,6 +45,10 @@ public:
                                 AbstractScriptingServicesInterface* scriptingServices);
     virtual ~EntityTreeRenderer();
 
+    QSharedPointer<EntityTreeRenderer> getSharedFromThis() {
+        return qSharedPointerCast<EntityTreeRenderer>(sharedFromThis());
+    }
+
     virtual char getMyNodeType() const override { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
     virtual PacketType getExpectedPacketType() const override { return PacketType::EntityData; }

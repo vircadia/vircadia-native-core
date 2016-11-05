@@ -22,7 +22,7 @@ class InfoView : public QQuickItem {
     static const QString NAME;
 public:
     static void registerType();
-    static void show(const QString& path, bool firstOrChangedOnly = false);
+    static void show(const QString& path, bool firstOrChangedOnly = false, QString urlQuery = "");
 
     InfoView(QQuickItem* parent = nullptr);
     QUrl url();

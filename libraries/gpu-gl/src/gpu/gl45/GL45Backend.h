@@ -32,6 +32,7 @@ public:
         static GLuint allocate(const Texture& texture);
         static const uint32_t DEFAULT_PAGE_DIMENSION = 128;
         static const uint32_t DEFAULT_MAX_SPARSE_LEVEL = 0xFFFF;
+
     public:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId);
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable);
@@ -132,6 +133,9 @@ protected:
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
+
+    // Texture Management Stage
+    void initTextureManagementStage() override;
 };
 
 } }

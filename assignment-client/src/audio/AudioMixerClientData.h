@@ -50,6 +50,8 @@ public:
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
 
+    void removeAgentAvatarAudioStream();
+
     int parseData(ReceivedMessage& message) override;
 
     // attempt to pop a frame from each audio stream, and return the number of streams from this client

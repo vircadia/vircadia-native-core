@@ -85,18 +85,26 @@ public:
     }
 
     void beforeAboutToQuit() {
+        Lock lock(_checkDevicesMutex);
         _quit = true;
     }
 
     void run() override {
-        while (!_quit) {
+        while (true) {
+            {
+                Lock lock(_checkDevicesMutex);
+                if (_quit) {
+                    break;
+                }
+                _audioClient->checkDevices();
+            }
             QThread::msleep(DEVICE_CHECK_INTERVAL_MSECS);
-            _audioClient->checkDevices();
         }
     }
 
 private:
     AudioClient* _audioClient { nullptr };
+    Mutex _checkDevicesMutex;
     bool _quit { false };
 };
 
