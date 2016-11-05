@@ -57,6 +57,9 @@ public:
 
     void convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const;
 
+    void saveNonMirroredPoses(const AnimPoseVec& poses) const;
+    void restoreNonMirroredPoses(AnimPoseVec& poses) const;
+
     void mirrorRelativePoses(AnimPoseVec& poses) const;
     void mirrorAbsolutePoses(AnimPoseVec& poses) const;
 
@@ -75,6 +78,8 @@ protected:
     AnimPoseVec _absoluteDefaultPoses;
     AnimPoseVec _relativePreRotationPoses;
     AnimPoseVec _relativePostRotationPoses;
+    mutable AnimPoseVec _nonMirroredPoses;
+    std::vector<int> _nonMirroredIndices;
     std::vector<int> _mirrorMap;
 
     // no copies

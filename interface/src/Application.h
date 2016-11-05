@@ -180,7 +180,7 @@ public:
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
     void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
+    QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
@@ -205,6 +205,9 @@ public:
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
+
+    float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
+    void setSettingConstrainToolbarPosition(bool setting);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
@@ -506,6 +509,7 @@ private:
 
     Setting::Handle<QString> _previousScriptLocation;
     Setting::Handle<float> _fieldOfView;
+    Setting::Handle<bool> _constrainToolbarPosition;
 
     float _scaleMirror;
     float _rotateMirror;

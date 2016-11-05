@@ -49,7 +49,7 @@ public:
     bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
 
     bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
-    void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
+    void setIsListeningToAudioStream(bool isListeningToAudioStream);
 
     float getLastReceivedAudioLoudness() const { return _lastReceivedAudioLoudness; }
     QUuid getSessionUUID() const;

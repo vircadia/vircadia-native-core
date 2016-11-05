@@ -116,6 +116,13 @@ public:
     virtual void setYPNeighborID(const EntityItemID& yPNeighborID) override;
     virtual void setZPNeighborID(const EntityItemID& zPNeighborID) override;
 
+    std::shared_ptr<RenderablePolyVoxEntityItem> getXNNeighbor();
+    std::shared_ptr<RenderablePolyVoxEntityItem> getYNNeighbor();
+    std::shared_ptr<RenderablePolyVoxEntityItem> getZNNeighbor();
+    std::shared_ptr<RenderablePolyVoxEntityItem> getXPNeighbor();
+    std::shared_ptr<RenderablePolyVoxEntityItem> getYPNeighbor();
+    std::shared_ptr<RenderablePolyVoxEntityItem> getZPNeighbor();
+
     virtual void updateRegistrationPoint(const glm::vec3& value) override;
 
     void setVoxelsFromData(QByteArray uncompressedData, quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize);

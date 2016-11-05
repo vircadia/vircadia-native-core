@@ -14,13 +14,19 @@
 
 #include <QObject>
 #include <QtNetwork/QNetworkReply>
+#include <QtCore/QUrl>
 
 class SnapshotUploader : public QObject {
     Q_OBJECT
-        public slots:
+public:
+    SnapshotUploader(QUrl inWorldLocation, QString pathname);
+public slots:
     void uploadSuccess(QNetworkReply& reply);
     void uploadFailure(QNetworkReply& reply);
     void createStorySuccess(QNetworkReply& reply);
     void createStoryFailure(QNetworkReply& reply);
+private:
+    QUrl _inWorldLocation;
+    QString _pathname;
 };
 #endif // hifi_SnapshotUploader_h

@@ -111,7 +111,7 @@ float GLTexture::getMemoryPressure() {
         }
 #else 
         // Hardcode texture limit for sparse textures at 1 GB for now
-        availableTextureMemory = GPU_MEMORY_RESERVE_BYTES;
+        availableTextureMemory = TEXTURE_MEMORY_MIN_BYTES;
 #endif
     }
 

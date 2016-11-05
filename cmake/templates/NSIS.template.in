@@ -571,7 +571,9 @@ Function HandlePostInstallOptions
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
     ; it won't be possible to use this approach if either application should be launched with a command line param
     ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
+      ; create shortcut with ARGUMENTS
+      CreateShortCut "$TEMP\SandboxShortcut.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@" "-- --launchInterface"
+      Exec '"$WINDIR\explorer.exe" "$TEMP\SandboxShortcut.lnk"'
     ${Else}
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
     ${EndIf}
