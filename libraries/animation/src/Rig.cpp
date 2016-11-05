@@ -308,7 +308,7 @@ void Rig::clearIKJointLimitHistory() {
     }
 }
 
-int Rig::getJointParentIndex(int childIndex) {
+int Rig::getJointParentIndex(int childIndex) const {
     if (_animSkeleton && isIndexValid(childIndex)) {
         return _animSkeleton->getParentIndex(childIndex);
     }

@@ -105,7 +105,7 @@ public:
 
     void clearIKJointLimitHistory();
 
-    int getJointParentIndex(int childIndex);
+    int getJointParentIndex(int childIndex) const;
 
     // geometry space
     void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
