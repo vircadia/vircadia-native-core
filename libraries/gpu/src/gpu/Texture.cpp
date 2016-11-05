@@ -15,6 +15,7 @@
 #include "Texture.h"
 
 #include <glm/gtc/constants.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <NumericalConstants.h>
 
@@ -418,12 +419,18 @@ uint16 Texture::evalDimNumMips(uint16 size) {
     return 1 + (uint16) val;
 }
 
+static const double LOG_2 = log(2.0);
+
+uint16 Texture::evalNumMips(const Vec3u& dimensions) {
+    double largerDim = glm::compMax(dimensions);
+    double val = log(largerDim) / LOG_2;
+    return 1 + (uint16)val;
+}
+
 // The number mips that the texture could have if all existed
 // = log2(max(width, height, depth))
 uint16 Texture::evalNumMips() const {
-    double largerDim = std::max(std::max(_width, _height), _depth);
-    double val = log(largerDim)/log(2.0);
-    return 1 + (uint16) val;
+    return evalNumMips({ _width, _height, _depth });
 }
 
 bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes) {

@@ -94,6 +94,7 @@ public:
         TransferState _transferState;
         uint32_t _allocatedPages { 0 };
         uint32_t _lastMipAllocatedPages { 0 };
+        uint16_t _mipOffset { 0 };
         friend class GL45Backend;
     };
 
