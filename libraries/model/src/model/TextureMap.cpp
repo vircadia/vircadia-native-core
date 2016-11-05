@@ -252,6 +252,8 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         
         image::PixRGBA32 pix1;
         
+        image::PixR8 pix2;
+        
         image::PixRGB565 pix3;
         
         image::PB_RGB32 pb0;
@@ -260,6 +262,7 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         
         auto pix0_s = sizeof(pix0);
         auto pix1_s = sizeof(pix1);
+        auto pix2_s = sizeof(pix2);
         auto pix3_s = sizeof(pix3);
         
         auto pb0_s = sizeof(pb0);

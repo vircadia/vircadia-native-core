@@ -32,7 +32,7 @@ template <> void uncompress(const CB_BC1& src, PB_RGB32& dst) {
         auto r = pixel::mix(
                        c0,
                        c1,
-                       (pixel::Byte)bc1.table);
+                       (Byte)bc1.table);
     }
 }
 
