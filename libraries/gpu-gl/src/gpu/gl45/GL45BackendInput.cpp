@@ -27,9 +27,7 @@ void GL45Backend::resetInputStage() {
 }
 
 void GL45Backend::updateInput() {
-
     if (_input._invalidFormat) {
-
         InputStageState::ActivationCache newActivation;
 
         // Assign the vertex format required

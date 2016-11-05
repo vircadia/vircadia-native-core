@@ -45,6 +45,8 @@ public:
  
     ContextStats() {}
     ContextStats(const ContextStats& stats) = default;
+
+    void evalDelta(const ContextStats& begin, const ContextStats& end); 
 };
 
 class Backend {
@@ -83,6 +85,7 @@ public:
         return reinterpret_cast<T*>(object.gpuObject.getGPUObject());
     }
 
+    void resetStats() const { _stats = ContextStats(); }
     void getStats(ContextStats& stats) const { stats = _stats; }
 
     virtual bool isTextureManagementSparseEnabled() const = 0;
@@ -124,7 +127,7 @@ protected:
     }
 
     friend class Context;
-    ContextStats _stats;
+    mutable ContextStats _stats;
     StereoState _stereo;
 
 };
@@ -202,6 +205,7 @@ public:
     void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
 
      // Repporting stats of the context
+    void resetStats() const;
     void getStats(ContextStats& stats) const;
 
     // Same as above but grabbed at every end of a frame
