@@ -229,6 +229,9 @@ void ScriptCache::scriptContentAvailable() {
                     });
                 } else {
                     // Dubious, but retained here because it matches the behavior before fixing the threading
+
+                    allCallbacks = scriptRequest.scriptUsers;
+
                     scriptContent = _scriptCache[url];
                     finished = true;
                     qCWarning(scriptengine) << "Error loading script from URL " << url;
