@@ -1172,7 +1172,8 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     // Guard against meaningless query and fragment parts.
     // Do NOT use PreferLocalFile as its behavior is unpredictable (e.g., on defaultScriptsLocation())
     const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
-    for (QString file : includeFiles) {
+    for (QString includeFile : includeFiles) {
+        QString file = ResourceManager::normalizeURL(includeFile);
         QUrl thisURL;
         bool isStandardLibrary = false;
         if (file.startsWith("/~/")) {
@@ -1186,8 +1187,6 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         } else {
             thisURL = resolvePath(file);
         }
-
-        thisURL = expandScriptUrl(normalizeScriptURL(ResourceManager::normalizeURL(thisURL)));
 
         if (!_includedURLs.contains(thisURL)) {
             if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
