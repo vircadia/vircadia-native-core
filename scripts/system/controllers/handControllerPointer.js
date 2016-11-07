@@ -203,6 +203,7 @@ function overlayFromWorldPoint(point) {
     return { x: horizontalPixels, y: verticalPixels };
 }
 
+var gamePad = Controller.findDevice("GamePad");
 function activeHudPoint2dGamePad() {
     if (!HMD.active) {
       return;
@@ -227,13 +228,10 @@ function activeHudPoint2dGamePad() {
     return hudPoint2d;
 }
 
-var gamePad = Controller.findDevice("GamePad");
+
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
     var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will return head pose if hand pose is invalid (third eye)
     if (!controllerPose.valid) {
-        if (gamePad) {
-          return activeHudPoint2dGamePad();
-        }
         return; // Controller is cradled.
     }
     var controllerPosition = controllerPose.position;
@@ -448,12 +446,12 @@ clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (cl
     }
     wantsMenu = clicked;
 });
-clickMapping.from(Controller.Hardware.GamePad.Back).peek().to(function () {
-    // Wait a tick an allow the reticle to be correctly set to the players look at position before invoking
-    // ContextMenu action
-    Script.setTimeout(function () {
-      activeHudPoint2dGamePad();
-    }, 0);
+clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
+    if (clicked) {
+        activeHudPoint2dGamePad();
+      }
+
+      wantsMenu = clicked;
 });
 clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(function () {
     // Allow the reticle depth to be set correctly:
