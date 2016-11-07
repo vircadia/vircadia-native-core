@@ -88,6 +88,10 @@ void Agent::playAvatarSound(SharedSoundPointer sound) {
         QMetaObject::invokeMethod(this, "playAvatarSound", Q_ARG(SharedSoundPointer, sound));
         return;
     } else {
+        // TODO: seems to add occasional artifact in tests.  I believe it is 
+        // correct to do this, but need to figure out for sure, so commenting this
+        // out until I verify.  
+        // _numAvatarSoundSentBytes = 0;
         setAvatarSound(sound);
     }
 }
@@ -404,8 +408,37 @@ QUuid Agent::getSessionUUID() const {
     return DependencyManager::get<NodeList>()->getSessionUUID();
 }
 
+void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) { 
+    // this must happen on Agent's main thread
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setIsListeningToAudioStream", Q_ARG(bool, isListeningToAudioStream));
+        return;
+    }
+    if (_isListeningToAudioStream) {
+        // have to tell just the audio mixer to KillAvatar. 
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->eachMatchingNode(
+            [&](const SharedNodePointer& node)->bool {
+            return (node->getType() == NodeType::AudioMixer) && node->getActiveSocket();
+        },
+            [&](const SharedNodePointer& node) {
+            qDebug() << "sending KillAvatar message to Audio Mixers";
+            auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID, true);
+            packet->write(getSessionUUID().toRfc4122());
+            nodeList->sendPacket(std::move(packet), *node);
+        });
+
+    }
+    _isListeningToAudioStream = isListeningToAudioStream; 
+}
 
 void Agent::setIsAvatar(bool isAvatar) {
+    // this must happen on Agent's main thread
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setIsAvatar", Q_ARG(bool, isAvatar));
+        return;
+    }
     _isAvatar = isAvatar;
 
     if (_isAvatar && !_avatarIdentityTimer) {
@@ -435,14 +468,16 @@ void Agent::setIsAvatar(bool isAvatar) {
             // when we stop sending identity, but then get woken up again by the mixer itself, which sends
             // identity packets to everyone. Here we explicitly tell the mixer to kill the entry for us.
             auto nodeList = DependencyManager::get<NodeList>();
-            auto packetList = NLPacketList::create(PacketType::KillAvatar, QByteArray(), true, true);
-            packetList->write(getSessionUUID().toRfc4122());
             nodeList->eachMatchingNode(
                 [&](const SharedNodePointer& node)->bool {
-                return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+                return (node->getType() == NodeType::AvatarMixer || node->getType() == NodeType::AudioMixer)
+                        && node->getActiveSocket();
             },
                 [&](const SharedNodePointer& node) {
-                nodeList->sendPacketList(std::move(packetList), *node);
+                qDebug() << "sending KillAvatar message to Avatar and Audio Mixers";
+                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID, true);
+                packet->write(getSessionUUID().toRfc4122());
+                nodeList->sendPacket(std::move(packet), *node);
             });
         }
         emit stopAvatarAudioTimer();

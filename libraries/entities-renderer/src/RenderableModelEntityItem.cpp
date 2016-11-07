@@ -55,7 +55,10 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
     auto& currentURL = getParsedModelURL();
     ModelEntityItem::setModelURL(url);
 
-    if (currentURL != getParsedModelURL() || !_model) {
+    if (currentURL != getParsedModelURL()) {
+        _needsModelReload = true;
+    }
+    if (_needsModelReload || !_model) {
         EntityTreePointer tree = getTree();
         if (tree) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
@@ -523,17 +526,24 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
 }
 
 void RenderableModelEntityItem::update(const quint64& now) {
-    if (!_dimensionsInitialized && _model && _model->isActive()) {
-        if (_model->isLoaded()) {
-            EntityItemProperties properties;
-            properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
-            auto extents = _model->getMeshExtents();
-            properties.setDimensions(extents.maximum - extents.minimum);
-            qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
-            QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(QUuid, getEntityItemID()),
-                                      Q_ARG(EntityItemProperties, properties));
+    if (!_dimensionsInitialized) {
+        if (_model) {
+            if (_model->isActive() && _model->isLoaded()) {
+                EntityItemProperties properties;
+                properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
+                auto extents = _model->getMeshExtents();
+                properties.setDimensions(extents.maximum - extents.minimum);
+                qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+                QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                                        Qt::QueuedConnection,
+                                        Q_ARG(QUuid, getEntityItemID()),
+                                        Q_ARG(EntityItemProperties, properties));
+            }
+        } else if (_needsModelReload) {
+            EntityTreePointer tree = getTree();
+            if (tree) {
+                QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+            }
         }
     }
 

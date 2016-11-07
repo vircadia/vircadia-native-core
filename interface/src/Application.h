@@ -206,6 +206,9 @@ public:
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
 
+    float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
+    void setSettingConstrainToolbarPosition(bool setting);
+
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
@@ -512,6 +515,7 @@ private:
 
     Setting::Handle<QString> _previousScriptLocation;
     Setting::Handle<float> _fieldOfView;
+    Setting::Handle<bool> _constrainToolbarPosition;
 
     float _scaleMirror;
     float _rotateMirror;

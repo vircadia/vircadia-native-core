@@ -256,8 +256,18 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
         }
         break;
         case SHAPE_TYPE_SPHERE: {
-            float radius = info.getHalfExtents().x;
-            shape = new btSphereShape(radius);
+            glm::vec3 halfExtents = info.getHalfExtents();
+            float radius = halfExtents.x;
+            if (radius == halfExtents.y && radius == halfExtents.z) {
+                shape = new btSphereShape(radius);
+            } else {
+                ShapeInfo::PointList points;
+                points.reserve(NUM_UNIT_SPHERE_DIRECTIONS);
+                for (uint32_t i = 0; i < NUM_UNIT_SPHERE_DIRECTIONS; ++i) {
+                    points.push_back(bulletToGLM(_unitSphereDirections[i]) * halfExtents);
+                }
+                shape = createConvexHull(points);
+            }
         }
         break;
         case SHAPE_TYPE_CAPSULE_Y: {
