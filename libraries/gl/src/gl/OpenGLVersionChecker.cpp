@@ -75,15 +75,26 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     // - major_number.minor_number 
     // - major_number.minor_number.release_number
     // Reference: https://www.opengl.org/sdk/docs/man/docbook4/xhtml/glGetString.xml
-    const QString version { "version" };
-    QString glVersion = glData[version].toString();
-    QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
-    int majorNumber = versionParts[0].toInt();
-    int minorNumber = versionParts[1].toInt();
+
     int minimumMajorNumber = (MINIMUM_GL_VERSION >> 16);
     int minimumMinorNumber = (MINIMUM_GL_VERSION & 0xFF);
-    valid = (majorNumber > minimumMajorNumber
-        || (majorNumber == minimumMajorNumber && minorNumber >= minimumMinorNumber));
+    int majorNumber = 0;
+    int minorNumber = 0;
+    const QString version { "version" };
+    if (version.contains(version)) {
+        QString glVersion = glData[version].toString();
+        QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
+        if (versionParts.size() >= 2) {
+            majorNumber = versionParts[0].toInt();
+            minorNumber = versionParts[1].toInt();
+            valid = (majorNumber > minimumMajorNumber
+                || (majorNumber == minimumMajorNumber && minorNumber >= minimumMinorNumber));
+        } else {
+            valid = false;
+        }
+    } else {
+        valid = false;
+    }
 
     // Prompt user if below minimum
     if (!valid) {
