@@ -3379,13 +3379,31 @@ void Application::loadSettings() {
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
-    for (auto plugin : plugins) {
-        auto menu = Menu::getInstance();
-        if (auto action = menu->getActionForOption(plugin->getName())) {
-            action->setChecked(true);
-            action->trigger();
-            // Find and activated highest priority plugin, bail for the rest
-            break;
+    auto menu = Menu::getInstance();
+    if (plugins.size() > 0) {
+        for (auto plugin : plugins) {
+            if (auto action = menu->getActionForOption(plugin->getName())) {
+                action->setChecked(true);
+                action->trigger();
+                // Find and activated highest priority plugin, bail for the rest
+                break;
+            }
+        }
+    } else {
+        // If this is our first run, and no preferred devices were set, default to
+        // an HMD device if available.
+        Setting::Handle<bool> firstRun { Settings::firstRun, true };
+        if (firstRun.get()) {
+            auto displayPlugins = pluginManager->getDisplayPlugins();
+            for (auto& plugin : displayPlugins) {
+                if (plugin->isHmd()) {
+                    if (auto action = menu->getActionForOption(plugin->getName())) {
+                        action->setChecked(true);
+                        action->trigger();
+                        break;
+                    }
+                }
+            }
         }
     }
 
