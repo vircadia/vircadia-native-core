@@ -109,7 +109,8 @@ bool FilePersistThread::processQueueItems(const Queue& messages) {
 }
 
 FileLogger::FileLogger(QObject* parent) :
-    AbstractLoggerInterface(parent), _fileName(getLogFilename())
+    AbstractLoggerInterface(parent),
+    _fileName(getLogFilename())
 {
     _persistThreadInstance = new FilePersistThread(*this);
     _persistThreadInstance->initialize(true, QThread::LowestPriority);

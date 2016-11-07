@@ -72,12 +72,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _iceServerPort(ICE_SERVER_DEFAULT_PORT)
 {
     parseCommandLine();
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
     LogUtils::init();
     Setting::init();
-
-    connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
 
     setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
     setOrganizationDomain("highfidelity.io");
@@ -211,6 +208,7 @@ void DomainServer::parseCommandLine() {
 }
 
 DomainServer::~DomainServer() {
+    qInfo() << "Domain Server is shutting down.";
     // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
     DependencyManager::destroy<LimitedNodeList>();
 }
@@ -221,12 +219,6 @@ void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
     }
 
     QCoreApplication::exit(exitCode);
-}
-
-void DomainServer::aboutToQuit() {
-
-    // clear the log handler so that Qt doesn't call the destructor on LogHandler
-    qInstallMessageHandler(0);
 }
 
 void DomainServer::restart() {

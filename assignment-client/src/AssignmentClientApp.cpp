@@ -45,9 +45,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     setApplicationName("assignment-client");
     setApplicationVersion(BuildInfo::VERSION);
 
-    // use the verbose message handler in Logging
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
-
     // parse command-line
     QCommandLineParser parser;
     parser.setApplicationDescription("High Fidelity Assignment Client");
