@@ -50,9 +50,12 @@ public:
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
 
+    void removeAgentAvatarAudioStream();
+
     int parseData(ReceivedMessage& message) override;
 
-    void checkBuffersBeforeFrameSend();
+    // attempt to pop a frame from each audio stream, and return the number of streams from this client
+    int checkBuffersBeforeFrameSend();
 
     void removeDeadInjectedStreams();
 
@@ -76,7 +79,11 @@ public:
         } else {
             encodedBuffer = decodedBuffer;
         }
+        // once you have encoded, you need to flush eventually.
+        _shouldFlushEncoder = true;
     }
+    void encodeFrameOfZeros(QByteArray& encodedZeros);
+    bool shouldFlushEncoder() { return _shouldFlushEncoder; }
 
     QString getCodecName() { return _selectedCodecName; }
 
@@ -105,6 +112,8 @@ private:
     QString _selectedCodecName;
     Encoder* _encoder{ nullptr }; // for outbound mixed stream
     Decoder* _decoder{ nullptr }; // for mic stream
+
+    bool _shouldFlushEncoder { false };
 };
 
 #endif // hifi_AudioMixerClientData_h

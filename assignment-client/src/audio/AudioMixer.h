@@ -48,10 +48,12 @@ private slots:
     void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void handleNodeKilled(SharedNodePointer killedNode);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
 
 private:
+    AudioMixerClientData* getOrCreateClientData(Node* node);
     void domainSettingsRequestComplete();
     
     /// adds one stream to the mix for a listening node
@@ -85,6 +87,7 @@ private:
     float _attenuationPerDoublingInDistance;
     float _noiseMutingThreshold;
     int _numStatFrames { 0 };
+    int _sumStreams { 0 };
     int _sumListeners { 0 };
     int _hrtfRenders { 0 };
     int _hrtfSilentRenders { 0 };

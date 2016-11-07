@@ -49,7 +49,7 @@ Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     connect(&_udpSocket, &QAbstractSocket::stateChanged, this, &Socket::handleStateChanged);
 
     // in order to help track down the zombie server bug, add a timer to check if we missed a readyRead
-    const int READY_READ_BACKUP_CHECK_MSECS = 10 * 1000;
+    const int READY_READ_BACKUP_CHECK_MSECS = 2 * 1000;
     connect(_readyReadBackupTimer, &QTimer::timeout, this, &Socket::checkForReadyReadBackup);
     _readyReadBackupTimer->start(READY_READ_BACKUP_CHECK_MSECS);
 }
@@ -306,6 +306,13 @@ void Socket::checkForReadyReadBackup() {
     if (_udpSocket.hasPendingDatagrams()) {
         qCDebug(networking) << "Socket::checkForReadyReadBackup() detected blocked readyRead signal. Flushing pending datagrams.";
 
+        // so that birarda can possibly figure out how the heck we get into this state in the first place
+        // output the sequence number and socket address of the last processed packet
+        qCDebug(networking) << "Socket::checkForReadyReadyBackup() last sequence number"
+            << (uint32_t) _lastReceivedSequenceNumber << "from" << _lastPacketSockAddr << "-"
+            << _lastPacketSizeRead << "bytes";
+
+
         // drop all of the pending datagrams on the floor
         while (_udpSocket.hasPendingDatagrams()) {
             _udpSocket.readDatagram(nullptr, 0);
@@ -333,6 +340,10 @@ void Socket::readPendingDatagrams() {
         // pull the datagram
         auto sizeRead = _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
                                                 senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+
+        // save information for this packet, in case it is the one that sticks readyRead
+        _lastPacketSizeRead = sizeRead;
+        _lastPacketSockAddr = senderSockAddr;
 
         if (sizeRead <= 0) {
             // we either didn't pull anything for this packet or there was an error reading (this seems to trigger
@@ -372,6 +383,9 @@ void Socket::readPendingDatagrams() {
             // setup a Packet from the data we just read
             auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
             packet->setReceiveTime(receiveTime);
+
+            // save the sequence number in case this is the packet that sticks readyRead
+            _lastReceivedSequenceNumber = packet->getSequenceNumber();
 
             // call our verification operator to see if this packet is verified
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
@@ -494,12 +508,16 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    qCWarning(networking) << "udt::Socket error -" << socketError;
+    static const QString SOCKET_REGEX = "udt::Socket error - ";
+    static QString repeatedMessage
+        = LogHandler::getInstance().addRepeatedMessageRegex(SOCKET_REGEX);
+
+    qCDebug(networking) << "udt::Socket error - " << socketError;
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
     if (socketState != QAbstractSocket::BoundState) {
-        qCWarning(networking) << "udt::Socket state changed - state is now" << socketState;
+        qCDebug(networking) << "udt::Socket state changed - state is now" << socketState;
     }
 }
 

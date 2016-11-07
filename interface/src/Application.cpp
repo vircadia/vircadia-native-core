@@ -523,6 +523,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
     _raiseMirror(0.0f),
@@ -534,6 +535,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
+    setProperty("com.highfidelity.launchedFromSteam", SteamClient::isRunning());
+
     _runningMarker.startRunningMarker();
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
@@ -569,6 +572,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _deadlockWatchdogThread = new DeadlockWatchdogThread();
     _deadlockWatchdogThread->start();
 
+    qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << SteamClient::getSteamVRBuildID();
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
@@ -1142,7 +1146,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     // If the user clicks somewhere where there is NO entity at all, we will release focus
-    connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, [=]() {
+    connect(getEntities().data(), &EntityTreeRenderer::mousePressOffEntity, [=]() {
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
@@ -1191,6 +1195,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["dropped_frame_rate"] = displayPlugin->droppedFrameRate();
         properties["sim_rate"] = getAverageSimsPerSecond();
         properties["avatar_sim_rate"] = getAvatarSimrate();
+        properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
 
         auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
         properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();
@@ -1234,6 +1239,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
         properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory());
+        properties["ideal_thread_count"] = QThread::idealThreadCount();
 
         auto hmdHeadPose = getHMDSensorPose();
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
@@ -2145,12 +2151,27 @@ void Application::setFieldOfView(float fov) {
     }
 }
 
+void Application::setSettingConstrainToolbarPosition(bool setting) {
+    _constrainToolbarPosition.set(setting);
+    DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
+}
+
 void Application::aboutApp() {
     InfoView::show(INFO_WELCOME_PATH);
 }
 
 void Application::showHelp() {
-    InfoView::show(INFO_HELP_PATH);
+    static const QString QUERY_STRING_XBOX = "xbox";
+    static const QString QUERY_STRING_VIVE = "vive";
+
+    QString queryString = "";
+    if (PluginUtils::isViveControllerAvailable()) {
+        queryString = QUERY_STRING_VIVE;
+    } else if (PluginUtils::isXboxControllerAvailable()) {
+        queryString = QUERY_STRING_XBOX;
+    }
+
+    InfoView::show(INFO_HELP_PATH, false, queryString);
 }
 
 void Application::resizeEvent(QResizeEvent* event) {
@@ -3467,7 +3488,7 @@ void Application::init() {
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(_entitySimulation.get(), &EntitySimulation::entityCollisionWithEntity,
-            getEntities(), &EntityTreeRenderer::entityCollisionWithEntity);
+            getEntities().data(), &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities

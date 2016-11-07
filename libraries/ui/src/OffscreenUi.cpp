@@ -371,6 +371,13 @@ void OffscreenUi::setPinned(bool pinned) {
     }
 }
 
+void OffscreenUi::setConstrainToolbarToCenterX(bool constrained) {
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "setConstrainToolbarToCenterX", Q_ARG(QVariant, constrained));
+    if (!invokeResult) {
+        qWarning() << "Failed to set toolbar constraint";
+    }
+}
+
 void OffscreenUi::addMenuInitializer(std::function<void(VrMenu*)> f) {
     if (!_vrMenu) {
         _queuedMenuInitializers.push_back(f);

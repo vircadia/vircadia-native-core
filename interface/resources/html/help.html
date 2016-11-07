@@ -50,21 +50,33 @@
             function showKbm() {
                 document.getElementById("main_image").setAttribute("src", "img/controls-help-keyboard.png");
             }
-            function showHandControllers() {
+            function showViveControllers() {
                 document.getElementById("main_image").setAttribute("src", "img/controls-help-vive.png");
             }
-            function showGameController() {
+            function showXboxController() {
                 document.getElementById("main_image").setAttribute("src", "img/controls-help-gamepad.png");
+            }
+            function load() {
+                console.log("In help.html: ", window.location.href);
+                parts = window.location.href.split("?");
+                if (parts.length > 0) {
+                    var defaultTab = parts[1];
+                    if (defaultTab == "xbox") {
+                        showXboxController();
+                    } else if (defaultTab == "vive") {
+                        showViveControllers();
+                    }
+                }
             }
         </script>
     </head>
 
-    <body>
+    <body onload="load()">
         <div id="image_area">
             <img id="main_image" src="img/controls-help-keyboard.png" width="1024px" height="720px"></img>
             <a href="#" id="kbm_button" onmousedown="showKbm()"></a>
-            <a href="#" id="hand_controllers_button" onmousedown="showHandControllers()"></a>
-            <a href="#" id="game_controller_button" onmousedown="showGameController()"></a>
+            <a href="#" id="hand_controllers_button" onmousedown="showViveControllers()"></a>
+            <a href="#" id="game_controller_button" onmousedown="showXboxController()"></a>
         </div>
     </body>
 

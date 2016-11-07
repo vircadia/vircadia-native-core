@@ -32,7 +32,7 @@ if (!Function.prototype.bind) {
 
     if (this.prototype) {
       // Function.prototype doesn't have a prototype property
-      fNOP.prototype = this.prototype; 
+      fNOP.prototype = this.prototype;
     }
     fBound.prototype = new fNOP();
 
@@ -40,18 +40,27 @@ if (!Function.prototype.bind) {
   };
 }
 
-var DEBUG = false;
+var DEBUG = true;
 function debug() {
     if (DEBUG) {
-        print.apply(this, arguments);
+        var args = Array.prototype.slice.call(arguments);
+        args.unshift("tutorial.js | ");
+        print.apply(this, args);
     }
 }
 
 var INFO = true;
 function info() {
     if (INFO) {
-        print.apply(this, arguments);
+        var args = Array.prototype.slice.call(arguments);
+        args.unshift("tutorial.js | ");
+        print.apply(this, args);
     }
+}
+
+// Return a number between min (inclusive) and max (exclusive)
+function randomInt(min, max) {
+    return min + Math.floor(Math.random() * (max - min))
 }
 
 var NEAR_BOX_SPAWN_NAME = "tutorial/nearGrab/box_spawn";
@@ -60,6 +69,7 @@ var GUN_SPAWN_NAME = "tutorial/gun_spawn";
 var TELEPORT_PAD_NAME = "tutorial/teleport/pad"
 
 var successSound = SoundCache.getSound("atp:/tutorial_sounds/good_one.L.wav");
+var firecrackerSound = SoundCache.getSound("atp:/tutorial_sounds/Pops_Firecracker.wav");
 
 
 var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
@@ -104,14 +114,6 @@ findEntities = function(properties, searchRadius, filterFn) {
     }
 
     return matchedEntities;
-}
-
-function setControllerVisible(name, visible) {
-    return;
-    Messages.sendLocalMessage('Controller-Display', JSON.stringify({
-        name: name,
-        visible: visible,
-    }));
 }
 
 function setControllerPartsVisible(parts) {
@@ -191,12 +193,17 @@ function deleteEntitiesWithTag(tag) {
     }
 }
 function editEntitiesWithTag(tag, propertiesOrFn) {
-    var entityIDs = findEntitiesWithTag(tag);
-    for (var i = 0; i < entityIDs.length; ++i) {
-        if (isFunction(propertiesOrFn)) {
-            Entities.editEntity(entityIDs[i], propertiesOrFn(entityIDs[i]));
-        } else {
-            Entities.editEntity(entityIDs[i], propertiesOrFn);
+    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
+
+    debug("Editing tag: ", tag);
+    if (entities) {
+        for (entityID in entities) {
+            debug("Editing: ", entityID, ", ", propertiesOrFn, ", Is in local tree: ", isEntityInLocalTree(entityID));
+            if (isFunction(propertiesOrFn)) {
+                Entities.editEntity(entityID, propertiesOrFn(entityIDs[i]));
+            } else {
+                Entities.editEntity(entityID, propertiesOrFn);
+            }
         }
     }
 }
@@ -205,7 +212,7 @@ function findEntitiesWithTag(tag) {
     return findEntities({ userData: "" }, 10000, function(properties, key, value) {
         data = parseJSON(value);
         return data.tag == tag;
-    }); 
+    });
 }
 
 // From http://stackoverflow.com/questions/5999998/how-can-i-check-if-a-javascript-variable-is-function-type
@@ -222,20 +229,29 @@ function playSuccessSound() {
     });
 }
 
+
+function playFirecrackerSound(position) {
+    Audio.playSound(firecrackerSound, {
+        position: position,
+        volume: 0.7,
+        loop: false
+    });
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 // STEP: DISABLE CONTROLLERS                                                 //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepDisableControllers = function(name) {
+var stepStart = function(name) {
     this.tag = name;
-    this.shouldLog = false;
 }
-stepDisableControllers.prototype = {
+stepStart.prototype = {
     start: function(onFinish) {
-        HMD.requestShowHandControllers();
         disableEverything();
+
+        HMD.requestShowHandControllers();
 
         onFinish();
     },
@@ -258,6 +274,7 @@ function disableEverything() {
     setControllerPartLayer('tips', 'blank');
 
     hideEntitiesWithTag('finish');
+
     setAwayEnabled(false);
 }
 
@@ -275,7 +292,6 @@ function reenableEverything() {
     setControllerPartLayer('touchpad', 'blank');
     setControllerPartLayer('tips', 'blank');
     MyAvatar.shouldRenderLocally = true;
-    HMD.requestHideHandControllers();
     setAwayEnabled(true);
 }
 
@@ -293,6 +309,7 @@ var stepEnableControllers = function(name) {
 stepEnableControllers.prototype = {
     start: function(onFinish) {
         reenableEverything();
+        HMD.requestHideHandControllers();
         onFinish();
     },
     cleanup: function() {
@@ -340,13 +357,11 @@ stepOrient.prototype = {
         var tag = this.tag;
 
         // Spawn content set
-        debug("raise hands...", this.tag);
         editEntitiesWithTag(this.tag, { visible: true });
-
 
         this.checkIntervalID = null;
         function checkForHandsAboveHead() {
-            debug("Orient: Checking for hands above head...");
+            debug("Orient | Checking for hands above head");
             if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
                 Script.clearInterval(this.checkIntervalID);
                 this.checkIntervalID = null;
@@ -359,6 +374,7 @@ stepOrient.prototype = {
         this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
     },
     cleanup: function() {
+        debug("Orient | Cleanup");
         if (this.active) {
             this.active = false;
         }
@@ -375,61 +391,6 @@ stepOrient.prototype = {
     }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// STEP: Raise hands above head                                              //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
-var stepRaiseAboveHead = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
-}
-stepRaiseAboveHead.prototype = {
-    start: function(onFinish) {
-        var tag = this.tag;
-
-        var STATE_START = 0;
-        var STATE_HANDS_DOWN = 1;
-        var STATE_HANDS_UP = 2;
-        this.state = STATE_START;
-
-        debug("raise hands...", this.tag);
-        editEntitiesWithTag(this.tag, { visible: true });
-
-        // Wait 2 seconds before starting to check for hands
-        this.checkIntervalID = null;
-        function checkForHandsAboveHead() {
-            debug("Raise above head: Checking hands...");
-            if (this.state == STATE_START) {
-                if (MyAvatar.getLeftPalmPosition().y < (MyAvatar.getHeadPosition().y - 0.1)) {
-                    this.state = STATE_HANDS_DOWN;
-                }
-            } else if (this.state == STATE_HANDS_DOWN) {
-                if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
-                    this.state = STATE_HANDS_UP;
-                    Script.clearInterval(this.checkIntervalID);
-                    this.checkIntervalID = null;
-                    playSuccessSound();
-                    onFinish();
-                }
-            }
-        }
-        this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
-    },
-    cleanup: function() {
-        if (this.checkIntervalID) {
-            Script.clearInterval(this.checkIntervalID);
-            this.checkIntervalID = null
-        }
-        if (this.waitTimeoutID) {
-            Script.clearTimeout(this.waitTimeoutID);
-            this.waitTimeoutID = null;
-        }
-        editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
-        deleteEntitiesWithTag(this.tempTag);
-    }
-};
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -451,30 +412,26 @@ stepNearGrab.prototype = {
         this.finished = false;
         this.onFinish = onFinish;
 
-        setControllerVisible("trigger", true);
         setControllerPartLayer('tips', 'trigger');
+        setControllerPartLayer('trigger', 'highlight');
         var tag = this.tag;
 
         // Spawn content set
         showEntitiesWithTag(this.tag, { visible: true });
         showEntitiesWithTag('bothGrab', { visible: true });
 
-        var boxSpawnID = findEntity({ name: NEAR_BOX_SPAWN_NAME }, 10000);
-        if (!boxSpawnID) {
-            info("Error creating block, cannot find spawn");
-            return null;
-        }
-        var boxSpawnPosition = Entities.getEntityProperties(boxSpawnID, 'position').position;
-        function createBlock() {
-            //Step1BlockData.position = boxSpawnPosition;
-            birdFirework1.position = boxSpawnPosition;
-            return spawnWithTag([birdFirework1], null, this.tempTag)[0];
+        var boxSpawnPosition = getEntityWithName(NEAR_BOX_SPAWN_NAME).position;
+        function createBlock(fireworkNumber) {
+            fireworkBaseProps.position = boxSpawnPosition;
+            fireworkBaseProps.modelURL = fireworkURLs[fireworkNumber % fireworkURLs.length];
+            debug("Creating firework with url: ", fireworkBaseProps.modelURL);
+            return spawnWithTag([fireworkBaseProps], null, this.tempTag)[0];
         }
 
         this.birdIDs = [];
-        this.birdIDs.push(createBlock.bind(this)());
-        this.birdIDs.push(createBlock.bind(this)());
-        this.birdIDs.push(createBlock.bind(this)());
+        this.birdIDs.push(createBlock.bind(this)(0));
+        this.birdIDs.push(createBlock.bind(this)(1));
+        this.birdIDs.push(createBlock.bind(this)(2));
         this.positionWatcher = new PositionWatcher(this.birdIDs, boxSpawnPosition, -0.4, 4);
     },
     onMessage: function(channel, message, seneder) {
@@ -482,10 +439,12 @@ stepNearGrab.prototype = {
             return;
         }
         if (channel == "Entity-Exploded") {
-            debug("TUTORIAL: Got entity-exploded message");
+            debug("NearGrab | Got entity-exploded message: ", message);
 
             var data = parseJSON(message);
             if (this.birdIDs.indexOf(data.entityID) >= 0) {
+                debug("NearGrab | It's one of the firecrackers");
+                playFirecrackerSound(data.position);
                 playSuccessSound();
                 this.finished = true;
                 this.onFinish();
@@ -493,10 +452,10 @@ stepNearGrab.prototype = {
         }
     },
     cleanup: function() {
-        debug("cleaning up near grab");
+        debug("NearGrab | Cleanup");
         this.finished = true;
-        setControllerVisible("trigger", false);
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('trigger', 'normal');
         hideEntitiesWithTag(this.tag, { visible: false});
         deleteEntitiesWithTag(this.tempTag);
         if (this.positionWatcher) {
@@ -530,8 +489,8 @@ stepFarGrab.prototype = {
 
         showEntitiesWithTag('bothGrab', { visible: true });
 
-        setControllerVisible("trigger", true);
         setControllerPartLayer('tips', 'trigger');
+        setControllerPartLayer('trigger', 'highlight');
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             farGrabEnabled: true,
         }));
@@ -540,21 +499,18 @@ stepFarGrab.prototype = {
         // Spawn content set
         showEntitiesWithTag(this.tag);
 
-        var boxSpawnID = findEntity({ name: FAR_BOX_SPAWN_NAME }, 10000);
-        if (!boxSpawnID) {
-            debug("Error creating block, cannot find spawn");
-            return null;
-        }
-        var boxSpawnPosition = Entities.getEntityProperties(boxSpawnID, 'position').position;
-        function createBlock() {
-            birdFirework1.position = boxSpawnPosition;
-            return spawnWithTag([birdFirework1], null, this.tempTag)[0];
+        var boxSpawnPosition = getEntityWithName(FAR_BOX_SPAWN_NAME).position;
+        function createBlock(fireworkNumber) {
+            fireworkBaseProps.position = boxSpawnPosition;
+            fireworkBaseProps.modelURL = fireworkURLs[fireworkNumber % fireworkURLs.length];
+            debug("Creating firework with url: ", fireworkBaseProps.modelURL);
+            return spawnWithTag([fireworkBaseProps], null, this.tempTag)[0];
         }
 
         this.birdIDs = [];
-        this.birdIDs.push(createBlock.bind(this)());
-        this.birdIDs.push(createBlock.bind(this)());
-        this.birdIDs.push(createBlock.bind(this)());
+        this.birdIDs.push(createBlock.bind(this)(3));
+        this.birdIDs.push(createBlock.bind(this)(4));
+        this.birdIDs.push(createBlock.bind(this)(5));
         this.positionWatcher = new PositionWatcher(this.birdIDs, boxSpawnPosition, -0.4, 4);
     },
     onMessage: function(channel, message, seneder) {
@@ -562,9 +518,11 @@ stepFarGrab.prototype = {
             return;
         }
         if (channel == "Entity-Exploded") {
-            debug("TUTORIAL: Got entity-exploded message");
+            debug("FarGrab | Got entity-exploded message: ", message);
             var data = parseJSON(message);
             if (this.birdIDs.indexOf(data.entityID) >= 0) {
+                debug("FarGrab | It's one of the firecrackers");
+                playFirecrackerSound(data.position);
                 playSuccessSound();
                 this.finished = true;
                 this.onFinish();
@@ -572,9 +530,10 @@ stepFarGrab.prototype = {
         }
     },
     cleanup: function() {
+        debug("FarGrab | Cleanup");
         this.finished = true;
-        setControllerVisible("trigger", false);
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('trigger', 'normal');
         hideEntitiesWithTag(this.tag, { visible: false});
         hideEntitiesWithTag('bothGrab', { visible: false});
         deleteEntitiesWithTag(this.tempTag);
@@ -586,12 +545,13 @@ stepFarGrab.prototype = {
 };
 
 function PositionWatcher(entityIDs, originalPosition, minY, maxDistance) {
+    debug("Creating position watcher");
     this.watcherIntervalID = Script.setInterval(function() {
         for (var i = 0; i < entityIDs.length; ++i) {
             var entityID = entityIDs[i];
             var props = Entities.getEntityProperties(entityID, ['position']);
             if (props.position.y < minY || Vec3.distance(originalPosition, props.position) > maxDistance) {
-                Entities.editEntity(entityID, { 
+                Entities.editEntity(entityID, {
                     position: originalPosition,
                     velocity: { x: 0, y: -0.01, z: 0 },
                     angularVelocity: { x: 0, y: 0, z: 0 }
@@ -603,6 +563,7 @@ function PositionWatcher(entityIDs, originalPosition, minY, maxDistance) {
 
 PositionWatcher.prototype = {
     destroy: function() {
+        debug("Destroying position watcher");
         Script.clearInterval(this.watcherIntervalID);
     }
 };
@@ -630,8 +591,8 @@ var stepEquip = function(name) {
 }
 stepEquip.prototype = {
     start: function(onFinish) {
-        setControllerVisible("trigger", true);
         setControllerPartLayer('tips', 'trigger');
+        setControllerPartLayer('trigger', 'highlight');
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             holdEnabled: true,
         }));
@@ -644,40 +605,41 @@ stepEquip.prototype = {
 
         this.currentPart = this.PART1;
 
-        function createGun() {
-            var boxSpawnID = findEntity({ name: GUN_SPAWN_NAME }, 10000);
-            if (!boxSpawnID) {
-                info("Error creating block, cannot find spawn");
-                return null;
-            }
-
+        function createLighter() {
             var transform = {};
 
-            transform.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
-            transform.rotation = Entities.getEntityProperties(boxSpawnID, 'rotation').rotation;
+            var boxSpawnProps = getEntityWithName(GUN_SPAWN_NAME);
+            transform.position = boxSpawnProps.position;
+            transform.rotation = boxSpawnProps.rotation;
+            transform.velocity = { x: 0, y: -0.01, z: 0 };
+            transform.angularVelocity = { x: 0, y: 0, z: 0 };
             this.spawnTransform = transform;
             return doCreateButaneLighter(transform).id;
         }
 
 
-        this.gunID = createGun.bind(this)();
-        this.startWatchingGun();
-        debug("Created", this.gunID);
+        this.lighterID = createLighter.bind(this)();
+        this.startWatchingLighter();
+        debug("Created lighter", this.lighterID);
         this.onFinish = onFinish;
     },
-    startWatchingGun: function() {
+    startWatchingLighter: function() {
         if (!this.watcherIntervalID) {
+            debug("Starting to watch lighter position");
             this.watcherIntervalID = Script.setInterval(function() {
-                var props = Entities.getEntityProperties(this.gunID, ['position']);
-                if (props.position.y < -0.4 
+                debug("Checking lighter position");
+                var props = Entities.getEntityProperties(this.lighterID, ['position']);
+                if (props.position.y < -0.4
                         || Vec3.distance(this.spawnTransform.position, props.position) > 4) {
-                    Entities.editEntity(this.gunID, this.spawnTransform);
+                    debug("Moving lighter back to table");
+                    Entities.editEntity(this.lighterID, this.spawnTransform);
                 }
             }.bind(this), 1000);
         }
     },
     stopWatchingGun: function() {
         if (this.watcherIntervalID) {
+            debug("Stopping watch of lighter position");
             Script.clearInterval(this.watcherIntervalID);
             this.watcherIntervalID = null;
         }
@@ -687,24 +649,28 @@ stepEquip.prototype = {
             return;
         }
 
-        debug("Got message", channel, message, sender, MyAvatar.sessionUUID);
+        debug("Equip | Got message", channel, message, sender, MyAvatar.sessionUUID);
 
         if (channel == "Tutorial-Spinner") {
             if (this.currentPart == this.PART1 && message == "wasLit") {
                 this.currentPart = this.PART2;
+                debug("Equip | Starting part 2");
                 Script.setTimeout(function() {
+                    debug("Equip | Starting part 3");
                     this.currentPart = this.PART3;
                     hideEntitiesWithTag(this.tagPart1);
                     showEntitiesWithTag(this.tagPart2);
+                    setControllerPartLayer('trigger', 'normal');
                     setControllerPartLayer('tips', 'grip');
                     Messages.subscribe('Hifi-Object-Manipulation');
+                    debug("Equip | Finished starting part 3");
                 }.bind(this), 9000);
             }
         } else if (channel == "Hifi-Object-Manipulation") {
             if (this.currentPart == this.PART3) {
                 var data = parseJSON(message);
-                if (data.action == 'release' && data.grabbedEntity == this.gunID) {
-                    info("got release");
+                if (data.action == 'release' && data.grabbedEntity == this.lighterID) {
+                    debug("Equip | Got release, finishing step");
                     this.stopWatchingGun();
                     this.currentPart = this.COMPLETE;
                     playSuccessSound();
@@ -714,13 +680,14 @@ stepEquip.prototype = {
         }
     },
     cleanup: function() {
+        debug("Equip | Got yaw action");
         if (this.watcherIntervalID) {
             Script.clearInterval(this.watcherIntervalID);
             this.watcherIntervalID = null;
         }
 
-        setControllerVisible("trigger", false);
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('trigger', 'normal');
         this.stopWatchingGun();
         this.currentPart = this.COMPLETE;
 
@@ -748,30 +715,36 @@ var stepTurnAround = function(name) {
     this.tempTag = name + "-temporary";
 
     this.onActionBound = this.onAction.bind(this);
-    this.numTimesTurnPressed = 0;
+    this.numTimesSnapTurnPressed = 0;
+    this.numTimesSmoothTurnPressed = 0;
 }
 stepTurnAround.prototype = {
     start: function(onFinish) {
-        setControllerVisible("left", true);
-        setControllerVisible("right", true);
-
         setControllerPartLayer('touchpad', 'arrows');
         setControllerPartLayer('tips', 'arrows');
 
         showEntitiesWithTag(this.tag);
 
-        this.numTimesTurnPressed = 0;
+        this.numTimesSnapTurnPressed = 0;
+        this.numTimesSmoothTurnPressed = 0;
+        this.smoothTurnDown = false;
         Controller.actionEvent.connect(this.onActionBound);
 
         this.interval = Script.setInterval(function() {
-            var FORWARD_THRESHOLD = 30;
-            var REQ_NUM_TIMES_PRESSED = 6;
+            debug("TurnAround | Checking if finished",
+                  this.numTimesSnapTurnPressed, this.numTimesSmoothTurnPressed);
+            var FORWARD_THRESHOLD = 90;
+            var REQ_NUM_TIMES_SNAP_TURN_PRESSED = 3;
+            var REQ_NUM_TIMES_SMOOTH_TURN_PRESSED = 2;
 
             var dir = Quat.getFront(MyAvatar.orientation);
             var angle = Math.atan2(dir.z, dir.x);
             var angleDegrees = ((angle / Math.PI) * 180);
 
-            if (this.numTimesTurnPressed >= REQ_NUM_TIMES_PRESSED && Math.abs(angleDegrees) < FORWARD_THRESHOLD) {
+            var hasTurnedEnough = this.numTimesSnapTurnPressed >= REQ_NUM_TIMES_SNAP_TURN_PRESSED
+                || this.numTimesSmoothTurnPressed >= REQ_NUM_TIMES_SMOOTH_TURN_PRESSED;
+            var facingForward = Math.abs(angleDegrees) < FORWARD_THRESHOLD
+            if (hasTurnedEnough && facingForward) {
                 Script.clearInterval(this.interval);
                 this.interval = null;
                 playSuccessSound();
@@ -781,18 +754,27 @@ stepTurnAround.prototype = {
     },
     onAction: function(action, value) {
         var STEP_YAW_ACTION = 6;
+        var SMOOTH_YAW_ACTION = 4;
+
         if (action == STEP_YAW_ACTION && value != 0) {
-            this.numTimesTurnPressed += 1;
+            debug("TurnAround | Got step yaw action");
+            ++this.numTimesSnapTurnPressed;
+        } else if (action == SMOOTH_YAW_ACTION) {
+            debug("TurnAround | Got smooth yaw action");
+            if (this.smoothTurnDown && value === 0) {
+                this.smoothTurnDown = false;
+                ++this.numTimesSmoothTurnPressed;
+            } else if (!this.smoothTurnDown && value !== 0) {
+                this.smoothTurnDown = true;
+            }
         }
     },
     cleanup: function() {
+        debug("TurnAround | Cleanup");
         try {
             Controller.actionEvent.disconnect(this.onActionBound);
         } catch (e) {
         }
-
-        setControllerVisible("left", false);
-        setControllerVisible("right", false);
 
         setControllerPartLayer('touchpad', 'blank');
         setControllerPartLayer('tips', 'blank');
@@ -826,22 +808,21 @@ stepTeleport.prototype = {
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
 
         // Wait until touching teleport pad...
-        var padID = findEntity({ name: TELEPORT_PAD_NAME }, 100);
-        var padProps = Entities.getEntityProperties(padID, ["position", "dimensions"]);
+        var padProps = getEntityWithName(TELEPORT_PAD_NAME);
         var xMin = padProps.position.x - padProps.dimensions.x / 2;
         var xMax = padProps.position.x + padProps.dimensions.x / 2;
         var zMin = padProps.position.z - padProps.dimensions.z / 2;
         var zMax = padProps.position.z + padProps.dimensions.z / 2;
         function checkCollides() {
-            debug("Checking if on pad...");
+            debug("Teleport | Checking if on pad...");
 
             var pos = MyAvatar.position;
 
-            debug('x', pos.x, xMin, xMax);
-            debug('z', pos.z, zMin, zMax);
+            debug('Teleport | x', pos.x, xMin, xMax);
+            debug('Teleport | z', pos.z, zMin, zMax);
 
             if (pos.x > xMin && pos.x < xMax && pos.z > zMin && pos.z < zMax) {
-                debug("On teleport pad");
+                debug("Teleport | On teleport pad");
                 Script.clearInterval(this.checkCollidesTimer);
                 this.checkCollidesTimer = null;
                 playSuccessSound();
@@ -853,6 +834,7 @@ stepTeleport.prototype = {
         showEntitiesWithTag(this.tag);
     },
     cleanup: function() {
+        debug("Teleport | Cleanup");
         setControllerPartLayer('touchpad', 'blank');
         setControllerPartLayer('tips', 'blank');
 
@@ -903,6 +885,10 @@ stepCleanupFinish.prototype = {
 
 
 
+function isEntityInLocalTree(entityID) {
+    return Entities.getEntityProperties(entityID, 'visible').visible !== undefined;
+}
+
 function showEntitiesWithTag(tag) {
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
     if (entities) {
@@ -921,6 +907,7 @@ function showEntitiesWithTag(tag) {
                 collisionless: collisionless,
                 userData: JSON.stringify(data),
             };
+            debug("Showing: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
             Entities.editEntity(entityID, newProperties);
         }
     }
@@ -945,6 +932,7 @@ function showEntitiesWithTag(tag) {
         Entities.editEntity(entityID, newProperties);
     });
 }
+
 function hideEntitiesWithTag(tag) {
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
     if (entities) {
@@ -960,6 +948,8 @@ function hideEntitiesWithTag(tag) {
                 ignoreForCollisions: 1,
                 userData: JSON.stringify(data),
             };
+
+            debug("Hiding: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
             Entities.editEntity(entityID, newProperties);
         }
     }
@@ -982,6 +972,15 @@ function hideEntitiesWithTag(tag) {
     });
 }
 
+// Return the entity properties for an entity with a given name if it is in our
+// cached list of entities. Otherwise, return undefined.
+function getEntityWithName(name) {
+    debug("Getting entity with name:", name);
+    var entityID = TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP[name];
+    debug("Entity id: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
+    return entityID;
+}
+
 
 TutorialManager = function() {
     var STEPS;
@@ -990,6 +989,11 @@ TutorialManager = function() {
     var currentStep = null;
     var startedTutorialAt = 0;
     var startedLastStepAt = 0;
+    var didFinishTutorial = false;
+
+    var wentToEntryStepNum;
+    var VERSION = 1;
+    var tutorialID;
 
     var self = this;
 
@@ -997,10 +1001,13 @@ TutorialManager = function() {
         currentStepNum = -1;
         currentStep = null;
         startedTutorialAt = Date.now();
+
+        // Old versions of interface do not have the Script.generateUUID function.
+        // If Script.generateUUID is not available, default to an empty string.
+        tutorialID = Script.generateUUID ? Script.generateUUID() : "";
         STEPS = [
-            new stepDisableControllers("step0"),
+            new stepStart("start"),
             new stepOrient("orient"),
-            new stepRaiseAboveHead("raiseHands"),
             new stepNearGrab("nearGrab"),
             new stepFarGrab("farGrab"),
             new stepEquip("equip"),
@@ -1009,6 +1016,7 @@ TutorialManager = function() {
             new stepFinish("finish"),
             new stepEnableControllers("enableControllers"),
         ];
+        wentToEntryStepNum = STEPS.length;
         for (var i = 0; i < STEPS.length; ++i) {
             STEPS[i].cleanup();
         }
@@ -1017,11 +1025,9 @@ TutorialManager = function() {
     }
 
     this.onFinish = function() {
+        debug("onFinish", currentStepNum);
         if (currentStep && currentStep.shouldLog !== false) {
-            var timeToFinishStep = (Date.now() - startedLastStepAt) / 1000;
-            var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
-            UserActivityLogger.tutorialProgress(
-                    currentStep.tag, currentStepNum, timeToFinishStep, tutorialTimeElapsed);
+            self.trackStep(currentStep.tag, currentStepNum);
         }
 
         self.startNextStep();
@@ -1034,16 +1040,22 @@ TutorialManager = function() {
 
         ++currentStepNum;
 
+        // This always needs to be set because we use this value when
+        // tracking that the user has gone through the entry portal. When the
+        // tutorial finishes, there is a last "pseudo" step that the user
+        // finishes when stepping into the portal.
+        startedLastStepAt = Date.now();
+
         if (currentStepNum >= STEPS.length) {
             // Done
             info("DONE WITH TUTORIAL");
             currentStepNum = -1;
             currentStep = null;
+            didFinishTutorial = true;
             return false;
         } else {
             info("Starting step", currentStepNum);
             currentStep = STEPS[currentStepNum];
-            startedLastStepAt = Date.now();
             currentStep.start(this.onFinish);
             return true;
         }
@@ -1059,10 +1071,29 @@ TutorialManager = function() {
     this.stopTutorial = function() {
         if (currentStep) {
             currentStep.cleanup();
+            HMD.requestHideHandControllers();
         }
         reenableEverything();
         currentStepNum = -1;
         currentStep = null;
+    }
+
+    this.trackStep = function(name, stepNum) {
+        var timeToFinishStep = (Date.now() - startedLastStepAt) / 1000;
+        var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
+        UserActivityLogger.tutorialProgress(
+                name, stepNum, timeToFinishStep, tutorialTimeElapsed,
+                tutorialID, VERSION);
+    }
+
+    // This is a message sent from the "entry" portal in the courtyard,
+    // after the tutorial has finished.
+    this.enteredEntryPortal = function() {
+        info("Got enteredEntryPortal");
+        if (didFinishTutorial) {
+            info("Tracking wentToEntry");
+            this.trackStep("wentToEntry", wentToEntryStepNum);
+        }
     }
 }
 

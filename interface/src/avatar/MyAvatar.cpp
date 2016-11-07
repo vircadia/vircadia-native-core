@@ -505,7 +505,7 @@ void MyAvatar::simulate(float deltaTime) {
 
     locationChanged();
     // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
-    EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
+    auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
         bool flyingAllowed = true;
@@ -2133,7 +2133,7 @@ void MyAvatar::setAvatarCollisionsEnabled(bool enabled) {
     }
 
     bool ghostingAllowed = true;
-    EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
+    auto entityTreeRenderer = qApp->getEntities();
     if (entityTreeRenderer) {
         std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
         if (zone) {
@@ -2467,7 +2467,7 @@ void MyAvatar::removeHoldAction(AvatarActionHold* holdAction) {
 }
 
 void MyAvatar::updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose) {
-    EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
+    auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
         // lateAvatarUpdate will modify entity position & orientation, so we need an entity write lock

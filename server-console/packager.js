@@ -37,7 +37,7 @@ if (osType == "Darwin") {
 } else if (osType == "Windows_NT") {
     options["version-string"] = {
         CompanyName: "High Fidelity, Inc.",
-        FileDescription: SHORT_NAME,
+        FileDescription: FULL_NAME,
         ProductName: FULL_NAME,
         OriginalFilename: EXEC_NAME + ".exe"
     }

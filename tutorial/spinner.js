@@ -9,10 +9,10 @@
 //
 
 (function() {
-    var DEBUG = false;
+    var DEBUG = true;
     function debug() {
         if (DEBUG) {
-            print.apply(self, arguments);
+            print.apply(this, arguments);
         }
     }
 
@@ -31,7 +31,7 @@
     }
     Spinner.prototype = {
         onLit: function() {
-            debug("LIT SPINNER", this.entityID);
+            debug("spinner.js | Spinner lit");
             Entities.editEntity(this.entityID, {
                 "angularDamping": 0.1,
                 "angularVelocity": {
@@ -50,6 +50,7 @@
             for (var childEntityID in childrenProps) {
                 var props = childrenProps[childEntityID];
                 if (props.type == "ParticleEffect") {
+                    debug("spinner.js | Modifying: ", childEntityID);
                     Entities.editEntity(childEntityID, {
                         emitRate: 35,
                     });
@@ -59,13 +60,14 @@
 
             var self = this;
             Script.setTimeout(function() {
-                debug("BLOW UP");
+                debug("spinner.js | Finishing spinner");
                 injector.stop();
 
                 var childrenProps = getChildProperties(self.entityID, ['type']);
                 for (var childEntityID in childrenProps) {
                     var props = childrenProps[childEntityID];
                     if (props.type == "ParticleEffect") {
+                        debug("spinner.js | Modifying: ", childEntityID);
                         Entities.editEntity(childEntityID, {
                             emitRate: 0,
                         });
@@ -74,6 +76,7 @@
             }, 4900);
         },
         preload: function(entityID) {
+            debug("spinner.js | Preload");
             this.entityID = entityID;
         },
     };

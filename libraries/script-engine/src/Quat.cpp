@@ -37,29 +37,30 @@ glm::quat Quat::lookAt(const glm::vec3& eye, const glm::vec3& center, const glm:
 glm::quat Quat::lookAtSimple(const glm::vec3& eye, const glm::vec3& center) {
     auto dir = glm::normalize(center - eye);
     // if the direction is nearly aligned with the Y axis, then use the X axis for 'up'
-    if (dir.x < 0.001f && dir.z < 0.001f) {
+    const float MAX_ABS_Y_COMPONENT = 0.9999991f;
+    if (fabsf(dir.y) > MAX_ABS_Y_COMPONENT) {
         return lookAt(eye, center, Vectors::UNIT_X);
     }
     return lookAt(eye, center, Vectors::UNIT_Y);
 }
 
-glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) { 
-    return q1 * q2; 
+glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) {
+    return q1 * q2;
 }
 
-glm::quat Quat::fromVec3Degrees(const glm::vec3& eulerAngles) { 
-    return glm::quat(glm::radians(eulerAngles)); 
+glm::quat Quat::fromVec3Degrees(const glm::vec3& eulerAngles) {
+    return glm::quat(glm::radians(eulerAngles));
 }
 
-glm::quat Quat::fromVec3Radians(const glm::vec3& eulerAngles) { 
-    return glm::quat(eulerAngles); 
+glm::quat Quat::fromVec3Radians(const glm::vec3& eulerAngles) {
+    return glm::quat(eulerAngles);
 }
 
-glm::quat Quat::fromPitchYawRollDegrees(float pitch, float yaw, float roll) { 
+glm::quat Quat::fromPitchYawRollDegrees(float pitch, float yaw, float roll) {
     return glm::quat(glm::radians(glm::vec3(pitch, yaw, roll)));
 }
 
-glm::quat Quat::fromPitchYawRollRadians(float pitch, float yaw, float roll) { 
+glm::quat Quat::fromPitchYawRollRadians(float pitch, float yaw, float roll) {
     return glm::quat(glm::vec3(pitch, yaw, roll));
 }
 

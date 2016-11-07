@@ -55,7 +55,10 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
     auto& currentURL = getParsedModelURL();
     ModelEntityItem::setModelURL(url);
 
-    if (currentURL != getParsedModelURL() || !_model) {
+    if (currentURL != getParsedModelURL()) {
+        _needsModelReload = true;
+    }
+    if (_needsModelReload || !_model) {
         EntityTreePointer tree = getTree();
         if (tree) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
@@ -65,7 +68,7 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
 
 void RenderableModelEntityItem::loader() {
     _needsModelReload = true;
-    EntityTreeRenderer* renderer = DependencyManager::get<EntityTreeRenderer>().data();
+    auto renderer = DependencyManager::get<EntityTreeRenderer>();
     assert(renderer);
     {
         PerformanceTimer perfTimer("getModel");
@@ -368,7 +371,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize
                 PerformanceTimer perfTimer("getModel");
-                EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
+                auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
                 getModel(renderer);
 
                 // Remap textures immediately after loading to avoid flicker
@@ -470,7 +473,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 }
 
-ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
+ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRenderer> renderer) {
     if (!renderer) {
         return nullptr;
     }
@@ -495,7 +498,7 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {
-            QMetaObject::invokeMethod(_myRenderer, "updateModel", Qt::QueuedConnection,
+            QMetaObject::invokeMethod(_myRenderer.data(), "updateModel", Qt::QueuedConnection,
                 Q_ARG(ModelPointer, _model),
                 Q_ARG(const QString&, getModelURL()));
             _needsInitialSimulation = true;
@@ -523,17 +526,24 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
 }
 
 void RenderableModelEntityItem::update(const quint64& now) {
-    if (!_dimensionsInitialized && _model && _model->isActive()) {
-        if (_model->isLoaded()) {
-            EntityItemProperties properties;
-            properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
-            auto extents = _model->getMeshExtents();
-            properties.setDimensions(extents.maximum - extents.minimum);
-            qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
-            QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(QUuid, getEntityItemID()),
-                                      Q_ARG(EntityItemProperties, properties));
+    if (!_dimensionsInitialized) {
+        if (_model) {
+            if (_model->isActive() && _model->isLoaded()) {
+                EntityItemProperties properties;
+                properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
+                auto extents = _model->getMeshExtents();
+                properties.setDimensions(extents.maximum - extents.minimum);
+                qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+                QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                                        Qt::QueuedConnection,
+                                        Q_ARG(QUuid, getEntityItemID()),
+                                        Q_ARG(EntityItemProperties, properties));
+            }
+        } else if (_needsModelReload) {
+            EntityTreePointer tree = getTree();
+            if (tree) {
+                QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+            }
         }
     }
 
