@@ -233,7 +233,7 @@ function playSuccessSound() {
 function playFirecrackerSound(position) {
     Audio.playSound(firecrackerSound, {
         position: position,
-        volume: 0.7,
+        volume: 0.5,
         loop: false
     });
 }
