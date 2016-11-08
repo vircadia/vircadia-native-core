@@ -228,7 +228,7 @@ var usersWindow = (function () {
 
     var WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
-        WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
+        WINDOW_BASE_MARGIN = 24, // A little less is needed in order look correct
         WINDOW_FONT = {
             size: 12
         },
@@ -254,10 +254,11 @@ var usersWindow = (function () {
         windowHeading,
 
         // Window border is similar to that of edit.js.
-        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_LEFT_MARGIN = WINDOW_BASE_MARGIN,
+        WINDOW_MARGIN_HALF = WINDOW_MARGIN / 2,
+        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_LEFT_MARGIN = WINDOW_MARGIN_HALF,
         WINDOW_BORDER_RADIUS = 4,
         WINDOW_BORDER_COLOR = { red: 255, green: 255, blue: 255 },
         WINDOW_BORDER_ALPHA = 0.5,
