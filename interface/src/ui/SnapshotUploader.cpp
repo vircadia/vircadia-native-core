@@ -64,7 +64,12 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
 }
 
 void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll()); // maybe someday include _inWorldLocation, _filename?
+    QString replyString = reply.readAll();
+    qDebug() << "Error " << reply.errorString() << " uploading snapshot " << _pathname << " from " << _inWorldLocation;
+    if (replyString.size() == 0) {
+        replyString = reply.errorString();
+    }
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(replyString); // maybe someday include _inWorldLocation, _filename?
     delete this;
 }
 
@@ -74,6 +79,12 @@ void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {
 }
 
 void SnapshotUploader::createStoryFailure(QNetworkReply& reply) {
-     emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll());
-     delete this;
+    QString replyString = reply.readAll();
+    qDebug() << "Error " << reply.errorString() << " uploading snapshot " << _pathname << " from " << _inWorldLocation;
+    if (replyString.size() == 0) {
+        replyString = reply.errorString();
+    }
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(replyString);
+    delete this;
 }
+
