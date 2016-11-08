@@ -65,12 +65,11 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
 
 void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
     QString replyString = reply.readAll();
-    qDebug() << "Error uploading snapshot: " << reply.errorString();
+    qDebug() << "Error " << reply.errorString() << " uploading snapshot " << _pathname << " from " << _inWorldLocation;
     if (replyString.size() == 0) {
         replyString = reply.errorString();
     }
     emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(replyString); // maybe someday include _inWorldLocation, _filename?
-
     delete this;
 }
 
@@ -81,7 +80,7 @@ void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {
 
 void SnapshotUploader::createStoryFailure(QNetworkReply& reply) {
     QString replyString = reply.readAll();
-    qDebug() << "Error creating user story: " << reply.errorString(); 
+    qDebug() << "Error " << reply.errorString() << " uploading snapshot " << _pathname << " from " << _inWorldLocation;
     if (replyString.size() == 0) {
         replyString = reply.errorString();
     }
