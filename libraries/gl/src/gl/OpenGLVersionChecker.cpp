@@ -81,7 +81,7 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     int majorNumber = 0;
     int minorNumber = 0;
     const QString version { "version" };
-    if (version.contains(version)) {
+    if (glData.contains(version)) {
         QString glVersion = glData[version].toString();
         QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
         if (versionParts.size() >= 2) {
