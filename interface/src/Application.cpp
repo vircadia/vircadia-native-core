@@ -5353,7 +5353,7 @@ void Application::addAssetToWorldInitiate() {
 
     if (!_addAssetToWorldMessageBox) {
         _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, 
-            "Downloading Asset", "Preparing asset for download", QMessageBox::Cancel, QMessageBox::NoButton);
+            "Downloading Asset", "Preparing asset for download.", QMessageBox::Cancel, QMessageBox::NoButton);
     }
 
     connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
@@ -5377,7 +5377,7 @@ void Application::addAssetToWorld(QString filePath) {
         return;
     }
 
-    _addAssetToWorldMessageBox->setProperty("text", "Downloading asset file");
+    _addAssetToWorldMessageBox->setProperty("text", "Downloading asset file.");
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "Do not have permissions to write to asset server.";
@@ -5496,9 +5496,9 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
         qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
         addAssetToWorldError(errorInfo);
     } else {
-        QString successInfo = "Downloaded asset " + mapping + " added to world";
+        QString successInfo = "Downloaded asset " + mapping + " added to world.";
         qCDebug(interfaceapp) << "Downloading asset completed: " + successInfo;
-        _addAssetToWorldMessageBox->setProperty("text", "Downloading asset completed");
+        _addAssetToWorldMessageBox->setProperty("text", successInfo);
         _addAssetToWorldMessageBox->setProperty("buttons", QMessageBox::Ok);
         _addAssetToWorldMessageBox->setProperty("defaultButton", QMessageBox::Ok);
     }
