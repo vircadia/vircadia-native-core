@@ -18,6 +18,7 @@
 #include <QtCore/QPointer>
 #include <QtCore/QSet>
 #include <QtCore/QStringList>
+#include <QtQuick/QQuickItem>
 
 #include <QtGui/QImage>
 
@@ -309,6 +310,7 @@ public slots:
     void toggleLogDialog();
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
+    Q_INVOKABLE void addAssetToWorldInitiate();
     void addAssetToWorld(QString filePath);
     void addAssetToWorldWithNewMapping(QString path, QString mapping, int copy);
     void addAssetToWorldUpload(QString path, QString mapping);
@@ -397,6 +399,8 @@ private slots:
     static void packetSent(quint64 length);
     void updateDisplayMode();
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
+
+    void onAssetToWorldMessageBoxClosed();
 
 private:
     static void initDisplay();
@@ -616,6 +620,9 @@ private:
     model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
+
+    QQuickItem* _addAssetToWorldMessageBox{ nullptr };
+    void Application::addAssetToWorldError(QString errorText);
 };
 
 

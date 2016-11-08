@@ -97,6 +97,7 @@ Rectangle {
                                                 element.unbind("click");
                                                 element.bind("click", function(event) {
                                                     console.log("Initiate Clara.io FBX file download for {uuid}");
+                                                    EventBridge.emitWebEvent("CLARA.IO DOWNLOAD");
                                                     window.open("https://clara.io/api/scenes/{uuid}/export/fbx?fbxVersion=7.4&fbxEmbedTextures=true&centerScene=true&alignSceneGound=true");
                                                     return false;
                                                 });'
@@ -153,6 +154,16 @@ Rectangle {
                     }
                 });
             }
+        }
+
+        function onWebEventReceived(event) {
+            if (event === "CLARA.IO DOWNLOAD") {
+                ApplicationInterface.addAssetToWorldInitiate();
+            }
+        }
+
+        Component.onCompleted: {
+            eventBridge.webEventReceived.connect(onWebEventReceived);
         }
     }
 
