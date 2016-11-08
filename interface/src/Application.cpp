@@ -5436,15 +5436,19 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
         player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
         player->play();
 
-        //QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+        QString path;
 
-        //if (!format.compare("animated"))
-        //{
+        if (!format.compare("still"))
+        {
+            path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+        }
+        else if (!format.compare("animated"))
+        {
             QImage frame;
             GifWriter myGifWriter;
             char* cstr;
 
-            QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+            path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
             path.append(QDir::separator());
             path.append("test.gif");
 
@@ -5452,20 +5456,36 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             cstr = new char[fname.size() + 1];
             strcpy(cstr, fname.c_str());
 
-            GifBegin(&myGifWriter, cstr, 1, 1, 0);
 
-            uint8_t test[4] = { 0xFF, 0x00, 0x00, 0x00 };
+            frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(500);
+            qDebug() << "image format: " << frame.format();
+            uint8_t frameNumBytes = frame.width() * frame.height() * 4;
 
+            uint8_t* pixelArray = new uint8_t[frameNumBytes];
+            uchar *bits;
+
+            GifBegin(&myGifWriter, cstr, frame.width(), frame.height(), 0);
             for (uint8_t itr = 0; itr < 30; itr++)
             {
-                test[0] = 0xFF / (itr + 1);
-                //frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(500);
+                bits = frame.bits();
+                for (uint8_t itr2 = 0; itr2 < frameNumBytes; itr2 += 4)
+                {
+                    pixelArray[itr2 + 3] = (uint8_t)bits[itr2];
+                    pixelArray[itr2 + 0] = (uint8_t)bits[itr2 + 1];
+                    pixelArray[itr2 + 1] = (uint8_t)bits[itr2 + 2];
+                    pixelArray[itr2 + 2] = (uint8_t)bits[itr2 + 3];
+                }
 
-                GifWriteFrame(&myGifWriter, test, 1, 1, 0);
+                GifWriteFrame(&myGifWriter, pixelArray, frame.width(), frame.height(), 0);
+                usleep(USECS_PER_MSEC * 50); // 1/20 sec
+                // updateHeartbeat() while making the GIF so we don't scare the deadlock watchdog
+                updateHeartbeat();
+                frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(500);
             }
 
+            delete[frameNumBytes] pixelArray;
             GifEnd(&myGifWriter);
-        //}
+        }
 
         emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
     });
