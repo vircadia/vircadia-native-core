@@ -149,6 +149,7 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DialogsManager.h"
+#include "ui/Gif.h"
 #include "ui/LoginDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
 #include "ui/Snapshot.h"
@@ -2511,7 +2512,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
-                    takeSnapshot(true);
+                    takeSnapshot(true, "still");
                 }
                 break;
 
@@ -5428,14 +5429,43 @@ void Application::toggleLogDialog() {
     }
 }
 
-void Application::takeSnapshot(bool notify, float aspectRatio) {
-    postLambdaEvent([notify, aspectRatio, this] {
+void Application::takeSnapshot(bool notify, const QString& format, float aspectRatio) {
+    postLambdaEvent([notify, format, aspectRatio, this] {
         QMediaPlayer* player = new QMediaPlayer();
         QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
         player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
         player->play();
 
-        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+        //QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+
+        //if (!format.compare("animated"))
+        //{
+            QImage frame;
+            GifWriter myGifWriter;
+            char* cstr;
+
+            QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+            path.append(QDir::separator());
+            path.append("test.gif");
+
+            string fname = path.toStdString();
+            cstr = new char[fname.size() + 1];
+            strcpy(cstr, fname.c_str());
+
+            GifBegin(&myGifWriter, cstr, 1, 1, 0);
+
+            uint8_t test[4] = { 0xFF, 0x00, 0x00, 0x00 };
+
+            for (uint8_t itr = 0; itr < 30; itr++)
+            {
+                test[0] = 0xFF / (itr + 1);
+                //frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(500);
+
+                GifWriteFrame(&myGifWriter, test, 1, 1, 0);
+            }
+
+            GifEnd(&myGifWriter);
+        //}
 
         emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
     });

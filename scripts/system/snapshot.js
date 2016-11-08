@@ -120,7 +120,7 @@ function onClicked() {
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
-        Window.takeSnapshot(false, 1.91);
+        Window.takeSnapshotAnimated(false, 1.91);
     }, SNAPSHOT_DELAY);
 }
 
