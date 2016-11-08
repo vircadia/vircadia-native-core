@@ -5432,6 +5432,12 @@ void Application::toggleLogDialog() {
 
 uint8_t _currentAnimatedSnapshotFrame;
 GifWriter _animatedSnapshotGifWriter;
+#define SNAPSNOT_ANIMATED_WIDTH (640)
+#define SNAPSNOT_ANIMATED_FRAMERATE_FPS (20)
+#define SNAPSNOT_ANIMATED_FRAME_DELAY (100/SNAPSNOT_ANIMATED_FRAMERATE_FPS)
+#define SNAPSNOT_ANIMATED_DURATION_SECS (3)
+#define SNAPSNOT_ANIMATED_NUM_FRAMES (SNAPSNOT_ANIMATED_DURATION_SECS * SNAPSNOT_ANIMATED_FRAMERATE_FPS)
+
 
 void Application::takeSnapshot(bool notify, const QString& format, float aspectRatio) {
     postLambdaEvent([notify, format, aspectRatio, this] {
@@ -5442,11 +5448,15 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
 
         QString path;
 
+        // If this is a still snapshot...
         if (!format.compare("still"))
         {
+            // Get a screenshot, save it, and notify the window scripting
+            // interface that we've done so - this part of the code has been around for a while
             path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
             emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
         }
+        // If this is an animated snapshot (GIF)...
         else if (!format.compare("animated"))
         {
             char* cstr;
@@ -5460,8 +5470,8 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             cstr = new char[fname.size() + 1];
             strcpy(cstr, fname.c_str());
             // Start the GIF
-            QImage frame = (getActiveDisplayPlugin()->getScreenshot(1.91)).scaledToWidth(500).convertToFormat(QImage::Format_RGBA8888);
-            GifBegin(&_animatedSnapshotGifWriter, cstr, frame.width(), frame.height(), 5);
+            QImage frame = (getActiveDisplayPlugin()->getScreenshot(1.91)).scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
+            GifBegin(&_animatedSnapshotGifWriter, cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
             Application::animatedSnapshotTimerCb();
             animatedSnapshotTimer.start(50);
         }
@@ -5470,7 +5480,7 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
 
 void Application::animatedSnapshotTimerCb()
 {
-    if (_currentAnimatedSnapshotFrame == 30)
+    if (_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
     {
         animatedSnapshotTimer.stop();
         GifEnd(&_animatedSnapshotGifWriter);
@@ -5481,15 +5491,11 @@ void Application::animatedSnapshotTimerCb()
         return;
     }
 
-    QImage frame = (getActiveDisplayPlugin()->getScreenshot(1.91)).scaledToWidth(500).convertToFormat(QImage::Format_RGBA8888);
+    QImage frame = (getActiveDisplayPlugin()->getScreenshot(1.91)).scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
     uint32_t frameNumBytes = frame.width() * frame.height() * 4;
-
     uint8_t* pixelArray = new uint8_t[frameNumBytes];
-    //uchar *bits;
-    //bits = frame.bits();
-    //memcpy(pixelArray, (uint8_t*)bits, frameNumBytes);
 
-    GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame.bits(), frame.width(), frame.height(), 5);
+    GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
     _currentAnimatedSnapshotFrame++;
 
     delete[frameNumBytes] pixelArray;
