@@ -579,6 +579,10 @@ function backupResourceDirectoriesAndRestart() {
 }
 
 function checkNewContent() {
+    if (argv.noUpdater) {
+      return;
+    }
+    
     // Start downloading content set
     var req = request.head({
         url: HOME_CONTENT_URL
@@ -821,7 +825,7 @@ function onContentLoaded() {
     // Disable splash window for now.
     // maybeShowSplash();
 
-    if (buildInfo.releaseType == 'PRODUCTION') {
+    if (buildInfo.releaseType == 'PRODUCTION' && !argv.noUpdater) {
         var currentVersion = null;
         try {
             currentVersion = parseInt(buildInfo.buildIdentifier);

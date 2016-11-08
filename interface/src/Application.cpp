@@ -599,7 +599,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
-            SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
+            bool noUpdater = SteamClient::isRunning();
+            SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
             sandboxIsRunning = true;
         }
         determinedSandboxState = true;
@@ -1119,9 +1120,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setActiveEyeTracker();
 #endif
 
-    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
-    connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
-    applicationUpdater->checkForUpdate();
+    // If launched from Steam, let it handle updates
+    if (!SteamClient::isRunning()) {
+        auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+        connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
+        applicationUpdater->checkForUpdate();
+    }
 
     // Now that menu is initialized we can sync myAvatar with it's state.
     myAvatar->updateMotionBehaviorFromMenu();
@@ -1238,7 +1242,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
+        properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemory());
         properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory());
+        properties["gpu_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerGPUAverage());
+        properties["batch_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerBatchAverage());
         properties["ideal_thread_count"] = QThread::idealThreadCount();
 
         auto hmdHeadPose = getHMDSensorPose();
