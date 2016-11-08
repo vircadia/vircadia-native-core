@@ -5400,8 +5400,14 @@ void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, i
     auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
     QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
         const int MAX_COPY_COUNT = 100;  // Limit number of duplicate assets; recursion guard.
-        if (request->getError() == GetMappingRequest::NotFound) {
+        auto result = request->getError();
+        if (result == GetMappingRequest::NotFound) {
             addAssetToWorldUpload(path, mapping);
+        } else if (result != GetMappingRequest::NoError) {
+            QString errorInfo = "Could not map asset name: "
+                + mapping.left(mapping.length() - QString::number(copy).length() - 1);
+            qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+            addAssetToWorldError(errorInfo);
         } else if (copy < MAX_COPY_COUNT - 1) {
             if (copy > 0) {
                 mapping = mapping.remove(mapping.lastIndexOf("-"), QString::number(copy).length() + 1);
