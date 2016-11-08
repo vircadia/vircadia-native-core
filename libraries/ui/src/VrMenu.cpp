@@ -59,6 +59,18 @@ public:
         _qml->setProperty("visible", _action->isVisible());
     }
 
+    void clear() {
+        _qml->setProperty("checkable", 0);
+        _qml->setProperty("enabled", 0);
+        _qml->setProperty("text", 0);
+        _qml->setProperty("shortcut", 0);
+        _qml->setProperty("checked", 0);
+        _qml->setProperty("visible", 0);
+
+        _action->setUserData(USER_DATA_ID, nullptr);
+        _qml->setUserData(USER_DATA_ID, nullptr);
+    }
+
 
     const QUuid uuid{ QUuid::createUuid() };
 
@@ -231,32 +243,6 @@ void VrMenu::removeAction(QAction* action) {
         return;
     }
 
-    QObject* parent = action->menu();
-    QObject* qmlParent = nullptr;
-
-    QMenu* parentMenu = dynamic_cast<QMenu*>(parent);
-    if (parentMenu) {
-        MenuUserData* MenuUserData = MenuUserData::forObject(parentMenu->menuAction());
-        if (!MenuUserData) {
-            return;
-        }
-        qmlParent = findMenuObject(MenuUserData->uuid.toString());
-    } else if (dynamic_cast<QMenuBar*>(parent)) {
-        qmlParent = _rootMenu;
-    } else {
-        Q_ASSERT(false);
-    }
-
-    QObject* item = findMenuObject(userData->uuid.toString());
-
-    QQuickMenu1* menu = nullptr;
-    QMetaObject::invokeMethod(item, "parentMenu", Qt::DirectConnection, Q_RETURN_ARG(QQuickMenu1*, menu));
-
-    if (!menu) {
-        return;
-    }
-    QQuickMenuBase* menuItem = reinterpret_cast<QQuickMenuBase*>(item);
-    QObject* baseMenu = reinterpret_cast<QObject*>(menu);
-
-    QMetaObject::invokeMethod(baseMenu, "removeItem", Qt::DirectConnection, Q_ARG(QQuickMenuBase*, menuItem));
+    userData->clear();
+    delete userData;
 }
