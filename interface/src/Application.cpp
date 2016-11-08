@@ -5463,7 +5463,7 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             uint8_t* pixelArray = new uint8_t[frameNumBytes];
             uchar *bits;
 
-            GifBegin(&myGifWriter, cstr, frame.width(), frame.height(), 0);
+            GifBegin(&myGifWriter, cstr, frame.width(), frame.height(), 50);
             for (uint8_t itr = 0; itr < 30; itr++)
             {
                 bits = frame.bits();
@@ -5475,7 +5475,7 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
                     pixelArray[itr2 + 3] = (uint8_t)bits[itr2 + 3]; // Alpha
                 }
 
-                GifWriteFrame(&myGifWriter, pixelArray, frame.width(), frame.height(), 0);
+                GifWriteFrame(&myGifWriter, pixelArray, frame.width(), frame.height(), 50);
                 usleep(USECS_PER_MSEC * 50); // 1/20 sec
                 // updateHeartbeat() while making the GIF so we don't scare the deadlock watchdog
                 updateHeartbeat();
