@@ -621,7 +621,7 @@ private:
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
     QQuickItem* _addAssetToWorldMessageBox{ nullptr };
-    void Application::addAssetToWorldError(QString errorText);
+    void addAssetToWorldError(QString errorText);
 };
 
 
