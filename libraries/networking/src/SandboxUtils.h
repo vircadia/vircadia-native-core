@@ -26,7 +26,7 @@ public:
     void ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
                                    std::function<void()> localSandboxNotRunningDoThat);
 
-    static void runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName);
+    static void runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName, bool noUpdater);
 };
 
 #endif // hifi_SandboxUtils_h
