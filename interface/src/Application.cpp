@@ -5457,9 +5457,8 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             strcpy(cstr, fname.c_str());
 
 
-            frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(500);
-            qDebug() << "image format: " << frame.format();
-            uint8_t frameNumBytes = frame.width() * frame.height() * 4;
+            frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(400);
+            uint32_t frameNumBytes = frame.width() * frame.height() * 4;
 
             uint8_t* pixelArray = new uint8_t[frameNumBytes];
             uchar *bits;
@@ -5468,19 +5467,19 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             for (uint8_t itr = 0; itr < 30; itr++)
             {
                 bits = frame.bits();
-                for (uint8_t itr2 = 0; itr2 < frameNumBytes; itr2 += 4)
+                for (uint32_t itr2 = 0; itr2 < frameNumBytes; itr2 += 4)
                 {
-                    pixelArray[itr2 + 3] = (uint8_t)bits[itr2];
-                    pixelArray[itr2 + 0] = (uint8_t)bits[itr2 + 1];
-                    pixelArray[itr2 + 1] = (uint8_t)bits[itr2 + 2];
-                    pixelArray[itr2 + 2] = (uint8_t)bits[itr2 + 3];
+                    pixelArray[itr2 + 0] = (uint8_t)bits[itr2 + 0]; // R
+                    pixelArray[itr2 + 1] = (uint8_t)bits[itr2 + 1]; // G
+                    pixelArray[itr2 + 2] = (uint8_t)bits[itr2 + 2]; // B
+                    pixelArray[itr2 + 3] = (uint8_t)bits[itr2 + 3]; // Alpha
                 }
 
                 GifWriteFrame(&myGifWriter, pixelArray, frame.width(), frame.height(), 0);
                 usleep(USECS_PER_MSEC * 50); // 1/20 sec
                 // updateHeartbeat() while making the GIF so we don't scare the deadlock watchdog
                 updateHeartbeat();
-                frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(500);
+                frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(400);
             }
 
             delete[frameNumBytes] pixelArray;
