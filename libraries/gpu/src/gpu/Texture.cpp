@@ -10,12 +10,13 @@
 //
 
 
-#include <QtCore/QDebug>
-
 #include "Texture.h"
 
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/component_wise.hpp>
+
+#include <QtCore/QDebug>
+#include <QtCore/QThread>
 
 #include <NumericalConstants.h>
 
@@ -32,16 +33,27 @@ std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
 std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
-std::atomic<bool> Texture::_enableSparseTextures { false };
-std::atomic<bool> Texture::_enableIncrementalTextureTransfers { false };
+
+#define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
+bool recommendedIncrementalTransfers = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
+bool recommendedSparseTextures = recommendedIncrementalTransfers;
+
+std::atomic<bool> Texture::_enableSparseTextures { recommendedIncrementalTransfers };
+std::atomic<bool> Texture::_enableIncrementalTextureTransfers { recommendedSparseTextures };
+
+struct ReportTextureState {
+    ReportTextureState() {
+        qDebug() << "[TEXTURE TRANSFER SUPPORT]"
+            << "\n\tidealThreadCount:" << QThread::idealThreadCount()
+            << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures
+            << "\n\tRECOMMENDED enableIncrementalTextures:" << recommendedIncrementalTransfers;
+    }
+} report;
 
 void Texture::setEnableSparseTextures(bool enabled) {
 #ifdef Q_OS_WIN
     qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
     _enableSparseTextures = enabled;
-    if (!_enableIncrementalTextureTransfers && _enableSparseTextures) {
-        qDebug() << "[TEXTURE TRANSFER SUPPORT] WARNING - Sparse texture management requires incremental texture transfer enabled.";
-    }
 #else
     qDebug() << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
 #endif
@@ -51,9 +63,6 @@ void Texture::setEnableIncrementalTextureTransfers(bool enabled) {
 #ifdef Q_OS_WIN
     qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Incremental Texture Transfer:" << enabled;
     _enableIncrementalTextureTransfers = enabled;
-    if (!_enableIncrementalTextureTransfers && _enableSparseTextures) {
-        qDebug() << "[TEXTURE TRANSFER SUPPORT] WARNING - Sparse texture management requires incremental texture transfer enabled.";
-    }
 #else
     qDebug() << "[TEXTURE TRANSFER SUPPORT] Incremental Texture Transfer not supported on this platform.";
 #endif

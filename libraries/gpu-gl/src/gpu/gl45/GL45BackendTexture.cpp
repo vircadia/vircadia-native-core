@@ -148,13 +148,9 @@ uint32_t SparseInfo::getPageCount(const uvec3& dimensions) const {
     return pageCounts.x * pageCounts.y * pageCounts.z;
 }
 
-
-
 void GL45Backend::initTextureManagementStage() {
-
     // enable the Sparse Texture on gl45
     _textureManagement._sparseCapable = true;
-    _textureManagement._incrementalTransferCapable = true;
 
     // But now let s refine the behavior based on vendor
     std::string vendor { (const char*)glGetString(GL_VENDOR) };
@@ -383,8 +379,7 @@ void GL45Texture::startTransfer() {
 }
 
 bool GL45Texture::continueTransfer() {
-    auto backend = _backend.lock();
-    if (!backend || !backend->isTextureManagementIncrementalTransferEnabled()) {
+    if (!Texture::getEnableIncrementalTextureTransfers()) {
         size_t maxFace = GL_TEXTURE_CUBE_MAP == _target ? CUBE_NUM_FACES : 1;
         for (uint8_t face = 0; face < maxFace; ++face) {
             for (uint16_t mipLevel = _minMip; mipLevel <= _maxMip; ++mipLevel) {

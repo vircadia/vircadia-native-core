@@ -369,7 +369,7 @@ public:
     // = 1 + log2(max(width, height, depth))
     uint16 evalNumMips() const;
 
-    static uint16 evalNumMips(const Vec3u& dimnsions);
+    static uint16 evalNumMips(const Vec3u& dimensions);
 
     // Eval the size that the mips level SHOULD have
     // not the one stored in the Texture
