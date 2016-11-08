@@ -5430,9 +5430,7 @@ void Application::toggleLogDialog() {
     }
 }
 
-uint8_t _currentAnimatedSnapshotFrame;
-GifWriter _animatedSnapshotGifWriter;
-#define SNAPSNOT_ANIMATED_WIDTH (640)
+#define SNAPSNOT_ANIMATED_WIDTH (900)
 #define SNAPSNOT_ANIMATED_FRAMERATE_FPS (20)
 #define SNAPSNOT_ANIMATED_FRAME_DELAY (100/SNAPSNOT_ANIMATED_FRAMERATE_FPS)
 #define SNAPSNOT_ANIMATED_DURATION_SECS (3)
@@ -5446,6 +5444,8 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
         player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
         player->play();
 
+        GifWriter _animatedSnapshotGifWriter;
+        uint8_t _currentAnimatedSnapshotFrame;
         QString path;
 
         // If this is a still snapshot...
@@ -5460,7 +5460,6 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
         else if (!format.compare("animated"))
         {
             char* cstr;
-            connect(&animatedSnapshotTimer, &QTimer::timeout, this, &Application::animatedSnapshotTimerCb);
             _currentAnimatedSnapshotFrame = 0;
             // File path stuff
             path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -5469,38 +5468,33 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             string fname = path.toStdString();
             cstr = new char[fname.size() + 1];
             strcpy(cstr, fname.c_str());
-            // Start the GIF
-            QImage frame = (getActiveDisplayPlugin()->getScreenshot(1.91)).scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
-            GifBegin(&_animatedSnapshotGifWriter, cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
-            Application::animatedSnapshotTimerCb();
-            animatedSnapshotTimer.start(50);
+
+            connect(&animatedSnapshotTimer, &QTimer::timeout, this, [&] {
+                if (_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
+                {
+                    animatedSnapshotTimer.stop();
+                    GifEnd(&_animatedSnapshotGifWriter);
+                    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, false);
+                    return;
+                }
+
+                QImage frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
+                if (_currentAnimatedSnapshotFrame == 0)
+                {
+                    GifBegin(&_animatedSnapshotGifWriter, cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
+                }
+                uint32_t frameNumBytes = frame.width() * frame.height() * 4;
+                uint8_t* pixelArray = new uint8_t[frameNumBytes];
+
+                GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
+                _currentAnimatedSnapshotFrame++;
+
+                delete[frameNumBytes] pixelArray;
+            });
+            animatedSnapshotTimer.start(SNAPSNOT_ANIMATED_FRAME_DELAY * 10);
         }
     });
 }
-
-void Application::animatedSnapshotTimerCb()
-{
-    if (_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
-    {
-        animatedSnapshotTimer.stop();
-        GifEnd(&_animatedSnapshotGifWriter);
-        QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-        path.append(QDir::separator());
-        path.append("test.gif");
-        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, false);
-        return;
-    }
-
-    QImage frame = (getActiveDisplayPlugin()->getScreenshot(1.91)).scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
-    uint32_t frameNumBytes = frame.width() * frame.height() * 4;
-    uint8_t* pixelArray = new uint8_t[frameNumBytes];
-
-    GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
-    _currentAnimatedSnapshotFrame++;
-
-    delete[frameNumBytes] pixelArray;
-}
-
 void Application::shareSnapshot(const QString& path) {
     postLambdaEvent([path] {
         // not much to do here, everything is done in snapshot code...

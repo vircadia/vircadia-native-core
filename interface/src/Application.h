@@ -267,7 +267,6 @@ public:
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
     
     void takeSnapshot(bool notify, const QString& format = "still", float aspectRatio = 0.0f);
-    void animatedSnapshotTimerCb();
     void shareSnapshot(const QString& filename);
 
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
