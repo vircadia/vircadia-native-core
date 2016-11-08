@@ -61,15 +61,16 @@ void SandboxUtils::ifLocalSandboxRunningElse(std::function<void()> localSandboxR
 }
 
 
-void SandboxUtils::runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName) {
+void SandboxUtils::runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName, bool noUpdater) {
     QString applicationDirPath = QFileInfo(QCoreApplication::applicationFilePath()).path();
     QString serverPath = applicationDirPath + "/server-console/server-console.exe";
     qDebug() << "Application dir path is: " << applicationDirPath;
     qDebug() << "Server path is: " << serverPath;
     qDebug() << "autoShutdown: " << autoShutdown;
+    qDebug() << "noUpdater: " << noUpdater;
 
     bool hasContentPath = !contentPath.isEmpty();
-    bool passArgs = autoShutdown || hasContentPath;
+    bool passArgs = autoShutdown || hasContentPath || noUpdater;
 
     QStringList args;
 
@@ -85,6 +86,10 @@ void SandboxUtils::runLocalSandbox(QString contentPath, bool autoShutdown, QStri
     if (autoShutdown) {
         QString interfaceRunningStateFile = RunningMarker::getMarkerFilePath(runningMarkerName);
         args << "--shutdownWatcher" << interfaceRunningStateFile;
+    }
+
+    if (noUpdater) {
+        args << "--noUpdater";
     }
 
     qDebug() << applicationDirPath;
