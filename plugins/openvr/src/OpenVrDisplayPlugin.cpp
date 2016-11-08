@@ -641,6 +641,12 @@ void OpenVrDisplayPlugin::hmdPresent() {
         vr::VRCompositor()->PostPresentHandoff();
         _presentRate.increment();
     }
+
+    vr::Compositor_FrameTiming frameTiming;
+    memset(&frameTiming, 0, sizeof(vr::Compositor_FrameTiming));
+    frameTiming.m_nSize = sizeof(vr::Compositor_FrameTiming);
+    vr::VRCompositor()->GetFrameTiming(&frameTiming);
+    _stutterRate.increment(frameTiming.m_nNumDroppedFrames);
 }
 
 void OpenVrDisplayPlugin::postPreview() {
@@ -701,4 +707,8 @@ bool OpenVrDisplayPlugin::isKeyboardVisible() {
 
 int OpenVrDisplayPlugin::getRequiredThreadCount() const { 
     return Parent::getRequiredThreadCount() + (_threadedSubmit ? 1 : 0);
+}
+
+float OpenVrDisplayPlugin::stutterRate() const {
+    return _stutterRate.rate();
 }

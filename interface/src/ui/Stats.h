@@ -36,7 +36,9 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, renderrate, 0)
     // How often the display plugin is presenting to the device
     STATS_PROPERTY(float, presentrate, 0)
-    
+    // How often the display device reprojecting old frames
+    STATS_PROPERTY(float, stutterrate, 0)
+
     STATS_PROPERTY(float, presentnewrate, 0)
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, simrate, 0)
@@ -140,6 +142,7 @@ signals:
     void presentrateChanged();
     void presentnewrateChanged();
     void presentdroprateChanged();
+    void stutterrateChanged();
     void simrateChanged();
     void avatarSimrateChanged();
     void avatarCountChanged();
