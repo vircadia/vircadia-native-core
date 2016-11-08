@@ -176,6 +176,7 @@ using namespace std;
 static QTimer locationUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
+static QTimer animatedSnapshotTimer;
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
@@ -5429,6 +5430,9 @@ void Application::toggleLogDialog() {
     }
 }
 
+uint8_t _currentAnimatedSnapshotFrame;
+GifWriter _animatedSnapshotGifWriter;
+
 void Application::takeSnapshot(bool notify, const QString& format, float aspectRatio) {
     postLambdaEvent([notify, format, aspectRatio, this] {
         QMediaPlayer* player = new QMediaPlayer();
@@ -5441,53 +5445,54 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
         if (!format.compare("still"))
         {
             path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+            emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
         }
         else if (!format.compare("animated"))
         {
-            QImage frame;
-            GifWriter myGifWriter;
             char* cstr;
-
+            connect(&animatedSnapshotTimer, &QTimer::timeout, this, &Application::animatedSnapshotTimerCb);
+            _currentAnimatedSnapshotFrame = 0;
+            // File path stuff
             path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
             path.append(QDir::separator());
             path.append("test.gif");
-
             string fname = path.toStdString();
             cstr = new char[fname.size() + 1];
             strcpy(cstr, fname.c_str());
-
-
-            frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(400);
-            uint32_t frameNumBytes = frame.width() * frame.height() * 4;
-
-            uint8_t* pixelArray = new uint8_t[frameNumBytes];
-            uchar *bits;
-
-            GifBegin(&myGifWriter, cstr, frame.width(), frame.height(), 50);
-            for (uint8_t itr = 0; itr < 30; itr++)
-            {
-                bits = frame.bits();
-                for (uint32_t itr2 = 0; itr2 < frameNumBytes; itr2 += 4)
-                {
-                    pixelArray[itr2 + 0] = (uint8_t)bits[itr2 + 0]; // R
-                    pixelArray[itr2 + 1] = (uint8_t)bits[itr2 + 1]; // G
-                    pixelArray[itr2 + 2] = (uint8_t)bits[itr2 + 2]; // B
-                    pixelArray[itr2 + 3] = (uint8_t)bits[itr2 + 3]; // Alpha
-                }
-
-                GifWriteFrame(&myGifWriter, pixelArray, frame.width(), frame.height(), 50);
-                usleep(USECS_PER_MSEC * 50); // 1/20 sec
-                // updateHeartbeat() while making the GIF so we don't scare the deadlock watchdog
-                updateHeartbeat();
-                frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(400);
-            }
-
-            delete[frameNumBytes] pixelArray;
-            GifEnd(&myGifWriter);
+            // Start the GIF
+            QImage frame = (getActiveDisplayPlugin()->getScreenshot(1.91)).scaledToWidth(500).convertToFormat(QImage::Format_RGBA8888);
+            GifBegin(&_animatedSnapshotGifWriter, cstr, frame.width(), frame.height(), 5);
+            Application::animatedSnapshotTimerCb();
+            animatedSnapshotTimer.start(50);
         }
-
-        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
     });
+}
+
+void Application::animatedSnapshotTimerCb()
+{
+    if (_currentAnimatedSnapshotFrame == 30)
+    {
+        animatedSnapshotTimer.stop();
+        GifEnd(&_animatedSnapshotGifWriter);
+        QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+        path.append(QDir::separator());
+        path.append("test.gif");
+        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, false);
+        return;
+    }
+
+    QImage frame = (getActiveDisplayPlugin()->getScreenshot(1.91)).scaledToWidth(500).convertToFormat(QImage::Format_RGBA8888);
+    uint32_t frameNumBytes = frame.width() * frame.height() * 4;
+
+    uint8_t* pixelArray = new uint8_t[frameNumBytes];
+    //uchar *bits;
+    //bits = frame.bits();
+    //memcpy(pixelArray, (uint8_t*)bits, frameNumBytes);
+
+    GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame.bits(), frame.width(), frame.height(), 5);
+    _currentAnimatedSnapshotFrame++;
+
+    delete[frameNumBytes] pixelArray;
 }
 
 void Application::shareSnapshot(const QString& path) {
