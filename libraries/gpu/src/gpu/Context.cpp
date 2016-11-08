@@ -34,6 +34,10 @@ void Context::beginFrame(const glm::mat4& renderPose) {
     _frameActive = true;
     _currentFrame = std::make_shared<Frame>();
     _currentFrame->pose = renderPose;
+
+    if (!_frameRangeTimer) {
+        _frameRangeTimer = std::make_shared<RangeTimer>();
+    }
 }
 
 void Context::appendFrameBatch(Batch& batch) {
@@ -73,10 +77,18 @@ void Context::executeFrame(const FramePointer& frame) const {
     consumeFrameUpdates(frame);
     _backend->setStereoState(frame->stereoState);
     {
+        Batch beginBatch;
+        _frameRangeTimer->begin(beginBatch);
+        _backend->render(beginBatch);
+
         // Execute the frame rendering commands
         for (auto& batch : frame->batches) {
             _backend->render(batch);
         }
+
+        Batch endBatch;
+        _frameRangeTimer->end(endBatch);
+        _backend->render(endBatch);
     }
 }
 
@@ -125,6 +137,20 @@ void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, cons
 
 void Context::getStats(ContextStats& stats) const {
     _backend->getStats(stats);
+}
+
+double Context::getFrameTimerGPUAverage() const {
+    if (_frameRangeTimer) {
+        return _frameRangeTimer->getGPUAverage();
+    }
+    return 0.0;
+}
+
+double Context::getFrameTimerBatchAverage() const {
+    if (_frameRangeTimer) {
+        return _frameRangeTimer->getBatchAverage();
+    }
+    return 0.0;
 }
 
 const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& xformView) const {
@@ -182,6 +208,10 @@ void Context::setFreeGPUMemory(Size size) {
 Size Context::getFreeGPUMemory() {
     return _freeGPUMemory.load();
 }
+
+Size Context::getUsedGPUMemory() {
+    return getTextureGPUMemoryUsage() + getBufferGPUMemoryUsage();
+};
 
 void Context::incrementBufferGPUCount() {
     static std::atomic<uint32_t> max { 0 };
@@ -349,3 +379,5 @@ void Backend::updateTextureGPUFramebufferMemoryUsage(Resource::Size prevObjectSi
 void Backend::updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUSparseMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::incrementTextureGPUTransferCount() { Context::incrementTextureGPUTransferCount(); }
 void Backend::decrementTextureGPUTransferCount() { Context::decrementTextureGPUTransferCount(); }
+
+

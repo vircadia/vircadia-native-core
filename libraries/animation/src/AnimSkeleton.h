@@ -63,10 +63,8 @@ public:
     void mirrorRelativePoses(AnimPoseVec& poses) const;
     void mirrorAbsolutePoses(AnimPoseVec& poses) const;
 
-#ifndef NDEBUG
-    void dump() const;
+    void dump(bool verbose) const;
     void dump(const AnimPoseVec& poses) const;
-#endif
 
 protected:
     void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
