@@ -253,6 +253,11 @@ var usersWindow = (function () {
         windowPane,
         windowHeading,
 
+        // Margin on the left and right side of the window to keep
+        // it from getting too close to the edge of the screen which
+        // is unclickable.
+        WINDOW_MARGIN_X = 20,
+
         // Window border is similar to that of edit.js.
         WINDOW_MARGIN_HALF = WINDOW_MARGIN / 2,
         WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_MARGIN_HALF,
@@ -446,7 +451,7 @@ var usersWindow = (function () {
     }
 
     function saturateWindowPosition() {
-        windowPosition.x = Math.max(0, Math.min(viewport.x - WINDOW_WIDTH, windowPosition.x));
+        windowPosition.x = Math.max(WINDOW_MARGIN_X, Math.min(viewport.x - WINDOW_WIDTH - WINDOW_MARGIN_X, windowPosition.x));
         windowPosition.y = Math.max(windowMinimumHeight, Math.min(viewport.y, windowPosition.y));
     }
 
