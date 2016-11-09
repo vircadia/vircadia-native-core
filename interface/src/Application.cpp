@@ -5444,51 +5444,65 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
         player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
         player->play();
 
-        GifWriter _animatedSnapshotGifWriter;
-        uint8_t _currentAnimatedSnapshotFrame = 0;
-        QString path;
 
         // If this is a still snapshot...
         if (!format.compare("still"))
         {
-            // Get a screenshot and save it. and  - this part of the code has been around for a while
-            path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+            // Get a screenshot and save it
+            QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+            // Notify the window scripting interface that we've taken a Snapshot
+            emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
         }
         // If this is an animated snapshot (GIF)...
         else if (!format.compare("animated"))
         {
+            GifWriter _animatedSnapshotGifWriter;
+            uint8_t _currentAnimatedSnapshotFrame = 0;
+            // File path stuff -- lots of this is temporary
+            // until I figure out how to save the .GIF to the same location as the still .JPG
             char* cstr;
-            // File path stuff
-            path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-            path.append(QDir::separator());
-            path.append("test.gif");
-            string fname = path.toStdString();
-            cstr = new char[fname.size() + 1];
-            strcpy(cstr, fname.c_str());
+            QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation); // Get the desktop
+            path.append(QDir::separator()); // Add the dir separator to the desktop location
+            path.append("test.gif"); // Add "test.gif" to the path
+            string fname = path.toStdString(); // Turn the QString into a regular string
+            cstr = new char[fname.size() + 1]; // Create a new character array to hold the .GIF file location
+            strcpy(cstr, fname.c_str()); // Copy the string into a character array
 
-            connect(&animatedSnapshotTimer, &QTimer::timeout, [&] {
+            // Connect the animatedSnapshotTimer QTimer to the lambda slot function
+            connect(&animatedSnapshotTimer, &QTimer::timeout, [&]() {
+                // If this is the last frame...
                 if (_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
                 {
+                    // Stop the snapshot QTimer
                     animatedSnapshotTimer.stop();
+                    // Write out the end of the GIF
                     GifEnd(&_animatedSnapshotGifWriter);
+                    // Notify the Window Scripting Interface that the snapshot was taken
                     emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, false);
                     return;
                 }
 
-                QImage frame = (getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
+                // Get a screenshot from the display, then scale the screenshot down,
+                // then convert it to the image format the GIF library needs,
+                // then save all that to the QImage named "frame"
+                QImage frame = (qApp->getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
+
+                // If this is the first frame...
                 if (_currentAnimatedSnapshotFrame == 0)
                 {
+                    // Write out the header and beginning of the GIF file
                     GifBegin(&_animatedSnapshotGifWriter, cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
                 }
 
+                // Write the frame to the gif
                 GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
+                // Increment the current snapshot frame count
                 _currentAnimatedSnapshotFrame++;
             });
+
+            // Start the animatedSnapshotTimer QTimer
             animatedSnapshotTimer.start(SNAPSNOT_ANIMATED_FRAME_DELAY * 10);
         }
-
-        // Notify the window scripting interface that we've taken a Snapshot
-        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
     });
 }
 void Application::shareSnapshot(const QString& path) {
