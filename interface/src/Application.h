@@ -612,7 +612,7 @@ private:
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
     GifWriter _animatedSnapshotGifWriter;
-    uint8_t _currentAnimatedSnapshotFrame = 0;
+    uint8_t _currentAnimatedSnapshotFrame { 0 };
 };
 
 

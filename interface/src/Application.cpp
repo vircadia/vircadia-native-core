@@ -5443,7 +5443,6 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
         player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
         player->play();
 
-
         // If this is a still snapshot...
         if (!format.compare("still"))
         {
@@ -5477,18 +5476,19 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             strcpy(cstr, fname.c_str()); // Copy the string into a character array
 
             // Connect the animatedSnapshotTimer QTimer to the lambda slot function
-            connect(&animatedSnapshotTimer, &QTimer::timeout, [&, path, aspectRatio] {
+            connect(&animatedSnapshotTimer, &QTimer::timeout, [=] {
                 // If this is the last frame...
-                if (_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
+                if (qApp->_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
                 {
                     // Stop the snapshot QTimer
                     animatedSnapshotTimer.stop();
                     // Write out the end of the GIF
-                    GifEnd(&_animatedSnapshotGifWriter);
+                    GifEnd(&(qApp->_animatedSnapshotGifWriter));
                     // Notify the Window Scripting Interface that the snapshot was taken
                     emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, false);
                     return;
                 }
+
 
                 // Get a screenshot from the display, then scale the screenshot down,
                 // then convert it to the image format the GIF library needs,
@@ -5497,16 +5497,16 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
                 *frame = frame->scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
 
                 // If this is the first frame...
-                if (_currentAnimatedSnapshotFrame == 0)
+                if (qApp->_currentAnimatedSnapshotFrame == 0)
                 {
                     // Write out the header and beginning of the GIF file
-                    GifBegin(&_animatedSnapshotGifWriter, cstr, frame->width(), frame->height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
+                    GifBegin(&(qApp->_animatedSnapshotGifWriter), cstr, frame->width(), frame->height(), SNAPSNOT_ANIMATED_FRAME_DELAY*2, 8, false);
                 }
 
                 // Write the frame to the gif
-                GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame->bits(), frame->width(), frame->height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
+                GifWriteFrame(&(qApp->_animatedSnapshotGifWriter), (uint8_t*)frame->bits(), frame->width(), frame->height(), SNAPSNOT_ANIMATED_FRAME_DELAY*2, 8, false);
                 // Increment the current snapshot frame count
-                _currentAnimatedSnapshotFrame++;
+                qApp->_currentAnimatedSnapshotFrame++;
 
                 // Free the dynamic memory
                 delete frame;
