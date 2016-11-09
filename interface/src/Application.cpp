@@ -5445,22 +5445,19 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
         player->play();
 
         GifWriter _animatedSnapshotGifWriter;
-        uint8_t _currentAnimatedSnapshotFrame;
+        uint8_t _currentAnimatedSnapshotFrame = 0;
         QString path;
 
         // If this is a still snapshot...
         if (!format.compare("still"))
         {
-            // Get a screenshot, save it, and notify the window scripting
-            // interface that we've done so - this part of the code has been around for a while
+            // Get a screenshot and save it. and  - this part of the code has been around for a while
             path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
-            emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
         }
         // If this is an animated snapshot (GIF)...
         else if (!format.compare("animated"))
         {
             char* cstr;
-            _currentAnimatedSnapshotFrame = 0;
             // File path stuff
             path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
             path.append(QDir::separator());
@@ -5469,7 +5466,7 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             cstr = new char[fname.size() + 1];
             strcpy(cstr, fname.c_str());
 
-            connect(&animatedSnapshotTimer, &QTimer::timeout, this, [&] {
+            connect(&animatedSnapshotTimer, &QTimer::timeout, [&] {
                 if (_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
                 {
                     animatedSnapshotTimer.stop();
@@ -5483,16 +5480,15 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
                 {
                     GifBegin(&_animatedSnapshotGifWriter, cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
                 }
-                uint32_t frameNumBytes = frame.width() * frame.height() * 4;
-                uint8_t* pixelArray = new uint8_t[frameNumBytes];
 
                 GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
                 _currentAnimatedSnapshotFrame++;
-
-                delete[frameNumBytes] pixelArray;
             });
             animatedSnapshotTimer.start(SNAPSNOT_ANIMATED_FRAME_DELAY * 10);
         }
+
+        // Notify the window scripting interface that we've taken a Snapshot
+        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
     });
 }
 void Application::shareSnapshot(const QString& path) {
