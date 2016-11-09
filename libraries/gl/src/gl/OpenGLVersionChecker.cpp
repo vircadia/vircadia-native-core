@@ -21,6 +21,7 @@
 
 #include "GLHelpers.h"
 
+// Minimum gl version required is 4.1
 #define MINIMUM_GL_VERSION 0x0401
 
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
@@ -76,7 +77,7 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     // - major_number.minor_number.release_number
     // Reference: https://www.opengl.org/sdk/docs/man/docbook4/xhtml/glGetString.xml
 
-    int minimumMajorNumber = (MINIMUM_GL_VERSION >> 16);
+    int minimumMajorNumber = (MINIMUM_GL_VERSION >> 8) & 0xFF;
     int minimumMinorNumber = (MINIMUM_GL_VERSION & 0xFF);
     int majorNumber = 0;
     int minorNumber = 0;
