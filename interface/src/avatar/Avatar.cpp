@@ -235,7 +235,7 @@ void Avatar::updateAvatarEntities() {
                 properties.setParentID(getID());
             }
 
-            // NOTE: if this avatar entity is not attached to us, strip it's entity script completely...
+            // NOTE: if this avatar entity is not attached to us, strip its entity script completely...
             auto attachedScript = properties.getScript();
             if (!isMyAvatar() && !attachedScript.isEmpty()) {
                 qCDebug(interfaceapp) << "removing entity script from avatar attached entity:" << entityID << "old script:" << attachedScript;
