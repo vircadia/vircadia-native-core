@@ -149,7 +149,6 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DialogsManager.h"
-#include "ui/Gif.h"
 #include "ui/LoginDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
 #include "ui/Snapshot.h"
@@ -5456,8 +5455,17 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
         // If this is an animated snapshot (GIF)...
         else if (!format.compare("animated"))
         {
-            GifWriter _animatedSnapshotGifWriter;
-            uint8_t _currentAnimatedSnapshotFrame = 0;
+            // If we're in the middle of capturing a GIF...
+            if (_currentAnimatedSnapshotFrame != 0)
+            {
+                // Protect against clobbering it and return immediately.
+                // (Perhaps with a "snapshot failed" message?
+                return;
+            }
+
+            // Reset the current animated snapshot frame
+            _currentAnimatedSnapshotFrame = 0;
+
             // File path stuff -- lots of this is temporary
             // until I figure out how to save the .GIF to the same location as the still .JPG
             char* cstr;
@@ -5469,7 +5477,7 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             strcpy(cstr, fname.c_str()); // Copy the string into a character array
 
             // Connect the animatedSnapshotTimer QTimer to the lambda slot function
-            connect(&animatedSnapshotTimer, &QTimer::timeout, [&]() {
+            connect(&animatedSnapshotTimer, &QTimer::timeout, [&, path, aspectRatio] {
                 // If this is the last frame...
                 if (_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
                 {
@@ -5485,19 +5493,23 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
                 // Get a screenshot from the display, then scale the screenshot down,
                 // then convert it to the image format the GIF library needs,
                 // then save all that to the QImage named "frame"
-                QImage frame = (qApp->getActiveDisplayPlugin()->getScreenshot(aspectRatio)).scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
+                QImage* frame = new QImage(qApp->getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+                *frame = frame->scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
 
                 // If this is the first frame...
                 if (_currentAnimatedSnapshotFrame == 0)
                 {
                     // Write out the header and beginning of the GIF file
-                    GifBegin(&_animatedSnapshotGifWriter, cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
+                    GifBegin(&_animatedSnapshotGifWriter, cstr, frame->width(), frame->height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
                 }
 
                 // Write the frame to the gif
-                GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
+                GifWriteFrame(&_animatedSnapshotGifWriter, (uint8_t*)frame->bits(), frame->width(), frame->height(), SNAPSNOT_ANIMATED_FRAME_DELAY);
                 // Increment the current snapshot frame count
                 _currentAnimatedSnapshotFrame++;
+
+                // Free the dynamic memory
+                delete frame;
             });
 
             // Start the animatedSnapshotTimer QTimer

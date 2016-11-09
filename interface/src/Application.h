@@ -60,6 +60,7 @@
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/BandwidthDialog.h"
+#include "ui/Gif.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/OctreeStatsDialog.h"
@@ -609,6 +610,9 @@ private:
     model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
+
+    GifWriter _animatedSnapshotGifWriter;
+    uint8_t _currentAnimatedSnapshotFrame = 0;
 };
 
 
