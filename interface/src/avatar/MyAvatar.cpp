@@ -1833,34 +1833,32 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 }
 
 void MyAvatar::increaseSize() {
-    // clamp the target scale to the maximum allowable scale in the domain
-
+    // clamp the target scale to the allowable scale in the domain
     float updatedTargetScale = _targetScale * (1.0f + SCALING_RATIO);
 
-    if (updatedTargetScale > _domainMaximumScale) {
-        qCDebug(interfaceapp, "Forced scale to %f since %f would be larger than allowed maximum",
-                _domainMaximumScale, updatedTargetScale);
+    auto clampedTargetScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
 
-        updatedTargetScale = _domainMaximumScale;
+    if (clampedTargetScale != updatedTargetScale) {
+        qCDebug(interfaceapp, "Forcing scale to %f since %f is not allowed by domain",
+                clampedTargetScale, updatedTargetScale);
     }
 
-    setTargetScale(updatedTargetScale);
+    setTargetScale(clampedTargetScale);
     qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
 }
 
 void MyAvatar::decreaseSize() {
-    // clamp the target scale to the minimum allowable scale in the domain
+    // clamp the target scale to the allowable scale in the domain
     float updatedTargetScale = _targetScale * (1.0f - SCALING_RATIO);
 
-    if (updatedTargetScale < _domainMinimumScale) {
-        qCDebug(interfaceapp, "Forced scale to %f since %f would be smaller than allowed minimum",
-                _domainMinimumScale, updatedTargetScale);
+    auto clampedTargetScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
 
-        updatedTargetScale = _domainMinimumScale;
+    if (clampedTargetScale != updatedTargetScale) {
+        qCDebug(interfaceapp, "Forcing scale to %f since %f is not allowed by domain",
+                clampedTargetScale, updatedTargetScale);
     }
 
-
-    setTargetScale(updatedTargetScale);
+    setTargetScale(clampedTargetScale);
     qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
 }
 
