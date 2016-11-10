@@ -98,12 +98,23 @@ Rectangle {
 
         // In item page:
         // - Fix up library link URL.
+        // - Reuse FBX download button as HiFi download button.
+        // - Remove "Edit Online", "Get Embed Code", and other download buttons.
         property string updateItemPage:    'if ($) {
-                                                var element = $("a[href=\'/library\']")[0];
+                                                var element = $("a[href^=\'/library\']")[0];
                                                 var parameters = "?gameCheck=true&public=true";
                                                 var href = element.getAttribute("href");
                                                 if (href.slice(-parameters.length) !== parameters) {
                                                     element.setAttribute("href", href + parameters);
+                                                }
+                                                var buttons = $("a.embed-button").parent("div");
+                                                if (buttons.length > 0) {
+                                                    var downloadFBX = buttons.find("a[data-extension=\'fbx\']")[0];
+                                                    var firstButton = buttons.children(":first-child")[0];
+                                                    buttons[0].insertBefore(downloadFBX, firstButton);
+                                                    downloadFBX.setAttribute("class", "btn btn-primary download");
+                                                    downloadFBX.innerHTML = "<i class=\'glyphicon glyphicon-download-alt\'></i> Download to High Fidelity";
+                                                    buttons.children(":nth-child(2), .btn-group , .embed-button").each(function () { this.remove(); });
                                                 }
                                             }';
 
