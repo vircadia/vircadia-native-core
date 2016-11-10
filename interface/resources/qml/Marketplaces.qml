@@ -110,22 +110,37 @@ Rectangle {
                                                 var buttons = $("a.embed-button").parent("div");
                                                 if (buttons.length > 0) {
                                                     var downloadFBX = buttons.find("a[data-extension=\'fbx\']")[0];
+                                                    downloadFBX.addEventListener("click", startAutoDownload);
                                                     var firstButton = buttons.children(":first-child")[0];
                                                     buttons[0].insertBefore(downloadFBX, firstButton);
                                                     downloadFBX.setAttribute("class", "btn btn-primary download");
                                                     downloadFBX.innerHTML = "<i class=\'glyphicon glyphicon-download-alt\'></i> Download to High Fidelity";
                                                     buttons.children(":nth-child(2), .btn-group , .embed-button").each(function () { this.remove(); });
                                                 }
+                                                var downloadTimer;
+                                                function startAutoDownload() {
+                                                    if (!downloadTimer) {
+                                                        downloadTimer = setInterval(autoDownload, 1000);
+                                                    }
+                                                }
+                                                function autoDownload() {
+                                                    if ($("div.download-body").length !== 0) {
+                                                        var downloadButton = $("div.download-body a.download-file");
+                                                        if (downloadButton.length > 0) {
+                                                            clearInterval(downloadTimer);
+                                                            downloadTimer = null;
+                                                            var href = downloadButton[0].href;
+                                                            EventBridge.emitWebEvent("CLARA.IO DOWNLOAD " + href);
+                                                            console.log("Clara.io FBX file download initiated");
+                                                            $("a.btn.cancel").click();
+                                                            setTimeout(function () { window.open(href); }, 500);  // Let cancel click take effect.
+                                                        };
+                                                    } else {
+                                                        clearInterval(downloadTimer);
+                                                        downloadTimer = null;
+                                                    }
+                                                }
                                             }';
-
-        // Overload Clara FBX download link action.
-        property string replaceFBXDownload:    'var element = $("a.download-file");
-                                                element.removeClass("download-file");
-                                                element.removeAttr("download");
-                                                element.bind("click", function(event) {
-                                                    EventBridge.emitWebEvent("CLARA.IO DOWNLOAD");
-                                                    console.log("Clara.io FBX file download initiated for {uuid}");
-                                                });'
 
         property var notFbxHandler:     'var element = $("a.btn.btn-primary.viewer-button.download-file");
                                          element.click();'
@@ -139,7 +154,6 @@ Rectangle {
                 // Catalog page.
                 runJavaScript(updateLibraryPage, function() { console.log("Library link JS injection"); });
             }
-
             if (location.indexOf("clara.io/view/") !== -1) {
                 // Item page.
                 runJavaScript(updateItemPage, function() { console.log("Item link JS injection"); });
@@ -148,12 +162,6 @@ Rectangle {
 
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl;
-
-            if (File.isZippedFbx(desktop.currentUrl)) {
-                runJavaScript(replaceFBXDownload, function(){console.log("Download JS injection");});
-                return;
-            }
-
             if (File.isZipped(desktop.currentUrl)) {
                 statusLabel.text = claraError;
                 statusBar.color = hifi.colors.redHighlight;
@@ -196,7 +204,8 @@ Rectangle {
         }
 
         function onWebEventReceived(event) {
-            if (event === "CLARA.IO DOWNLOAD") {
+            if (event.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+                desktop.currentUrl = event.slice(18);
                 ApplicationInterface.addAssetToWorldInitiate();
             }
         }
