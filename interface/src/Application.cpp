@@ -5430,7 +5430,7 @@ void Application::toggleLogDialog() {
 }
 
 #define SNAPSNOT_ANIMATED_WIDTH (720)
-#define SNAPSNOT_ANIMATED_FRAMERATE_FPS (50)
+#define SNAPSNOT_ANIMATED_FRAMERATE_FPS (30)
 #define SNAPSNOT_ANIMATED_DURATION_SECS (3)
 
 #define SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC (1000/SNAPSNOT_ANIMATED_FRAMERATE_FPS)
@@ -5478,6 +5478,9 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             cstr = new char[fname.size() + 1]; // Create a new character array to hold the .GIF file location
             strcpy(cstr, fname.c_str()); // Copy the string into a character array
 
+            // Ensure the snapshot timer is Precise (attempted millisecond precision)
+            animatedSnapshotTimer.setTimerType(Qt::PreciseTimer);
+
             // Connect the animatedSnapshotTimer QTimer to the lambda slot function
             connect(&animatedSnapshotTimer, &QTimer::timeout, [=] {
                 // If this is the last frame...
@@ -5508,6 +5511,8 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
                     // Write out the header and beginning of the GIF file
                     GifBegin(&(qApp->_animatedSnapshotGifWriter), cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC/10, 8, false);
                 }
+
+                qDebug() << "Frame time: " << usecTimestampNow();
 
                 // Write the frame to the gif
                 GifWriteFrame(&(qApp->_animatedSnapshotGifWriter), (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC/10, 8, false);
