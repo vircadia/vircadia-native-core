@@ -292,6 +292,9 @@ public slots:
                       bool shouldFaceLocation = false);
     void goToLocation(const QVariant& properties);
 
+    void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
+    void clearScaleRestriction();
+
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
