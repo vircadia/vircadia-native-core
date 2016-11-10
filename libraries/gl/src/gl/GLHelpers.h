@@ -18,15 +18,20 @@
 // but GL implementations usually just come with buffer sizes in multiples of 8)
 #define DEFAULT_GL_STENCIL_BUFFER_BITS 8
 
+class QObject;
+class QOpenGLDebugMessage;
 class QSurfaceFormat;
 class QGLFormat;
 
 template<class F>
 void setGLFormatVersion(F& format, int major = 4, int minor = 5) { format.setVersion(major, minor); }
 
+size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format);
+
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
-const QGLFormat& getDefaultGLFormat();
 QJsonObject getGLContextData();
 int glVersionToInteger(QString glVersion);
+
+bool isRenderThread();
 
 #endif

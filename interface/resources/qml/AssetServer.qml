@@ -184,7 +184,7 @@ ScrollingWindow {
         prompt.selected.connect(function (jsonResult) {
             if (jsonResult) {
                 var result = JSON.parse(jsonResult);
-                var url = result.textInput;
+                var url = result.textInput.trim();
                 var shapeType;
                 switch (result.comboBox) {
                     case SHAPE_TYPE_SIMPLE_HULL:
@@ -314,6 +314,14 @@ ScrollingWindow {
         });
     }
 
+    Timer {
+        id: doUploadTimer
+        property var url
+        property bool isConnected: false
+        interval: 5
+        repeat: false
+        running: false
+    }
 
     property var uploadOpen: false;
     Timer {
@@ -341,7 +349,7 @@ ScrollingWindow {
                 },
                 function(err, path) {
                     print(err, path);
-                    if (!err) {
+                    if (err === "") {
                         uploadProgressLabel.text = "Upload Complete";
                         timer.interval = 1000;
                         timer.repeat = false;
@@ -354,16 +362,21 @@ ScrollingWindow {
                         console.log("Asset Browser - finished uploading: ", fileUrl);
                         reload();
                     } else {
-                        if (err > 0) {
-                            console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
-                            var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
-                            box.selected.connect(reload);
-                        }
                         uploadSpinner.visible = false;
                         uploadButton.enabled = true;
                         uploadOpen = false;
+
+                        if (err !== -1) {
+                            console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
+                            var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + err);
+                            box.selected.connect(reload);
+                        }
                     }
             }, dropping);
+        }
+
+        function initiateUpload(url) {
+            doUpload(doUploadTimer.url, false);
         }
 
         if (fileUrl) {
@@ -373,12 +386,21 @@ ScrollingWindow {
                 selectDirectory: false,
                 dir: currentDirectory
             });
+
             browser.canceled.connect(function() {
                 uploadOpen = false;
             });
+
             browser.selectedFile.connect(function(url) {
                 currentDirectory = browser.dir;
-                doUpload(url, false);
+
+                // Initiate upload from a timer so that file browser dialog can close beforehand.
+                doUploadTimer.url = url;
+                if (!doUploadTimer.isConnected) {
+                    doUploadTimer.triggered.connect(function() { initiateUpload(); });
+                    doUploadTimer.isConnected = true;
+                }
+                doUploadTimer.start();
             });
         }
     }
@@ -500,14 +522,15 @@ ScrollingWindow {
                 anchors.fill: parent
                 acceptedButtons: Qt.RightButton
                 onClicked: {
-                    var index = treeView.indexAt(mouse.x, mouse.y);
-
-                    treeView.selection.setCurrentIndex(index, 0x0002);
-
-                    contextMenu.currentIndex = index;
-                    contextMenu.popup();
+                    if (!HMD.active) {  // Popup only displays properly on desktop
+                        var index = treeView.indexAt(mouse.x, mouse.y);
+                        treeView.selection.setCurrentIndex(index, 0x0002);
+                        contextMenu.currentIndex = index;
+                        contextMenu.popup();
+                    }
                 }
             }
+
         }
         HifiControls.ContentSection {
             id: uploadSection

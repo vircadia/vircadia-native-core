@@ -21,6 +21,8 @@
 
 using namespace ui;
 
+static QList<QString> groups;
+
 Menu::Menu() {}
 
 void Menu::toggleAdvancedMenus() {
@@ -40,13 +42,23 @@ void Menu::saveSettings() {
 }
 
 void Menu::loadAction(Settings& settings, QAction& action) {
-    if (action.isChecked() != settings.value(action.text(), action.isChecked()).toBool()) {
+    QString prefix;
+    for (QString group : groups) {
+        prefix += group;
+        prefix += "/";
+    }
+    if (action.isChecked() != settings.value(prefix + action.text(), action.isChecked()).toBool()) {
         action.trigger();
     }
 }
 
 void Menu::saveAction(Settings& settings, QAction& action) {
-    settings.setValue(action.text(),  action.isChecked());
+    QString prefix;
+    for (QString group : groups) {
+        prefix += group;
+        prefix += "/";
+    }
+    settings.setValue(prefix + action.text(), action.isChecked());
 }
 
 void Menu::scanMenuBar(settingsAction modifySetting) {
@@ -57,7 +69,9 @@ void Menu::scanMenuBar(settingsAction modifySetting) {
 }
 
 void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings) {
-    settings.beginGroup(menu.title());
+    groups.push_back(menu.title());
+
+//    settings.beginGroup(menu.title());
     foreach (QAction* action, menu.actions()) {
         if (action->menu()) {
             scanMenu(*action->menu(), modifySetting, settings);
@@ -65,10 +79,12 @@ void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, Settings& setting
             modifySetting(settings, *action);
         }
     }
-    settings.endGroup();
+//    settings.endGroup();
+
+    groups.pop_back();
 }
 
-void Menu::addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName, 
+void Menu::addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
                                             int menuItemLocation, const QString& grouping) {
     QAction* actionBefore = NULL;
     QAction* separator;
@@ -107,7 +123,7 @@ QAction* Menu::addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                              const QObject* receiver,
                                              const char* member,
                                              QAction::MenuRole role,
-                                             int menuItemLocation, 
+                                             int menuItemLocation,
                                              const QString& grouping) {
     QAction* action = NULL;
     QAction* actionBefore = NULL;
@@ -149,7 +165,7 @@ QAction* Menu::addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                              const QString& actionName,
                                              const QKeySequence& shortcut,
                                              QAction::MenuRole role,
-                                             int menuItemLocation, 
+                                             int menuItemLocation,
                                              const QString& grouping) {
     QAction* actionBefore = NULL;
 
@@ -191,7 +207,7 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMe
                                                       const bool checked,
                                                       const QObject* receiver,
                                                       const char* member,
-                                                      int menuItemLocation, 
+                                                      int menuItemLocation,
                                                       const QString& grouping) {
 
     QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, shortcut, receiver, member,
@@ -392,6 +408,10 @@ void Menu::removeMenu(const QString& menuName) {
             parent->removeAction(action);
         } else {
             QMenuBar::removeAction(action);
+            auto offscreenUi = DependencyManager::get<OffscreenUi>();
+            offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+                vrMenu->removeAction(action);
+            });
         }
 
         QMenuBar::repaint();
@@ -480,15 +500,15 @@ void Menu::setGroupingIsVisible(const QString& grouping, bool isVisible) {
 
 void Menu::addActionGroup(const QString& groupName, const QStringList& actionList, const QString& selected, QObject* receiver, const char* slot) {
     auto menu = addMenu(groupName);
-    
+
     QActionGroup* actionGroup = new QActionGroup(menu);
     actionGroup->setExclusive(true);
-    
+
     for (auto action : actionList) {
         auto item = addCheckableActionToQMenuAndActionHash(menu, action, 0, action == selected, receiver, slot);
         actionGroup->addAction(item);
     }
-    
+
     QMenuBar::repaint();
 }
 
@@ -566,4 +586,3 @@ void MenuWrapper::insertAction(QAction* before, QAction* action) {
         vrMenu->insertAction(before, action);
     });
 }
-

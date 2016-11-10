@@ -18,6 +18,7 @@ import "." as VrControls
 
 FocusScope {
     id: root
+    HifiConstants { id: hifi }
 
     property alias model: comboBox.model;
     property alias comboBox: comboBox
@@ -30,6 +31,8 @@ FocusScope {
     property real controlHeight: height + (comboBoxLabel.visible ? comboBoxLabel.height + comboBoxLabel.anchors.bottomMargin : 0)
 
     readonly property ComboBox control: comboBox
+
+    signal accepted();
 
     implicitHeight: comboBox.height;
     focus: true
@@ -133,6 +136,7 @@ FocusScope {
     function hideList() {
         popup.visible = false;
         scrollView.hoverEnabled = false;
+        root.accepted();
     }
 
     FocusScope {

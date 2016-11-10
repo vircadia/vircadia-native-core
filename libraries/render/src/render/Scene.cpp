@@ -48,6 +48,10 @@ Scene::Scene(glm::vec3 origin, float size) :
     _items.push_back(Item()); // add the itemID #0 to nothing
 }
 
+Scene::~Scene() {
+    qDebug() << "Scene::~Scene()";
+}
+
 ItemID Scene::allocateID() {
     // Just increment and return the proevious value initialized at 0
     return _IDAllocator.fetch_add(1);

@@ -39,11 +39,13 @@ var THROTTLE = true;
 var THROTTLE_RATE = 5000;
 
 var sinceLastUpdate = 0;
+var entitiesToMove = [];
 
 //print('cells script')
 
 function findCells() {
     var results = Entities.findEntities(basePosition, 60000);
+    Script.clearInterval(octreeQueryInterval); // we don't need it any more
 
     if (results.length === 0) {
         //    print('no entities found')
@@ -55,9 +57,7 @@ function findCells() {
         //  print('name is:: ' + name)
         if (name === 'Cell') {
             //   print('found a cell!!' + v)
-            Script.setTimeout(function() {
-                moveCell(v);
-            }, Math.random() * THROTTLE_RATE);
+            entitiesToMove.push(v);
         }
     });
 }
@@ -93,6 +93,7 @@ function update(deltaTime) {
             Entities.setPacketsPerSecond(6000);
             print("PPS:" + Entities.getPacketsPerSecond());
             initialized = true;
+            Script.setTimeout(findCells, 20 * 1000); // After 20 seconds of getting entities, look for cells.
         }
         return;
     }
@@ -102,7 +103,11 @@ function update(deltaTime) {
         if (sinceLastUpdate > THROTTLE_RATE) {
             //     print('SHOULD FIND CELLS!!!')
             sinceLastUpdate = 0;
-            findCells();
+            entitiesToMove.forEach(function (v) {
+                Script.setTimeout(function() {
+                    moveCell(v);
+                }, Math.random() * THROTTLE_RATE); // don't move all of them every five seconds, but at random times over interval
+            });
         } else {
             // print('returning in update ' + sinceLastUpdate)
             return;

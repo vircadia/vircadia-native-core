@@ -17,6 +17,7 @@
 #include <render/DrawTask.h>
 #include "DeferredFramebuffer.h"
 #include "SurfaceGeometryPass.h"
+#include "AmbientOcclusionEffect.h"
 
 class DebugDeferredBufferConfig : public render::Job::Config {
     Q_OBJECT
@@ -36,11 +37,12 @@ signals:
 
 class DebugDeferredBuffer {
 public:
-    using Inputs = render::VaryingSet4<DeferredFramebufferPointer, LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet4<DeferredFramebufferPointer, LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
     
     DebugDeferredBuffer();
+    ~DebugDeferredBuffer();
 
     void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -95,6 +97,7 @@ private:
     
     StandardPipelines _pipelines;
     CustomPipelines _customPipelines;
+    int _geometryId { 0 };
 };
 
 #endif // hifi_DebugDeferredBuffer_h

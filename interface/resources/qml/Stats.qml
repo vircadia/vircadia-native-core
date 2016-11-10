@@ -1,6 +1,7 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.3
 import QtQuick.Controls 1.2
+import '.'
 
 Item {
     id: stats
@@ -28,9 +29,7 @@ Item {
         implicitWidth: row.width
 
         anchors.horizontalCenter: parent.horizontalCenter
-        readonly property int fontSize: 12
-        readonly property string fontColor: "white"
-        readonly property string bgColor: "#99333333"
+        readonly property string bgColor: "#AA111111"
 
         Row {
             id: row
@@ -49,55 +48,42 @@ Item {
                 Column {
                     id: generalCol
                     spacing: 4; x: 4; y: 4;
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Servers: " + root.serverCount
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Avatars: " + root.avatarCount
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
+                        text: "Frame Rate: " + root.framerate.toFixed(2);
+                    }
+                    StatText {
                         text: "Render Rate: " + root.renderrate.toFixed(2);
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Present Rate: " + root.presentrate.toFixed(2);
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Present New Rate: " + root.presentnewrate.toFixed(2);
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Present Drop Rate: " + root.presentdroprate.toFixed(2);
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Simrate: " + root.simrate
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Avatar Simrate: " + root.avatarSimrate
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Packets In/Out: " + root.packetInCount + "/" + root.packetOutCount
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Mbps In/Out: " + root.mbpsIn.toFixed(2) + "/" + root.mbpsOut.toFixed(2)
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Asset Mbps In/Out: " + root.assetMbpsIn.toFixed(2) + "/" + root.assetMbpsOut.toFixed(2)
                     }
                 }
             }
@@ -115,29 +101,19 @@ Item {
                 Column {
                     id: pingCol
                     spacing: 4; x: 4; y: 4;
-                    Text {
-                        color: root.fontColor
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Audio ping: " + root.audioPing
                     }
-                    Text {
-                        color: root.fontColor
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Avatar ping: " + root.avatarPing
                     }
-                    Text {
-                        color: root.fontColor
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Entities avg ping: " + root.entitiesPing
                     }
-                    Text {
-                        color: root.fontColor
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Asset ping: " + root.assetPing
                     }
-                    Text {
-                        color: root.fontColor
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded;
                         text: "Messages max ping: " + root.messagePing
                     }
@@ -156,46 +132,32 @@ Item {
                 Column {
                     id: geoCol
                     spacing: 4; x: 4; y: 4;
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Position: " + root.position.x.toFixed(1) + ", " +
                             root.position.y.toFixed(1) + ", " + root.position.z.toFixed(1)
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Speed: " + root.speed.toFixed(1)
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         text: "Yaw: " + root.yaw.toFixed(1)
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded;
                         text: "Avatar Mixer In: " + root.avatarMixerInKbps + " kbps, " +
                             root.avatarMixerInPps + "pps";
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded;
                         text: "Avatar Mixer Out: " + root.avatarMixerOutKbps + " kbps, " +
                             root.avatarMixerOutPps + "pps";
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded;
                         text: "Downloads: " + root.downloads + "/" + root.downloadLimit +
                               ", Pending: " + root.downloadsPending;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded && root.downloadUrls.length > 0;
                         text: "Download URLs:"
                     }
@@ -206,9 +168,7 @@ Item {
                         visible: root.expanded && root.downloadUrls.length > 0;
 
                         model: root.downloadUrls
-                        delegate: Text {
-                            color: root.fontColor;
-                            font.pixelSize: root.fontSize
+                        delegate: StatText {
                             visible: root.expanded;
                             text: modelData.length > 30
                                 ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
@@ -229,84 +189,119 @@ Item {
                 Column {
                     id: octreeCol
                     spacing: 4; x: 4; y: 4;
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
+                        text: "  Frame timing:"
+                    }
+                    StatText {
+                        text: "      Batch: " + root.batchFrameTime.toFixed(1) + " ms"
+                    }
+                    StatText {
+                        text: "      GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                    }
+                    StatText {
                         text: "Triangles: " + root.triangles +
                             " / Material Switches: " + root.materialSwitches
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
+                        text: "GPU Free Memory: " + root.gpuFreeMemory + " MB";
+                    }
+                    StatText {
+                        text: "GPU Textures: ";
+                    }
+                    StatText {
+                        text: "  Sparse Enabled: " + (0 == root.gpuSparseTextureEnabled ? "false" : "true");
+                    }
+                    StatText {
+                        text: "  Count: " + root.gpuTextures;
+                    }
+                    StatText {
+                        text: "  Rectified: " + root.rectifiedTextureCount;
+                    }
+                    StatText {
+                        text: "  Decimated: " + root.decimatedTextureCount;
+                    }
+                    StatText {
+                        text: "  Sparse Count: " + root.gpuTexturesSparse;
+                        visible: 0 != root.gpuSparseTextureEnabled;
+                    }
+                    StatText {
+                        text: "  Virtual Memory: " + root.gpuTextureVirtualMemory + " MB";
+                    }
+                    StatText {
+                        text: "  Commited Memory: " + root.gpuTextureMemory + " MB";
+                    }
+                    StatText {
+                        text: "  Framebuffer Memory: " + root.gpuTextureFramebufferMemory + " MB";
+                    }
+                    StatText {
+                        text: "  Sparse Memory: " + root.gpuTextureSparseMemory + " MB";
+                        visible: 0 != root.gpuSparseTextureEnabled;
+                    }
+                    StatText {
+                        text: "GPU Buffers: "
+                    }
+                    StatText {
+                        text: "  Count: " + root.gpuTextures;
+                    }
+                    StatText {
+                        text: "  Memory: " + root.gpuBufferMemory;
+                    }
+                    StatText {
+                        text: "GL Swapchain Memory: " + root.glContextSwapchainMemory + " MB";
+                    }
+                    StatText {
+                        text: "QML Texture Memory: " + root.qmlTextureMemory + " MB";
+                    }
+                    StatText {
                         visible: root.expanded;
                         text: "Items rendered / considered: " +
                             root.itemRendered + " / " + root.itemConsidered;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded;
                         text: " out of view: " + root.itemOutOfView +
                             " too small: " + root.itemTooSmall;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded;
                         text: "Shadows rendered / considered: " +
                             root.shadowRendered + " / " + root.shadowConsidered;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded;
                         text: " out of view: " + root.shadowOutOfView +
                             " too small: " + root.shadowTooSmall;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: !root.expanded
                         text: "Octree Elements Server: " + root.serverElements +
                             " Local: " + root.localElements;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded
                         text: "Octree Sending Mode: " + root.sendingMode;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded
                         text: "Octree Packets to Process: " + root.packetStats;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded
                         text: "Octree Elements - ";
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded
                         text: "\tServer: " + root.serverElements +
                             " Internal: " + root.serverInternal +
                             " Leaves: " + root.serverLeaves;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded
                         text: "\tLocal: " + root.localElements +
                             " Internal: " + root.localInternal +
                             " Leaves: " + root.localLeaves;
                     }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
+                    StatText {
                         visible: root.expanded
                         text: "LOD: " + root.lodStatus;
                     }
@@ -320,12 +315,10 @@ Item {
             width: perfText.width + 8
             height: perfText.height + 8
             color: root.bgColor;
-            Text {
+            StatText {
                 x: 4; y: 4
                 id: perfText
-                color: root.fontColor
                 font.family: root.monospaceFont
-                font.pixelSize: 12
                 text: "------------------------------------------ Function " +
                     "--------------------------------------- --msecs- -calls--\n" +
                     root.timingStats;

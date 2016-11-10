@@ -101,4 +101,3 @@ void StereoDisplayPlugin::internalDeactivate() {
 float StereoDisplayPlugin::getRecommendedAspectRatio() const {
     return aspect(Parent::getRecommendedRenderSize());
 }
-

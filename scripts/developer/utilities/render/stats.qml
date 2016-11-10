@@ -213,8 +213,8 @@ Item {
            height: parent.evalEvenHeight()
            object: parent.drawOpaqueConfig
            valueUnit: "ms"
-           valueScale: 1000
-           valueNumDigits: "1"
+           valueScale: 1
+           valueNumDigits: "2"
            plots: [
                {
                    object: Render.getConfig("DrawOpaqueDeferred"),

@@ -57,7 +57,7 @@ GetMappingRequest::GetMappingRequest(const AssetPath& path) : _path(path.trimmed
 void GetMappingRequest::doStart() {
 
     // short circuit the request if the path is invalid
-    if (!isValidPath(_path)) {
+    if (!isValidFilePath(_path)) {
         _error = MappingRequest::InvalidPath;
         emit finished(this);
         return;
@@ -139,7 +139,7 @@ SetMappingRequest::SetMappingRequest(const AssetPath& path, const AssetHash& has
 void SetMappingRequest::doStart() {
 
     // short circuit the request if the hash or path are invalid
-    auto validPath = isValidPath(_path);
+    auto validPath = isValidFilePath(_path);
     auto validHash = isValidHash(_hash);
     if (!validPath || !validHash) {
         _error = !validPath ? MappingRequest::InvalidPath : MappingRequest::InvalidHash;
@@ -226,7 +226,7 @@ RenameMappingRequest::RenameMappingRequest(const AssetPath& oldPath, const Asset
 void RenameMappingRequest::doStart() {
 
     // short circuit the request if either of the paths are invalid
-    if (!isValidPath(_oldPath) || !isValidPath(_newPath)) {
+    if (!isValidFilePath(_oldPath) || !isValidFilePath(_newPath)) {
         _error = InvalidPath;
         emit finished(this);
         return;

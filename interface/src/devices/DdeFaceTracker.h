@@ -27,26 +27,26 @@
 class DdeFaceTracker : public FaceTracker, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    
-public:
-    virtual void init();
-    virtual void reset();
-    virtual void update(float deltaTime);
 
-    virtual bool isActive() const;
-    virtual bool isTracking() const;
-    
+public:
+    virtual void init() override;
+    virtual void reset() override;
+    virtual void update(float deltaTime) override;
+
+    virtual bool isActive() const override;
+    virtual bool isTracking() const override;
+
     float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
     float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
     float getLeftEyeOpen() const { return getBlendshapeCoefficient(_leftEyeOpenIndex); }
     float getRightEyeOpen() const { return getBlendshapeCoefficient(_rightEyeOpenIndex); }
-    
+
     float getBrowDownLeft() const { return getBlendshapeCoefficient(_browDownLeftIndex); }
     float getBrowDownRight() const { return getBlendshapeCoefficient(_browDownRightIndex); }
     float getBrowUpCenter() const { return getBlendshapeCoefficient(_browUpCenterIndex); }
     float getBrowUpLeft() const { return getBlendshapeCoefficient(_browUpLeftIndex); }
     float getBrowUpRight() const { return getBlendshapeCoefficient(_browUpRightIndex); }
-    
+
     float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
     float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
@@ -55,7 +55,7 @@ public:
     void setEyeClosingThreshold(float eyeClosingThreshold);
 
 public slots:
-    void setEnabled(bool enabled);
+    void setEnabled(bool enabled) override;
     void calibrate();
 
 private slots:
@@ -77,18 +77,18 @@ private:
     QHostAddress _host;
     quint16 _serverPort;
     quint16 _controlPort;
-    
+
     float getBlendshapeCoefficient(int index) const;
     void decodePacket(const QByteArray& buffer);
-    
+
     // sockets
     QUdpSocket _udpSocket;
     quint64 _lastReceiveTimestamp;
-    
+
     bool _reset;
     glm::vec3 _referenceTranslation;
     glm::quat _referenceRotation;
-    
+
     int _leftBlinkIndex;
     int _rightBlinkIndex;
     int _leftEyeDownIndex;
@@ -103,10 +103,10 @@ private:
     int _browUpCenterIndex;
     int _browUpLeftIndex;
     int _browUpRightIndex;
-    
+
     int _mouthSmileLeftIndex;
     int _mouthSmileRightIndex;
-    
+
     int _jawOpenIndex;
 
     QVector<float> _coefficients;

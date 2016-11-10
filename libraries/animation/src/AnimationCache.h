@@ -29,14 +29,26 @@ class AnimationCache : public ResourceCache, public Dependency  {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+    /**jsdoc
+     * @namespace AnimationCache
+     * @augments ResourceCache
+     */
+
 public:
+
+    /**jsdoc
+     * Returns animation resource for particular animation
+     * @function AnimationCache.getAnimation
+     * @param url {string} url to load
+     * @return {Resource} animation
+     */
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
 protected:
-    
+
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra);
+        const void* extra) override;
 private:
     explicit AnimationCache(QObject* parent = NULL);
     virtual ~AnimationCache() { }
@@ -82,7 +94,7 @@ class AnimationReader : public QObject, public QRunnable {
 
 public:
     AnimationReader(const QUrl& url, const QByteArray& data);
-    virtual void run();
+    virtual void run() override;
 
 signals:
     void onSuccess(FBXGeometry::Pointer geometry);

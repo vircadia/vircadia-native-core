@@ -10,32 +10,34 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qcoreapplication.h>
-
-#include <QDateTime>
-#include <QDebug>
-#include <QTimer>
-#include <QThread>
-#include <QMutexLocker>
-#include <QRegExp>
-
 #include "LogHandler.h"
+
+#include <mutex>
+
+#include <QtCore/QCoreApplication>
+#include <QtCore/QDateTime>
+#include <QtCore/QDebug>
+#include <QtCore/QMutexLocker>
+#include <QtCore/QRegExp>
+#include <QtCore/QThread>
+#include <QtCore/QTimer>
+
+QMutex LogHandler::_mutex;
 
 LogHandler& LogHandler::getInstance() {
     static LogHandler staticInstance;
     return staticInstance;
 }
 
-LogHandler::LogHandler()
-{
-    // setup our timer to flush the verbose logs every 5 seconds
-    QTimer* logFlushTimer = new QTimer(this);
-    connect(logFlushTimer, &QTimer::timeout, this, &LogHandler::flushRepeatedMessages);
-    logFlushTimer->start(VERBOSE_LOG_INTERVAL_SECONDS * 1000);
-
+LogHandler::LogHandler() {
     // when the log handler is first setup we should print our timezone
     QString timezoneString = "Time zone: " + QDateTime::currentDateTime().toString("t");
-    printf("%s\n", qPrintable(timezoneString));
+    printMessage(LogMsgType::LogInfo, QMessageLogContext(), timezoneString);
+}
+
+LogHandler::~LogHandler() {
+    flushRepeatedMessages();
+    printMessage(LogMsgType::LogDebug, QMessageLogContext(), "LogHandler shutdown.");
 }
 
 const char* stringForLogType(LogMsgType msgType) {
@@ -63,8 +65,29 @@ const QString DATE_STRING_FORMAT = "MM/dd hh:mm:ss";
 // the following will produce 11/18 13:55:36.999
 const QString DATE_STRING_FORMAT_WITH_MILLISECONDS = "MM/dd hh:mm:ss.zzz";
 
+void LogHandler::setTargetName(const QString& targetName) {
+    QMutexLocker lock(&_mutex);
+    _targetName = targetName;
+}
+
+void LogHandler::setShouldOutputProcessID(bool shouldOutputProcessID) {
+    QMutexLocker lock(&_mutex);
+    _shouldOutputProcessID = shouldOutputProcessID;
+}
+
+void LogHandler::setShouldOutputThreadID(bool shouldOutputThreadID) {
+    QMutexLocker lock(&_mutex);
+    _shouldOutputThreadID = shouldOutputThreadID;
+}
+
+void LogHandler::setShouldDisplayMilliseconds(bool shouldDisplayMilliseconds) {
+    QMutexLocker lock(&_mutex);
+    _shouldDisplayMilliseconds = shouldDisplayMilliseconds;
+}
+
+
 void LogHandler::flushRepeatedMessages() {
-    QMutexLocker locker(&_repeatedMessageLock);
+    QMutexLocker lock(&_mutex);
     QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
     while (message != _repeatMessageCountHash.end()) {
 
@@ -73,7 +96,9 @@ void LogHandler::flushRepeatedMessages() {
             .arg(message.value()).arg(message.key()).arg(_lastRepeatedMessage.value(message.key()));
 
             QMessageLogContext emptyContext;
+            lock.unlock();
             printMessage(LogSuppressed, emptyContext, repeatMessage);
+            lock.relock();
         }
 
         _lastRepeatedMessage.remove(message.key());
@@ -82,13 +107,13 @@ void LogHandler::flushRepeatedMessages() {
 }
 
 QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& context, const QString& message) {
+    QMutexLocker lock(&_mutex);
     if (message.isEmpty()) {
         return QString();
     }
 
     if (type == LogDebug) {
         // for debug messages, check if this matches any of our regexes for repeated log messages
-        QMutexLocker locker(&_repeatedMessageLock);
         foreach(const QString& regexString, getInstance()._repeatedMessageRegexes) {
             QRegExp repeatRegex(regexString);
             if (repeatRegex.indexIn(message) != -1) {
@@ -111,7 +136,6 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         }
     }
     if (type == LogDebug) {
-        QMutexLocker locker(&_onlyOnceMessageLock);
         // see if this message is one we should only print once
         foreach(const QString& regexString, getInstance()._onlyOnceMessageRegexes) {
             QRegExp onlyOnceRegex(regexString);
@@ -137,12 +161,11 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         dateFormatPtr = &DATE_STRING_FORMAT_WITH_MILLISECONDS;
     }
 
-    QString prefixString = QString("[%1]").arg(QDateTime::currentDateTime().toString(*dateFormatPtr));
-
-    prefixString.append(QString(" [%1]").arg(stringForLogType(type)));
+    QString prefixString = QString("[%1] [%2] [%3]").arg(QDateTime::currentDateTime().toString(*dateFormatPtr),
+        stringForLogType(type), context.category);
 
     if (_shouldOutputProcessID) {
-        prefixString.append(QString(" [%1]").arg(QCoreApplication::instance()->applicationPid()));
+        prefixString.append(QString(" [%1]").arg(QCoreApplication::applicationPid()));
     }
 
     if (_shouldOutputThreadID) {
@@ -164,11 +187,19 @@ void LogHandler::verboseMessageHandler(QtMsgType type, const QMessageLogContext&
 }
 
 const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
-    QMutexLocker locker(&_repeatedMessageLock);
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        // setup our timer to flush the verbose logs every 5 seconds
+        QTimer* logFlushTimer = new QTimer(this);
+        connect(logFlushTimer, &QTimer::timeout, this, &LogHandler::flushRepeatedMessages);
+        logFlushTimer->start(VERBOSE_LOG_INTERVAL_SECONDS * 1000);
+    });
+
+    QMutexLocker lock(&_mutex);
     return *_repeatedMessageRegexes.insert(regexString);
 }
 
 const QString& LogHandler::addOnlyOnceMessageRegex(const QString& regexString) {
-    QMutexLocker locker(&_onlyOnceMessageLock);
+    QMutexLocker lock(&_mutex);
     return *_onlyOnceMessageRegexes.insert(regexString);
 }

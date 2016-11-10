@@ -2,6 +2,11 @@ set(TARGET_NAME assignment-client)
 
 setup_hifi_project(Core Gui Network Script Quick Widgets WebSockets)
 
+# Fix up the rpath so macdeployqt works
+if (APPLE)
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
+endif ()
+
 # link in the shared libraries
 link_hifi_libraries(
   audio avatars octree gpu model fbx entities

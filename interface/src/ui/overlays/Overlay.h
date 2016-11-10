@@ -17,7 +17,7 @@
 
 class Overlay : public QObject {
     Q_OBJECT
-    
+
 public:
     enum Anchor {
         NO_ANCHOR,
@@ -31,9 +31,13 @@ public:
     Overlay();
     Overlay(const Overlay* overlay);
     ~Overlay();
+
+    unsigned int getOverlayID() { return _overlayID; }
+    void setOverlayID(unsigned int overlayID) { _overlayID = overlayID; }
+
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
-    
+
     virtual AABox getBounds() const = 0;
     virtual bool supportsGetProperty() const { return true; }
 
@@ -84,6 +88,8 @@ protected:
     float updatePulse();
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
+
+    unsigned int _overlayID; // what Overlays.cpp knows this instance as
 
     bool _isLoaded;
     float _alpha;

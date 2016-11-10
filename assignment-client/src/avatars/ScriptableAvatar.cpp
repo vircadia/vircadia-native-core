@@ -46,14 +46,21 @@ AnimationDetails ScriptableAvatar::getAnimationDetails() {
     return _animationDetails;
 }
 
+void ScriptableAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    _bind.reset();
+    _animSkeleton.reset();
+    AvatarData::setSkeletonModelURL(skeletonModelURL);
+}
 void ScriptableAvatar::update(float deltatime) {
     if (_bind.isNull() && !_skeletonFBXURL.isEmpty()) { // AvatarData will parse the .fst, but not get the .fbx skeleton.
         _bind = DependencyManager::get<AnimationCache>()->getAnimation(_skeletonFBXURL);
     }
 
     // Run animation
-    if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0 && _bind->isLoaded()) {
-        
+    if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0 && !_bind.isNull() && _bind->isLoaded()) {
+        if (!_animSkeleton) {
+            _animSkeleton = std::make_shared<AnimSkeleton>(_bind->getGeometry());
+        }
         float currentFrame = _animationDetails.currentFrame + deltatime * _animationDetails.fps;
         if (_animationDetails.loop || currentFrame < _animationDetails.lastFrame) {
             while (currentFrame >= _animationDetails.lastFrame) {
@@ -64,14 +71,16 @@ void ScriptableAvatar::update(float deltatime) {
             const QVector<FBXJoint>& modelJoints = _bind->getGeometry().joints;
             QStringList animationJointNames = _animation->getJointNames();
 
-            if (_jointData.size() != modelJoints.size()) {
-                _jointData.resize(modelJoints.size());
+            const int nJoints = modelJoints.size();
+            if (_jointData.size() != nJoints) {
+                _jointData.resize(nJoints);
             }
             
             const int frameCount = _animation->getFrames().size();
             const FBXAnimationFrame& floorFrame = _animation->getFrames().at((int)glm::floor(currentFrame) % frameCount);
             const FBXAnimationFrame& ceilFrame = _animation->getFrames().at((int)glm::ceil(currentFrame) % frameCount);
             const float frameFraction = glm::fract(currentFrame);
+            std::vector<AnimPose> poses = _animSkeleton->getRelativeDefaultPoses();
             
             for (int i = 0; i < animationJointNames.size(); i++) {
                 const QString& name = animationJointNames[i];
@@ -79,18 +88,21 @@ void ScriptableAvatar::update(float deltatime) {
                 // trusting the .fst (which is sometimes not updated to match changes to .fbx).
                 int mapping = _bind->getGeometry().getJointIndex(name);
                 if (mapping != -1 && !_maskedJoints.contains(name)) {
-                    JointData& data = _jointData[mapping];
-
-                    auto newRotation = modelJoints[mapping].preRotation *
-                        safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
-                    // We could probably do translations as in interpolation in model space (rather than the parent space that each frame is in),
-                    // but we don't do so for MyAvatar yet, so let's not be different here.
-                    if (data.rotation != newRotation) {
-                        data.rotation = newRotation;
-                        data.rotationSet = true;
-                    }
+                    // Eventually, this should probably deal with post rotations and translations, too.
+                    poses[mapping].rot = modelJoints[mapping].preRotation *
+                        safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);;
                  }
             }
+            _animSkeleton->convertRelativePosesToAbsolute(poses);
+            for (int i = 0; i < nJoints; i++) {
+                JointData& data = _jointData[i];
+                AnimPose& pose = poses[i];
+                if (data.rotation != pose.rot) {
+                    data.rotation = pose.rot;
+                    data.rotationSet = true;
+                }
+            }
+
         } else {
             _animation.clear();
         }

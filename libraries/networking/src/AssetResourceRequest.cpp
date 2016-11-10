@@ -11,9 +11,20 @@
 
 #include "AssetResourceRequest.h"
 
+#include <QtCore/QLoggingCategory>
+
 #include "AssetClient.h"
 #include "AssetUtils.h"
 #include "MappingRequest.h"
+#include "NetworkLogging.h"
+
+static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
+
+AssetResourceRequest::AssetResourceRequest(const QUrl& url) :
+    ResourceRequest(url)
+{
+    _lastProgressDebug = p_high_resolution_clock::now() - std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS);
+}
 
 AssetResourceRequest::~AssetResourceRequest() {
     if (_assetMappingRequest) {
@@ -33,12 +44,7 @@ bool AssetResourceRequest::urlIsAssetHash() const {
 }
 
 void AssetResourceRequest::doSend() {
-    auto parts = _url.path().split(".", QString::SkipEmptyParts);
-    auto hash = parts.length() > 0 ? parts[0] : "";
-    auto extension = parts.length() > 1 ? parts[1] : "";
-
     // We'll either have a hash or an ATP path to a file (that maps to a hash)
-
     if (urlIsAssetHash()) {
         // We've detected that this is a hash - simply use AssetClient to request that asset
         auto parts = _url.path().split(".", QString::SkipEmptyParts);
@@ -107,7 +113,7 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetRequest = assetClient->createRequest(hash);
 
-    connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::progress);
+    connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::onDownloadProgress);
     connect(_assetRequest, &AssetRequest::finished, this, [this](AssetRequest* req) {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(req == _assetRequest);
@@ -143,5 +149,25 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
 }
 
 void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+    Q_ASSERT(_state == InProgress);
+
     emit progress(bytesReceived, bytesTotal);
+
+    auto now = p_high_resolution_clock::now();
+
+    // if we haven't received the full asset check if it is time to output progress to log
+    // we do so every X seconds to assist with ATP download tracking
+
+    if (bytesReceived != bytesTotal
+        && now - _lastProgressDebug > std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS)) {
+
+        int percentage =  roundf((float) bytesReceived / (float) bytesTotal * 100.0f);
+
+        qCDebug(networking).nospace() << "Progress for " << _url.path() << " - "
+            << bytesReceived << " of " << bytesTotal << " bytes - " << percentage << "%";
+
+        _lastProgressDebug = now;
+    }
+
 }
+

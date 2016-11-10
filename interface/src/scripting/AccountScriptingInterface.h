@@ -17,10 +17,39 @@
 class AccountScriptingInterface : public QObject {
     Q_OBJECT
 
+    Q_PROPERTY(QString username READ getUsername NOTIFY usernameChanged)
+
+    /**jsdoc
+     * @namespace Account
+     * @property username {String} username if user is logged in, otherwise it returns "Unknown user"
+     */
+
+signals:
+
+    /**jsdoc
+     * Triggered when username has changed.
+     * @function Account.usernameChanged
+     * @return {Signal}
+     */
+    void usernameChanged();
+
 public slots:
     static AccountScriptingInterface* getInstance();
+
+    /**jsdoc
+     * Returns the username for the currently logged in High Fidelity metaverse account.
+     * @function Account.getUsername
+     * @return {string} username if user is logged in, otherwise it returns "Unknown user"
+     */
     QString getUsername();
+
+    /**jsdoc
+     * Determine if the user is logged into the High Fidleity metaverse.
+     * @function Account.isLoggedIn
+     * @return {bool} true when user is logged into the High Fidelity metaverse.
+     */
     bool isLoggedIn();
+    bool checkAndSignalForAccessToken();
 };
 
 #endif // hifi_AccountScriptingInterface_h

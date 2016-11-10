@@ -25,6 +25,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include <QtScript/QScriptContextInfo>
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
 
@@ -36,6 +37,7 @@
 #include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
+#include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -49,6 +51,7 @@
 #include "BatchLoader.h"
 #include "DataViewClass.h"
 #include "EventTypes.h"
+#include "FileScriptingInterface.h" // unzip project
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
 #include "ScriptCache.h"
@@ -103,6 +106,26 @@ QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::Inp
 
 void inputControllerFromScriptValue(const QScriptValue &object, controller::InputController* &out) {
     out = qobject_cast<controller::InputController*>(object.toQObject());
+}
+
+// FIXME Come up with a way to properly encode entity IDs in filename
+// The purpose of the following two function is to embed entity ids into entity script filenames
+// so that they show up in stacktraces
+//
+// Extract the url portion of a url that has been encoded with encodeEntityIdIntoEntityUrl(...)
+QString extractUrlFromEntityUrl(const QString& url) {
+    auto parts = url.split(' ', QString::SkipEmptyParts);
+    if (parts.length() > 0) {
+        return parts[0];
+    } else {
+        return "";
+    }
+}
+
+// Encode an entity id into an entity url
+// Example: http://www.example.com/some/path.js [EntityID:{9fdd355f-d226-4887-9484-44432d29520e}]
+QString encodeEntityIdIntoEntityUrl(const QString& url, const QString& entityID) {
+    return url + " [EntityID:" + entityID + "]";
 }
 
 static bool hasCorrectSyntax(const QScriptProgram& program) {
@@ -501,6 +524,9 @@ void ScriptEngine::init() {
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
+
+    registerGlobalObject("File", new FileScriptingInterface(this));
+    
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
@@ -512,10 +538,6 @@ void ScriptEngine::init() {
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
-
-    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
-    registerGlobalObject("Controller", scriptingInterface.data());
-    UserInputMapper::registerControllerTypes(this);
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     registerGlobalObject("Recording", recordingInterface.data());
@@ -723,9 +745,9 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        using MouseHandler = std::function<void(const EntityItemID&, const MouseEvent&)>;
-        auto makeMouseHandler = [this](QString eventName) -> MouseHandler {
-            return [this, eventName](const EntityItemID& entityItemID, const MouseEvent& event) {
+        using PointerHandler = std::function<void(const EntityItemID&, const PointerEvent&)>;
+        auto makePointerHandler = [this](QString eventName) -> PointerHandler {
+            return [this, eventName](const EntityItemID& entityItemID, const PointerEvent& event) {
                 forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
             };
         };
@@ -741,17 +763,17 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
         connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makeMouseHandler("mousePressOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makeMouseHandler("mouseMoveOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makeMouseHandler("mouseReleaseOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makePointerHandler("mousePressOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makePointerHandler("mouseMoveOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makePointerHandler("mouseReleaseOnEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makeMouseHandler("clickDownOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makeMouseHandler("holdingClickOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makeMouseHandler("clickReleaseOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makePointerHandler("clickDownOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makePointerHandler("holdingClickOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makePointerHandler("clickReleaseOnEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makeMouseHandler("hoverEnterEntity"));
-        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makeMouseHandler("hoverOverEntity"));
-        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makeMouseHandler("hoverLeaveEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makePointerHandler("hoverEnterEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makePointerHandler("hoverOverEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makePointerHandler("hoverLeaveEntity"));
 
         connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this, makeCollisionHandler("collisionWithEntity"));
     }
@@ -828,7 +850,7 @@ void ScriptEngine::run() {
 
     _lastUpdate = usecTimestampNow();
 
-    std::chrono::microseconds totalUpdates;
+    std::chrono::microseconds totalUpdates(0);
 
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
@@ -839,20 +861,23 @@ void ScriptEngine::run() {
         // calculate a sleepUntil to be the time from our start time until the original target
         // sleepUntil for this frame.
         const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
-        clock::time_point sleepUntil(startTime + thisFrame++ * FRAME_DURATION);
+        clock::time_point targetSleepUntil(startTime + thisFrame++ * FRAME_DURATION);
 
         // However, if our sleepUntil is not at least our average update time into the future
         // it means our script is taking too long in it's updates, and we want to punish the
         // script a little bit. So we will force the sleepUntil to be at least our averageUpdate
         // time into the future.
-        auto wouldSleep = (sleepUntil - clock::now());
-        auto avgerageUpdate = totalUpdates / thisFrame;
+        auto averageUpdate = totalUpdates / thisFrame;
+        auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageUpdate);
 
-        if (wouldSleep < avgerageUpdate) {
-            sleepUntil = beforeSleep + avgerageUpdate;
+        // We don't want to actually sleep for too long, because it causes our scripts to hang 
+        // on shutdown and stop... so we want to loop and sleep until we've spent our time in 
+        // purgatory, constantly checking to see if our script was asked to end
+        while (!_isFinished && clock::now() < sleepUntil) {
+            QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            auto thisSleepUntil = std::min(sleepUntil, clock::now() + FRAME_DURATION);
+            std::this_thread::sleep_until(thisSleepUntil);
         }
-
-        std::this_thread::sleep_until(sleepUntil);
 
 #ifdef SCRIPT_DELAY_DEBUG
         {
@@ -865,7 +890,7 @@ void ScriptEngine::run() {
                     qCDebug(scriptengine) <<
                         "Frame:" << thisFrame <<
                         "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(actuallySleptUntil - beforeSleep).count() <<
-                        "Avg Updates (us):" << avgerageUpdate.count() <<
+                        "Avg Updates (us):" << averageUpdate.count() <<
                         "FPS:" << fps;
                 }
             }
@@ -1014,9 +1039,12 @@ void ScriptEngine::updateMemoryCost(const qint64& deltaSize) {
 }
 
 void ScriptEngine::timerFired() {
-    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
-        qCDebug(scriptengine) << "Script.timerFired() while shutting down is ignored... parent script:" << getFilename();
-        return; // bail early
+    {
+        auto engine = DependencyManager::get<ScriptEngines>();
+        if (!engine || engine->isStopped()) {
+            qCDebug(scriptengine) << "Script.timerFired() while shutting down is ignored... parent script:" << getFilename();
+            return; // bail early
+        }
     }
 
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
@@ -1085,14 +1113,20 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
         return expandScriptUrl(url);
     }
 
+    QScriptContextInfo contextInfo { currentContext()->parentContext() };
+
+
     // we apparently weren't a fully qualified url, so, let's assume we're relative
     // to the original URL of our script
-    QUrl parentURL;
-    if (_parentURL.isEmpty()) {
-        parentURL = QUrl(_fileNameString);
-    } else {
-        parentURL = QUrl(_parentURL);
+    QUrl parentURL = contextInfo.fileName();
+    if (parentURL.isEmpty()) {
+        if (_parentURL.isEmpty()) {
+            parentURL = QUrl(_fileNameString);
+        } else {
+            parentURL = QUrl(_parentURL);
+        }
     }
+
     // if the parent URL's scheme is empty, then this is probably a local file...
     if (parentURL.scheme().isEmpty()) {
         parentURL = QUrl::fromLocalFile(_fileNameString);
@@ -1101,6 +1135,10 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     // at this point we should have a legitimate fully qualified URL for our parent
     url = expandScriptUrl(parentURL.resolved(url));
     return url;
+}
+
+QUrl ScriptEngine::resourcesPath() const {
+    return QUrl::fromLocalFile(PathUtils::resourcesPath());
 }
 
 void ScriptEngine::print(const QString& message) {
@@ -1164,6 +1202,11 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         } else {
             qCDebug(scriptengine) << "Script.include() ignoring previously included url:" << thisURL;
         }
+    }
+
+    // If there are no URLs left to download, don't bother attempting to download anything and return early
+    if (urls.size() == 0) {
+        return;
     }
 
     BatchLoader* loader = new BatchLoader(urls);
@@ -1317,7 +1360,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
-    auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
+    auto fileName = isURL ? scriptOrURL : "EmbeddedEntityScript";
 
     QScriptProgram program(contents, fileName);
     if (!hasCorrectSyntax(program)) {
@@ -1500,6 +1543,7 @@ void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, const QUrl& s
 #else
     operation();
 #endif
+    hadUncaughtExceptions(*this, _fileNameString);
 
     currentEntityIdentifier = oldIdentifier;
     currentSandboxURL = oldSandboxURL;
@@ -1543,7 +1587,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 }
 
-void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event) {
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -1553,12 +1597,12 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, methodName),
-                                  Q_ARG(const MouseEvent&, event));
+                                  Q_ARG(const PointerEvent&, event));
         return;
     }
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "methodName:" << methodName << "event: mouseEvent";
+        "entityID:" << entityID << "methodName:" << methodName << "event: pointerEvent";
 #endif
 
     refreshFileScript(entityID);

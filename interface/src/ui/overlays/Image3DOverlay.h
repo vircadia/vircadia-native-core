@@ -26,7 +26,7 @@ public:
 
     Image3DOverlay();
     Image3DOverlay(const Image3DOverlay* image3DOverlay);
-
+    ~Image3DOverlay();
     virtual void render(RenderArgs* args) override;
 
     virtual void update(float deltatime) override;
@@ -48,9 +48,10 @@ public:
 private:
     QString _url;
     NetworkTexturePointer _texture;
-    bool _emissive;
+    bool _emissive { false };
 
     QRect _fromImage; // where from in the image to sample
+    int _geometryId { 0 };
 };
 
 #endif // hifi_Image3DOverlay_h

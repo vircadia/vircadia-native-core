@@ -282,8 +282,8 @@ ShapeType ModelEntityItem::computeTrueShapeType() const {
         type = SHAPE_TYPE_COMPOUND;
     }
     if (type == SHAPE_TYPE_COMPOUND && !hasCompoundShapeURL()) {
-        // no compoundURL set --> fall back to NONE
-        type = SHAPE_TYPE_NONE;
+        // no compoundURL set --> fall back to SIMPLE_COMPOUND
+        type = SHAPE_TYPE_SIMPLE_COMPOUND;
     }
     return type;
 }
@@ -389,13 +389,13 @@ bool ModelEntityItem::shouldBePhysical() const {
 }
 
 void ModelEntityItem::resizeJointArrays(int newSize) {
-    if (newSize >= 0 && newSize > _absoluteJointRotationsInObjectFrame.size()) {
-        _absoluteJointRotationsInObjectFrame.resize(newSize);
-        _absoluteJointRotationsInObjectFrameSet.resize(newSize);
-        _absoluteJointRotationsInObjectFrameDirty.resize(newSize);
-        _absoluteJointTranslationsInObjectFrame.resize(newSize);
-        _absoluteJointTranslationsInObjectFrameSet.resize(newSize);
-        _absoluteJointTranslationsInObjectFrameDirty.resize(newSize);
+    if (newSize >= 0 && newSize > _localJointRotations.size()) {
+        _localJointRotations.resize(newSize);
+        _localJointRotationsSet.resize(newSize);
+        _localJointRotationsDirty.resize(newSize);
+        _localJointTranslations.resize(newSize);
+        _localJointTranslationsSet.resize(newSize);
+        _localJointTranslationsDirty.resize(newSize);
     }
 }
 
@@ -404,9 +404,9 @@ void ModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
         _jointRotationsExplicitlySet = rotations.size() > 0;
         resizeJointArrays(rotations.size());
         for (int index = 0; index < rotations.size(); index++) {
-            if (_absoluteJointRotationsInObjectFrameSet[index]) {
-                _absoluteJointRotationsInObjectFrame[index] = rotations[index];
-                _absoluteJointRotationsInObjectFrameDirty[index] = true;
+            if (_localJointRotationsSet[index]) {
+                _localJointRotations[index] = rotations[index];
+                _localJointRotationsDirty[index] = true;
             }
         }
     });
@@ -417,7 +417,7 @@ void ModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
         _jointRotationsExplicitlySet = rotationsSet.size() > 0;
         resizeJointArrays(rotationsSet.size());
         for (int index = 0; index < rotationsSet.size(); index++) {
-            _absoluteJointRotationsInObjectFrameSet[index] = rotationsSet[index];
+            _localJointRotationsSet[index] = rotationsSet[index];
         }
     });
 }
@@ -427,9 +427,9 @@ void ModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translation
         _jointTranslationsExplicitlySet = translations.size() > 0;
         resizeJointArrays(translations.size());
         for (int index = 0; index < translations.size(); index++) {
-            if (_absoluteJointTranslationsInObjectFrameSet[index]) {
-                _absoluteJointTranslationsInObjectFrame[index] = translations[index];
-                _absoluteJointTranslationsInObjectFrameSet[index] = true;
+            if (_localJointTranslationsSet[index]) {
+                _localJointTranslations[index] = translations[index];
+                _localJointTranslationsSet[index] = true;
             }
         }
     });
@@ -440,7 +440,7 @@ void ModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsS
         _jointTranslationsExplicitlySet = translationsSet.size() > 0;
         resizeJointArrays(translationsSet.size());
         for (int index = 0; index < translationsSet.size(); index++) {
-            _absoluteJointTranslationsInObjectFrameSet[index] = translationsSet[index];
+            _localJointTranslationsSet[index] = translationsSet[index];
         }
     });
 }
@@ -449,7 +449,7 @@ QVector<glm::quat> ModelEntityItem::getJointRotations() const {
     QVector<glm::quat> result;
     _jointDataLock.withReadLock([&] {
         if (_jointRotationsExplicitlySet) {
-            result = _absoluteJointRotationsInObjectFrame;
+            result = _localJointRotations;
         }
     });
     return result;
@@ -459,7 +459,7 @@ QVector<bool> ModelEntityItem::getJointRotationsSet() const {
     QVector<bool> result;
     _jointDataLock.withReadLock([&] {
         if (_jointRotationsExplicitlySet) {
-            result = _absoluteJointRotationsInObjectFrameSet;
+            result = _localJointRotationsSet;
         }
     });
 
@@ -470,7 +470,7 @@ QVector<glm::vec3> ModelEntityItem::getJointTranslations() const {
     QVector<glm::vec3> result;
     _jointDataLock.withReadLock([&] {
         if (_jointTranslationsExplicitlySet) {
-            result = _absoluteJointTranslationsInObjectFrame;
+            result = _localJointTranslations;
         }
     });
     return result;
@@ -480,7 +480,7 @@ QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
     QVector<bool> result;
     _jointDataLock.withReadLock([&] {
         if (_jointTranslationsExplicitlySet) {
-            result = _absoluteJointTranslationsInObjectFrameSet;
+            result = _localJointTranslationsSet;
         }
     });
     return result;

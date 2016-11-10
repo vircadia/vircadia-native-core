@@ -89,6 +89,10 @@ public:
         return _rotation == other._rotation && _scale == other._scale && _translation == other._translation;
     }
 
+    bool operator!=(const Transform& other) const {
+        return _rotation != other._rotation || _scale != other._scale || _translation != other._translation;
+    }
+
     Transform& setIdentity();
 
     const Vec3& getTranslation() const;

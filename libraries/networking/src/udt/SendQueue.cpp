@@ -97,6 +97,9 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _currentSequenceNumber = _initialSequenceNumber - 1;
     _atomicCurrentSequenceNumber = uint32_t(_currentSequenceNumber);
     _lastACKSequenceNumber = uint32_t(_currentSequenceNumber) - 1;
+
+    // default the last receiver response to the current time
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -166,13 +169,23 @@ void SendQueue::ack(SequenceNumber ack) {
 
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch(); 
     
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
         _naks.insert(start, end);
     }
     
+    // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
+    _emptyCondition.notify_one();
+}
+
+void SendQueue::fastRetransmit(udt::SequenceNumber ack) {
+    {
+        std::lock_guard<std::mutex> nakLocker(_naksLock);
+        _naks.insert(ack, ack);
+    }
+
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
     _emptyCondition.notify_one();
 }
@@ -239,10 +252,12 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     newPacket->writeSequenceNumber(sequenceNumber);
 
     // Save packet/payload size before we move it
-    auto packetSize = newPacket->getDataSize();
+    auto packetSize = newPacket->getWireSize();
     auto payloadSize = newPacket->getPayloadSize();
     
     auto bytesWritten = sendPacket(*newPacket);
+
+    emit packetSent(packetSize, payloadSize, sequenceNumber, p_high_resolution_clock::now());
 
     {
         // Insert the packet we have just sent in the sent list
@@ -252,8 +267,6 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
         entry.second.swap(newPacket);
     }
     Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
-
-    emit packetSent(packetSize, payloadSize);
 
     if (bytesWritten < 0) {
         // this is a short-circuit loss - we failed to put this packet on the wire
@@ -325,58 +338,64 @@ void SendQueue::run() {
             return;
         }
 
-        // push the next packet timestamp forwards by the current packet send period
-        auto nextPacketDelta = (newPacketCount == 2 ? 2 : 1) * _packetSendPeriod;
-        nextPacketTimestamp += std::chrono::microseconds(nextPacketDelta);
+        if (_packetSendPeriod > 0) {
+            // push the next packet timestamp forwards by the current packet send period
+            auto nextPacketDelta = (newPacketCount == 2 ? 2 : 1) * _packetSendPeriod;
+            nextPacketTimestamp += std::chrono::microseconds(nextPacketDelta);
 
-        // sleep as long as we need for next packet send, if we can
-        auto now = p_high_resolution_clock::now();
+            // sleep as long as we need for next packet send, if we can
+            auto now = p_high_resolution_clock::now();
 
-        auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - now);
+            auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - now);
 
-        // we use nextPacketTimestamp so that we don't fall behind, not to force long sleeps
-        // we'll never allow nextPacketTimestamp to force us to sleep for more than nextPacketDelta
-        // so cap it to that value
-        if (timeToSleep > std::chrono::microseconds(nextPacketDelta)) {
-            // reset the nextPacketTimestamp so that it is correct next time we come around
-            nextPacketTimestamp = now + std::chrono::microseconds(nextPacketDelta);
+            // we use nextPacketTimestamp so that we don't fall behind, not to force long sleeps
+            // we'll never allow nextPacketTimestamp to force us to sleep for more than nextPacketDelta
+            // so cap it to that value
+            if (timeToSleep > std::chrono::microseconds(nextPacketDelta)) {
+                // reset the nextPacketTimestamp so that it is correct next time we come around
+                nextPacketTimestamp = now + std::chrono::microseconds(nextPacketDelta);
 
-            timeToSleep = std::chrono::microseconds(nextPacketDelta);
-        }
+                timeToSleep = std::chrono::microseconds(nextPacketDelta);
+            }
 
-        // we're seeing SendQueues sleep for a long period of time here,
-        // which can lock the NodeList if it's attempting to clear connections
-        // for now we guard this by capping the time this thread and sleep for
+            // we're seeing SendQueues sleep for a long period of time here,
+            // which can lock the NodeList if it's attempting to clear connections
+            // for now we guard this by capping the time this thread and sleep for
 
-        const microseconds MAX_SEND_QUEUE_SLEEP_USECS { 2000000 };
-        if (timeToSleep > MAX_SEND_QUEUE_SLEEP_USECS) {
-            qWarning() << "udt::SendQueue wanted to sleep for" << timeToSleep.count() << "microseconds";
-            qWarning() << "Capping sleep to" << MAX_SEND_QUEUE_SLEEP_USECS.count();
-            qWarning() << "PSP:" << _packetSendPeriod << "NPD:" << nextPacketDelta
+            const microseconds MAX_SEND_QUEUE_SLEEP_USECS { 2000000 };
+            if (timeToSleep > MAX_SEND_QUEUE_SLEEP_USECS) {
+                qWarning() << "udt::SendQueue wanted to sleep for" << timeToSleep.count() << "microseconds";
+                qWarning() << "Capping sleep to" << MAX_SEND_QUEUE_SLEEP_USECS.count();
+                qWarning() << "PSP:" << _packetSendPeriod << "NPD:" << nextPacketDelta
                 << "NPT:" << nextPacketTimestamp.time_since_epoch().count()
                 << "NOW:" << now.time_since_epoch().count();
 
-            // alright, we're in a weird state
-            // we want to know why this is happening so we can implement a better fix than this guard
-            // send some details up to the API (if the user allows us) that indicate how we could such a large timeToSleep
-            static const QString SEND_QUEUE_LONG_SLEEP_ACTION = "sendqueue-sleep";
+                // alright, we're in a weird state
+                // we want to know why this is happening so we can implement a better fix than this guard
+                // send some details up to the API (if the user allows us) that indicate how we could such a large timeToSleep
+                static const QString SEND_QUEUE_LONG_SLEEP_ACTION = "sendqueue-sleep";
 
-            // setup a json object with the details we want
-            QJsonObject longSleepObject;
-            longSleepObject["timeToSleep"] = qint64(timeToSleep.count());
-            longSleepObject["packetSendPeriod"] = _packetSendPeriod.load();
-            longSleepObject["nextPacketDelta"] = nextPacketDelta;
-            longSleepObject["nextPacketTimestamp"] = qint64(nextPacketTimestamp.time_since_epoch().count());
-            longSleepObject["then"] = qint64(now.time_since_epoch().count());
+                // setup a json object with the details we want
+                QJsonObject longSleepObject;
+                longSleepObject["timeToSleep"] = qint64(timeToSleep.count());
+                longSleepObject["packetSendPeriod"] = _packetSendPeriod.load();
+                longSleepObject["nextPacketDelta"] = nextPacketDelta;
+                longSleepObject["nextPacketTimestamp"] = qint64(nextPacketTimestamp.time_since_epoch().count());
+                longSleepObject["then"] = qint64(now.time_since_epoch().count());
 
-            // hopefully send this event using the user activity logger
-            UserActivityLogger::getInstance().logAction(SEND_QUEUE_LONG_SLEEP_ACTION, longSleepObject);
-
-            timeToSleep = MAX_SEND_QUEUE_SLEEP_USECS;
+                // hopefully send this event using the user activity logger
+                UserActivityLogger::getInstance().logAction(SEND_QUEUE_LONG_SLEEP_ACTION, longSleepObject);
+                
+                timeToSleep = MAX_SEND_QUEUE_SLEEP_USECS;
+            }
+            
+            std::this_thread::sleep_for(timeToSleep);
         }
-
-        std::this_thread::sleep_for(timeToSleep);
     }
+}
+
+void SendQueue::setProbePacketEnabled(bool enabled) {
+    _shouldSendProbes = enabled;
 }
 
 int SendQueue::maybeSendNewPacket() {
@@ -396,7 +415,7 @@ int SendQueue::maybeSendNewPacket() {
                 std::unique_ptr<Packet> secondPacket;
                 bool shouldSendPairTail = false;
 
-                if (((uint32_t) nextNumber & 0xF) == 0) {
+                if (_shouldSendProbes && ((uint32_t) nextNumber & 0xF) == 0) {
                     // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
                     // pull off a second packet if we can before we unlock
                     shouldSendPairTail = true;
@@ -489,7 +508,7 @@ bool SendQueue::maybeResendPacket() {
                     sentLocker.unlock();
                 }
                 
-                emit packetRetransmitted();
+                emit packetRetransmitted(resendPacket.getWireSize(), it->first, p_high_resolution_clock::now());
                 
                 // Signal that we did resend a packet
                 return true;
@@ -520,7 +539,6 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
 
     if (sinceLastResponse > 0 &&
         sinceLastResponse >= int64_t(NUM_TIMEOUTS_BEFORE_INACTIVE * (_estimatedTimeout / USECS_PER_MSEC)) &&
-        _lastReceiverResponse > 0 &&
         sinceLastResponse > MIN_MS_BEFORE_INACTIVE) {
         // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
         // then signal the queue is inactive and return so it can be cleaned up

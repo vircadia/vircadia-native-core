@@ -1,3 +1,5 @@
+"use strict";
+
 //  grab.js
 //  examples
 //
@@ -9,11 +11,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/*global print, Mouse, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
+
+(function() { // BEGIN LOCAL_SCOPE
 
 Script.include("../libraries/utils.js");
-// objects that appear smaller than this can't be grabbed
-var MAX_SOLID_ANGLE = 0.01;
+var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
 
 var ZERO_VEC3 = {
     x: 0,
@@ -39,18 +41,6 @@ var DEFAULT_GRABBABLE_DATA = {
 };
 
 
-var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
-var ZERO_VEC3 = {
-    x: 0,
-    y: 0,
-    z: 0
-};
-var IDENTITY_QUAT = {
-    x: 0,
-    y: 0,
-    z: 0,
-    w: 0
-};
 var ACTION_TTL = 10; // seconds
 
 var enabled = true;
@@ -121,7 +111,7 @@ function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event, maxDistanc
 }
 
 // Mouse class stores mouse click and drag info
-Mouse = function() {
+function Mouse() {
     this.current = {
         x: 0,
         y: 0
@@ -191,7 +181,7 @@ var mouse = new Mouse();
 
 
 // Beacon class stores info for drawing a line at object's target position
-Beacon = function() {
+function Beacon() {
     this.height = 0.10;
     this.overlayID = Overlays.addOverlay("line3d", {
         color: {
@@ -243,7 +233,7 @@ var beacon = new Beacon();
 
 
 // Grabber class stores and computes info for grab behavior
-Grabber = function() {
+function Grabber() {
     this.isGrabbing = false;
     this.entityID = null;
     this.actionID = null;
@@ -344,7 +334,6 @@ Grabber.prototype.pressEvent = function(event) {
 
     mouse.startDrag(event);
 
-    var now = Date.now();
     this.lastHeartBeat = 0;
 
     var clickedEntity = pickResults.entityID;
@@ -385,7 +374,7 @@ Grabber.prototype.pressEvent = function(event) {
 
     beacon.updatePosition(this.startPosition);
 
-    if(!entityIsGrabbedByOther(this.entityID)){
+    if (!entityIsGrabbedByOther(this.entityID)) {
       this.moveEvent(event);
     }
 
@@ -452,7 +441,7 @@ Grabber.prototype.moveEvent = function(event) {
 
     // see if something added/restored gravity
     var entityProperties = Entities.getEntityProperties(this.entityID);
-    if (Vec3.length(entityProperties.gravity) != 0) {
+    if (Vec3.length(entityProperties.gravity) !== 0.0) {
         this.originalGravity = entityProperties.gravity;
     }
     this.currentPosition = entityProperties.position;
@@ -500,7 +489,8 @@ Grabber.prototype.moveEvent = function(event) {
             };
         } else {
             var cameraPosition = Camera.getPosition();
-            newPointOnPlane = mouseIntersectionWithPlane(this.pointOnPlane, this.planeNormal, mouse.current, this.maxDistance);
+            newPointOnPlane = mouseIntersectionWithPlane(
+                    this.pointOnPlane, this.planeNormal, mouse.current, this.maxDistance);
             var relativePosition = Vec3.subtract(newPointOnPlane, cameraPosition);
             var distance = Vec3.length(relativePosition);
             if (distance > this.maxDistance) {
@@ -625,7 +615,7 @@ function editEvent(channel, message, sender, localOnly) {
         return;
     }
     try {
-        data = JSON.parse(message);
+        var data = JSON.parse(message);
         if ("enabled" in data) {
             enabled = !data["enabled"];
         }
@@ -640,3 +630,5 @@ Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Messages.subscribe("edit-events");
 Messages.messageReceived.connect(editEvent);
+
+}()); // END LOCAL_SCOPE

@@ -105,7 +105,7 @@ public:
     using Lambda = std::function<void()>;
     ButtonPreference(const QString& category, const QString& name, Lambda triggerHandler)
         : Preference(category, name), _triggerHandler(triggerHandler) { }
-    Type getType() { return Button; }
+    Type getType() override { return Button; }
     Q_INVOKABLE void trigger() { _triggerHandler(); }
 
 protected:
@@ -189,6 +189,38 @@ protected:
     float _step { 0.1f };
 };
 
+
+class IntPreference : public TypedPreference<int> {
+    Q_OBJECT
+    Q_PROPERTY(float value READ getValue WRITE setValue NOTIFY valueChanged)
+    Q_PROPERTY(float min READ getMin CONSTANT)
+    Q_PROPERTY(float max READ getMax CONSTANT)
+    Q_PROPERTY(float step READ getStep CONSTANT)
+
+public:
+    IntPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : TypedPreference(category, name, getter, setter) { }
+
+    float getMin() const { return _min; }
+    void setMin(float min) { _min = min; };
+
+    float getMax() const { return _max; }
+    void setMax(float max) { _max = max; };
+
+    float getStep() const { return _step; }
+    void setStep(float step) { _step = step; };
+
+signals:
+    void valueChanged();
+
+protected:
+    void emitValueChanged() override { emit valueChanged(); }
+
+    int _min { std::numeric_limits<int>::min() };
+    int _max { std::numeric_limits<int>::max() };
+    int _step { 1 };
+};
+
 class StringPreference : public TypedPreference<QString> {
     Q_OBJECT
     Q_PROPERTY(QString value READ getValue WRITE setValue NOTIFY valueChanged)
@@ -210,7 +242,7 @@ public:
     SliderPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : FloatPreference(category, name, getter, setter) { }
 
-    Type getType() { return Slider; }
+    Type getType() override { return Slider; }
 };
 
 class SpinnerPreference : public FloatPreference {
@@ -219,7 +251,16 @@ public:
     SpinnerPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : FloatPreference(category, name, getter, setter) { }
 
-    Type getType() { return Spinner; }
+    Type getType() override { return Spinner; }
+};
+
+class IntSpinnerPreference : public IntPreference {
+    Q_OBJECT
+public:
+    IntSpinnerPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : IntPreference(category, name, getter, setter) { }
+
+    Type getType() override { return Spinner; }
 };
 
 class EditPreference : public StringPreference {
@@ -229,7 +270,7 @@ class EditPreference : public StringPreference {
 public:
     EditPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : StringPreference(category, name, getter, setter) { }
-    Type getType() { return Editable; }
+    Type getType() override { return Editable; }
     const QString& getPlaceholderText() const { return _placeholderText; }
     void setPlaceholderText(const QString& placeholderText) { _placeholderText = placeholderText; }
 
@@ -244,7 +285,7 @@ class ComboBoxPreference : public EditPreference {
 public:
     ComboBoxPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : EditPreference(category, name, getter, setter) { }
-    Type getType() { return ComboBox; }
+    Type getType() override { return ComboBox; }
  
     const QStringList& getItems() { return _items; }
     void setItems(const QStringList& items) { _items = items; }
@@ -260,7 +301,7 @@ class BrowsePreference : public EditPreference {
 public:
     BrowsePreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : EditPreference(category, name, getter, setter) { }
-    Type getType() { return Browsable; }
+    Type getType() override { return Browsable; }
 
     const QString& getBrowseLabel() { return _browseLabel; }
     void setBrowseLabel(const QString& browseLabel) { _browseLabel = browseLabel; }
@@ -276,7 +317,7 @@ public:
         : BrowsePreference(category, name, getter, setter) {
         _browseLabel = "Change";
     }
-    Type getType() { return Avatar; }
+    Type getType() override { return Avatar; }
 };
 
 
@@ -285,7 +326,7 @@ class CheckPreference : public BoolPreference {
 public:
     CheckPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : BoolPreference(category, name, getter, setter) { }
-    Type getType() { return Checkbox; }
+    Type getType() override { return Checkbox; }
 };
 
 #endif

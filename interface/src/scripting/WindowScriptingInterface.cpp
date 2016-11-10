@@ -21,7 +21,6 @@
 #include "MainWindow.h"
 #include "Menu.h"
 #include "OffscreenUi.h"
-#include "WebWindowClass.h"
 
 #include "WindowScriptingInterface.h"
 
@@ -61,10 +60,6 @@ WindowScriptingInterface::WindowScriptingInterface() {
     });
 }
 
-WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
-    return new WebWindowClass(title, url, width, height);
-}
-
 QScriptValue WindowScriptingInterface::hasFocus() {
     return qApp->hasFocus();
 }
@@ -96,7 +91,7 @@ void WindowScriptingInterface::alert(const QString& message) {
 /// \param const QString& message message to display
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::confirm(const QString& message) {
-    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message)));
+    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message, QMessageBox::Yes | QMessageBox::No)));
 }
 
 /// Display a prompt with a text box
@@ -179,6 +174,10 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
     return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
 }
 
+void WindowScriptingInterface::showAssetServer(const QString& upload) {
+    QMetaObject::invokeMethod(qApp, "showAssetServerWidget", Qt::QueuedConnection, Q_ARG(QString, upload));
+}
+
 int WindowScriptingInterface::getInnerWidth() {
     return qApp->getWindow()->geometry().width();
 }
@@ -198,4 +197,16 @@ int WindowScriptingInterface::getY() {
 void WindowScriptingInterface::copyToClipboard(const QString& text) {
     qDebug() << "Copying";
     QApplication::clipboard()->setText(text);
+}
+
+void WindowScriptingInterface::takeSnapshot(bool notify, float aspectRatio) {
+    qApp->takeSnapshot(notify, aspectRatio);
+}
+
+void WindowScriptingInterface::shareSnapshot(const QString& path) {
+    qApp->shareSnapshot(path);
+}
+
+bool WindowScriptingInterface::isPhysicsEnabled() {
+    return qApp->isPhysicsEnabled();
 }

@@ -36,7 +36,6 @@ protected:
     std::once_flag _reportOnce;
     QOpenGLContext* _context{ nullptr };
     QOffscreenSurface* _offscreenSurface{ nullptr };
-    QOpenGLDebugLogger* _logger{ nullptr };
 };
 
 #endif // hifi_OffscreenGLCanvas_h

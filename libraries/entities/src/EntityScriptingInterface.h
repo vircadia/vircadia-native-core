@@ -23,6 +23,7 @@
 #include <Octree.h>
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
+#include <PointerEvent.h>
 
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
@@ -34,7 +35,6 @@
 #include "EntityItemProperties.h"
 
 class EntityTree;
-class MouseEvent;
 
 class RayToEntityIntersectionResult {
 public:
@@ -59,20 +59,32 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
-    
+
     Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
     Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
+    Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
+
 public:
     EntityScriptingInterface(bool bidOnSimulationOwnership);
 
+    class ActivityTracking {
+    public:
+        int addedEntityCount { 0 };
+        int deletedEntityCount { 0 };
+        int editedEntityCount { 0 };
+    };
+
     EntityEditPacketSender* getEntityPacketSender() const { return (EntityEditPacketSender*)getPacketSender(); }
-    virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
-    virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
+    virtual NodeType_t getServerNodeType() const override { return NodeType::EntityServer; }
+    virtual OctreeEditPacketSender* createPacketSender() override { return new EntityEditPacketSender(); }
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
     void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine);
     float calculateCost(float mass, float oldVelocity, float newVelocity);
+
+    void resetActivityTracking();
+    ActivityTracking getActivityTracking() const { return _activityTracking; }
 public slots:
 
     // returns true if the DomainServer will allow this Node/Avatar to make changes
@@ -115,14 +127,25 @@ public slots:
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntities(const glm::vec3& center, float radius) const;
 
-    /// finds models within the search sphere specified by the center point and radius
+    /// finds models within the box specified by the corner and dimensions
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
+
+    /// finds models within the frustum
+    /// the frustum must have the following properties:
+    /// - position
+    /// - orientation
+    /// - projection
+    /// - centerRadius
+    /// this function will not find any models in script engine contexts which don't have access to models
+    Q_INVOKABLE QVector<QUuid> findEntitiesInFrustum(QVariantMap frustum) const;
 
     /// If the scripting context has visible entities, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
     /// will be false.
-    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
+    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false,
+        const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue(),
+        bool visibleOnly = false, bool collidableOnly = false);
 
     /// If the scripting context has visible entities, this will determine a ray intersection, and will block in
     /// order to return an accurate result
@@ -163,18 +186,41 @@ public slots:
     Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
     Q_INVOKABLE bool setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex, glm::vec3 translation);
     Q_INVOKABLE bool setAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex, glm::quat rotation);
-    Q_INVOKABLE bool setAbsoluteJointRotationsInObjectFrame(const QUuid& entityID,
-                                                            const QVector<glm::quat>& rotations);
-    Q_INVOKABLE bool setAbsoluteJointTranslationsInObjectFrame(const QUuid& entityID,
-                                                               const QVector<glm::vec3>& translations);
-    Q_INVOKABLE bool setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
-                                                        const QVector<glm::quat>& rotations,
-                                                        const QVector<glm::vec3>& translations);
+
+    Q_INVOKABLE glm::vec3 getLocalJointTranslation(const QUuid& entityID, int jointIndex);
+    Q_INVOKABLE glm::quat getLocalJointRotation(const QUuid& entityID, int jointIndex);
+    Q_INVOKABLE bool setLocalJointTranslation(const QUuid& entityID, int jointIndex, glm::vec3 translation);
+    Q_INVOKABLE bool setLocalJointRotation(const QUuid& entityID, int jointIndex, glm::quat rotation);
+
+    Q_INVOKABLE bool setLocalJointRotations(const QUuid& entityID, const QVector<glm::quat>& rotations);
+    Q_INVOKABLE bool setLocalJointTranslations(const QUuid& entityID, const QVector<glm::vec3>& translations);
+    Q_INVOKABLE bool setLocalJointsData(const QUuid& entityID,
+                                        const QVector<glm::quat>& rotations,
+                                        const QVector<glm::vec3>& translations);
 
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
+
+    Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
+    Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
+
+    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
+
+    Q_INVOKABLE void emitScriptEvent(const EntityItemID& entityID, const QVariant& message);
 
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -183,17 +229,17 @@ signals:
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
 
-    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -202,6 +248,8 @@ signals:
     void addingEntity(const EntityItemID& entityID);
     void clearingEntities();
     void debitEnergySource(float value);
+
+    void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);
@@ -215,18 +263,20 @@ private:
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-        bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
+        bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly = false, bool collidableOnly = false);
 
     EntityTreePointer _entityTree;
 
     std::recursive_mutex _entitiesScriptEngineLock;
     EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
-    
+
     bool _bidOnSimulationOwnership { false };
     float _currentAvatarEnergy = { FLT_MAX };
     float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
     void setCurrentAvatarEnergy(float energy);
-    
+
+    ActivityTracking _activityTracking;
     float costMultiplier = { 0.01f };
     float getCostMultiplier();
     void setCostMultiplier(float value);

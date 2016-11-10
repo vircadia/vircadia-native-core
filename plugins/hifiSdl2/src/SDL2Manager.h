@@ -26,6 +26,9 @@ public:
     bool isSupported() const override;
     const QString& getName() const override { return NAME; }
 
+    QStringList getSubdeviceNames() override;
+    bool isHandController() const override { return false; }
+
     void init() override;
     void deinit() override;
 
@@ -77,6 +80,7 @@ private:
     QMap<SDL_JoystickID, Joystick::Pointer> _openJoysticks;
     bool _isInitialized { false } ;
     static const QString NAME;
+    QStringList _subdeviceNames;
 };
 
 #endif // hifi__SDL2Manager_h

@@ -14,6 +14,7 @@
 #include <QFile>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QMetaEnum>
 
 #include <SharedUtil.h>
 
@@ -49,6 +50,7 @@ void HTTPResourceRequest::cleanupTimer() {
 
 void HTTPResourceRequest::doSend() {
     QNetworkRequest networkRequest(_url);
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
 
     if (_cacheEnabled) {
@@ -77,10 +79,36 @@ void HTTPResourceRequest::onRequestFinished() {
             _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
             _result = Success;
             break;
+
         case QNetworkReply::TimeoutError:
             _result = Timeout;
             break;
+
+        case QNetworkReply::ContentNotFoundError: // Script.include('https://httpbin.org/status/404')
+            _result = NotFound;
+            break;
+
+        case QNetworkReply::ProtocolInvalidOperationError: // Script.include('https://httpbin.org/status/400')
+            _result = InvalidURL;
+            break;
+
+        case QNetworkReply::UnknownContentError: // Script.include('QUrl("https://httpbin.org/status/402")')
+        case QNetworkReply::ContentOperationNotPermittedError: //Script.include('https://httpbin.org/status/403')
+        case QNetworkReply::AuthenticationRequiredError: // Script.include('https://httpbin.org/basic-auth/user/passwd')
+            _result = AccessDenied;
+            break;
+
+        case QNetworkReply::RemoteHostClosedError:  // Script.include('http://127.0.0.1:22')
+        case QNetworkReply::ConnectionRefusedError: // Script.include(http://127.0.0.1:1')
+        case QNetworkReply::HostNotFoundError:      // Script.include('http://foo.bar.highfidelity.io')
+        case QNetworkReply::ServiceUnavailableError: // Script.include('QUrl("https://httpbin.org/status/503")')
+            _result = ServerUnavailable;
+            break;
+
+        case QNetworkReply::UnknownServerError: // Script.include('QUrl("https://httpbin.org/status/504")')
+        case QNetworkReply::InternalServerError: // Script.include('QUrl("https://httpbin.org/status/500")')
         default:
+            qDebug() << "HTTPResourceRequest error:" << QMetaEnum::fromType<QNetworkReply::NetworkError>().valueToKey(_reply->error());
             _result = Error;
             break;
     }

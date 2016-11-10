@@ -43,7 +43,7 @@ bool OverlayConductor::headOutsideOverlay() const {
 
 bool OverlayConductor::updateAvatarIsAtRest() {
 
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     const quint64 REST_ENABLE_TIME_USECS = 1000 * 1000; // 1 s
     const quint64 REST_DISABLE_TIME_USECS = 200 * 1000;  // 200 ms
@@ -69,7 +69,7 @@ bool OverlayConductor::updateAvatarIsAtRest() {
 }
 
 bool OverlayConductor::updateAvatarHasDriveInput() {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     const quint64 DRIVE_ENABLE_TIME_USECS = 200 * 1000;  // 200 ms
     const quint64 DRIVE_DISABLE_TIME_USECS = 1000 * 1000; // 1 s
@@ -103,7 +103,7 @@ void OverlayConductor::update(float dt) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     bool currentVisible = !offscreenUi->getDesktop()->property("pinned").toBool();
 
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     // centerUI when hmd mode is first enabled and mounted
     if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible()) {
         if (!_hmdMode) {

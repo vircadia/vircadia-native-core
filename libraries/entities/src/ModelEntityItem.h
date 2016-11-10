@@ -26,11 +26,11 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
-    virtual bool setProperties(const EntityItemProperties& properties);
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual bool setProperties(const EntityItemProperties& properties) override;
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
-    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
@@ -38,20 +38,20 @@ public:
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
                                     int& propertyCount,
-                                    OctreeElement::AppendState& appendState) const;
+                                    OctreeElement::AppendState& appendState) const override;
 
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                bool& somethingChanged);
+                                                bool& somethingChanged) override;
 
-    virtual void update(const quint64& now);
-    virtual bool needsToCallUpdate() const;
-    virtual void debugDump() const;
+    virtual void update(const quint64& now) override;
+    virtual bool needsToCallUpdate() const override;
+    virtual void debugDump() const override;
 
-    void setShapeType(ShapeType type);
-    virtual ShapeType getShapeType() const;
+    void setShapeType(ShapeType type) override;
+    virtual ShapeType getShapeType() const override;
 
 
     // TODO: Move these to subclasses, or other appropriate abstraction
@@ -115,10 +115,7 @@ public:
     const QString getTextures() const;
     void setTextures(const QString& textures);
 
-    virtual bool shouldBePhysical() const;
-
-    virtual glm::vec3 getJointPosition(int jointIndex) const { return glm::vec3(); }
-    virtual glm::quat getJointRotation(int jointIndex) const { return glm::quat(); }
+    virtual bool shouldBePhysical() const override;
 
     virtual void setJointRotations(const QVector<glm::quat>& rotations);
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet);
@@ -143,14 +140,14 @@ protected:
     ReadWriteLockable _jointDataLock;
 
     bool _jointRotationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
-    QVector<glm::quat> _absoluteJointRotationsInObjectFrame;
-    QVector<bool> _absoluteJointRotationsInObjectFrameSet; // ever set?
-    QVector<bool> _absoluteJointRotationsInObjectFrameDirty; // needs a relay to model/rig?
-    
+    QVector<glm::quat> _localJointRotations;
+    QVector<bool> _localJointRotationsSet; // ever set?
+    QVector<bool> _localJointRotationsDirty; // needs a relay to model/rig?
+
     bool _jointTranslationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
-    QVector<glm::vec3> _absoluteJointTranslationsInObjectFrame;
-    QVector<bool> _absoluteJointTranslationsInObjectFrameSet; // ever set?
-    QVector<bool> _absoluteJointTranslationsInObjectFrameDirty; // needs a relay to model/rig?
+    QVector<glm::vec3> _localJointTranslations;
+    QVector<bool> _localJointTranslationsSet; // ever set?
+    QVector<bool> _localJointTranslationsDirty; // needs a relay to model/rig?
     int _lastKnownCurrentFrame;
     virtual void resizeJointArrays(int newSize = -1);
 

@@ -15,5 +15,6 @@
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(audio)
+Q_DECLARE_LOGGING_CATEGORY(audiostream)
 
 #endif // hifi_AudioLogging_h

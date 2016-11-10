@@ -45,14 +45,20 @@ bool OculusControllerManager::activate() {
     // register with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
 
-    if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
-        _remote = std::make_shared<RemoteDevice>(*this);
-        userInputMapper->registerDevice(_remote);
+    unsigned int controllerConnected = ovr_GetConnectedControllerTypes(_session);
+
+    if ((controllerConnected & ovrControllerType_Remote) == ovrControllerType_Remote) {
+        if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
+            _remote = std::make_shared<RemoteDevice>(*this);
+            userInputMapper->registerDevice(_remote);
+        }
     }
 
-    if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
-        _touch = std::make_shared<TouchDevice>(*this);
-        userInputMapper->registerDevice(_touch);
+    if ((controllerConnected & ovrControllerType_Touch) != 0) {
+        if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
+            _touch = std::make_shared<TouchDevice>(*this);
+            userInputMapper->registerDevice(_touch);
+        }
     }
 
     return true;
@@ -109,6 +115,17 @@ void OculusControllerManager::stopHapticPulse(bool leftHand) {
     if (_touch) {
         _touch->stopHapticPulse(leftHand);
     }
+}
+
+QStringList OculusControllerManager::getSubdeviceNames() {
+    QStringList devices;
+    if (_touch) {
+        devices << _touch->getName();
+    }
+    if (_remote) {
+        devices << _remote->getName();
+    }
+    return devices;
 }
 
 using namespace controller;
@@ -181,6 +198,12 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
 void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _poseStateMap.clear();
     _buttonPressedMap.clear();
+
+    ovrSessionStatus status;
+    if (!OVR_SUCCESS(ovr_GetSessionStatus(_parent._session, &status)) || (ovrFalse == status.HmdMounted)) {
+        // if the HMD isn't on someone's head, don't take input from the controllers
+        return;
+    }
 
     int numTrackedControllers = 0;
     static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;

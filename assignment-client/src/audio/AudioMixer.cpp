@@ -61,15 +61,14 @@
 
 #include "AudioMixer.h"
 
-const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
-const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
-const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
-const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
-const QString AUDIO_ENV_GROUP_KEY = "audio_env";
-const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
+static const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
+static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
+static const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
+static const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
+static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
+static const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 
-InboundAudioStream::Settings AudioMixer::_streamSettings;
-
+int AudioMixer::_numStaticJitterFrames{ -1 };
 bool AudioMixer::_enableFilter = true;
 
 bool AudioMixer::shouldMute(float quietestFrame) {
@@ -91,14 +90,72 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
                                               PacketType::InjectAudio, PacketType::SilentAudioFrame,
                                               PacketType::AudioStreamStats },
                                             this, "handleNodeAudioPacket");
-    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
+
+const int IEEE754_MANT_BITS = 23;
+const int IEEE754_EXPN_BIAS = 127;
+
+//
+// for x  > 0.0f, returns log2(x)
+// for x <= 0.0f, returns large negative value
+//
+// abs |error| < 8e-3, smooth (exact for x=2^N) for NPOLY=3
+// abs |error| < 2e-4, smooth (exact for x=2^N) for NPOLY=5
+// rel |error| < 0.4 from precision loss very close to 1.0f
+//
+static inline float fastlog2(float x) {
+
+    union { float f; int32_t i; } mant, bits = { x };
+
+    // split into mantissa and exponent
+    mant.i = (bits.i & ((1 << IEEE754_MANT_BITS) - 1)) | (IEEE754_EXPN_BIAS << IEEE754_MANT_BITS);
+    int32_t expn = (bits.i >> IEEE754_MANT_BITS) - IEEE754_EXPN_BIAS;
+
+    mant.f -= 1.0f;
+
+    // polynomial for log2(1+x) over x=[0,1]
+    //x = (-0.346555386f * mant.f + 1.346555386f) * mant.f;
+    x = (((-0.0821307180f * mant.f + 0.321188984f) * mant.f - 0.677784014f) * mant.f + 1.43872575f) * mant.f;
+
+    return x + expn;
+}
+
+//
+// for -126 <= x < 128, returns exp2(x)
+//
+// rel |error| < 3e-3, smooth (exact for x=N) for NPOLY=3
+// rel |error| < 9e-6, smooth (exact for x=N) for NPOLY=5
+//
+static inline float fastexp2(float x) {
+
+    union { float f; int32_t i; } xi;
+
+    // bias such that x > 0
+    x += IEEE754_EXPN_BIAS;
+    //x = MAX(x, 1.0f);
+    //x = MIN(x, 254.9999f);
+
+    // split into integer and fraction
+    xi.i = (int32_t)x;
+    x -= xi.i;
+
+    // construct exp2(xi) as a float
+    xi.i <<= IEEE754_MANT_BITS;
+
+    // polynomial for exp2(x) over x=[0,1]
+    //x = (0.339766028f * x + 0.660233972f) * x + 1.0f;
+    x = (((0.0135557472f * x + 0.0520323690f) * x + 0.241379763f) * x + 0.693032121f) * x + 1.0f;
+
+    return x * xi.f;
+}
 
 float AudioMixer::gainForSource(const PositionalAudioStream& streamToAdd,
                                 const AvatarAudioStream& listeningNodeStream, const glm::vec3& relativePosition, bool isEcho) {
@@ -148,7 +205,7 @@ float AudioMixer::gainForSource(const PositionalAudioStream& streamToAdd,
         g = (g > 1.0f) ? 1.0f : g;
 
         // calculate the distance coefficient using the distance to this node
-        float distanceCoefficient = exp2f(log2f(g) * log2f(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
+        float distanceCoefficient = fastexp2(fastlog2(g) * fastlog2(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
 
         // multiply the current attenuation coefficient by the distance coefficient
         gain *= distanceCoefficient;
@@ -212,20 +269,18 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     if (!streamToAdd.lastPopSucceeded()) {
         bool forceSilentBlock = true;
 
-        if (_streamSettings._repetitionWithFade && !streamToAdd.getLastPopOutput().isNull()) {
+        if (!streamToAdd.getLastPopOutput().isNull()) {
+            bool isInjector = dynamic_cast<const InjectedAudioStream*>(&streamToAdd);
 
-            // reptition with fade is enabled, and we do have a valid previous frame to repeat
-            // so we mix the previously-mixed block
-
-            // this is preferable to not mixing it at all to avoid the harsh jump to silence
+            // in an injector, just go silent - the injector has likely ended
+            // in other inputs (microphone, &c.), repeat with fade to avoid the harsh jump to silence
 
             // we'll repeat the last block until it has a block to mix
             // and we'll gradually fade that repeated block into silence.
 
             // calculate its fade factor, which depends on how many times it's already been repeated.
-
             repeatedFrameFadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd.getConsecutiveNotMixedCount() - 1);
-            if (repeatedFrameFadeFactor > 0.0f) {
+            if (!isInjector && repeatedFrameFadeFactor > 0.0f) {
                 // apply the repeatedFrameFadeFactor to the gain
                 gain *= repeatedFrameFadeFactor;
 
@@ -427,13 +482,14 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
 }
 
 void AudioMixer::handleNodeAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    getOrCreateClientData(sendingNode.data());
     DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    if (sendingNode->isAllowedEditor()) {
+    if (sendingNode->getCanKick()) {
         glm::vec3 position;
         float radius;
 
@@ -525,18 +581,8 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
         }
     }
 
-    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
-
-    // FIXME - why would we not have client data at this point??
-    if (!clientData) {
-        qDebug() << "UNEXPECTED -- didn't have node linked data in " << __FUNCTION__;
-        sendingNode->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(sendingNode->getUUID()) });
-        clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
-        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
-    }
-
+    auto clientData = getOrCreateClientData(sendingNode.data());
     clientData->setupCodec(selectedCodec, selectedCodecName);
-
     qDebug() << "selectedCodecName:" << selectedCodecName;
     clientData->sendSelectAudioFormat(sendingNode, selectedCodecName);
 }
@@ -545,13 +591,28 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     // enumerate the connected listeners to remove HRTF objects for the disconnected node
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->eachNode([](const SharedNodePointer& node) {
+    nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            clientData->removeHRTFsForNode(node->getUUID());
+            clientData->removeHRTFsForNode(killedNode->getUUID());
         }
     });
 }
+
+void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+    if (clientData) {
+        clientData->removeAgentAvatarAudioStream();
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->eachNode([sendingNode](const SharedNodePointer& node){
+            auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+            if (listenerClientData) {
+                listenerClientData->removeHRTFForStream(sendingNode->getUUID());
+            }
+        });
+    }
+}
+
 
 void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     sendingNode->parseIgnoreRequestMessage(packet);
@@ -582,13 +643,18 @@ QString AudioMixer::percentageForMixStats(int counter) {
 }
 
 void AudioMixer::sendStatsPacket() {
-    static QJsonObject statsObject;
+    QJsonObject statsObject;
 
-    statsObject["useDynamicJitterBuffers"] = _streamSettings._dynamicJitterBuffers;
+    if (_numStatFrames == 0) {
+        return;
+    }
+
+    statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == -1;
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
-    statsObject["avg_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
+    statsObject["avg_streams_per_frame"] = (float)_sumStreams / (float)_numStatFrames;
+    statsObject["avg_listeners_per_frame"] = (float)_sumListeners / (float)_numStatFrames;
 
     QJsonObject mixStats;
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_hrtfRenders);
@@ -602,6 +668,7 @@ void AudioMixer::sendStatsPacket() {
 
     statsObject["mix_stats"] = mixStats;
 
+    _sumStreams = 0;
     _sumListeners = 0;
     _hrtfRenders = 0;
     _hrtfSilentRenders = 0;
@@ -649,17 +716,24 @@ void AudioMixer::run() {
     ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 }
 
+AudioMixerClientData* AudioMixer::getOrCreateClientData(Node* node) {
+    auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+
+    if (!clientData) {
+        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID()) });
+        clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
+    }
+
+    return clientData;
+}
+
 void AudioMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    nodeList->linkedDataCreateCallback = [&](Node* node) {
-        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID()) });
-        auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-
-        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
-    };
+    nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     DomainHandler& domainHandler = nodeList->getDomainHandler();
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();
@@ -672,79 +746,71 @@ void AudioMixer::domainSettingsRequestComplete() {
 }
 
 void AudioMixer::broadcastMixes() {
+    const int TRAILING_AVERAGE_FRAMES = 100;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+
+    const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
+    const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+
+    const float RATIO_BACK_OFF = 0.02f;
+
     auto nodeList = DependencyManager::get<NodeList>();
 
     auto nextFrameTimestamp = p_high_resolution_clock::now();
     auto timeToSleep = std::chrono::microseconds(0);
 
-    const int TRAILING_AVERAGE_FRAMES = 100;
+    int currentFrame = 1;
+    int numFramesPerSecond = (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC);
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
 
-    int currentFrame { 1 };
-    int numFramesPerSecond { (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC) };
-
     while (!_isFinished) {
-        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
-        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+        // manage mixer load
+        {
+            _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio) +
+                // ratio of frame spent sleeping / total frame time
+                ((CURRENT_FRAME_RATIO * timeToSleep.count()) / (float) AudioConstants::NETWORK_FRAME_USECS);
 
-        const float RATIO_BACK_OFF = 0.02f;
+            bool hasRatioChanged = false;
 
-        const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
-        const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
-
-        if (timeToSleep.count() < 0) {
-            timeToSleep = std::chrono::microseconds(0);
-        }
-
-        _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-            + (timeToSleep.count() * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
-
-        float lastCutoffRatio = _performanceThrottlingRatio;
-        bool hasRatioChanged = false;
-
-        if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-                // we're struggling - change our min required loudness to reduce some load
-                _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
-
-                qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
-            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-                // we've recovered and can back off the required loudness
-                _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
-
-                if (_performanceThrottlingRatio < 0) {
-                    _performanceThrottlingRatio = 0;
+            if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
+                if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
+                    qDebug() << "Mixer is struggling";
+                    // change our min required loudness to reduce some load
+                    _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
+                    hasRatioChanged = true;
+                } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
+                    qDebug() << "Mixer is recovering";
+                    // back off the required loudness
+                    _performanceThrottlingRatio = std::max(0.0f, _performanceThrottlingRatio - RATIO_BACK_OFF);
+                    hasRatioChanged = true;
                 }
 
-                qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
+                if (hasRatioChanged) {
+                    // set out min audability threshold from the new ratio
+                    _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
+                    framesSinceCutoffEvent = 0;
+
+                    qDebug() << "Sleeping" << _trailingSleepRatio << "of frame";
+                    qDebug() << "Cutoff is" << _performanceThrottlingRatio;
+                    qDebug() << "Minimum audibility to be mixed is" << _minAudibilityThreshold;
+                }
             }
 
-            if (hasRatioChanged) {
-                // set out min audability threshold from the new ratio
-                _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
-                qDebug() << "Minimum audability required to be mixed is now" << _minAudibilityThreshold;
-
-                framesSinceCutoffEvent = 0;
+            if (!hasRatioChanged) {
+                ++framesSinceCutoffEvent;
             }
         }
 
-        if (!hasRatioChanged) {
-            ++framesSinceCutoffEvent;
-        }
-
+        // mix
         nodeList->eachNode([&](const SharedNodePointer& node) {
-
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
                 // this function will attempt to pop a frame from each audio stream.
                 // a pointer to the popped data is stored as a member in InboundAudioStream.
                 // That's how the popped audio data will be read for mixing (but only if the pop was successful)
-                nodeData->checkBuffersBeforeFrameSend();
+                _sumStreams += nodeData->checkBuffersBeforeFrameSend();
 
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
@@ -760,7 +826,8 @@ void AudioMixer::broadcastMixes() {
 
                     std::unique_ptr<NLPacket> mixPacket;
 
-                    if (mixHasAudio) {
+                    if (mixHasAudio || nodeData->shouldFlushEncoder()) {
+                        
                         int mixPacketBytes = sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE 
                                                              + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
@@ -773,12 +840,17 @@ void AudioMixer::broadcastMixes() {
                         QString codecInPacket = nodeData->getCodecName();
                         mixPacket->writeString(codecInPacket);
 
-                        QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                         QByteArray encodedBuffer;
-                        nodeData->encode(decodedBuffer, encodedBuffer);
-
+                        if (mixHasAudio) {
+                            QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                            nodeData->encode(decodedBuffer, encodedBuffer);
+                        } else {
+                            // time to flush, which resets the shouldFlush until next time we encode something
+                            nodeData->encodeFrameOfZeros(encodedBuffer);
+                        }
                         // pack mixed audio samples
                         mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
+                    
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE;
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
@@ -818,24 +890,32 @@ void AudioMixer::broadcastMixes() {
 
         ++_numStatFrames;
 
-        // since we're a while loop we need to help Qt's event processing
-        QCoreApplication::processEvents();
+        // play nice with qt event-looping
+        {
+            // since we're a while loop we need to help qt's event processing
+            QCoreApplication::processEvents();
 
-        if (_isFinished) {
-            // at this point the audio-mixer is done
-            // check if we have a deferred delete event to process (which we should once finished)
-            QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
-            break;
+            if (_isFinished) {
+                // alert qt that this is finished
+                QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
+                break;
+            }
         }
 
-        // push the next frame timestamp to when we should send the next
-        nextFrameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
+        // sleep until the next frame, if necessary
+        {
+            nextFrameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
 
-        // sleep as long as we need until next frame, if we can
-        auto now = p_high_resolution_clock::now();
-        timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextFrameTimestamp - now);
+            auto now = p_high_resolution_clock::now();
+            timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextFrameTimestamp - now);
 
-        std::this_thread::sleep_for(timeToSleep);
+            if (timeToSleep.count() < 0) {
+                nextFrameTimestamp = now;
+                timeToSleep = std::chrono::microseconds(0);
+            }
+
+            std::this_thread::sleep_for(timeToSleep);
+        }
     }
 }
 
@@ -845,63 +925,62 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
 
         // check the payload to see if we have asked for dynamicJitterBuffer support
         const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
-        _streamSettings._dynamicJitterBuffers = audioBufferGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
-        if (_streamSettings._dynamicJitterBuffers) {
-            qDebug() << "Enable dynamic jitter buffers.";
+        bool enableDynamicJitterBuffer = audioBufferGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
+        if (enableDynamicJitterBuffer) {
+            qDebug() << "Enabling dynamic jitter buffers.";
+
+            bool ok;
+            const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
+            _numStaticJitterFrames = audioBufferGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
+            if (!ok) {
+                _numStaticJitterFrames = InboundAudioStream::DEFAULT_STATIC_JITTER_FRAMES;
+            }
+            qDebug() << "Static desired jitter buffer frames:" << _numStaticJitterFrames;
         } else {
-            qDebug() << "Dynamic jitter buffers disabled.";
+            qDebug() << "Disabling dynamic jitter buffers.";
+            _numStaticJitterFrames = -1;
         }
 
+        // check for deprecated audio settings
+        auto deprecationNotice = [](const QString& setting, const QString& value) {
+            qInfo().nospace() << "[DEPRECATION NOTICE] " << setting << "(" << value << ") has been deprecated, and has no effect";
+        };
         bool ok;
-        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
-        _streamSettings._staticDesiredJitterBufferFrames = audioBufferGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
-        }
-        qDebug() << "Static desired jitter buffer frames:" << _streamSettings._staticDesiredJitterBufferFrames;
 
         const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "max_frames_over_desired";
-        _streamSettings._maxFramesOverDesired = audioBufferGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
-        }
-        qDebug() << "Max frames over desired:" << _streamSettings._maxFramesOverDesired;
-
-        const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "use_stdev_for_desired_calc";
-        _streamSettings._useStDevForJitterCalc = audioBufferGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
-        if (_streamSettings._useStDevForJitterCalc) {
-            qDebug() << "Using stdev method for jitter calc if dynamic jitter buffers enabled";
-        } else {
-            qDebug() << "Using max-gap method for jitter calc if dynamic jitter buffers enabled";
+        int maxFramesOverDesired = audioBufferGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
+        if (ok && maxFramesOverDesired != InboundAudioStream::MAX_FRAMES_OVER_DESIRED) {
+            deprecationNotice(MAX_FRAMES_OVER_DESIRED_JSON_KEY, QString::number(maxFramesOverDesired));
         }
 
         const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "window_starve_threshold";
-        _streamSettings._windowStarveThreshold = audioBufferGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._windowStarveThreshold = DEFAULT_WINDOW_STARVE_THRESHOLD;
+        int windowStarveThreshold = audioBufferGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
+        if (ok && windowStarveThreshold != InboundAudioStream::WINDOW_STARVE_THRESHOLD) {
+            deprecationNotice(WINDOW_STARVE_THRESHOLD_JSON_KEY, QString::number(windowStarveThreshold));
         }
-        qDebug() << "Window A starve threshold:" << _streamSettings._windowStarveThreshold;
 
         const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "window_seconds_for_desired_calc_on_too_many_starves";
-        _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES;
+        int windowSecondsForDesiredCalcOnTooManyStarves = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
+        if (ok && windowSecondsForDesiredCalcOnTooManyStarves != InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES) {
+            deprecationNotice(WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY, QString::number(windowSecondsForDesiredCalcOnTooManyStarves));
         }
-        qDebug() << "Window A length:" << _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves << "seconds";
 
         const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "window_seconds_for_desired_reduction";
-        _streamSettings._windowSecondsForDesiredReduction = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._windowSecondsForDesiredReduction = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION;
+        int windowSecondsForDesiredReduction = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
+        if (ok && windowSecondsForDesiredReduction != InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_REDUCTION) {
+            deprecationNotice(WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY, QString::number(windowSecondsForDesiredReduction));
         }
-        qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
+
+        const QString USE_STDEV_FOR_JITTER_JSON_KEY = "use_stdev_for_desired_calc";
+        bool useStDevForJitterCalc = audioBufferGroupObject[USE_STDEV_FOR_JITTER_JSON_KEY].toBool();
+        if (useStDevForJitterCalc != InboundAudioStream::USE_STDEV_FOR_JITTER) {
+            deprecationNotice(USE_STDEV_FOR_JITTER_JSON_KEY, useStDevForJitterCalc ? "true" : "false");
+        }
 
         const QString REPETITION_WITH_FADE_JSON_KEY = "repetition_with_fade";
-        _streamSettings._repetitionWithFade = audioBufferGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
-        if (_streamSettings._repetitionWithFade) {
-            qDebug() << "Repetition with fade enabled";
-        } else {
-            qDebug() << "Repetition with fade disabled";
+        bool repetitionWithFade = audioBufferGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
+        if (repetitionWithFade != InboundAudioStream::REPETITION_WITH_FADE) {
+            deprecationNotice(REPETITION_WITH_FADE_JSON_KEY, repetitionWithFade ? "true" : "false");
         }
     }
 

@@ -87,11 +87,10 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     connect(&nodeList->getDomainHandler(), &DomainHandler::disconnectedFromDomain, &_statsTimer, &QTimer::stop);
 }
 
-void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObject) {
+void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObject) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     float packetsPerSecond, bytesPerSecond;
-    // XXX can BandwidthRecorder be used for this?
     nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
     nodeList->resetPacketStats();
 

@@ -54,6 +54,8 @@ typedef unsigned long long quint64;
 #include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
 #include <Packed.h>
+#include <ThreadSafeValueCache.h>
+#include <SharedUtil.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -137,10 +139,6 @@ class AttachmentData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
 
-// When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
-// the value to be reset when the sessionID changes.
-const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
-
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
@@ -170,6 +168,10 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+
+    Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
+    Q_PROPERTY(glm::mat4 controllerLeftHandMatrix READ getControllerLeftHandMatrix)
+    Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
 
 public:
 
@@ -351,6 +353,11 @@ public:
     void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
+    // thread safe
+    Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
+    Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
+    Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -362,6 +369,8 @@ public slots:
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
+
+    float getTargetScale() { return _targetScale; }
 
 protected:
     glm::vec3 _handPosition;
@@ -390,6 +399,7 @@ protected:
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
+    const QUrl& cannonicalSkeletonModelURL(const QUrl& empty);
 
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
@@ -424,6 +434,13 @@ protected:
     AvatarEntityMap _avatarEntityData;
     bool _avatarEntityDataLocallyEdited { false };
     bool _avatarEntityDataChanged { false };
+
+    // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
+    ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _controllerLeftHandMatrixCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _controllerRightHandMatrixCache { glm::mat4() };
+
+    int getFauxJointIndex(const QString& name) const;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
@@ -509,6 +526,11 @@ Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
+
+// faux joint indexes (-1 means invalid)
+const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534; // -2
+const int CONTROLLER_RIGHTHAND_INDEX = 65533; // -3
+const int CONTROLLER_LEFTHAND_INDEX = 65532; // -4
 
 
 #endif // hifi_AvatarData_h

@@ -26,7 +26,7 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
     << PacketType::OctreeDataNack << PacketType::EntityEditNack
     << PacketType::DomainListRequest << PacketType::StopNode
-    << PacketType::DomainDisconnectRequest;
+    << PacketType::DomainDisconnectRequest << PacketType::NodeKickRequest;
 
 const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment
@@ -47,24 +47,23 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS;
+            return VERSION_ENTITIES_ARROW_ACTION;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AbsoluteSixByteRotations);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerJoints);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            // Removal of extension from Asset requests
-            return 18;
+            return static_cast<PacketVersion>(AssetServerPacketVersion::VegasCongestionControl);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
         case PacketType::DomainConnectionDenied:
-            return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesReasonCode);
+            return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
             return static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions);
@@ -77,7 +76,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::InjectAudio:
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
-            return static_cast<PacketVersion>(AudioVersion::CodecNameInAudioPackets);
+        case PacketType::AudioStreamStats:
+            return static_cast<PacketVersion>(AudioVersion::TerminatingStreamStats);
 
         default:
             return 17;

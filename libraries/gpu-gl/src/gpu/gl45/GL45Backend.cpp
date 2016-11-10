@@ -18,7 +18,7 @@ Q_LOGGING_CATEGORY(gpugl45logging, "hifi.gpu.gl45")
 using namespace gpu;
 using namespace gpu::gl45;
 
-void GL45Backend::do_draw(Batch& batch, size_t paramOffset) {
+void GL45Backend::do_draw(const Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
@@ -43,7 +43,7 @@ void GL45Backend::do_draw(Batch& batch, size_t paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GL45Backend::do_drawIndexed(Batch& batch, size_t paramOffset) {
+void GL45Backend::do_drawIndexed(const Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
     uint32 numIndices = batch._params[paramOffset + 1]._uint;
@@ -72,7 +72,7 @@ void GL45Backend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GL45Backend::do_drawInstanced(Batch& batch, size_t paramOffset) {
+void GL45Backend::do_drawInstanced(const Batch& batch, size_t paramOffset) {
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 3]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
@@ -100,7 +100,7 @@ void GL45Backend::do_drawInstanced(Batch& batch, size_t paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GL45Backend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
+void GL45Backend::do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) {
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 3]._uint];
     uint32 numIndices = batch._params[paramOffset + 2]._uint;
@@ -129,7 +129,7 @@ void GL45Backend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Backend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
+void GL45Backend::do_multiDrawIndirect(const Batch& batch, size_t paramOffset) {
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 1]._uint];
     glMultiDrawArraysIndirect(mode, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
@@ -138,7 +138,7 @@ void GL45Backend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Backend::do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) {
+void GL45Backend::do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) {
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 1]._uint];
     GLenum indexType = gl::ELEMENT_TYPE_TO_GL[_input._indexBufferType];
@@ -146,4 +146,9 @@ void GL45Backend::do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) 
     _stats._DSNumDrawcalls += commandCount;
     _stats._DSNumAPIDrawcalls++;
     (void)CHECK_GL_ERROR();
+}
+
+void GL45Backend::recycle() const {
+    Parent::recycle();
+    derezTextures();
 }

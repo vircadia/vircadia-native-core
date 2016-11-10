@@ -24,9 +24,9 @@ public:
     MessagesMixer(ReceivedMessage& message);
 
 public slots:
-    void run();
+    void run() override;
     void nodeKilled(SharedNodePointer killedNode);
-    void sendStatsPacket();
+    void sendStatsPacket() override;
 
 private slots:
     void handleMessages(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);

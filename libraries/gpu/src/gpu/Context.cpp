@@ -10,6 +10,7 @@
 //
 #include "Context.h"
 #include "Frame.h"
+#include "GPULogging.h"
 using namespace gpu;
 
 Context::CreateBackend Context::_createBackendCallback = nullptr;
@@ -18,15 +19,8 @@ std::once_flag Context::_initialized;
 
 Context::Context() {
     if (_createBackendCallback) {
-        _backend.reset(_createBackendCallback());
+        _backend = _createBackendCallback();
     }
-
-    _frameHandler = [this](Frame& frame){
-        for (size_t i = 0; i < frame.batches.size(); ++i) {
-            _backend->_stereo = frame.stereoStates[i];
-            _backend->render(frame.batches[i]);
-        }
-    };
 }
 
 Context::Context(const Context& context) {
@@ -35,42 +29,68 @@ Context::Context(const Context& context) {
 Context::~Context() {
 }
 
-void Context::setFrameHandler(FrameHandler handler) {
-    _frameHandler = handler;
-}
-
-#define DEFERRED_RENDERING
-
-void Context::beginFrame(const FramebufferPointer& outputFramebuffer, const glm::mat4& renderPose) {
-    _currentFrame = Frame();
-    _currentFrame.framebuffer = outputFramebuffer;
-    _currentFrame.pose = renderPose;
+void Context::beginFrame(const glm::mat4& renderPose) {
+    assert(!_frameActive);
     _frameActive = true;
+    _currentFrame = std::make_shared<Frame>();
+    _currentFrame->pose = renderPose;
+
+    if (!_frameRangeTimer) {
+        _frameRangeTimer = std::make_shared<RangeTimer>();
+    }
 }
 
-void Context::append(Batch& batch) {
+void Context::appendFrameBatch(Batch& batch) {
     if (!_frameActive) {
         qWarning() << "Batch executed outside of frame boundaries";
+        return;
     }
-#ifdef DEFERRED_RENDERING
-    _currentFrame.batches.emplace_back(batch);
-    _currentFrame.stereoStates.emplace_back(_stereo);
-#else
-    _backend->_stereo = _stereo;
-    _backend->render(batch);
-#endif
+    _currentFrame->batches.push_back(batch);
 }
 
-void Context::endFrame() {
-#ifdef DEFERRED_RENDERING
-    if (_frameHandler) {
-        _frameHandler(_currentFrame);
-    }
-#endif
-    _currentFrame = Frame();
+FramePointer Context::endFrame() {
+    assert(_frameActive);
+    auto result = _currentFrame;
+    _currentFrame.reset();
     _frameActive = false;
+
+    result->stereoState = _stereo;
+    result->finish();
+    return result;
 }
 
+void Context::executeBatch(Batch& batch) const {
+    batch.flush();
+    _backend->render(batch);
+}
+
+void Context::recycle() const {
+    _backend->recycle();
+}
+
+void Context::consumeFrameUpdates(const FramePointer& frame) const {
+    frame->preRender();
+}
+
+void Context::executeFrame(const FramePointer& frame) const {
+    // FIXME? probably not necessary, but safe
+    consumeFrameUpdates(frame);
+    _backend->setStereoState(frame->stereoState);
+    {
+        Batch beginBatch;
+        _frameRangeTimer->begin(beginBatch);
+        _backend->render(beginBatch);
+
+        // Execute the frame rendering commands
+        for (auto& batch : frame->batches) {
+            _backend->render(batch);
+        }
+
+        Batch endBatch;
+        _frameRangeTimer->end(endBatch);
+        _backend->render(endBatch);
+    }
+}
 
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     if (shader.isProgram() && _makeProgramCallback) {
@@ -111,18 +131,26 @@ void Context::getStereoViews(mat4* eyeViews) const {
     }
 }
 
-void Context::syncCache() {
-    PROFILE_RANGE(__FUNCTION__);
-    _backend->syncCache();
-}
-
 void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
 
-
 void Context::getStats(ContextStats& stats) const {
     _backend->getStats(stats);
+}
+
+double Context::getFrameTimerGPUAverage() const {
+    if (_frameRangeTimer) {
+        return _frameRangeTimer->getGPUAverage();
+    }
+    return 0.0;
+}
+
+double Context::getFrameTimerBatchAverage() const {
+    if (_frameRangeTimer) {
+        return _frameRangeTimer->getBatchAverage();
+    }
+    return 0.0;
 }
 
 const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& xformView) const {
@@ -160,19 +188,41 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
 }
 
 // Counters for Buffer and Texture usage in GPU/Context
-std::atomic<uint32_t> Context::_bufferGPUCount{ 0 };
-std::atomic<Buffer::Size> Context::_bufferGPUMemoryUsage{ 0 };
+std::atomic<Size> Context::_freeGPUMemory { 0 };
+std::atomic<uint32_t> Context::_fenceCount { 0 };
+std::atomic<uint32_t> Context::_bufferGPUCount { 0 };
+std::atomic<Buffer::Size> Context::_bufferGPUMemoryUsage { 0 };
 
 std::atomic<uint32_t> Context::_textureGPUCount{ 0 };
-std::atomic<Texture::Size> Context::_textureGPUMemoryUsage{ 0 };
-std::atomic<Texture::Size> Context::_textureGPUVirtualMemoryUsage{ 0 };
-std::atomic<uint32_t> Context::_textureGPUTransferCount{ 0 };
+std::atomic<uint32_t> Context::_textureGPUSparseCount { 0 };
+std::atomic<Texture::Size> Context::_textureGPUMemoryUsage { 0 };
+std::atomic<Texture::Size> Context::_textureGPUVirtualMemoryUsage { 0 };
+std::atomic<Texture::Size> Context::_textureGPUFramebufferMemoryUsage { 0 };
+std::atomic<Texture::Size> Context::_textureGPUSparseMemoryUsage { 0 };
+std::atomic<uint32_t> Context::_textureGPUTransferCount { 0 };
+
+void Context::setFreeGPUMemory(Size size) {
+    _freeGPUMemory.store(size);
+}
+
+Size Context::getFreeGPUMemory() {
+    return _freeGPUMemory.load();
+}
+
+Size Context::getUsedGPUMemory() {
+    return getTextureGPUMemoryUsage() + getBufferGPUMemoryUsage();
+};
 
 void Context::incrementBufferGPUCount() {
-    _bufferGPUCount++;
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_bufferGPUCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max GPU buffers " << total;
+    }
 }
 void Context::decrementBufferGPUCount() {
-    _bufferGPUCount--;
+    --_bufferGPUCount;
 }
 void Context::updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
@@ -185,12 +235,42 @@ void Context::updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize
     }
 }
 
+void Context::incrementFenceCount() {
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_fenceCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max Fences " << total;
+    }
+}
+void Context::decrementFenceCount() {
+    --_fenceCount;
+}
+
 void Context::incrementTextureGPUCount() {
-    _textureGPUCount++;
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_textureGPUCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max GPU textures " << total;
+    }
 }
 void Context::decrementTextureGPUCount() {
-    _textureGPUCount--;
+    --_textureGPUCount;
 }
+
+void Context::incrementTextureGPUSparseCount() {
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_textureGPUSparseCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max GPU textures " << total;
+    }
+}
+void Context::decrementTextureGPUSparseCount() {
+    --_textureGPUSparseCount;
+}
+
 void Context::updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
         return;
@@ -213,11 +293,39 @@ void Context::updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newOb
     }
 }
 
-void Context::incrementTextureGPUTransferCount() {
-    _textureGPUTransferCount++;
+void Context::updateTextureGPUFramebufferMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (newObjectSize > prevObjectSize) {
+        _textureGPUFramebufferMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
+    } else {
+        _textureGPUFramebufferMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
+    }
 }
+
+void Context::updateTextureGPUSparseMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (newObjectSize > prevObjectSize) {
+        _textureGPUSparseMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
+    } else {
+        _textureGPUSparseMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
+    }
+}
+
+void Context::incrementTextureGPUTransferCount() {
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_textureGPUTransferCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max GPU textures transfers" << total;
+    }
+}
+
 void Context::decrementTextureGPUTransferCount() {
-    _textureGPUTransferCount--;
+    --_textureGPUTransferCount;
 }
 
 uint32_t Context::getBufferGPUCount() {
@@ -232,6 +340,10 @@ uint32_t Context::getTextureGPUCount() {
     return _textureGPUCount.load();
 }
 
+uint32_t Context::getTextureGPUSparseCount() {
+    return _textureGPUSparseCount.load();
+}
+
 Context::Size Context::getTextureGPUMemoryUsage() {
     return _textureGPUMemoryUsage.load();
 }
@@ -240,16 +352,32 @@ Context::Size Context::getTextureGPUVirtualMemoryUsage() {
     return _textureGPUVirtualMemoryUsage.load();
 }
 
+Context::Size Context::getTextureGPUFramebufferMemoryUsage() {
+    return _textureGPUFramebufferMemoryUsage.load();
+}
+
+Context::Size Context::getTextureGPUSparseMemoryUsage() {
+    return _textureGPUSparseMemoryUsage.load();
+}
+
 uint32_t Context::getTextureGPUTransferCount() {
     return _textureGPUTransferCount.load();
 }
 
+void Backend::setFreeGPUMemory(Size size) { Context::setFreeGPUMemory(size); }
+Resource::Size Backend::getFreeGPUMemory() { return Context::getFreeGPUMemory(); }
 void Backend::incrementBufferGPUCount() { Context::incrementBufferGPUCount(); }
 void Backend::decrementBufferGPUCount() { Context::decrementBufferGPUCount(); }
 void Backend::updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateBufferGPUMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::incrementTextureGPUCount() { Context::incrementTextureGPUCount(); }
 void Backend::decrementTextureGPUCount() { Context::decrementTextureGPUCount(); }
+void Backend::incrementTextureGPUSparseCount() { Context::incrementTextureGPUSparseCount(); }
+void Backend::decrementTextureGPUSparseCount() { Context::decrementTextureGPUSparseCount(); }
 void Backend::updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUVirtualMemoryUsage(prevObjectSize, newObjectSize); }
+void Backend::updateTextureGPUFramebufferMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUFramebufferMemoryUsage(prevObjectSize, newObjectSize); }
+void Backend::updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUSparseMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::incrementTextureGPUTransferCount() { Context::incrementTextureGPUTransferCount(); }
 void Backend::decrementTextureGPUTransferCount() { Context::decrementTextureGPUTransferCount(); }
+
+

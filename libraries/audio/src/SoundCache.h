@@ -23,10 +23,10 @@ class SoundCache : public ResourceCache, public Dependency {
 
 public:
     Q_INVOKABLE SharedSoundPointer getSound(const QUrl& url);
-    
+
 protected:
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra);
+        const void* extra) override;
 private:
     SoundCache(QObject* parent = NULL);
 };

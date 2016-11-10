@@ -30,7 +30,9 @@ public:
 
     virtual void render(RenderArgs* args) override;
     virtual void update(const quint64& now) override;
-    virtual bool needsToCallUpdate() const override { return true; };
+    virtual bool needsToCallUpdate() const override { return true; }
+
+    bool isTransparent() override { return true; }
 
     SIMPLE_RENDERABLE();
 
@@ -47,7 +49,6 @@ protected:
     gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
     QVector<glm::vec3> _vertices;
-
 };
 
 

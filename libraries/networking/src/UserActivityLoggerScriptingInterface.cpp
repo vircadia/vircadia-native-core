@@ -24,6 +24,19 @@ void UserActivityLoggerScriptingInterface::toggledAway(bool isAway) {
     logAction("toggled_away", { { "is_away", isAway } });
 }
 
+void UserActivityLoggerScriptingInterface::tutorialProgress( QString stepName, int stepNumber, float secondsToComplete,
+        float tutorialElapsedTime, QString tutorialRunID, int tutorialVersion) {
+    logAction("tutorial_progress", {
+        { "tutorial_run_id", tutorialRunID },
+        { "tutorial_version", tutorialVersion },
+        { "step", stepName },
+        { "step_number", stepNumber },
+        { "seconds_to_complete", secondsToComplete },
+        { "tutorial_elapsed_seconds", tutorialElapsedTime }
+    });
+
+}
+
 void UserActivityLoggerScriptingInterface::logAction(QString action, QJsonObject details) {
     QMetaObject::invokeMethod(&UserActivityLogger::getInstance(), "logAction",
                               Q_ARG(QString, action),

@@ -12,6 +12,7 @@
 
 #include <QtQml>
 #include <QMenuBar>
+#include <QDebug>
 
 #include "OffscreenUi.h"
 
@@ -56,6 +57,18 @@ public:
         _qml->setProperty("shortcut", _action->shortcut().toString());
         _qml->setProperty("checked", _action->isChecked());
         _qml->setProperty("visible", _action->isVisible());
+    }
+
+    void clear() {
+        _qml->setProperty("checkable", 0);
+        _qml->setProperty("enabled", 0);
+        _qml->setProperty("text", 0);
+        _qml->setProperty("shortcut", 0);
+        _qml->setProperty("checked", 0);
+        _qml->setProperty("visible", 0);
+
+        _action->setUserData(USER_DATA_ID, nullptr);
+        _qml->setUserData(USER_DATA_ID, nullptr);
     }
 
 
@@ -155,7 +168,7 @@ void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
     QObject::connect(qmlAction, SIGNAL(triggered()), action, SLOT(trigger()));
 }
 
-class QQuickMenuItem;
+class QQuickMenuItem1;
 
 void VrMenu::addAction(QMenu* menu, QAction* action) {
     Q_ASSERT(!MenuUserData::hasData(action));
@@ -167,10 +180,9 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     }
     QObject* menuQml = findMenuObject(userData->uuid.toString());
     Q_ASSERT(menuQml);
-    QQuickMenuItem* returnedValue { nullptr };
-    
+    QQuickMenuItem1* returnedValue { nullptr };
     bool invokeResult = QMetaObject::invokeMethod(menuQml, "addItem", Qt::DirectConnection,
-        Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+        Q_RETURN_ARG(QQuickMenuItem1*, returnedValue),
         Q_ARG(QString, action->text()));
 
     Q_ASSERT(invokeResult);
@@ -206,10 +218,10 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
         beforeQml = findMenuObject(beforeUserData->uuid.toString());
     }
     QObject* menu = beforeQml->parent();
-    QQuickMenuItem* returnedValue { nullptr };
+    QQuickMenuItem1* returnedValue { nullptr };
     // FIXME this needs to find the index of the beforeQml item and call insertItem(int, object)
     bool invokeResult = QMetaObject::invokeMethod(menu, "addItem", Qt::DirectConnection,
-        Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+        Q_RETURN_ARG(QQuickMenuItem1*, returnedValue),
         Q_ARG(QString, action->text()));
     Q_ASSERT(invokeResult);
     QObject* result = reinterpret_cast<QObject*>(returnedValue); // returnedValue.value<QObject*>();
@@ -218,6 +230,7 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
 }
 
 class QQuickMenuBase;
+class QQuickMenu1;
 
 void VrMenu::removeAction(QAction* action) {
     if (!action) {
@@ -229,10 +242,7 @@ void VrMenu::removeAction(QAction* action) {
         qWarning("Attempted to remove menu action with no found QML object");
         return;
     }
-    
-    QObject* item = findMenuObject(userData->uuid.toString());
-    QObject* menu = item->parent();
-    // Proxy QuickItem requests through the QML layer
-    QQuickMenuBase* qmlItem = reinterpret_cast<QQuickMenuBase*>(item);
-    QMetaObject::invokeMethod(menu, "removeItem", Qt::DirectConnection, Q_ARG(QQuickMenuBase*, qmlItem));
+
+    userData->clear();
+    delete userData;
 }

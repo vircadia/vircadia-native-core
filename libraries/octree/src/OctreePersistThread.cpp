@@ -34,11 +34,12 @@
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
-OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, int persistInterval,
+OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, const QString& backupDirectory, int persistInterval,
                                          bool wantBackup, const QJsonObject& settings, bool debugTimestampNow,
                                          QString persistAsFileType) :
     _tree(tree),
     _filename(filename),
+    _backupDirectory(backupDirectory),
     _persistInterval(persistInterval),
     _initialLoadComplete(false),
     _loadTimeUSecs(0),
@@ -316,7 +317,7 @@ bool OctreePersistThread::getMostRecentBackup(const QString& format,
 
     // Based on our backup file name, determine the path and file name pattern for backup files
     QFileInfo persistFileInfo(_filename);
-    QString path = persistFileInfo.path();
+    QString path = _backupDirectory;
     QString fileNamePart = persistFileInfo.fileName();
 
     QStringList filters;
@@ -369,10 +370,12 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
         if (rule.maxBackupVersions > 0) {
             qCDebug(octree) << "Rolling old backup versions for rule" << rule.name << "...";
 
+            QString backupFileName = _backupDirectory + "/" + QUrl(_filename).fileName();
+
             // Delete maximum rolling file because rename() fails on Windows if target exists
             QString backupMaxExtensionN = rule.extensionFormat;
             backupMaxExtensionN.replace(QString("%N"), QString::number(rule.maxBackupVersions));
-            QString backupMaxFilenameN = _filename + backupMaxExtensionN;
+            QString backupMaxFilenameN = backupFileName + backupMaxExtensionN;
             QFile backupMaxFileN(backupMaxFilenameN);
             if (backupMaxFileN.exists()) {
                 int result = remove(qPrintable(backupMaxFilenameN));
@@ -387,8 +390,8 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
                 backupExtensionN.replace(QString("%N"), QString::number(n));
                 backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
 
-                QString backupFilenameN = findMostRecentFileExtension(_filename, PERSIST_EXTENSIONS) + backupExtensionN;
-                QString backupFilenameNplusOne = _filename + backupExtensionNplusOne;
+                QString backupFilenameN = findMostRecentFileExtension(backupFileName, PERSIST_EXTENSIONS) + backupExtensionN;
+                QString backupFilenameNplusOne = backupFileName + backupExtensionNplusOne;
 
                 QFile backupFileN(backupFilenameN);
 
@@ -434,20 +437,19 @@ void OctreePersistThread::backup() {
 
                 struct tm* localTime = localtime(&_lastPersistTime);
 
-                QString backupFileName;
+                QString backupFileName = _backupDirectory + "/" + QUrl(_filename).fileName();
             
                 // check to see if they asked for version rolling format
                 if (rule.extensionFormat.contains("%N")) {
                     rollOldBackupVersions(rule); // rename all the old backup files accordingly
                     QString backupExtension = rule.extensionFormat;
                     backupExtension.replace(QString("%N"), QString("1"));
-                    backupFileName = _filename + backupExtension;
+                    backupFileName += backupExtension;
                 } else {
                     char backupExtension[256];
                     strftime(backupExtension, sizeof(backupExtension), qPrintable(rule.extensionFormat), localTime);
-                    backupFileName = _filename + backupExtension;
+                    backupFileName += backupExtension;
                 }
-
 
                 if (rule.maxBackupVersions > 0) {
                     QFile persistFile(_filename);

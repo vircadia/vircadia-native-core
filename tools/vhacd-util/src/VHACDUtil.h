@@ -51,7 +51,7 @@ namespace vhacd {
 
         // Couldn't follow coding guideline here due to virtual function declared in IUserCallback
         void Update(const double overallProgress, const double stageProgress, const double operationProgress,
-            const char * const stage, const char * const operation);
+            const char * const stage, const char * const operation) override;
     };
 }
 

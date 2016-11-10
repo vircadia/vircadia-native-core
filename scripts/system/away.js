@@ -1,8 +1,8 @@
 "use strict";
-/*jslint vars: true, plusplus: true*/
-/*global HMD, AudioDevice, MyAvatar, Controller, Script, Overlays, print*/
+
 //
 //  away.js
+//
 //  examples
 //
 //  Created by Howard Stearns 11/3/15
@@ -13,9 +13,12 @@
 //
 // Goes into "paused" when the '.' key (and automatically when started in HMD), and normal when pressing any key.
 // See MAIN CONTROL, below, for what "paused" actually does.
+
+(function() { // BEGIN LOCAL_SCOPE
+
+var BASIC_TIMER_INTERVAL = 50; // 50ms = 20hz
 var OVERLAY_WIDTH = 1920;
 var OVERLAY_HEIGHT = 1080;
-var OVERLAY_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT;
 var OVERLAY_DATA = {
     width: OVERLAY_WIDTH,
     height: OVERLAY_HEIGHT,
@@ -47,11 +50,29 @@ var AWAY_INTRO = {
     endFrame: 83.0
 };
 
+// MAIN CONTROL
+var isEnabled = true;
+var wasMuted; // unknonwn?
+var isAway = false; // we start in the un-away state
+var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
+var eventMapping = Controller.newMapping(eventMappingName);
+var avatarPosition = MyAvatar.position;
+var wasHmdMounted = HMD.mounted;
+
+
+// some intervals we may create/delete
+var avatarMovedInterval;
+
+
 // prefetch the kneel animation and hold a ref so it's always resident in memory when we need it.
 var _animation = AnimationCache.prefetch(AWAY_INTRO.url);
 
 function playAwayAnimation() {
-    MyAvatar.overrideAnimation(AWAY_INTRO.url, AWAY_INTRO.playbackRate, AWAY_INTRO.loopFlag, AWAY_INTRO.startFrame, AWAY_INTRO.endFrame);
+    MyAvatar.overrideAnimation(AWAY_INTRO.url,
+            AWAY_INTRO.playbackRate,
+            AWAY_INTRO.loopFlag,
+            AWAY_INTRO.startFrame,
+            AWAY_INTRO.endFrame);
 }
 
 function stopAwayAnimation() {
@@ -74,8 +95,6 @@ function moveCloserToCamera(positionAtHUD) {
 }
 
 function showOverlay() {
-    var properties = {visible: true};
-
     if (HMD.active) {
         // make sure desktop version is hidden
         Overlays.editOverlay(overlay, { visible: false });
@@ -121,48 +140,35 @@ function maybeMoveOverlay() {
             var halfWayBetweenOldAndLookAt = Vec3.multiply(lookAtChange, EASE_BY_RATIO);
             var newOverlayPosition = Vec3.sum(lastOverlayPosition, halfWayBetweenOldAndLookAt);
             lastOverlayPosition = newOverlayPosition;
-
             var actualOverlayPositon = moveCloserToCamera(lastOverlayPosition);
             Overlays.editOverlay(overlayHMD, { visible: true, position: actualOverlayPositon });
 
             // make sure desktop version is hidden
             Overlays.editOverlay(overlay, { visible: false });
+
+            // also remember avatar position
+            avatarPosition = MyAvatar.position;
+
         }
     }
 }
 
 function ifAvatarMovedGoActive() {
-    if (Vec3.distance(MyAvatar.position, avatarPosition) > AVATAR_MOVE_FOR_ACTIVE_DISTANCE) {
+    var newAvatarPosition = MyAvatar.position;
+    if (Vec3.distance(newAvatarPosition, avatarPosition) > AVATAR_MOVE_FOR_ACTIVE_DISTANCE) {
         goActive();
     }
+    avatarPosition = newAvatarPosition;
 }
 
-// MAIN CONTROL
-var wasMuted, isAway;
-var wasOverlaysVisible = Menu.isOptionChecked("Overlays");
-var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
-var eventMapping = Controller.newMapping(eventMappingName);
-var avatarPosition = MyAvatar.position;
-
-// backward compatible version of getting HMD.mounted, so it works in old clients
-function safeGetHMDMounted() {
-    if (HMD.mounted === undefined) {
-        return true;
-    }
-    return HMD.mounted;
-}
-
-var wasHmdMounted = safeGetHMDMounted();
-
-function goAway() {
-    if (isAway) {
+function goAway(fromStartup) {
+    if (!isEnabled || isAway) {
         return;
     }
 
     UserActivityLogger.toggledAway(true);
 
     isAway = true;
-    print('going "away"');
     wasMuted = AudioDevice.getMuted();
     if (!wasMuted) {
         AudioDevice.toggleMute();
@@ -171,11 +177,7 @@ function goAway() {
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
 
-    // remember the View > Overlays state...
-    wasOverlaysVisible = Menu.isOptionChecked("Overlays");
-
-    // show overlays so that people can see the "Away" message
-    Menu.setIsOptionChecked("Overlays", true);
+    HMD.requestShowHandControllers();
 
     // tell the Reticle, we want to stop capturing the mouse until we come back
     Reticle.allowMouseCapture = false;
@@ -184,10 +186,21 @@ function goAway() {
     // For HMD, the hmd preview will show the system mouse because of allowMouseCapture,
     // but we want to turn off our Reticle so that we don't get two in preview and a stuck one in headset.
     Reticle.visible = !HMD.active;
-    wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
+    wasHmdMounted = HMD.mounted; // always remember the correct state
 
     avatarPosition = MyAvatar.position;
-    Script.update.connect(ifAvatarMovedGoActive);
+
+    // If we're entering away mode from some other state than startup, then we create our move timer immediately.
+    // However if we're just stating up, we need to delay this process so that we don't think the initial teleport
+    // is actually a move.
+    if (fromStartup === undefined || fromStartup === false) {
+        avatarMovedInterval = Script.setInterval(ifAvatarMovedGoActive, BASIC_TIMER_INTERVAL);
+    } else {
+        var WAIT_FOR_MOVE_ON_STARTUP = 3000; // 3 seconds
+        Script.setTimeout(function() {
+            avatarMovedInterval = Script.setInterval(ifAvatarMovedGoActive, BASIC_TIMER_INTERVAL);
+        }, WAIT_FOR_MOVE_ON_STARTUP);
+    }
 }
 
 function goActive() {
@@ -198,12 +211,13 @@ function goActive() {
     UserActivityLogger.toggledAway(false);
 
     isAway = false;
-    print('going "active"');
     if (!wasMuted) {
         AudioDevice.toggleMute();
     }
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
+
+    HMD.requestHideHandControllers();
 
     // update the UI sphere to be centered about the current HMD orientation.
     HMD.centerUI();
@@ -216,18 +230,15 @@ function goActive() {
 
     hideOverlay();
 
-    // restore overlays state to what it was when we went "away"
-    Menu.setIsOptionChecked("Overlays", wasOverlaysVisible);
-
     // tell the Reticle, we are ready to capture the mouse again and it should be visible
     Reticle.allowMouseCapture = true;
     Reticle.visible = true;
     if (HMD.active) {
         Reticle.position = HMD.getHUDLookAtPosition2D();
     }
-    wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
+    wasHmdMounted = HMD.mounted; // always remember the correct state
 
-    Script.update.disconnect(ifAvatarMovedGoActive);
+    Script.clearInterval(avatarMovedInterval);
 }
 
 function maybeGoActive(event) {
@@ -245,33 +256,68 @@ var wasHmdActive = HMD.active;
 var wasMouseCaptured = Reticle.mouseCaptured;
 
 function maybeGoAway() {
+    // If our active state change (went to or from HMD mode), and we are now in the HMD, go into away
     if (HMD.active !== wasHmdActive) {
         wasHmdActive = !wasHmdActive;
         if (wasHmdActive) {
             goAway();
+            return;
         }
     }
 
-    // If the mouse has gone from captured, to non-captured state, then it likely means the person is still in the HMD, but
-    // tabbed away from the application (meaning they don't have mouse control) and they likely want to go into an away state
+    // If the mouse has gone from captured, to non-captured state, then it likely means the person is still in the HMD,
+    // but tabbed away from the application (meaning they don't have mouse control) and they likely want to go into
+    // an away state
     if (Reticle.mouseCaptured !== wasMouseCaptured) {
         wasMouseCaptured = !wasMouseCaptured;
         if (!wasMouseCaptured) {
             goAway();
+            return;
         }
     }
 
     // If you've removed your HMD from your head, and we can detect it, we will also go away...
-    var hmdMounted = safeGetHMDMounted();
-    if (HMD.active && !hmdMounted && wasHmdMounted) {
-        wasHmdMounted = hmdMounted;
-        goAway();
+    if (HMD.mounted != wasHmdMounted) {
+        wasHmdMounted = HMD.mounted;
+        print("HMD mounted changed...");
+
+        // We're putting the HMD on... switch to those devices
+        if (HMD.mounted) {
+            print("NOW mounted...");
+        } else {
+            print("HMD NOW un-mounted...");
+
+            if (HMD.active) {
+                goAway();
+                return;
+            }
+        }
     }
 }
 
-Script.update.connect(maybeMoveOverlay);
+function setEnabled(value) {
+    if (!value) {
+        goActive();
+    }
+    isEnabled = value;
+}
 
-Script.update.connect(maybeGoAway);
+var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+var handleMessage = function(channel, message, sender) {
+    if (channel === CHANNEL_AWAY_ENABLE && sender === MyAvatar.sessionUUID) {
+        print("away.js | Got message on Hifi-Away-Enable: ", message);
+        setEnabled(message === 'enable');
+    }
+}
+Messages.subscribe(CHANNEL_AWAY_ENABLE);
+Messages.messageReceived.connect(handleMessage);
+
+var maybeIntervalTimer = Script.setInterval(function(){
+    maybeMoveOverlay();
+    maybeGoAway();
+}, BASIC_TIMER_INTERVAL);
+
+
 Controller.mousePressEvent.connect(goActive);
 Controller.keyPressEvent.connect(maybeGoActive);
 // Note peek() so as to not interfere with other mappings.
@@ -292,9 +338,19 @@ eventMapping.from(Controller.Standard.Start).peek().to(goActive);
 Controller.enableMapping(eventMappingName);
 
 Script.scriptEnding.connect(function () {
-    Script.update.disconnect(maybeGoAway);
+    Script.clearInterval(maybeIntervalTimer);
     goActive();
     Controller.disableMapping(eventMappingName);
     Controller.mousePressEvent.disconnect(goActive);
     Controller.keyPressEvent.disconnect(maybeGoActive);
+    Messages.messageReceived.disconnect(handleMessage);
+    Messages.unsubscribe(CHANNEL_AWAY_ENABLE);
 });
+
+if (HMD.active && !HMD.mounted) {
+    print("Starting script, while HMD is active and not mounted...");
+    goAway(true);
+}
+
+
+}()); // END LOCAL_SCOPE

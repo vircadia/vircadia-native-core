@@ -9,9 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "Texture.h"
 
 #include <glm/gtc/constants.hpp>
+#include <glm/gtx/component_wise.hpp>
+
+#include <QtCore/QDebug>
+#include <QtCore/QThread>
 
 #include <NumericalConstants.h>
 
@@ -28,6 +33,42 @@ std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
 std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
+
+#define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
+bool recommendedIncrementalTransfers = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
+bool recommendedSparseTextures = recommendedIncrementalTransfers;
+
+std::atomic<bool> Texture::_enableSparseTextures { recommendedIncrementalTransfers };
+std::atomic<bool> Texture::_enableIncrementalTextureTransfers { recommendedSparseTextures };
+
+struct ReportTextureState {
+    ReportTextureState() {
+        qDebug() << "[TEXTURE TRANSFER SUPPORT]"
+            << "\n\tidealThreadCount:" << QThread::idealThreadCount()
+            << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures
+            << "\n\tRECOMMENDED enableIncrementalTextures:" << recommendedIncrementalTransfers;
+    }
+} report;
+
+void Texture::setEnableSparseTextures(bool enabled) {
+#ifdef Q_OS_WIN
+    qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
+    _enableSparseTextures = enabled;
+#else
+    qDebug() << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
+#endif
+}
+
+void Texture::setEnableIncrementalTextureTransfers(bool enabled) {
+#ifdef Q_OS_WIN
+    qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Incremental Texture Transfer:" << enabled;
+    _enableIncrementalTextureTransfers = enabled;
+#else
+    qDebug() << "[TEXTURE TRANSFER SUPPORT] Incremental Texture Transfer not supported on this platform.";
+#endif
+}
+
+
 void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
         return;
@@ -37,6 +78,14 @@ void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSiz
     } else {
         _textureCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
     }
+}
+
+bool Texture::getEnableSparseTextures() { 
+    return _enableSparseTextures.load(); 
+}
+
+bool Texture::getEnableIncrementalTextureTransfers() { 
+    return _enableIncrementalTextureTransfers.load(); 
 }
 
 uint32_t Texture::getTextureCPUCount() {
@@ -51,12 +100,25 @@ uint32_t Texture::getTextureGPUCount() {
     return Context::getTextureGPUCount();
 }
 
+uint32_t Texture::getTextureGPUSparseCount() {
+    return Context::getTextureGPUSparseCount();
+}
+
 Texture::Size Texture::getTextureGPUMemoryUsage() {
     return Context::getTextureGPUMemoryUsage();
 }
 
 Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
     return Context::getTextureGPUVirtualMemoryUsage();
+}
+
+
+Texture::Size Texture::getTextureGPUFramebufferMemoryUsage() {
+    return Context::getTextureGPUFramebufferMemoryUsage();
+}
+
+Texture::Size Texture::getTextureGPUSparseMemoryUsage() {
+    return Context::getTextureGPUSparseMemoryUsage();
 }
 
 uint32_t Texture::getTextureGPUTransferCount() {
@@ -207,6 +269,16 @@ bool Texture::Storage::assignMipFaceData(uint16 level, const Element& format, Si
     return allocated == size;
 }
 
+Texture* Texture::createExternal2D(const ExternalRecycler& recycler, const Sampler& sampler) {
+    Texture* tex = new Texture();
+    tex->_type = TEX_2D;
+    tex->_maxMip = 0;
+    tex->_sampler = sampler;
+    tex->setUsage(Usage::Builder().withExternal().withColor());
+    tex->setExternalRecycler(recycler);
+    return tex;
+}
+
 Texture* Texture::create1D(const Element& texelFormat, uint16 width, const Sampler& sampler) { 
     return create(TEX_1D, texelFormat, width, 1, 1, 1, 1, sampler);
 }
@@ -246,6 +318,22 @@ Texture::Texture():
 Texture::~Texture()
 {
     _textureCPUCount--;
+    if (getUsage().isExternal()) {
+        Texture::ExternalUpdates externalUpdates;
+        {
+            Lock lock(_externalMutex);
+            _externalUpdates.swap(externalUpdates);
+        }
+        for (const auto& update : externalUpdates) {
+            assert(_externalRecycler);
+            _externalRecycler(update.first, update.second);
+        }
+        // Force the GL object to be destroyed here
+        // If we let the normal destructor do it, then it will be 
+        // cleared after the _externalRecycler has been destroyed, 
+        // resulting in leaked texture memory
+        gpuObject.setGPUObject(nullptr);
+    }
 }
 
 Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices) {
@@ -340,12 +428,18 @@ uint16 Texture::evalDimNumMips(uint16 size) {
     return 1 + (uint16) val;
 }
 
+static const double LOG_2 = log(2.0);
+
+uint16 Texture::evalNumMips(const Vec3u& dimensions) {
+    double largerDim = glm::compMax(dimensions);
+    double val = log(largerDim) / LOG_2;
+    return 1 + (uint16)val;
+}
+
 // The number mips that the texture could have if all existed
 // = log2(max(width, height, depth))
 uint16 Texture::evalNumMips() const {
-    double largerDim = std::max(std::max(_width, _height), _depth);
-    double val = log(largerDim)/log(2.0);
-    return 1 + (uint16) val;
+    return evalNumMips({ _width, _height, _depth });
 }
 
 bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes) {
@@ -363,6 +457,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
     Size expectedSize = evalStoredMipSize(level, format);
     if (size == expectedSize) {
         _storage->assignMipData(level, format, size, bytes);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     } else if (size > expectedSize) {
@@ -371,6 +466,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
         // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
         // it seems to work...
         _storage->assignMipData(level, format, size, bytes);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     }
@@ -674,6 +770,10 @@ void sphericalHarmonicsEvaluateDirection(float * result, int order,  const glm::
 }
 
 bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<glm::vec3> & output, const uint order) {
+    int width = cubeTexture.getWidth();
+    if(width != cubeTexture.getHeight()) {
+        return false;
+    }
     const uint sqOrder = order*order;
 
     // allocate memory for calculations
@@ -681,8 +781,6 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     std::vector<float> resultR(sqOrder);
     std::vector<float> resultG(sqOrder);
     std::vector<float> resultB(sqOrder);
-
-    int width, height;
 
     // initialize values
     float fWt = 0.0f;
@@ -694,13 +792,16 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     }
     std::vector<float> shBuff(sqOrder);
     std::vector<float> shBuffB(sqOrder);
-    // get width and height
-    width = height = cubeTexture.getWidth();
-    if(width != height) {
-        return false;
-    }
 
-    const float UCHAR_TO_FLOAT = 1.0f / float(std::numeric_limits<unsigned char>::max());
+    // We trade accuracy for speed by breaking the image into 32x32 parts
+    // and approximating the distance for all the pixels in each part to be
+    // the distance to the part's center.
+    int numDivisionsPerSide = 32;
+    if (width < numDivisionsPerSide) {
+        numDivisionsPerSide = width;
+    }
+    int stride = width / numDivisionsPerSide;
+    int halfStride = stride / 2;
 
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
@@ -718,11 +819,11 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
         // step between two texels for range [-1, 1]
         float invWidthBy2 = 2.0f / float(width);
 
-        for(int y=0; y < width; y++) {
+        for(int y=halfStride; y < width-halfStride; y += stride) {
             // texture coordinate V in range [-1 to 1]
             const float fV = negativeBound + float(y) * invWidthBy2;
 
-            for(int x=0; x < width; x++) {
+            for(int x=halfStride; x < width - halfStride; x += stride) {
                 // texture coordinate U in range [-1 to 1]
                 const float fU = negativeBound + float(x) * invWidthBy2;
 
@@ -785,35 +886,37 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                 sphericalHarmonicsEvaluateDirection(shBuff.data(), order, dir);
 
                 // index of texel in texture
-                uint pixOffsetIndex = (x + y * width) * numComponents;
 
                 // get color from texture and map to range [0, 1]
-                glm::vec3 clr(float(data[pixOffsetIndex]) * UCHAR_TO_FLOAT,
-                            float(data[pixOffsetIndex+1]) * UCHAR_TO_FLOAT,
-                            float(data[pixOffsetIndex+2]) * UCHAR_TO_FLOAT);
-
-                // Gamma correct
-                clr = ColorUtils::sRGBToLinearVec3(clr);
+                float red { 0.0f };
+                float green { 0.0f };
+                float blue { 0.0f };
+                for (int i = 0; i < stride; ++i) {
+                    for (int j = 0; j < stride; ++j) {
+                        int k = (int)(x + i - halfStride + (y + j - halfStride) * width) * numComponents;
+                        red += ColorUtils::sRGB8ToLinearFloat(data[k]);
+                        green += ColorUtils::sRGB8ToLinearFloat(data[k + 1]);
+                        blue += ColorUtils::sRGB8ToLinearFloat(data[k + 2]);
+                    }
+                }
+                glm::vec3 clr(red, green, blue);
 
                 // scale color and add to previously accumulated coefficients
-                sphericalHarmonicsScale(shBuffB.data(), order,
-                        shBuff.data(), clr.r * fDiffSolid);
-                sphericalHarmonicsAdd(resultR.data(), order,
-                        resultR.data(), shBuffB.data());
-                sphericalHarmonicsScale(shBuffB.data(), order,
-                        shBuff.data(), clr.g * fDiffSolid);
-                sphericalHarmonicsAdd(resultG.data(), order,
-                        resultG.data(), shBuffB.data());
-                sphericalHarmonicsScale(shBuffB.data(), order,
-                        shBuff.data(), clr.b * fDiffSolid);
-                sphericalHarmonicsAdd(resultB.data(), order,
-                        resultB.data(), shBuffB.data());
+                // red
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.r * fDiffSolid);
+                sphericalHarmonicsAdd(resultR.data(), order, resultR.data(), shBuffB.data());
+                // green
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.g * fDiffSolid);
+                sphericalHarmonicsAdd(resultG.data(), order, resultG.data(), shBuffB.data());
+                // blue
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.b * fDiffSolid);
+                sphericalHarmonicsAdd(resultB.data(), order, resultB.data(), shBuffB.data());
             }
         }
     }
 
     // final scale for coefficients
-    const float fNormProj = (4.0f * glm::pi<float>()) / fWt;
+    const float fNormProj = (4.0f * glm::pi<float>()) / (fWt * (float)(stride * stride));
     sphericalHarmonicsScale(resultR.data(), order, resultR.data(), fNormProj);
     sphericalHarmonicsScale(resultG.data(), order, resultG.data(), fNormProj);
     sphericalHarmonicsScale(resultB.data(), order, resultB.data(), fNormProj);
@@ -885,11 +988,28 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     return glm::max(dimensions, Vec3u(1));
 }
 
-std::function<uint32(const gpu::Texture& texture)> TEXTURE_ID_RESOLVER;
+void Texture::setExternalRecycler(const ExternalRecycler& recycler) { 
+    Lock lock(_externalMutex);
+    _externalRecycler = recycler;
+}
 
-uint32 Texture::getHardwareId() const {
-    if (TEXTURE_ID_RESOLVER) {
-        return TEXTURE_ID_RESOLVER(*this);
+Texture::ExternalRecycler Texture::getExternalRecycler() const {
+    Lock lock(_externalMutex);
+    Texture::ExternalRecycler result = _externalRecycler;
+    return result;
+}
+
+void Texture::setExternalTexture(uint32 externalId, void* externalFence) {
+    Lock lock(_externalMutex);
+    assert(_externalRecycler);
+    _externalUpdates.push_back({ externalId, externalFence });
+}
+
+Texture::ExternalUpdates Texture::getUpdates() const {
+    Texture::ExternalUpdates result;
+    {
+        Lock lock(_externalMutex);
+        _externalUpdates.swap(result);
     }
-    return 0;
+    return result;
 }

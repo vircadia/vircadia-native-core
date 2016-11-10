@@ -15,6 +15,7 @@
 
 #include "DeferredLightingEffect.h"
 #include "Model.h"
+#include "EntityItem.h"
 
 using namespace render;
 
@@ -45,11 +46,9 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform) {
-
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     updateMaterial(material);
-    updateTransform(transform, offsetTransform);
 }
 
 void MeshPartPayload::updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex) {
@@ -348,10 +347,8 @@ void ModelMeshPartPayload::initCache() {
     auto networkMaterial = _model->getGeometry()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
         _drawMaterial = networkMaterial;
-    };
-
+    }
 }
-
 
 void ModelMeshPartPayload::notifyLocationChanged() {
 
@@ -392,11 +389,20 @@ ItemKey ModelMeshPartPayload::getKey() const {
         }
     }
 
+    if (!_hasFinishedFade) {
+        builder.withTransparent();
+    }
+
     return builder.build();
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
-    assert(_model->isLoaded());
+
+    // guard against partially loaded meshes
+    if (!_model || !_model->isLoaded() || !_model->getGeometry()) {
+        return ShapeKey::Builder::invalid();
+    }
+
     const FBXGeometry& geometry = _model->getFBXGeometry();
     const auto& networkMeshes = _model->getGeometry()->getMeshes();
 
@@ -410,8 +416,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
     if (_meshIndex < 0 || _meshIndex >= (int)networkMeshes.size() || _meshIndex > geometry.meshes.size()) {
-        _model->_meshGroupsKnown = false; // regenerate these lists next time around.
-        _model->_readyWhenAdded = false; // in case any of our users are using scenes
+        _model->_needsFixupInScene = true; // trigger remove/add cycle
         _model->invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
         return ShapeKey::Builder::invalid();
     }
@@ -443,7 +448,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent) {
+    if (isTranslucent || !_hasFinishedFade) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -484,9 +489,9 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+    if (!_hasColorAttrib || fadeRatio < 1.0f) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
     }
 }
 
@@ -513,12 +518,46 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(transform);
 }
 
+void ModelMeshPartPayload::startFade() {
+    bool shouldFade = EntityItem::getEntitiesShouldFadeFunction()();
+    if (shouldFade) {
+        _fadeStartTime = usecTimestampNow();
+        _hasStartedFade = true;
+        _hasFinishedFade = false;
+    } else {
+        _isFading = true;
+        _hasStartedFade = true;
+        _hasFinishedFade = true;
+    }
+}
 
 void ModelMeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!_model->_readyWhenAdded || !_model->_isVisible) {
+    if (!_model->addedToScene() || !_model->isVisible()) {
         return; // bail asap
+    }
+
+    // If we didn't start the fade in, check if we are ready to now....
+    if (!_hasStartedFade && _model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
+        const_cast<ModelMeshPartPayload&>(*this).startFade();
+    }
+
+    // If we still didn't start the fade in, bail
+    if (!_hasStartedFade) {
+        return;
+    }
+
+
+    // When an individual mesh parts like this finishes its fade, we will mark the Model as 
+    // having render items that need updating
+    bool nextIsFading = _isFading ? isStillFading() : false;
+    bool startFading = !_isFading && !_hasFinishedFade && _hasStartedFade;
+    bool endFading = _isFading && !nextIsFading;
+    if (startFading || endFading) {
+        _isFading = startFading;
+        _hasFinishedFade = endFading;
+        _model->setRenderItemsNeedUpdate();
     }
 
     gpu::Batch& batch = *(args->_batch);

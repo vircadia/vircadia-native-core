@@ -16,9 +16,6 @@
 #include <QtCore/QString>
 #include <QtScript/QScriptValue>
 
-class WebWindowClass;
-
-
 class CustomPromptResult {
 public:
     QVariant value;
@@ -53,16 +50,18 @@ public slots:
     CustomPromptResult customPrompt(const QVariant& config);
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
+    void takeSnapshot(bool notify = true, float aspectRatio = 0.0f);
+    void shareSnapshot(const QString& path);
+    bool isPhysicsEnabled();
 
 signals:
     void domainChanged(const QString& domainHostname);
     void svoImportRequested(const QString& url);
-    void domainConnectionRefused(const QString& reasonMessage, int reasonCode);
-    void snapshotTaken(const QString& path);
-
-private slots:
-    WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
+    void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
+    void snapshotTaken(const QString& path, bool notify);
+    void snapshotShared(const QString& error);
 
 private:
     QString getPreviousBrowseLocation() const;

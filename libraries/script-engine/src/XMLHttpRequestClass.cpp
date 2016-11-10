@@ -45,6 +45,7 @@ XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
     _timer(this),
     _numRedirects(0) {
 
+    _request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     _timer.setSingleShot(true);
 }
 
@@ -142,13 +143,13 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
         if (url.toLower().left(METAVERSE_API_URL.length()) == METAVERSE_API_URL) {
             auto accountManager = DependencyManager::get<AccountManager>();
                 
-            if (accountManager->hasValidAccessToken()) {
-                QUrlQuery urlQuery(_url.query());
-                urlQuery.addQueryItem("access_token", accountManager->getAccountInfo().getAccessToken().token);
-                _url.setQuery(urlQuery);
+            if (_url.scheme() == "https" && accountManager->hasValidAccessToken()) {
+                static const QString HTTP_AUTHORIZATION_HEADER = "Authorization";
+                QString bearerString = "Bearer " + accountManager->getAccountInfo().getAccessToken().token;
+                _request.setRawHeader(HTTP_AUTHORIZATION_HEADER.toLocal8Bit(), bearerString.toLocal8Bit());
             }
-                
         }
+
         if (!username.isEmpty()) {
             _url.setUserName(username);
         }

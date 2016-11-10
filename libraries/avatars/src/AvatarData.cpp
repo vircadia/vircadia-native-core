@@ -53,15 +53,18 @@ namespace AvatarDataPacket {
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
     PACKED_BEGIN struct Header {
-        float position[3];            // skeletal model's position
-        float globalPosition[3];      // avatar's position
-        uint16_t localOrientation[3]; // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
-        uint16_t scale;               // (compressed) 'ratio' encoding uses sign bit as flag.
-        float lookAtPosition[3];      // world space position that eyes are focusing on.
-        float audioLoudness;          // current loundess of microphone
+        float position[3];                // skeletal model's position
+        float globalPosition[3];          // avatar's position
+        uint16_t localOrientation[3];     // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
+        uint16_t scale;                   // (compressed) 'ratio' encoding uses sign bit as flag.
+        float lookAtPosition[3];          // world space position that eyes are focusing on.
+        float audioLoudness;              // current loundess of microphone
+        uint8_t sensorToWorldQuat[6];     // 6 byte compressed quaternion part of sensor to world matrix
+        uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
+        float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
         uint8_t flags;
     } PACKED_END;
-    const size_t HEADER_SIZE = 49;
+    const size_t HEADER_SIZE = 69;
 
     // only present if HAS_REFERENTIAL flag is set in header.flags
     PACKED_BEGIN struct ParentInfo {
@@ -92,6 +95,9 @@ namespace AvatarDataPacket {
     };
     */
 }
+
+static const int TRANSLATION_COMPRESSION_RADIX = 12;
+static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
@@ -209,6 +215,14 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     header->lookAtPosition[1] = _headData->_lookAtPosition.y;
     header->lookAtPosition[2] = _headData->_lookAtPosition.z;
     header->audioLoudness = _headData->_audioLoudness;
+
+    glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+    packOrientationQuatToSixBytes(header->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
+    glm::vec3 scale = extractScale(sensorToWorldMatrix);
+    packFloatScalarToSignedTwoByteFixed((uint8_t*)&header->sensorToWorldScale, scale.x, SENSOR_TO_WORLD_SCALE_RADIX);
+    header->sensorToWorldTrans[0] = sensorToWorldMatrix[3][0];
+    header->sensorToWorldTrans[1] = sensorToWorldMatrix[3][1];
+    header->sensorToWorldTrans[2] = sensorToWorldMatrix[3][2];
 
     setSemiNibbleAt(header->flags, KEY_STATE_START_BIT, _keyState);
     // hand state
@@ -346,8 +360,6 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         *destinationBuffer++ = validity;
     }
 
-    const int TRANSLATION_COMPRESSION_RADIX = 12;
-
     validityBit = 0;
     validity = *validityPosition++;
     for (int i = 0; i < _jointData.size(); i ++) {
@@ -361,6 +373,16 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
             validity = *validityPosition++;
         }
     }
+
+    // faux joints
+    Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
+    destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerLeftHandTransform.getRotation());
+    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerLeftHandTransform.getTranslation(),
+                                                           TRANSLATION_COMPRESSION_RADIX);
+    Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
+    destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerRightHandTransform.getRotation());
+    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
+                                                           TRANSLATION_COMPRESSION_RADIX);
 
     #ifdef WANT_DEBUG
     if (sendAll) {
@@ -416,6 +438,20 @@ bool AvatarData::shouldLogError(const quint64& now) {
     }
     return false;
 }
+
+
+const unsigned char* unpackFauxJoint(const unsigned char* sourceBuffer, ThreadSafeValueCache<glm::mat4>& matrixCache) {
+    glm::quat orientation;
+    glm::vec3 position;
+    Transform transform;
+    sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, orientation);
+    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, position, TRANSLATION_COMPRESSION_RADIX);
+    transform.setTranslation(position);
+    transform.setRotation(orientation);
+    matrixCache.set(transform.getMatrix());
+    return sourceBuffer;
+}
+
 
 #define PACKET_READ_CHECK(ITEM_NAME, SIZE_TO_READ)                                        \
     if ((endPosition - sourceBuffer) < (int)SIZE_TO_READ) {                               \
@@ -499,6 +535,15 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         return buffer.size();
     }
     _headData->_audioLoudness = audioLoudness;
+
+    glm::quat sensorToWorldQuat;
+    unpackOrientationQuatFromSixBytes(header->sensorToWorldQuat, sensorToWorldQuat);
+    float sensorToWorldScale;
+    unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&header->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
+    glm::vec3 sensorToWorldTrans(header->sensorToWorldTrans[0], header->sensorToWorldTrans[1], header->sensorToWorldTrans[2]);
+    glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
+
+    _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
 
     { // bitFlags and face data
         uint8_t bitItems = header->flags;
@@ -616,7 +661,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     // each joint translation component is stored in 6 bytes.
     const int COMPRESSED_TRANSLATION_SIZE = 6;
     PACKET_READ_CHECK(JointTranslation, numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE);
-    const int TRANSLATION_COMPRESSION_RADIX = 12;
 
     for (int i = 0; i < numJoints; i++) {
         JointData& data = _jointData[i];
@@ -634,6 +678,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
                  << "size:" << (int)(sourceBuffer - startPosition);
     }
     #endif
+
+    // faux joints
+    sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerLeftHandMatrixCache);
+    sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerRightHandMatrixCache);
 
     int numBytesRead = sourceBuffer - startPosition;
     _averageBytesReceived.updateAverage(numBytesRead);
@@ -895,7 +943,24 @@ void AvatarData::clearJointsData() {
     }
 }
 
+int AvatarData::getFauxJointIndex(const QString& name) const {
+    if (name == "_SENSOR_TO_WORLD_MATRIX") {
+        return SENSOR_TO_WORLD_MATRIX_INDEX;
+    }
+    if (name == "_CONTROLLER_LEFTHAND") {
+        return CONTROLLER_LEFTHAND_INDEX;
+    }
+    if (name == "_CONTROLLER_RIGHTHAND") {
+        return CONTROLLER_RIGHTHAND_INDEX;
+    }
+    return -1;
+}
+
 int AvatarData::getJointIndex(const QString& name) const {
+    int result = getFauxJointIndex(name);
+    if (result != -1) {
+        return result;
+    }
     QReadLocker readLock(&_jointDataLock);
     return _jointIndices.value(name) - 1;
 }
@@ -911,10 +976,16 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
     packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.avatarEntityData;
 }
 
+static const QUrl emptyURL("");
+const QUrl& AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) {
+    // We don't put file urls on the wire, but instead convert to empty.
+    return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
+}
+
 bool AvatarData::processAvatarIdentity(const Identity& identity) {
     bool hasIdentityChanged = false;
 
-    if (_firstSkeletonCheck || (identity.skeletonModelURL != _skeletonModelURL)) {
+    if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
         hasIdentityChanged = true;
         _firstSkeletonCheck = false;
@@ -945,8 +1016,7 @@ bool AvatarData::processAvatarIdentity(const Identity& identity) {
 QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    QUrl emptyURL("");
-    const QUrl& urlToSend = _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
+    const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL);
 
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _avatarEntityData;
@@ -1141,6 +1211,7 @@ void AvatarData::updateJointMappings() {
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
+        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
         connect(networkReply, &QNetworkReply::finished, this, &AvatarData::setJointMappingsFromNetworkReply);
@@ -1638,7 +1709,9 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
     for (const auto& attachmentVar : variant) {
         AttachmentData attachment;
         attachment.fromVariant(attachmentVar);
-        newAttachments.append(attachment);
+        if (!attachment.modelURL.isEmpty()) {
+            newAttachments.append(attachment);
+        }
     }
     setAttachmentData(newAttachments);
 }
@@ -1705,7 +1778,7 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
     AvatarEntityIDs result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(AvatarEntityIDs, result));
         return result;
     }
@@ -1715,6 +1788,22 @@ AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
     });
     return result;
 }
+
+// thread-safe
+glm::mat4 AvatarData::getSensorToWorldMatrix() const {
+    return _sensorToWorldMatrixCache.get();
+}
+
+// thread-safe
+glm::mat4 AvatarData::getControllerLeftHandMatrix() const {
+    return _controllerLeftHandMatrixCache.get();
+}
+
+// thread-safe
+glm::mat4 AvatarData::getControllerRightHandMatrix() const {
+    return _controllerRightHandMatrixCache.get();
+}
+
 
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
     QScriptValue obj = engine->newObject();

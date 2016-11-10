@@ -115,6 +115,9 @@ private:
     void startWatching();
     void stopWatching();
 
+signals:
+    void finished(bool success);
+
 private slots:
     void resourceFinished(bool success);
     void resourceRefreshed();
@@ -137,7 +140,7 @@ protected:
     friend class GeometryMappingResource;
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra);
+        const void* extra) override;
 
 private:
     ModelCache();

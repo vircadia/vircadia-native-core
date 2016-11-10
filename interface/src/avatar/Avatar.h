@@ -184,6 +184,8 @@ public slots:
     glm::vec3 getRightPalmPosition() const;
     glm::quat getRightPalmRotation() const;
 
+    void setModelURLFinished(bool success);
+
 protected:
     friend class AvatarManager;
 
@@ -246,6 +248,9 @@ protected:
     ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
 private:
+    int _leftPointerGeometryID { 0 };
+    int _rightPointerGeometryID { 0 };
+    int _nameRectGeometryID { 0 };
     bool _initialized;
     bool _shouldAnimate { true };
     bool _shouldSkipRender { false };

@@ -37,6 +37,11 @@ public:
 
     bool isThreaded() const { return _isThreaded; }
 
+    /// Override this function to do whatever your class actually does, return false to exit thread early.
+    virtual bool process() = 0;
+    virtual void setup() {};
+    virtual void shutdown() {};
+
 public slots:
     /// If you're running in non-threaded mode, you must call this regularly
     void threadRoutine();
@@ -45,10 +50,6 @@ signals:
     void finished();
 
 protected:
-    /// Override this function to do whatever your class actually does, return false to exit thread early.
-    virtual bool process() = 0;
-    virtual void setup() {};
-    virtual void shutdown() {};
 
     /// Locks all the resources of the thread.
     void lock() { _mutex.lock(); }

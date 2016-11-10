@@ -13,8 +13,44 @@
 #ifndef hifi_SteamClient_h
 #define hifi_SteamClient_h
 
-class SteamClient {
+#include <functional>
 
+#include <QtCore/QObject>
+#include <QtCore/QByteArray>
+
+using Ticket = QByteArray;
+using TicketRequestCallback = std::function<void(Ticket)>;
+
+class QUrl;
+
+class SteamClient {
+public:
+    static bool isRunning();
+
+    static bool init();
+    static void shutdown();
+
+    static void runCallbacks();
+
+    static void requestTicket(TicketRequestCallback callback);
+    static void updateLocation(QString status, QUrl locationUrl);
+    static void openInviteOverlay();
+    static void joinLobby(QString lobbyId);
+
+    static int getSteamVRBuildID();
+};
+
+class SteamScriptingInterface : public QObject {
+    Q_OBJECT
+
+    Q_PROPERTY(bool isRunning READ isRunning)
+
+public:
+    SteamScriptingInterface(QObject* parent) : QObject(parent) {}
+
+public slots:
+    bool isRunning() const { return SteamClient::isRunning(); }
+    void openInviteOverlay() const { SteamClient::openInviteOverlay(); }
 
 };
 

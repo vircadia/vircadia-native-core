@@ -58,7 +58,7 @@ public:
     }
 
     /// if you're running in non-threaded mode, you must call this method regularly
-    virtual bool process();
+    virtual bool process() override;
 
     /// Set the desired number of pending messages that the OctreeEditPacketSender should attempt to queue even if
     /// servers are not present. This only applies to how the OctreeEditPacketSender will manage messages when no

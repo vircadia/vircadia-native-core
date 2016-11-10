@@ -23,7 +23,7 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 <@func declareEvalAmbientSpecularIrradiance(supportAmbientSphere, supportAmbientMap, supportIfAmbientMapElseAmbientSphere)@>
 
 vec3 fresnelSchlickAmbient(vec3 fresnelColor, vec3 lightDir, vec3 halfDir, float gloss) {
-    return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
+    return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5.0);
 }
 
 <@if supportAmbientMap@>
@@ -32,7 +32,7 @@ vec3 fresnelSchlickAmbient(vec3 fresnelColor, vec3 lightDir, vec3 halfDir, float
 
 vec3 evalAmbientSpecularIrradiance(Light light, vec3 fragEyeDir, vec3 fragNormal, float roughness, vec3 fresnel) {
     vec3 direction = -reflect(fragEyeDir, fragNormal);
-    vec3 ambientFresnel = fresnelSchlickAmbient(fresnel, fragEyeDir, fragNormal, 1 - roughness);
+    vec3 ambientFresnel = fresnelSchlickAmbient(fresnel, fragEyeDir, fragNormal, 1.0 - roughness);
     vec3 specularLight;
     <@if supportIfAmbientMapElseAmbientSphere@>
         if (getLightHasAmbientMap(light))
@@ -76,7 +76,7 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, Light light, vec3 
 
 
     // Diffuse from ambient
-    diffuse = (1 - metallic) * evalSphericalLight(getLightAmbientSphere(light), normal).xyz;
+    diffuse = (1.0 - metallic) * evalSphericalLight(getLightAmbientSphere(light), normal).xyz;
 
     // Specular highlight from ambient
     specular = evalAmbientSpecularIrradiance(light, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(light);

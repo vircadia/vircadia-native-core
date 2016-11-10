@@ -225,7 +225,7 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
                         << "at" << entity->getPosition() << " will be reduced";
                 }
             }
-            btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+            btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
             if (shape) {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
@@ -322,7 +322,8 @@ void PhysicalEntitySimulation::addAction(EntityActionPointer action) {
             QMutexLocker lock(&_mutex);
             const QUuid& actionID = action->getID();
             if (_physicsEngine->getActionByID(actionID)) {
-                qDebug() << "warning -- PhysicalEntitySimulation::addAction -- adding an action that was already in _physicsEngine";
+                qCDebug(physics) << "warning -- PhysicalEntitySimulation::addAction -- adding an "
+                    "action that was already in _physicsEngine";
             }
         }
         EntitySimulation::addAction(action);

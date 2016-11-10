@@ -22,6 +22,7 @@ class PathUtils : public QObject, public Dependency {
     Q_PROPERTY(QString resources READ resourcesPath)
 public:
     static const QString& resourcesPath();
+    static QString getRootDataDirectory();
 };
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions);

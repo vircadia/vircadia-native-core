@@ -25,6 +25,8 @@
 #include <PerfStat.h>
 #include <plugins/DisplayPlugin.h>
 
+#include <gl/Context.h>
+
 #include "BandwidthRecorder.h"
 #include "Menu.h"
 #include "Util.h"
@@ -55,7 +57,9 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
 bool Stats::includeTimingRecord(const QString& name) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
-            if (name.startsWith("/idle/update/myAvatar/")) {
+            if (name.startsWith("/idle/update/physics/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+            } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
                     return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
                 }
@@ -92,6 +96,8 @@ bool Stats::includeTimingRecord(const QString& name) {
         } \
     }
 
+extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
+extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
     if (!force) {
@@ -111,16 +117,17 @@ void Stats::updateStats(bool force) {
         PerformanceTimer::setActive(shouldDisplayTimingDetail);
     }
 
-
     auto nodeList = DependencyManager::get<NodeList>();
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
     STAT_UPDATE(serverCount, (int)nodeList->size());
-    STAT_UPDATE(renderrate, qApp->getFps());
+    STAT_UPDATE(framerate, qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
-        STAT_UPDATE(presentrate, qApp->getActiveDisplayPlugin()->presentRate());
-        STAT_UPDATE(presentnewrate, qApp->getActiveDisplayPlugin()->newFramePresentRate());
+        auto displayPlugin = qApp->getActiveDisplayPlugin();
+        STAT_UPDATE(renderrate, displayPlugin->renderRate());
+        STAT_UPDATE(presentrate, displayPlugin->presentRate());
+        STAT_UPDATE(presentnewrate, displayPlugin->newFramePresentRate());
         STAT_UPDATE(presentdroprate, qApp->getActiveDisplayPlugin()->droppedFrameRate());
     } else {
         STAT_UPDATE(presentrate, -1);
@@ -135,6 +142,9 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(packetOutCount, bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond());
     STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
     STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
+
+    STAT_UPDATE_FLOAT(assetMbpsIn, (float)bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(assetMbpsOut, (float)bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
 
     // Second column: ping
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -165,7 +175,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(entitiesPing, octreeServerCount ? totalPingOctree / octreeServerCount : -1);
 
     // Third column, avatar stats
-    MyAvatar* myAvatar = avatarManager->getMyAvatar();
+    auto myAvatar = avatarManager->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getVelocity()), 0.01f);
@@ -280,6 +290,29 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(sendingMode, sendingModeResult);
     }
 
+    auto gpuContext = qApp->getGPUContext();
+
+    // Update Frame timing (in ms)
+    STAT_UPDATE(gpuFrameTime, (float)gpuContext->getFrameTimerGPUAverage());
+    STAT_UPDATE(batchFrameTime, (float)gpuContext->getFrameTimerBatchAverage());
+
+    STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
+    STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemoryUsage()));
+    STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
+    STAT_UPDATE(gpuTexturesSparse, (int)gpu::Context::getTextureGPUSparseCount());
+
+    STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
+
+    STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
+    STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUMemoryUsage()));
+    STAT_UPDATE(gpuTextureVirtualMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUVirtualMemoryUsage()));
+    STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUFramebufferMemoryUsage()));
+    STAT_UPDATE(gpuTextureSparseMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUSparseMemoryUsage()));
+    STAT_UPDATE(gpuSparseTextureEnabled, gpuContext->getBackend()->isTextureManagementSparseEnabled() ? 1 : 0);
+    STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory()));
+    STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
+    STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
+
     // Incoming packets
     QLocale locale(QLocale::English);
     auto voxelPacketsToProcess = qApp->getOctreePacketProcessor().packetsToProcessCount();
@@ -355,7 +388,7 @@ void Stats::updateStats(bool force) {
             QString functionName = j.value();
             const PerformanceTimerRecord& record = allRecords.value(functionName);
             perfLines += QString("%1: %2 [%3]\n").
-                arg(QString(qPrintable(functionName)), 90, noBreakingSpace).
+                arg(QString(qPrintable(functionName)), -80, noBreakingSpace).
                 arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3, noBreakingSpace).
                 arg((int)record.getCount(), 6, 10, noBreakingSpace);
             linesDisplayed++;

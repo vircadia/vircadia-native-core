@@ -17,11 +17,11 @@
 #include <AssetUpload.h>
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
+#include <NodeList.h>
 
 AssetScriptingInterface::AssetScriptingInterface(QScriptEngine* engine) :
     _engine(engine)
 {
-
 }
 
 void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
@@ -31,12 +31,27 @@ void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
     QObject::connect(upload, &AssetUpload::finished, this, [this, callback](AssetUpload* upload, const QString& hash) mutable {
         if (callback.isFunction()) {
             QString url = "atp:" + hash;
-            QScriptValueList args { url };
+            QScriptValueList args { url, hash };
             callback.call(_engine->currentContext()->thisObject(), args);
         }
+        upload->deleteLater();
     });
     upload->start();
 }
+
+void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValue callback) {
+    auto setMappingRequest = DependencyManager::get<AssetClient>()->createSetMappingRequest(path, hash);
+
+    QObject::connect(setMappingRequest, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
+        if (callback.isFunction()) {
+            QScriptValueList args { };
+            callback.call(_engine->currentContext()->thisObject(), args);
+        }
+        request->deleteLater();
+    });
+    setMappingRequest->start();
+}
+
 
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
     const QString ATP_SCHEME { "atp:" };
@@ -72,3 +87,13 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
 
     assetRequest->start();
 }
+
+#if (PR_BUILD || DEV_BUILD)
+void AssetScriptingInterface::sendFakedHandshake() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
+    nodeList->sendFakedHandshakeRequestToNode(assetServer);
+}
+
+#endif

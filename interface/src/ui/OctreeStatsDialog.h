@@ -33,15 +33,15 @@ signals:
     void closed();
 
 public slots:
-    void reject();
+    void reject() override;
     void moreless(const QString& link);
 
 protected:
     // State <- data model held by BandwidthMeter
-    void paintEvent(QPaintEvent*);
+    void paintEvent(QPaintEvent*) override;
 
     // Emits a 'closed' signal when this dialog is closed.
-    void closeEvent(QCloseEvent*);
+    void closeEvent(QCloseEvent*) override;
 
     int AddStatItem(const char* caption, unsigned colorRGBA = DEFAULT_COLOR);
     void RemoveStatItem(int item);

@@ -8,20 +8,24 @@
 #pragma once
 
 #include "DisplayPlugin.h"
+#include <gl/Config.h>
 
 #include <condition_variable>
 #include <memory>
+#include <queue>
 
 #include <QtCore/QTimer>
 #include <QtGui/QImage>
 
 #include <GLMHelpers.h>
 #include <SimpleMovingAverage.h>
-#include <gl/OglplusHelpers.h>
-#include <gl/GLEscrow.h>
 #include <shared/RateCounter.h>
 
-#define THREADED_PRESENT 1
+namespace gpu {
+    namespace gl {
+        class GLBackend;
+    }
+}
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
     Q_OBJECT
@@ -31,21 +35,16 @@ protected:
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
     using Condition = std::condition_variable;
-    using TextureEscrow = GLEscrow<gpu::TexturePointer>;
 public:
-    OpenGLDisplayPlugin();
-
+    ~OpenGLDisplayPlugin();
     // These must be final to ensure proper ordering of operations 
     // between the main thread and the presentation thread
     bool activate() override final;
     void deactivate() override final;
-
     bool eventFilter(QObject* receiver, QEvent* event) override;
     bool isDisplayVisible() const override { return true; }
 
-
-    void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
-    void submitOverlayTexture(const gpu::TexturePointer& overlayTexture) override;
+    void submitFrame(const gpu::FramePointer& newFrame) override;
 
     glm::uvec2 getRecommendedRenderSize() const override {
         return getSurfacePixels();
@@ -55,7 +54,7 @@ public:
         return getSurfaceSize();
     }
 
-    QImage getScreenshot() const override;
+    QImage getScreenshot(float aspectRatio = 0.0f) const override;
 
     float presentRate() const override;
 
@@ -63,28 +62,31 @@ public:
 
     float droppedFrameRate() const override;
 
+    float renderRate() const override;
+
     bool beginFrameRender(uint32_t frameIndex) override;
+
+    virtual bool wantVsync() const { return true; }
+    void setVsyncEnabled(bool vsyncEnabled) { _vsyncEnabled = vsyncEnabled; }
+    bool isVsyncEnabled() const { return _vsyncEnabled; }
+    // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
+    int getRequiredThreadCount() const override { return 3; }
+
 protected:
-#if THREADED_PRESENT
     friend class PresentThread;
-#endif
-    uint32_t getSceneTextureId() const;
-    uint32_t getOverlayTextureId() const;
 
     glm::uvec2 getSurfaceSize() const;
     glm::uvec2 getSurfacePixels() const;
 
-    void compositeLayers();
+    void updateCompositeFramebuffer();
+
+    virtual void compositeLayers();
     virtual void compositeScene();
     virtual void compositeOverlay();
     virtual void compositePointer();
     virtual void compositeExtra() {};
 
     virtual bool hasFocus() const override;
-
-    // FIXME make thread safe?
-    virtual bool isVsyncEnabled();
-    virtual void enableVsync(bool enable = true);
 
     // These functions must only be called on the presentation thread
     virtual void customizeContext();
@@ -93,54 +95,48 @@ protected:
     // Returns true on successful activation
     virtual bool internalActivate() { return true; }
     virtual void internalDeactivate() {}
-    virtual void cleanupForSceneTexture(const gpu::TexturePointer& sceneTexture);
+
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
-    void withMainThreadContext(std::function<void()> f) const;
-
-    void useProgram(const ProgramPtr& program);
-    void present();
-    void updateTextures();
-    void drawUnitQuad();
-    void swapBuffers();
-    void eyeViewport(Eye eye) const;
-
     virtual void updateFrameData();
 
-    QThread* _presentThread{ nullptr };
-    ProgramPtr _program;
-    int32_t _mvpUniform { -1 };
-    int32_t _alphaUniform { -1 };
-    ShapeWrapperPtr _plane;
+    void withMainThreadContext(std::function<void()> f) const;
 
+    void present();
+    virtual void swapBuffers();
+    ivec4 eyeViewport(Eye eye) const;
+
+    void render(std::function<void(gpu::Batch& batch)> f);
+
+    bool _vsyncEnabled { true };
+    QThread* _presentThread{ nullptr };
+    std::queue<gpu::FramePointer> _newFrameQueue;
     RateCounter<> _droppedFrameRate;
     RateCounter<> _newFrameRate;
     RateCounter<> _presentRate;
-    QMap<gpu::TexturePointer, uint32_t> _sceneTextureToFrameIndexMap;
-    uint32_t _currentPresentFrameIndex { 0 };
-    float _compositeOverlayAlpha{ 1.0f };
+    RateCounter<> _renderRate;
 
-    gpu::TexturePointer _currentSceneTexture;
-    gpu::TexturePointer _currentOverlayTexture;
-
-    TextureEscrow _sceneTextureEscrow;
-    TextureEscrow _overlayTextureEscrow;
-
-    bool _vsyncSupported { false };
+    gpu::FramePointer _currentFrame;
+    gpu::Frame* _lastFrame { nullptr };
+    gpu::FramebufferPointer _compositeFramebuffer;
+    gpu::PipelinePointer _overlayPipeline;
+    gpu::PipelinePointer _simplePipeline;
+    gpu::PipelinePointer _presentPipeline;
+    gpu::PipelinePointer _cursorPipeline;
+    float _compositeOverlayAlpha { 1.0f };
 
     struct CursorData {
         QImage image;
         vec2 hotSpot;
         uvec2 size;
-        uint32_t texture { 0 };
+        gpu::TexturePointer texture;
     };
 
     std::map<uint16_t, CursorData> _cursorsData;
-    BasicFramebufferWrapperPtr _compositeFramebuffer;
     bool _lockCurrentTexture { false };
 
-    void assertIsRenderThread() const;
+    void assertNotPresentThread() const;
     void assertIsPresentThread() const;
 
     template<typename F>
@@ -151,17 +147,17 @@ protected:
     }
 
     template<typename F>
-    void withRenderThreadLock(F f) const {
-        assertIsRenderThread();
+    void withNonPresentThreadLock(F f) const {
+        assertNotPresentThread();
         Lock lock(_presentMutex);
         f();
     }
 
-private:
+    gpu::gl::GLBackend* getGLBackend();
+
     // Any resource shared by the main thread and the presentation thread must
     // be serialized through this mutex
     mutable Mutex _presentMutex;
-    ProgramPtr _activeProgram;
     float _overlayAlpha{ 1.0f };
 };
 

@@ -2,13 +2,24 @@ var Settings = {
   showAdvanced: false,
   METAVERSE_URL: 'https://metaverse.highfidelity.com',
   ADVANCED_CLASS: 'advanced-setting',
+  DEPRECATED_CLASS: 'deprecated-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
   DATA_COL_CLASS: 'value-col',
+  DATA_CATEGORY_CLASS: 'value-category',
   ADD_ROW_BUTTON_CLASS: 'add-row',
   ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
   DEL_ROW_BUTTON_CLASS: 'del-row',
   DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
+  ADD_CATEGORY_BUTTON_CLASS: 'add-category',
+  ADD_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-plus add-category',
+  TOGGLE_CATEGORY_COLUMN_CLASS: 'toggle-category',
+  TOGGLE_CATEGORY_SPAN_CLASS: 'toggle-category-icon',
+  TOGGLE_CATEGORY_SPAN_CLASSES: 'glyphicon toggle-category-icon',
+  TOGGLE_CATEGORY_EXPANDED_CLASS: 'glyphicon-triangle-bottom',
+  TOGGLE_CATEGORY_CONTRACTED_CLASS: 'glyphicon-triangle-right',
+  DEL_CATEGORY_BUTTON_CLASS: 'del-category',
+  DEL_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-remove del-category',
   MOVE_UP_BUTTON_CLASS: 'move-up',
   MOVE_UP_SPAN_CLASSES: 'glyphicon glyphicon-chevron-up move-up',
   MOVE_DOWN_BUTTON_CLASS: 'move-down',
@@ -31,11 +42,14 @@ var Settings = {
 };
 
 var viewHelpers = {
-  getFormGroup: function(keypath, setting, values, isAdvanced, isLocked) {
-    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "' data-keypath='" + keypath + "'>";
+  getFormGroup: function(keypath, setting, values, isAdvanced) {
+    form_group = "<div class='form-group " +
+        (isAdvanced ? Settings.ADVANCED_CLASS : "") + " " +
+        (setting.deprecated ? Settings.DEPRECATED_CLASS : "" ) + "' " + 
+        "data-keypath='" + keypath + "'>";
     setting_value = _(values).valueForKeyPath(keypath);
 
-    if (typeof setting_value == 'undefined' || setting_value === null) {
+    if (_.isUndefined(setting_value) || _.isNull(setting_value)) {
       if (_.has(setting, 'default')) {
         setting_value = setting.default;
       } else {
@@ -44,16 +58,13 @@ var viewHelpers = {
     }
 
     label_class = 'control-label';
-    if (isLocked) {
-      label_class += ' locked';
-    }
 
     function common_attrs(extra_classes) {
-      extra_classes = (typeof extra_classes !== 'undefined' ? extra_classes : "");
+      extra_classes = (!_.isUndefined(extra_classes) ? extra_classes : "");
       return " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
         + " " + Settings.TRIGGER_CHANGE_CLASS + " " + extra_classes + "' data-short-name='"
         + setting.name + "' name='" + keypath + "' "
-        + "id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath) + "'";
+        + "id='" + (!_.isUndefined(setting.html_id) ? setting.html_id : keypath) + "'";
     }
 
     if (setting.type === 'checkbox') {
@@ -61,9 +72,8 @@ var viewHelpers = {
         form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
       }
 
-      form_group += "<div class='toggle-checkbox-container" + (isLocked ? " disabled" : "") + "'>"
-      form_group += "<input type='checkbox'" + common_attrs('toggle-checkbox') + (setting_value ? "checked" : "")
-      form_group += (isLocked ? " disabled" : "") + "/>"
+      form_group += "<div class='toggle-checkbox-container'>"
+      form_group += "<input type='checkbox'" + common_attrs('toggle-checkbox') + (setting_value ? "checked" : "") + "/>"
 
       if (setting.help) {
         form_group += "<span class='help-block checkbox-help'>" + setting.help + "</span>";
@@ -78,7 +88,7 @@ var viewHelpers = {
       }
 
       if (input_type === 'table') {
-        form_group += makeTable(setting, keypath, setting_value, isLocked)
+        form_group += makeTable(setting, keypath, setting_value)
       } else {
         if (input_type === 'select') {
           form_group += "<select class='form-control' data-hidden-input='" + keypath + "'>'"
@@ -97,12 +107,10 @@ var viewHelpers = {
 
           if (setting.href) {
             form_group += "<a href='" + setting.href + "'style='display: block;' role='button'"
-              + (isLocked ? " disabled" : "")
               + common_attrs("btn " + setting.classes) + " target='_blank'>"
               + setting.button_label + "</a>";
           } else {
-            form_group += "<button " + common_attrs("btn " + setting.classes)
-              + (isLocked ? " disabled" : "") + ">"
+            form_group += "<button " + common_attrs("btn " + setting.classes) + ">"
               + setting.button_label + "</button>";
           }
 
@@ -114,7 +122,7 @@ var viewHelpers = {
 
           form_group += "<input type='" + input_type + "'" +  common_attrs() +
             "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") +
-            "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+            "' value='" + setting_value + "'/>"
         }
 
         form_group += "<span class='help-block'>" + setting.help + "</span>"
@@ -162,19 +170,31 @@ $(document).ready(function(){
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
-    addTableRow(this);
+    addTableRow($(this).closest('tr'));
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
-    deleteTableRow(this);
+    deleteTableRow($(this).closest('tr'));
+  });
+
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.ADD_CATEGORY_BUTTON_CLASS, function(){
+    addTableCategory($(this).closest('tr'));
+  });
+
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_CATEGORY_BUTTON_CLASS, function(){
+    deleteTableCategory($(this).closest('tr'));
+  });
+
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.TOGGLE_CATEGORY_COLUMN_CLASS, function(){
+    toggleTableCategory($(this).closest('tr'));
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
-    moveTableRow(this, true);
+    moveTableRow($(this).closest('tr'), true);
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_DOWN_BUTTON_CLASS, function(){
-    moveTableRow(this, false);
+    moveTableRow($(this).closest('tr'), false);
   });
 
   $('#' + Settings.FORM_ID).on('keyup', function(e){
@@ -196,10 +216,11 @@ $(document).ready(function(){
           }
 
           if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click();
+            sibling.find("." + Settings.ADD_CATEGORY_BUTTON_CLASS).click();
 
             // set focus to the first input in the new row
-            $target.closest('table').find('tr.inputs input:first').focus()
+            $target.closest('table').find('tr.inputs input:first').focus();
           }
         }
 
@@ -436,10 +457,8 @@ function setupHFAccountButton() {
     $("[data-keypath='metaverse.automatic_networking']").hide();
   }
 
-  var tokenLocked = _(Settings.data).valueForKeyPath("locked.metaverse.access_token");
-
   // use the existing getFormGroup helper to ask for a button
-  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values, false, tokenLocked);
+  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values);
 
   // add the button group to the top of the metaverse panel
   $('#metaverse .panel-body').prepend(buttonGroup);
@@ -629,7 +648,7 @@ function setupPlacesTable() {
     label: 'Places',
     html_id: Settings.PLACES_TABLE_ID,
     help: "The following places currently point to this domain.</br>To point places to this domain, "
-      + " go to the <a href='https://metaverse.highfidelity.com/user/places'>My Places</a> "
+      + " go to the <a href='" + Settings.METAVERSE_URL + "/user/places'>My Places</a> "
       + "page in your High Fidelity Metaverse account.",
     read_only: true,
     columns: [
@@ -650,7 +669,7 @@ function setupPlacesTable() {
   }
 
   // get a table for the places
-  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values, false, false);
+  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values);
 
   // append the places table in the right place
   $('#places_paths .panel-body').prepend(placesTableGroup);
@@ -771,7 +790,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_buttons["success"] = {
           label: 'Create new domain',
           callback: function() {
-            window.open("https://metaverse.highfidelity.com/user/domains", '_blank');
+            window.open(Settings.METAVERSE_URL + "/user/domains", '_blank');
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." +
@@ -850,10 +869,8 @@ function reloadSettings(callback) {
     Settings.data = data;
     Settings.initialValues = form2js('settings-form', ".", false, cleanupFormValues, true);
 
-    if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
-      // append the domain selection modal, as long as it's not locked
-      appendDomainIDButtons();
-    }
+    // append the domain selection modal
+    appendDomainIDButtons();
 
     // call our method to setup the HF account button
     setupHFAccountButton();
@@ -865,12 +882,6 @@ function reloadSettings(callback) {
     $('.toggle-checkbox').bootstrapSwitch();
 
     $('[data-toggle="tooltip"]').tooltip();
-
-    // add tooltip to locked settings
-    $('label.locked').tooltip({
-      placement: 'right',
-      title: 'This setting is in the master config file and cannot be changed'
-    });
 
     // call the callback now that settings are loaded
     callback(true);
@@ -920,9 +931,10 @@ $('body').on('click', '.save-button', function(e){
   return false;
 });
 
-function makeTable(setting, keypath, setting_value, isLocked) {
+function makeTable(setting, keypath, setting_value) {
   var isArray = !_.has(setting, 'key');
-  var isHash = !isArray;
+  var categoryKey = setting.categorize_by_key;
+  var isCategorized = !!categoryKey && isArray;
 
   if (!isArray && setting.can_order) {
     setting.can_order = false;
@@ -937,9 +949,10 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   var nonDeletableRowKey = setting["non-deletable-row-key"];
   var nonDeletableRowValues = setting["non-deletable-row-values"];
 
-  html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name
-    + "' name='" + keypath + "' id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath)
-    + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
+  html += "<table class='table table-bordered' " +
+                 "data-short-name='" + setting.name + "' name='" + keypath + "' " +
+                 "id='" + (!_.isUndefined(setting.html_id) ? setting.html_id : keypath) + "' " +
+                 "data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
 
   if (setting.caption) {
     html += "<caption>" + setting.caption + "</caption>"
@@ -951,7 +964,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     _.each(setting.groups, function (group) {
         html += "<td colspan='" + group.span  + "'><strong>" + group.label + "</strong></td>"
     })
-    if (!isLocked && !setting.read_only) {
+    if (!setting.read_only) {
         if (setting.can_order) {
             html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
                     "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
@@ -972,24 +985,43 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
   }
 
+  var numVisibleColumns = 0;
   _.each(setting.columns, function(col) {
-    html += "<td class='data " + (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
+    if (!col.hidden) numVisibleColumns++;
+    html += "<td " + (col.hidden ? "style='display: none;'" : "") + "class='data " +
+      (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
   })
 
-  if (!isLocked && !setting.read_only) {
+  if (!setting.read_only) {
     if (setting.can_order) {
+      numVisibleColumns++;
       html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
               "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
     }
-    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
+    numVisibleColumns++;
+    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>";
   }
 
   // populate rows in the table from existing values
   var row_num = 1;
 
   if (keypath.length > 0 && _.size(setting_value) > 0) {
+    var rowIsObject = setting.columns.length > 1;
+
     _.each(setting_value, function(row, rowIndexOrName) {
-      html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">"
+      var categoryPair = {};
+      var categoryValue = "";
+      if (isCategorized) {
+        categoryValue = rowIsObject ? row[categoryKey] : row;
+        categoryPair[categoryKey] = categoryValue;
+        if (_.findIndex(setting_value, categoryPair) === rowIndexOrName) {
+          html += makeTableCategoryHeader(categoryKey, categoryValue, numVisibleColumns, setting.can_add_new_categories, "");
+        }
+      }
+
+      html += "<tr class='" + Settings.DATA_ROW_CLASS + "' " +
+                   (isCategorized ? ("data-category='" + categoryValue + "'") : "") + " " +
+                   (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">";
 
       if (setting.numbered === true) {
         html += "<td class='numbered'>" + row_num + "</td>"
@@ -1003,8 +1035,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
       _.each(setting.columns, function(col) {
 
+        var colValue, colName;
         if (isArray) {
-          rowIsObject = setting.columns.length > 1;
           colValue = rowIsObject ? row[col.name] : row;
           colName = keypath + "[" + rowIndexOrName + "]" + (rowIsObject ? "." + col.name : "");
         } else {
@@ -1016,22 +1048,30 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           || (nonDeletableRowKey === col.name && nonDeletableRowValues.indexOf(colValue) !== -1);
 
         if (isArray && col.type === "checkbox" && col.editable) {
-          html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-                  + "<input type='checkbox' class='form-control table-checkbox' "
-                  + "name='" + colName + "'" + (colValue ? " checked" : "") + " /></td>";
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+              "<input type='checkbox' class='form-control table-checkbox' " +
+                     "name='" + colName + "'" + (colValue ? " checked" : "") + "/>" +
+            "</td>";
         } else if (isArray && col.type === "time" && col.editable) {
-          html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-                  + "<input type='time' class='form-control table-time' "
-                  + "name='" + colName + "' value='" + (colValue || col.default || "00:00") + "' /></td>";
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+              "<input type='time' class='form-control table-time' name='" + colName + "' " +
+                     "value='" + (colValue || col.default || "00:00") + "'/>" +
+            "</td>";
         } else {
           // Use a hidden input so that the values are posted.
-          html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>"
-                  + colValue + "<input type='hidden' name='" + colName + "' value='" + colValue + "'/></td>";
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "' " + (col.hidden ? "style='display: none;'" : "") +
+                "name='" + colName + "'>" +
+              colValue +
+              "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>" +
+            "</td>";
         }
 
-      })
+      });
 
-      if (!isLocked && !setting.read_only) {
+      if (!setting.read_only) {
         if (setting.can_order) {
           html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
                   "'><a href='javascript:void(0);' class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a>"
@@ -1047,24 +1087,53 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
       html += "</tr>"
 
+      if (isCategorized && setting.can_add_new_rows && _.findLastIndex(setting_value, categoryPair) === rowIndexOrName) {
+        html += makeTableInputs(setting, categoryPair, categoryValue);
+      }
+
       row_num++
     });
   }
 
   // populate inputs in the table for new values
-  if (!isLocked && !setting.read_only && setting.can_add_new_rows) {
-     html += makeTableInputs(setting)
+  if (!setting.read_only) {
+    if (setting.can_add_new_categories) {
+      html += makeTableCategoryInput(setting, numVisibleColumns);
+    }
+    if (setting.can_add_new_rows || setting.can_add_new_categories) {
+      html += makeTableInputs(setting, {}, "");
+    }
   }
   html += "</table>"
 
   return html;
 }
 
-function makeTableInputs(setting) {
-  var html = "<tr class='inputs'>"
+function makeTableCategoryHeader(categoryKey, categoryValue, numVisibleColumns, canRemove, message) {
+  var html =
+    "<tr class='" + Settings.DATA_CATEGORY_CLASS + "' data-key='" + categoryKey + "' data-category='" + categoryValue + "'>" +
+      "<td colspan='" + (numVisibleColumns - 1) + "' class='" + Settings.TOGGLE_CATEGORY_COLUMN_CLASS + "'>" +
+        "<span class='" + Settings.TOGGLE_CATEGORY_SPAN_CLASSES + " " + Settings.TOGGLE_CATEGORY_EXPANDED_CLASS + "'></span>" +
+        "<span message='" + message + "'>" + categoryValue + "</span>" +
+      "</td>" +
+      ((canRemove) ? (
+        "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'>" +
+          "<a href='javascript:void(0);' class='" + Settings.DEL_CATEGORY_SPAN_CLASSES + "'></a>" +
+        "</td>"
+      ) : (
+        "<td></td>"
+      )) +
+    "</tr>";
+  return html;
+}
+
+function makeTableInputs(setting, initialValues, categoryValue) {
+  var html = "<tr class='inputs'" + (setting.can_add_new_categories && !categoryValue ? " hidden" : "") + " " +
+                  (categoryValue ? ("data-category='" + categoryValue + "'") : "") + " " +
+                  (setting.categorize_by_key ? ("data-keep-field='" + setting.categorize_by_key + "'") : "") + ">";
 
   if (setting.numbered === true) {
-    html += "<td class='numbered'></td>"
+    html += "<td class='numbered'></td>";
   }
 
   if (setting.key) {
@@ -1074,15 +1143,21 @@ function makeTableInputs(setting) {
   }
 
   _.each(setting.columns, function(col) {
+    var defaultValue = _.has(initialValues, col.name) ? initialValues[col.name] : col.default;
     if (col.type === "checkbox") {
-      html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-              + "<input type='checkbox' class='form-control table-checkbox' "
-              + "name='" + col.name + "'" + (col.default ? " checked" : "") + "/></td>";
+      html +=
+        "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+          "<input type='checkbox' class='form-control table-checkbox' " +
+                 "name='" + col.name + "'" + (defaultValue ? " checked" : "") + "/>" +
+        "</td>";
     } else {
-      html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
-               <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
-               value='" + (col.default ? col.default : "") + "' data-default='" + (col.default ? col.default : "") + "'>\
-               </td>"
+      html +=
+        "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
+            "name='" + col.name + "'>" +
+          "<input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' " +
+                 "value='" + (defaultValue || "") + "' data-default='" + (defaultValue || "") + "'" +
+                 (col.readonly ? " readonly" : "") + ">" +
+        "</td>";
     }
   })
 
@@ -1090,10 +1165,28 @@ function makeTableInputs(setting) {
     html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'></td>"
   }
   html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-    "'><a href='javascript:void(0);' class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></a></td>"
+    "'><a href='javascript:void(0);' class='" + Settings.ADD_ROW_SPAN_CLASSES + "'></a></td>"
   html += "</tr>"
 
   return html
+}
+
+function makeTableCategoryInput(setting, numVisibleColumns) {
+  var canAddRows = setting.can_add_new_rows;
+  var categoryKey = setting.categorize_by_key;
+  var placeholder = setting.new_category_placeholder || "";
+  var message = setting.new_category_message || "";
+  var html =
+    "<tr class='" + Settings.DATA_CATEGORY_CLASS + " inputs' data-can-add-rows='" + canAddRows + "' " +
+        "data-key='" + categoryKey + "' data-message='" + message + "'>" +
+      "<td colspan='" + (numVisibleColumns - 1) + "'>" +
+        "<input type='text' class='form-control' placeholder='" + placeholder + "'/>" +
+      "</td>" +
+      "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'>" +
+        "<a href='javascript:void(0);' class='" + Settings.ADD_CATEGORY_SPAN_CLASSES + "'></a>" +
+      "</td>" +
+    "</tr>";
+  return html;
 }
 
 function badgeSidebarForDifferences(changedElement) {
@@ -1134,13 +1227,12 @@ function badgeSidebarForDifferences(changedElement) {
   $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
 }
 
-function addTableRow(add_glyphicon) {
-  var row = $(add_glyphicon).closest('tr')
+function addTableRow(row) {
+  var table = row.parents('table');
+  var isArray = table.data('setting-type') === 'array';
+  var keepField = row.data("keep-field");
 
-  var table = row.parents('table')
-  var isArray = table.data('setting-type') === 'array'
-
-  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS)
+  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS);
 
   if (!isArray) {
     // Check key spaces
@@ -1257,10 +1349,12 @@ function addTableRow(add_glyphicon) {
     } else {
       console.log("Unknown table element")
     }
-  })
+  });
 
-  input_clone.find('input').each(function(){
-    $(this).val($(this).attr('data-default'));
+  input_clone.children('td').each(function () {
+    if ($(this).attr("name") !== keepField) {
+      $(this).find("input").val($(this).attr('data-default'));
+    }
   });
 
   if (isArray) {
@@ -1272,44 +1366,132 @@ function addTableRow(add_glyphicon) {
 
   badgeSidebarForDifferences($(table))
 
-  row.parent().append(input_clone)
+  row.after(input_clone)
 }
 
-function deleteTableRow(delete_glyphicon) {
-  var row = $(delete_glyphicon).closest('tr')
+function deleteTableRow($row) {
+  var $table = $row.closest('table');
+  var categoryName = $row.data("category");
+  var isArray = $table.data('setting-type') === 'array';
 
-  var table = $(row).closest('table')
-  var isArray = table.data('setting-type') === 'array'
-
-  row.empty();
+  $row.empty();
 
   if (!isArray) {
-    row.html("<input type='hidden' class='form-control' name='"
-      + row.attr('name') + "' data-changed='true' value=''>");
+    $row.html("<input type='hidden' class='form-control' name='" + $row.attr('name') + "' data-changed='true' value=''>");
   } else {
-    if (table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
-      updateDataChangedForSiblingRows(row)
+    if ($table.find('.' + Settings.DATA_ROW_CLASS + "[data-category='" + categoryName + "']").length <= 1) {
+      // This is the last row of the category, so delete the header
+      $table.find('.' + Settings.DATA_CATEGORY_CLASS + "[data-category='" + categoryName + "']").remove();
+    }
+
+    if ($table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
+      updateDataChangedForSiblingRows($row);
 
       // this isn't the last row - we can just remove it
-      row.remove()
+      $row.remove();
     } else {
       // this is the last row, we can't remove it completely since we need to post an empty array
-
-      row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
-      row.addClass('empty-array-row')
-
-      row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '')
-        + "' data-changed='true' value=''>");
+      $row
+        .removeClass(Settings.DATA_ROW_CLASS)
+        .removeClass(Settings.NEW_ROW_CLASS)
+        .removeAttr("data-category")
+        .addClass('empty-array-row')
+        .html("<input type='hidden' class='form-control' name='" + $table.attr("name").replace('[]', '') + "' " +
+              "data-changed='true' value=''>");
     }
   }
 
   // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
-  badgeSidebarForDifferences($(table))
+  badgeSidebarForDifferences($table);
 }
 
-function moveTableRow(move_glyphicon, move_up) {
-  var row = $(move_glyphicon).closest('tr')
+function addTableCategory($categoryInputRow) {
+  var $input = $categoryInputRow.find("input").first();
+  var categoryValue = $input.prop("value");
+  if (!categoryValue || $categoryInputRow.closest("table").find("tr[data-category='" + categoryValue + "']").length !== 0) {
+    $categoryInputRow.addClass("has-warning");
 
+    setTimeout(function () {
+      $categoryInputRow.removeClass("has-warning");
+    }, 400);
+
+    return;
+  }
+
+  var $rowInput = $categoryInputRow.next(".inputs").clone();
+  if (!$rowInput) {
+    console.error("Error cloning inputs");
+  }
+
+  var canAddRows = $categoryInputRow.data("can-add-rows");
+  var message = $categoryInputRow.data("message");
+  var categoryKey = $categoryInputRow.data("key");
+  var width = 0;
+  $categoryInputRow
+    .children("td")
+    .each(function () {
+      width += $(this).prop("colSpan") || 1;
+    });
+
+  $input
+    .prop("value", "")
+    .focus();
+
+  $rowInput.find("td[name='" + categoryKey + "'] > input").first()
+    .prop("value", categoryValue);
+  $rowInput
+    .attr("data-category", categoryValue)
+    .addClass(Settings.NEW_ROW_CLASS);
+
+  var $newCategoryRow = $(makeTableCategoryHeader(categoryKey, categoryValue, width, true, " - " + message));
+  $newCategoryRow.addClass(Settings.NEW_ROW_CLASS);
+
+  $categoryInputRow
+    .before($newCategoryRow)
+    .before($rowInput);
+
+  if (canAddRows) {
+    $rowInput.removeAttr("hidden");
+  } else {
+    addTableRow($rowInput);
+  }
+}
+
+function deleteTableCategory($categoryHeaderRow) {
+  var categoryName = $categoryHeaderRow.data("category");
+
+  $categoryHeaderRow
+    .closest("table")
+    .find("tr[data-category='" + categoryName + "']")
+    .each(function () {
+      if ($(this).hasClass(Settings.DATA_ROW_CLASS)) {
+        deleteTableRow($(this));
+      } else {
+        $(this).remove();
+      }
+    });
+}
+
+function toggleTableCategory($categoryHeaderRow) {
+  var $icon = $categoryHeaderRow.find("." + Settings.TOGGLE_CATEGORY_SPAN_CLASS).first();
+  var categoryName = $categoryHeaderRow.data("category");
+  var wasExpanded = $icon.hasClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS);
+  if (wasExpanded) {
+    $icon
+      .addClass(Settings.TOGGLE_CATEGORY_CONTRACTED_CLASS)
+      .removeClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS);
+  } else {
+    $icon
+      .addClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS)
+      .removeClass(Settings.TOGGLE_CATEGORY_CONTRACTED_CLASS);
+  }
+  $categoryHeaderRow
+    .closest("table")
+    .find("tr[data-category='" + categoryName + "']")
+    .toggleClass("contracted", wasExpanded);
+}
+
+function moveTableRow(row, move_up) {
   var table = $(row).closest('table')
   var isArray = table.data('setting-type') === 'array'
   if (!isArray) {

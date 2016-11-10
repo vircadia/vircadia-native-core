@@ -55,17 +55,7 @@ public:
         }
     }
 
-protected:
-    virtual void queueItemInternal(const T& t) {
-        _items.push_back(t);
-    }
-
-    virtual uint32_t getMaxWait() {
-        return MSECS_PER_SECOND;
-    }
-
-
-    virtual bool process() {
+    virtual bool process() override {
         lock();
         if (!_items.size()) {
             unlock();
@@ -87,6 +77,17 @@ protected:
         unlock();
         return processQueueItems(processItems);
     }
+
+protected:
+    virtual void queueItemInternal(const T& t) {
+        _items.push_back(t);
+    }
+
+    virtual uint32_t getMaxWait() {
+        return MSECS_PER_SECOND;
+    }
+
+
 
     virtual bool processQueueItems(const Queue& items) = 0;
 

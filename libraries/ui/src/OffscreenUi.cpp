@@ -60,39 +60,6 @@ private:
     bool _navigationFocusDisabled{ false };
 };
 
-QString fixupHifiUrl(const QString& urlString) {
-	static const QString ACCESS_TOKEN_PARAMETER = "access_token";
-	static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
-    QUrl url(urlString);
-	QUrlQuery query(url);
-	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-	    auto accountManager = DependencyManager::get<AccountManager>();
-	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
-	    url.setQuery(query.query());
-	    return url.toString();
-	}
-    return urlString;
-}
-
-class UrlHandler : public QObject {
-    Q_OBJECT
-public:
-    Q_INVOKABLE bool canHandleUrl(const QString& url) {
-        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->canAcceptURL(url);
-    }
-
-    Q_INVOKABLE bool handleUrl(const QString& url) {
-        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->acceptURL(url);
-    }
-    
-    // FIXME hack for authentication, remove when we migrate to Qt 5.6
-    Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
-        return fixupHifiUrl(originalUrl);
-    }
-};
-
 static OffscreenFlags* offscreenFlags { nullptr };
 
 // This hack allows the QML UI to work with keys that are also bound as 
@@ -126,7 +93,6 @@ void OffscreenUi::create(QOpenGLContext* context) {
 
     rootContext->setContextProperty("OffscreenUi", this);
     rootContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
-    rootContext->setContextProperty("urlHandler", new UrlHandler());
     rootContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
 }
 
@@ -405,6 +371,13 @@ void OffscreenUi::setPinned(bool pinned) {
     }
 }
 
+void OffscreenUi::setConstrainToolbarToCenterX(bool constrained) {
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "setConstrainToolbarToCenterX", Q_ARG(QVariant, constrained));
+    if (!invokeResult) {
+        qWarning() << "Failed to set toolbar constraint";
+    }
+}
+
 void OffscreenUi::addMenuInitializer(std::function<void(VrMenu*)> f) {
     if (!_vrMenu) {
         _queuedMenuInitializers.push_back(f);
@@ -650,12 +623,38 @@ QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, 
     return fileDialog(map);
 }
 
+QString OffscreenUi::existingDirectoryDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    if (QThread::currentThread() != thread()) {
+        QString result;
+        QMetaObject::invokeMethod(this, "existingDirectoryDialog", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(QString, result),
+                                  Q_ARG(QString, caption),
+                                  Q_ARG(QString, dir),
+                                  Q_ARG(QString, filter),
+                                  Q_ARG(QString*, selectedFilter),
+                                  Q_ARG(QFileDialog::Options, options));
+        return result;
+    }
+
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    map.insert("selectDirectory", true);
+    return fileDialog(map);
+}
+
 QString OffscreenUi::getOpenFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
     return DependencyManager::get<OffscreenUi>()->fileOpenDialog(caption, dir, filter, selectedFilter, options);
 }
 
 QString OffscreenUi::getSaveFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
     return DependencyManager::get<OffscreenUi>()->fileSaveDialog(caption, dir, filter, selectedFilter, options);
+}
+
+QString OffscreenUi::getExistingDirectory(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    return DependencyManager::get<OffscreenUi>()->existingDirectoryDialog(caption, dir, filter, selectedFilter, options);
 }
 
 bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {

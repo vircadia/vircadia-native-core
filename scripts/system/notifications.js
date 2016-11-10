@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  notifications.js
 //  Version 0.801
@@ -15,11 +17,9 @@
 //  keystroke:
 //
 //  CTRL/s for snapshot.
-//  CTRL/m for mic mute and unmute.
 
 //  System generated notifications:
-//  If Screen is resized.
-//  If mic is muted for any reason.
+//  Connection refused.
 //
 //  To add a new System notification type:
 //
@@ -56,6 +56,10 @@
 //      }
 //  }
 
+/* global Script, Controller, Overlays, SoundArray, Quat, Vec3, MyAvatar, Menu, HMD, AudioDevice, LODManager, Settings, Camera */
+
+(function() { // BEGIN LOCAL_SCOPE
+
 Script.include("./libraries/soundArray.js");
 
 var width = 340.0; //width of notification overlay
@@ -72,11 +76,9 @@ var fontSize = 12.0;
 var PERSIST_TIME_2D = 10.0;  // Time in seconds before notification fades
 var PERSIST_TIME_3D = 15.0;
 var persistTime = PERSIST_TIME_2D;
-var clickedText = false;
 var frame = 0;
 var ourWidth = Window.innerWidth;
 var ourHeight = Window.innerHeight;
-var text = "placeholder";
 var ctrlIsPressed = false;
 var ready = true;
 var MENU_NAME = 'Tools > Notifications';
@@ -88,24 +90,22 @@ var lodTextID = false;
 
 var NotificationType = {
     UNKNOWN: 0,
-    MUTE_TOGGLE: 1,
-    SNAPSHOT: 2,
-    WINDOW_RESIZE: 3,
-    LOD_WARNING: 4,
-    CONNECTION_REFUSED: 5,
+    SNAPSHOT: 1,
+    LOD_WARNING: 2,
+    CONNECTION_REFUSED: 3,
+    EDIT_ERROR: 4,
     properties: [
-        { text: "Mute Toggle" },
         { text: "Snapshot" },
-        { text: "Window Resize" },
         { text: "Level of Detail" },
-        { text: "Connection Refused" }
+        { text: "Connection Refused" },
+        { text: "Edit error" }
     ],
     getTypeFromMenuItem: function(menuItemName) {
         if (menuItemName.substr(menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length) !== NOTIFICATION_MENU_ITEM_POST) {
             return NotificationType.UNKNOWN;
         }
         var preMenuItemName = menuItemName.substr(0, menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length);
-        for (type in this.properties) {
+        for (var type in this.properties) {
             if (this.properties[type].text === preMenuItemName) {
                 return parseInt(type) + 1;
             }
@@ -120,7 +120,6 @@ var NotificationType = {
 var randomSounds = new SoundArray({ localOnly: true }, true);
 var numberOfSounds = 2;
 for (var i = 1; i <= numberOfSounds; i++) {
-    
     randomSounds.addSound(Script.resolvePath("assets/sounds/notification-general"+ i + ".raw"));
 }
 
@@ -230,9 +229,9 @@ function calculate3DOverlayPositions(noticeWidth, noticeHeight, y) {
     };
 }
 
-//  Pushes data to each array and sets up data for 2nd dimension array 
+//  Pushes data to each array and sets up data for 2nd dimension array
 //  to handle auxiliary data not carried by the overlay class
-//  specifically notification "heights", "times" of creation, and . 
+//  specifically notification "heights", "times" of creation, and .
 function notify(notice, button, height, imageProperties, image) {
     var notificationText,
         noticeWidth,
@@ -249,6 +248,9 @@ function notify(notice, button, height, imageProperties, image) {
         notice.size = { x: noticeWidth, y: noticeHeight };
 
         positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
+
+        notice.parentID = MyAvatar.sessionUUID;
+        notice.parentJointIndex = -2;
 
         if (!image) {
             notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE;
@@ -267,6 +269,8 @@ function notify(notice, button, height, imageProperties, image) {
         button.url = button.imageURL;
         button.scale = button.width * NOTIFICATION_3D_SCALE;
         button.isFacingAvatar = false;
+        button.parentID = MyAvatar.sessionUUID;
+        button.parentJointIndex = -2;
 
         buttons.push((Overlays.addOverlay("image3d", button)));
         overlay3DDetails.push({
@@ -276,6 +280,34 @@ function notify(notice, button, height, imageProperties, image) {
             width: noticeWidth,
             height: noticeHeight
         });
+
+
+        var defaultEyePosition,
+            avatarOrientation,
+            notificationPosition,
+            notificationOrientation,
+            buttonPosition;
+
+        if (isOnHMD && notifications.length > 0) {
+            // Update 3D overlays to maintain positions relative to avatar
+            defaultEyePosition = MyAvatar.getDefaultEyePosition();
+            avatarOrientation = MyAvatar.orientation;
+
+            for (i = 0; i < notifications.length; i += 1) {
+                notificationPosition = Vec3.sum(defaultEyePosition,
+                                                Vec3.multiplyQbyV(avatarOrientation,
+                                                                  overlay3DDetails[i].notificationPosition));
+                notificationOrientation = Quat.multiply(avatarOrientation,
+                                                        overlay3DDetails[i].notificationOrientation);
+                buttonPosition = Vec3.sum(defaultEyePosition,
+                                          Vec3.multiplyQbyV(avatarOrientation,
+                                                            overlay3DDetails[i].buttonPosition));
+                Overlays.editOverlay(notifications[i], { position: notificationPosition,
+                                                         rotation: notificationOrientation });
+                Overlays.editOverlay(buttons[i], { position: buttonPosition, rotation: notificationOrientation });
+            }
+        }
+
     } else {
         if (!image) {
             notificationText = Overlays.addOverlay("text", notice);
@@ -312,6 +344,8 @@ function notify(notice, button, height, imageProperties, image) {
 
     return notificationText;
 }
+
+var CLOSE_NOTIFICATION_ICON = Script.resolvePath("assets/images/close-small-light.svg");
 
 //  This function creates and sizes the overlays
 function createNotification(text, notificationType, imageProperties) {
@@ -359,7 +393,7 @@ function createNotification(text, notificationType, imageProperties) {
         width: 10.0,
         height: 10.0,
         subImage: { x: 0, y: 0, width: 10, height: 10 },
-        imageURL: Script.resolvePath("assets/images/close-small-light.svg"),
+        imageURL: CLOSE_NOTIFICATION_ICON,
         color: { red: 255, green: 255, blue: 255},
         visible: true,
         alpha: backgroundAlpha
@@ -406,29 +440,11 @@ function wordWrap(str) {
     return stringDivider(str, 43.0, "\n");
 }
 
-//  This fires a notification on window resize
-function checkSize() {
-    if ((Window.innerWidth !== ourWidth) || (Window.innerHeight !== ourHeight)) {
-        var windowResize = "Window has been resized";
-        ourWidth = Window.innerWidth;
-        ourHeight = Window.innerHeight;
-        windowDimensions = Controller.getViewportDimensions();
-        overlayLocationX = (windowDimensions.x - (width + 60.0));
-        buttonLocationX = overlayLocationX + (width - 35.0);
-        createNotification(windowResize, NotificationType.WINDOW_RESIZE);
-    }
-}
-
 function update() {
     var nextOverlay,
         noticeOut,
         buttonOut,
         arraysOut,
-        defaultEyePosition,
-        avatarOrientation,
-        notificationPosition,
-        notificationOrientation,
-        buttonPosition,
         positions,
         i,
         j,
@@ -445,14 +461,14 @@ function update() {
 
     frame += 1;
     if ((frame % 60.0) === 0) { // only update once a second
-        checkSize(); // checks for size change to trigger windowResize notification
         locationY = 20.0;
         for (i = 0; i < arrays.length; i += 1) { //repositions overlays as others fade
             nextOverlay = Overlays.getOverlayAtPoint({ x: overlayLocationX, y: locationY });
             Overlays.editOverlay(notifications[i], { x: overlayLocationX, y: locationY });
             Overlays.editOverlay(buttons[i], { x: buttonLocationX, y: locationY + 12.0 });
             if (isOnHMD) {
-                positions = calculate3DOverlayPositions(overlay3DDetails[i].width, overlay3DDetails[i].height, locationY);
+                positions = calculate3DOverlayPositions(overlay3DDetails[i].width,
+                                                        overlay3DDetails[i].height, locationY);
                 overlay3DDetails[i].notificationOrientation = positions.notificationOrientation;
                 overlay3DDetails[i].notificationPosition = positions.notificationPosition;
                 overlay3DDetails[i].buttonPosition = positions.buttonPosition;
@@ -473,22 +489,6 @@ function update() {
                 arraysOut = i;
                 fadeOut(noticeOut, buttonOut, arraysOut);
             }
-        }
-    }
-
-    if (isOnHMD && notifications.length > 0) {
-        // Update 3D overlays to maintain positions relative to avatar
-        defaultEyePosition = MyAvatar.getDefaultEyePosition();
-        avatarOrientation = MyAvatar.orientation;
-
-        for (i = 0; i < notifications.length; i += 1) {
-            notificationPosition = Vec3.sum(defaultEyePosition,
-                Vec3.multiplyQbyV(avatarOrientation, overlay3DDetails[i].notificationPosition));
-            notificationOrientation = Quat.multiply(avatarOrientation, overlay3DDetails[i].notificationOrientation);
-            buttonPosition = Vec3.sum(defaultEyePosition,
-                Vec3.multiplyQbyV(avatarOrientation, overlay3DDetails[i].buttonPosition));
-            Overlays.editOverlay(notifications[i], { position: notificationPosition, rotation: notificationOrientation });
-            Overlays.editOverlay(buttons[i], { position: buttonPosition, rotation: notificationOrientation });
         }
     }
 }
@@ -513,26 +513,23 @@ function isStartingUp() {
     return startingUp;
 }
 
-//  Triggers mic mute notification
-function onMuteStateChanged() {
-    var muteState,
-        muteString;
-
-    muteState = AudioDevice.getMuted() ? "muted" : "unmuted";
-    muteString = "Microphone is now " + muteState;
-    createNotification(muteString, NotificationType.MUTE_TOGGLE);
-}
-
 function onDomainConnectionRefused(reason) {
     createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED);
 }
 
-function onSnapshotTaken(path) {
-    var imageProperties = {
-        path: Script.resolvePath("file:///" + path),
-        aspectRatio: Window.innerWidth / Window.innerHeight
+function onEditError(msg) {
+    createNotification(wordWrap(msg), NotificationType.EDIT_ERROR);
+}
+
+
+function onSnapshotTaken(path, notify) {
+    if (notify) {
+        var imageProperties = {
+            path: "file:///" + path,
+            aspectRatio: Window.innerWidth / Window.innerHeight
+        };
+        createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
     }
-    createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
 }
 
 //  handles mouse clicks on buttons
@@ -564,8 +561,6 @@ function keyReleaseEvent(key) {
 
 //  Triggers notification on specific key driven events
 function keyPressEvent(key) {
-    var noteString;
-
     if (key.key === 16777249) {
         ctrlIsPressed = true;
     }
@@ -582,7 +577,7 @@ function setup() {
         isChecked: Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING)
     });
     Menu.addSeparator(MENU_NAME, "Play sounds for:");
-    for (type in NotificationType.properties) {
+    for (var type in NotificationType.properties) {
         checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + (parseInt(type) + 1));
         checked = checked === '' ? true : checked;
         Menu.addMenuItem({
@@ -615,20 +610,19 @@ function menuItemEvent(menuItem) {
 }
 
 LODManager.LODDecreased.connect(function() {
-    var warningText = "\n"
-            + "Due to the complexity of the content, the \n"
-            + "level of detail has been decreased. "
-            + "You can now see: \n" 
-            + LODManager.getLODFeedbackText();
+    var warningText = "\n" +
+        "Due to the complexity of the content, the \n" +
+        "level of detail has been decreased. " +
+        "You can now see: \n" +
+        LODManager.getLODFeedbackText();
 
-    if (lodTextID == false) {
+    if (lodTextID === false) {
         lodTextID = createNotification(warningText, NotificationType.LOD_WARNING);
     } else {
         Overlays.editOverlay(lodTextID, { text: warningText });
     }
 });
 
-AudioDevice.muteToggled.connect(onMuteStateChanged);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
@@ -637,5 +631,8 @@ Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
+Window.notifyEditError = onEditError;
 
 setup();
+
+}()); // END LOCAL_SCOPE

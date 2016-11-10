@@ -80,7 +80,7 @@ class EntityTreeElement : public OctreeElement, ReadWriteLockable {
 
     EntityTreeElement(unsigned char* octalCode = NULL);
 
-    virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL);
+    virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;
 
 public:
     virtual ~EntityTreeElement();
@@ -93,67 +93,69 @@ public:
     // methods you can and should override to implement your tree functionality
 
     /// Adds a child to the current element. Override this if there is additional child initialization your class needs.
-    virtual OctreeElementPointer addChildAtIndex(int index);
+    virtual OctreeElementPointer addChildAtIndex(int index) override;
 
     /// Override this to implement LOD averaging on changes to the tree.
-    virtual void calculateAverageFromChildren();
+    virtual void calculateAverageFromChildren() override;
 
     /// Override this to implement LOD collapsing and identical child pruning on changes to the tree.
-    virtual bool collapseChildren();
+    virtual bool collapseChildren() override;
 
     /// Should this element be considered to have content in it. This will be used in collision and ray casting methods.
     /// By default we assume that only leaves are actual content, but some octrees may have different semantics.
-    virtual bool hasContent() const { return hasEntities(); }
+    virtual bool hasContent() const override { return hasEntities(); }
 
     /// Should this element be considered to have detailed content in it. Specifically should it be rendered.
     /// By default we assume that only leaves have detailed content, but some octrees may have different semantics.
-    virtual bool hasDetailedContent() const { return hasEntities(); }
+    virtual bool hasDetailedContent() const override { return hasEntities(); }
 
     /// Override this to break up large octree elements when an edit operation is performed on a smaller octree element.
     /// For example, if the octrees represent solid cubes and a delete of a smaller octree element is done then the
     /// meaningful split would be to break the larger cube into smaller cubes of the same color/texture.
-    virtual void splitChildren() { }
+    virtual void splitChildren() override { }
 
     /// Override to indicate that this element requires a split before editing lower elements in the octree
-    virtual bool requiresSplit() const { return false; }
+    virtual bool requiresSplit() const override { return false; }
 
-    virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const;
-    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params);
-    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const;
-    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const;
-    virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const;
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const;
+    virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const override;
+    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) override;
+    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const override;
+    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const override;
+    virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const override;
+    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const override;
 
     bool alreadyFullyEncoded(EncodeBitstreamParams& params) const;
 
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
+    virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData,
+                                                         EncodeBitstreamParams& params) const override;
 
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
-    virtual int readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+    virtual int readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+                                          ReadBitstreamToTreeParams& args) override;
 
     /// Override to indicate that the item is currently rendered in the rendering engine. By default we assume that if
     /// the element should be rendered, then your rendering engine is rendering. But some rendering engines my have cases
     /// where an element is not actually rendering all should render elements. If the isRendered() state doesn't match the
     /// shouldRender() state, the tree will remark elements as changed even in cases there the elements have not changed.
-    virtual bool isRendered() const { return getShouldRender(); }
-    virtual bool deleteApproved() const { return !hasEntities(); }
+    virtual bool isRendered() const override { return getShouldRender(); }
+    virtual bool deleteApproved() const override { return !hasEntities(); }
 
-    virtual bool canRayIntersect() const { return hasEntities(); }
+    virtual bool canRayIntersect() const override { return hasEntities(); }
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         bool& keepSearching, OctreeElementPointer& node, float& distance,
-        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude, 
-        const QVector<EntityItemID>& entityIdsToDiscard,
+        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly = false, bool collidableOnly = false,
         void** intersectedObject = NULL, bool precisionPicking = false);
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
+                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-                         const QVector<EntityItemID>& entityIdsToDiscard,
+                         const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
-                        glm::vec3& penetration, void** penetratedObject) const;
+                        glm::vec3& penetration, void** penetratedObject) const override;
 
 
     template <typename F>
@@ -191,6 +193,11 @@ public:
     /// \param box the query box
     /// \param entities[out] vector of non-const EntityItemPointer
     void getEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities);
+
+    /// finds all entities that touch a frustum
+    /// \param frustum the query frustum
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
 
     EntityItemPointer getEntityWithID(uint32_t id) const;
     EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;
@@ -232,7 +239,7 @@ public:
     }
 
 protected:
-    virtual void init(unsigned char * octalCode);
+    virtual void init(unsigned char * octalCode) override;
     EntityTreePointer _myTree;
     EntityItems _entityItems;
 };

@@ -325,6 +325,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_POSITION, localPosition);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_VELOCITY, localVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
 
     CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
@@ -333,6 +335,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_OWNING_AVATAR_ID, owningAvatarID);
 
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
+    CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
@@ -502,6 +505,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Web only
     if (_type == EntityTypes::Web) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
     }
 
     // PolyVoxel only
@@ -570,9 +574,27 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_VELOCITY, localVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
+
+    // Rendering info
+    if (!skipDefaults) {
+        QScriptValue renderInfo = engine->newObject();
+
+        // currently only supported by models
+        if (_type == EntityTypes::Model) {
+            renderInfo.setProperty("verticesCount", (int)getRenderInfoVertexCount()); // FIXME - theoretically the number of vertex could be > max int
+            renderInfo.setProperty("texturesSize", (int)getRenderInfoTextureSize()); // FIXME - theoretically the size of textures could be > max int
+            renderInfo.setProperty("hasTransparent", getRenderInfoHasTransparent());
+            renderInfo.setProperty("drawCalls", getRenderInfoDrawCalls());
+            renderInfo.setProperty("texturesCount", getRenderInfoTextureCount());
+        }
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
+    }
 
     properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
     properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
@@ -707,6 +729,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, glmVec3, setLocalPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, glmVec3, setLocalVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, glmVec3, setLocalAngularVelocity);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -719,6 +743,135 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(clientOnly, bool, setClientOnly);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+
+    _lastEdited = usecTimestampNow();
+}
+
+void EntityItemProperties::merge(const EntityItemProperties& other) {
+    COPY_PROPERTY_IF_CHANGED(position);
+    COPY_PROPERTY_IF_CHANGED(dimensions);
+    COPY_PROPERTY_IF_CHANGED(rotation);
+    COPY_PROPERTY_IF_CHANGED(density);
+    COPY_PROPERTY_IF_CHANGED(velocity);
+    COPY_PROPERTY_IF_CHANGED(gravity);
+    COPY_PROPERTY_IF_CHANGED(acceleration);
+    COPY_PROPERTY_IF_CHANGED(damping);
+    COPY_PROPERTY_IF_CHANGED(restitution);
+    COPY_PROPERTY_IF_CHANGED(friction);
+    COPY_PROPERTY_IF_CHANGED(lifetime);
+    COPY_PROPERTY_IF_CHANGED(script);
+    COPY_PROPERTY_IF_CHANGED(scriptTimestamp);
+    COPY_PROPERTY_IF_CHANGED(registrationPoint);
+    COPY_PROPERTY_IF_CHANGED(angularVelocity);
+    COPY_PROPERTY_IF_CHANGED(angularDamping);
+    COPY_PROPERTY_IF_CHANGED(visible);
+    COPY_PROPERTY_IF_CHANGED(color);
+    COPY_PROPERTY_IF_CHANGED(colorSpread);
+    COPY_PROPERTY_IF_CHANGED(colorStart);
+    COPY_PROPERTY_IF_CHANGED(colorFinish);
+    COPY_PROPERTY_IF_CHANGED(alpha);
+    COPY_PROPERTY_IF_CHANGED(alphaSpread);
+    COPY_PROPERTY_IF_CHANGED(alphaStart);
+    COPY_PROPERTY_IF_CHANGED(alphaFinish);
+    COPY_PROPERTY_IF_CHANGED(emitterShouldTrail);
+    COPY_PROPERTY_IF_CHANGED(modelURL);
+    COPY_PROPERTY_IF_CHANGED(compoundShapeURL);
+    COPY_PROPERTY_IF_CHANGED(localRenderAlpha);
+    COPY_PROPERTY_IF_CHANGED(collisionless);
+    COPY_PROPERTY_IF_CHANGED(collisionMask);
+    COPY_PROPERTY_IF_CHANGED(dynamic);
+    COPY_PROPERTY_IF_CHANGED(isSpotlight);
+    COPY_PROPERTY_IF_CHANGED(intensity);
+    COPY_PROPERTY_IF_CHANGED(falloffRadius);
+    COPY_PROPERTY_IF_CHANGED(exponent);
+    COPY_PROPERTY_IF_CHANGED(cutoff);
+    COPY_PROPERTY_IF_CHANGED(locked);
+    COPY_PROPERTY_IF_CHANGED(textures);
+    COPY_PROPERTY_IF_CHANGED(userData);
+    COPY_PROPERTY_IF_CHANGED(text);
+    COPY_PROPERTY_IF_CHANGED(lineHeight);
+    COPY_PROPERTY_IF_CHANGED(textColor);
+    COPY_PROPERTY_IF_CHANGED(backgroundColor);
+    COPY_PROPERTY_IF_CHANGED(shapeType);
+    COPY_PROPERTY_IF_CHANGED(maxParticles);
+    COPY_PROPERTY_IF_CHANGED(lifespan);
+    COPY_PROPERTY_IF_CHANGED(isEmitting);
+    COPY_PROPERTY_IF_CHANGED(emitRate);
+    COPY_PROPERTY_IF_CHANGED(emitSpeed);
+    COPY_PROPERTY_IF_CHANGED(speedSpread);
+    COPY_PROPERTY_IF_CHANGED(emitOrientation);
+    COPY_PROPERTY_IF_CHANGED(emitDimensions);
+    COPY_PROPERTY_IF_CHANGED(emitRadiusStart);
+    COPY_PROPERTY_IF_CHANGED(polarStart);
+    COPY_PROPERTY_IF_CHANGED(polarFinish);
+    COPY_PROPERTY_IF_CHANGED(azimuthStart);
+    COPY_PROPERTY_IF_CHANGED(azimuthFinish);
+    COPY_PROPERTY_IF_CHANGED(emitAcceleration);
+    COPY_PROPERTY_IF_CHANGED(accelerationSpread);
+    COPY_PROPERTY_IF_CHANGED(particleRadius);
+    COPY_PROPERTY_IF_CHANGED(radiusSpread);
+    COPY_PROPERTY_IF_CHANGED(radiusStart);
+    COPY_PROPERTY_IF_CHANGED(radiusFinish);
+    COPY_PROPERTY_IF_CHANGED(marketplaceID);
+    COPY_PROPERTY_IF_CHANGED(name);
+    COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
+
+    COPY_PROPERTY_IF_CHANGED(backgroundMode);
+    COPY_PROPERTY_IF_CHANGED(sourceUrl);
+    COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
+    COPY_PROPERTY_IF_CHANGED(voxelData);
+    COPY_PROPERTY_IF_CHANGED(voxelSurfaceStyle);
+    COPY_PROPERTY_IF_CHANGED(lineWidth);
+    COPY_PROPERTY_IF_CHANGED(linePoints);
+    COPY_PROPERTY_IF_CHANGED(href);
+    COPY_PROPERTY_IF_CHANGED(description);
+    COPY_PROPERTY_IF_CHANGED(faceCamera);
+    COPY_PROPERTY_IF_CHANGED(actionData);
+    COPY_PROPERTY_IF_CHANGED(normals);
+    COPY_PROPERTY_IF_CHANGED(strokeWidths);
+    COPY_PROPERTY_IF_CHANGED(created);
+
+    _animation.merge(other._animation);
+    _keyLight.merge(other._keyLight);
+    _skybox.merge(other._skybox);
+    _stage.merge(other._stage);
+
+    COPY_PROPERTY_IF_CHANGED(xTextureURL);
+    COPY_PROPERTY_IF_CHANGED(yTextureURL);
+    COPY_PROPERTY_IF_CHANGED(zTextureURL);
+
+    COPY_PROPERTY_IF_CHANGED(xNNeighborID);
+    COPY_PROPERTY_IF_CHANGED(yNNeighborID);
+    COPY_PROPERTY_IF_CHANGED(zNNeighborID);
+
+    COPY_PROPERTY_IF_CHANGED(xPNeighborID);
+    COPY_PROPERTY_IF_CHANGED(yPNeighborID);
+    COPY_PROPERTY_IF_CHANGED(zPNeighborID);
+
+    COPY_PROPERTY_IF_CHANGED(parentID);
+    COPY_PROPERTY_IF_CHANGED(parentJointIndex);
+    COPY_PROPERTY_IF_CHANGED(queryAACube);
+
+    COPY_PROPERTY_IF_CHANGED(localPosition);
+    COPY_PROPERTY_IF_CHANGED(localRotation);
+    COPY_PROPERTY_IF_CHANGED(localVelocity);
+    COPY_PROPERTY_IF_CHANGED(localAngularVelocity);
+
+    COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
+    COPY_PROPERTY_IF_CHANGED(jointRotations);
+    COPY_PROPERTY_IF_CHANGED(jointTranslationsSet);
+    COPY_PROPERTY_IF_CHANGED(jointTranslations);
+    COPY_PROPERTY_IF_CHANGED(shape);
+
+    COPY_PROPERTY_IF_CHANGED(flyingAllowed);
+    COPY_PROPERTY_IF_CHANGED(ghostingAllowed);
+
+    COPY_PROPERTY_IF_CHANGED(clientOnly);
+    COPY_PROPERTY_IF_CHANGED(owningAvatarID);
+
+    COPY_PROPERTY_IF_CHANGED(dpi);
 
     _lastEdited = usecTimestampNow();
 }
@@ -743,7 +896,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
     QScriptValue result = engine->newObject();
-	return result;
+    return result;
 }
 
 void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {
@@ -864,6 +1017,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, LocalPosition, localPosition, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glm::vec3);
 
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
@@ -894,6 +1049,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
+
+        ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
@@ -1057,6 +1214,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
+                APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
             }
 
             if (properties.getType() == EntityTypes::Text) {
@@ -1356,6 +1514,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
     }
 
     if (properties.getType() == EntityTypes::Text) {
@@ -1634,6 +1793,8 @@ void EntityItemProperties::markAllChanged() {
 
     _clientOnlyChanged = true;
     _owningAvatarIDChanged = true;
+
+    _dpiChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -1969,6 +2130,10 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "ghostingAllowed";
     }
 
+    if (dpiChanged()) {
+        out += "dpi";
+    }
+
     if (shapeChanged()) {
         out += "shape";
     }
@@ -1982,7 +2147,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 }
 
 bool EntityItemProperties::parentDependentPropertyChanged() const {
-    return localPositionChanged() || positionChanged() || localRotationChanged() || rotationChanged();
+    return localPositionChanged() || positionChanged() ||
+        localRotationChanged() || rotationChanged() ||
+        localVelocityChanged() || localAngularVelocityChanged();
 }
 
 bool EntityItemProperties::parentRelatedPropertyChanged() const {

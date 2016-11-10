@@ -23,6 +23,7 @@ public:
 
     Grid3DOverlay();
     Grid3DOverlay(const Grid3DOverlay* grid3DOverlay);
+    ~Grid3DOverlay();
 
     virtual AABox getBounds() const override;
 
@@ -48,6 +49,7 @@ private:
     float _minorGridEvery { 1.0f };
     float _minorGridRowDivisions;
     float _minorGridColDivisions;
+    int _geometryId { 0 };
 };
 
 #endif // hifi_Grid3DOverlay_h

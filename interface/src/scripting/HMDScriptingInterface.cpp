@@ -13,10 +13,12 @@
 
 #include <QtScript/QScriptContext>
 
+#include <avatar/AvatarManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <display-plugins/CompositorHelper.h>
 #include <OffscreenUi.h>
-#include <avatar/AvatarManager.h>
+#include <plugins/PluginUtils.h>
+
 #include "Application.h"
 
 HMDScriptingInterface::HMDScriptingInterface() {
@@ -45,6 +47,28 @@ glm::vec2 HMDScriptingInterface::sphericalToOverlay(const glm::vec2 & position) 
 
 glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) const {
     return qApp->getApplicationCompositor().overlayToSpherical(position);
+}
+
+bool HMDScriptingInterface::isHMDAvailable() {
+    return PluginUtils::isHMDAvailable();
+}
+
+bool HMDScriptingInterface::isHandControllerAvailable() {
+    return PluginUtils::isHandControllerAvailable();
+}
+
+void HMDScriptingInterface::requestShowHandControllers() {
+    _showHandControllersCount++;
+    emit shouldShowHandControllersChanged();
+}
+
+void HMDScriptingInterface::requestHideHandControllers() {
+    _showHandControllersCount--;
+    emit shouldShowHandControllersChanged();
+}
+
+bool HMDScriptingInterface::shouldShowHandControllers() const {
+    return _showHandControllersCount > 0;
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
@@ -79,7 +103,7 @@ bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {
 }
 
 glm::mat4 HMDScriptingInterface::getWorldHMDMatrix() const {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     return myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
 }
 
@@ -118,6 +142,27 @@ bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::ve
     return qApp->getActiveDisplayPlugin()->setHandLaser(hands,
         enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
         color, direction);
+}
+
+bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
+        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
+    });
+
+
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto sensorToWorld = myAvatar->getSensorToWorldMatrix();
+    auto worldToSensor = glm::inverse(sensorToWorld);
+    auto sensorStart = ::transformPoint(worldToSensor, worldStart);
+    auto sensorDirection = ::transformVectorFast(worldToSensor, direction);
+
+    return qApp->getActiveDisplayPlugin()->setExtraLaser(enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
+        color, sensorStart, sensorDirection);
+}
+
+void HMDScriptingInterface::disableExtraLaser() const {
+    setExtraLaser(vec3(0), false, vec4(0), vec3(0));
 }
 
 void HMDScriptingInterface::disableHandLasers(int hands) const {
