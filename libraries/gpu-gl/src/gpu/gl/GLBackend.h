@@ -177,7 +177,6 @@ public:
     virtual void queueLambda(const std::function<void()> lambda) const;
 
     bool isTextureManagementSparseEnabled() const override { return (_textureManagement._sparseCapable && Texture::getEnableSparseTextures()); }
-    bool isTextureManagementIncrementalTransferEnabled() const override { return (_textureManagement._incrementalTransferCapable && Texture::getEnableIncrementalTextureTransfers()); }
 
 protected:
 
@@ -369,7 +368,6 @@ protected:
 
     struct TextureManagementStageState {
         bool _sparseCapable { false };
-        bool _incrementalTransferCapable { false };
     } _textureManagement;
     virtual void initTextureManagementStage() {}
 

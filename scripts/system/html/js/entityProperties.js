@@ -445,13 +445,11 @@ function hideUserDataTextArea() {
 };
 
 function showStaticUserData() {
-    $('#static-userdata').show();
-    $('#static-userdata').css('height', $('#userdata-editor').height())
     if (editor !== null) {
+        $('#static-userdata').show();
+        $('#static-userdata').css('height', $('#userdata-editor').height())
         $('#static-userdata').text(editor.getText());
     }
-
-
 };
 
 function removeStaticUserData() {

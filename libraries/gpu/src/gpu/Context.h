@@ -86,7 +86,6 @@ public:
     void getStats(ContextStats& stats) const { stats = _stats; }
 
     virtual bool isTextureManagementSparseEnabled() const = 0;
-    virtual bool isTextureManagementIncrementalTransferEnabled() const = 0;
 
     // These should only be accessed by Backend implementation to repport the buffer and texture allocations,
     // they are NOT public calls
@@ -205,12 +204,16 @@ public:
     void getStats(ContextStats& stats) const;
 
 
+    double getFrameTimerGPUAverage() const;
+    double getFrameTimerBatchAverage() const;
+
     static uint32_t getBufferGPUCount();
     static Size getBufferGPUMemoryUsage();
 
     static uint32_t getTextureGPUCount();
     static uint32_t getTextureGPUSparseCount();
     static Size getFreeGPUMemory();
+    static Size getUsedGPUMemory();
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
     static Size getTextureGPUFramebufferMemoryUsage();
@@ -223,7 +226,11 @@ protected:
     std::shared_ptr<Backend> _backend;
     bool _frameActive { false };
     FramePointer _currentFrame;
+    RangeTimerPointer _frameRangeTimer;
     StereoState  _stereo;
+
+    double getGPUAverage() const;
+    double getBatchAverage() const;
 
     // This function can only be called by "static Shader::makeProgram()"
     // makeProgramShader(...) make a program shader ready to be used in a Batch.

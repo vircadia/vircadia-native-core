@@ -387,21 +387,9 @@ Menu::Menu() {
     });
 
 #ifdef Q_OS_WIN
-    #define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
-    bool recommendedIncrementalTransfers = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
-    bool recommendedSparseTextures = recommendedIncrementalTransfers;
-
-    qDebug() << "[TEXTURE TRANSFER SUPPORT]"
-        << "\n\tidealThreadCount:" << QThread::idealThreadCount()
-        << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures
-        << "\n\tRECOMMENDED enableIncrementalTextures:" << recommendedIncrementalTransfers;
-
-    gpu::Texture::setEnableIncrementalTextureTransfers(recommendedIncrementalTransfers);
-    gpu::Texture::setEnableSparseTextures(recommendedSparseTextures);
-
-    // Developer > Render > Enable Dynamic Texture Management
+    // Developer > Render > Enable Sparse Textures
     {
-        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableDynamicTextureManagement, 0, recommendedSparseTextures);
+        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::SparseTextureManagement, 0, gpu::Texture::getEnableSparseTextures());
         connect(action, &QAction::triggered, [&](bool checked) {
             qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Dynamic Texture Management menu option:" << checked;
             gpu::Texture::setEnableSparseTextures(checked);
@@ -410,7 +398,7 @@ Menu::Menu() {
 
     // Developer > Render > Enable Incremental Texture Transfer
     {
-        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableIncrementalTextureTransfer, 0, recommendedIncrementalTransfers);
+        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::IncrementalTextureTransfer, 0, gpu::Texture::getEnableIncrementalTextureTransfers());
         connect(action, &QAction::triggered, [&](bool checked) {
             qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Incremental Texture Transfer menu option:" << checked;
             gpu::Texture::setEnableIncrementalTextureTransfers(checked);
