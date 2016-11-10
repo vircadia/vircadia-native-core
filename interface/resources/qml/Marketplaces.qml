@@ -96,6 +96,17 @@ Rectangle {
                                                 });
                                             }';
 
+        // In item page:
+        // - Fix up library link URL.
+        property string updateItemPage:    'if ($) {
+                                                var element = $("a[href=\'/library\']")[0];
+                                                var parameters = "?gameCheck=true&public=true";
+                                                var href = element.getAttribute("href");
+                                                if (href.slice(-parameters.length) !== parameters) {
+                                                    element.setAttribute("href", href + parameters);
+                                                }
+                                            }';
+
         // Overload Clara FBX download link action.
         property string replaceFBXDownload:    'var element = $("a.download-file");
                                                 element.removeClass("download-file");
@@ -116,6 +127,11 @@ Rectangle {
             if (location.indexOf("clara.io/library") !== -1) {
                 // Catalog page.
                 runJavaScript(updateLibraryPage, function() { console.log("Library link JS injection"); });
+            }
+
+            if (location.indexOf("clara.io/view/") !== -1) {
+                // Item page.
+                runJavaScript(updateItemPage, function() { console.log("Item link JS injection"); });
             }
         }
 
