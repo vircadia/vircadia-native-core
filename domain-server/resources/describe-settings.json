@@ -869,6 +869,7 @@
     {
       "name": "avatars",
       "label": "Avatars",
+      "assignment-types": [1, 2],
       "settings": [
         {
           "name": "min_avatar_scale",
