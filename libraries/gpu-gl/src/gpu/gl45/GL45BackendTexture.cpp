@@ -162,6 +162,8 @@ void GL45Backend::initTextureManagementStage() {
     }
 }
 
+#if INCREMENTAL_TRANSFER
+
 using TransferState = GL45Backend::GL45Texture::TransferState;
 
 TransferState::TransferState(GL45Texture& texture) : texture(texture) {
@@ -246,6 +248,7 @@ void TransferState::populatePage(std::vector<uint8_t>& buffer) {
 uvec3 TransferState::currentPageSize() const {
     return glm::clamp(mipDimensions - mipOffset, uvec3(1), texture._sparseInfo.pageDimensions);
 }
+#endif
 
 GLuint GL45Texture::allocate(const Texture& texture) {
     GLuint result;
@@ -258,11 +261,19 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
 }
 
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId)
-    : GLTexture(backend, texture, externalId), _sparseInfo(*this), _transferState(*this) {
+    : GLTexture(backend, texture, externalId), _sparseInfo(*this) 
+#if INCREMENTAL_TRANSFER
+, _transferState(*this)    
+#endif
+{
 }
 
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
-    : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
+    : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this) 
+#if INCREMENTAL_TRANSFER
+, _transferState(*this)    
+#endif
+    {
 
     auto theBackend = _backend.lock();
     if (_transferrable && theBackend && theBackend->isTextureManagementSparseEnabled()) {
@@ -375,39 +386,40 @@ void GL45Texture::updateSize() const {
 void GL45Texture::startTransfer() {
     Parent::startTransfer();
     _sparseInfo.update();
+#if INCREMENTAL_TRANSFER
     _transferState.updateMip();
+#endif
 }
 
 bool GL45Texture::continueTransfer() {
-    if (!Texture::getEnableIncrementalTextureTransfers()) {
-        size_t maxFace = GL_TEXTURE_CUBE_MAP == _target ? CUBE_NUM_FACES : 1;
-        for (uint8_t face = 0; face < maxFace; ++face) {
-            for (uint16_t mipLevel = _minMip; mipLevel <= _maxMip; ++mipLevel) {
-                auto size = _gpuObject.evalMipDimensions(mipLevel);
-                if (_sparseInfo.sparse && mipLevel <= _sparseInfo.maxSparseLevel) {
-                    glTexturePageCommitmentEXT(_id, mipLevel, 0, 0, face, size.x, size.y, 1, GL_TRUE);
-                    _allocatedPages += _sparseInfo.getPageCount(size);
+#if !INCREMENTAL_TRANSFER
+    size_t maxFace = GL_TEXTURE_CUBE_MAP == _target ? CUBE_NUM_FACES : 1;
+    for (uint8_t face = 0; face < maxFace; ++face) {
+        for (uint16_t mipLevel = _minMip; mipLevel <= _maxMip; ++mipLevel) {
+            auto size = _gpuObject.evalMipDimensions(mipLevel);
+            if (_sparseInfo.sparse && mipLevel <= _sparseInfo.maxSparseLevel) {
+                glTexturePageCommitmentEXT(_id, mipLevel, 0, 0, face, size.x, size.y, 1, GL_TRUE);
+                _allocatedPages += _sparseInfo.getPageCount(size);
+            }
+            if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
+                auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
+                GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
+                if (GL_TEXTURE_2D == _target) {
+                    glTextureSubImage2D(_id, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                } else if (GL_TEXTURE_CUBE_MAP == _target) {
+                    // DSA ARB does not work on AMD, so use EXT
+                    // glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
+                    auto target = CUBE_FACE_LAYOUT[face];
+                    glTextureSubImage2DEXT(_id, target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                } else {
+                    Q_ASSERT(false);
                 }
-                if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
-                    auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
-                    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
-                    if (GL_TEXTURE_2D == _target) {
-                        glTextureSubImage2D(_id, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
-                    } else if (GL_TEXTURE_CUBE_MAP == _target) {
-                        // DSA ARB does not work on AMD, so use EXT
-                        // glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
-                        auto target = CUBE_FACE_LAYOUT[face];
-                        glTextureSubImage2DEXT(_id, target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
-                    } else {
-                        Q_ASSERT(false);
-                    }
-                    (void)CHECK_GL_ERROR();
-                }
+                (void)CHECK_GL_ERROR();
             }
         }
-        return false;
     }
-
+    return false;
+#else
     static std::vector<uint8_t> buffer;
     if (buffer.empty()) {
         buffer.resize(DEFAULT_PAGE_BUFFER_SIZE);
@@ -458,6 +470,7 @@ bool GL45Texture::continueTransfer() {
         _lastMipAllocatedPages = _allocatedPages;
     }
     return result;
+#endif
 }
 
 void GL45Texture::finishTransfer() {

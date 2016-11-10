@@ -35,18 +35,15 @@ std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
 
 #define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
-bool recommendedIncrementalTransfers = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
-bool recommendedSparseTextures = recommendedIncrementalTransfers;
+bool recommendedSparseTextures = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
 
-std::atomic<bool> Texture::_enableSparseTextures { recommendedIncrementalTransfers };
-std::atomic<bool> Texture::_enableIncrementalTextureTransfers { recommendedSparseTextures };
+std::atomic<bool> Texture::_enableSparseTextures { recommendedSparseTextures };
 
 struct ReportTextureState {
     ReportTextureState() {
         qDebug() << "[TEXTURE TRANSFER SUPPORT]"
             << "\n\tidealThreadCount:" << QThread::idealThreadCount()
-            << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures
-            << "\n\tRECOMMENDED enableIncrementalTextures:" << recommendedIncrementalTransfers;
+            << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures;
     }
 } report;
 
@@ -58,16 +55,6 @@ void Texture::setEnableSparseTextures(bool enabled) {
     qDebug() << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
 #endif
 }
-
-void Texture::setEnableIncrementalTextureTransfers(bool enabled) {
-#ifdef Q_OS_WIN
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Incremental Texture Transfer:" << enabled;
-    _enableIncrementalTextureTransfers = enabled;
-#else
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] Incremental Texture Transfer not supported on this platform.";
-#endif
-}
-
 
 void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
@@ -82,10 +69,6 @@ void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSiz
 
 bool Texture::getEnableSparseTextures() { 
     return _enableSparseTextures.load(); 
-}
-
-bool Texture::getEnableIncrementalTextureTransfers() { 
-    return _enableIncrementalTextureTransfers.load(); 
 }
 
 uint32_t Texture::getTextureCPUCount() {
