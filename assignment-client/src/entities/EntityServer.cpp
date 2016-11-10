@@ -278,6 +278,13 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
 
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
+
+    QString entityScriptSourceWhitelist;
+    if (readOptionString("entityScriptSourceWhitelist", settingsSectionObject, entityScriptSourceWhitelist)) {
+        tree->setEntityScriptSourceWhitelist(entityScriptSourceWhitelist);
+    } else {
+        tree->setEntityScriptSourceWhitelist("");
+    }
 }
 
 void EntityServer::nodeAdded(SharedNodePointer node) {
