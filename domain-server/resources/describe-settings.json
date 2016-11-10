@@ -875,7 +875,7 @@
           "name": "min_avatar_scale",
           "type": "double",
           "label": "Minimum Avatar Scale (meters)",
-          "help": "Limits the scale of avatars in your domain. Must be at least than 0.005.",
+          "help": "Limits the scale of avatars in your domain. Must be at least 0.005.",
           "placeholder": 0.25,
           "default": 0.25
         },
