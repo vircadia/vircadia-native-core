@@ -1832,6 +1832,28 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
+// There can be a separation between the _targetScale and the actual scale of the rendered avatar in a domain.
+// When the avatar enters a domain where their target scale is not allowed according to the min/max
+// we do not change their saved target scale. Instead, we use getDomainLimitedScale() to render the avatar
+// at a domain appropriate size. When the avatar leaves the limiting domain, we'll return them to their previous target scale.
+// While connected to a domain that limits avatar scale if the user manually changes their avatar scale, we change
+// target scale to match the new scale they have chosen. When they leave the domain they will not return to the scale they were
+// before they entered the limiting domain.
+
+void MyAvatar::clampTargetScaleToDomainLimits() {
+    // when we're about to change the target scale because the user has asked to increase or decrease their scale,
+    // we first make sure that we're starting from a target scale that is allowed by the current domain
+
+    auto clampedTargetScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
+
+    if (clampedTargetScale != _targetScale) {
+        qCDebug(interfaceapp, "Clamped scale to %f since original target scale %f was not allowed by domain",
+                clampedTargetScale, _targetScale);
+
+        setTargetScale(clampedTargetScale);
+    }
+}
+
 void MyAvatar::clampScaleChangeToDomainLimits(float desiredScale) {
     auto clampedTargetScale = glm::clamp(desiredScale, _domainMinimumScale, _domainMaximumScale);
 
@@ -1845,21 +1867,29 @@ void MyAvatar::clampScaleChangeToDomainLimits(float desiredScale) {
 }
 
 void MyAvatar::increaseSize() {
-    // clamp the target scale to the allowable scale in the domain
+    // make sure we're starting from an allowable scale
+    clampTargetScaleToDomainLimits();
+
+    // calculate what our new scale should be
     float updatedTargetScale = _targetScale * (1.0f + SCALING_RATIO);
 
+    // attempt to change to desired scale (clamped to the domain limits)
     clampScaleChangeToDomainLimits(updatedTargetScale);
 }
 
 void MyAvatar::decreaseSize() {
-    // clamp the target scale to the allowable scale in the domain
+    // make sure we're starting from an allowable scale
+    clampTargetScaleToDomainLimits();
+
+    // calculate what our new scale should be
     float updatedTargetScale = _targetScale * (1.0f - SCALING_RATIO);
 
+    // attempt to change to desired scale (clamped to the domain limits)
     clampScaleChangeToDomainLimits(updatedTargetScale);
 }
 
 void MyAvatar::resetSize() {
-    // attempt to reset avatar size to the default
+    // attempt to reset avatar size to the default (clamped to domain limits)
     const float DEFAULT_AVATAR_SCALE = 1.0f;
 
     clampScaleChangeToDomainLimits(DEFAULT_AVATAR_SCALE);
