@@ -5379,7 +5379,7 @@ void Application::addAssetToWorldInitiate() {
 
     if (!_addAssetToWorldMessageBox) {
         _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, 
-            "Downloading Asset", "Preparing asset for download.", QMessageBox::Cancel, QMessageBox::NoButton);
+            "Downloading Asset", "Downloading asset file.", QMessageBox::Cancel, QMessageBox::NoButton);
     }
 
     connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
@@ -5402,8 +5402,6 @@ void Application::addAssetToWorld(QString filePath) {
     if (!_addAssetToWorldMessageBox) {
         return;
     }
-
-    _addAssetToWorldMessageBox->setProperty("text", "Downloading asset file.");
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "Do not have permissions to write to asset server.";

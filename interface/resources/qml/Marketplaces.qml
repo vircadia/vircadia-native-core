@@ -76,10 +76,6 @@ Rectangle {
         property var autoCancel: 'var element = $("a.btn.cancel");
                                   element.click();'
 
-        property var simpleDownload: 'var element = $("a.download-file");
-                                      element.removeClass("download-file");
-                                      element.removeAttr("download");'
-
         function displayErrorStatus() {
             alertTimer.handler = function() {
                 statusLabel.text = claraMessage;
@@ -92,26 +88,20 @@ Rectangle {
         property var notFbxHandler:     'var element = $("a.btn.btn-primary.viewer-button.download-file")
                                          element.click();'
 
-        // Replace Clara FBX download link action with Cara API action.
-        property string replaceFBXDownload:    'var element = $("a[data-extension=\'fbx\']:first");
-                                                element.unbind("click");
+        // Overload Clara FBX download link action.
+        property string replaceFBXDownload:    'var element = $("a.download-file");
+                                                element.removeClass("download-file");
+                                                element.removeAttr("download");
                                                 element.bind("click", function(event) {
-                                                    console.log("Initiate Clara.io FBX file download for {uuid}");
                                                     EventBridge.emitWebEvent("CLARA.IO DOWNLOAD");
-                                                    window.open("https://clara.io/api/scenes/{uuid}/export/fbx?fbxVersion=7.4&fbxEmbedTextures=true&centerScene=true&alignSceneGound=true");
-                                                    return false;
+                                                    console.log("Clara.io FBX file download initiated for {uuid}");
                                                 });'
 
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl;
 
-            if (desktop.isClaraFBXZipDownload(desktop.currentUrl)) {
-                var doReplaceFBXDownload = replaceFBXDownload.replace(/{uuid}/g, desktop.currentUrl.slice(desktop.currentUrl.lastIndexOf("/") + 1, -1));
-                runJavaScript(doReplaceFBXDownload);
-            }
-
             if (File.isZippedFbx(desktop.currentUrl)) {
-                runJavaScript(simpleDownload, function(){console.log("Download JS injection");});
+                runJavaScript(replaceFBXDownload, function(){console.log("Download JS injection");});
                 return;
             }
 
@@ -145,7 +135,7 @@ Rectangle {
             newWindow.height = 0;
 
             request.openIn(newWindow.webView);
-            if (desktop.isClaraFBXZipDownload(desktop.currentUrl)) {
+            if (File.isZippedFbx(desktop.currentUrl)) {
                 newWindow.setAutoAdd(true);
                 runJavaScript(autoCancel);
                 newWindow.loadingChanged.connect(function(status) {

@@ -105,11 +105,6 @@ OriginalDesktop.Desktop {
     property string tempDir: ""
     property bool autoAdd: false
 
-    function isClaraFBXZipDownload(url) {
-        // Clara.io FBX file: Original URL that is ovrridden in JavaScript to download using API.
-        return url.indexOf("clara.io/view/") !== -1 && url.slice(-1) === "#";
-    }
-
     function initWebviewProfileHandlers(profile) {
         console.log("The webview url in desktop is: " + currentUrl);
         downloadUrl = currentUrl;
@@ -122,9 +117,6 @@ OriginalDesktop.Desktop {
             tempDir = File.getTempDir();
             console.log("Temp dir created: " + tempDir);
             download.path = tempDir + "/" + adaptedPath;
-            if (isClaraFBXZipDownload(downloadUrl)) {
-                download.path += "fbx.zip";
-            }
             console.log("Path where object should download: " + download.path);
             console.log("Auto add: " + autoAdd);
             download.accept();
