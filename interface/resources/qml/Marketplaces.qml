@@ -73,9 +73,6 @@ Rectangle {
             onTriggered: handler();
         }
 
-        property var autoCancel: 'var element = $("a.btn.cancel");
-                                  element.click();'
-
         function displayErrorStatus() {
             alertTimer.handler = function() {
                 statusLabel.text = claraMessage;
@@ -85,8 +82,19 @@ Rectangle {
             alertTimer.start();
         }
 
-        property var notFbxHandler:     'var element = $("a.btn.btn-primary.viewer-button.download-file")
-                                         element.click();'
+        // In library page:
+        // - Open each item in "image" view.
+        property string updateLibraryPage: 'if ($) {
+                                                $(document).ready(function() {
+                                                    var elements = $("a.thumbnail");
+                                                    for (var i = 0, length = elements.length; i < length; i++) {
+                                                        var value = elements[i].getAttribute("href");
+                                                        if (value.slice(-6) !== "/image") {
+                                                            elements[i].setAttribute("href", value + "/image");
+                                                        }
+                                                    }
+                                                });
+                                            }';
 
         // Overload Clara FBX download link action.
         property string replaceFBXDownload:    'var element = $("a.download-file");
@@ -96,6 +104,20 @@ Rectangle {
                                                     EventBridge.emitWebEvent("CLARA.IO DOWNLOAD");
                                                     console.log("Clara.io FBX file download initiated for {uuid}");
                                                 });'
+
+        property var notFbxHandler:     'var element = $("a.btn.btn-primary.viewer-button.download-file");
+                                         element.click();'
+
+        property var autoCancel: 'var element = $("a.btn.cancel");
+                                  element.click();'
+
+        onUrlChanged: {
+            var location = url.toString();
+            if (location.indexOf("clara.io/library") !== -1) {
+                // Catalog page.
+                runJavaScript(updateLibraryPage, function() { console.log("Library link JS injection"); });
+            }
+        }
 
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl;
