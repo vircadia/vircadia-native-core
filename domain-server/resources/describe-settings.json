@@ -1076,6 +1076,14 @@
           "advanced": true
         },
         {
+          "name": "entityScriptSourceWhitelist",
+          "label": "Entity Scripts Allowed from:",
+          "help": "The domains that entity scripts are allowed from. A comma separated list of domains that entity scripts are allowed from, if someone attempts to create and entity or edit an entity to have a different domain, it will be rejected. If left blank, any domain is allowed.",
+          "placeholder": "",
+          "default": "",
+          "advanced": true
+        },
+        {
           "name": "persistFilePath",
           "label": "Entities File Path",
           "help": "The path to the file entities are stored in.<br/>If this path is relative it will be relative to the application data directory.<br/>The filename must end in .json.gz.",

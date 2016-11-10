@@ -598,7 +598,7 @@ protected:
             return;
 
         case Qt::Key_End:
-            gpu::Texture::setAllowedGPUMemoryUsage(MB_TO_BYTES(256));
+            gpu::Texture::setAllowedGPUMemoryUsage(MB_TO_BYTES(64));
             return;
 
 

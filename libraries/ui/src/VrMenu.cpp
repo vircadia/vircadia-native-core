@@ -12,6 +12,7 @@
 
 #include <QtQml>
 #include <QMenuBar>
+#include <QDebug>
 
 #include "OffscreenUi.h"
 
@@ -56,6 +57,18 @@ public:
         _qml->setProperty("shortcut", _action->shortcut().toString());
         _qml->setProperty("checked", _action->isChecked());
         _qml->setProperty("visible", _action->isVisible());
+    }
+
+    void clear() {
+        _qml->setProperty("checkable", 0);
+        _qml->setProperty("enabled", 0);
+        _qml->setProperty("text", 0);
+        _qml->setProperty("shortcut", 0);
+        _qml->setProperty("checked", 0);
+        _qml->setProperty("visible", 0);
+
+        _action->setUserData(USER_DATA_ID, nullptr);
+        _qml->setUserData(USER_DATA_ID, nullptr);
     }
 
 
@@ -217,6 +230,7 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
 }
 
 class QQuickMenuBase;
+class QQuickMenu1;
 
 void VrMenu::removeAction(QAction* action) {
     if (!action) {
@@ -228,10 +242,7 @@ void VrMenu::removeAction(QAction* action) {
         qWarning("Attempted to remove menu action with no found QML object");
         return;
     }
-    
-    QObject* item = findMenuObject(userData->uuid.toString());
-    QObject* menu = item->parent();
-    // Proxy QuickItem requests through the QML layer
-    QQuickMenuBase* qmlItem = reinterpret_cast<QQuickMenuBase*>(item);
-    QMetaObject::invokeMethod(menu, "removeItem", Qt::DirectConnection, Q_ARG(QQuickMenuBase*, qmlItem));
+
+    userData->clear();
+    delete userData;
 }
