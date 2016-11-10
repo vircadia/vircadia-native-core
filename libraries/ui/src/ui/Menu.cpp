@@ -428,6 +428,25 @@ bool Menu::menuExists(const QString& menuName) {
     return false;
 }
 
+bool Menu::isMenuEnabled(const QString& menuName) {
+    QAction* action = getMenuAction(menuName);
+
+    // only proceed if the menu actually exists
+    if (action) {
+        return action->isEnabled();
+    }
+    return false;
+}
+
+void Menu::setMenuEnabled(const QString& menuName, bool isEnabled) {
+    QAction* action = getMenuAction(menuName);
+
+    // only proceed if the menu actually exists
+    if (action) {
+        action->setEnabled(isEnabled);
+    }
+}
+
 void Menu::addSeparator(const QString& menuName, const QString& separatorName, const QString& grouping) {
     MenuWrapper* menuObj = getMenu(menuName);
     if (menuObj) {
