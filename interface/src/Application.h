@@ -611,6 +611,7 @@ private:
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
+    QTimer animatedSnapshotTimer;
     GifWriter _animatedSnapshotGifWriter;
     uint8_t _currentAnimatedSnapshotFrame { 0 };
 };

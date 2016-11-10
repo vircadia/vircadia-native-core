@@ -175,7 +175,6 @@ using namespace std;
 static QTimer locationUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
-static QTimer animatedSnapshotTimer;
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
@@ -5429,8 +5428,12 @@ void Application::toggleLogDialog() {
     }
 }
 
-#define SNAPSNOT_ANIMATED_WIDTH (720)
-#define SNAPSNOT_ANIMATED_FRAMERATE_FPS (30)
+// If this is "too big" (which depends on PC spec):
+// The frame will take too long to pack, the timer slot will
+// not execute properly, and the GIF will appear sped-up.
+// This is unacceptable and is probably a blocker for release.
+#define SNAPSNOT_ANIMATED_WIDTH (500)
+#define SNAPSNOT_ANIMATED_FRAMERATE_FPS (50) // This value should divide evenly into 100
 #define SNAPSNOT_ANIMATED_DURATION_SECS (3)
 
 #define SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC (1000/SNAPSNOT_ANIMATED_FRAMERATE_FPS)
@@ -5465,8 +5468,6 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
 
             // Reset the current animated snapshot frame
             _currentAnimatedSnapshotFrame = 0;
-            // Record the current timestamp - used to clamp GIF duration
-            quint64 usecTimestampSnapshot = usecTimestampNow();
 
             // File path stuff -- lots of this is temporary
             // until I figure out how to save the .GIF to the same location as the still .JPG
@@ -5482,22 +5483,7 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
             animatedSnapshotTimer.setTimerType(Qt::PreciseTimer);
 
             // Connect the animatedSnapshotTimer QTimer to the lambda slot function
-            connect(&animatedSnapshotTimer, &QTimer::timeout, [=] {
-                // If this is the last frame...
-                if ((qApp->_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES) ||
-                    ((usecTimestampNow() - usecTimestampSnapshot) >= (SNAPSNOT_ANIMATED_DURATION_SECS * USECS_PER_SECOND)))
-                {
-                    // Reset the current frame number
-                    qApp->_currentAnimatedSnapshotFrame = 0;
-                    // Stop the snapshot QTimer
-                    animatedSnapshotTimer.stop();
-                    // Write out the end of the GIF
-                    GifEnd(&(qApp->_animatedSnapshotGifWriter));
-                    // Notify the Window Scripting Interface that the snapshot was taken
-                    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, false);
-                    return;
-                }
-
+            connect(&(qApp->animatedSnapshotTimer), &QTimer::timeout, [=] {
 
                 // Get a screenshot from the display, then scale the screenshot down,
                 // then convert it to the image format the GIF library needs,
@@ -5512,17 +5498,26 @@ void Application::takeSnapshot(bool notify, const QString& format, float aspectR
                     GifBegin(&(qApp->_animatedSnapshotGifWriter), cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC/10, 8, false);
                 }
 
-                qDebug() << "Frame time: " << usecTimestampNow();
-
                 // Write the frame to the gif
                 GifWriteFrame(&(qApp->_animatedSnapshotGifWriter), (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC/10, 8, false);
                 // Increment the current snapshot frame count
                 qApp->_currentAnimatedSnapshotFrame++;
+
+                // If that was the last frame...
+                if (qApp->_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
+                {
+                    // Reset the current frame number
+                    qApp->_currentAnimatedSnapshotFrame = 0;
+                    // Write out the end of the GIF
+                    GifEnd(&(qApp->_animatedSnapshotGifWriter));
+                    // Notify the Window Scripting Interface that the snapshot was taken
+                    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, false);
+                    // Stop the snapshot QTimer
+                    qApp->animatedSnapshotTimer.stop();
+                }
             });
 
             // Start the animatedSnapshotTimer QTimer - argument for this is in milliseconds
-            // I'm pretty sure the timer slot is getting called more often than its execution finishes.
-            // This makes the GIF longer than it's supposed to be, as the duration between frames is longer.
             animatedSnapshotTimer.start(SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC);
         }
     });
