@@ -2511,7 +2511,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
-                    takeSnapshot(true, "still");
+                    takeSnapshot(true);
                 }
                 break;
 
@@ -5440,86 +5440,71 @@ void Application::toggleLogDialog() {
 #define SNAPSNOT_ANIMATED_NUM_FRAMES (SNAPSNOT_ANIMATED_DURATION_SECS * SNAPSNOT_ANIMATED_FRAMERATE_FPS)
 
 
-void Application::takeSnapshot(bool notify, const QString& format, float aspectRatio) {
-    postLambdaEvent([notify, format, aspectRatio, this] {
+void Application::takeSnapshot(bool notify, float aspectRatio) {
+    postLambdaEvent([notify, aspectRatio, this] {
         QMediaPlayer* player = new QMediaPlayer();
         QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
         player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
         player->play();
 
-        // If this is a still snapshot...
-        if (!format.compare("still"))
+        // Get a screenshot and save it
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+
+        // If we're in the middle of capturing a GIF...
+        if (_currentAnimatedSnapshotFrame != 0)
         {
-            // Get a screenshot and save it
-            QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
             // Notify the window scripting interface that we've taken a Snapshot
             emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
+            // Protect against clobbering it and return immediately.
+            // (Perhaps with a "snapshot failed" message?
+            return;
         }
-        // If this is an animated snapshot (GIF)...
-        else if (!format.compare("animated"))
-        {
-            // If we're in the middle of capturing a GIF...
-            if (_currentAnimatedSnapshotFrame != 0)
+
+        // Reset the current animated snapshot frame
+        _currentAnimatedSnapshotFrame = 0;
+
+        // Change the extension of the future GIF saved snapshot file to "gif"
+        _animatedSnapshotPath = path.replace("jpg", "gif");
+
+        // Ensure the snapshot timer is Precise (attempted millisecond precision)
+        animatedSnapshotTimer.setTimerType(Qt::PreciseTimer);
+
+        // Connect the animatedSnapshotTimer QTimer to the lambda slot function
+        connect(&(qApp->animatedSnapshotTimer), &QTimer::timeout, [=] {
+            // Get a screenshot from the display, then scale the screenshot down,
+            // then convert it to the image format the GIF library needs,
+            // then save all that to the QImage named "frame"
+            QImage frame(qApp->getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+            frame = frame.scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
+
+            // If this is the first frame...
+            if (qApp->_currentAnimatedSnapshotFrame == 0)
             {
-                // Protect against clobbering it and return immediately.
-                // (Perhaps with a "snapshot failed" message?
-                return;
+                // Write out the header and beginning of the GIF file
+                GifBegin(&(qApp->_animatedSnapshotGifWriter), qPrintable(qApp->_animatedSnapshotPath), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10, 8, false);
             }
 
-            // Reset the current animated snapshot frame
-            _currentAnimatedSnapshotFrame = 0;
+            // Write the frame to the gif
+            GifWriteFrame(&(qApp->_animatedSnapshotGifWriter), (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC/10, 8, false);
+            // Increment the current snapshot frame count
+            qApp->_currentAnimatedSnapshotFrame++;
 
-            // File path stuff -- lots of this is temporary
-            // until I figure out how to save the .GIF to the same location as the still .JPG
-            char* cstr;
-            QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation); // Get the desktop
-            path.append(QDir::separator()); // Add the dir separator to the desktop location
-            path.append("test.gif"); // Add "test.gif" to the path
-            string fname = path.toStdString(); // Turn the QString into a regular string
-            cstr = new char[fname.size() + 1]; // Create a new character array to hold the .GIF file location
-            strcpy(cstr, fname.c_str()); // Copy the string into a character array
+            // If that was the last frame...
+            if (qApp->_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
+            {
+                // Reset the current frame number
+                qApp->_currentAnimatedSnapshotFrame = 0;
+                // Write out the end of the GIF
+                GifEnd(&(qApp->_animatedSnapshotGifWriter));
+                // Notify the Window Scripting Interface that the snapshot was taken
+                emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(qApp->_animatedSnapshotPath, false);
+                // Stop the snapshot QTimer
+                qApp->animatedSnapshotTimer.stop();
+            }
+        });
 
-            // Ensure the snapshot timer is Precise (attempted millisecond precision)
-            animatedSnapshotTimer.setTimerType(Qt::PreciseTimer);
-
-            // Connect the animatedSnapshotTimer QTimer to the lambda slot function
-            connect(&(qApp->animatedSnapshotTimer), &QTimer::timeout, [=] {
-
-                // Get a screenshot from the display, then scale the screenshot down,
-                // then convert it to the image format the GIF library needs,
-                // then save all that to the QImage named "frame"
-                QImage frame(qApp->getActiveDisplayPlugin()->getScreenshot(aspectRatio));
-                frame = frame.scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
-
-                // If this is the first frame...
-                if (qApp->_currentAnimatedSnapshotFrame == 0)
-                {
-                    // Write out the header and beginning of the GIF file
-                    GifBegin(&(qApp->_animatedSnapshotGifWriter), cstr, frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC/10, 8, false);
-                }
-
-                // Write the frame to the gif
-                GifWriteFrame(&(qApp->_animatedSnapshotGifWriter), (uint8_t*)frame.bits(), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC/10, 8, false);
-                // Increment the current snapshot frame count
-                qApp->_currentAnimatedSnapshotFrame++;
-
-                // If that was the last frame...
-                if (qApp->_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
-                {
-                    // Reset the current frame number
-                    qApp->_currentAnimatedSnapshotFrame = 0;
-                    // Write out the end of the GIF
-                    GifEnd(&(qApp->_animatedSnapshotGifWriter));
-                    // Notify the Window Scripting Interface that the snapshot was taken
-                    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, false);
-                    // Stop the snapshot QTimer
-                    qApp->animatedSnapshotTimer.stop();
-                }
-            });
-
-            // Start the animatedSnapshotTimer QTimer - argument for this is in milliseconds
-            animatedSnapshotTimer.start(SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC);
-        }
+        // Start the animatedSnapshotTimer QTimer - argument for this is in milliseconds
+        animatedSnapshotTimer.start(SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC);
     });
 }
 void Application::shareSnapshot(const QString& path) {

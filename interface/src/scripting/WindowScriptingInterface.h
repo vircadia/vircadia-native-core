@@ -52,8 +52,7 @@ public slots:
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
-    void takeSnapshotStill(bool notify = true, float aspectRatio = 0.0f);
-    void takeSnapshotAnimated(bool notify = true, float aspectRatio = 0.0f);
+    void takeSnapshot(bool notify = true, float aspectRatio = 0.0f);
     void shareSnapshot(const QString& path);
     bool isPhysicsEnabled();
 
