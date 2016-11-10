@@ -244,8 +244,10 @@ public:
     void setTargetScaleVerbose(float targetScale);
 
     float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
-    void setDomainMinimumScale(float domainMinimumScale) { _domainMinimumScale = std::max(domainMinimumScale, MIN_AVATAR_SCALE); }
-    void setDomainMaximumScale(float domainMaximumScale) { _domainMaximumScale = std::min(domainMaximumScale, MAX_AVATAR_SCALE); }
+    void setDomainMinimumScale(float domainMinimumScale)
+        { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); }
+    void setDomainMaximumScale(float domainMaximumScale)
+        { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); }
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
