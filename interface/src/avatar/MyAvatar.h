@@ -372,6 +372,7 @@ private:
     virtual void updatePalms() override {}
     void lateUpdatePalms();
 
+    void clampScaleChangeToDomainLimits(float desiredScale);
 
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;

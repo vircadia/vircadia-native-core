@@ -1832,49 +1832,37 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
+void MyAvatar::clampScaleChangeToDomainLimits(float desiredScale) {
+    auto clampedTargetScale = glm::clamp(desiredScale, _domainMinimumScale, _domainMaximumScale);
+
+    if (clampedTargetScale != desiredScale) {
+        qCDebug(interfaceapp, "Forcing scale to %f since %f is not allowed by domain",
+                clampedTargetScale, desiredScale);
+    }
+
+    setTargetScale(clampedTargetScale);
+    qCDebug(interfaceapp, "Changed scale to %f", _targetScale);
+}
+
 void MyAvatar::increaseSize() {
     // clamp the target scale to the allowable scale in the domain
     float updatedTargetScale = _targetScale * (1.0f + SCALING_RATIO);
 
-    auto clampedTargetScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
-
-    if (clampedTargetScale != updatedTargetScale) {
-        qCDebug(interfaceapp, "Forcing scale to %f since %f is not allowed by domain",
-                clampedTargetScale, updatedTargetScale);
-    }
-
-    setTargetScale(clampedTargetScale);
-    qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
+    clampScaleChangeToDomainLimits(updatedTargetScale);
 }
 
 void MyAvatar::decreaseSize() {
     // clamp the target scale to the allowable scale in the domain
     float updatedTargetScale = _targetScale * (1.0f - SCALING_RATIO);
 
-    auto clampedTargetScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
-
-    if (clampedTargetScale != updatedTargetScale) {
-        qCDebug(interfaceapp, "Forcing scale to %f since %f is not allowed by domain",
-                clampedTargetScale, updatedTargetScale);
-    }
-
-    setTargetScale(clampedTargetScale);
-    qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
+    clampScaleChangeToDomainLimits(updatedTargetScale);
 }
 
 void MyAvatar::resetSize() {
-    // if the default 
+    // attempt to reset avatar size to the default
     const float DEFAULT_AVATAR_SCALE = 1.0f;
 
-    float allowedDefaultScale = glm::clamp(DEFAULT_AVATAR_SCALE, _domainMinimumScale, _domainMaximumScale);
-
-    if (allowedDefaultScale != DEFAULT_AVATAR_SCALE) {
-        qCDebug(interfaceapp, "Forcing scale to %f since %f is not an allowed avatar scale by the domain",
-                allowedDefaultScale, DEFAULT_AVATAR_SCALE);
-    }
-
-    setTargetScale(allowedDefaultScale);
-    qCDebug(interfaceapp, "Reset scale to %f", (double)_targetScale);
+    clampScaleChangeToDomainLimits(DEFAULT_AVATAR_SCALE);
 }
 
 void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject) {
