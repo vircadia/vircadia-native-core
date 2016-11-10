@@ -371,7 +371,8 @@ var usersWindow = (function () {
 
         MENU_NAME = "View",
         MENU_ITEM = "Users Online",
-        MENU_ITEM_AFTER = "Overlays",
+        MENU_ITEM_OVERLAYS = "Overlays",
+        MENU_ITEM_AFTER = MENU_ITEM_OVERLAYS,
 
         SETTING_USERS_SHOW_ME = "UsersWindow.ShowMe",
         SETTING_USERS_VISIBLE_TO = "UsersWindow.VisibleTo",
@@ -398,6 +399,10 @@ var usersWindow = (function () {
         scrollbarBarPosition = {},
         scrollbarBarClickedAt, // 0.0 .. 1.0
         scrollbarValue = 0.0; // 0.0 .. 1.0
+
+    function isWindowDisabled() {
+        return !Menu.isOptionChecked(MENU_ITEM) || !Menu.isOptionChecked(MENU_ITEM_OVERLAYS);
+    }
 
     function isValueTrue(value) {
         // Work around Boolean Settings values being read as string when Interface starts up but as Booleans when re-read after
@@ -744,7 +749,7 @@ var usersWindow = (function () {
             userClicked,
             delta;
 
-        if (!isVisible) {
+        if (!isVisible || isWindowDisabled()) {
             return;
         }
 
@@ -856,7 +861,7 @@ var usersWindow = (function () {
     function onMouseMoveEvent(event) {
         var isVisible;
 
-        if (!isLoggedIn) {
+        if (!isLoggedIn || isWindowDisabled()) {
             return;
         }
 
@@ -914,6 +919,10 @@ var usersWindow = (function () {
     function onMouseReleaseEvent() {
         var offset = {};
 
+        if (isWindowDisabled()) {
+            return;
+        }
+
         if (isMovingScrollbar) {
             Overlays.editOverlay(scrollbarBar, {
                 backgroundAlpha: SCROLLBAR_BAR_ALPHA
@@ -938,6 +947,10 @@ var usersWindow = (function () {
             oldIsFullscreenMirror = isFullscreenMirror,
             MIRROR_MENU_ITEM = "Mirror",
             FULLSCREEN_MIRROR_MENU_ITEM = "Fullscreen Mirror";
+
+        if (isWindowDisabled()) {
+            return;
+        }
 
         viewport = Controller.getViewportDimensions();
         isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);
