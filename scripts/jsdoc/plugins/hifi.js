@@ -15,9 +15,10 @@ exports.handlers = {
         // directories to scan for jsdoc comments
         var dirList = [
             '../../interface/src',
+            '../../interface/src/scripting',
             '../../libraries/script-engine/src',
             '../../libraries/networking/src',
-            '../../libraries/animation/src'
+            '../../libraries/animation/src',
         ];
         var exts = ['.h', '.cpp'];
 
