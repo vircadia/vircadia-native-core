@@ -215,12 +215,10 @@ void Context::create() {
         }
         glewExperimental = true;
         glewInit();
-       // if (glewIsSupported("GL_VERSION_4_5")) {
-       //     _version = 0x0405;
-      //  } else if (glewIsSupported("GL_VERSION_4_3")) {
-       /* } else*/ if (glewIsSupported("GL_VERSION_4_8")) {
-///_version = 0x0403;
-            _version = 0x0404;
+        if (glewIsSupported("GL_VERSION_4_5")) {
+            _version = 0x0405;
+        } else if (glewIsSupported("GL_VERSION_4_3")) {
+            _version = 0x0403;
         }
         glGetError();
         wglMakeCurrent(0, 0);
