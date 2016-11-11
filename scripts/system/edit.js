@@ -1027,19 +1027,76 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
     }
 }
 
+
+function sortDeleteSelected  (selected) {
+    var tempArray = selected;
+    var begin = 0;
+    while (begin < tempArray.length) {
+        var elementRemoved = false;
+        var next = begin + 1;
+        while (next < tempArray.length) {
+            var beginID = tempArray[begin];
+            var nextID = tempArray[next];
+            var beginProperties = Entities.getEntityProperties(beginID);
+            var nextProperties = Entities.getEntityProperties(nextID);
+            var nextParentID = nextProperties.parentID;
+            var beginParentID = beginProperties.parentID;
+
+            if (beginID == nextParentID) {
+                var temp = beginID;
+                tempArray[begin] = nextID
+                tempArray[next] = beginID
+                tempArray.splice(begin, 1);
+                elementRemoved = true;
+                break;
+            } else if (nextID == beginParentID) {
+                tempArray.splice(begin, 1);
+                elementRemoved = true;
+                break;
+            }
+            next++;
+        }
+        if (!elementRemoved) {
+            begin++;
+        }
+    }
+    return tempArray;
+}
+
+function recursiveDelete(entities, list) {
+    var entitiesLength = entities.length;
+    for (var i = 0; i < entitiesLength; i++) {
+        var entityID = entities[i];
+        var children = Entities.getChildrenIDs(entityID);
+        var childList = []
+        recursiveDelete(children, childList);
+        var initialProperties = Entities.getEntityProperties(entityID);
+        list.push({
+            entityID: entityID,
+            properties: initialProperties,
+            children: childList
+        });
+        Entities.deleteEntity(entityID);
+    }
+}
+
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         selectedParticleEntity = 0;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
-        for (var i = 0; i < selectionManager.selections.length; i++) {
-            var entityID = SelectionManager.selections[i];
+        var newSortedSelection = sortDeleteSelected(selectionManager.selections);
+        for (var i = 0; i < newSortedSelection.length; i++) {
+            var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
-            SelectionManager.savedProperties[entityID];
+            var children = Entities.getChildrenIDs(entityID);
+            var childList = []
+            recursiveDelete(children, childList);
             savedProperties.push({
                 entityID: entityID,
-                properties: initialProperties
+                properties: initialProperties,
+                children: childList
             });
             Entities.deleteEntity(entityID);
         }
@@ -1253,6 +1310,16 @@ Controller.keyReleaseEvent.connect(function (event) {
     }
 });
 
+function recursiveAdd(newParnetID, parentData) {
+    var children = parentData.children;
+    for (var i = 0; i < children.length; i++) {
+        var childProperties = children[i].properties;
+        childProperties.parentID = newParnetID;
+        var newChildID = Entities.addEntity(childProperties);
+        recursiveAdd(newChildID, children[i]);
+    }
+}
+
 // When an entity has been deleted we need a way to "undo" this deletion.  Because it's not currently
 // possible to create an entity with a specific id, earlier undo commands to the deleted entity
 // will fail if there isn't a way to find the new entity id.
@@ -1274,6 +1341,7 @@ function applyEntityProperties(data) {
         entityID = data.createEntities[i].entityID;
         var entityProperties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(entityProperties);
+        recursiveAdd(newEntityID, data.createEntities[i]);
         DELETED_ENTITY_MAP[entityID] = newEntityID;
         if (data.selectCreated) {
             selectedEntityIDs.push(newEntityID);
@@ -1314,19 +1382,11 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
         }
         undoData.setProperties.push({
             entityID: entityID,
-            properties: {
-                position: initialProperties.position,
-                rotation: initialProperties.rotation,
-                dimensions: initialProperties.dimensions
-            }
+            properties: initialProperties
         });
         redoData.setProperties.push({
             entityID: entityID,
-            properties: {
-                position: currentProperties.position,
-                rotation: currentProperties.rotation,
-                dimensions: currentProperties.dimensions
-            }
+            properties: currentProperties
         });
     }
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
