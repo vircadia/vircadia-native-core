@@ -161,7 +161,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     static const QString AC_SUBNET_WHITELIST_SETTING_PATH = "security.ac_subnet_whitelist";
 
     static const Subnet LOCALHOST { QHostAddress("127.0.0.1"), 32 };
-    this->_acSubnetWhitelist = { LOCALHOST };
+    _acSubnetWhitelist = { LOCALHOST };
 
     auto whitelist = _settingsManager.valueOrDefaultValueForKeyPath(AC_SUBNET_WHITELIST_SETTING_PATH).toStringList();
     for (auto& subnet : whitelist) {
