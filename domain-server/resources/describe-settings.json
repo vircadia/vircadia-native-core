@@ -867,6 +867,29 @@
       ]
     },
     {
+      "name": "avatars",
+      "label": "Avatars",
+      "assignment-types": [1, 2],
+      "settings": [
+        {
+          "name": "min_avatar_scale",
+          "type": "double",
+          "label": "Minimum Avatar Scale",
+          "help": "Limits the scale of avatars in your domain. Must be at least 0.005.",
+          "placeholder": 0.25,
+          "default": 0.25
+        },
+        {
+          "name": "max_avatar_scale",
+          "type": "double",
+          "label": "Maximum Avatar Scale",
+          "help": "Limits the scale of avatars in your domain. Cannot be greater than 1000.",
+          "placeholder": 3.0,
+          "default": 3.0
+        }
+      ]
+    },
+    {
       "name": "audio_env",
       "label": "Audio Environment",
       "assignment-types": [0],
