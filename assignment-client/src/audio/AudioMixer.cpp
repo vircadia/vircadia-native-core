@@ -607,6 +607,8 @@ void AudioMixer::handleNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> pac
     auto node = nodeList->nodeWithUUID(nodeUUID);
     if (node) {
         // we need to set a flag so we send them the appropriate packet to mute them
+        AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
+        nodeData->setShouldMuteClient(true);
         
     } else {
         qWarning() << "Node mute packet received for unknown node " << uuidStringWithoutCurlyBraces(nodeUUID);
