@@ -489,7 +489,7 @@ void AudioMixer::handleNodeAudioPacket(QSharedPointer<ReceivedMessage> message, 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    if (sendingNode->isAllowedEditor()) {
+    if (sendingNode->getCanKick()) {
         glm::vec3 position;
         float radius;
 
