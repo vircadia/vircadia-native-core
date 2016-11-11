@@ -95,7 +95,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
-
+    
+    nodeList->addNodeTypeToInterestSet(NodeType::DomainServer);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
@@ -603,15 +604,18 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
 void AudioMixer::handleNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
     QUuid nodeUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    if (sendingNode->getCanKick()) {
+        auto node = nodeList->nodeWithUUID(nodeUUID);
+        if (node) {
+            // we need to set a flag so we send them the appropriate packet to mute them
+            AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
+            nodeData->setShouldMuteClient(true);
 
-    auto node = nodeList->nodeWithUUID(nodeUUID);
-    if (node) {
-        // we need to set a flag so we send them the appropriate packet to mute them
-        AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
-        nodeData->setShouldMuteClient(true);
-        
+        } else {
+            qWarning() << "Node mute packet received for unknown node " << uuidStringWithoutCurlyBraces(nodeUUID);
+        }
     } else {
-        qWarning() << "Node mute packet received for unknown node " << uuidStringWithoutCurlyBraces(nodeUUID);
+        qWarning() << "Node mute packet received from node that cannot mute, ignoring";
     }
 }
 

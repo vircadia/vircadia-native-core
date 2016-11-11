@@ -634,39 +634,6 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
     return changed;
 }
 
-void DomainServerSettingsManager::processNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    if (sendingNode->getCanKick()) {
-        QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-        if (!nodeUUID.isNull() && nodeUUID != sendingNode->getUUID()) {
-            // make sure we actually have a node with this UUID
-            auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-
-            auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
-
-            if (matchingNode) {
-                // send this along to the audio mixer       
-                auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-                auto audioMixer = limitedNodeList->soloNodeOfType(NodeType::AudioMixer);
-                if (audioMixer) {
-                    auto packet = NLPacket::create(PacketType::NodeMuteRequest, NUM_BYTES_RFC4122_UUID, true);
-                    packet->write(nodeUUID.toRfc4122());
-                    limitedNodeList->sendPacket(std::move(packet), *audioMixer);
-                } else {
-                    qWarning() << "Couldn't find an audio mixer, cannot process node mute request";
-                }
-            } else {
-                qWarning() << "Node mute request received for unknown node. Refusing to process.";
-            }
-        } else {
-            qWarning() << "Node kick request received for invalid node ID or from node being kicked. Refusing to process.";
-        }
-    } else {
-        qWarning() << "Refusing to process a kick packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
-        << "that does not have kick permissions.";
-    }
-}
-
 void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // before we do any processing on this packet make sure it comes from a node that is allowed to kick
     if (sendingNode->getCanKick()) {

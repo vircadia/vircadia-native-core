@@ -105,7 +105,6 @@ public slots:
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processNodeKickRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
-    void processNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 private:
     QStringList _argumentList;
