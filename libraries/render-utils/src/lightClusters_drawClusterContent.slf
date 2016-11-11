@@ -38,9 +38,9 @@ void main(void) {
     // From frag world pos find the cluster
     vec4 clusterEyePos = frustumGrid_worldToEye(fragWorldPos);
     ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
+    int clusterIndex = frustumGrid_clusterToIndex(clusterPos);
 
-
-    ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
+    ivec3 cluster = clusterGrid_getCluster(clusterIndex);
     int numLights = cluster.x + cluster.y;
     float numLightsScale = clamp(numLights * 0.05, 0.01, 1.0);
 

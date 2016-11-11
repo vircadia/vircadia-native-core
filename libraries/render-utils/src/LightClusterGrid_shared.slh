@@ -136,6 +136,7 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
     
     vec3 volumePos = frustumGrid_eyeToVolume(eyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
 
+
     vec3 gridPos = frustumGrid_volumeToGrid(volumePos, frustumGrid.dims);
     
     if (gridPos.z >= frustumGrid.dims.z) {
@@ -143,7 +144,7 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
     }
 
 
-    return ivec3(gridPos);
+    return ivec3(floor(gridPos));
 }
 
 int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
