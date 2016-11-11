@@ -158,9 +158,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 
     qDebug() << "domain-server is running";
-    static const SubnetMask LOCALHOST_MASK { QHostAddress("127.0.0.1"), 32 };
+    static const Subnet LOCALHOST { QHostAddress("127.0.0.1"), 32 };
 
-    this->_acIPAddressWhitelist = { LOCALHOST_MASK };
+    this->_acSubnetWhitelist = { LOCALHOST };
 
     _settingsManager.getWhitelistAssignmentClientAddresses();
     auto whitelist = _settingsManager.valueOrDefaultValueForKeyPath("security.ac_address_whitelist").toStringList();
@@ -189,7 +189,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         if (!ip.isNull()) {
             qDebug() << "Adding AC whitelist IP: " << mask << " -> " << (ip.toString() + "/" + QString::number(netmask));
-            _acIPAddressWhitelist.push_back({ ip , netmask });
+            _acSubnetWhitelist.push_back({ ip , netmask });
         } else {
             qDebug() << "Ignoring ip in whitelist, invalid ip: " << mask;
         }
@@ -1039,12 +1039,12 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
 
     auto senderAddr = message->getSenderSockAddr().getAddress();
 
-    auto isHostAddressInSubnet = [&senderAddr](const SubnetMask& mask) -> bool {
+    auto isHostAddressInSubnet = [&senderAddr](const Subnet& mask) -> bool {
         return senderAddr.isInSubnet(mask);
     };
 
-    auto it = find_if(_acIPAddressWhitelist.begin(), _acIPAddressWhitelist.end(), isHostAddressInSubnet);
-    if (it != _acIPAddressWhitelist.end()) {
+    auto it = find_if(_acSubnetWhitelist.begin(), _acSubnetWhitelist.end(), isHostAddressInSubnet);
+    if (it != _acSubnetWhitelist.end()) {
         auto maskString = it->first.toString() + "/" + QString::number(it->second);
         qDebug() << "Received connection from whitelisted ip: " << senderAddr.toString()
             << ", matches subnet mask: " << maskString;
