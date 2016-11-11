@@ -36,6 +36,9 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
+using SubnetMask = QPair<QHostAddress, int>;
+using SubnetMaskList = std::vector<QPair<QHostAddress, int>>;
+
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
@@ -155,6 +158,8 @@ private:
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
 
     void setupGroupCacheRefresh();
+
+    SubnetMaskList _acIPAddressWhitelist;
 
     DomainGatekeeper _gatekeeper;
 

@@ -158,6 +158,42 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 
     qDebug() << "domain-server is running";
+    static const SubnetMask LOCALHOST_MASK { QHostAddress("127.0.0.1"), 32 };
+
+    this->_acIPAddressWhitelist = { LOCALHOST_MASK };
+
+    _settingsManager.getWhitelistAssignmentClientAddresses();
+    auto whitelist = _settingsManager.valueOrDefaultValueForKeyPath("security.ac_address_whitelist").toStringList();
+    for (auto& mask : whitelist) {
+        auto maskParts = mask.trimmed().split("/");
+
+        if (maskParts.size() > 2) {
+            qDebug() << "Ignoring ip in whitelist, malformed: " << mask;
+            continue;
+        }
+
+        // The default netmask is 32 if one has not been specified, which will
+        // match only the ip provided.
+        int netmask = 32;
+
+        if (maskParts.size() == 2) {
+            bool ok;
+            netmask = maskParts[1].toInt(&ok);
+            if (!ok) {
+                qDebug() << "Ignoring ip in whitelist, bad netmask: " << mask;
+                continue;
+            }
+        }
+
+        auto ip = QHostAddress(maskParts[0]);
+
+        if (!ip.isNull()) {
+            qDebug() << "Adding AC whitelist IP: " << mask << " -> " << (ip.toString() + "/" + QString::number(netmask));
+            _acIPAddressWhitelist.push_back({ ip , netmask });
+        } else {
+            qDebug() << "Ignoring ip in whitelist, invalid ip: " << mask;
+        }
+    }
 }
 
 void DomainServer::parseCommandLine() {
