@@ -389,6 +389,23 @@
           "advanced": false
         },
         {
+          "name": "ac_subnet_whitelist",
+          "label": "Assignment Client IP address Whitelist",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "The IP addresses or subnets of ACs that can connect to this server. You can specify an IP address or a subnet in CIDR notation ('A.B.C.D/E', Example: '10.0.0.0/24'). Local ACs (localhost) are always permitted and do not need to be added here.",
+          "numbered": false,
+          "advanced": true,
+          "columns": [
+            {
+              "name": "ip",
+              "label": "IP Address",
+              "type": "ip",
+              "can_set": true
+            }
+          ]
+        },
+        {
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",
