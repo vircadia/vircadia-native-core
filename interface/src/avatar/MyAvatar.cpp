@@ -1909,6 +1909,9 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     float settingMaxScale = avatarsObject[MAX_SCALE_OPTION].toDouble(MAX_AVATAR_SCALE);
     setDomainMaximumScale(settingMaxScale);
 
+    // make sure that the domain owner didn't flip min and max
+    _domainMinimumScale = std::min(_domainMinimumScale, _domainMaximumScale);
+
     qCDebug(interfaceapp, "This domain requires a minimum avatar scale of %f and a maximum avatar scale of %f",
             _domainMinimumScale, _domainMaximumScale);
 

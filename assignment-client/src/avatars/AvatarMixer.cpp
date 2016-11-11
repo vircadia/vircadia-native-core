@@ -567,6 +567,9 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     float settingMaxScale = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MAX_SCALE_OPTION].toDouble(MAX_AVATAR_SCALE);
     _domainMaximumScale = glm::clamp(settingMaxScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
 
+    // make sure that the domain owner didn't flip min and max
+    _domainMinimumScale = std::min(_domainMinimumScale, _domainMaximumScale);
+
     qDebug() << "This domain requires a minimum avatar scale of" << _domainMinimumScale
         << "and a maximum avatar scale of" << _domainMaximumScale;
 }
