@@ -1045,12 +1045,16 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
 
     auto it = find_if(_acSubnetWhitelist.begin(), _acSubnetWhitelist.end(), isHostAddressInSubnet);
     if (it != _acSubnetWhitelist.end()) {
+        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
+            "Received connection from whitelisted ip: [^ ]+ , matches subnet mask: [^ ]+");
         auto maskString = it->first.toString() + "/" + QString::number(it->second);
-        qDebug() << "Received connection from whitelisted ip: " << senderAddr.toString()
-            << ", matches subnet mask: " << maskString;
+        qDebug() << "Received connection from whitelisted ip:" << senderAddr.toString()
+            << ", matches subnet mask:" << maskString;
     } else {
-        qDebug() << "Received an assignment connect request from a disallowed ip address: "
-            << senderAddr;
+        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
+            "Received an assignment connect request from a disallowed ip address: [^ ]+");
+        qDebug() << "Received an assignment connect request from a disallowed ip address:"
+            << senderAddr.toString();
         return;
     }
 
