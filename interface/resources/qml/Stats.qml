@@ -245,7 +245,7 @@ Item {
                         text: "GPU Buffers: "
                     }
                     StatText {
-                        text: "  Count: " + root.gpuTextures;
+                        text: "  Count: " + root.gpuBuffers;
                     }
                     StatText {
                         text: "  Memory: " + root.gpuBufferMemory;
