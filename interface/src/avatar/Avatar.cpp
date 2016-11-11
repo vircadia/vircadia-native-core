@@ -165,16 +165,17 @@ AABox Avatar::getBounds() const {
 
 void Avatar::animateScaleChanges(float deltaTime) {
     float currentScale = getUniformScale();
-    if (currentScale != _targetScale) {
-        // use exponential decay toward _targetScale
+    auto desiredScale = getDomainLimitedScale();
+    if (currentScale != desiredScale) {
+        // use exponential decay toward the domain limit clamped scale
         const float SCALE_ANIMATION_TIMESCALE = 0.5f;
         float blendFactor = glm::clamp(deltaTime / SCALE_ANIMATION_TIMESCALE, 0.0f, 1.0f);
-        float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * _targetScale;
+        float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * desiredScale;
 
         // snap to the end when we get close enough
         const float MIN_RELATIVE_SCALE_ERROR = 0.03f;
-        if (fabsf(_targetScale - currentScale) / _targetScale < MIN_RELATIVE_SCALE_ERROR) {
-            animatedScale = _targetScale;
+        if (fabsf(desiredScale - currentScale) / desiredScale < MIN_RELATIVE_SCALE_ERROR) {
+            animatedScale = desiredScale;
         }
 
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
