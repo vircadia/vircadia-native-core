@@ -26,7 +26,7 @@ var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var button;
 // Independent and Entity mode make people sick. Third Person and Mirror have traps that we need to work through.
 // Disable them in hmd.
-var desktopOnlyViews = ['Third Person', 'Mirror', 'Independent Mode', 'Entity Mode'];
+var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
     button.writeProperty('buttonState', isHmd ? 0 : 1);
     button.writeProperty('defaultState', isHmd ? 0 : 1);

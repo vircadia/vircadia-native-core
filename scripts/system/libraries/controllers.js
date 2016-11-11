@@ -42,6 +42,9 @@ getControllerWorldLocation = function (handController, doOffset) {
         if (doOffset) {
             position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, getGrabPointSphereOffset(handController)));
         }
+        if (Menu.isOptionChecked("Third Person")) {
+            position = Vec3.sum(position, Vec3.subtract(Camera.position, MyAvatar.getEyePosition()));
+        }
     } else if (!HMD.isHandControllerAvailable()) {
         position = MyAvatar.getHeadPosition();
         orientation = Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));

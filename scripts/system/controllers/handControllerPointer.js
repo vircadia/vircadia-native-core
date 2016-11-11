@@ -511,10 +511,6 @@ function update() {
         return off(); // Let them use mouse in peace.
     }
 
-    if (!Menu.isOptionChecked("First Person")) {
-        return off(); // What to do? menus can be behind hand!
-    }
-
     if ((!Window.hasFocus() && !HMD.active) || !Reticle.allowMouseCapture) {
         // In desktop it's pretty clear when another app is on top. In that case we bail, because
         // hand controllers might be sputtering "valid" data and that will keep someone from deliberately
