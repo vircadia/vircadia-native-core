@@ -1214,16 +1214,19 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
             QString contents = data[url];
             if (contents.isNull()) {
                 qCDebug(scriptengine) << "Error loading file: " << url << "line:" << __LINE__;
-            } else if (!_includedURLs.contains(url)) {
-                _includedURLs << url;
-                // Set the parent url so that path resolution will be relative
-                // to this script's url during its initial evaluation
-                _parentURL = url.toString();
-                auto operation = [&]() {
-                    evaluate(contents, url.toString());
-                };
+            } else {
+                std::lock_guard<std::recursive_mutex> lock(_lock);
+                if (!_includedURLs.contains(url)) {
+                    _includedURLs << url;
+                    // Set the parent url so that path resolution will be relative
+                    // to this script's url during its initial evaluation
+                    _parentURL = url.toString();
+                    auto operation = [&]() {
+                        evaluate(contents, url.toString());
+                    };
 
-                doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
+                    doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
+                }
             }
         }
         _parentURL = parentURL;
