@@ -389,6 +389,23 @@
           "advanced": false
         },
         {
+          "name": "ac_address_whitelist",
+          "label": "Assignment Client IP address Whitelist",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "IP addresses of Assignment Clients that can connect to your domain server. Local ACs (localhost) are always permitted and do not need to be added here.",
+          "numbered": false,
+          "advanced": true,
+          "columns": [
+            {
+              "name": "ip",
+              "label": "IP Address",
+              "type": "ip",
+              "can_set": true
+            }
+          ]
+        },
+        {
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",
