@@ -708,7 +708,3 @@ bool OpenVrDisplayPlugin::isKeyboardVisible() {
 int OpenVrDisplayPlugin::getRequiredThreadCount() const { 
     return Parent::getRequiredThreadCount() + (_threadedSubmit ? 1 : 0);
 }
-
-float OpenVrDisplayPlugin::stutterRate() const {
-    return _stutterRate.rate();
-}

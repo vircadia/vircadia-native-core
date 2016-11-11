@@ -58,8 +58,6 @@ public:
     // Possibly needs an additional thread for VR submission
     int getRequiredThreadCount() const override; 
 
-    float stutterRate() const override;
-
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;
@@ -79,7 +77,6 @@ private:
     vr::HmdMatrix34_t _lastGoodHMDPose;
     mat4 _sensorResetMat;
     bool _threadedSubmit { true };
-    RateCounter<> _stutterRate;
 
     CompositeInfo::Array _compositeInfos;
     size_t _renderingIndex { 0 };

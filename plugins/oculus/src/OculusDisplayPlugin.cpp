@@ -146,6 +146,16 @@ void OculusDisplayPlugin::hmdPresent() {
         if (!OVR_SUCCESS(result)) {
             logWarning("Failed to present");
         }
+
+        static int droppedFrames = 0;
+        ovrPerfStats perfStats;
+        ovr_GetPerfStats(_session, &perfStats);
+        for (int i = 0; i < perfStats.FrameStatsCount; ++i) {
+            const auto& frameStats = perfStats.FrameStats[i];
+            int delta = frameStats.CompositorDroppedFrameCount - droppedFrames;
+            _stutterRate.increment(delta);
+            droppedFrames = frameStats.CompositorDroppedFrameCount;
+        }
     }
     _presentRate.increment();
 }
