@@ -1037,6 +1037,23 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
     // construct the requested assignment from the packet data
     Assignment requestAssignment(*message);
 
+    auto senderAddr = message->getSenderSockAddr().getAddress();
+
+    auto isHostAddressInSubnet = [&senderAddr](const SubnetMask& mask) -> bool {
+        return senderAddr.isInSubnet(mask);
+    };
+
+    auto it = find_if(_acIPAddressWhitelist.begin(), _acIPAddressWhitelist.end(), isHostAddressInSubnet);
+    if (it != _acIPAddressWhitelist.end()) {
+        auto maskString = it->first.toString() + "/" + QString::number(it->second);
+        qDebug() << "Received connection from whitelisted ip: " << senderAddr.toString()
+            << ", matches subnet mask: " << maskString;
+    } else {
+        qDebug() << "Received an assignment connect request from a disallowed ip address: "
+            << senderAddr;
+        return;
+    }
+
     // Suppress these for Assignment::AgentType to once per 5 seconds
     static QElapsedTimer noisyMessageTimer;
     static bool wasNoisyTimerStarted = false;
