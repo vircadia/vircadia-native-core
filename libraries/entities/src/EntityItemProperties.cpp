@@ -36,7 +36,6 @@ EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
 _lastEdited(0),
-_lastEditedBy(QUuid()),
 _type(EntityTypes::Unknown),
 
 _localRenderAlpha(1.0f),
