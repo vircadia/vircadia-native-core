@@ -5432,7 +5432,7 @@ void Application::toggleLogDialog() {
 // The frame will take too long to pack, the timer slot will
 // not execute properly, and the GIF will appear sped-up.
 // This is unacceptable and is probably a blocker for release.
-#define SNAPSNOT_ANIMATED_WIDTH (500)
+#define SNAPSNOT_ANIMATED_WIDTH (300)
 #define SNAPSNOT_ANIMATED_FRAMERATE_FPS (50) // This value should divide evenly into 100
 #define SNAPSNOT_ANIMATED_DURATION_SECS (3)
 
@@ -5490,7 +5490,7 @@ void Application::takeSnapshot(bool notify, float aspectRatio) {
             qApp->_currentAnimatedSnapshotFrame++;
 
             // If that was the last frame...
-            if (qApp->_currentAnimatedSnapshotFrame == SNAPSNOT_ANIMATED_NUM_FRAMES)
+            if (qApp->_currentAnimatedSnapshotFrame >= SNAPSNOT_ANIMATED_NUM_FRAMES)
             {
                 // Reset the current frame number
                 qApp->_currentAnimatedSnapshotFrame = 0;
