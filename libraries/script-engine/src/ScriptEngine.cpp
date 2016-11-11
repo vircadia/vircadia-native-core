@@ -1187,20 +1187,15 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
             thisURL = resolvePath(file);
         }
 
-        if (!_includedURLs.contains(thisURL)) {
-            if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
-                (currentSandboxURL.scheme() != "file" ||
-                 !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity()))) {
-                qCWarning(scriptengine) << "Script.include() ignoring file path"
-                                        << thisURL << "outside of original entity script" << currentSandboxURL;
-            } else {
-                // We could also check here for CORS, but we don't yet.
-                // It turns out that QUrl.resolve will not change hosts and copy authority, so we don't need to check that here.
-                urls.append(thisURL);
-                _includedURLs << thisURL;
-            }
+        if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
+            (currentSandboxURL.scheme() != "file" ||
+             !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity()))) {
+            qCWarning(scriptengine) << "Script.include() ignoring file path"
+                                    << thisURL << "outside of original entity script" << currentSandboxURL;
         } else {
-            qCDebug(scriptengine) << "Script.include() ignoring previously included url:" << thisURL;
+            // We could also check here for CORS, but we don't yet.
+            // It turns out that QUrl.resolve will not change hosts and copy authority, so we don't need to check that here.
+            urls.append(thisURL);
         }
     }
 
@@ -1219,13 +1214,15 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
             QString contents = data[url];
             if (contents.isNull()) {
                 qCDebug(scriptengine) << "Error loading file: " << url << "line:" << __LINE__;
-            } else {
+            } else if (!_includedURLs.contains(url)) {
+                _includedURLs << url;
                 // Set the parent url so that path resolution will be relative
                 // to this script's url during its initial evaluation
                 _parentURL = url.toString();
                 auto operation = [&]() {
                     evaluate(contents, url.toString());
                 };
+
                 doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
             }
         }
