@@ -158,17 +158,17 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 
     qDebug() << "domain-server is running";
-    static const Subnet LOCALHOST { QHostAddress("127.0.0.1"), 32 };
+    static const QString AC_SUBNET_WHITELIST_SETTING_PATH = "security.ac_subnet_whitelist";
 
+    static const Subnet LOCALHOST { QHostAddress("127.0.0.1"), 32 };
     this->_acSubnetWhitelist = { LOCALHOST };
 
-    _settingsManager.getWhitelistAssignmentClientAddresses();
-    auto whitelist = _settingsManager.valueOrDefaultValueForKeyPath("security.ac_address_whitelist").toStringList();
-    for (auto& mask : whitelist) {
-        auto maskParts = mask.trimmed().split("/");
+    auto whitelist = _settingsManager.valueOrDefaultValueForKeyPath(AC_SUBNET_WHITELIST_SETTING_PATH).toStringList();
+    for (auto& subnet : whitelist) {
+        auto netmaskParts = subnet.trimmed().split("/");
 
-        if (maskParts.size() > 2) {
-            qDebug() << "Ignoring ip in whitelist, malformed: " << mask;
+        if (netmaskParts.size() > 2) {
+            qDebug() << "Ignoring subnet in whitelist, malformed: " << subnet;
             continue;
         }
 
@@ -176,22 +176,22 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         // match only the ip provided.
         int netmask = 32;
 
-        if (maskParts.size() == 2) {
+        if (netmaskParts.size() == 2) {
             bool ok;
-            netmask = maskParts[1].toInt(&ok);
+            netmask = netmaskParts[1].toInt(&ok);
             if (!ok) {
-                qDebug() << "Ignoring ip in whitelist, bad netmask: " << mask;
+                qDebug() << "Ignoring subnet in whitelist, bad netmask: " << subnet;
                 continue;
             }
         }
 
-        auto ip = QHostAddress(maskParts[0]);
+        auto ip = QHostAddress(netmaskParts[0]);
 
         if (!ip.isNull()) {
-            qDebug() << "Adding AC whitelist IP: " << mask << " -> " << (ip.toString() + "/" + QString::number(netmask));
+            qDebug() << "Adding AC whitelist subnet: " << subnet << " -> " << (ip.toString() + "/" + QString::number(netmask));
             _acSubnetWhitelist.push_back({ ip , netmask });
         } else {
-            qDebug() << "Ignoring ip in whitelist, invalid ip: " << mask;
+            qDebug() << "Ignoring subnet in whitelist, invalid ip portion: " << subnet;
         }
     }
 }
