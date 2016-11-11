@@ -17,7 +17,7 @@
 #include <AvatarData.h>
 #include <ScriptEngine.h>
 
-class ScriptableAvatar : public AvatarData, public Dependency{
+class ScriptableAvatar : public AvatarData, public Dependency {
     Q_OBJECT
 public:
    
