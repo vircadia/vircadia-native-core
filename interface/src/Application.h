@@ -613,7 +613,8 @@ private:
 
     QTimer animatedSnapshotTimer;
     GifWriter _animatedSnapshotGifWriter;
-    uint32_t _currentAnimatedSnapshotFrame { 0 };
+    quint64 _animatedSnapshotTimestamp{ 0 };
+    quint64 _animatedSnapshotFirstFrameTimestamp{ 0 };
     QString _animatedSnapshotPath;
 };
 
