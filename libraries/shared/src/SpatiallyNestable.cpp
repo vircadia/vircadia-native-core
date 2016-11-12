@@ -488,7 +488,7 @@ glm::vec3 SpatiallyNestable::getVelocity() const {
     bool success;
     glm::vec3 result = getVelocity(success);
     if (!success) {
-        qDebug() << "Warning -- setVelocity failed" << getID();
+        qDebug() << "Warning -- getVelocity failed" << getID();
     }
     return result;
 }
