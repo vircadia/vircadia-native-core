@@ -52,7 +52,9 @@ function removeOverlays() {
 
     for (var i = 0; i < modOverlayKeys.length; ++i) {
         var avatarID = modOverlayKeys[i];
-        Overlays.deleteOverlay(modOverlays[avatarID]);
+        for (var j = 0; j < modOverlays[avatarID].length; ++j) {
+            Overlays.deleteOverlay(modOverlays[avatarID][j]);
+        }
     }
 
     modOverlays = {};
@@ -74,8 +76,12 @@ function buttonClicked(){
 
 button.clicked.connect(buttonClicked);
 
-function overlayURL() {
+function kickOverlayURL() {
     return ASSETS_PATH + "/images/" + (Users.canKick ? "kick-target.svg" : "ignore-target.svg");
+}
+
+function muteOverlayURL() {
+    return ASSETS_PATH + "/images/" + "mute-target.svg";
 }
 
 function updateOverlays() {
@@ -101,20 +107,28 @@ function updateOverlays() {
             }
 
             // setup a position for the overlay that is just above this avatar's head
-            var overlayPosition = avatar.getJointPosition("Head");
-            overlayPosition.y += 0.45;
+            var kickOverlayPosition = avatar.getJointPosition("Head");
+            kickOverlayPosition.y += 0.45;
+            var muteOverlayPosition = avatar.getJointPosition("Head");
+            muteOverlayPosition.y += 0.70;
 
             if (avatarID in modOverlays) {
                 // keep the overlay above the current position of this avatar
-                Overlays.editOverlay(modOverlays[avatarID], {
-                    position: overlayPosition,
-                    url: overlayURL()
+                Overlays.editOverlay(modOverlays[avatarID][0], {
+                    position: kickOverlayPosition,
+                    url: kickOverlayURL()
                 });
+                if (Users.canKick) {
+                    Overlays.editOverlay(modOverlays[avatarID][1], {
+                        position: muteOverlayPosition,
+                        url: muteOverlayURL()
+                    });
+                }
             } else {
                 // add the overlay above this avatar
-                var newOverlay = Overlays.addOverlay("image3d", {
-                    url: overlayURL(),
-                    position: overlayPosition,
+                var newKickOverlay = Overlays.addOverlay("image3d", {
+                    url: kickOverlayURL(),
+                    position: kickOverlayPosition,
                     size: 1,
                     scale: 0.4,
                     color: { red: 255, green: 255, blue: 255},
@@ -123,9 +137,24 @@ function updateOverlays() {
                     isFacingAvatar: true,
                     drawInFront: true
                 });
-
-                // push this overlay to our array of overlays
-                modOverlays[avatarID] = newOverlay;
+                
+                modOverlays[avatarID]=[newKickOverlay];
+                
+                if (Users.canKick) { 
+                    var newMuteOverlay = Overlays.addOverlay("image3d", {
+                        url: muteOverlayURL(),
+                        position: muteOverlayPosition,
+                        size: 1,
+                        scale: 0.4,
+                        color: { red: 255, green: 255, blue: 255},
+                        alpha: 1,
+                        solid: true,
+                        isFacingAvatar: true,
+                        drawInFront: true
+                    });
+                    // push this overlay to our array of overlays
+                    modOverlays[avatarID].push(newMuteOverlay);
+                }
             }
         }
     }
@@ -138,7 +167,9 @@ AvatarList.avatarRemovedEvent.connect(function(avatarID){
         // we are currently showing overlays and an avatar just went away
 
         // first remove the rendered overlay
-        Overlays.deleteOverlay(modOverlays[avatarID]);
+        for (var overlay in modOverlays[avatarID]) {
+            Overlays.deleteOverlay(overlay);
+        }
 
         // delete the saved ID of the overlay from our mod overlays object
         delete modOverlays[avatarID];
@@ -151,7 +182,8 @@ function handleSelectedOverlay(clickedOverlay) {
     var modOverlayKeys = Object.keys(modOverlays);
     for (var i = 0; i < modOverlayKeys.length; ++i) {
         var avatarID = modOverlayKeys[i];
-        var modOverlay = modOverlays[avatarID];
+        var modOverlay = modOverlays[avatarID][0];
+        var muteOverlay = modOverlays[avatarID][1];
 
         if (clickedOverlay.overlayID == modOverlay) {
             // matched to an overlay, ask for the matching avatar to be kicked or ignored
@@ -160,8 +192,10 @@ function handleSelectedOverlay(clickedOverlay) {
             } else {
                 Users.ignore(avatarID);
             }
-
             // cleanup of the overlay is handled by the connection to avatarRemovedEvent
+            
+        } else if (muteOverlay && clickedOverlay.overlayID == muteOverlay) {
+            Users.mute(avatarID);
         }
     }
 }

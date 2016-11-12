@@ -634,7 +634,6 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
     return changed;
 }
 
-
 void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // before we do any processing on this packet make sure it comes from a node that is allowed to kick
     if (sendingNode->getCanKick()) {

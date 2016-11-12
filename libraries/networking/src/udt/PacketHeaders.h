@@ -99,7 +99,8 @@ public:
         SelectedAudioFormat,
         MoreEntityShapes,
         NodeKickRequest,
-        LAST_PACKET_TYPE = NodeKickRequest
+        NodeMuteRequest,
+        LAST_PACKET_TYPE = NodeMuteRequest
     };
 };
 
