@@ -1226,6 +1226,8 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                     };
 
                     doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
+                } else {
+                    qCDebug(scriptengine) << "Script.include() skipping evaluation of previously included url:" << url;
                 }
             }
         }
