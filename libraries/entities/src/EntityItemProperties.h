@@ -83,6 +83,7 @@ public:
     quint64 getLastEdited() const { return _lastEdited; }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
+
     EntityPropertyFlags getChangedProperties() const;
 
     bool parentDependentPropertyChanged() const; // was there a changed in a property that requires parent info to interpret?
@@ -217,6 +218,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
 
     DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
+
+    DEFINE_PROPERTY_REF(PROP_LAST_EDITED_BY, LastEditedBy, lastEditedBy, QUuid, ENTITY_ITEM_DEFAULT_LAST_EDITED_BY);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -454,6 +457,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ClientOnly, clientOnly, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, OwningAvatarID, owningAvatarID, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LastEditedBy, lastEditedBy, "");
 
     properties.getAnimation().debugDump();
     properties.getSkybox().debugDump();

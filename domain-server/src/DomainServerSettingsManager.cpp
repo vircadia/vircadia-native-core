@@ -634,7 +634,6 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
     return changed;
 }
 
-
 void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // before we do any processing on this packet make sure it comes from a node that is allowed to kick
     if (sendingNode->getCanKick()) {
@@ -1077,6 +1076,9 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
 }
 
 bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
+    static const QString SECURITY_ROOT_KEY = "security";
+    static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
+
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
 
@@ -1127,7 +1129,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
-                if (rootKey != "security") {
+                if (rootKey != SECURITY_ROOT_KEY) {
                     needRestart = true;
                 }
             } else {
@@ -1143,7 +1145,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 if (!matchingDescriptionObject.isEmpty()) {
                     QJsonValue settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
-                    if (rootKey != "security") {
+                    if (rootKey != SECURITY_ROOT_KEY || settingKey == AC_SUBNET_WHITELIST_KEY) {
                         needRestart = true;
                     }
                 } else {
