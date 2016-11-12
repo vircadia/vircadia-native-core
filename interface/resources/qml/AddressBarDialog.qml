@@ -120,8 +120,6 @@ Window {
             highlightMoveDuration: -1;
             highlightMoveVelocity: -1;
             highlight: Rectangle { color: "transparent"; border.width: 4; border.color: "#1DB5ED"; z: 1; }
-            leftMargin: 50; // Start the first item over by about the same amount as the last item peeks through on the other side.
-            rightMargin: 50;
         }
         Image { // Just a visual indicator that the user can swipe the cards over to see more.
             source: "../images/Swipe-Icon-single.svg"
