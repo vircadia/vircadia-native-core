@@ -16,11 +16,11 @@
 
 class PCMCodec : public CodecPlugin, public Encoder, public Decoder {
     Q_OBJECT
-    
+
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     void init() override;
     void deinit() override;
@@ -45,7 +45,7 @@ public:
     virtual void trackLostFrames(int numFrames)  override { }
 
 private:
-    static const QString NAME;
+    static const char* NAME;
 };
 
 class zLibCodec : public CodecPlugin, public Encoder, public Decoder {
@@ -54,7 +54,7 @@ class zLibCodec : public CodecPlugin, public Encoder, public Decoder {
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     void init() override;
     void deinit() override;
@@ -80,7 +80,7 @@ public:
     virtual void trackLostFrames(int numFrames)  override { }
 
 private:
-    static const QString NAME;
+    static const char* NAME;
 };
 
 #endif // hifi__PCMCodecManager_h
