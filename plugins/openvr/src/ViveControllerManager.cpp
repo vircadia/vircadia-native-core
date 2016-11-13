@@ -42,7 +42,7 @@ static const char* MENU_NAME = "Vive Controllers";
 static const char* MENU_PATH = "Avatar" ">" "Vive Controllers";
 static const char* RENDER_CONTROLLERS = "Render Hand Controllers";
 
-const QString ViveControllerManager::NAME = "OpenVR";
+const char* ViveControllerManager::NAME { "OpenVR" };
 
 bool ViveControllerManager::isSupported() const {
     return openVrSupported();
