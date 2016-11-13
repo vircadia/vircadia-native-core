@@ -114,6 +114,7 @@ Window {
                 timestamp: model.created_at;
                 onlineUsers: model.online_users;
                 storyId: model.metaverseId;
+                drillDownToPlace: model.drillDownToPlace;
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
@@ -362,6 +363,7 @@ Window {
             tags: tags,
             description: description,
             online_users: data.details.concurrency || 0,
+            drillDownToPlace: false,
 
             searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
         }
@@ -372,6 +374,22 @@ Window {
         }
         return (place.place_name !== AddressManager.hostname); // Not our entry, but do show other entry points to current domain.
         // could also require right protocolVersion
+    }
+    property var placeMap: ({});
+    function addToSuggestions(place) {
+        // This version always collapses. But, if we have a tabbed interface as in #9061, we might only collapse on all.
+        var collapse = place.action !== 'concurrency';
+        if (collapse) {
+            var existing = placeMap[place.place_name];
+            if (existing) {
+                existing.drillDownToPlace = true;
+                return;
+            }
+        }
+        suggestions.append(place);
+        if (collapse) {
+            placeMap[place.place_name] = suggestions.get(suggestions.count - 1);
+        }
     }
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         var options = [
@@ -391,7 +409,7 @@ Window {
             if (!addressLine.text) { // Don't add if the user is already filtering
                 stories.forEach(function (story) {
                     if (suggestable(story)) {
-                        suggestions.append(story);
+                        addToSuggestions(story);
                     }
                 });
             }
@@ -403,6 +421,7 @@ Window {
     }
     function filterChoicesByText() {
         suggestions.clear();
+        placeMap = {};
         var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity),
             data = allStories;
         function matches(place) {
@@ -415,7 +434,7 @@ Window {
         }
         data.forEach(function (place) {
             if (matches(place)) {
-                suggestions.append(place);
+                addToSuggestions(place);
             }
         });
     }
@@ -423,6 +442,7 @@ Window {
     function fillDestinations() {
         allStories = [];
         suggestions.clear();
+        placeMap = {};
         getUserStoryPage(1, function (error) {
             console.log('user stories query', error || 'ok', allStories.length);
         });
