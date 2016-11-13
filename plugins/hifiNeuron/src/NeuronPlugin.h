@@ -29,8 +29,8 @@ public:
 
     // Plugin functions
     virtual bool isSupported() const override;
-    virtual const char* getName() const override { return NAME; }
-    const QString& getID() const override { return NEURON_ID_STRING; }
+    virtual const QString getName() const override { return NAME; }
+    const QString getID() const override { return NEURON_ID_STRING; }
 
     virtual bool activate() override;
     virtual void deactivate() override;
