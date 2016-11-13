@@ -25,9 +25,9 @@
 Q_DECLARE_LOGGING_CATEGORY(oculus)
 
 
-static const QString MENU_PARENT = "Avatar";
-static const QString MENU_NAME = "Oculus Touch Controllers";
-static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+static const char* MENU_PARENT = "Avatar";
+static const char* MENU_NAME = "Oculus Touch Controllers";
+static const char* MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 
 const QString OculusControllerManager::NAME = "Oculus";
 
