@@ -137,10 +137,10 @@ function updateOverlays() {
                     isFacingAvatar: true,
                     drawInFront: true
                 });
-                
+
                 modOverlays[avatarID]=[newKickOverlay];
-                
-                if (Users.canKick) { 
+
+                if (Users.canKick) {
                     var newMuteOverlay = Overlays.addOverlay("image3d", {
                         url: muteOverlayURL(),
                         position: muteOverlayPosition,
@@ -166,11 +166,11 @@ AvatarList.avatarRemovedEvent.connect(function(avatarID){
     if (isShowingOverlays) {
         // we are currently showing overlays and an avatar just went away
 
-        // first remove the rendered overlay
-        for (var overlay in modOverlays[avatarID]) {
-            Overlays.deleteOverlay(overlay);
+        // first remove the rendered overlays
+        for (var j = 0; j < modOverlays[avatarID].length; ++j) {
+            Overlays.deleteOverlay(modOverlays[avatarID][j]);
         }
-
+        
         // delete the saved ID of the overlay from our mod overlays object
         delete modOverlays[avatarID];
     }
@@ -193,7 +193,7 @@ function handleSelectedOverlay(clickedOverlay) {
                 Users.ignore(avatarID);
             }
             // cleanup of the overlay is handled by the connection to avatarRemovedEvent
-            
+
         } else if (muteOverlay && clickedOverlay.overlayID == muteOverlay) {
             Users.mute(avatarID);
         }
