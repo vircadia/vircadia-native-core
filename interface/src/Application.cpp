@@ -5428,12 +5428,11 @@ void Application::toggleLogDialog() {
     }
 }
 
-// If this is "too big" (which depends on PC spec):
-// The frame will take too long to pack, the timer slot will
-// not execute properly, and the GIF will appear sped-up.
-// This is unacceptable and is probably a blocker for release.
-#define SNAPSNOT_ANIMATED_WIDTH (400)
-#define SNAPSNOT_ANIMATED_FRAMERATE_FPS (25) // This value should divide evenly into 100
+// If the snapshot width or the framerate are too high for the
+// application to handle, the framerate of the output GIF will drop.
+#define SNAPSNOT_ANIMATED_WIDTH (720)
+// This value should divide evenly into 100. Snapshot framerate is NOT guaranteed.
+#define SNAPSNOT_ANIMATED_FRAMERATE_FPS (25)
 #define SNAPSNOT_ANIMATED_DURATION_SECS (3)
 
 #define SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC (1000/SNAPSNOT_ANIMATED_FRAMERATE_FPS)
@@ -5497,15 +5496,6 @@ void Application::takeSnapshot(bool notify, float aspectRatio) {
                 }
                 else
                 {
-                    // Write the frame to the gif
-                    GifWriteFrame(&(qApp->_animatedSnapshotGifWriter),
-                        (uint8_t*)frame.bits(),
-                        frame.width(),
-                        frame.height(),
-                        round(((float)(QDateTime::currentMSecsSinceEpoch() - qApp->_animatedSnapshotTimestamp)) / 10));
-                    // Record the current frame timestamp
-                    qApp->_animatedSnapshotTimestamp = QDateTime::currentMSecsSinceEpoch();
-
                     // If that was the last frame...
                     if ((qApp->_animatedSnapshotTimestamp - qApp->_animatedSnapshotFirstFrameTimestamp) >= (SNAPSNOT_ANIMATED_DURATION_SECS * 1000))
                     {
@@ -5518,6 +5508,21 @@ void Application::takeSnapshot(bool notify, float aspectRatio) {
                         emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(qApp->_animatedSnapshotPath, false);
                         // Stop the snapshot QTimer
                         qApp->animatedSnapshotTimer.stop();
+                    }
+                    else
+                    {
+                        // Variable used to determine how long the current frame took to pack
+                        qint64 temp = QDateTime::currentMSecsSinceEpoch();
+                        // Write the frame to the gif
+                        GifWriteFrame(&(qApp->_animatedSnapshotGifWriter),
+                            (uint8_t*)frame.bits(),
+                            frame.width(),
+                            frame.height(),
+                            round(((float)(QDateTime::currentMSecsSinceEpoch() - qApp->_animatedSnapshotTimestamp + qApp->_animatedSnapshotLastWriteFrameDuration)) / 10));
+                        // Record how long it took for the current frame to pack
+                        qApp->_animatedSnapshotLastWriteFrameDuration = QDateTime::currentMSecsSinceEpoch() - temp;
+                        // Record the current frame timestamp
+                        qApp->_animatedSnapshotTimestamp = QDateTime::currentMSecsSinceEpoch();
                     }
                 }
             });
