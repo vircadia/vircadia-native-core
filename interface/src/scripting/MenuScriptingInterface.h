@@ -50,6 +50,9 @@ public slots:
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
     void triggerOption(const QString& menuOption);
+
+    bool isMenuEnabled(const QString& menuName);
+    void setMenuEnabled(const QString& menuName, bool isEnabled);
     
 signals:
     void menuItemEvent(const QString& menuItem);

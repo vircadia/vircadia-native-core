@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QCoreApplication>
-
 #include "ShutdownEventListener.h"
 
 #ifdef Q_OS_WIN
@@ -18,6 +16,9 @@
 #else
 #include <csignal>
 #endif
+
+#include <QtCore/QCoreApplication>
+#include <QtCore/QDebug>
 
 ShutdownEventListener& ShutdownEventListener::getInstance() {
     static ShutdownEventListener staticInstance;
@@ -29,9 +30,7 @@ void signalHandler(int param) {
     QMetaObject::invokeMethod(qApp, "quit");
 }
 
-ShutdownEventListener::ShutdownEventListener(QObject* parent) :
-    QObject(parent)
-{
+ShutdownEventListener::ShutdownEventListener(QObject* parent) : QObject(parent) {
 #ifndef Q_OS_WIN
     // be a signal handler for SIGTERM so we can stop our children when we get it
     signal(SIGTERM, signalHandler);

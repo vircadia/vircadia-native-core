@@ -599,7 +599,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
-            SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
+            bool noUpdater = SteamClient::isRunning();
+            SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
             sandboxIsRunning = true;
         }
         determinedSandboxState = true;
@@ -1119,9 +1120,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setActiveEyeTracker();
 #endif
 
-    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
-    connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
-    applicationUpdater->checkForUpdate();
+    // If launched from Steam, let it handle updates
+    if (!SteamClient::isRunning()) {
+        auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+        connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
+        applicationUpdater->checkForUpdate();
+    }
 
     // Now that menu is initialized we can sync myAvatar with it's state.
     myAvatar->updateMotionBehaviorFromMenu();
@@ -1193,6 +1197,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["present_rate"] = displayPlugin->presentRate();
         properties["new_frame_present_rate"] = displayPlugin->newFramePresentRate();
         properties["dropped_frame_rate"] = displayPlugin->droppedFrameRate();
+        properties["stutter_rate"] = displayPlugin->stutterRate();
         properties["sim_rate"] = getAverageSimsPerSecond();
         properties["avatar_sim_rate"] = getAvatarSimrate();
         properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
@@ -1238,7 +1243,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
+        properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemory());
         properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory());
+        properties["gpu_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerGPUAverage());
+        properties["batch_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerBatchAverage());
         properties["ideal_thread_count"] = QThread::idealThreadCount();
 
         auto hmdHeadPose = getHMDSensorPose();
@@ -1654,7 +1662,8 @@ Application::~Application() {
     
     _window->deleteLater();
 
-    qInstallMessageHandler(nullptr); // NOTE: Do this as late as possible so we continue to get our log messages
+    // Can't log to file passed this point, FileLogger about to be deleted
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
 }
 
 void Application::initializeGL() {
@@ -3378,13 +3387,31 @@ void Application::loadSettings() {
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
-    for (auto plugin : plugins) {
-        auto menu = Menu::getInstance();
-        if (auto action = menu->getActionForOption(plugin->getName())) {
-            action->setChecked(true);
-            action->trigger();
-            // Find and activated highest priority plugin, bail for the rest
-            break;
+    auto menu = Menu::getInstance();
+    if (plugins.size() > 0) {
+        for (auto plugin : plugins) {
+            if (auto action = menu->getActionForOption(plugin->getName())) {
+                action->setChecked(true);
+                action->trigger();
+                // Find and activated highest priority plugin, bail for the rest
+                break;
+            }
+        }
+    } else {
+        // If this is our first run, and no preferred devices were set, default to
+        // an HMD device if available.
+        Setting::Handle<bool> firstRun { Settings::firstRun, true };
+        if (firstRun.get()) {
+            auto displayPlugins = pluginManager->getDisplayPlugins();
+            for (auto& plugin : displayPlugins) {
+                if (plugin->isHmd()) {
+                    if (auto action = menu->getActionForOption(plugin->getName())) {
+                        action->setChecked(true);
+                        action->trigger();
+                        break;
+                    }
+                }
+            }
         }
     }
 

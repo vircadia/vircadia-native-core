@@ -97,8 +97,6 @@ namespace MenuOption {
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableIncrementalTextureTransfer = "Enable Incremental Texture Transfer";
-    const QString EnableDynamicTextureManagement = "Enable Dynamic Texture Management";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
@@ -180,6 +178,7 @@ namespace MenuOption {
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
+    const QString SparseTextureManagement = "Enable Sparse Texture Management";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";

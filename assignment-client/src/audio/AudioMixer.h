@@ -49,6 +49,7 @@ private slots:
     void handleNodeKilled(SharedNodePointer killedNode);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
 

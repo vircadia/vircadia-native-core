@@ -36,6 +36,9 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
+using Subnet = QPair<QHostAddress, int>;
+using SubnetList = std::vector<Subnet>;
+
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
@@ -72,8 +75,6 @@ public slots:
     void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
 
 private slots:
-    void aboutToQuit();
-
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
@@ -150,17 +151,15 @@ private:
 
     bool isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url);
 
-    void handleTokenRequestFinished();
     QNetworkReply* profileRequestGivenTokenReply(QNetworkReply* tokenReply);
-    void handleProfileRequestFinished();
     Headers setupCookieHeadersFromProfileReply(QNetworkReply* profileReply);
-
-    void loadExistingSessionsFromSettings();
 
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
 
     void setupGroupCacheRefresh();
+
+    SubnetList _acSubnetWhitelist;
 
     DomainGatekeeper _gatekeeper;
 

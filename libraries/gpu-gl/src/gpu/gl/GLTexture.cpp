@@ -116,7 +116,7 @@ float GLTexture::getMemoryPressure() {
     }
 
     // Return the consumed texture memory divided by the available texture memory.
-    auto consumedGpuMemory = Context::getTextureGPUSparseMemoryUsage();
+    auto consumedGpuMemory = Context::getTextureGPUMemoryUsage() - Context::getTextureGPUFramebufferMemoryUsage();
     float memoryPressure = (float)consumedGpuMemory / (float)availableTextureMemory;
     static Context::Size lastConsumedGpuMemory = 0;
     if (memoryPressure > 1.0f && lastConsumedGpuMemory != consumedGpuMemory) {

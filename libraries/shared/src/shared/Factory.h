@@ -23,12 +23,12 @@ namespace hifi {
         using Builder = std::function<Pointer()>;
         using BuilderMap = std::map<Key, Builder>;
 
-        void registerBuilder(const Key& name, Builder builder) {
+        void registerBuilder(const Key name, Builder builder) {
             // FIXME don't allow name collisions
             _builders[name] = builder;
         }
 
-        Pointer create(const Key& name) const {
+        Pointer create(const Key name) const {
             const auto& entryIt = _builders.find(name);
             if (entryIt != _builders.end()) {
                 return (*entryIt).second();
@@ -39,7 +39,7 @@ namespace hifi {
         template <typename Impl>
         class Registrar {
         public:
-            Registrar(const Key& name, SimpleFactory& factory) {
+            Registrar(const Key name, SimpleFactory& factory) {
                 factory.registerBuilder(name, [] { return std::make_shared<Impl>(); });
             }
         };

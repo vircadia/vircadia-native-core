@@ -29,7 +29,19 @@ class AnimationCache : public ResourceCache, public Dependency  {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+    /**jsdoc
+     * @namespace AnimationCache
+     * @augments ResourceCache
+     */
+
 public:
+
+    /**jsdoc
+     * Returns animation resource for particular animation
+     * @function AnimationCache.getAnimation
+     * @param url {string} url to load
+     * @return {Resource} animation
+     */
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 

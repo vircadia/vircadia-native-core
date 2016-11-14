@@ -64,6 +64,7 @@ public:
 
 
     void setEntityMaxTmpLifetime(float maxTmpEntityLifetime) { _maxTmpEntityLifetime = maxTmpEntityLifetime; }
+    void setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist);
 
     /// Implements our type specific root element factory
     virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;
@@ -342,6 +343,8 @@ protected:
     QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
+
+    QStringList _entityScriptSourceWhitelist;
 };
 
 #endif // hifi_EntityTree_h
