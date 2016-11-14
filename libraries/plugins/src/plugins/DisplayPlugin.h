@@ -188,6 +188,8 @@ public:
     virtual float renderRate() const { return -1.0f; }
     // Rate at which we present to the display device
     virtual float presentRate() const { return -1.0f; }
+    // Rate at which old frames are presented to the device display
+    virtual float stutterRate() const { return -1.0f; }
     // Rate at which new frames are being presented to the display device
     virtual float newFramePresentRate() const { return -1.0f; }
     // Rate at which rendered frames are being skipped

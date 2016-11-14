@@ -1848,7 +1848,7 @@ void MyAvatar::clampTargetScaleToDomainLimits() {
 
     if (clampedTargetScale != _targetScale) {
         qCDebug(interfaceapp, "Clamped scale to %f since original target scale %f was not allowed by domain",
-                clampedTargetScale, _targetScale);
+                (double)clampedTargetScale, (double)_targetScale);
 
         setTargetScale(clampedTargetScale);
     }
@@ -1863,7 +1863,7 @@ void MyAvatar::clampScaleChangeToDomainLimits(float desiredScale) {
     }
 
     setTargetScale(clampedTargetScale);
-    qCDebug(interfaceapp, "Changed scale to %f", _targetScale);
+    qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
 }
 
 void MyAvatar::increaseSize() {
@@ -1915,14 +1915,14 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     }
 
     qCDebug(interfaceapp, "This domain requires a minimum avatar scale of %f and a maximum avatar scale of %f",
-            _domainMinimumScale, _domainMaximumScale);
+            (double)_domainMinimumScale, (double)_domainMaximumScale);
 
     // debug to log if this avatar's scale in this domain will be clamped
     auto clampedScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
 
     if (_targetScale != clampedScale) {
         qCDebug(interfaceapp, "Avatar scale will be clamped to %f because %f is not allowed by current domain",
-                clampedScale, _targetScale);
+                (double)clampedScale, (double)_targetScale);
     }
 }
 

@@ -37,12 +37,12 @@ void releaseOpenVrSystem();
 
 static const char* CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
-static const QString MENU_PARENT = "Avatar";
-static const QString MENU_NAME = "Vive Controllers";
-static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
-static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
+static const char* MENU_PARENT = "Avatar";
+static const char* MENU_NAME = "Vive Controllers";
+static const char* MENU_PATH = "Avatar" ">" "Vive Controllers";
+static const char* RENDER_CONTROLLERS = "Render Hand Controllers";
 
-const QString ViveControllerManager::NAME = "OpenVR";
+const char* ViveControllerManager::NAME { "OpenVR" };
 
 bool ViveControllerManager::isSupported() const {
     return openVrSupported();

@@ -19,7 +19,7 @@
 
 #include "OculusHelpers.h"
 
-const QString OculusDisplayPlugin::NAME("Oculus Rift");
+const char* OculusDisplayPlugin::NAME { "Oculus Rift" };
 static ovrPerfHudMode currentDebugMode = ovrPerfHud_Off;
 
 bool OculusDisplayPlugin::internalActivate() {
@@ -145,6 +145,16 @@ void OculusDisplayPlugin::hmdPresent() {
         result = ovr_SubmitFrame(_session, _currentFrame->frameIndex, &_viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
             logWarning("Failed to present");
+        }
+
+        static int droppedFrames = 0;
+        ovrPerfStats perfStats;
+        ovr_GetPerfStats(_session, &perfStats);
+        for (int i = 0; i < perfStats.FrameStatsCount; ++i) {
+            const auto& frameStats = perfStats.FrameStats[i];
+            int delta = frameStats.CompositorDroppedFrameCount - droppedFrames;
+            _stutterRate.increment(delta);
+            droppedFrames = frameStats.CompositorDroppedFrameCount;
         }
     }
     _presentRate.increment();

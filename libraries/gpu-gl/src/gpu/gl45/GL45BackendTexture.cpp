@@ -285,10 +285,10 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 }
 
 GL45Texture::~GL45Texture() {
-    // External textures cycle very quickly, so don't spam the log with messages about them.
-    if (!_gpuObject.getUsage().isExternal()) {
-        qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
-    }
+    // // External textures cycle very quickly, so don't spam the log with messages about them.
+    // if (!_gpuObject.getUsage().isExternal()) {
+    //     qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
+    // }
 
     // Remove this texture from the candidate list of derezzable textures
     if (_transferrable) {

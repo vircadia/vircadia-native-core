@@ -121,7 +121,7 @@ AnimDebugDraw::AnimDebugDraw() :
 
     // HACK: add red, green and blue axis at (1,1,1)
     _animDebugDrawData->_vertexBuffer->resize(sizeof(AnimDebugDrawData::Vertex) * 6);
-    
+
     static std::vector<AnimDebugDrawData::Vertex> vertices({
         AnimDebugDrawData::Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(255, 0, 0, 255) },
         AnimDebugDrawData::Vertex { glm::vec3(2.0, 1.0f, 1.0f), toRGBA(255, 0, 0, 255) },
@@ -162,9 +162,10 @@ static const uint32_t blue = toRGBA(0, 0, 255, 255);
 
 const int NUM_CIRCLE_SLICES = 24;
 
-static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius, AnimDebugDrawData::Vertex*& v) {
+static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius, glm::vec4& vecColor, AnimDebugDrawData::Vertex*& v) {
 
     const float XYZ_AXIS_LENGTH = radius * 4.0f;
+    const uint32_t color = toRGBA(vecColor);
 
     AnimPose finalPose = rootPose * pose;
     glm::vec3 base = rootPose * pose.trans;
@@ -192,10 +193,10 @@ static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius
     // x-ring
     for (int i = 0; i < NUM_CIRCLE_SLICES; i++) {
         v->pos = xRing[i];
-        v->rgba = red;
+        v->rgba = color;
         v++;
         v->pos = xRing[i + 1];
-        v->rgba = red;
+        v->rgba = color;
         v++;
     }
 
@@ -210,10 +211,10 @@ static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius
     // y-ring
     for (int i = 0; i < NUM_CIRCLE_SLICES; i++) {
         v->pos = yRing[i];
-        v->rgba = green;
+        v->rgba = color;
         v++;
         v->pos = yRing[i + 1];
-        v->rgba = green;
+        v->rgba = color;
         v++;
     }
 
@@ -228,10 +229,10 @@ static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius
     // z-ring
     for (int i = 0; i < NUM_CIRCLE_SLICES; i++) {
         v->pos = zRing[i];
-        v->rgba = blue;
+        v->rgba = color;
         v++;
         v->pos = zRing[i + 1];
-        v->rgba = blue;
+        v->rgba = color;
         v++;
     }
 }
@@ -367,7 +368,7 @@ void AnimDebugDraw::update() {
                 const float radius = BONE_RADIUS / (absPoses[i].scale.x * rootPose.scale.x);
 
                 // draw bone
-                addBone(rootPose, absPoses[i], radius, v);
+                addBone(rootPose, absPoses[i], radius, color, v);
 
                 // draw link to parent
                 auto parentIndex = skeleton->getParentIndex(i);
@@ -382,20 +383,18 @@ void AnimDebugDraw::update() {
         for (auto& iter : markerMap) {
             glm::quat rot = std::get<0>(iter.second);
             glm::vec3 pos = std::get<1>(iter.second);
-            glm::vec4 color = std::get<2>(iter.second);  // TODO: currently ignored.
-            Q_UNUSED(color);
+            glm::vec4 color = std::get<2>(iter.second);
             const float radius = POSE_RADIUS;
-            addBone(AnimPose::identity, AnimPose(glm::vec3(1), rot, pos), radius, v);
+            addBone(AnimPose::identity, AnimPose(glm::vec3(1), rot, pos), radius, color, v);
         }
 
         AnimPose myAvatarPose(glm::vec3(1), DebugDraw::getInstance().getMyAvatarRot(), DebugDraw::getInstance().getMyAvatarPos());
         for (auto& iter : myAvatarMarkerMap) {
             glm::quat rot = std::get<0>(iter.second);
             glm::vec3 pos = std::get<1>(iter.second);
-            glm::vec4 color = std::get<2>(iter.second);  // TODO: currently ignored.
-            Q_UNUSED(color);
+            glm::vec4 color = std::get<2>(iter.second);
             const float radius = POSE_RADIUS;
-            addBone(myAvatarPose, AnimPose(glm::vec3(1), rot, pos), radius, v);
+            addBone(myAvatarPose, AnimPose(glm::vec3(1), rot, pos), radius, color, v);
         }
 
         // draw rays from shared DebugDraw singleton

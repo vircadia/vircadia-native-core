@@ -128,7 +128,8 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(renderrate, displayPlugin->renderRate());
         STAT_UPDATE(presentrate, displayPlugin->presentRate());
         STAT_UPDATE(presentnewrate, displayPlugin->newFramePresentRate());
-        STAT_UPDATE(presentdroprate, qApp->getActiveDisplayPlugin()->droppedFrameRate());
+        STAT_UPDATE(presentdroprate, displayPlugin->droppedFrameRate());
+        STAT_UPDATE(stutterrate, displayPlugin->stutterRate());
     } else {
         STAT_UPDATE(presentrate, -1);
         STAT_UPDATE(presentnewrate, -1);

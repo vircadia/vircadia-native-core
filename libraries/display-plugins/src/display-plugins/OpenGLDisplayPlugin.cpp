@@ -758,7 +758,6 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
 
 
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
-    qDebug() << "Destroying OpenGLDisplayPlugin";
 }
 
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {

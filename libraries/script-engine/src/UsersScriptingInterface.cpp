@@ -29,6 +29,11 @@ void UsersScriptingInterface::kick(const QUuid& nodeID) {
     DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
 }
 
+void UsersScriptingInterface::mute(const QUuid& nodeID) {
+    // ask the NodeList to mute the user with the given session ID
+    DependencyManager::get<NodeList>()->muteNodeBySessionID(nodeID);
+}
+
 bool UsersScriptingInterface::getCanKick() {
     // ask the NodeList to return our ability to kick
     return DependencyManager::get<NodeList>()->getThisNodeCanKick();
