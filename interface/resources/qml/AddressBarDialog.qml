@@ -114,6 +114,7 @@ Window {
                 timestamp: model.created_at;
                 onlineUsers: model.online_users;
                 storyId: model.metaverseId;
+                drillDownToPlace: model.drillDownToPlace;
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
@@ -392,6 +393,7 @@ Window {
             tags: tags,
             description: description,
             online_users: data.details.concurrency || 0,
+            drillDownToPlace: false,
 
             searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
         }
@@ -406,6 +408,23 @@ Window {
     function tabSelect(textButton) {
         selectedTab = textButton;
         fillDestinations();
+    }
+    property var placeMap: ({});
+    function addToSuggestions(place) {
+        var collapse = allTab.selected && (place.action !== 'concurrency');
+        if (collapse) {
+            var existing = placeMap[place.place_name];
+            if (existing) {
+                existing.drillDownToPlace = true;
+                return;
+            }
+        }
+        suggestions.append(place);
+        if (collapse) {
+            placeMap[place.place_name] = suggestions.get(suggestions.count - 1);
+        } else if (place.action === 'concurrency') {
+            suggestions.get(suggestions.count - 1).drillDownToPlace = true; // Don't change raw place object (in allStories).
+        }
     }
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         var options = [
@@ -442,18 +461,20 @@ Window {
         }
         return function (place) {
             if (matches(place)) {
-                suggestions.append(place);
+                addToSuggestions(place);
             }
         };
     }
     function filterChoicesByText() {
         suggestions.clear();
+        placeMap = {};
         allStories.forEach(makeFilteredPlaceProcessor());
     }
 
     function fillDestinations() {
         allStories = [];
         suggestions.clear();
+        placeMap = {};
         getUserStoryPage(1, function (error) {
             console.log('user stories query', error || 'ok', allStories.length);
         });

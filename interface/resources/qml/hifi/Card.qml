@@ -27,6 +27,7 @@ Rectangle {
     property var goFunction: null;
     property string storyId: "";
 
+    property bool drillDownToPlace: false;
     property string timePhrase: pastTime(timestamp);
     property int onlineUsers: 0;
 
@@ -113,7 +114,7 @@ Rectangle {
     }
     FiraSansRegular {
         id: users;
-        text: (action === 'concurrency') ? onlineUsers : 'snapshot';
+        text: (action === 'concurrency') ? onlineUsers : ('snapshot' + (drillDownToPlace ? 's' : ''));
         size: (action === 'concurrency') ? textSize : textSizeSmall;
         color: hifi.colors.white;
         anchors {
@@ -140,7 +141,7 @@ Rectangle {
         id: usersImage;
         imageURL: "../../images/" + action + ".svg";
         size: 32;
-        onClicked: goFunction("/user_stories/" + storyId);
+        onClicked: goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
         buttonState: 0;
         defaultState: 0;
         hoverState: 1;
