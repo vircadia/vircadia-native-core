@@ -29,8 +29,8 @@ public:
 
     // Plugin functions
     virtual bool isSupported() const override;
-    virtual const QString& getName() const override { return NAME; }
-    const QString& getID() const override { return NEURON_ID_STRING; }
+    virtual const QString getName() const override { return NAME; }
+    const QString getID() const override { return NEURON_ID_STRING; }
 
     virtual bool activate() override;
     virtual void deactivate() override;
@@ -65,8 +65,8 @@ protected:
 
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
-    static const QString NAME;
-    static const QString NEURON_ID_STRING;
+    static const char* NAME;
+    static const char* NEURON_ID_STRING;
 
     std::string _serverAddress;
     int _serverPort;

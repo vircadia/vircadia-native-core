@@ -18,7 +18,7 @@ class Basic2DWindowOpenGLDisplayPlugin : public OpenGLDisplayPlugin {
     Q_OBJECT
     using Parent = OpenGLDisplayPlugin;
 public:
-    virtual const QString& getName() const override { return NAME; }
+    virtual const QString getName() const override { return NAME; }
 
     virtual float getTargetFrameRate() const override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
 

@@ -15,7 +15,7 @@
 
 #include "PCMCodecManager.h"
 
-const QString PCMCodec::NAME = "pcm";
+const char* PCMCodec::NAME { "pcm" };
 
 void PCMCodec::init() {
 }
@@ -55,7 +55,7 @@ void PCMCodec::releaseDecoder(Decoder* decoder) {
     // do nothing
 }
 
-const QString zLibCodec::NAME = "zlib";
+const char* zLibCodec::NAME { "zlib" };
 
 void zLibCodec::init() {
 }
