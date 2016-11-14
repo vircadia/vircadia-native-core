@@ -312,6 +312,7 @@ FocusScope {
 
     onPinnedChanged: {
         if (pinned) {
+            d.raiseWindow(desktop);
             desktop.focus = true;
             desktop.forceActiveFocus();
 

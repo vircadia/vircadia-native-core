@@ -128,7 +128,8 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(renderrate, displayPlugin->renderRate());
         STAT_UPDATE(presentrate, displayPlugin->presentRate());
         STAT_UPDATE(presentnewrate, displayPlugin->newFramePresentRate());
-        STAT_UPDATE(presentdroprate, qApp->getActiveDisplayPlugin()->droppedFrameRate());
+        STAT_UPDATE(presentdroprate, displayPlugin->droppedFrameRate());
+        STAT_UPDATE(stutterrate, displayPlugin->stutterRate());
     } else {
         STAT_UPDATE(presentrate, -1);
         STAT_UPDATE(presentnewrate, -1);
@@ -290,6 +291,12 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(sendingMode, sendingModeResult);
     }
 
+    auto gpuContext = qApp->getGPUContext();
+
+    // Update Frame timing (in ms)
+    STAT_UPDATE(gpuFrameTime, (float)gpuContext->getFrameTimerGPUAverage());
+    STAT_UPDATE(batchFrameTime, (float)gpuContext->getFrameTimerBatchAverage());
+
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemoryUsage()));
     STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
@@ -302,7 +309,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(gpuTextureVirtualMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUVirtualMemoryUsage()));
     STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUFramebufferMemoryUsage()));
     STAT_UPDATE(gpuTextureSparseMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUSparseMemoryUsage()));
-    STAT_UPDATE(gpuSparseTextureEnabled, gpu::Texture::getEnableSparseTextures() ? 1 : 0);
+    STAT_UPDATE(gpuSparseTextureEnabled, gpuContext->getBackend()->isTextureManagementSparseEnabled() ? 1 : 0);
     STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory()));
     STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
     STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());

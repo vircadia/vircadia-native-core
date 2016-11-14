@@ -126,6 +126,23 @@ void MenuScriptingInterface::setIsOptionChecked(const QString& menuOption, bool 
                 Q_ARG(bool, isChecked));
 }
 
+bool MenuScriptingInterface::isMenuEnabled(const QString& menuOption) {
+    if (QThread::currentThread() == qApp->thread()) {
+        return Menu::getInstance()->isOptionChecked(menuOption);
+    }
+    bool result;
+    QMetaObject::invokeMethod(Menu::getInstance(), "isMenuEnabled", Qt::BlockingQueuedConnection,
+        Q_RETURN_ARG(bool, result),
+        Q_ARG(const QString&, menuOption));
+    return result;
+}
+
+void MenuScriptingInterface::setMenuEnabled(const QString& menuOption, bool isChecked) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "setMenuEnabled",
+        Q_ARG(const QString&, menuOption),
+        Q_ARG(bool, isChecked));
+}
+
 void MenuScriptingInterface::triggerOption(const QString& menuOption) {
     QMetaObject::invokeMethod(Menu::getInstance(), "triggerOption", Q_ARG(const QString&, menuOption));    
 }

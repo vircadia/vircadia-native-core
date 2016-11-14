@@ -74,6 +74,7 @@ public:
     bool isIgnoringNode(const QUuid& nodeID) const;
 
     void kickNodeBySessionID(const QUuid& nodeID);
+    void muteNodeBySessionID(const QUuid& nodeID);
 
 public slots:
     void reset();

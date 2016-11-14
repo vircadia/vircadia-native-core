@@ -14,6 +14,8 @@
 #include "../gl/GLBackend.h"
 #include "../gl/GLTexture.h"
 
+#define INCREMENTAL_TRANSFER 0
+
 namespace gpu { namespace gl45 {
     
 using namespace gpu::gl;
@@ -32,6 +34,7 @@ public:
         static GLuint allocate(const Texture& texture);
         static const uint32_t DEFAULT_PAGE_DIMENSION = 128;
         static const uint32_t DEFAULT_MAX_SPARSE_LEVEL = 0xFFFF;
+
     public:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId);
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable);
@@ -55,6 +58,7 @@ public:
             GLint pageDimensionsIndex { 0 };
         };
 
+#if INCREMENTAL_TRANSFER
         struct TransferState {
             TransferState(GL45Texture& texture);
             uvec3 currentPageSize() const;
@@ -74,6 +78,10 @@ public:
             const uint8_t* srcPointer { nullptr };
         };
     protected:
+        TransferState _transferState;
+#endif
+
+    protected:
         void updateMips() override;
         void stripToMip(uint16_t newMinMip);
         void startTransfer() override;
@@ -90,9 +98,9 @@ public:
         void derez();
 
         SparseInfo _sparseInfo;
-        TransferState _transferState;
         uint32_t _allocatedPages { 0 };
         uint32_t _lastMipAllocatedPages { 0 };
+        uint16_t _mipOffset { 0 };
         friend class GL45Backend;
     };
 
@@ -132,6 +140,9 @@ protected:
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
+
+    // Texture Management Stage
+    void initTextureManagementStage() override;
 };
 
 } }

@@ -13,3 +13,7 @@ set_target_properties(ice-client PROPERTIES FOLDER "Tools")
 
 add_subdirectory(ac-client)
 set_target_properties(ac-client PROPERTIES FOLDER "Tools")
+
+add_subdirectory(skeleton-dump)
+set_target_properties(skeleton-dump PROPERTIES FOLDER "Tools")
+

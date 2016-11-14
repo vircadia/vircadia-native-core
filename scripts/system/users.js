@@ -228,7 +228,7 @@ var usersWindow = (function () {
 
     var WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
-        WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
+        WINDOW_BASE_MARGIN = 24, // A little less is needed in order look correct
         WINDOW_FONT = {
             size: 12
         },
@@ -253,11 +253,17 @@ var usersWindow = (function () {
         windowPane,
         windowHeading,
 
+        // Margin on the left and right side of the window to keep
+        // it from getting too close to the edge of the screen which
+        // is unclickable.
+        WINDOW_MARGIN_X = 20,
+
         // Window border is similar to that of edit.js.
-        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_LEFT_MARGIN = WINDOW_BASE_MARGIN,
+        WINDOW_MARGIN_HALF = WINDOW_MARGIN / 2,
+        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_LEFT_MARGIN = WINDOW_MARGIN_HALF,
         WINDOW_BORDER_RADIUS = 4,
         WINDOW_BORDER_COLOR = { red: 255, green: 255, blue: 255 },
         WINDOW_BORDER_ALPHA = 0.5,
@@ -371,7 +377,8 @@ var usersWindow = (function () {
 
         MENU_NAME = "View",
         MENU_ITEM = "Users Online",
-        MENU_ITEM_AFTER = "Overlays",
+        MENU_ITEM_OVERLAYS = "Overlays",
+        MENU_ITEM_AFTER = MENU_ITEM_OVERLAYS,
 
         SETTING_USERS_SHOW_ME = "UsersWindow.ShowMe",
         SETTING_USERS_VISIBLE_TO = "UsersWindow.VisibleTo",
@@ -398,6 +405,10 @@ var usersWindow = (function () {
         scrollbarBarPosition = {},
         scrollbarBarClickedAt, // 0.0 .. 1.0
         scrollbarValue = 0.0; // 0.0 .. 1.0
+
+    function isWindowDisabled() {
+        return !Menu.isOptionChecked(MENU_ITEM) || !Menu.isOptionChecked(MENU_ITEM_OVERLAYS);
+    }
 
     function isValueTrue(value) {
         // Work around Boolean Settings values being read as string when Interface starts up but as Booleans when re-read after
@@ -445,7 +456,7 @@ var usersWindow = (function () {
     }
 
     function saturateWindowPosition() {
-        windowPosition.x = Math.max(0, Math.min(viewport.x - WINDOW_WIDTH, windowPosition.x));
+        windowPosition.x = Math.max(WINDOW_MARGIN_X, Math.min(viewport.x - WINDOW_WIDTH - WINDOW_MARGIN_X, windowPosition.x));
         windowPosition.y = Math.max(windowMinimumHeight, Math.min(viewport.y, windowPosition.y));
     }
 
@@ -744,7 +755,7 @@ var usersWindow = (function () {
             userClicked,
             delta;
 
-        if (!isVisible) {
+        if (!isVisible || isWindowDisabled()) {
             return;
         }
 
@@ -856,7 +867,7 @@ var usersWindow = (function () {
     function onMouseMoveEvent(event) {
         var isVisible;
 
-        if (!isLoggedIn) {
+        if (!isLoggedIn || isWindowDisabled()) {
             return;
         }
 
@@ -914,6 +925,10 @@ var usersWindow = (function () {
     function onMouseReleaseEvent() {
         var offset = {};
 
+        if (isWindowDisabled()) {
+            return;
+        }
+
         if (isMovingScrollbar) {
             Overlays.editOverlay(scrollbarBar, {
                 backgroundAlpha: SCROLLBAR_BAR_ALPHA
@@ -938,6 +953,10 @@ var usersWindow = (function () {
             oldIsFullscreenMirror = isFullscreenMirror,
             MIRROR_MENU_ITEM = "Mirror",
             FULLSCREEN_MIRROR_MENU_ITEM = "Fullscreen Mirror";
+
+        if (isWindowDisabled()) {
+            return;
+        }
 
         viewport = Controller.getViewportDimensions();
         isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);

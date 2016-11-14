@@ -176,6 +176,8 @@ public:
     virtual void releaseQuery(GLuint id) const;
     virtual void queueLambda(const std::function<void()> lambda) const;
 
+    bool isTextureManagementSparseEnabled() const override { return (_textureManagement._sparseCapable && Texture::getEnableSparseTextures()); }
+
 protected:
 
     void recycle() const override;
@@ -363,6 +365,11 @@ protected:
     };
 
     void resetStages();
+
+    struct TextureManagementStageState {
+        bool _sparseCapable { false };
+    } _textureManagement;
+    virtual void initTextureManagementStage() {}
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

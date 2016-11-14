@@ -55,7 +55,8 @@ void BatchLoader::start() {
         // Use a proxy callback to handle the call and emit the signal in a thread-safe way.
         // If BatchLoader is deleted before the callback is called, the subsequent "emit" call will not do
         // anything.
-        ScriptCacheSignalProxy* proxy = new ScriptCacheSignalProxy(scriptCache.data());
+        ScriptCacheSignalProxy* proxy = new ScriptCacheSignalProxy();
+        connect(scriptCache.data(), &ScriptCache::destroyed, proxy, &ScriptCacheSignalProxy::deleteLater);
 
         connect(proxy, &ScriptCacheSignalProxy::contentAvailable, this, [this](const QString& url, const QString& contents, bool isURL, bool success) {
             if (isURL && success) {
