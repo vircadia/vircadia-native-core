@@ -55,6 +55,12 @@ namespace image {
             Byte a { WHITE8 };
         };
 
+        struct R10G10B12 {
+            Byte4 r : 10;
+            Byte4 g : 10;
+            Byte4 b : 12;
+        };
+        
         struct RGB16_565 {
             Byte2 b : 5;
             Byte2 g : 6;
@@ -88,18 +94,15 @@ namespace image {
         };
 
         
-        template <typename P> class PixelBlock {
+        template <typename P, int length> class PixelBlock {
         public:
             using Format = typename P::Format;
             using Storage = typename P::Storage;
             
-            static const uint32_t WIDTH { 4 };
-            static const uint32_t HEIGHT { WIDTH };
-            static const uint32_t SIZE { WIDTH * HEIGHT };
+            constexpr uint16_t getLength() const { return length; }
+            uint32_t getSize() const { return length * sizeof(P); }
             
-            uint32_t getSize() const { return SIZE * sizeof(P); }
-            
-            P pixels[SIZE];
+            P pixels[length];
             
             PixelBlock() {}
             
@@ -114,6 +117,23 @@ namespace image {
             
             const Storage* getStorage() const { return static_cast<const Storage*> (&pixels->raw); }
         };
+        
+        template <typename P, int tileW, int tileH> class Tile {
+        public:
+            using Format = typename P::Format;
+            using Storage = typename P::Storage;
+            using Block = typename PixelBlock<P, tileW * tileH>;
+            
+            constexpr uint16_t getWidth() const { return tileW; }
+            constexpr uint16_t getHeight() const { return tileH; }
+            
+            Block _block;
+            
+            Tile() {}
+            Tile(const P* srcPixels) : _block(srcPixels) {}
+            
+            
+        };
     };
 
 
@@ -121,6 +141,7 @@ namespace image {
     using PixRGB565 = pixel::Pixel<pixel::RGB16_565>;
     using PixRGB32 = pixel::Pixel<pixel::RGB32>;
     using PixRGBA32 = pixel::Pixel<pixel::RGBA32>;
+    using PixR10G10B12 = pixel::Pixel<pixel::R10G10B12>;
     using PixR8 = pixel::Pixel<pixel::R8>;
     
     
@@ -157,8 +178,8 @@ namespace image {
     template <typename PB, typename CB> void uncompress(const CB& srcBlock, PB& dstBlock) { }
 
 
-    using PB_RGB32 = pixel::PixelBlock<PixRGB32>;
-    using PB_RGBA32 = pixel::PixelBlock<PixRGBA32>;
+    using PB_RGB32 = pixel::PixelBlock<PixRGB32, 16>;
+    using PB_RGBA32 = pixel::PixelBlock<PixRGBA32, 16>;
     
     using CB_BC1 = CompressedBlock<BC::BC1>;
     using CB_BC4 = CompressedBlock<BC::BC4>;
@@ -170,14 +191,14 @@ namespace image {
     template <> void uncompress(const CB_BC4& src, PB_RGBA32& dst);
     
     
-    template <typename P, typename B>
+    template <typename B>
     class PixelBlockArray {
     public:
-        using Pixel = P;
-        using Block = pixel::PixelBlock<Pixel>;
+        using Block = B;
         
         using Blocks = std::vector<Block>;
         
+        Blocks _blocks;
     };
     
     class Grid {
@@ -186,26 +207,57 @@ namespace image {
         using Coord2 = glm::u16vec2;
         using Size = uint32_t;
         
-        Coord2 _block { 1, 1 };
+        static const Coord2 TILE_PIXEL;
+        static const Coord2 TILE_QUAD;
+        static const Coord2 TILE_DEFAULT;
+        
+        Grid(const Coord2& surface, const Coord2& tile = TILE_DEFAULT) : _surface(surface), _tile(tile) {}
+        Grid(Coord width, Coord height, const Coord2& tile = TILE_DEFAULT) : _surface(width, height), _tile(tile) {}
+        
         Coord2 _surface { 1, 1 };
+        Coord2 _tile { TILE_DEFAULT };
         
         Coord width() const { return _surface.x; }
         Coord height() const { return _surface.y; }
-        Size size() const { return width() * height(); }
-        
-        Coord blockWidth() const { return _block.x; }
-        Coord blockHeight() const { return _block.y; }
-        Size blockSize() const { return blockWidth() * blockHeight(); }
-        
-        Coord pixelWidth() const { return _surface.x * _block.x; }
-        Coordisd pixelHeight() const { return _surface.y * _block.y; }
-        Size pixelSize() const { return pixelWidth() * pixelHeight(); }
-        
-        Coord2 pixelToBlock(const Coord2& coord) const {
-            auto blockX = coord.x / blockWidth();
-            auto blockY = coord.y / blockHeight();
-            return Coord2(blockX, blockY);
+        const Coord2& size() const { return _surface; }
+
+        Coord tileWidth() const { return evalNumTiles(_surface.x, _tile.x); }
+        Coord tileHeight() const { return evalNumTiles(_surface.y, _tile.y); }
+        Coord2 tileSize() const { return Coord2(tileWidth(), tileHeight()); }
+    
+    
+        Coord2 toTile(const Coord2& pixel) const { return pixel / _tile; }
+        Coord2 toTileSubpix(const Coord2& pixel) const { return pixel % _tile; }
+        Coord2 toTile(const Coord2& pixel, Coord2& subpix) const {
+            subpix = toTileSubpix(pixel);
+            return toTile(pixel);
         }
         
+        Coord2 toPixel(const Coord2& tile) const { return tile * _tile; }
+        Coord2 toPixel(const Coord2& tile, const Coord2& subpix) const { return tile * _tile + subpix; }
+        
+        
+        static Coord evalNumTiles(Coord pixelLength, Coord tileLength) {
+            auto tilePos = pixelLength / tileLength;
+            if (tilePos * tileLength < pixelLength) {
+                tilePos++;
+            }
+            return tilePos;
+        }
+    };
+    
+    template <typename T>
+    class Pixmap {
+    public:
+        using Tile = T;
+        
+        Grid _grid;
+        PixelBlockArray<T::Block> _blocks;
+        
+        void resize(const Grid::Coord2& widthHeight) {
+            _grid = Grid(widthHeight, Coord2(Tile::getWidth(), Tile::getHeight()));
+            
+        }
+       
     };
 }

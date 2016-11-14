@@ -272,6 +272,9 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         image::compress(pb0, cb);
         image::uncompress(cb, pb1);
         
+        image::Grid grid;
+        grid.
+        
         if (generateMips) {
             ::generateMips(theTexture, image, formatMip);
         }
