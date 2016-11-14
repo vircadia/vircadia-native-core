@@ -228,9 +228,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
     }
 }
 
-#ifndef NDEBUG
-#define DUMP_FBX_JOINTS
-void AnimSkeleton::dump() const {
+void AnimSkeleton::dump(bool verbose) const {
     qCDebug(animation) << "[";
     for (int i = 0; i < getNumJoints(); i++) {
         qCDebug(animation) << "    {";
@@ -240,24 +238,24 @@ void AnimSkeleton::dump() const {
         qCDebug(animation) << "        relBindPose =" << getRelativeBindPose(i);
         qCDebug(animation) << "        absDefaultPose =" << getAbsoluteDefaultPose(i);
         qCDebug(animation) << "        relDefaultPose =" << getRelativeDefaultPose(i);
-#ifdef DUMP_FBX_JOINTS
-        qCDebug(animation) << "        fbxJoint =";
-        qCDebug(animation) << "            isFree =" << _joints[i].isFree;
-        qCDebug(animation) << "            freeLineage =" << _joints[i].freeLineage;
-        qCDebug(animation) << "            parentIndex =" << _joints[i].parentIndex;
-        qCDebug(animation) << "            translation =" << _joints[i].translation;
-        qCDebug(animation) << "            preTransform =" << _joints[i].preTransform;
-        qCDebug(animation) << "            preRotation =" << _joints[i].preRotation;
-        qCDebug(animation) << "            rotation =" << _joints[i].rotation;
-        qCDebug(animation) << "            postRotation =" << _joints[i].postRotation;
-        qCDebug(animation) << "            postTransform =" << _joints[i].postTransform;
-        qCDebug(animation) << "            transform =" << _joints[i].transform;
-        qCDebug(animation) << "            rotationMin =" << _joints[i].rotationMin << ", rotationMax =" << _joints[i].rotationMax;
-        qCDebug(animation) << "            inverseDefaultRotation" << _joints[i].inverseDefaultRotation;
-        qCDebug(animation) << "            inverseBindRotation" << _joints[i].inverseBindRotation;
-        qCDebug(animation) << "            bindTransform" << _joints[i].bindTransform;
-        qCDebug(animation) << "            isSkeletonJoint" << _joints[i].isSkeletonJoint;
-#endif
+        if (verbose) {
+            qCDebug(animation) << "        fbxJoint =";
+            qCDebug(animation) << "            isFree =" << _joints[i].isFree;
+            qCDebug(animation) << "            freeLineage =" << _joints[i].freeLineage;
+            qCDebug(animation) << "            parentIndex =" << _joints[i].parentIndex;
+            qCDebug(animation) << "            translation =" << _joints[i].translation;
+            qCDebug(animation) << "            preTransform =" << _joints[i].preTransform;
+            qCDebug(animation) << "            preRotation =" << _joints[i].preRotation;
+            qCDebug(animation) << "            rotation =" << _joints[i].rotation;
+            qCDebug(animation) << "            postRotation =" << _joints[i].postRotation;
+            qCDebug(animation) << "            postTransform =" << _joints[i].postTransform;
+            qCDebug(animation) << "            transform =" << _joints[i].transform;
+            qCDebug(animation) << "            rotationMin =" << _joints[i].rotationMin << ", rotationMax =" << _joints[i].rotationMax;
+            qCDebug(animation) << "            inverseDefaultRotation" << _joints[i].inverseDefaultRotation;
+            qCDebug(animation) << "            inverseBindRotation" << _joints[i].inverseBindRotation;
+            qCDebug(animation) << "            bindTransform" << _joints[i].bindTransform;
+            qCDebug(animation) << "            isSkeletonJoint" << _joints[i].isSkeletonJoint;
+        }
         if (getParentIndex(i) >= 0) {
             qCDebug(animation) << "        parent =" << getJointName(getParentIndex(i));
         }
@@ -284,4 +282,4 @@ void AnimSkeleton::dump(const AnimPoseVec& poses) const {
     }
     qCDebug(animation) << "]";
 }
-#endif
+

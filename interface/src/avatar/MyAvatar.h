@@ -304,6 +304,9 @@ public slots:
                       bool shouldFaceLocation = false);
     void goToLocation(const QVariant& properties);
 
+    void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
+    void clearScaleRestriction();
+
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
@@ -388,6 +391,9 @@ private:
     void lateUpdatePalms();
 
     void applyVelocityToSensorToWorldMatrix(const glm::vec3& velocity, float deltaTime);
+
+    void clampTargetScaleToDomainLimits();
+    void clampScaleChangeToDomainLimits(float desiredScale);
 
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;

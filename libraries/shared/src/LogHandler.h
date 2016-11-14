@@ -52,8 +52,10 @@ public:
 
     const QString& addRepeatedMessageRegex(const QString& regexString);
     const QString& addOnlyOnceMessageRegex(const QString& regexString);
+
 private:
     LogHandler();
+    ~LogHandler();
 
     void flushRepeatedMessages();
 

@@ -186,13 +186,17 @@ public slots:
     Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
     Q_INVOKABLE bool setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex, glm::vec3 translation);
     Q_INVOKABLE bool setAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex, glm::quat rotation);
-    Q_INVOKABLE bool setAbsoluteJointRotationsInObjectFrame(const QUuid& entityID,
-                                                            const QVector<glm::quat>& rotations);
-    Q_INVOKABLE bool setAbsoluteJointTranslationsInObjectFrame(const QUuid& entityID,
-                                                               const QVector<glm::vec3>& translations);
-    Q_INVOKABLE bool setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
-                                                        const QVector<glm::quat>& rotations,
-                                                        const QVector<glm::vec3>& translations);
+
+    Q_INVOKABLE glm::vec3 getLocalJointTranslation(const QUuid& entityID, int jointIndex);
+    Q_INVOKABLE glm::quat getLocalJointRotation(const QUuid& entityID, int jointIndex);
+    Q_INVOKABLE bool setLocalJointTranslation(const QUuid& entityID, int jointIndex, glm::vec3 translation);
+    Q_INVOKABLE bool setLocalJointRotation(const QUuid& entityID, int jointIndex, glm::quat rotation);
+
+    Q_INVOKABLE bool setLocalJointRotations(const QUuid& entityID, const QVector<glm::quat>& rotations);
+    Q_INVOKABLE bool setLocalJointTranslations(const QUuid& entityID, const QVector<glm::vec3>& translations);
+    Q_INVOKABLE bool setLocalJointsData(const QUuid& entityID,
+                                        const QVector<glm::quat>& rotations,
+                                        const QVector<glm::vec3>& translations);
 
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);

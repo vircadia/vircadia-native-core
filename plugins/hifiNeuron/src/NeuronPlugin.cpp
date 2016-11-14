@@ -27,8 +27,8 @@ Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
 #include <NeuronDataReader.h>
 
-const QString NeuronPlugin::NAME = "Neuron";
-const QString NeuronPlugin::NEURON_ID_STRING = "Perception Neuron";
+const char* NeuronPlugin::NAME = "Neuron";
+const char* NeuronPlugin::NEURON_ID_STRING = "Perception Neuron";
 
 // indices of joints of the Neuron standard skeleton.
 // This is 'almost' the same as the High Fidelity standard skeleton.

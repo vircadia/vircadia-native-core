@@ -18,7 +18,7 @@
 #include <PathUtils.h>
 #include <NumericalConstants.h>
 
-const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
+const char* KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 bool KeyboardMouseDevice::_enableTouch = true;
 
 void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {

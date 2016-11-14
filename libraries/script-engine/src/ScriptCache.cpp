@@ -202,7 +202,14 @@ void ScriptCache::scriptContentAvailable() {
                 finished = true;
                 qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
             } else {
-                if (scriptRequest.numRetries < MAX_RETRIES) {
+                auto result = req->getResult();
+                bool irrecoverable =
+                    result == ResourceRequest::AccessDenied ||
+                    result == ResourceRequest::InvalidURL ||
+                    result == ResourceRequest::NotFound ||
+                    scriptRequest.numRetries >= MAX_RETRIES;
+
+                if (!irrecoverable) {
                     ++scriptRequest.numRetries;
 
                     qDebug() << "Script request failed: " << url;

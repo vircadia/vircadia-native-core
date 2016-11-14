@@ -26,7 +26,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
     << PacketType::OctreeDataNack << PacketType::EntityEditNack
     << PacketType::DomainListRequest << PacketType::StopNode
-    << PacketType::DomainDisconnectRequest << PacketType::NodeKickRequest;
+    << PacketType::DomainDisconnectRequest << PacketType::NodeKickRequest
+    << PacketType::NodeMuteRequest;
 
 const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment
@@ -47,7 +48,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_ARROW_ACTION;
+            return VERSION_ENTITIES_LAST_EDITED_BY;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:

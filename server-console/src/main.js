@@ -579,6 +579,10 @@ function backupResourceDirectoriesAndRestart() {
 }
 
 function checkNewContent() {
+    if (argv.noUpdater) {
+      return;
+    }
+    
     // Start downloading content set
     var req = request.head({
         url: HOME_CONTENT_URL
@@ -623,6 +627,7 @@ function checkNewContent() {
                   } else {
                       // They don't want to update, mark content set as current
                       userConfig.set('homeContentLastModified', new Date());
+                      userConfig.save(configPath);
                   }
               });
             }
@@ -676,6 +681,7 @@ function maybeInstallDefaultContentSet(onComplete) {
             }
             log.debug('Copied home content over to: ' + getRootHifiDataDirectory());
             userConfig.set('homeContentLastModified', new Date());
+            userConfig.save(configPath);
             onComplete();
         });
         return;
@@ -756,6 +762,7 @@ function maybeInstallDefaultContentSet(onComplete) {
             // response and decompression complete, return
             log.debug("Finished unarchiving home content set");
             userConfig.set('homeContentLastModified', new Date());
+            userConfig.save(configPath);
             sendStateUpdate('complete');
         });
 
@@ -766,6 +773,7 @@ function maybeInstallDefaultContentSet(onComplete) {
         });
 
         userConfig.set('hasRun', true);
+        userConfig.save(configPath);
     });
 }
 
@@ -817,7 +825,7 @@ function onContentLoaded() {
     // Disable splash window for now.
     // maybeShowSplash();
 
-    if (buildInfo.releaseType == 'PRODUCTION') {
+    if (buildInfo.releaseType == 'PRODUCTION' && !argv.noUpdater) {
         var currentVersion = null;
         try {
             currentVersion = parseInt(buildInfo.buildIdentifier);
