@@ -22,8 +22,7 @@ public:
 public slots:
     QString getURL() const;
     void setURL(const QString& url);
-    void setScriptUrl(const QString& script);
-    void clearScriptUrl (const QString& script);
+    void setScriptURL(const QString& script);
 
 signals:
     void urlChanged();

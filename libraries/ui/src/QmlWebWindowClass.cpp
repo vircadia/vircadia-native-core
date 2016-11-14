@@ -50,14 +50,10 @@ void QmlWebWindowClass::setURL(const QString& urlString) {
     });
 }
 
-void QmlWebWindowClass::setScriptUrl(const QString& script) {
+void QmlWebWindowClass::setScriptURL(const QString& script) {
     DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
         if (!_qmlWindow.isNull()) {
             _qmlWindow->setProperty(SCRIPT_PROPERTY, script);
         }
     });
-}
-
-void QmlWebWindowClass::clearScriptUrl(const QString& script) {
-    setScriptUrl("");
 }

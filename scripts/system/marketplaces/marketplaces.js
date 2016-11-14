@@ -15,7 +15,7 @@ Script.include("../libraries/WebTablet.js");
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 
-var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");;
+var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
 var marketplaceWindow = new OverlayWebWindow({
     title: "Marketplace",
     source: "about:blank",
@@ -23,14 +23,14 @@ var marketplaceWindow = new OverlayWebWindow({
     height: 700,
     visible: false
 });
-marketplaceWindow.setScriptUrl(Script.resolvePath("../html/js/marketplacesDirectory.js"));
+marketplaceWindow.setScriptURL(Script.resolvePath("../html/js/marketplacesDirectory.js"));
 
 marketplaceWindow.webEventReceived.connect(function (data) {
     if (data === "INJECT_CLARA") {
-        marketplaceWindow.setScriptUrl(Script.resolvePath("../html/js/marketplacesClara.js"));
+        marketplaceWindow.setScriptURL(Script.resolvePath("../html/js/marketplacesClara.js"));
     }
     if (data === "INJECT_HIFI") {
-        marketplaceWindow.setScriptUrl(Script.resolvePath("../html/js/marketplacesHiFi.js"));
+        marketplaceWindow.setScriptURL(Script.resolvePath("../html/js/marketplacesHiFi.js"));
     }
 });
 
