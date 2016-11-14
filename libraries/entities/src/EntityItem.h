@@ -459,6 +459,9 @@ public:
 
     virtual void emitScriptEvent(const QVariant& message) {}
 
+    QUuid getLastEditedBy() const { return _lastEditedBy; }
+    void setLastEditedBy(QUuid value) { _lastEditedBy = value; }
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }
@@ -474,6 +477,7 @@ protected:
                             // and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
     quint64 _lastEdited; // last official local or remote edit time
+    QUuid _lastEditedBy; // id of last editor
     quint64 _lastBroadcast; // the last time we sent an edit packet about this entity
 
     quint64 _lastEditedFromRemote; // last time we received and edit from the server

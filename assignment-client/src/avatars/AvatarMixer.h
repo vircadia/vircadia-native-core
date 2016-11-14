@@ -59,6 +59,9 @@ private:
 
     float _maxKbpsPerNode = 0.0f;
 
+    float _domainMinimumScale { MIN_AVATAR_SCALE };
+    float _domainMaximumScale { MAX_AVATAR_SCALE };
+
     QTimer* _broadcastTimer = nullptr;
 };
 

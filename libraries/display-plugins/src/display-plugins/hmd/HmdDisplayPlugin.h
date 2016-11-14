@@ -44,6 +44,8 @@ public:
         return false;
     }
 
+    float stutterRate() const override;
+
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
@@ -108,8 +110,9 @@ protected:
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
+    RateCounter<> _stutterRate;
 
-    bool _disablePreview{ true };
+    bool _disablePreview { true };
 private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
     float getLeftCenterPixel() const;
