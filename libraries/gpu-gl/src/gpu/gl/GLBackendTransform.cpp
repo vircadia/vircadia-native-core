@@ -138,43 +138,6 @@ void GLBackend::TransformStageState::bindCurrentCamera(int eye) const {
     }
 }
 
-void GLBackend::updateTransform(const Batch& batch) {
-    _transform.update(_commandIndex, _stereo);
-
-    auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
-    if (batch._currentNamedCall.empty()) {
-        auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
-        if (_transform._enabledDrawcallInfoBuffer) {
-            glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
-            _transform._enabledDrawcallInfoBuffer = false;
-        }
-        glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
-    } else {
-#if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
-        if (!_transform._enabledDrawcallInfoBuffer) {
-            glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
-            glVertexAttribIFormat(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0);
-            glVertexAttribBinding(gpu::Stream::DRAW_CALL_INFO, gpu::Stream::DRAW_CALL_INFO);
-            glVertexBindingDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
-            _transform._enabledDrawcallInfoBuffer = true;
-        }
-        // NOTE: A stride of zero in BindVertexBuffer signifies that all elements are sourced from the same location,
-        //       so we must provide a stride.
-        //       This is in contrast to VertexAttrib*Pointer, where a zero signifies tightly-packed elements.
-        glBindVertexBuffer(gpu::Stream::DRAW_CALL_INFO, _transform._drawCallInfoBuffer, (GLintptr)_transform._drawCallInfoOffsets[batch._currentNamedCall], 2 * sizeof(GLushort));
-#else 
-        if (!_transform._enabledDrawcallInfoBuffer) {
-            glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
-            glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
-            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
-            _transform._enabledDrawcallInfoBuffer = true;
-        }
-        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0, _transform._drawCallInfoOffsets[batch._currentNamedCall]);
-#endif
-    }
-    
-    (void)CHECK_GL_ERROR();
-}
 
 void GLBackend::resetTransformStage() {
     glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);

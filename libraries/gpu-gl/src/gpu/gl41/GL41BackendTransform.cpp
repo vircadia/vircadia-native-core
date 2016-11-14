@@ -79,3 +79,28 @@ void GL41Backend::transferTransformState(const Batch& batch) const {
     // Make sure the current Camera offset is unknown before render Draw
     _transform._currentCameraOffset = INVALID_OFFSET;
 }
+
+
+void GL41Backend::updateTransform(const Batch& batch) {
+    _transform.update(_commandIndex, _stereo);
+
+    auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
+    if (batch._currentNamedCall.empty()) {
+        auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
+        if (_transform._enabledDrawcallInfoBuffer) {
+            glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
+            _transform._enabledDrawcallInfoBuffer = false;
+        }
+        glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
+    } else {
+        if (!_transform._enabledDrawcallInfoBuffer) {
+            glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
+            glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
+            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
+            _transform._enabledDrawcallInfoBuffer = true;
+        }
+        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0, _transform._drawCallInfoOffsets[batch._currentNamedCall]);
+    }
+
+    (void)CHECK_GL_ERROR();
+}

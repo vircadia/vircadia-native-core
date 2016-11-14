@@ -221,7 +221,7 @@ protected:
     virtual void killInput() final;
     virtual void syncInputStateCache() final;
     virtual void resetInputStage();
-    virtual void updateInput();
+    virtual void updateInput() = 0;
 
     struct InputStageState {
         bool _invalidFormat { true };
@@ -268,8 +268,8 @@ protected:
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
-    void updateTransform(const Batch& batch);
-    void resetTransformStage();
+    virtual void updateTransform(const Batch& batch) = 0;
+    virtual void resetTransformStage();
 
     // Allows for correction of the camera pose to account for changes
     // between the time when a was recorded and the time(s) when it is 
