@@ -19,7 +19,7 @@
 
 #include "OculusHelpers.h"
 
-const QString OculusDisplayPlugin::NAME("Oculus Rift");
+const char* OculusDisplayPlugin::NAME { "Oculus Rift" };
 static ovrPerfHudMode currentDebugMode = ovrPerfHud_Off;
 
 bool OculusDisplayPlugin::internalActivate() {

@@ -33,7 +33,7 @@ class ViveControllerManager : public InputPlugin {
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return true; }
 
@@ -125,7 +125,7 @@ private:
     vr::IVRSystem* _system { nullptr };
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 
-    static const QString NAME;
+    static const char* NAME;
 };
 
 #endif // hifi__ViveControllerManager
