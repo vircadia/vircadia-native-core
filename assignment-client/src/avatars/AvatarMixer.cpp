@@ -230,9 +230,11 @@ void AvatarMixer::broadcastAvatarData() {
                 [&](const SharedNodePointer& otherNode)->bool {
                     // make sure we have data for this avatar, that it isn't the same node,
                     // and isn't an avatar that the viewing node has ignored
+                    // or that has ignored the viewing node
                     if (!otherNode->getLinkedData()
                         || otherNode->getUUID() == node->getUUID()
-                        || node->isIgnoringNodeWithID(otherNode->getUUID())) {
+                        || node->isIgnoringNodeWithID(otherNode->getUUID())
+                        || otherNode->isIgnoringNodeWithID(node->getUUID())) {
                         return false;
                     } else {
                         return true;
