@@ -55,15 +55,15 @@ bool SixenseManager::_sixenseLoaded = false;
 
 
 
-const QString SixenseManager::NAME = "Sixense";
-const QString SixenseManager::HYDRA_ID_STRING = "Razer Hydra";
+const char* SixenseManager::NAME { "Sixense" };
+const char* SixenseManager::HYDRA_ID_STRING { "Razer Hydra" };
 
-const QString MENU_PARENT = "Developer";
-const QString MENU_NAME = "Sixense";
-const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
-const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
-const QString SHOW_DEBUG_RAW = "Debug Draw Raw Data";
-const QString SHOW_DEBUG_CALIBRATED = "Debug Draw Calibrated Data";
+const char* MENU_PARENT { "Developer" };
+const char* MENU_NAME { "Sixense" };
+const char* MENU_PATH { "Developer" ">" "Sixense" };
+const char* TOGGLE_SMOOTH { "Smooth Sixense Movement" };
+const char* SHOW_DEBUG_RAW { "Debug Draw Raw Data" };
+const char* SHOW_DEBUG_CALIBRATED { "Debug Draw Calibrated Data" };
 
 bool SixenseManager::isSupported() const {
 #if defined(HAVE_SIXENSE) && !defined(Q_OS_OSX)
