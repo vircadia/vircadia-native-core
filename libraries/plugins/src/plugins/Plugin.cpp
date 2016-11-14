@@ -7,7 +7,7 @@
 //
 #include "Plugin.h"
 
-QString Plugin::UNKNOWN_PLUGIN_ID("unknown");
+const char* Plugin::UNKNOWN_PLUGIN_ID { "unknown" };
 
 void Plugin::setContainer(PluginContainer* container) {
     _container = container;

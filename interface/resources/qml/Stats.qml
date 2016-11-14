@@ -70,6 +70,10 @@ Item {
                         text: "Present Drop Rate: " + root.presentdroprate.toFixed(2);
                     }
                     StatText {
+                        text: "Stutter Rate: " + root.stutterrate.toFixed(3);
+                        visible: root.stutterrate != -1;
+                    }
+                    StatText {
                         text: "Simrate: " + root.simrate
                     }
                     StatText {
@@ -241,7 +245,7 @@ Item {
                         text: "GPU Buffers: "
                     }
                     StatText {
-                        text: "  Count: " + root.gpuTextures;
+                        text: "  Count: " + root.gpuBuffers;
                     }
                     StatText {
                         text: "  Memory: " + root.gpuBufferMemory;

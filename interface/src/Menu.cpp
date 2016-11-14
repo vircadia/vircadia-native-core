@@ -396,15 +396,6 @@ Menu::Menu() {
         });
     }
 
-    // Developer > Render > Enable Incremental Texture Transfer
-    {
-        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::IncrementalTextureTransfer, 0, gpu::Texture::getEnableIncrementalTextureTransfers());
-        connect(action, &QAction::triggered, [&](bool checked) {
-            qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Incremental Texture Transfer menu option:" << checked;
-            gpu::Texture::setEnableIncrementalTextureTransfers(checked);
-        });
-    }
-
 #else
     qDebug() << "[TEXTURE TRANSFER SUPPORT] Incremental Texture Transfer and Dynamic Texture Management not supported on this platform.";
 #endif

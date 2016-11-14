@@ -14,6 +14,8 @@
 #include "../gl/GLBackend.h"
 #include "../gl/GLTexture.h"
 
+#define INCREMENTAL_TRANSFER 0
+
 namespace gpu { namespace gl45 {
     
 using namespace gpu::gl;
@@ -56,6 +58,7 @@ public:
             GLint pageDimensionsIndex { 0 };
         };
 
+#if INCREMENTAL_TRANSFER
         struct TransferState {
             TransferState(GL45Texture& texture);
             uvec3 currentPageSize() const;
@@ -75,6 +78,10 @@ public:
             const uint8_t* srcPointer { nullptr };
         };
     protected:
+        TransferState _transferState;
+#endif
+
+    protected:
         void updateMips() override;
         void stripToMip(uint16_t newMinMip);
         void startTransfer() override;
@@ -91,7 +98,6 @@ public:
         void derez();
 
         SparseInfo _sparseInfo;
-        TransferState _transferState;
         uint32_t _allocatedPages { 0 };
         uint32_t _lastMipAllocatedPages { 0 };
         uint16_t _mipOffset { 0 };

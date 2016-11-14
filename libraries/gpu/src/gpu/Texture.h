@@ -143,10 +143,8 @@ class Texture : public Resource {
     static std::atomic<uint32_t> _textureCPUCount;
     static std::atomic<Size> _textureCPUMemoryUsage;
     static std::atomic<Size> _allowedCPUMemoryUsage;
-    static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
-
     static std::atomic<bool> _enableSparseTextures;
-    static std::atomic<bool> _enableIncrementalTextureTransfers;
+    static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
 public:
     static uint32_t getTextureCPUCount();
@@ -162,10 +160,7 @@ public:
     static void setAllowedGPUMemoryUsage(Size size);
 
     static bool getEnableSparseTextures();
-    static bool getEnableIncrementalTextureTransfers();
-
     static void setEnableSparseTextures(bool enabled);
-    static void setEnableIncrementalTextureTransfers(bool enabled);
 
     using ExternalRecycler = std::function<void(uint32, void*)>;
     using ExternalIdAndFence = std::pair<uint32, void*>;

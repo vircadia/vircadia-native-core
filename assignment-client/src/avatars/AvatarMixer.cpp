@@ -230,9 +230,11 @@ void AvatarMixer::broadcastAvatarData() {
                 [&](const SharedNodePointer& otherNode)->bool {
                     // make sure we have data for this avatar, that it isn't the same node,
                     // and isn't an avatar that the viewing node has ignored
+                    // or that has ignored the viewing node
                     if (!otherNode->getLinkedData()
                         || otherNode->getUUID() == node->getUUID()
-                        || node->isIgnoringNodeWithID(otherNode->getUUID())) {
+                        || node->isIgnoringNodeWithID(otherNode->getUUID())
+                        || otherNode->isIgnoringNodeWithID(node->getUUID())) {
                         return false;
                     } else {
                         return true;
@@ -512,12 +514,19 @@ void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
-    nodeList->linkedDataCreateCallback = [] (Node* node) {
-        node->setLinkedData(std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData });
-    };
-    
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
+
+    float domainMinimumScale = _domainMinimumScale;
+    float domainMaximumScale = _domainMaximumScale;
+
+    nodeList->linkedDataCreateCallback = [domainMinimumScale, domainMaximumScale] (Node* node) {
+        auto clientData = std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData };
+        clientData->getAvatar().setDomainMinimumScale(domainMinimumScale);
+        clientData->getAvatar().setDomainMaximumScale(domainMaximumScale);
+
+        node->setLinkedData(std::move(clientData));
+    };
     
     // start the broadcastThread
     _broadcastThread.start();
@@ -549,4 +558,22 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 
     _maxKbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH) * KILO_PER_MEGA;
     qDebug() << "The maximum send bandwidth per node is" << _maxKbpsPerNode << "kbps.";
+
+    const QString AVATARS_SETTINGS_KEY = "avatars";
+
+    static const QString MIN_SCALE_OPTION = "min_avatar_scale";
+    float settingMinScale = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MIN_SCALE_OPTION].toDouble(MIN_AVATAR_SCALE);
+    _domainMinimumScale = glm::clamp(settingMinScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+
+    static const QString MAX_SCALE_OPTION = "max_avatar_scale";
+    float settingMaxScale = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MAX_SCALE_OPTION].toDouble(MAX_AVATAR_SCALE);
+    _domainMaximumScale = glm::clamp(settingMaxScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+
+    // make sure that the domain owner didn't flip min and max
+    if (_domainMinimumScale > _domainMaximumScale) {
+        std::swap(_domainMinimumScale, _domainMaximumScale);
+    }
+
+    qDebug() << "This domain requires a minimum avatar scale of" << _domainMinimumScale
+        << "and a maximum avatar scale of" << _domainMaximumScale;
 }
