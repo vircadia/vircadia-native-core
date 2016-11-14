@@ -24,7 +24,7 @@ Window {
     HifiStyles.HifiConstants { id: hifiStyleConstants }
 
     objectName: "AddressBarDialog"
-    title: "Go To"
+    title: "Go To:"
 
     shown: false
     destroyOnHidden: false
@@ -120,8 +120,6 @@ Window {
             highlightMoveDuration: -1;
             highlightMoveVelocity: -1;
             highlight: Rectangle { color: "transparent"; border.width: 4; border.color: "#1DB5ED"; z: 1; }
-            leftMargin: 50; // Start the first item over by about the same amount as the last item peeks through on the other side.
-            rightMargin: 50;
         }
         Image { // Just a visual indicator that the user can swipe the cards over to see more.
             source: "../images/Swipe-Icon-single.svg"
@@ -130,6 +128,38 @@ Window {
             anchors {
                 right: scroll.right;
                 verticalCenter: scroll.verticalCenter;
+            }
+        }
+
+        Row {
+            spacing: 2 * hifi.layout.spacing;
+            anchors {
+                top: parent.top;
+                left: parent.left;
+                leftMargin: 75;
+                topMargin: -35;
+            }
+            property var selected: allTab;
+            TextButton {
+                id: allTab;
+                text: "All";
+                property string includeActions: 'snapshot,concurrency';
+                selected: allTab === selectedTab;
+                action: tabSelect;
+            }
+            TextButton {
+                id: placeTab;
+                text: "Places";
+                property string includeActions: 'concurrency';
+                selected: placeTab === selectedTab;
+                action: tabSelect;
+            }
+            TextButton {
+                id: snapsTab;
+                text: "Snaps";
+                property string includeActions: 'snapshot';
+                selected: snapsTab === selectedTab;
+                action: tabSelect;
             }
         }
 
@@ -371,11 +401,15 @@ Window {
             return true;
         }
         return (place.place_name !== AddressManager.hostname); // Not our entry, but do show other entry points to current domain.
-        // could also require right protocolVersion
+    }
+    property var selectedTab: allTab;
+    function tabSelect(textButton) {
+        selectedTab = textButton;
+        fillDestinations();
     }
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         var options = [
-            'include_actions=snapshot,concurrency',
+            'include_actions=' + selectedTab.includeActions,
             'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
             'page=' + pageNumber
         ];
@@ -388,21 +422,14 @@ Window {
                 return makeModelData(story, url);
             });
             allStories = allStories.concat(stories);
-            if (!addressLine.text) { // Don't add if the user is already filtering
-                stories.forEach(function (story) {
-                    if (suggestable(story)) {
-                        suggestions.append(story);
-                    }
-                });
-            }
+            stories.forEach(makeFilteredPlaceProcessor());
             if ((data.current_page < data.total_pages) && (data.current_page <=  10)) { // just 10 pages = 100 stories for now
                 return getUserStoryPage(pageNumber + 1, cb);
             }
             cb();
         });
     }
-    function filterChoicesByText() {
-        suggestions.clear();
+    function makeFilteredPlaceProcessor() { // answer a function(placeData) that adds it to suggestions if it matches
         var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity),
             data = allStories;
         function matches(place) {
@@ -413,11 +440,15 @@ Window {
                 return place.searchText.indexOf(word) >= 0;
             });
         }
-        data.forEach(function (place) {
+        return function (place) {
             if (matches(place)) {
                 suggestions.append(place);
             }
-        });
+        };
+    }
+    function filterChoicesByText() {
+        suggestions.clear();
+        allStories.forEach(makeFilteredPlaceProcessor());
     }
 
     function fillDestinations() {
