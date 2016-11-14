@@ -11,15 +11,6 @@
 #ifndef hifi_gpu_gl_GLBackend_h
 #define hifi_gpu_gl_GLBackend_h
 
-// Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
-// Core 43 does :)
-#if(GPU_INPUT_PROFILE == GPU_CORE_41)
-#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
-#else
-#define SUPPORT_VERTEX_ATTRIB_FORMAT
-#endif
-
-
 #include <assert.h>
 #include <functional>
 #include <memory>
