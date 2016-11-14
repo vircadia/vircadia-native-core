@@ -35,9 +35,6 @@ __attribute__((unused))
 #endif
 static int cameraModeId = qRegisterMetaType<CameraMode>();
 
-/**jsdoc
- * @global
- */
 class Camera : public QObject {
     Q_OBJECT
 
@@ -96,9 +93,9 @@ public slots:
     /**jsdoc
      * Compute a {PickRay} based on the current camera configuration and the position x,y on the screen.
      * @function Camera.computePickRay
-     * @param {float} x
-     * @param {float} y
-     * @return {PickRay}
+     * @param {float} x X-coordinate on screen.
+     * @param {float} y Y-coordinate on screen.
+     * @return {PickRay} The computed {PickRay}.
      */
     PickRay computePickRay(float x, float y);
 
@@ -106,7 +103,7 @@ public slots:
      * Set the camera to look at position <code>position</code>. Only works while in <code>independent</code>.
      * camera mode.
      * @function Camera.lookAt
-     * @param {Vec3} position position to look at
+     * @param {Vec3} Position Position to look at.
      */
     void lookAt(const glm::vec3& position);
 
@@ -114,7 +111,7 @@ public slots:
      * Set the camera to continue looking at position <code>position</code>.
      * Only works while in `independent` camera mode.
      * @function Camera.keepLookingAt
-     * @param {Vec3} position position to look at
+     * @param {Vec3} position Position to keep looking at.
      */
     void keepLookingAt(const glm::vec3& position);
 
