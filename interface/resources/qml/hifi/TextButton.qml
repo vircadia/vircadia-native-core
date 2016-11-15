@@ -17,27 +17,29 @@ Rectangle {
     property bool selected: false;
     property int spacing: 2;
     property var action: function () { };
-    width: label.width + (4 * spacing);
-    height: label.height + spacing;
-    radius: 2 * spacing;
-    color: selected ? "grey" : "transparent";
+    property string highlightColor: "#1DB5ED";
+    width: label.width + 64;
+    height: 32;
+    radius: height / 2;
+    border.width: (clickArea.containsMouse && !clickArea.containsPress) ? 4 : 0;
+    border.color: highlightColor;
+    color: clickArea.containsPress ? hifi.colors.darkGray : (selected ? highlightColor : "transparent");
     HifiConstants { id: hifi; }
     RalewaySemiBold {
         id: label;
         color: hifi.colors.white;
-        font.pixelSize: 25;
+        font.pixelSize: 20;
         anchors {
             horizontalCenter: parent.horizontalCenter;
             verticalCenter: parent.verticalCenter;
         }
     }
     MouseArea {
+        id: clickArea;
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
         onClicked: action(parent);
         hoverEnabled: true;
-        onEntered: label.color = "#1DB5ED";
-        onExited: label.color = hifi.colors.white;
     }
 
 }

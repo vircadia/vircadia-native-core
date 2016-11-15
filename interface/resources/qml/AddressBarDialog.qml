@@ -33,6 +33,7 @@ Window {
 
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
+    property int gap: 14
 
     onShownChanged: {
         addressBarDialog.keyboardEnabled = HMD.active;
@@ -65,7 +66,7 @@ Window {
         clearAddressLineTimer.start();
     }
     property var allStories: [];
-    property int cardWidth: 200;
+    property int cardWidth: 212;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
     property bool isCursorVisible: false  // Override default cursor visibility.
@@ -78,7 +79,7 @@ Window {
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + (keyboardEnabled ? keyboard.height : 0) + cardHeight;
+        implicitHeight: scroll.height + backgroundImage.height + (keyboardEnabled ? keyboard.height : 0);
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -93,8 +94,9 @@ Window {
         ListView {
             id: scroll
             width: backgroundImage.width;
-            height: cardHeight;
-            spacing: hifi.layout.spacing;
+            height: cardHeight + scroll.stackedCardShadowHeight
+            property int stackedCardShadowHeight: 20;
+            spacing: gap;
             clip: true;
             anchors {
                 bottom: backgroundImage.top
@@ -115,6 +117,7 @@ Window {
                 onlineUsers: model.online_users;
                 storyId: model.metaverseId;
                 drillDownToPlace: model.drillDownToPlace;
+                shadowHeight: scroll.stackedCardShadowHeight;
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
@@ -137,7 +140,7 @@ Window {
             anchors {
                 top: parent.top;
                 left: parent.left;
-                leftMargin: 75;
+                leftMargin: 150;
                 topMargin: -35;
             }
             property var selected: allTab;
