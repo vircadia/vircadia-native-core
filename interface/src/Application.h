@@ -28,7 +28,6 @@
 #include <AbstractViewStateInterface.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
-#include <GifCreator.h>
 #include <input-plugins/KeyboardMouseDevice.h>
 #include <input-plugins/TouchscreenDevice.h>
 #include <OctreeQuery.h>
