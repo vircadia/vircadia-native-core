@@ -109,7 +109,14 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         // set the sending sock addr and node interest set on this node
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         nodeData->setSendingSockAddr(message->getSenderSockAddr());
-        nodeData->setNodeInterestSet(nodeConnection.interestList.toSet());
+
+        // guard against patched agents asking to hear about other agents
+        auto safeInterestSet = nodeConnection.interestList.toSet();
+        if (nodeConnection.nodeType == NodeType::Agent) {
+            safeInterestSet.remove(NodeType::Agent);
+        }
+
+        nodeData->setNodeInterestSet(safeInterestSet);
         nodeData->setPlaceName(nodeConnection.placeName);
 
         // signal that we just connected a node so the DomainServer can get it a list
