@@ -950,7 +950,9 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
             limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
-                if (otherNode->getUUID() != node->getUUID() && nodeInterestSet.contains(otherNode->getType())) {
+                if (otherNode->getUUID() != node->getUUID()
+                    && nodeInterestSet.contains(otherNode->getType())
+                    && (node->getType() != NodeType::Agent || otherNode->getType() != NodeType::Agent)) {
                     
                     // since we're about to add a node to the packet we start a segment
                     domainListPackets->startSegment();
