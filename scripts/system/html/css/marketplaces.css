@@ -85,10 +85,16 @@ body {
     bottom: 0;
 }
 #marketplace-navigation .glyph {
-    margin-left: 20px;
+    /*
+    // Target look but can't use font in injected script.
     font-family: HiFi-Glyphs;
-    color: #fff;
     font-size: 40px;
+    margin-left: 20px;
+    */
+    font-family: sans-serif;
+    font-size: 24px;
+    margin-left: 30px; margin-right: 8px; 
+    color: #fff;
     line-height: 50px;
 }
 #marketplace-navigation .text {
