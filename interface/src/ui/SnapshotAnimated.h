@@ -37,8 +37,11 @@ private:
     static qint64 snapshotAnimatedTimestamp;
     static qint64 snapshotAnimatedFirstFrameTimestamp;
     static qint64 snapshotAnimatedLastWriteFrameDuration;
+    static bool snapshotAnimatedTimerRunning;
+    static QString snapshotAnimatedPath;
+    static QString snapshotStillPath;
 public:
-    static void saveSnapshotAnimated(bool includeAnimated, QString stillSnapshotPath, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm);
+    static void saveSnapshotAnimated(bool includeAnimated, QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm);
 };
 
 #endif // hifi_SnapshotAnimated_h
