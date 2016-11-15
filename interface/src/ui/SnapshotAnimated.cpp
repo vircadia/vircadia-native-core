@@ -45,50 +45,50 @@ void SnapshotAnimated::saveSnapshotAnimated(bool includeAnimated, QString pathSt
             frame = frame.convertToFormat(QImage::Format_RGBA8888);
 
             // If this is the first frame...
-            if (snapshotAnimatedTimestamp == 0)
+            if (SnapshotAnimated::snapshotAnimatedTimestamp == 0)
             {
                 // Write out the header and beginning of the GIF file
-                GifBegin(&(snapshotAnimatedGifWriter), qPrintable(pathAnimatedSnapshot), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
+                GifBegin(&(SnapshotAnimated::snapshotAnimatedGifWriter), qPrintable(pathAnimatedSnapshot), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
                 // Write the first to the gif
-                GifWriteFrame(&(snapshotAnimatedGifWriter),
+                GifWriteFrame(&(SnapshotAnimated::snapshotAnimatedGifWriter),
                     (uint8_t*)frame.bits(),
                     frame.width(),
                     frame.height(),
                     SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
                 // Record the current frame timestamp
-                snapshotAnimatedTimestamp = QDateTime::currentMSecsSinceEpoch();
-                snapshotAnimatedFirstFrameTimestamp = snapshotAnimatedTimestamp;
+                SnapshotAnimated::snapshotAnimatedTimestamp = QDateTime::currentMSecsSinceEpoch();
+                SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = SnapshotAnimated::snapshotAnimatedTimestamp;
             }
             else
             {
                 // If that was the last frame...
-                if ((snapshotAnimatedTimestamp - snapshotAnimatedFirstFrameTimestamp) >= (SNAPSNOT_ANIMATED_DURATION_SECS * 1000))
+                if ((SnapshotAnimated::snapshotAnimatedTimestamp - SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp) >= (SNAPSNOT_ANIMATED_DURATION_SECS * 1000))
                 {
-                    // Reset the current frame timestamp
-                    snapshotAnimatedTimestamp = 0;
-                    snapshotAnimatedFirstFrameTimestamp = 0;
-                    // Write out the end of the GIF
-                    GifEnd(&(snapshotAnimatedGifWriter));
                     // Stop the snapshot QTimer
-                    snapshotAnimatedTimer.stop();
+                    SnapshotAnimated::snapshotAnimatedTimer.stop();
+                    // Reset the current frame timestamp
+                    SnapshotAnimated::snapshotAnimatedTimestamp = 0;
+                    SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = 0;
+                    // Write out the end of the GIF
+                    GifEnd(&(SnapshotAnimated::snapshotAnimatedGifWriter));
+                    // Let the dependency manager know that the snapshots have been taken.
                     emit dm->snapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, false);
-                    qDebug() << "still: " << pathStillSnapshot << "anim: " << pathAnimatedSnapshot;
-                    //emit dm->snapshotTaken("C:\\Users\\Zach Fox\\Desktop\\hifi-snap-by-zfox-on-2016-11-14_17-07-33.jpg", "C:\\Users\\Zach Fox\\Desktop\\hifi-snap-by-zfox-on-2016-11-14_17-10-02.gif", false);
                 }
+                // If that was an intermediate frame...
                 else
                 {
                     // Variable used to determine how long the current frame took to pack
                     qint64 framePackStartTime = QDateTime::currentMSecsSinceEpoch();
                     // Write the frame to the gif
-                    GifWriteFrame(&(snapshotAnimatedGifWriter),
+                    GifWriteFrame(&(SnapshotAnimated::snapshotAnimatedGifWriter),
                         (uint8_t*)frame.bits(),
                         frame.width(),
                         frame.height(),
-                        round(((float)(QDateTime::currentMSecsSinceEpoch() - snapshotAnimatedTimestamp + snapshotAnimatedLastWriteFrameDuration)) / 10));
+                        round(((float)(QDateTime::currentMSecsSinceEpoch() - SnapshotAnimated::snapshotAnimatedTimestamp + SnapshotAnimated::snapshotAnimatedLastWriteFrameDuration)) / 10));
                     // Record how long it took for the current frame to pack
-                    snapshotAnimatedLastWriteFrameDuration = QDateTime::currentMSecsSinceEpoch() - framePackStartTime;
+                    SnapshotAnimated::snapshotAnimatedLastWriteFrameDuration = QDateTime::currentMSecsSinceEpoch() - framePackStartTime;
                     // Record the current frame timestamp
-                    snapshotAnimatedTimestamp = QDateTime::currentMSecsSinceEpoch();
+                    SnapshotAnimated::snapshotAnimatedTimestamp = QDateTime::currentMSecsSinceEpoch();
                 }
             }
         });
