@@ -32,6 +32,10 @@ marketplaceWindow.webEventReceived.connect(function (data) {
     if (data === "INJECT_HIFI") {
         marketplaceWindow.setScriptURL(Script.resolvePath("../html/js/marketplacesHiFi.js"));
     }
+    if (data === "RELOAD_DIRECTORY") {
+        marketplaceWindow.setScriptURL(Script.resolvePath("../html/js/marketplacesDirectory.js"));
+        marketplaceWindow.setURL(MARKETPLACES_URL);
+    }
 });
 
 var toolHeight = 50;
