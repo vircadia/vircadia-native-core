@@ -6,7 +6,7 @@
 #
 #  GIFCREATOR_INCLUDE_DIRS
 # 
-#  Created on 11/10/2016 by Zach Fox
+#  Created on 11/15/2016 by Zach Fox
 #  Copyright 2016 High Fidelity, Inc.
 # 
 #  Distributed under the Apache License, Version 2.0.
@@ -15,7 +15,7 @@
 
 # setup hints for GifCreator search
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("GifCreator")
+hifi_library_search_hints("GIFCREATOR")
 
 # locate header
 find_path(GIFCREATOR_INCLUDE_DIRS "GifCreator/GifCreator.h" HINTS ${GIFCREATOR_SEARCH_DIRS})

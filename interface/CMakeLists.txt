@@ -353,5 +353,5 @@ if (ANDROID)
 endif ()
 
 add_dependency_external_projects(GifCreator)
-find_package(GIFCREATOR REQUIRED)
+find_package(GifCreator REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GIFCREATOR_INCLUDE_DIRS})
