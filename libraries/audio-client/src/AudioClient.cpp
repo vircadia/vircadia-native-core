@@ -379,7 +379,23 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 
     adjustedAudioFormat = desiredAudioFormat;
 
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_WIN)
+
+    // NOTE: On Windows, testing for supported formats is unreliable for channels > 2,
+    // due to WAVEFORMATEX based implementation. To work around, the sample rate and 
+    // channel count are directly set to the WASAPI shared-mode mix format.
+
+    adjustedAudioFormat = audioDevice.preferredFormat();    // returns mixFormat
+
+    adjustedAudioFormat.setCodec("audio/pcm");
+    adjustedAudioFormat.setSampleSize(16);
+    adjustedAudioFormat.setSampleType(QAudioFormat::SignedInt);
+    adjustedAudioFormat.setByteOrder(QAudioFormat::LittleEndian);
+
+    // resampling should produce an integral number of samples
+    return (adjustedAudioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE == 0);
+
+#elif defined(Q_OS_ANDROID)
     // FIXME: query the native sample rate of the device?
     adjustedAudioFormat.setSampleRate(48000);
 #else
