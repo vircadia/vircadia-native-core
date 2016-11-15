@@ -267,7 +267,7 @@ public:
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
     
-    void takeSnapshot(bool notify, float aspectRatio = 0.0f);
+    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
     void shareSnapshot(const QString& filename);
 
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
@@ -610,13 +610,6 @@ private:
     model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
-
-    QTimer animatedSnapshotTimer;
-    GifWriter _animatedSnapshotGifWriter;
-    qint64 _animatedSnapshotTimestamp { 0 };
-    qint64 _animatedSnapshotFirstFrameTimestamp { 0 };
-    qint64 _animatedSnapshotLastWriteFrameDuration { 20 };
-    QString _animatedSnapshotPath;
 };
 
 

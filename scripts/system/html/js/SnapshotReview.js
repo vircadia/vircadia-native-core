@@ -12,29 +12,30 @@
 
 var paths = [], idCounter = 0, useCheckboxes;
 function addImage(data) {
-    var div = document.createElement("DIV"),
-        input = document.createElement("INPUT"),
-        label = document.createElement("LABEL"),
-        img = document.createElement("IMG"),
-        id = "p" + idCounter++;
-    function toggle() { data.share = input.checked; }
-    img.src = data.localPath;
-    div.appendChild(img);
-    data.share = true;
-    if (useCheckboxes) { // I'd rather use css, but the included stylesheet is quite particular.
-        // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
-        label.setAttribute('for', id); // cannot do label.for =
-        input.id = id;
-        input.type = "checkbox";
-        input.checked = true;
-        input.addEventListener('change', toggle);
-        div.class = "property checkbox";
-        div.appendChild(input);
-        div.appendChild(label);
+    if (data.localPath) {
+        var div = document.createElement("DIV"),
+            input = document.createElement("INPUT"),
+            label = document.createElement("LABEL"),
+            img = document.createElement("IMG"),
+            id = "p" + idCounter++;
+        function toggle() { data.share = input.checked; }
+        img.src = data.localPath;
+        div.appendChild(img);
+        data.share = true;
+        if (useCheckboxes) { // I'd rather use css, but the included stylesheet is quite particular.
+            // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
+            label.setAttribute('for', id); // cannot do label.for =
+            input.id = id;
+            input.type = "checkbox";
+            input.checked = (id === "p0");
+            input.addEventListener('change', toggle);
+            div.class = "property checkbox";
+            div.appendChild(input);
+            div.appendChild(label);
+        }
+        document.getElementById("snapshot-images").appendChild(div);
+        paths.push(data);
     }
-    document.getElementById("snapshot-images").appendChild(div);
-    paths.push(data);
-
 }
 function handleShareButtons(shareMsg) {
     var openFeed = document.getElementById('openFeed');
@@ -49,7 +50,7 @@ function handleShareButtons(shareMsg) {
 window.onload = function () {
     // Something like the following will allow testing in a browser.
     //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
-    //addImage({localPath: 'http://lorempixel.com/1512/1680'});
+    //addImage({ localPath: 'http://lorempixel.com/1512/1680' });
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {

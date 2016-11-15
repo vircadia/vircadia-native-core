@@ -120,11 +120,11 @@ function onClicked() {
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
-        Window.takeSnapshot(false, 1.91);
+        Window.takeSnapshot(false, true, 1.91);
     }, SNAPSHOT_DELAY);
 }
 
-function resetButtons(path, notify) {
+function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true); 
@@ -141,7 +141,8 @@ function resetButtons(path, notify) {
 
     // last element in data array tells dialog whether we can share or not
     confirmShare([ 
-        { localPath: path },
+        { localPath: pathAnimatedSnapshot },
+        { localPath: pathStillSnapshot },
         {
             canShare: !!location.placename,
             openFeedAfterShare: shouldOpenFeedAfterShare()

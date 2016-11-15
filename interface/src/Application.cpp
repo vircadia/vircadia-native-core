@@ -152,6 +152,7 @@
 #include "ui/LoginDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
 #include "ui/Snapshot.h"
+#include "ui/SnapshotAnimated.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
@@ -5428,19 +5429,9 @@ void Application::toggleLogDialog() {
     }
 }
 
-// If the snapshot width or the framerate are too high for the
-// application to handle, the framerate of the output GIF will drop.
-#define SNAPSNOT_ANIMATED_WIDTH (720)
-// This value should divide evenly into 100. Snapshot framerate is NOT guaranteed.
-#define SNAPSNOT_ANIMATED_FRAMERATE_FPS (25)
-#define SNAPSNOT_ANIMATED_DURATION_SECS (3)
 
-#define SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC (1000/SNAPSNOT_ANIMATED_FRAMERATE_FPS)
-#define SNAPSNOT_ANIMATED_NUM_FRAMES (SNAPSNOT_ANIMATED_DURATION_SECS * SNAPSNOT_ANIMATED_FRAMERATE_FPS)
-
-
-void Application::takeSnapshot(bool notify, float aspectRatio) {
-    postLambdaEvent([notify, aspectRatio, this] {
+void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
+    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         QMediaPlayer* player = new QMediaPlayer();
         QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
         player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
@@ -5449,87 +5440,7 @@ void Application::takeSnapshot(bool notify, float aspectRatio) {
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
 
-        // If we're in the middle of capturing a GIF...
-        if (_animatedSnapshotFirstFrameTimestamp != 0)
-        {
-            // Notify the window scripting interface that we've taken a Snapshot
-            emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
-            // Protect against clobbering it and return immediately.
-            // (Perhaps with a "snapshot failed" message?
-        }
-        else
-        {
-            // Reset the current animated snapshot frame
-            qApp->_animatedSnapshotFirstFrameTimestamp = 0;
-            // Reset the current animated snapshot frame timestamp
-            qApp->_animatedSnapshotTimestamp = 0;
-
-            // Change the extension of the future GIF saved snapshot file to "gif"
-            qApp->_animatedSnapshotPath = path.replace("jpg", "gif");
-
-            // Ensure the snapshot timer is Precise (attempted millisecond precision)
-            qApp->animatedSnapshotTimer.setTimerType(Qt::PreciseTimer);
-
-            // Connect the animatedSnapshotTimer QTimer to the lambda slot function
-            connect(&(qApp->animatedSnapshotTimer), &QTimer::timeout, [=] {
-                // Get a screenshot from the display, then scale the screenshot down,
-                // then convert it to the image format the GIF library needs,
-                // then save all that to the QImage named "frame"
-                QImage frame(qApp->getActiveDisplayPlugin()->getScreenshot(aspectRatio));
-                frame = frame.scaledToWidth(SNAPSNOT_ANIMATED_WIDTH);
-                frame = frame.convertToFormat(QImage::Format_RGBA8888);
-
-                // If this is the first frame...
-                if (qApp->_animatedSnapshotTimestamp == 0)
-                {
-                    // Write out the header and beginning of the GIF file
-                    GifBegin(&(qApp->_animatedSnapshotGifWriter), qPrintable(qApp->_animatedSnapshotPath), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
-                    // Write the first to the gif
-                    GifWriteFrame(&(qApp->_animatedSnapshotGifWriter),
-                        (uint8_t*)frame.bits(),
-                        frame.width(),
-                        frame.height(),
-                        SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
-                    // Record the current frame timestamp
-                    qApp->_animatedSnapshotTimestamp = QDateTime::currentMSecsSinceEpoch();
-                    qApp->_animatedSnapshotFirstFrameTimestamp = qApp->_animatedSnapshotTimestamp;
-                }
-                else
-                {
-                    // If that was the last frame...
-                    if ((qApp->_animatedSnapshotTimestamp - qApp->_animatedSnapshotFirstFrameTimestamp) >= (SNAPSNOT_ANIMATED_DURATION_SECS * 1000))
-                    {
-                        // Reset the current frame timestamp
-                        qApp->_animatedSnapshotTimestamp = 0;
-                        qApp->_animatedSnapshotFirstFrameTimestamp = 0;
-                        // Write out the end of the GIF
-                        GifEnd(&(qApp->_animatedSnapshotGifWriter));
-                        // Notify the Window Scripting Interface that the snapshot was taken
-                        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(qApp->_animatedSnapshotPath, false);
-                        // Stop the snapshot QTimer
-                        qApp->animatedSnapshotTimer.stop();
-                    }
-                    else
-                    {
-                        // Variable used to determine how long the current frame took to pack
-                        qint64 temp = QDateTime::currentMSecsSinceEpoch();
-                        // Write the frame to the gif
-                        GifWriteFrame(&(qApp->_animatedSnapshotGifWriter),
-                            (uint8_t*)frame.bits(),
-                            frame.width(),
-                            frame.height(),
-                            round(((float)(QDateTime::currentMSecsSinceEpoch() - qApp->_animatedSnapshotTimestamp + qApp->_animatedSnapshotLastWriteFrameDuration)) / 10));
-                        // Record how long it took for the current frame to pack
-                        qApp->_animatedSnapshotLastWriteFrameDuration = QDateTime::currentMSecsSinceEpoch() - temp;
-                        // Record the current frame timestamp
-                        qApp->_animatedSnapshotTimestamp = QDateTime::currentMSecsSinceEpoch();
-                    }
-                }
-            });
-
-            // Start the animatedSnapshotTimer QTimer - argument for this is in milliseconds
-            qApp->animatedSnapshotTimer.start(SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC);
-        }
+        SnapshotAnimated::saveSnapshotAnimated(includeAnimated, path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
     });
 }
 void Application::shareSnapshot(const QString& path) {
