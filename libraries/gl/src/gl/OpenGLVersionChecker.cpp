@@ -51,6 +51,7 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     override = false;
 
     QGLWidget* glWidget = new QGLWidget(getDefaultGLFormat());
+
     valid = glWidget->isValid();
     // Inform user if no OpenGL support
     if (!valid) {
