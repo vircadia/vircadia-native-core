@@ -401,9 +401,13 @@ bool OpenVrDisplayPlugin::internalActivate() {
     memset(&timing, 0, sizeof(timing));
     timing.m_nSize = sizeof(vr::Compositor_FrameTiming);
     vr::VRCompositor()->GetFrameTiming(&timing);
-    _asyncReprojectionActive = timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync;
+    auto usingOpenVRForOculus = oculusViaOpenVR();
+    _asyncReprojectionActive = (timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync) || usingOpenVRForOculus;
 
     _threadedSubmit = !_asyncReprojectionActive;
+    if (usingOpenVRForOculus) {
+        qDebug() << "Oculus active via OpenVR:  " << usingOpenVRForOculus;
+    }
     qDebug() << "OpenVR Async Reprojection active:  " << _asyncReprojectionActive;
     qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
