@@ -237,14 +237,6 @@ QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& de
     return result;
 }
 
-int numDestinationSamplesRequired(const QAudioFormat& sourceFormat, const QAudioFormat& destinationFormat,
-                                  int numSourceSamples) {
-    float ratio = (float) destinationFormat.channelCount() / sourceFormat.channelCount();
-    ratio *= (float) destinationFormat.sampleRate() / sourceFormat.sampleRate();
-
-    return (numSourceSamples * ratio) + 0.5f;
-}
-
 #ifdef Q_OS_WIN
 QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
     QString deviceName;
@@ -427,15 +419,15 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 }
 
 bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationSamples, unsigned int numSourceSamples,
-                             const QAudioFormat& sourceAudioFormat, const QAudioFormat& destinationAudioFormat) {
-    if (sourceAudioFormat.channelCount() == 2 && destinationAudioFormat.channelCount() == 1) {
+                             const int sourceChannelCount, const int destinationChannelCount) {
+    if (sourceChannelCount == 2 && destinationChannelCount == 1) {
         // loop through the stereo input audio samples and average every two samples
         for (uint i = 0; i < numSourceSamples; i += 2) {
             destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 1] / 2);
         }
 
         return true;
-    } else if (sourceAudioFormat.channelCount() == 1 && destinationAudioFormat.channelCount() == 2) {
+    } else if (sourceChannelCount == 1 && destinationChannelCount == 2) {
 
         // loop through the mono input audio and repeat each sample twice
         for (uint i = 0; i < numSourceSamples; ++i) {
@@ -451,26 +443,24 @@ bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationS
 void possibleResampling(AudioSRC* resampler,
                         const int16_t* sourceSamples, int16_t* destinationSamples,
                         unsigned int numSourceSamples, unsigned int numDestinationSamples,
-                        const QAudioFormat& sourceAudioFormat, const QAudioFormat& destinationAudioFormat) {
+                        const int sourceChannelCount, const int destinationChannelCount) {
 
     if (numSourceSamples > 0) {
         if (!resampler) {
             if (!sampleChannelConversion(sourceSamples, destinationSamples, numSourceSamples,
-                                         sourceAudioFormat, destinationAudioFormat)) {
+                                         sourceChannelCount, destinationChannelCount)) {
                 // no conversion, we can copy the samples directly across
                 memcpy(destinationSamples, sourceSamples, numSourceSamples * AudioConstants::SAMPLE_SIZE);
             }
         } else {
 
-            if (sourceAudioFormat.channelCount() != destinationAudioFormat.channelCount()) {
-                float channelCountRatio = (float)destinationAudioFormat.channelCount() / sourceAudioFormat.channelCount();
+            if (sourceChannelCount != destinationChannelCount) {
 
-                int numChannelCoversionSamples = (int)(numSourceSamples * channelCountRatio);
+                int numChannelCoversionSamples = (numSourceSamples * destinationChannelCount) / sourceChannelCount;
                 int16_t* channelConversionSamples = new int16_t[numChannelCoversionSamples];
 
-                sampleChannelConversion(sourceSamples, channelConversionSamples,
-                                        numSourceSamples,
-                                        sourceAudioFormat, destinationAudioFormat);
+                sampleChannelConversion(sourceSamples, channelConversionSamples, numSourceSamples,
+                                        sourceChannelCount, destinationChannelCount);
 
                 resampler->render(channelConversionSamples, destinationSamples, numChannelCoversionSamples);
 
@@ -480,7 +470,7 @@ void possibleResampling(AudioSRC* resampler,
                 unsigned int numAdjustedSourceSamples = numSourceSamples;
                 unsigned int numAdjustedDestinationSamples = numDestinationSamples;
 
-                if (sourceAudioFormat.channelCount() == 2 && destinationAudioFormat.channelCount() == 2) {
+                if (sourceChannelCount == 2 && destinationChannelCount == 2) {
                     numAdjustedSourceSamples /= 2;
                     numAdjustedDestinationSamples /= 2;
                 }
@@ -857,7 +847,8 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     static QByteArray loopBackByteArray;
 
     int numInputSamples = inputByteArray.size() / AudioConstants::SAMPLE_SIZE;
-    int numLoopbackSamples = numDestinationSamplesRequired(_inputFormat, _outputFormat, numInputSamples);
+    //int numLoopbackSamples = ((int64_t)numInputSamples * _outputFormat.channelCount() * _outputFormat.sampleRate()) / (_inputFormat.channelCount() * _inputFormat.sampleRate());
+    int numLoopbackSamples = (numInputSamples * _outputFormat.channelCount()) / _inputFormat.channelCount();
 
     loopBackByteArray.resize(numLoopbackSamples * AudioConstants::SAMPLE_SIZE);
 
@@ -865,7 +856,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
 
     // upmix mono to stereo
-    if (!sampleChannelConversion(inputSamples, loopbackSamples, numInputSamples, _inputFormat, _outputFormat)) {
+    if (!sampleChannelConversion(inputSamples, loopbackSamples, numInputSamples, _inputFormat.channelCount(), _outputFormat.channelCount())) {
         // no conversion, just copy the samples
         memcpy(loopbackSamples, inputSamples, numInputSamples * AudioConstants::SAMPLE_SIZE);
     }
@@ -923,7 +914,7 @@ void AudioClient::handleAudioInput() {
             possibleResampling(_inputToNetworkResampler,
                 inputAudioSamples.get(), networkAudioSamples,
                 inputSamplesRequired, numNetworkSamples,
-                _inputFormat, _desiredInputFormat);
+                _inputFormat.channelCount(), _desiredInputFormat.channelCount());
 
             //  Remove DC offset
             if (!_isStereoInput) {
