@@ -101,7 +101,11 @@ void GL41Backend::updateInput() {
                             for (size_t locNum = 0; locNum < locationCount; ++locNum) {
                                 glVertexAttribPointer(slot + (GLuint)locNum, count, type, isNormalized, stride,
                                     reinterpret_cast<GLvoid*>(pointer + perLocationStride * (GLuint)locNum));
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+                                glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency * (isStereo() ? 2 : 1));
+#else
                                 glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency);
+#endif
                             }
 
                             // TODO: Support properly the IAttrib version

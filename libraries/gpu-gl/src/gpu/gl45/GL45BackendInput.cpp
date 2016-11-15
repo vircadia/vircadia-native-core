@@ -72,9 +72,14 @@ void GL45Backend::updateInput() {
                         assert(frequency == attrib._frequency);
                     }
 
+
                     (void)CHECK_GL_ERROR();
                 }
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+                glVertexBindingDivisor(bufferChannelNum, frequency * (isStereo() ? 2 : 1));
+#else
                 glVertexBindingDivisor(bufferChannelNum, frequency);
+#endif
             }
 
 

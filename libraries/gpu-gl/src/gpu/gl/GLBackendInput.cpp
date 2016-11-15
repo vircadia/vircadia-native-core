@@ -154,3 +154,4 @@ void GLBackend::do_setIndirectBuffer(const Batch& batch, size_t paramOffset) {
 
     (void)CHECK_GL_ERROR();
 }
+

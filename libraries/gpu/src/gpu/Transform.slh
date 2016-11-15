@@ -22,28 +22,83 @@ struct TransformCamera {
 };
 
 layout(std140) uniform transformCameraBuffer {
+#ifdef GPU_TRANSFORM_IS_STEREO
+#ifdef GPU_TRANSFORM_STEREO_CAMERA
+   TransformCamera _camera[2];
+#else
     TransformCamera _camera;
+#endif
+#else
+    TransformCamera _camera;
+#endif
 };
 
+#ifdef GPU_VERTEX_SHADER
+#ifdef GPU_TRANSFORM_IS_STEREO
+
+#ifdef GPU_TRANSFORM_STEREO_CAMERA
+#ifdef GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED
+layout(location=14) in int _inStereoSide;
+#endif
+
+flat out int _stereoSide;
+#endif
+
+#endif
+
+#endif
+
+#ifdef GPU_PIXEL_SHADER
+#ifdef GPU_TRANSFORM_STEREO_CAMERA
+flat in int _stereoSide;
+#endif
+#endif
+
 TransformCamera getTransformCamera() {
+#ifdef GPU_TRANSFORM_IS_STEREO
+    #ifdef GPU_TRANSFORM_STEREO_CAMERA
+        #ifdef GPU_VERTEX_SHADER
+            #ifdef GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED
+                _stereoSide = _inStereoSide;
+            #endif
+            #ifdef GPU_TRANSFORM_STEREO_CAMERA_INSTANCED
+                _stereoSide = gl_InstanceID % 2;
+            #endif
+        #endif
+        return _camera[_stereoSide];
+    #else
+        return _camera;
+    #endif
+#else
     return _camera;
+#endif
 }
 
 vec3 getEyeWorldPos() {
-    return _camera._viewInverse[3].xyz;
+    return getTransformCamera()._viewInverse[3].xyz;
 }
 
-
 bool cam_isStereo() {
+#ifdef GPU_TRANSFORM_IS_STEREO
+    return getTransformCamera()._stereoInfo.x > 0.0;
+#else
     return _camera._stereoInfo.x > 0.0;
+#endif
 }
 
 float cam_getStereoSide() {
+#ifdef GPU_TRANSFORM_IS_STEREO
+#ifdef GPU_TRANSFORM_STEREO_CAMERA
+    return getTransformCamera()._stereoInfo.y;
+#else
     return _camera._stereoInfo.y;
+#endif
+#else
+    return _camera._stereoInfo.y;
+#endif
 }
 
 <@endfunc@>
-
 
 <@func declareStandardObjectTransform()@>
 struct TransformObject {
@@ -92,6 +147,25 @@ TransformObject getTransformObject() {
      <$viewport$> = <$cameraTransform$>._viewport;
 <@endfunc@>
 
+<@func transformStereoClipsSpace(cameraTransform, clipPos)@>
+    {
+#ifdef GPU_TRANSFORM_IS_STEREO
+
+#ifdef GPU_TRANSFORM_STEREO_SPLIT_SCREEN
+        vec4 eyeClipEdge[2]= vec4[2](vec4(-1,0,0,1), vec4(1,0,0,1));
+        vec2 eyeOffsetScale = vec2(-0.5, +0.5);
+        uint eyeIndex = _stereoSide;
+        gl_ClipDistance[0] = dot(<$clipPos$>, eyeClipEdge[eyeIndex]);
+        float newClipPosX = <$clipPos$>.x * 0.5 + eyeOffsetScale[eyeIndex] * <$clipPos$>.w;
+        <$clipPos$>.x = newClipPosX;
+#endif
+
+#else
+#endif
+    }
+<@endfunc@>
+
+
 <@func transformModelToEyeWorldAlignedPos(cameraTransform, objectTransform, modelPos, eyeWorldAlignedPos)@>
     <!// Bring the model pos in the world aligned space centered on the eye axis !>
     { // _transformModelToEyeWorldAlignedPos
@@ -108,6 +182,8 @@ TransformObject getTransformObject() {
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
 
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
     }
 <@endfunc@>
 
@@ -117,6 +193,8 @@ TransformObject getTransformObject() {
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
         <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+        
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
     }
 <@endfunc@>
 
@@ -135,11 +213,10 @@ TransformObject getTransformObject() {
 <@endfunc@>
 
 <@func transformModelToWorldDir(cameraTransform, objectTransform, modelDir, worldDir)@>
-    { // transformModelToEyeDir
+    { // transformModelToEyeDir		
         vec3 mr0 = <$objectTransform$>._modelInverse[0].xyz;
         vec3 mr1 = <$objectTransform$>._modelInverse[1].xyz;
         vec3 mr2 = <$objectTransform$>._modelInverse[2].xyz;
-
         <$worldDir$> = vec3(dot(mr0, <$modelDir$>), dot(mr1, <$modelDir$>), dot(mr2, <$modelDir$>));
     }
 <@endfunc@>
@@ -173,6 +250,8 @@ TransformObject getTransformObject() {
 <@func transformEyeToClipPos(cameraTransform, eyePos, clipPos)@>
     { // transformEyeToClipPos
         <$clipPos$> = <$cameraTransform$>._projection * vec4(<$eyePos$>.xyz, 1.0);
+
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
     }
 <@endfunc@>
 

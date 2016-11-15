@@ -29,6 +29,29 @@
 
 #include "GLShared.h"
 
+
+// Different versions for the stereo drawcall
+// Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
+//#define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
+//#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
+#define GPU_STEREO_TECHNIQUE_INSTANCED
+
+
+// Let these be configured by the one define picked above
+#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
+#define GPU_STEREO_DRAWCALL_DOUBLED
+#endif
+
+#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
+#define GPU_STEREO_DRAWCALL_DOUBLED
+#define GPU_STEREO_CAMERA_BUFFER
+#endif
+
+#ifdef GPU_STEREO_TECHNIQUE_INSTANCED
+#define GPU_STEREO_DRAWCALL_INSTANCED
+#define GPU_STEREO_CAMERA_BUFFER
+#endif
+
 namespace gpu { namespace gl {
 
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
@@ -206,7 +229,10 @@ protected:
 
     void renderPassTransfer(const Batch& batch);
     void renderPassDraw(const Batch& batch);
+
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
     void setupStereoSide(int side);
+#endif
 
     virtual void initInput() final;
     virtual void killInput() final;
@@ -271,7 +297,19 @@ protected:
     };
 
     struct TransformStageState {
+#ifdef GPU_STEREO_CAMERA_BUFFER
+        struct Cameras {
+            TransformCamera _cams[2];
+
+            Cameras() {};
+            Cameras(const TransformCamera& cam) { memcpy(_cams, &cam, sizeof(TransformCamera)); };
+            Cameras(const TransformCamera& camL, const TransformCamera& camR) { memcpy(_cams, &camL, sizeof(TransformCamera)); memcpy(_cams + 1, &camR, sizeof(TransformCamera)); };
+        };
+
+        using CameraBufferElement = Cameras;
+#else
         using CameraBufferElement = TransformCamera;
+#endif
         using TransformCameras = std::vector<CameraBufferElement>;
 
         TransformCamera _camera;
@@ -372,8 +410,8 @@ protected:
 
     void resetQueryStage();
     struct QueryStageState {
-        
-    };
+        uint32_t _rangeQueryDepth { 0 };
+    } _queryStage;
 
     void resetStages();
 

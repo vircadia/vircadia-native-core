@@ -84,7 +84,11 @@ void GL45Backend::updateTransform(const Batch& batch) {
             glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
             glVertexAttribIFormat(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0);
             glVertexAttribBinding(gpu::Stream::DRAW_CALL_INFO, gpu::Stream::DRAW_CALL_INFO);
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+            glVertexBindingDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2 : 1));
+#else
             glVertexBindingDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
+#endif
             _transform._enabledDrawcallInfoBuffer = true;
         }
         // NOTE: A stride of zero in BindVertexBuffer signifies that all elements are sourced from the same location,

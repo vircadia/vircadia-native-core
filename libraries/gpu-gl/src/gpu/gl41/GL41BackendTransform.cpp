@@ -96,7 +96,11 @@ void GL41Backend::updateTransform(const Batch& batch) {
         if (!_transform._enabledDrawcallInfoBuffer) {
             glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
             glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2 : 1));
+#else
             glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
+#endif
             _transform._enabledDrawcallInfoBuffer = true;
         }
         glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0, _transform._drawCallInfoOffsets[batch._currentNamedCall]);
