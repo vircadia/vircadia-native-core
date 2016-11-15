@@ -12,7 +12,7 @@
 class NullDisplayPlugin : public DisplayPlugin {
 public:
     ~NullDisplayPlugin() final {}
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
     grouping getGrouping() const override { return DEVELOPER; }
 
     glm::uvec2 getRecommendedRenderSize() const override;

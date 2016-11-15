@@ -28,6 +28,7 @@ public:
 public slots:
     void ignore(const QUuid& nodeID);
     void kick(const QUuid& nodeID);
+    void mute(const QUuid& nodeID);
 
     bool getCanKick();
 

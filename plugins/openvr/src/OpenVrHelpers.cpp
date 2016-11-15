@@ -60,6 +60,12 @@ bool isOculusPresent() {
     return result;
 }
 
+bool oculusViaOpenVR() {
+    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+    static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+    return enableDebugOpenVR && isOculusPresent() && vr::VR_IsHmdPresent();
+}
+
 bool openVrSupported() {
     static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
     static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
@@ -331,7 +337,7 @@ controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat
 #define FAILED_MIN_SPEC_OVERLAY_FRIENDLY_NAME "Minimum specifications for SteamVR not met"
 #define FAILED_MIN_SPEC_UPDATE_INTERVAL_MS 10
 #define FAILED_MIN_SPEC_AUTO_QUIT_INTERVAL_MS (MSECS_PER_SECOND * 30)
-#define MIN_CORES_SPEC 5
+#define MIN_CORES_SPEC 3
 
 void showMinSpecWarning() {
     auto vrSystem = acquireOpenVrSystem();

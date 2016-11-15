@@ -33,9 +33,9 @@
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 
-const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
-const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
-const QString OpenVrThreadedSubmit = "OpenVR Threaded Submit"; // this probably shouldn't be hardcoded here
+const char* OpenVrDisplayPlugin::NAME { "OpenVR (Vive)" };
+const char* StandingHMDSensorMode { "Standing HMD Sensor Mode" }; // this probably shouldn't be hardcoded here
+const char* OpenVrThreadedSubmit { "OpenVR Threaded Submit" }; // this probably shouldn't be hardcoded here
 
 PoseData _nextRenderPoseData;
 PoseData _nextSimPoseData;
@@ -401,9 +401,13 @@ bool OpenVrDisplayPlugin::internalActivate() {
     memset(&timing, 0, sizeof(timing));
     timing.m_nSize = sizeof(vr::Compositor_FrameTiming);
     vr::VRCompositor()->GetFrameTiming(&timing);
-    _asyncReprojectionActive = timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync;
+    auto usingOpenVRForOculus = oculusViaOpenVR();
+    _asyncReprojectionActive = (timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync) || usingOpenVRForOculus;
 
     _threadedSubmit = !_asyncReprojectionActive;
+    if (usingOpenVRForOculus) {
+        qDebug() << "Oculus active via OpenVR:  " << usingOpenVRForOculus;
+    }
     qDebug() << "OpenVR Async Reprojection active:  " << _asyncReprojectionActive;
     qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
@@ -641,6 +645,12 @@ void OpenVrDisplayPlugin::hmdPresent() {
         vr::VRCompositor()->PostPresentHandoff();
         _presentRate.increment();
     }
+
+    vr::Compositor_FrameTiming frameTiming;
+    memset(&frameTiming, 0, sizeof(vr::Compositor_FrameTiming));
+    frameTiming.m_nSize = sizeof(vr::Compositor_FrameTiming);
+    vr::VRCompositor()->GetFrameTiming(&frameTiming);
+    _stutterRate.increment(frameTiming.m_nNumDroppedFrames);
 }
 
 void OpenVrDisplayPlugin::postPreview() {

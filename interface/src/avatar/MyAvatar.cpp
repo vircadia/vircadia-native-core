@@ -130,6 +130,15 @@ MyAvatar::MyAvatar(RigPointer rig) :
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, static_cast<SlotType>(&MyAvatar::goToLocation));
 
+    // handle scale constraints imposed on us by the domain-server
+    auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+
+    // when we connect to a domain and retrieve its settings, we restrict our max/min scale based on those settings
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &MyAvatar::restrictScaleFromDomainSettings);
+
+    // when we leave a domain we lift whatever restrictions that domain may have placed on our scale
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &MyAvatar::clearScaleRestriction);
+
     _characterController.setEnabled(true);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor();
@@ -1823,25 +1832,104 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
-void MyAvatar::increaseSize() {
-    if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
-        _targetScale *= (1.0f + SCALING_RATIO);
-        qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
+// There can be a separation between the _targetScale and the actual scale of the rendered avatar in a domain.
+// When the avatar enters a domain where their target scale is not allowed according to the min/max
+// we do not change their saved target scale. Instead, we use getDomainLimitedScale() to render the avatar
+// at a domain appropriate size. When the avatar leaves the limiting domain, we'll return them to their previous target scale.
+// While connected to a domain that limits avatar scale if the user manually changes their avatar scale, we change
+// target scale to match the new scale they have chosen. When they leave the domain they will not return to the scale they were
+// before they entered the limiting domain.
+
+void MyAvatar::clampTargetScaleToDomainLimits() {
+    // when we're about to change the target scale because the user has asked to increase or decrease their scale,
+    // we first make sure that we're starting from a target scale that is allowed by the current domain
+
+    auto clampedTargetScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
+
+    if (clampedTargetScale != _targetScale) {
+        qCDebug(interfaceapp, "Clamped scale to %f since original target scale %f was not allowed by domain",
+                (double)clampedTargetScale, (double)_targetScale);
+
+        setTargetScale(clampedTargetScale);
     }
+}
+
+void MyAvatar::clampScaleChangeToDomainLimits(float desiredScale) {
+    auto clampedTargetScale = glm::clamp(desiredScale, _domainMinimumScale, _domainMaximumScale);
+
+    if (clampedTargetScale != desiredScale) {
+        qCDebug(interfaceapp, "Forcing scale to %f since %f is not allowed by domain",
+                clampedTargetScale, desiredScale);
+    }
+
+    setTargetScale(clampedTargetScale);
+    qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
+}
+
+void MyAvatar::increaseSize() {
+    // make sure we're starting from an allowable scale
+    clampTargetScaleToDomainLimits();
+
+    // calculate what our new scale should be
+    float updatedTargetScale = _targetScale * (1.0f + SCALING_RATIO);
+
+    // attempt to change to desired scale (clamped to the domain limits)
+    clampScaleChangeToDomainLimits(updatedTargetScale);
 }
 
 void MyAvatar::decreaseSize() {
-    if (MIN_AVATAR_SCALE < (1.0f - SCALING_RATIO) * _targetScale) {
-        _targetScale *= (1.0f - SCALING_RATIO);
-        qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
-    }
+    // make sure we're starting from an allowable scale
+    clampTargetScaleToDomainLimits();
+
+    // calculate what our new scale should be
+    float updatedTargetScale = _targetScale * (1.0f - SCALING_RATIO);
+
+    // attempt to change to desired scale (clamped to the domain limits)
+    clampScaleChangeToDomainLimits(updatedTargetScale);
 }
 
 void MyAvatar::resetSize() {
-    _targetScale = 1.0f;
-    qCDebug(interfaceapp, "Reset scale to %f", (double)_targetScale);
+    // attempt to reset avatar size to the default (clamped to domain limits)
+    const float DEFAULT_AVATAR_SCALE = 1.0f;
+
+    clampScaleChangeToDomainLimits(DEFAULT_AVATAR_SCALE);
 }
 
+void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject) {
+    // pull out the minimum and maximum scale and set them to restrict our scale
+
+    static const QString AVATAR_SETTINGS_KEY = "avatars";
+    auto avatarsObject = domainSettingsObject[AVATAR_SETTINGS_KEY].toObject();
+
+    static const QString MIN_SCALE_OPTION = "min_avatar_scale";
+    float settingMinScale = avatarsObject[MIN_SCALE_OPTION].toDouble(MIN_AVATAR_SCALE);
+    setDomainMinimumScale(settingMinScale);
+
+    static const QString MAX_SCALE_OPTION = "max_avatar_scale";
+    float settingMaxScale = avatarsObject[MAX_SCALE_OPTION].toDouble(MAX_AVATAR_SCALE);
+    setDomainMaximumScale(settingMaxScale);
+
+    // make sure that the domain owner didn't flip min and max
+    if (_domainMinimumScale > _domainMaximumScale) {
+        std::swap(_domainMinimumScale, _domainMaximumScale);
+    }
+
+    qCDebug(interfaceapp, "This domain requires a minimum avatar scale of %f and a maximum avatar scale of %f",
+            (double)_domainMinimumScale, (double)_domainMaximumScale);
+
+    // debug to log if this avatar's scale in this domain will be clamped
+    auto clampedScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
+
+    if (_targetScale != clampedScale) {
+        qCDebug(interfaceapp, "Avatar scale will be clamped to %f because %f is not allowed by current domain",
+                (double)clampedScale, (double)_targetScale);
+    }
+}
+
+void MyAvatar::clearScaleRestriction() {
+    _domainMinimumScale = MIN_AVATAR_SCALE;
+    _domainMaximumScale = MAX_AVATAR_SCALE;
+}
 
 void MyAvatar::goToLocation(const QVariant& propertiesVar) {
     qCDebug(interfaceapp, "MyAvatar QML goToLocation");

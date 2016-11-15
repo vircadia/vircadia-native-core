@@ -815,3 +815,31 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
 
     }
 }
+
+void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
+    // cannot mute yourself, or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+        if (getThisNodeCanKick()) {
+            auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+            if (audioMixer) {
+                // setup the packet
+                auto mutePacket = NLPacket::create(PacketType::NodeMuteRequest, NUM_BYTES_RFC4122_UUID, true);
+
+                // write the node ID to the packet
+                mutePacket->write(nodeID.toRfc4122());
+
+                qDebug() << "Sending packet to mute node" << uuidStringWithoutCurlyBraces(nodeID);
+            
+                sendPacket(std::move(mutePacket), *audioMixer);
+            } else {
+                qWarning() << "Couldn't find audio mixer to send node mute request";
+            }
+        } else {
+            qWarning() << "You do not have permissions to mute in this domain."
+                << "Request to mute node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+        }
+    } else {
+        qWarning() << "NodeList::muteNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
+
+    }
+}

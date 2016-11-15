@@ -20,11 +20,11 @@
 
 class SDL2Manager : public InputPlugin {
     Q_OBJECT
-    
+
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     QStringList getSubdeviceNames() override;
     bool isHandController() const override { return false; }
@@ -39,14 +39,14 @@ public:
 
     void pluginFocusOutEvent() override;
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
-    
+
 signals:
     void joystickAdded(Joystick* joystick);
     void joystickRemoved(Joystick* joystick);
-    
+
 private:
     SDL_JoystickID getInstanceId(SDL_GameController* controller);
-    
+
     int axisInvalid() const { return SDL_CONTROLLER_AXIS_INVALID; }
     int axisLeftX() const { return SDL_CONTROLLER_AXIS_LEFTX; }
     int axisLeftY() const { return SDL_CONTROLLER_AXIS_LEFTY; }
@@ -55,7 +55,7 @@ private:
     int axisTriggerLeft() const { return SDL_CONTROLLER_AXIS_TRIGGERLEFT; }
     int axisTriggerRight() const { return SDL_CONTROLLER_AXIS_TRIGGERRIGHT; }
     int axisMax() const { return SDL_CONTROLLER_AXIS_MAX; }
-    
+
     int buttonInvalid() const { return SDL_CONTROLLER_BUTTON_INVALID; }
     int buttonFaceBottom() const { return SDL_CONTROLLER_BUTTON_A; }
     int buttonFaceRight() const { return SDL_CONTROLLER_BUTTON_B; }
@@ -73,13 +73,13 @@ private:
     int buttonDpadLeft() const { return SDL_CONTROLLER_BUTTON_DPAD_LEFT; }
     int buttonDpadRight() const { return SDL_CONTROLLER_BUTTON_DPAD_RIGHT; }
     int buttonMax() const { return SDL_CONTROLLER_BUTTON_MAX; }
-    
+
     int buttonPressed() const { return SDL_PRESSED; }
     int buttonRelease() const { return SDL_RELEASED; }
 
     QMap<SDL_JoystickID, Joystick::Pointer> _openJoysticks;
     bool _isInitialized { false } ;
-    static const QString NAME;
+    static const char* NAME;
     QStringList _subdeviceNames;
 };
 
