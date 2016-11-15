@@ -19,6 +19,7 @@ exports.handlers = {
             '../../libraries/script-engine/src',
             '../../libraries/networking/src',
             '../../libraries/animation/src',
+            '../../libraries/entities/src',
         ];
         var exts = ['.h', '.cpp'];
 
