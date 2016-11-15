@@ -386,8 +386,11 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
     // loop through all other nodes that have sufficient audio to mix
 
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& otherNode){
-        // make sure that we have audio data for this other node and that it isn't being ignored by our listening node
-        if (otherNode->getLinkedData() && !node->isIgnoringNodeWithID(otherNode->getUUID())) {
+        // make sure that we have audio data for this other node
+        // and that it isn't being ignored by our listening node
+        // and that it isn't ignoring our listening node
+        if (otherNode->getLinkedData()
+            && !node->isIgnoringNodeWithID(otherNode->getUUID()) && !otherNode->isIgnoringNodeWithID(node->getUUID()))  {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
