@@ -429,6 +429,7 @@ Window {
             suggestions.get(suggestions.count - 1).drillDownToPlace = true; // Don't change raw place object (in allStories).
         }
     }
+    property int requestId: 0;
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         var options = [
             'include_actions=' + selectedTab.includeActions,
@@ -436,8 +437,9 @@ Window {
             'page=' + pageNumber
         ];
         var url = metaverseBase + 'user_stories?' + options.join('&');
+        var thisRequestId = ++requestId;
         getRequest(url, function (error, data) {
-            if (handleError(url, error, data, cb)) {
+            if ((thisRequestId !== requestId) || handleError(url, error, data, cb)) {
                 return;
             }
             var stories = data.user_stories.map(function (story) { // explicit single-argument function
