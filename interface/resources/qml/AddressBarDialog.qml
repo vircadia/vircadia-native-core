@@ -79,7 +79,7 @@ Window {
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: scroll.height + backgroundImage.height + (keyboardEnabled ? keyboard.height : 0);
+        implicitHeight: scroll.height + gap + backgroundImage.height + (keyboardEnabled ? keyboard.height : 0);
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -141,7 +141,7 @@ Window {
                 top: parent.top;
                 left: parent.left;
                 leftMargin: 150;
-                topMargin: -35;
+                topMargin: -30;
             }
             property var selected: allTab;
             TextButton {
