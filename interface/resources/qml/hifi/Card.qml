@@ -18,6 +18,7 @@ import "toolbars"
 import "../styles-uit"
 
 Rectangle {
+    id: root;
     property string userName: "";
     property string placeName: "";
     property string action: "";
@@ -29,16 +30,18 @@ Rectangle {
 
     property bool drillDownToPlace: false;
     property bool showPlace: isConcurrency;
-    property string messageColor: "#1DB5ED";
+    property string messageColor: hifi.colors.blueAccent;
     property string timePhrase: pastTime(timestamp);
     property int onlineUsers: 0;
     property bool isConcurrency: action === 'concurrency';
     property bool isStacked: !isConcurrency && drillDownToPlace;
 
     property int textPadding: 10;
+    property int smallMargin: 4;
     property int messageHeight: 40;
     property int textSize: 24;
     property int textSizeSmall: 18;
+    property int stackShadowNarrowing: 5;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
     property int shadowHeight: 20;
     HifiConstants { id: hifi }
@@ -66,15 +69,15 @@ Rectangle {
 
     Image {
         id: lobby;
-        width: parent.width - (isConcurrency ? 0 : 8);
-        height: parent.height - messageHeight - (isConcurrency ? 0 : 4);
+        width: parent.width - (isConcurrency ? 0 : (2 * smallMargin));
+        height: parent.height - messageHeight - (isConcurrency ? 0 : smallMargin);
         source: thumbnail || defaultThumbnail;
         fillMode: Image.PreserveAspectCrop;
         // source gets filled in later
         anchors {
             horizontalCenter: parent.horizontalCenter;
             top: parent.top;
-            topMargin: isConcurrency ? 0 : 4;
+            topMargin: isConcurrency ? 0 : smallMargin;
         }
         onStatusChanged: {
             if (status == Image.Error) {
@@ -86,7 +89,7 @@ Rectangle {
     Rectangle {
         id: shadow1;
         visible: isStacked;
-        width: parent.width - 5;
+        width: parent.width - stackShadowNarrowing;
         height: shadowHeight / 2;
         anchors {
             top: parent.bottom;
@@ -100,7 +103,7 @@ Rectangle {
     Rectangle {
         id: shadow2;
         visible: isStacked;
-        width: shadow1.width - 5;
+        width: shadow1.width - stackShadowNarrowing;
         height: shadowHeight / 2;
         anchors {
             top: shadow1.bottom;
@@ -133,9 +136,11 @@ Rectangle {
         text: placeName;
         color: hifi.colors.white;
         size: textSize;
+        elide: Text.ElideRight; // requires constrained width
         anchors {
             top: parent.top;
             left: parent.left;
+            right: parent.right;
             margins: textPadding;
         }
     }
@@ -148,11 +153,23 @@ Rectangle {
             color: messageColor;
             anchors.verticalCenter: message.verticalCenter;
         }
-        RalewaySemiBold {
+        Image {
+            id: icon;
+            source: "../../images/snap-icon.svg"
+            width: 40;
+            height: 40;
+            visible: action === 'snapshot';
+        }
+        RalewayRegular {
             id: message;
             text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
             size: textSizeSmall;
             color: messageColor;
+            elide: Text.ElideRight; // requires a width to be specified`
+            width: root.width - textPadding
+                - (users.visible ? users.width + parent.spacing : 0)
+                - (icon.visible ? icon.width + parent.spacing : 0)
+                - (actionIcon.width + (2 * smallMargin));
             anchors {
                 bottom: parent.bottom;
                 bottomMargin: parent.spacing;
@@ -181,16 +198,17 @@ Rectangle {
     }
     StateImage {
         id: actionIcon;
-        imageURL: "../../images/" + action + ".svg";
+        imageURL: "../../images/info-icon-2-state.svg";
         size: 32;
-        buttonState: 1;
+        buttonState: messageArea.containsMouse ? 1 : 0;
         anchors {
             bottom: parent.bottom;
             right: parent.right;
-            margins: 4;
+            margins: smallMargin;
         }
     }
     MouseArea {
+        id: messageArea;
         width: parent.width;
         height: messageHeight;
         anchors {
@@ -199,7 +217,5 @@ Rectangle {
         acceptedButtons: Qt.LeftButton;
         onClicked: goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
         hoverEnabled: true;
-        onEntered: actionIcon.buttonState = 0;
-        onExited: actionIcon.buttonState = 1;
     }
 }

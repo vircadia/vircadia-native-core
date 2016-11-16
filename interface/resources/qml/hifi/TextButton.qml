@@ -17,11 +17,11 @@ Rectangle {
     property bool selected: false;
     property int spacing: 2;
     property var action: function () { };
-    property string highlightColor: "#1DB5ED";
+    property string highlightColor: hifi.colors.blueHighlight;
     width: label.width + 64;
     height: 32;
     radius: height / 2;
-    border.width: (clickArea.containsMouse && !clickArea.containsPress) ? 4 : 0;
+    border.width: (clickArea.containsMouse && !clickArea.containsPress) ? 3 : 0;
     border.color: highlightColor;
     color: clickArea.containsPress ? hifi.colors.darkGray : (selected ? highlightColor : "transparent");
     HifiConstants { id: hifi; }

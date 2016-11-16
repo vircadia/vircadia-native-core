@@ -93,14 +93,14 @@ Window {
 
         ListView {
             id: scroll
-            width: backgroundImage.width;
             height: cardHeight + scroll.stackedCardShadowHeight
-            property int stackedCardShadowHeight: 20;
+            property int stackedCardShadowHeight: 10;
             spacing: gap;
             clip: true;
             anchors {
+                left: backgroundImage.left
+                right: swipe.left
                 bottom: backgroundImage.top
-                horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
             orientation: ListView.Horizontal;
@@ -123,15 +123,20 @@ Window {
             }
             highlightMoveDuration: -1;
             highlightMoveVelocity: -1;
-            highlight: Rectangle { color: "transparent"; border.width: 4; border.color: "#1DB5ED"; z: 1; }
+            highlight: Rectangle { color: "transparent"; border.width: 4; border.color: hifiStyleConstants.colors.blueHighlight; z: 1; }
         }
         Image { // Just a visual indicator that the user can swipe the cards over to see more.
-            source: "../images/Swipe-Icon-single.svg"
-            width: 50;
+            id: swipe;
+            source: "../images/swipe-chevron.svg";
+            width: 72;
             visible: suggestions.count > 3;
             anchors {
-                right: scroll.right;
-                verticalCenter: scroll.verticalCenter;
+                right: backgroundImage.right;
+                top: scroll.top;
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: scroll.currentIndex = (scroll.currentIndex < 0) ? 3 : (scroll.currentIndex + 3)
             }
         }
 
@@ -146,21 +151,21 @@ Window {
             property var selected: allTab;
             TextButton {
                 id: allTab;
-                text: "All";
+                text: "ALL";
                 property string includeActions: 'snapshot,concurrency';
                 selected: allTab === selectedTab;
                 action: tabSelect;
             }
             TextButton {
                 id: placeTab;
-                text: "Places";
+                text: "PLACES";
                 property string includeActions: 'concurrency';
                 selected: placeTab === selectedTab;
                 action: tabSelect;
             }
             TextButton {
                 id: snapsTab;
-                text: "Snaps";
+                text: "SNAPS";
                 property string includeActions: 'snapshot';
                 selected: snapsTab === selectedTab;
                 action: tabSelect;
@@ -169,8 +174,8 @@ Window {
 
         Image {
             id: backgroundImage
-            source: "../images/address-bar.svg"
-            width: 720
+            source: "../images/address-bar-856.svg"
+            width: 856
             height: 100
             anchors {
                 bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
