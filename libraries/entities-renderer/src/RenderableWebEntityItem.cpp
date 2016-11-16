@@ -31,7 +31,7 @@
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount { 0 };
 // Don't allow more than 100 concurrent web views
-static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 100;
+static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 20;
 // If a web-view hasn't been rendered for 30 seconds, de-allocate the framebuffer
 static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 
