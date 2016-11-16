@@ -24,6 +24,7 @@
 // This value should divide evenly into 100. Snapshot framerate is NOT guaranteed.
 #define SNAPSNOT_ANIMATED_TARGET_FRAMERATE (25)
 #define SNAPSNOT_ANIMATED_DURATION_SECS (3)
+#define SNAPSNOT_ANIMATED_DURATION_MSEC (SNAPSNOT_ANIMATED_DURATION_SECS*1000)
 
 #define SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC (1000/SNAPSNOT_ANIMATED_TARGET_FRAMERATE)
 // This is the fudge factor that we add to the *first* GIF frame's "delay" value
@@ -41,7 +42,7 @@ private:
     static QString snapshotAnimatedPath;
     static QString snapshotStillPath;
 public:
-    static void saveSnapshotAnimated(bool includeAnimated, QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm);
+    static void saveSnapshotAnimated(QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm);
 };
 
 #endif // hifi_SnapshotAnimated_h

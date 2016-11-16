@@ -25,10 +25,9 @@ bool SnapshotAnimated::snapshotAnimatedTimerRunning = false;
 QString SnapshotAnimated::snapshotAnimatedPath;
 QString SnapshotAnimated::snapshotStillPath;
 
-void SnapshotAnimated::saveSnapshotAnimated(bool includeAnimated, QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm) {
+void SnapshotAnimated::saveSnapshotAnimated(QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm) {
     // If we're not in the middle of capturing an animated snapshot...
-    if ((SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp == 0) && (includeAnimated))
-    {
+    if (SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp == 0) {
         // Define the output location of the still and animated snapshots.
         SnapshotAnimated::snapshotStillPath = pathStill;
         SnapshotAnimated::snapshotAnimatedPath = pathStill;
@@ -41,33 +40,15 @@ void SnapshotAnimated::saveSnapshotAnimated(bool includeAnimated, QString pathSt
 
         // Connect the snapshotAnimatedTimer QTimer to the lambda slot function
         QObject::connect(&(SnapshotAnimated::snapshotAnimatedTimer), &QTimer::timeout, [=] {
-            if (SnapshotAnimated::snapshotAnimatedTimerRunning)
-            {
+            if (SnapshotAnimated::snapshotAnimatedTimerRunning) {
                 // Get a screenshot from the display, then scale the screenshot down,
                 // then convert it to the image format the GIF library needs,
                 // then save all that to the QImage named "frame"
                 QImage frame(app->getActiveDisplayPlugin()->getScreenshot(aspectRatio));
-                frame = frame.scaledToWidth(SNAPSNOT_ANIMATED_WIDTH);
-                frame = frame.convertToFormat(QImage::Format_RGBA8888);
+                frame = frame.scaledToWidth(SNAPSNOT_ANIMATED_WIDTH).convertToFormat(QImage::Format_RGBA8888);
 
-                // If this is the first frame...
-                if (SnapshotAnimated::snapshotAnimatedTimestamp == 0)
-                {
-                    // Write out the header and beginning of the GIF file
-                    GifBegin(&(SnapshotAnimated::snapshotAnimatedGifWriter), qPrintable(SnapshotAnimated::snapshotAnimatedPath), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
-                    // Write the first to the gif
-                    GifWriteFrame(&(SnapshotAnimated::snapshotAnimatedGifWriter),
-                        (uint8_t*)frame.bits(),
-                        frame.width(),
-                        frame.height(),
-                        SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
-                    // Record the current frame timestamp
-                    SnapshotAnimated::snapshotAnimatedTimestamp = QDateTime::currentMSecsSinceEpoch();
-                    SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = SnapshotAnimated::snapshotAnimatedTimestamp;
-                }
-                // If that was an intermediate or the final frame...
-                else
-                {
+                // If this is an intermediate or the final frame...
+                if (SnapshotAnimated::snapshotAnimatedTimestamp > 0) {
                     // Variable used to determine how long the current frame took to pack
                     qint64 framePackStartTime = QDateTime::currentMSecsSinceEpoch();
                     // Write the frame to the gif
@@ -75,14 +56,13 @@ void SnapshotAnimated::saveSnapshotAnimated(bool includeAnimated, QString pathSt
                         (uint8_t*)frame.bits(),
                         frame.width(),
                         frame.height(),
-                        round(((float)(QDateTime::currentMSecsSinceEpoch() - SnapshotAnimated::snapshotAnimatedTimestamp + SnapshotAnimated::snapshotAnimatedLastWriteFrameDuration)) / 10));
-                    // Record how long it took for the current frame to pack
-                    SnapshotAnimated::snapshotAnimatedLastWriteFrameDuration = QDateTime::currentMSecsSinceEpoch() - framePackStartTime;
+                        round(((float)(framePackStartTime - SnapshotAnimated::snapshotAnimatedTimestamp + SnapshotAnimated::snapshotAnimatedLastWriteFrameDuration)) / 10));
                     // Record the current frame timestamp
                     SnapshotAnimated::snapshotAnimatedTimestamp = QDateTime::currentMSecsSinceEpoch();
+                    // Record how long it took for the current frame to pack
+                    SnapshotAnimated::snapshotAnimatedLastWriteFrameDuration = SnapshotAnimated::snapshotAnimatedTimestamp - framePackStartTime;
                     // If that was the last frame...
-                    if ((SnapshotAnimated::snapshotAnimatedTimestamp - SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp) >= (SNAPSNOT_ANIMATED_DURATION_SECS * 1000))
-                    {
+                    if ((SnapshotAnimated::snapshotAnimatedTimestamp - SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp) >= (SNAPSNOT_ANIMATED_DURATION_MSEC)) {
                         // Stop the snapshot QTimer. This action by itself DOES NOT GUARANTEE
                         // that the slot will not be called again in the future.
                         // See: http://lists.qt-project.org/pipermail/qt-interest-old/2009-October/013926.html
@@ -96,6 +76,19 @@ void SnapshotAnimated::saveSnapshotAnimated(bool includeAnimated, QString pathSt
                         // Let the dependency manager know that the snapshots have been taken.
                         emit dm->snapshotTaken(SnapshotAnimated::snapshotStillPath, SnapshotAnimated::snapshotAnimatedPath, false);
                     }
+                // If that was the first frame...
+                } else {
+                    // Write out the header and beginning of the GIF file
+                    GifBegin(&(SnapshotAnimated::snapshotAnimatedGifWriter), qPrintable(SnapshotAnimated::snapshotAnimatedPath), frame.width(), frame.height(), SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
+                    // Write the first to the gif
+                    GifWriteFrame(&(SnapshotAnimated::snapshotAnimatedGifWriter),
+                        (uint8_t*)frame.bits(),
+                        frame.width(),
+                        frame.height(),
+                        SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC / 10);
+                    // Record the current frame timestamp
+                    SnapshotAnimated::snapshotAnimatedTimestamp = QDateTime::currentMSecsSinceEpoch();
+                    SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = SnapshotAnimated::snapshotAnimatedTimestamp;
                 }
             }
         });
@@ -103,10 +96,8 @@ void SnapshotAnimated::saveSnapshotAnimated(bool includeAnimated, QString pathSt
         // Start the snapshotAnimatedTimer QTimer - argument for this is in milliseconds
         SnapshotAnimated::snapshotAnimatedTimer.start(SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC);
         SnapshotAnimated::snapshotAnimatedTimerRunning = true;
-    }
     // If we're already in the middle of capturing an animated snapshot...
-    else
-    {
+    } else {
         // Just tell the dependency manager that the capture of the still snapshot has taken place.
         emit dm->snapshotTaken(pathStill, "", false);
     }

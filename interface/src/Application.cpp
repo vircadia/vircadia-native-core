@@ -5440,7 +5440,14 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
 
-        SnapshotAnimated::saveSnapshotAnimated(includeAnimated, path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
+        // If we're not doing an animated snapshot as well...
+        if (!includeAnimated) {
+            // Tell the dependency manager that the capture of the still snapshot has taken place.
+            emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, "", notify);
+        } else {
+            // Get an animated GIF snapshot and save it
+            SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
+        }
     });
 }
 void Application::shareSnapshot(const QString& path) {

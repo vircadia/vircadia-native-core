@@ -23,17 +23,19 @@ function addImage(data) {
     function toggle() { data.share = input.checked; }
     img.src = data.localPath;
     div.appendChild(img);
-    data.share = true;
     if (useCheckboxes) { // I'd rather use css, but the included stylesheet is quite particular.
         // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
         label.setAttribute('for', id); // cannot do label.for =
         input.id = id;
         input.type = "checkbox";
         input.checked = (id === "p0");
+        data.share = input.checked;
         input.addEventListener('change', toggle);
         div.class = "property checkbox";
         div.appendChild(input);
         div.appendChild(label);
+    } else {
+        data.share = true;
     }
     document.getElementById("snapshot-images").appendChild(div);
     paths.push(data);
