@@ -503,7 +503,7 @@ Function ReadPostInstallOptions
 	  ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
 	  ; check if we need to launch the client post-install
 	  ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
   ${EndIf}
@@ -580,20 +580,17 @@ Function HandlePostInstallOptions
   ${If} $LaunchServerNowState == ${BST_CHECKED}
     !insertmacro WritePostInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
 
-    ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ; both launches use the explorer trick in case the user has elevated permissions for the installer
+    ${If} $LaunchClientNowState == ${BST_CHECKED}
+      !insertmacro WritePostInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ YES
       ; create shortcut with ARGUMENTS
-
-      ; both launches use the explorer trick in case the user has elevated permissions for the installer
-      ${If} $LaunchClientNowState == ${BST_CHECKED}
-        !insertmacro WritePostInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ YES
-        CreateShortCut "$TEMP\SandboxShortcut.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@" "-- --launchInterface"
-        Exec '"$WINDIR\explorer.exe" "$TEMP\SandboxShortcut.lnk"'
-      ${Else}
-        !insertmacro WritePostInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
-        Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
-      ${EndIf}
-
+      CreateShortCut "$TEMP\SandboxShortcut.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@" "-- --launchInterface"
+      Exec '"$WINDIR\explorer.exe" "$TEMP\SandboxShortcut.lnk"'
+    ${Else}
+      !insertmacro WritePostInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
+      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
     ${EndIf}
+
   ${Else}
     !insertmacro WritePostInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ NO
 
