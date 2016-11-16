@@ -63,6 +63,7 @@ function setupAudioMenus() {
             selectedOutputDevice = outputDeviceSetting;
         }
     }
+    print("audio output devices: " + outputDevices);
     for(var i = 0; i < outputDevices.length; i++) {
         var thisDeviceSelected = (outputDevices[i] == selectedOutputDevice);
         var menuItem = "Use " + outputDevices[i] + " for Output";
@@ -87,6 +88,7 @@ function setupAudioMenus() {
             selectedInputDevice = inputDeviceSetting;
         }
     }
+    print("audio input devices: " + inputDevices);
     for(var i = 0; i < inputDevices.length; i++) {
         var thisDeviceSelected = (inputDevices[i] == selectedInputDevice);
         var menuItem = "Use " + inputDevices[i] + " for Input";
@@ -103,13 +105,17 @@ function setupAudioMenus() {
 }
 
 function onDevicechanged() {
+    print("audio devices changed, removing Audio > Devices menu...");
     Menu.removeMenu("Audio > Devices");
+    print("now setting up Audio > Devices menu");
     setupAudioMenus();
 }
 
 // Have a small delay before the menu's get setup and the audio devices can switch to the last selected ones
 Script.setTimeout(function () {
+    print("connecting deviceChanged");
     AudioDevice.deviceChanged.connect(onDevicechanged);
+    print("setting up Audio > Devices menu for first time");
     setupAudioMenus();
 }, 5000);
 
