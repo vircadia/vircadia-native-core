@@ -438,7 +438,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         return;
     }
 
-    IsAvatarParentOfEntity(entityID);
+    unhookChildAvatar(entityID);
     emit deletingEntity(entityID);
 
     // NOTE: callers must lock the tree before using this method
@@ -448,11 +448,11 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     _isDirty = true;
 }
 
-void EntityTree::IsAvatarParentOfEntity(const EntityItemID entityID) {
+void EntityTree::unhookChildAvatar(const EntityItemID entityID) {
 
     EntityItemPointer entity = findEntityByEntityItemID(entityID);
 
-    entity->forEachChild([&](SpatiallyNestablePointer child) {
+    entity->forEachDescendant([&](SpatiallyNestablePointer child) {
         if (child->getNestableType() == NestableType::Avatar) {
             child->setParentID(nullptr);
         }
@@ -488,7 +488,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         }
 
         // tell our delete operator about this entityID
-        IsAvatarParentOfEntity(entityID);
+        unhookChildAvatar(entityID);
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
     }
