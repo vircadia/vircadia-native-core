@@ -277,10 +277,15 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
             }
             vel += _followVelocity;
             const float HORIZONTAL_FOLLOW_TIMESCALE = 0.05f;
-            const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
+            float verticalFollowTimescale = 20.0f;
+            if (_state == State::Hover) {
+                verticalFollowTimescale = HORIZONTAL_FOLLOW_TIMESCALE;
+            } else {
+                // remove vertical component
+                vel -= vel.dot(_currentUp) * _currentUp;
+            }
             glm::quat worldFrameRotation; // identity
-            vel.setY(0.0f);  // don't allow any vertical component of the follow velocity to enter the _targetVelocity.
-            addMotor(bulletToGLM(vel), worldFrameRotation, HORIZONTAL_FOLLOW_TIMESCALE, VERTICAL_FOLLOW_TIMESCALE);
+            addMotor(bulletToGLM(vel), worldFrameRotation, HORIZONTAL_FOLLOW_TIMESCALE, verticalFollowTimescale);
         }
 
         // angular part uses incremental teleports
@@ -773,7 +778,8 @@ void CharacterController::updateState() {
             const btScalar MAX_WALKING_SPEED = 2.5f;
             bool flyingFast = _state == State::Hover && actualHorizVelocity.length() > (MAX_WALKING_SPEED * 0.75f);
 
-            if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+            if ((_floorDistance < MIN_HOVER_HEIGHT) &&
+                    !(jumpButtonHeld || flyingFast || (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD)) {
                 SET_STATE(State::InAir, "near ground");
             } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
                 SET_STATE(State::Ground, "touching ground");

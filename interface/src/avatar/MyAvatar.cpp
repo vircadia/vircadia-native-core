@@ -465,7 +465,9 @@ void MyAvatar::simulate(float deltaTime) {
     // update sensorToWorldMatrix for camera and hand controllers
     // before we perform rig animations and IK.
 
-    updateSensorToWorldMatrix(_enableVerticalComfortMode ? SensorToWorldUpdateMode::VerticalComfort : SensorToWorldUpdateMode::Vertical);
+    if (_characterController.getState() != CharacterController::State::Hover) {
+        updateSensorToWorldMatrix(_enableVerticalComfortMode ? SensorToWorldUpdateMode::VerticalComfort : SensorToWorldUpdateMode::Vertical);
+    }
 
     {
         PerformanceTimer perfTimer("skeleton");
@@ -1356,7 +1358,8 @@ void MyAvatar::updateMotors() {
         }
 
         if (qApp->isHMDMode()) {
-            // OUTOFBODY_HACK: motors are applied differently in HMDMode
+            // OUTOFBODY_HACK: in HMDMode motors are applied differently: a "follow" motor is added
+            // during the CharacterController's substep
         } else {
             if (_isPushing || _isBraking || !_isBeingPushed) {
                 _characterController.addMotor(_actionMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
@@ -1887,12 +1890,17 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 }
 
 void MyAvatar::applyVelocityToSensorToWorldMatrix(const glm::vec3& velocity, float deltaTime) {
-    glm::vec3 horizontalVelocity(velocity.x, 0.0f, velocity.z);
-    float speed2 = glm::length2(horizontalVelocity);
+    glm::vec3 newVelocity = velocity;
+    if (_characterController.getState() != CharacterController::State::Hover) {
+        newVelocity -= glm::dot(newVelocity, _worldUpDirection);
+    }
+    float speed2 = glm::length2(newVelocity);
     if (speed2 > MIN_AVATAR_SPEED_SQUARED) {
-        glm::vec3 position = extractTranslation(_sensorToWorldMatrix) + deltaTime * horizontalVelocity;
+        glm::vec3 position = extractTranslation(_sensorToWorldMatrix) + deltaTime * newVelocity;
         // update the position column of matrix
-        _sensorToWorldMatrix[3] = glm::vec4(position, 1);
+        glm::mat4 newSensorToWorldMatrix = _sensorToWorldMatrix;
+        newSensorToWorldMatrix[3] = glm::vec4(position, 1.0f);
+        setSensorToWorldMatrix(newSensorToWorldMatrix);
     }
 }
 
@@ -1929,16 +1937,19 @@ void MyAvatar::updatePosition(float deltaTime) {
         }
 
         if (qApp->isHMDMode()) {
-            // Apply _actionMotorVelocity directly to the sensorToWorld matrix.
             glm::quat motorRotation;
             glm::vec3 worldVelocity = glm::vec3(0.0f);
             if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
-                glm::quat liftRotation;
-                swingTwistDecomposition(glmExtractRotation(_sensorToWorldMatrix * getHMDSensorMatrix()), _worldUpDirection, liftRotation, motorRotation);
+                if (_characterController.getState() == CharacterController::State::Hover ||
+                        _characterController.getCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                    motorRotation = glmExtractRotation(_sensorToWorldMatrix * getHMDSensorMatrix());
+                } else {
+                    glm::quat liftRotation;
+                    swingTwistDecomposition(glmExtractRotation(_sensorToWorldMatrix * getHMDSensorMatrix()), _worldUpDirection, liftRotation, motorRotation);
+                }
                 worldVelocity = motorRotation * _actionMotorVelocity;
             }
 
-            // Apply _scriptedMotorVelocity to the sensorToWorld matrix.
             if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
                 if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
                     motorRotation = getHead()->getCameraOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
@@ -1955,6 +1966,7 @@ void MyAvatar::updatePosition(float deltaTime) {
             const float THRUST_DAMPING_FACTOR = 0.25f;
             worldVelocity += THRUST_DAMPING_FACTOR * _thrust;
 
+            // apply velocity directly to _sensorToWorldMatrix.
             if (glm::length2(worldVelocity) > FLT_EPSILON) {
                 glm::mat4 worldBodyMatrix = _sensorToWorldMatrix * _bodySensorMatrix;
                 glm::vec3 position = extractTranslation(worldBodyMatrix);

@@ -15,8 +15,6 @@
 
 #include "MyAvatar.h"
 
-// DONE TODO: improve walking up steps
-// DONE TODO: make avatars able to walk up and down steps/slopes
 // TODO: make avatars stand on steep slope
 // TODO: make avatars not snag on low ceilings
 
@@ -160,20 +158,39 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
             if (result.walkable) {
                 if (rayResult.m_hitNormalWorld.dot(_currentUp) < _minFloorNormalDotUp) {
                     result.walkable = false;
-                    break;
+                    // the top scan wasn't walkable so don't bother scanning the bottom
+                    // remove both forwardSlop and backSlop
+                    result.hitFraction = glm::min(1.0f, (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop) - backSlop) / stepLength);
+                    return result.hitFraction < 1.0f;
                 }
             }
         }
     }
-    if (!result.walkable) {
-        // the top scan wasn't walkable so don't bother scanning the bottom
-        // remove both forwardSlop and backSlop
-        result.hitFraction = glm::min(1.0f, (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop) - backSlop) / stepLength);
+    if (_state == State::Hover) {
+        // scan the bottom just like the top
+        for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
+            rayStart = newPosition + rotation * _bottomPoints[i] - backSlop * rayDirection;
+            rayEnd = rayStart + (backSlop + stepLength + forwardSlop) * rayDirection;
+            if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
+                if (rayResult.m_closestHitFraction < closestRayResult.m_closestHitFraction) {
+                    closestRayResult = rayResult;
+                }
+                if (result.walkable) {
+                    if (rayResult.m_hitNormalWorld.dot(_currentUp) < _minFloorNormalDotUp) {
+                        result.walkable = false;
+                        // the bottom scan wasn't walkable
+                        // remove both forwardSlop and backSlop
+                        result.hitFraction = glm::min(1.0f, (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop) - backSlop) / stepLength);
+                        return result.hitFraction < 1.0f;
+                    }
+                }
+            }
+        }
     } else {
+        // scan the bottom looking for nearest step point
         // remove forwardSlop
         result.hitFraction = (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop)) / (backSlop + stepLength);
 
-        // scan the bottom
         for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
             rayStart = newPosition + rotation * _bottomPoints[i] - backSlop * rayDirection;
             rayEnd = rayStart + (backSlop + stepLength) * rayDirection;
