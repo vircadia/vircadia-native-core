@@ -370,7 +370,7 @@ Window {
         if (place.action === 'snapshot') {
             return true;
         }
-        return (place.place_name !== AddressManager.hostname); // Not our entry, but do show other entry points to current domain.
+        return (place.place_name !== AddressManager.placename); // Not our entry, but do show other entry points to current domain.
         // could also require right protocolVersion
     }
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
@@ -436,7 +436,7 @@ Window {
             notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
             notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.baseGrayHighlight : hifiStyleConstants.colors.redHighlight;
             // Display hostname, which includes ip address, localhost, and other non-placenames.
-            location.text = (AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
+            location.text = (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
         }
     }
 
