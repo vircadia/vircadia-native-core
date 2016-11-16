@@ -438,7 +438,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         return;
     }
 
-    checkEntity(entityID);
+    IsAvatarParentOfEntity(entityID);
     emit deletingEntity(entityID);
 
     // NOTE: callers must lock the tree before using this method
@@ -448,7 +448,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     _isDirty = true;
 }
 
-void EntityTree::checkEntity(const EntityItemID entityID) {
+void EntityTree::IsAvatarParentOfEntity(const EntityItemID entityID) {
 
     EntityItemPointer entity = findEntityByEntityItemID(entityID);
 
@@ -488,7 +488,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         }
 
         // tell our delete operator about this entityID
-        checkEntity(entityID);
+        IsAvatarParentOfEntity(entityID);
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
     }

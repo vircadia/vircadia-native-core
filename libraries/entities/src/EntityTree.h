@@ -122,7 +122,7 @@ public:
     bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
     // check if the avatar is a child of this entity, If so set the avatar parentID to null
-    void checkEntity(const EntityItemID entityID);
+    void IsAvatarParentOfEntity(const EntityItemID entityID);
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
 
