@@ -1323,14 +1323,14 @@ void RenderablePolyVoxEntityItem::setCollisionPoints(ShapeInfo::PointCollection 
     // include the registrationPoint in the shape key, because the offset is already
     // included in the points and the shapeManager wont know that the shape has changed.
     withWriteLock([&] {
-            QString shapeKey = QString(_voxelData.toBase64()) + "," +
-                QString::number(_registrationPoint.x) + "," +
-                QString::number(_registrationPoint.y) + "," +
-                QString::number(_registrationPoint.z);
-            _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
-            _shapeInfo.setPointCollection(pointCollection);
-            _meshDirty = false;
-        });
+        QString shapeKey = QString(_voxelData.toBase64()) + "," +
+            QString::number(_registrationPoint.x) + "," +
+            QString::number(_registrationPoint.y) + "," +
+            QString::number(_registrationPoint.z);
+        _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
+        _shapeInfo.setPointCollection(pointCollection);
+        _meshDirty = false;
+    });
 }
 
 void RenderablePolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighborID) {
@@ -1438,4 +1438,17 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
     if (currentZNNeighbor) {
         currentZNNeighbor->setVolDataDirty();
     }
+}
+
+
+void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
+    EntityItem::locationChanged(tellPhysics);
+    if (!render::Item::isValidID(_myItem)) {
+        return;
+    }
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
+    pendingChanges.updateItem<PolyVoxPayload>(_myItem, [](PolyVoxPayload& payload) {});
+
+    scene->enqueuePendingChanges(pendingChanges);
 }
