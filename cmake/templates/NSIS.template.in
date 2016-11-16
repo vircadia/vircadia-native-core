@@ -135,10 +135,6 @@ Var AR_RegFlags
   SectionSetFlags ${${SecName}} $AR_SecFlags
 
  "default_${SecName}:"
- ; The client is always selected by default
- ${If} ${SecName} == @CLIENT_COMPONENT_NAME@
-   SectionSetFlags ${${SecName}} 17
- ${EndIf}
 
  !insertmacro LoadSectionSelectedIntoVar ${SecName} ${SecName}_selected
 !macroend
@@ -435,16 +431,18 @@ Function PostInstallOptionsPage
     Pop $LaunchServerNowCheckbox
 
     ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetPostInstallOption $LaunchServerNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_UNCHECKED}
+    !insertmacro SetPostInstallOption $LaunchServerNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
 
     IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
-  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
-  Pop $LaunchClientNowCheckbox
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+	  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
+	  Pop $LaunchClientNowCheckbox
 
-  ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetPostInstallOption $LaunchClientNowCheckbox @CLIENT_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+	  ; set the checkbox state depending on what is present in the registry
+	  !insertmacro SetPostInstallOption $LaunchClientNowCheckbox @CLIENT_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+  ${EndIf}
 
   ${If} @PR_BUILD@ == 1
     ; a PR build defaults all install options expect LaunchServerNowCheckbox, LaunchClientNowCheckbox and the settings copy to unchecked
@@ -500,9 +498,15 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
   ${EndIf}
 
-  ; check if we need to launch an application post-install
-  ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
-  ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+	  ; check if we need to launch the server post-install
+	  ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
+  ${EndIf}
+
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+	  ; check if we need to launch the client post-install
+	  ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
+  ${EndIf}
 FunctionEnd
 
 Function HandlePostInstallOptions
