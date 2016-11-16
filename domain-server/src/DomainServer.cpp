@@ -843,7 +843,14 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     
     // update the NodeInterestSet in case there have been any changes
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
-    nodeData->setNodeInterestSet(nodeRequestData.interestList.toSet());
+
+    // guard against patched agents asking to hear about other agents
+    auto safeInterestSet = nodeRequestData.interestList.toSet();
+    if (sendingNode->getType() == NodeType::Agent) {
+        safeInterestSet.remove(NodeType::Agent);
+    }
+
+    nodeData->setNodeInterestSet(safeInterestSet);
 
     // update the connecting hostname in case it has changed
     nodeData->setPlaceName(nodeRequestData.placeName);
@@ -950,7 +957,8 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
             limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
-                if (otherNode->getUUID() != node->getUUID() && nodeInterestSet.contains(otherNode->getType())) {
+                if (otherNode->getUUID() != node->getUUID()
+                    && nodeInterestSet.contains(otherNode->getType())) {
                     
                     // since we're about to add a node to the packet we start a segment
                     domainListPackets->startSegment();
