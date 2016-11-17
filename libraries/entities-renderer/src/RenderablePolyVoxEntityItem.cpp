@@ -606,11 +606,16 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
     batch.setInputFormat(mesh->getVertexFormat());
-    batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
+
+    // batch.setInputStream(0, mesh->getVertexStream());
+    batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer()._buffer,
+                         0,
+                         sizeof(PolyVox::PositionMaterialNormal));
     batch.setInputBuffer(gpu::Stream::NORMAL,
                          mesh->getVertexBuffer()._buffer,
                          sizeof(float) * 3,
-                         mesh->getVertexBuffer()._stride);
+                         sizeof(PolyVox::PositionMaterialNormal));
+
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
 
     if (!_xTextureURL.isEmpty() && !_xTexture) {
