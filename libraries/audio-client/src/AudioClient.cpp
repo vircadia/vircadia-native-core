@@ -395,10 +395,16 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     adjustedAudioFormat.setSampleType(QAudioFormat::SignedInt);
     adjustedAudioFormat.setByteOrder(QAudioFormat::LittleEndian);
 
-    assert(audioDevice.isFormatSupported(adjustedAudioFormat));
-
+    if (!audioDevice.isFormatSupported(adjustedAudioFormat)) {
+        qCDebug(audioclient) << "WARNING: The mix format is" << adjustedAudioFormat << "but isFormatSupported() failed.";
+        return false;
+    }
     // converting to/from this rate must produce an integral number of samples
-    return (adjustedAudioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE == 0);
+    if (adjustedAudioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE != 0) {
+        qCDebug(audioclient) << "WARNING: The current sample rate [" << adjustedAudioFormat.sampleRate() << "] is not supported.";
+        return false;
+    }
+    return true;
 
 #elif defined(Q_OS_ANDROID)
     // FIXME: query the native sample rate of the device?
