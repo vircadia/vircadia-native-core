@@ -20,10 +20,7 @@ Rectangle {
     property string highlightColor: hifi.colors.blueHighlight;
     width: label.width + 64;
     height: 32;
-    radius: height / 2;
-    border.width: (clickArea.containsMouse && !clickArea.containsPress) ? 3 : 0;
-    border.color: highlightColor;
-    color: clickArea.containsPress ? hifi.colors.darkGray : (selected ? highlightColor : "transparent");
+    color: "transparent";
     HifiConstants { id: hifi; }
     RalewaySemiBold {
         id: label;
@@ -34,6 +31,21 @@ Rectangle {
             verticalCenter: parent.verticalCenter;
         }
     }
+    Rectangle {
+        // This is crazy. All of this stuff (except the opacity) ought to be in the parent, with the label drawn on top.
+        // But there's a bug in QT such that if you select this TextButton, AND THEN enter the area of
+        // a TextButton created before this one, AND THEN enter a ListView with a highlight, then our label
+        // will draw as though it on the bottom. (If the phase of the moon is right, it will do this for a
+        // about half a second and then render normally. But if you're not lucky it just stays this way.)
+        // So.... here we deliberately put the rectangle on TOP of the text so that you can't tell when the bug
+        // is happening.
+        anchors.fill: parent;
+        radius: height / 2;
+        border.width: 4;
+        border.color: clickArea.containsMouse ? highlightColor : "transparent";
+        color:  clickArea.containsPress ? hifi.colors.darkGray : (selected ? hifi.colors.blueAccent : "transparent");
+        opacity: (clickArea.containsMouse && !clickArea.containsPress) ? 0.8 : 0.5;
+    }
     MouseArea {
         id: clickArea;
         anchors.fill: parent;
@@ -41,5 +53,4 @@ Rectangle {
         onClicked: action(parent);
         hoverEnabled: true;
     }
-
 }
