@@ -25,6 +25,14 @@ void Buffer::updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize)
     }
 }
 
+void Buffer::incrementBufferCPUCount() {
+    _bufferCPUCount++;
+}
+
+void Buffer::decrementBufferCPUCount() {
+    _bufferCPUCount--;
+}
+
 uint32_t Buffer::getBufferCPUCount() {
     return _bufferCPUCount.load();
 }
@@ -43,7 +51,7 @@ Buffer::Size Buffer::getBufferGPUMemoryUsage() {
 
 Buffer::Buffer(Size pageSize) :
     _renderPages(pageSize), _pages(pageSize) {
-    _bufferCPUCount++;
+    Buffer::incrementBufferCPUCount();
 }
 
 Buffer::Buffer(Size size, const Byte* bytes, Size pageSize) : Buffer(pageSize) {
@@ -61,7 +69,7 @@ Buffer& Buffer::operator=(const Buffer& buf) {
 }
 
 Buffer::~Buffer() {
-    _bufferCPUCount--;
+    Buffer::decrementBufferCPUCount();
     Buffer::updateBufferCPUMemoryUsage(_sysmem.getSize(), 0);
 }
 

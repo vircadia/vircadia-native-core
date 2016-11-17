@@ -1139,8 +1139,8 @@ void RenderablePolyVoxEntityItem::getMesh() {
         auto indexBuffer = std::make_shared<gpu::Buffer>(vecIndices.size() * sizeof(uint32_t),
                                                          (gpu::Byte*)vecIndices.data());
         auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
-        auto indexBufferView = new gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
-        mesh->setIndexBuffer(*indexBufferView);
+        gpu::BufferView indexBufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
+        mesh->setIndexBuffer(indexBufferView);
 
         const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getVertices();
         auto vertexBuffer = std::make_shared<gpu::Buffer>(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
@@ -1150,10 +1150,10 @@ void RenderablePolyVoxEntityItem::getMesh() {
         if (vertexBufferPtr->getSize() > sizeof(float) * 3) {
             vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 3;
         }
-        auto vertexBufferView = new gpu::BufferView(vertexBufferPtr, 0, vertexBufferSize,
-                                                    sizeof(PolyVox::PositionMaterialNormal),
-                                                    gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
-        mesh->setVertexBuffer(*vertexBufferView);
+        gpu::BufferView vertexBufferView(vertexBufferPtr, 0, vertexBufferSize,
+                                         sizeof(PolyVox::PositionMaterialNormal),
+                                         gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
+        mesh->setVertexBuffer(vertexBufferView);
         mesh->addAttribute(gpu::Stream::NORMAL,
                            gpu::BufferView(vertexBufferPtr,
                                            sizeof(float) * 3,
@@ -1323,14 +1323,14 @@ void RenderablePolyVoxEntityItem::setCollisionPoints(ShapeInfo::PointCollection 
     // include the registrationPoint in the shape key, because the offset is already
     // included in the points and the shapeManager wont know that the shape has changed.
     withWriteLock([&] {
-            QString shapeKey = QString(_voxelData.toBase64()) + "," +
-                QString::number(_registrationPoint.x) + "," +
-                QString::number(_registrationPoint.y) + "," +
-                QString::number(_registrationPoint.z);
-            _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
-            _shapeInfo.setPointCollection(pointCollection);
-            _meshDirty = false;
-        });
+        QString shapeKey = QString(_voxelData.toBase64()) + "," +
+            QString::number(_registrationPoint.x) + "," +
+            QString::number(_registrationPoint.y) + "," +
+            QString::number(_registrationPoint.z);
+        _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
+        _shapeInfo.setPointCollection(pointCollection);
+        _meshDirty = false;
+    });
 }
 
 void RenderablePolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighborID) {
@@ -1438,4 +1438,17 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
     if (currentZNNeighbor) {
         currentZNNeighbor->setVolDataDirty();
     }
+}
+
+
+void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
+    EntityItem::locationChanged(tellPhysics);
+    if (!_pipeline || !render::Item::isValidID(_myItem)) {
+        return;
+    }
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
+    pendingChanges.updateItem<PolyVoxPayload>(_myItem, [](PolyVoxPayload& payload) {});
+
+    scene->enqueuePendingChanges(pendingChanges);
 }
