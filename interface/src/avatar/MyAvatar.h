@@ -374,6 +374,7 @@ private:
 
     void clampTargetScaleToDomainLimits();
     void clampScaleChangeToDomainLimits(float desiredScale);
+    glm::mat4 computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const;
 
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
