@@ -606,7 +606,7 @@ function checkNewContent() {
                   buttons: ['Yes', 'No'],
                   defaultId: 1,
                   cancelId: 1,
-                  title: 'New home content',
+                  title: 'High Fidelity Sandbox',
                   message: 'A newer version of the home content set is available.\nDo you wish to update?',
                   noLink: true,
               }, function(idx) {
