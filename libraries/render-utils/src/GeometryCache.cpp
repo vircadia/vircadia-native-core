@@ -1593,7 +1593,10 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
     glowIntensity = 0.0f;
 #endif
 
+    glowIntensity = 0.0f;
+
     if (glowIntensity <= 0) {
+        bindSimpleProgram(batch, false, false, false, true, false);
         renderLine(batch, p1, p2, color, id);
         return;
     }
