@@ -13,6 +13,23 @@
 #include "GPULogging.h"
 using namespace gpu;
 
+
+void ContextStats::evalDelta(const ContextStats& begin, const ContextStats& end) {
+    _ISNumFormatChanges = end._ISNumFormatChanges - begin._ISNumFormatChanges;
+    _ISNumInputBufferChanges = end._ISNumInputBufferChanges - begin._ISNumInputBufferChanges;
+    _ISNumIndexBufferChanges = end._ISNumIndexBufferChanges - begin._ISNumIndexBufferChanges;
+
+    _RSNumTextureBounded = end._RSNumTextureBounded - begin._RSNumTextureBounded;
+    _RSAmountTextureMemoryBounded = end._RSAmountTextureMemoryBounded - begin._RSAmountTextureMemoryBounded;
+
+    _DSNumAPIDrawcalls = end._DSNumAPIDrawcalls - begin._DSNumAPIDrawcalls;
+    _DSNumDrawcalls = end._DSNumDrawcalls - begin._DSNumDrawcalls;
+    _DSNumTriangles= end._DSNumTriangles - begin._DSNumTriangles;
+
+    _PSNumSetPipelines = end._PSNumSetPipelines - begin._PSNumSetPipelines;
+}
+
+
 Context::CreateBackend Context::_createBackendCallback = nullptr;
 Context::MakeProgram Context::_makeProgramCallback = nullptr;
 std::once_flag Context::_initialized;
@@ -73,6 +90,10 @@ void Context::consumeFrameUpdates(const FramePointer& frame) const {
 }
 
 void Context::executeFrame(const FramePointer& frame) const {
+    // Grab the stats at the around the frame and delta to have a consistent sampling
+    ContextStats beginStats;
+    getStats(beginStats);
+
     // FIXME? probably not necessary, but safe
     consumeFrameUpdates(frame);
     _backend->setStereoState(frame->stereoState);
@@ -90,6 +111,10 @@ void Context::executeFrame(const FramePointer& frame) const {
         _frameRangeTimer->end(endBatch);
         _backend->render(endBatch);
     }
+
+    ContextStats endStats;
+    getStats(endStats);
+    _frameStats.evalDelta(beginStats, endStats);
 }
 
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
@@ -135,8 +160,16 @@ void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, cons
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
 
+void Context::resetStats() const {
+    _backend->resetStats();
+}
+
 void Context::getStats(ContextStats& stats) const {
     _backend->getStats(stats);
+}
+
+void Context::getFrameStats(ContextStats& stats) const {
+    stats = _frameStats;
 }
 
 double Context::getFrameTimerGPUAverage() const {

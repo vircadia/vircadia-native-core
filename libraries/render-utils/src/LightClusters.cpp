@@ -179,6 +179,10 @@ void LightClusters::updateFrustum(const ViewFrustum& frustum) {
     _frustum = frustum;
 
     _frustumGridBuffer.edit().updateFrustum(frustum);
+
+    if (true) {
+        _frustumGridBuffer.edit().generateGridPlanes(_gridPlanes[0], _gridPlanes[1], _gridPlanes[2]);
+    }
 }
 
 void LightClusters::updateLightStage(const LightStagePointer& lightStage) {

@@ -53,12 +53,12 @@ void main(void) {
 
  
 
-    ivec3 cluster = clusterGrid_getCluster(gl_InstanceID);
+    ivec3 cluster = clusterGrid_getCluster(gpu_InstanceID);
     int numLights = cluster.x + cluster.y;
 
     float numLightsScale = clamp(numLights * 0.1, 0.0, 1.0);
 
-    ivec3 clusterPos = frustumGrid_indexToCluster(gl_InstanceID);
+    ivec3 clusterPos = frustumGrid_indexToCluster(gpu_InstanceID);
 
     float boxScale = 0.99;
     vec3 eyePos = frustumGrid_clusterPosToEye(clusterPos, vec3((1.0 - boxScale) * 0.5 + (1.0 - numLightsScale) * boxScale  * 0.5) + numLightsScale * boxScale * pos.xyz);
@@ -69,5 +69,5 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     <$transformWorldToClipPos(cam, worldPos, gl_Position)$>
 
-        varColor = vec4(colorWheel(fract(float(gl_InstanceID) / float(frustumGrid_numClusters()))), (numLights >0 ? 0.9 : 0.1));
+        varColor = vec4(colorWheel(fract(float(gpu_InstanceID) / float(frustumGrid_numClusters()))), (numLights >0 ? 0.9 : 0.1));
 }
