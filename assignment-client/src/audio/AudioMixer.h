@@ -19,7 +19,7 @@
 #include <UUIDHasher.h>
 
 #include "AudioMixerStats.h"
-#include "AudioMixerSlave.h"
+#include "AudioMixerSlavePool.h"
 
 class PositionalAudioStream;
 class AvatarAudioStream;
@@ -88,7 +88,7 @@ private:
 
     QString _codecPreferenceOrder;
 
-    AudioMixerSlave slave;
+    AudioMixerSlavePool slavePool;
 
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
     static float _noiseMutingThreshold;

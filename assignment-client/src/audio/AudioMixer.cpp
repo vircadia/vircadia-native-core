@@ -355,12 +355,27 @@ void AudioMixer::start() {
     while (!_isFinished) {
         manageLoad(frameTimestamp, framesSinceManagement);
 
-        slave.stats.reset();
+        {
+            QReadLocker readLocker(&nodeList->getMutex());
+            std::vector<SharedNodePointer> nodes;
 
-        nodeList->eachNode([&](const SharedNodePointer& node) { _stats.sumStreams += prepareFrame(node, frame); });
-        nodeList->eachNode([&](const SharedNodePointer& node) { slave.mix(node, frame); });
+            nodeList->eachNode([&](const SharedNodePointer& node) {
+                // collect the available nodes (to queue them for the slavePool)
+                nodes.emplace_back(node);
 
-        _stats.accumulate(slave.stats);
+                // prepare frames; pop off any new audio from their streams
+                _stats.sumStreams += prepareFrame(node, frame);
+            });
+
+            // mix across slave threads
+            slavePool.mix(nodes, frame);
+        }
+
+        // gather stats
+        slavePool.each([&](AudioMixerSlave& slave) {
+            _stats.accumulate(slave.stats);
+            slave.stats.reset();
+        });
 
         ++frame;
         ++_numStatFrames;
