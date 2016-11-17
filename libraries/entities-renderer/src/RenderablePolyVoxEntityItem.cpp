@@ -1443,7 +1443,7 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
 
 void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     EntityItem::locationChanged(tellPhysics);
-    if (!render::Item::isValidID(_myItem)) {
+    if (!_pipeline || !render::Item::isValidID(_myItem)) {
         return;
     }
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
