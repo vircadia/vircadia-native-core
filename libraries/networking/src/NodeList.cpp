@@ -18,6 +18,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
+#include <QtNetwork/QNetworkInterface>
 
 #include <LogHandler.h>
 #include <UUID.h>
@@ -346,6 +347,28 @@ void NodeList::sendDomainServerCheckIn() {
             // include the protocol version signature in our connect request
             QByteArray protocolVersionSig = protocolVersionsSignature();
             packetStream.writeBytes(protocolVersionSig.constData(), protocolVersionSig.size());
+
+            // if possible, include the MAC address for the current interface in our connect request
+            QString hardwareAddress;
+
+            for (auto networkInterface : QNetworkInterface::allInterfaces()) {
+                for (auto interfaceAddress : networkInterface.addressEntries()) {
+                    if (interfaceAddress.ip() == _localSockAddr.getAddress()) {
+                        // this is the interface whose local IP matches what we've detected the current IP to be
+                        hardwareAddress = networkInterface.hardwareAddress();
+
+                        // stop checking interfaces and addresses
+                        break;
+                    }
+                }
+
+                // stop looping if this was the current interface
+                if (!hardwareAddress.isEmpty()) {
+                    break;
+                }
+            }
+
+            packetStream << hardwareAddress;
         }
 
         // pack our data to send to the domain-server including
