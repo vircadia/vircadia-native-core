@@ -12,6 +12,7 @@
 #ifndef hifi_SnapshotAnimated_h
 #define hifi_SnapshotAnimated_h
 
+#include <QtCore/QVector>
 #include <Application.h>
 #include <DependencyManager.h>
 #include <GifCreator.h>
@@ -28,20 +29,26 @@
 #define SNAPSNOT_ANIMATED_DURATION_MSEC (SNAPSNOT_ANIMATED_DURATION_SECS*1000)
 
 #define SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC (1000/SNAPSNOT_ANIMATED_TARGET_FRAMERATE)
-// This is the fudge factor that we add to the *first* GIF frame's "delay" value
-#define SNAPSNOT_ANIMATED_INITIAL_WRITE_DURATION_MSEC (20)
-#define SNAPSNOT_ANIMATED_NUM_FRAMES (SNAPSNOT_ANIMATED_DURATION_SECS * SNAPSNOT_ANIMATED_TARGET_FRAMERATE)
 
 class SnapshotAnimated {
 private:
-    static QTimer snapshotAnimatedTimer;
-    static GifWriter snapshotAnimatedGifWriter;
+    static QTimer* snapshotAnimatedTimer;
     static qint64 snapshotAnimatedTimestamp;
     static qint64 snapshotAnimatedFirstFrameTimestamp;
-    static qint64 snapshotAnimatedLastWriteFrameDuration;
     static bool snapshotAnimatedTimerRunning;
-    static QString snapshotAnimatedPath;
     static QString snapshotStillPath;
+
+    static QString snapshotAnimatedPath;
+    static QVector<QImage> snapshotAnimatedFrameVector;
+    static QVector<qint64> snapshotAnimatedFrameDelayVector;
+    static QSharedPointer<WindowScriptingInterface> snapshotAnimatedDM;
+    static Application* app;
+    static float aspectRatio;
+
+    static GifWriter snapshotAnimatedGifWriter;
+
+    static void captureFrames();
+    static void processFrames();
 public:
     static void saveSnapshotAnimated(QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm);
     static Setting::Handle<bool> alsoTakeAnimatedSnapshot;
