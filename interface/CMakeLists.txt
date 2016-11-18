@@ -351,3 +351,7 @@ if (ANDROID)
 
   qt_create_apk()
 endif ()
+
+add_dependency_external_projects(GifCreator)
+find_package(GifCreator REQUIRED)
+target_include_directories(${TARGET_NAME} PUBLIC ${GIFCREATOR_INCLUDE_DIRS})

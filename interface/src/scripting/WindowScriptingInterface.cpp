@@ -199,8 +199,8 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
     QApplication::clipboard()->setText(text);
 }
 
-void WindowScriptingInterface::takeSnapshot(bool notify, float aspectRatio) {
-    qApp->takeSnapshot(notify, aspectRatio);
+void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
+    qApp->takeSnapshot(notify, includeAnimated, aspectRatio);
 }
 
 void WindowScriptingInterface::shareSnapshot(const QString& path) {
