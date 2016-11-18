@@ -1170,23 +1170,17 @@ void RenderablePolyVoxEntityItem::getMesh() {
         auto vertexBuffer = std::make_shared<gpu::Buffer>(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
                                                           (gpu::Byte*)vecVertices.data());
         auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
-        // if (vertexBufferPtr->getSize() > sizeof(PolyVox::PositionMaterialNormal)) {
-        //     vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 4;
-        //     normalBufferSize = vertexBufferPtr->getSize() - sizeof(float);
-        // }
         gpu::BufferView vertexBufferView(vertexBufferPtr, 0,
-                                          vertexBufferPtr->getSize(),
-                                      //   vertexBufferSize,
+                                         vertexBufferPtr->getSize(),
                                          sizeof(PolyVox::PositionMaterialNormal),
                                          gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
         mesh->setVertexBuffer(vertexBufferView);
         mesh->addAttribute(gpu::Stream::NORMAL,
                            gpu::BufferView(vertexBufferPtr, sizeof(float) * 3,
-                                            vertexBufferPtr->getSize() ,
-                                         //  normalBufferSize,
+                                           vertexBufferPtr->getSize() ,
                                            sizeof(PolyVox::PositionMaterialNormal),
                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
-		entity->setMesh(mesh);
+        entity->setMesh(mesh);
     });
 }
 
