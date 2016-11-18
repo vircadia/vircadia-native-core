@@ -551,15 +551,13 @@ void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
     }
 }
 
-quint64 start { 0 };
-
 void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
     assert(getType() == EntityTypes::PolyVox);
     Q_ASSERT(args->_batch);
 
-    if (start == 0) {
-        start = usecTimestampNow();
+    if (_start == 0) {
+        _start = usecTimestampNow();
         return;
     }
 
@@ -622,7 +620,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     batch.setInputFormat(_vertexFormat);
 
     // ok
-    if (usecTimestampNow() - start < 200000) {
+    if (usecTimestampNow() - _start < 600000) {
         return;
     }
 
@@ -632,7 +630,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 
 
     // crash
-    // if (usecTimestampNow() - start < 200000) {
+    // if (usecTimestampNow() - _start < 600000) {
     //     return;
     // }
 
