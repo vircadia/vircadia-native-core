@@ -551,10 +551,17 @@ void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
     }
 }
 
+quint64 start { 0 };
+
 void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
     assert(getType() == EntityTypes::PolyVox);
     Q_ASSERT(args->_batch);
+
+    if (start == 0) {
+        start = usecTimestampNow();
+        return;
+    }
 
     bool voxelDataDirty;
     bool volDataDirty;
@@ -600,29 +607,34 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         _pipeline = gpu::Pipeline::create(program, state);
     }
 
-
-	if (!_vertexFormat) {
-		auto vf = std::make_shared<gpu::Stream::Format>();
-		vf->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-		vf->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 12);
-		_vertexFormat = vf;
-	}
+    if (!_vertexFormat) {
+        auto vf = std::make_shared<gpu::Stream::Format>();
+        vf->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        vf->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 12);
+        _vertexFormat = vf;
+    }
 
     gpu::Batch& batch = *args->_batch;
     batch.setPipeline(_pipeline);
 
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
-//	batch.setInputFormat(mesh->getVertexFormat());
-	batch.setInputFormat(_vertexFormat);
+    batch.setInputFormat(_vertexFormat);
 
-    // batch.setInputStream(0, mesh->getVertexStream());
+    // ok
+    if (usecTimestampNow() - start < 200000) {
+        return;
+    }
+
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer()._buffer,
                          0,
                          sizeof(PolyVox::PositionMaterialNormal));
-  /*  batch.setInputBuffer(gpu::Stream::NORMAL, mesh->getVertexBuffer()._buffer,
-                         sizeof(float) * 3,
-                         sizeof(PolyVox::PositionMaterialNormal));*/
+
+
+    // crash
+    // if (usecTimestampNow() - start < 200000) {
+    //     return;
+    // }
 
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
 
