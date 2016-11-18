@@ -149,7 +149,7 @@ private:
     // may not match _voxelVolumeSize.
 
     model::MeshPointer _mesh;
-	gpu::Stream::FormatPointer _vertexFormat;
+    gpu::Stream::FormatPointer _vertexFormat;
     bool _meshDirty { true }; // does collision-shape need to be recomputed?
     bool _meshInitialized { false };
 
