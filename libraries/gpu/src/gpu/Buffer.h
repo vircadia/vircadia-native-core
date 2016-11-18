@@ -27,6 +27,8 @@ class Buffer : public Resource {
     static std::atomic<uint32_t> _bufferCPUCount;
     static std::atomic<Size> _bufferCPUMemoryUsage;
     static void updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void incrementBufferCPUCount();
+    static void decrementBufferCPUCount();
 
 public:
     using Flag = PageManager::Flag;

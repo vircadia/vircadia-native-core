@@ -141,6 +141,9 @@ public:
     // Transparent polyvox didn't seem to be working so disable for now
     bool isTransparent() override { return false; }
 
+protected:
+    virtual void locationChanged(bool tellPhysics = true) override;
+
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.

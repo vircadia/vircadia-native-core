@@ -31,7 +31,7 @@
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount { 0 };
 // Don't allow more than 100 concurrent web views
-static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 100;
+static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 20;
 // If a web-view hasn't been rendered for 30 seconds, de-allocate the framebuffer
 static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 
@@ -69,8 +69,6 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
         qWarning() << "Too many concurrent web views to create new view";
         return false;
     }
-    qDebug() << "Building web surface";
-
     QString javaScriptToInject;
     QFile webChannelFile(":qtwebchannel/qwebchannel.js");
     QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
@@ -85,12 +83,15 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
         qCWarning(entitiesrenderer) << "unable to find qwebchannel.js or createGlobalEventBridge.js";
     }
 
-    ++_currentWebCount;
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     if (!currentContext) {
         return false;
     }
+
+    ++_currentWebCount;
+    qDebug() << "Building web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
+
     QSurface * currentSurface = currentContext->surface();
 
     auto deleter = [](OffscreenQmlSurface* webSurface) {
@@ -356,6 +357,8 @@ void RenderableWebEntityItem::destroyWebSurface() {
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
         _webSurface.reset();
+
+        qDebug() << "Delete web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
     }
 }
 
