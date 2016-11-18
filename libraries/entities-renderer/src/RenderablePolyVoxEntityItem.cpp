@@ -600,21 +600,29 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         _pipeline = gpu::Pipeline::create(program, state);
     }
 
+
+	if (!_vertexFormat) {
+		auto vf = std::make_shared<gpu::Stream::Format>();
+		vf->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+		vf->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 12);
+		_vertexFormat = vf;
+	}
+
     gpu::Batch& batch = *args->_batch;
     batch.setPipeline(_pipeline);
 
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
-    batch.setInputFormat(mesh->getVertexFormat());
+//	batch.setInputFormat(mesh->getVertexFormat());
+	batch.setInputFormat(_vertexFormat);
 
     // batch.setInputStream(0, mesh->getVertexStream());
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer()._buffer,
                          0,
                          sizeof(PolyVox::PositionMaterialNormal));
-    batch.setInputBuffer(gpu::Stream::NORMAL,
-                         mesh->getVertexBuffer()._buffer,
+  /*  batch.setInputBuffer(gpu::Stream::NORMAL, mesh->getVertexBuffer()._buffer,
                          sizeof(float) * 3,
-                         sizeof(PolyVox::PositionMaterialNormal));
+                         sizeof(PolyVox::PositionMaterialNormal));*/
 
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
 
@@ -1102,7 +1110,6 @@ void RenderablePolyVoxEntityItem::getMesh() {
 
     auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
 
-
     QtConcurrent::run([entity, voxelSurfaceStyle] {
         model::MeshPointer mesh(new model::Mesh());
 
@@ -1152,20 +1159,24 @@ void RenderablePolyVoxEntityItem::getMesh() {
                                                           (gpu::Byte*)vecVertices.data());
         auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
         gpu::Resource::Size vertexBufferSize = 0;
-        if (vertexBufferPtr->getSize() > sizeof(float) * 3) {
-            vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 3;
+        gpu::Resource::Size normalBufferSize = sizeof(float) * 3;
+        if (vertexBufferPtr->getSize() > sizeof(PolyVox::PositionMaterialNormal)) {
+            vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 4;
+            normalBufferSize = vertexBufferPtr->getSize() - sizeof(float);
         }
-        gpu::BufferView vertexBufferView(vertexBufferPtr, 0, vertexBufferSize,
+        gpu::BufferView vertexBufferView(vertexBufferPtr, 0,
+                                          vertexBufferPtr->getSize(),
+                                      //   vertexBufferSize,
                                          sizeof(PolyVox::PositionMaterialNormal),
                                          gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
         mesh->setVertexBuffer(vertexBufferView);
         mesh->addAttribute(gpu::Stream::NORMAL,
-                           gpu::BufferView(vertexBufferPtr,
-                                           sizeof(float) * 3,
-                                           vertexBufferPtr->getSize() - sizeof(float) * 3,
+                           gpu::BufferView(vertexBufferPtr, sizeof(float) * 3,
+                                            vertexBufferPtr->getSize() ,
+                                         //  normalBufferSize,
                                            sizeof(PolyVox::PositionMaterialNormal),
                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
-        entity->setMesh(mesh);
+		entity->setMesh(mesh);
     });
 }
 
