@@ -16,6 +16,7 @@
 #include <DependencyManager.h>
 #include <GifCreator.h>
 #include <qtimer.h>
+#include <SettingHandle.h>
 #include "scripting/WindowScriptingInterface.h"
 
 // If the snapshot width or the framerate are too high for the
@@ -43,6 +44,8 @@ private:
     static QString snapshotStillPath;
 public:
     static void saveSnapshotAnimated(QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm);
+    static Setting::Handle<bool> alsoTakeAnimatedSnapshot;
+    static Setting::Handle<float> snapshotAnimatedDuration;
 };
 
 #endif // hifi_SnapshotAnimated_h

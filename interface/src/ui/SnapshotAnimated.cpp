@@ -25,6 +25,9 @@ bool SnapshotAnimated::snapshotAnimatedTimerRunning = false;
 QString SnapshotAnimated::snapshotAnimatedPath;
 QString SnapshotAnimated::snapshotStillPath;
 
+Setting::Handle<bool> SnapshotAnimated::alsoTakeAnimatedSnapshot("alsoTakeAnimatedSnapshot", true);
+Setting::Handle<float> SnapshotAnimated::snapshotAnimatedDuration("snapshotAnimatedDuration", SNAPSNOT_ANIMATED_DURATION_SECS);
+
 void SnapshotAnimated::saveSnapshotAnimated(QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm) {
     // If we're not in the middle of capturing an animated snapshot...
     if (SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp == 0) {
@@ -62,7 +65,7 @@ void SnapshotAnimated::saveSnapshotAnimated(QString pathStill, float aspectRatio
                     // Record how long it took for the current frame to pack
                     SnapshotAnimated::snapshotAnimatedLastWriteFrameDuration = SnapshotAnimated::snapshotAnimatedTimestamp - framePackStartTime;
                     // If that was the last frame...
-                    if ((SnapshotAnimated::snapshotAnimatedTimestamp - SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp) >= (SNAPSNOT_ANIMATED_DURATION_MSEC)) {
+                    if ((SnapshotAnimated::snapshotAnimatedTimestamp - SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp) >= (SnapshotAnimated::snapshotAnimatedDuration.get() * MSECS_PER_SECOND)) {
                         // Stop the snapshot QTimer. This action by itself DOES NOT GUARANTEE
                         // that the slot will not be called again in the future.
                         // See: http://lists.qt-project.org/pipermail/qt-interest-old/2009-October/013926.html
