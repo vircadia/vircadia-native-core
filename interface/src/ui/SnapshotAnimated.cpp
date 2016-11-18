@@ -87,11 +87,6 @@ void SnapshotAnimated::captureFrames() {
 
             // If that was the last frame...
             if ((SnapshotAnimated::snapshotAnimatedTimestamp - SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp) >= (SnapshotAnimated::snapshotAnimatedDuration.get() * MSECS_PER_SECOND)) {
-                // Stop the snapshot QTimer. This action by itself DOES NOT GUARANTEE
-                // that the slot will not be called again in the future.
-                // See: http://lists.qt-project.org/pipermail/qt-interest-old/2009-October/013926.html
-                SnapshotAnimated::snapshotAnimatedTimer->stop();
-                delete SnapshotAnimated::snapshotAnimatedTimer;
                 SnapshotAnimated::snapshotAnimatedTimerRunning = false;
                 // Reset the current frame timestamp
                 SnapshotAnimated::snapshotAnimatedTimestamp = 0;
@@ -99,6 +94,11 @@ void SnapshotAnimated::captureFrames() {
 
                 // Kick off the thread that'll pack the frames into the GIF
                 QtConcurrent::run(processFrames);
+                // Stop the snapshot QTimer. This action by itself DOES NOT GUARANTEE
+                // that the slot will not be called again in the future.
+                // See: http://lists.qt-project.org/pipermail/qt-interest-old/2009-October/013926.html
+                SnapshotAnimated::snapshotAnimatedTimer->stop();
+                delete SnapshotAnimated::snapshotAnimatedTimer;
             }
         }
     }
