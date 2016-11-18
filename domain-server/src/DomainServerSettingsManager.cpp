@@ -513,7 +513,7 @@ void DomainServerSettingsManager::unpackPermissions() {
 
     needPack |= unpackPermissionsForKeypath(MAC_PERMISSIONS_KEYPATH, &_macPermissions,
         [&](NodePermissionsPointer perms){
-            // make sure that this permission row is for a valid IP address
+            // make sure that this permission row is for a non-empty hardware
             if (perms->getKey().first.isEmpty()) {
                 _macPermissions.remove(perms->getKey());
                 
