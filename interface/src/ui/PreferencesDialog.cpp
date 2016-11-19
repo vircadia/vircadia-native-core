@@ -32,7 +32,7 @@
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
-
+    auto nodeList = DependencyManager::get<NodeList>();
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     static const QString AVATAR_BASICS { "Avatar Basics" };
     {
@@ -67,6 +67,18 @@ void setupPreferences() {
         auto getter = [=]()->bool { return myAvatar->getClearOverlayWhenMoving(); };
         auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
+    }
+    {
+        auto getter = [=]()->float { return nodeList->getIgnoreRadius(); };
+        auto setter = [=](float value) {
+            nodeList->ignoreNodesInRadius(value, nodeList->getIgnoreRadiusEnabled());
+        };
+        auto preference = new SpinnerPreference(AVATAR_BASICS, "Personal space bubble radius (default is 1m)", getter, setter);
+        preference->setMin(0.01f);
+        preference->setMax(99.9f);
+        preference->setDecimals(2);
+        preference->setStep(0.25);
+        preferences->addPreference(preference);
     }
 
     // UI
