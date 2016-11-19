@@ -207,7 +207,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
 enum class DomainConnectRequestVersion : PacketVersion {
     NoHostname = 17,
     HasHostname,
-    HasProtocolVersions
+    HasProtocolVersions,
+    HasMACAddress
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
