@@ -750,6 +750,10 @@ void AddressManager::copyPath() {
     QApplication::clipboard()->setText(currentPath());
 }
 
+QString AddressManager::getDomainId() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
+}
+
 void AddressManager::handleShareableNameAPIResponse(QNetworkReply& requestReply) {
     // make sure that this response is for the domain we're currently connected to
     auto domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
