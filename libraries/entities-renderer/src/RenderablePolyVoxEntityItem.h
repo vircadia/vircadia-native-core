@@ -188,8 +188,6 @@ private:
     void cacheNeighbors();
     void copyUpperEdgesFromNeighbors();
     void bonkNeighbors();
-
-    quint64 _start { 0 };
 };
 
 bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,

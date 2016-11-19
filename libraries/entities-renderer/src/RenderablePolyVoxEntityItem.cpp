@@ -556,11 +556,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::PolyVox);
     Q_ASSERT(args->_batch);
 
-    if (_start == 0) {
-        _start = usecTimestampNow();
-        return;
-    }
-
     bool voxelDataDirty;
     bool volDataDirty;
     withWriteLock([&] {
@@ -584,6 +579,11 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         mesh = _mesh;
         voxelVolumeSize = _voxelVolumeSize;
     });
+
+    if (!mesh ||
+        !mesh->getIndexBuffer()._buffer) {
+        return;
+    }
 
     if (!_pipeline) {
         gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
@@ -618,21 +618,9 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
     batch.setInputFormat(_vertexFormat);
-
-    // ok
-    if (usecTimestampNow() - _start < 600000) {
-        return;
-    }
-
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer()._buffer,
                          0,
                          sizeof(PolyVox::PositionMaterialNormal));
-
-
-    // crash
-    // if (usecTimestampNow() - _start < 600000) {
-    //     return;
-    // }
 
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
 
