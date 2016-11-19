@@ -48,6 +48,7 @@ namespace render {
         Q_PROPERTY(quint32 frameTextureMemoryUsage MEMBER frameTextureMemoryUsage NOTIFY dirty)
 
         Q_PROPERTY(quint32 frameSetPipelineCount MEMBER frameSetPipelineCount NOTIFY dirty)
+        Q_PROPERTY(quint32 frameSetInputFormatCount MEMBER frameSetInputFormatCount NOTIFY dirty)
 
 
     public:
@@ -77,6 +78,8 @@ namespace render {
         qint64 frameTextureMemoryUsage{ 0 };
 
         quint32 frameSetPipelineCount{ 0 };
+
+        quint32 frameSetInputFormatCount{ 0 };
 
 
 

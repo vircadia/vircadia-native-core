@@ -23,6 +23,7 @@
 #include "LODManager.h"
 #include "Menu.h"
 #include "Snapshot.h"
+#include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
 
 #include "AmbientOcclusionEffect.h"
@@ -81,6 +82,20 @@ void setupPreferences() {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
         auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->bool { return SnapshotAnimated::alsoTakeAnimatedSnapshot.get(); };
+        auto setter = [](bool value) { SnapshotAnimated::alsoTakeAnimatedSnapshot.set(value); };
+        preferences->addPreference(new CheckPreference(SNAPSHOTS, "Take Animated GIF Snapshot with HUD Button", getter, setter));
+    }
+    {
+        auto getter = []()->float { return SnapshotAnimated::snapshotAnimatedDuration.get(); };
+        auto setter = [](float value) { SnapshotAnimated::snapshotAnimatedDuration.set(value); };
+        auto preference = new SpinnerPreference(SNAPSHOTS, "Animated Snapshot Duration", getter, setter);
+        preference->setMin(3);
+        preference->setMax(10);
+        preference->setStep(1);
         preferences->addPreference(preference);
     }
 

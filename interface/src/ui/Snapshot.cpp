@@ -51,15 +51,23 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
         return NULL;
     }
 
-    QImage shot(snapshotPath);
+    QUrl url;
 
-    // no location data stored
-    if (shot.text(URL).isEmpty()) {
+    if (snapshotPath.right(3) == "jpg") {
+        QImage shot(snapshotPath);
+
+        // no location data stored
+        if (shot.text(URL).isEmpty()) {
+            return NULL;
+        }
+
+        // parsing URL
+        url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
+    } else if (snapshotPath.right(3) == "gif") {
+        url = QUrl(DependencyManager::get<AddressManager>()->currentShareableAddress());
+    } else {
         return NULL;
     }
-
-    // parsing URL
-    QUrl url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
 
     SnapshotMetaData* data = new SnapshotMetaData();
     data->setURL(url);
@@ -156,7 +164,11 @@ void Snapshot::uploadSnapshot(const QString& filename) {
     file->open(QIODevice::ReadOnly);
 
     QHttpPart imagePart;
-    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/jpeg"));
+    if (filename.right(3) == "gif") {
+        imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/gif"));
+    } else {
+        imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/jpeg"));
+    }
     imagePart.setHeader(QNetworkRequest::ContentDispositionHeader,
                         QVariant("form-data; name=\"image\"; filename=\"" + file->fileName() + "\""));
     imagePart.setBodyDevice(file);
