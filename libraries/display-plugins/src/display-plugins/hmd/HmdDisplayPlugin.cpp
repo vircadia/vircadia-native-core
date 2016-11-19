@@ -55,8 +55,6 @@ struct HandLaserData {
     vec4 color;
 };
 
-static const uint32_t HAND_LASER_UNIFORM_SLOT = 1;
-
 static QString readFile(const QString& filename) {
     QFile file(filename);
     file.open(QFile::Text | QFile::ReadOnly);
@@ -133,10 +131,13 @@ void HmdDisplayPlugin::customizeContext() {
         state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("lineData"), HAND_LASER_UNIFORM_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
+        gpu::Shader::makeProgram(*program, gpu::Shader::BindingSet());
         _glowLinePipeline = gpu::Pipeline::create(program, state);
+        for (const auto& buffer : program->getBuffers()) {
+            if (buffer._name == "lineData") {
+                _handLaserUniformSlot = buffer._location;
+            }
+        }
         _handLaserUniforms = std::array<gpu::BufferPointer, 2>{ { std::make_shared<gpu::Buffer>(), std::make_shared<gpu::Buffer>() } };
         _extraLaserUniforms = std::make_shared<gpu::Buffer>();
     };
@@ -704,7 +705,7 @@ void HmdDisplayPlugin::compositeExtra() {
     if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX && !_presentExtraLaser.valid()) {
         return;
     }
-
+    
     render([&](gpu::Batch& batch) {
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setModelTransform(Transform());
@@ -724,8 +725,7 @@ void HmdDisplayPlugin::compositeExtra() {
                 const auto& points = _presentHandLaserPoints[index];
                 _handLaserUniforms[index]->resize(sizeof(HandLaserData));
                 _handLaserUniforms[index]->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _handLasers[index].color });
-                batch.setUniformBuffer(HAND_LASER_UNIFORM_SLOT, _handLaserUniforms[index]);
-                qDebug() << "Render line " << index;
+                batch.setUniformBuffer(_handLaserUniformSlot, _handLaserUniforms[index]);
                 batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
             }
         });
@@ -734,7 +734,7 @@ void HmdDisplayPlugin::compositeExtra() {
             const auto& points = _presentExtraLaserPoints;
             _extraLaserUniforms->resize(sizeof(HandLaserData));
             _extraLaserUniforms->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _presentExtraLaser.color });
-            batch.setUniformBuffer(HAND_LASER_UNIFORM_SLOT, _extraLaserUniforms);
+            batch.setUniformBuffer(_handLaserUniformSlot, _extraLaserUniforms);
             batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
         }
     });
