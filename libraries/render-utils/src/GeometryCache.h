@@ -369,6 +369,7 @@ private:
         static int population;
         gpu::BufferPointer verticesBuffer;
         gpu::BufferPointer colorBuffer;
+        gpu::BufferPointer uniformBuffer;
         gpu::Stream::FormatPointer streamFormat;
         gpu::BufferStreamPointer stream;
 
