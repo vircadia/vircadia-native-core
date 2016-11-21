@@ -23,10 +23,6 @@ class AvatarAudioStream;
 class AudioHRTF;
 class AudioMixerClientData;
 
-const int SAMPLE_PHASE_DELAY_AT_90 = 20;
-
-const int READ_DATAGRAMS_STATS_WINDOW_SECONDS = 30;
-
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
@@ -57,7 +53,7 @@ private slots:
 private:
     AudioMixerClientData* getOrCreateClientData(Node* node);
     void domainSettingsRequestComplete();
-    
+
     /// adds one stream to the mix for a listening node
     void addStreamToMixForListeningNodeWithStream(AudioMixerClientData& listenerNodeData,
                                                   const PositionalAudioStream& streamToAdd,
@@ -118,8 +114,6 @@ private:
     QVector<ReverbSettings> _zoneReverbSettings;
 
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
-
-    static bool _enableFilter;
 };
 
 #endif // hifi_AudioMixer_h

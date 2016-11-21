@@ -69,7 +69,6 @@ static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 static const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 
 int AudioMixer::_numStaticJitterFrames{ -1 };
-bool AudioMixer::_enableFilter = true;
 
 bool AudioMixer::shouldMute(float quietestFrame) {
     return (quietestFrame > _noiseMutingThreshold);
@@ -96,6 +95,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
+
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
@@ -848,7 +848,7 @@ void AudioMixer::broadcastMixes() {
 
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
-                    && (shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness()) 
+                    && (shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())
                         || nodeData->shouldMuteClient())) {
                     auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
                     nodeList->sendPacket(std::move(mutePacket), *node);
@@ -865,8 +865,8 @@ void AudioMixer::broadcastMixes() {
                     std::unique_ptr<NLPacket> mixPacket;
 
                     if (mixHasAudio || nodeData->shouldFlushEncoder()) {
-                        
-                        int mixPacketBytes = sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE 
+
+                        int mixPacketBytes = sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE
                                                              + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
 
@@ -888,7 +888,7 @@ void AudioMixer::broadcastMixes() {
                         }
                         // pack mixed audio samples
                         mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
-                    
+
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE;
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
@@ -1049,14 +1049,6 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                 _noiseMutingThreshold = noiseMutingThreshold;
                 qDebug() << "Noise muting threshold changed to" << _noiseMutingThreshold;
             }
-        }
-
-        const QString FILTER_KEY = "enable_filter";
-        if (audioEnvGroupObject[FILTER_KEY].isBool()) {
-            _enableFilter = audioEnvGroupObject[FILTER_KEY].toBool();
-        }
-        if (_enableFilter) {
-            qDebug() << "Filter enabled";
         }
 
         const QString AUDIO_ZONES = "zones";
