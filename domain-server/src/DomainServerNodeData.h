@@ -53,6 +53,9 @@ public:
     
     void setNodeVersion(const QString& nodeVersion) { _nodeVersion = nodeVersion; }
     const QString& getNodeVersion() { return _nodeVersion; }
+
+    void setHardwareAddress(const QString& hardwareAddress) { _hardwareAddress = hardwareAddress; }
+    const QString& getHardwareAddress() { return _hardwareAddress; }
     
     void addOverrideForKey(const QString& key, const QString& value, const QString& overrideValue);
     void removeOverrideForKey(const QString& key, const QString& value);
@@ -81,6 +84,7 @@ private:
     bool _isAuthenticated = true;
     NodeSet _nodeInterestSet;
     QString _nodeVersion;
+    QString _hardwareAddress;
 
     QString _placeName;
 

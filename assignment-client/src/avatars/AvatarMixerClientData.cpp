@@ -11,6 +11,9 @@
 
 #include <udt/PacketHeaders.h>
 
+#include <DependencyManager.h>
+#include <NodeList.h>
+
 #include "AvatarMixerClientData.h"
 
 int AvatarMixerClientData::parseData(ReceivedMessage& message) {
@@ -36,6 +39,16 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
         return nodeMatch->second;
     } else {
         return 0;
+    }
+}
+
+void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {
+    if (!isRadiusIgnoring(other->getUUID())) {
+        addToRadiusIgnoringSet(other->getUUID());
+        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+        killPacket->write(other->getUUID().toRfc4122());
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(*killPacket, *self);
+        _hasReceivedFirstPacketsFrom.erase(other->getUUID());
     }
 }
 

@@ -23,6 +23,7 @@
 #include "LODManager.h"
 #include "Menu.h"
 #include "Snapshot.h"
+#include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
 
 #include "AmbientOcclusionEffect.h"
@@ -31,7 +32,7 @@
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
-
+    auto nodeList = DependencyManager::get<NodeList>();
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     static const QString AVATAR_BASICS { "Avatar Basics" };
     {
@@ -67,6 +68,18 @@ void setupPreferences() {
         auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
+    {
+        auto getter = [=]()->float { return nodeList->getIgnoreRadius(); };
+        auto setter = [=](float value) {
+            nodeList->ignoreNodesInRadius(value, nodeList->getIgnoreRadiusEnabled());
+        };
+        auto preference = new SpinnerPreference(AVATAR_BASICS, "Personal space bubble radius (default is 1m)", getter, setter);
+        preference->setMin(0.01f);
+        preference->setMax(99.9f);
+        preference->setDecimals(2);
+        preference->setStep(0.25);
+        preferences->addPreference(preference);
+    }
 
     // UI
     {
@@ -81,6 +94,20 @@ void setupPreferences() {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
         auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->bool { return SnapshotAnimated::alsoTakeAnimatedSnapshot.get(); };
+        auto setter = [](bool value) { SnapshotAnimated::alsoTakeAnimatedSnapshot.set(value); };
+        preferences->addPreference(new CheckPreference(SNAPSHOTS, "Take Animated GIF Snapshot with HUD Button", getter, setter));
+    }
+    {
+        auto getter = []()->float { return SnapshotAnimated::snapshotAnimatedDuration.get(); };
+        auto setter = [](float value) { SnapshotAnimated::snapshotAnimatedDuration.set(value); };
+        auto preference = new SpinnerPreference(SNAPSHOTS, "Animated Snapshot Duration", getter, setter);
+        preference->setMin(3);
+        preference->setMax(10);
+        preference->setStep(1);
         preferences->addPreference(preference);
     }
 

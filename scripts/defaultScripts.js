@@ -33,7 +33,8 @@ var DEFAULT_SCRIPTS = [
     "system/dialTone.js",
     "system/firstPersonHMD.js",
     "system/snapshot.js",
-    "system/help.js"
+    "system/help.js",
+    "system/bubble.js"
 ];
 
 // add a menu item for debugging
