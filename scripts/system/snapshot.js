@@ -133,7 +133,7 @@ function isDomainOpen(id) {
         'restriction=open,hifi' // If we're sharing, we're logged in
         // If we're here, protocol matches, and it is online
     ];
-    var url = "https://metaverse.highfidelity.com/api/v1/user_stories?" + options.join('&');
+    var url = location.metaverseServerUrl + "/api/v1/user_stories?" + options.join('&');
     request.open("GET", url, false);
     request.send();
     if (request.status != 200) {
