@@ -30,6 +30,7 @@
 #include <QtNetwork/QUdpSocket>
 
 #include <DependencyManager.h>
+#include <SettingHandle.h>
 
 #include "DomainHandler.h"
 #include "LimitedNodeList.h"
@@ -51,11 +52,11 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
-    NodeType_t getOwnerType() const { return _ownerType; }
-    void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
+    NodeType_t getOwnerType() const { return _ownerType.load(); }
+    void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
-    qint64 sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination);
-    qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
+    Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, HifiSockAddr destination);
+    Q_INVOKABLE qint64 sendStatsToDomainServer(QJsonObject statsObject);
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     DomainHandler& getDomainHandler() { return _domainHandler; }
@@ -70,10 +71,17 @@ public:
     
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
+    void ignoreNodesInRadius(float radiusToIgnore, bool enabled = true);
+    float getIgnoreRadius() const { return _ignoreRadius.get(); }
+    bool getIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled.get(); }
+    void toggleIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), !getIgnoreRadiusEnabled()); }
+    void enableIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), true); }
+    void disableIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), false); }
     void ignoreNodeBySessionID(const QUuid& nodeID);
     bool isIgnoringNode(const QUuid& nodeID) const;
 
     void kickNodeBySessionID(const QUuid& nodeID);
+    void muteNodeBySessionID(const QUuid& nodeID);
 
 public slots:
     void reset();
@@ -100,7 +108,7 @@ signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
     void ignoredNode(const QUuid& nodeID);
-    
+
 private slots:
     void stopKeepalivePingTimer();
     void sendPendingDSPathQuery();
@@ -132,7 +140,9 @@ private:
 
     void pingPunchForInactiveNode(const SharedNodePointer& node);
 
-    NodeType_t _ownerType;
+    bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
+
+    std::atomic<NodeType_t> _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
@@ -142,6 +152,10 @@ private:
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
+
+    void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
+    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false };
+    Setting::Handle<float> _ignoreRadius { "IgnoreRadius", 1.0f };
 
 #if (PR_BUILD || DEV_BUILD)
     bool _shouldSendNewerVersion { false };

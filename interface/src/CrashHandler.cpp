@@ -22,10 +22,11 @@
 #include <QVBoxLayout>
 #include <QtCore/QUrl>
 
+#include "Application.h"
 #include "Menu.h"
 #include <SettingHandle.h>
 
-static const QString RUNNING_MARKER_FILENAME = "Interface.running";
+#include <RunningMarker.h>
 
 bool CrashHandler::checkForResetSettings(bool suppressPrompt) {
     Settings settings;
@@ -38,7 +39,7 @@ bool CrashHandler::checkForResetSettings(bool suppressPrompt) {
     // If option does not exist in Interface.ini so assume default behavior.
     bool displaySettingsResetOnCrash = !displayCrashOptions.isValid() || displayCrashOptions.toBool();
 
-    QFile runningMarkerFile(runningMarkerFilePath());
+    QFile runningMarkerFile(RunningMarker::getMarkerFilePath(RUNNING_MARKER_FILENAME));
     bool wasLikelyCrash = runningMarkerFile.exists();
 
     if (suppressPrompt) {
@@ -159,20 +160,3 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
     }
 }
 
-void CrashHandler::writeRunningMarkerFiler() {
-    QFile runningMarkerFile(runningMarkerFilePath());
-    if (!runningMarkerFile.exists()) {
-        runningMarkerFile.open(QIODevice::WriteOnly);
-        runningMarkerFile.close();
-    }
-}
-void CrashHandler::deleteRunningMarkerFile() {
-    QFile runningMarkerFile(runningMarkerFilePath());
-    if (runningMarkerFile.exists()) {
-        runningMarkerFile.remove();
-    }
-}
-
-const QString CrashHandler::runningMarkerFilePath() {
-    return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + RUNNING_MARKER_FILENAME;
-}

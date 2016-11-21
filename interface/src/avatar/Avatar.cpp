@@ -99,12 +99,17 @@ Avatar::Avatar(RigPointer rig) :
 
     _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    _nameRectGeometryID = geometryCache->allocateID();
+    _leftPointerGeometryID = geometryCache->allocateID();
+    _rightPointerGeometryID = geometryCache->allocateID();
 }
 
 Avatar::~Avatar() {
     assert(isDead()); // mark dead before calling the dtor
 
-    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    auto treeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
@@ -118,6 +123,13 @@ Avatar::~Avatar() {
     if (_motionState) {
         delete _motionState;
         _motionState = nullptr;
+    }
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_nameRectGeometryID);
+        geometryCache->releaseID(_leftPointerGeometryID);
+        geometryCache->releaseID(_rightPointerGeometryID);
     }
 }
 
@@ -153,16 +165,17 @@ AABox Avatar::getBounds() const {
 
 void Avatar::animateScaleChanges(float deltaTime) {
     float currentScale = getUniformScale();
-    if (currentScale != _targetScale) {
-        // use exponential decay toward _targetScale
+    auto desiredScale = getDomainLimitedScale();
+    if (currentScale != desiredScale) {
+        // use exponential decay toward the domain limit clamped scale
         const float SCALE_ANIMATION_TIMESCALE = 0.5f;
         float blendFactor = glm::clamp(deltaTime / SCALE_ANIMATION_TIMESCALE, 0.0f, 1.0f);
-        float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * _targetScale;
+        float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * desiredScale;
 
         // snap to the end when we get close enough
         const float MIN_RELATIVE_SCALE_ERROR = 0.03f;
-        if (fabsf(_targetScale - currentScale) / _targetScale < MIN_RELATIVE_SCALE_ERROR) {
-            animatedScale = _targetScale;
+        if (fabsf(desiredScale - currentScale) / desiredScale < MIN_RELATIVE_SCALE_ERROR) {
+            animatedScale = desiredScale;
         }
 
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
@@ -187,7 +200,7 @@ void Avatar::updateAvatarEntities() {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
-    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    auto treeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (!entityTree) {
         return;
@@ -221,6 +234,14 @@ void Avatar::updateAvatarEntities() {
 
             if (properties.getParentID() == AVATAR_SELF_ID) {
                 properties.setParentID(getID());
+            }
+
+            // NOTE: if this avatar entity is not attached to us, strip its entity script completely...
+            auto attachedScript = properties.getScript();
+            if (!isMyAvatar() && !attachedScript.isEmpty()) {
+                qCDebug(interfaceapp) << "removing entity script from avatar attached entity:" << entityID << "old script:" << attachedScript;
+                QString noScript;
+                properties.setScript(noScript);
             }
 
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
@@ -492,7 +513,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
                 geometryCache->bindSimpleProgram(batch);
-                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
+                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor, _leftPointerGeometryID);
             }
         }
 
@@ -516,7 +537,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
                 geometryCache->bindSimpleProgram(batch);
-                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
+                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor, _rightPointerGeometryID);
             }
         }
     }
@@ -603,14 +624,14 @@ void Avatar::fixupModelsInScene() {
         _skeletonModel->removeFromScene(scene, pendingChanges);
         _skeletonModel->addToScene(scene, pendingChanges);
     }
-    for (auto& attachmentModel : _attachmentModels) {
+    for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, pendingChanges);
             attachmentModel->addToScene(scene, pendingChanges);
         }
     }
 
-    for (auto& attachmentModelToRemove : _attachmentsToRemove) {
+    for (auto attachmentModelToRemove : _attachmentsToRemove) {
         attachmentModelToRemove->removeFromScene(scene, pendingChanges);
     }
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
@@ -782,7 +803,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderBevelCornersRect");
             DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, true, true);
             DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
-                bevelDistance, backgroundColor);
+                bevelDistance, backgroundColor, _nameRectGeometryID);
         }
 
         // Render actual name

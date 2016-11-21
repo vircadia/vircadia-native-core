@@ -16,7 +16,11 @@
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
+    ~OculusBaseDisplayPlugin();
     bool isSupported() const override;
+
+    bool hasAsyncReprojection() const override { return true; }
+
 
     // Stereo specific methods
     void resetSensors() override final;

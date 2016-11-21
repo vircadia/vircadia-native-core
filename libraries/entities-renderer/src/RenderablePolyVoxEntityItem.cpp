@@ -580,6 +580,11 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         voxelVolumeSize = _voxelVolumeSize;
     });
 
+    if (!mesh ||
+        !mesh->getIndexBuffer()._buffer) {
+        return;
+    }
+
     if (!_pipeline) {
         gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
         gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
@@ -600,17 +605,23 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         _pipeline = gpu::Pipeline::create(program, state);
     }
 
+    if (!_vertexFormat) {
+        auto vf = std::make_shared<gpu::Stream::Format>();
+        vf->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        vf->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 12);
+        _vertexFormat = vf;
+    }
+
     gpu::Batch& batch = *args->_batch;
     batch.setPipeline(_pipeline);
 
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
-    batch.setInputFormat(mesh->getVertexFormat());
-    batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
-    batch.setInputBuffer(gpu::Stream::NORMAL,
-                         mesh->getVertexBuffer()._buffer,
-                         sizeof(float) * 3,
-                         mesh->getVertexBuffer()._stride);
+    batch.setInputFormat(_vertexFormat);
+    batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer()._buffer,
+                         0,
+                         sizeof(PolyVox::PositionMaterialNormal));
+
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
 
     if (!_xTextureURL.isEmpty() && !_xTexture) {
@@ -1035,50 +1046,53 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
         return;
     }
 
-    EntityItemPointer currentXPNeighbor = _xPNeighbor.lock();
-    EntityItemPointer currentYPNeighbor = _yPNeighbor.lock();
-    EntityItemPointer currentZPNeighbor = _zPNeighbor.lock();
+    auto currentXPNeighbor = getXPNeighbor();
+    auto currentYPNeighbor = getYPNeighbor();
+    auto currentZPNeighbor = getZPNeighbor();
 
-    if (currentXPNeighbor) {
-        auto polyVoxXPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXPNeighbor);
-        if (polyVoxXPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
-            withWriteLock([&] {
+    if (currentXPNeighbor && currentXPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+        withWriteLock([&] {
+            for (int y = 0; y < _volData->getHeight(); y++) {
+                for (int z = 0; z < _volData->getDepth(); z++) {
+                    uint8_t neighborValue = currentXPNeighbor->getVoxel(0, y, z);
+                    if ((y == 0 || z == 0) && _volData->getVoxelAt(_volData->getWidth() - 1, y, z) != neighborValue) {
+                        bonkNeighbors();
+                    }
+                    _volData->setVoxelAt(_volData->getWidth() - 1, y, z, neighborValue);
+                }
+            }
+        });
+    }
+
+
+    if (currentYPNeighbor && currentYPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+        withWriteLock([&] {
+            for (int x = 0; x < _volData->getWidth(); x++) {
+                for (int z = 0; z < _volData->getDepth(); z++) {
+                    uint8_t neighborValue = currentYPNeighbor->getVoxel(x, 0, z);
+                    if ((x == 0 || z == 0) && _volData->getVoxelAt(x, _volData->getHeight() - 1, z) != neighborValue) {
+                        bonkNeighbors();
+                    }
+                    _volData->setVoxelAt(x, _volData->getHeight() - 1, z, neighborValue);
+                }
+            }
+        });
+    }
+
+
+    if (currentZPNeighbor && currentZPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+        withWriteLock([&] {
+            for (int x = 0; x < _volData->getWidth(); x++) {
                 for (int y = 0; y < _volData->getHeight(); y++) {
-                    for (int z = 0; z < _volData->getDepth(); z++) {
-                        uint8_t neighborValue = polyVoxXPNeighbor->getVoxel(0, y, z);
-                        _volData->setVoxelAt(_volData->getWidth() - 1, y, z, neighborValue);
+                    uint8_t neighborValue = currentZPNeighbor->getVoxel(x, y, 0);
+                    _volData->setVoxelAt(x, y, _volData->getDepth() - 1, neighborValue);
+                    if ((x == 0 || y == 0) && _volData->getVoxelAt(x, y, _volData->getDepth() - 1) != neighborValue) {
+                        bonkNeighbors();
                     }
+                    _volData->setVoxelAt(x, y, _volData->getDepth() - 1, neighborValue);
                 }
-            });
-        }
-    }
-
-    if (currentYPNeighbor) {
-        auto polyVoxYPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYPNeighbor);
-        if (polyVoxYPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
-            withWriteLock([&] {
-                for (int x = 0; x < _volData->getWidth(); x++) {
-                    for (int z = 0; z < _volData->getDepth(); z++) {
-                        uint8_t neighborValue = polyVoxYPNeighbor->getVoxel(x, 0, z);
-                        _volData->setVoxelAt(x, _volData->getWidth() - 1, z, neighborValue);
-                    }
-                }
-            });
-        }
-    }
-
-    if (currentZPNeighbor) {
-        auto polyVoxZPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZPNeighbor);
-        if (polyVoxZPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
-            withWriteLock([&] {
-                for (int x = 0; x < _volData->getWidth(); x++) {
-                    for (int y = 0; y < _volData->getHeight(); y++) {
-                        uint8_t neighborValue = polyVoxZPNeighbor->getVoxel(x, y, 0);
-                        _volData->setVoxelAt(x, y, _volData->getDepth() - 1, neighborValue);
-                    }
-                }
-            });
-        }
+            }
+        });
     }
 }
 
@@ -1093,7 +1107,6 @@ void RenderablePolyVoxEntityItem::getMesh() {
     copyUpperEdgesFromNeighbors();
 
     auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
-
 
     QtConcurrent::run([entity, voxelSurfaceStyle] {
         model::MeshPointer mesh(new model::Mesh());
@@ -1136,25 +1149,21 @@ void RenderablePolyVoxEntityItem::getMesh() {
         auto indexBuffer = std::make_shared<gpu::Buffer>(vecIndices.size() * sizeof(uint32_t),
                                                          (gpu::Byte*)vecIndices.data());
         auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
-        auto indexBufferView = new gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
-        mesh->setIndexBuffer(*indexBufferView);
+        gpu::BufferView indexBufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
+        mesh->setIndexBuffer(indexBufferView);
 
         const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getVertices();
         auto vertexBuffer = std::make_shared<gpu::Buffer>(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
                                                           (gpu::Byte*)vecVertices.data());
         auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
-        gpu::Resource::Size vertexBufferSize = 0;
-        if (vertexBufferPtr->getSize() > sizeof(float) * 3) {
-            vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 3;
-        }
-        auto vertexBufferView = new gpu::BufferView(vertexBufferPtr, 0, vertexBufferSize,
-                                                    sizeof(PolyVox::PositionMaterialNormal),
-                                                    gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
-        mesh->setVertexBuffer(*vertexBufferView);
+        gpu::BufferView vertexBufferView(vertexBufferPtr, 0,
+                                         vertexBufferPtr->getSize(),
+                                         sizeof(PolyVox::PositionMaterialNormal),
+                                         gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
+        mesh->setVertexBuffer(vertexBufferView);
         mesh->addAttribute(gpu::Stream::NORMAL,
-                           gpu::BufferView(vertexBufferPtr,
-                                           sizeof(float) * 3,
-                                           vertexBufferPtr->getSize() - sizeof(float) * 3,
+                           gpu::BufferView(vertexBufferPtr, sizeof(float) * 3,
+                                           vertexBufferPtr->getSize() ,
                                            sizeof(PolyVox::PositionMaterialNormal),
                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
         entity->setMesh(mesh);
@@ -1320,14 +1329,14 @@ void RenderablePolyVoxEntityItem::setCollisionPoints(ShapeInfo::PointCollection 
     // include the registrationPoint in the shape key, because the offset is already
     // included in the points and the shapeManager wont know that the shape has changed.
     withWriteLock([&] {
-            QString shapeKey = QString(_voxelData.toBase64()) + "," +
-                QString::number(_registrationPoint.x) + "," +
-                QString::number(_registrationPoint.y) + "," +
-                QString::number(_registrationPoint.z);
-            _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
-            _shapeInfo.setPointCollection(pointCollection);
-            _meshDirty = false;
-        });
+        QString shapeKey = QString(_voxelData.toBase64()) + "," +
+            QString::number(_registrationPoint.x) + "," +
+            QString::number(_registrationPoint.y) + "," +
+            QString::number(_registrationPoint.z);
+        _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
+        _shapeInfo.setPointCollection(pointCollection);
+        _meshDirty = false;
+    });
 }
 
 void RenderablePolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighborID) {
@@ -1393,25 +1402,59 @@ void RenderablePolyVoxEntityItem::setZPNeighborID(const EntityItemID& zPNeighbor
     }
 }
 
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getXNNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_xNNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getYNNeighbor() {
+        return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_yNNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getZNNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_zNNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getXPNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_xPNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getYPNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_yPNeighbor.lock());
+}
+
+std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getZPNeighbor() {
+    return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_zPNeighbor.lock());
+}
+
 
 void RenderablePolyVoxEntityItem::bonkNeighbors() {
     // flag neighbors to the negative of this entity as needing to rebake their meshes.
     cacheNeighbors();
 
-    EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
-    EntityItemPointer currentYNNeighbor = _yNNeighbor.lock();
-    EntityItemPointer currentZNNeighbor = _zNNeighbor.lock();
+    auto currentXNNeighbor = getXNNeighbor();
+    auto currentYNNeighbor = getYNNeighbor();
+    auto currentZNNeighbor = getZNNeighbor();
 
-    if (currentXNNeighbor && currentXNNeighbor->getType() == EntityTypes::PolyVox) {
-        auto polyVoxXNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNNeighbor);
-        polyVoxXNNeighbor->setVolDataDirty();
+    if (currentXNNeighbor) {
+        currentXNNeighbor->setVolDataDirty();
     }
-    if (currentYNNeighbor && currentYNNeighbor->getType() == EntityTypes::PolyVox) {
-        auto polyVoxYNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNNeighbor);
-        polyVoxYNNeighbor->setVolDataDirty();
+    if (currentYNNeighbor) {
+        currentYNNeighbor->setVolDataDirty();
     }
-    if (currentZNNeighbor && currentZNNeighbor->getType() == EntityTypes::PolyVox) {
-        auto polyVoxZNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNNeighbor);
-        polyVoxZNNeighbor->setVolDataDirty();
+    if (currentZNNeighbor) {
+        currentZNNeighbor->setVolDataDirty();
     }
+}
+
+
+void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
+    EntityItem::locationChanged(tellPhysics);
+    if (!_pipeline || !render::Item::isValidID(_myItem)) {
+        return;
+    }
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
+    pendingChanges.updateItem<PolyVoxPayload>(_myItem, [](PolyVoxPayload& payload) {});
+
+    scene->enqueuePendingChanges(pendingChanges);
 }

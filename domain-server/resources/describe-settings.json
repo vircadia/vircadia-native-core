@@ -389,6 +389,23 @@
           "advanced": false
         },
         {
+          "name": "ac_subnet_whitelist",
+          "label": "Assignment Client IP address Whitelist",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "The IP addresses or subnets of ACs that can connect to this server. You can specify an IP address or a subnet in CIDR notation ('A.B.C.D/E', Example: '10.0.0.0/24'). Local ACs (localhost) are always permitted and do not need to be added here.",
+          "numbered": false,
+          "advanced": true,
+          "columns": [
+            {
+              "name": "ip",
+              "label": "IP Address",
+              "type": "ip",
+              "can_set": true
+            }
+          ]
+        },
+        {
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",
@@ -668,6 +685,79 @@
           ]
         },
         {
+          "name": "permissions",
+          "type": "table",
+          "caption": "Permissions for Specific Users",
+          "can_add_new_rows": true,
+
+          "groups": [
+            {
+              "label": "User",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level or group permissions that might otherwise apply to that user.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": ""
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
+        },
+        {
           "name": "ip_permissions",
           "type": "table",
           "caption": "Permissions for Users from IP Addresses",
@@ -740,18 +830,17 @@
           ]
         },
         {
-          "name": "permissions",
+          "name": "mac_permissions",
           "type": "table",
-          "caption": "Permissions for Specific Users",
+          "caption": "Permissions for Users with MAC Addresses",
           "can_add_new_rows": true,
-
           "groups": [
             {
-              "label": "User",
+              "label": "MAC Address",
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level or group permissions that might otherwise apply to that user.</p>'>?</a>",
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide MAC Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users with specific MACs can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific MACs can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users with specific MACs can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users with specific MACs can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users with specific MACs can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users with specific MACs can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific MAC will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). MAC address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
               "span": 7
             }
           ],
@@ -863,15 +952,29 @@
           "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
           "default": "",
           "advanced": true
+        }
+      ]
+    },
+    {
+      "name": "avatars",
+      "label": "Avatars",
+      "assignment-types": [1, 2],
+      "settings": [
+        {
+          "name": "min_avatar_scale",
+          "type": "double",
+          "label": "Minimum Avatar Scale",
+          "help": "Limits the scale of avatars in your domain. Must be at least 0.005.",
+          "placeholder": 0.25,
+          "default": 0.25
         },
         {
-          "name": "max_bandwidth",
+          "name": "max_avatar_scale",
           "type": "double",
-          "label": "Max Bandwidth Per User",
-          "help": "The maximum upstream bandwidth each user can use (in Mb/s).",
-          "placeholder": "10.0",
-          "default": "",
-          "advanced": true
+          "label": "Maximum Avatar Scale",
+          "help": "Limits the scale of avatars in your domain. Cannot be greater than 1000.",
+          "placeholder": 3.0,
+          "default": 3.0
         }
       ]
     },
@@ -1082,6 +1185,14 @@
           "help": "The maximum number of seconds for the lifetime of an entity which will be considered \"temporary\".",
           "placeholder": "3600",
           "default": "3600",
+          "advanced": true
+        },
+        {
+          "name": "entityScriptSourceWhitelist",
+          "label": "Entity Scripts Allowed from:",
+          "help": "The domains that entity scripts are allowed from. A comma separated list of domains that entity scripts are allowed from, if someone attempts to create and entity or edit an entity to have a different domain, it will be rejected. If left blank, any domain is allowed.",
+          "placeholder": "",
+          "default": "",
           "advanced": true
         },
         {

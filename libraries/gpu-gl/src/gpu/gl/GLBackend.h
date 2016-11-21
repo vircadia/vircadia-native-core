@@ -29,6 +29,29 @@
 
 #include "GLShared.h"
 
+
+// Different versions for the stereo drawcall
+// Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
+//#define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
+//#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
+#define GPU_STEREO_TECHNIQUE_INSTANCED
+
+
+// Let these be configured by the one define picked above
+#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
+#define GPU_STEREO_DRAWCALL_DOUBLED
+#endif
+
+#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
+#define GPU_STEREO_DRAWCALL_DOUBLED
+#define GPU_STEREO_CAMERA_BUFFER
+#endif
+
+#ifdef GPU_STEREO_TECHNIQUE_INSTANCED
+#define GPU_STEREO_DRAWCALL_INSTANCED
+#define GPU_STEREO_CAMERA_BUFFER
+#endif
+
 namespace gpu { namespace gl {
 
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
@@ -60,9 +83,7 @@ public:
                                      const Vec4i& region, QImage& destImage) final override;
 
 
-    static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
-    static const int MAX_NUM_INPUT_BUFFERS = 16;
-
+    // this is the maximum numeber of available input buffers
     size_t getNumInputBuffers() const { return _input._invalidBuffers.size(); }
 
     // this is the maximum per shader stage on the low end apple
@@ -124,6 +145,10 @@ public:
     virtual void do_startNamedCall(const Batch& batch, size_t paramOffset) final;
     virtual void do_stopNamedCall(const Batch& batch, size_t paramOffset) final;
 
+    static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
+    // The drawcall Info attribute  channel is reserved and is the upper bound for the number of availables Input buffers
+    static const int MAX_NUM_INPUT_BUFFERS = Stream::DRAW_CALL_INFO;
+
     virtual void do_pushProfileRange(const Batch& batch, size_t paramOffset) final;
     virtual void do_popProfileRange(const Batch& batch, size_t paramOffset) final;
 
@@ -176,6 +201,8 @@ public:
     virtual void releaseQuery(GLuint id) const;
     virtual void queueLambda(const std::function<void()> lambda) const;
 
+    bool isTextureManagementSparseEnabled() const override { return (_textureManagement._sparseCapable && Texture::getEnableSparseTextures()); }
+
 protected:
 
     void recycle() const override;
@@ -202,23 +229,29 @@ protected:
 
     void renderPassTransfer(const Batch& batch);
     void renderPassDraw(const Batch& batch);
+
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
     void setupStereoSide(int side);
+#endif
 
     virtual void initInput() final;
     virtual void killInput() final;
     virtual void syncInputStateCache() final;
-    virtual void resetInputStage() final;
-    virtual void updateInput();
+    virtual void resetInputStage();
+    virtual void updateInput() = 0;
 
     struct InputStageState {
         bool _invalidFormat { true };
         Stream::FormatPointer _format;
+        std::string _formatKey;
 
         typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
         ActivationCache _attributeActivation { 0 };
 
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
-        BuffersState _invalidBuffers { 0 };
+
+        BuffersState _invalidBuffers{ 0 };
+        BuffersState _attribBindingBuffers{ 0 };
 
         Buffers _buffers;
         Offsets _bufferOffsets;
@@ -238,7 +271,11 @@ protected:
         GLuint _defaultVAO { 0 };
 
         InputStageState() :
-            _buffers(_invalidBuffers.size()),
+            _invalidFormat(true),
+            _format(0),
+            _formatKey(),
+            _attributeActivation(0),
+            _buffers(_invalidBuffers.size(), BufferPointer(0)),
             _bufferOffsets(_invalidBuffers.size(), 0),
             _bufferStrides(_invalidBuffers.size(), 0),
             _bufferVBOs(_invalidBuffers.size(), 0) {}
@@ -248,8 +285,8 @@ protected:
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
-    void updateTransform(const Batch& batch);
-    void resetTransformStage();
+    virtual void updateTransform(const Batch& batch) = 0;
+    virtual void resetTransformStage();
 
     // Allows for correction of the camera pose to account for changes
     // between the time when a was recorded and the time(s) when it is 
@@ -260,7 +297,19 @@ protected:
     };
 
     struct TransformStageState {
+#ifdef GPU_STEREO_CAMERA_BUFFER
+        struct Cameras {
+            TransformCamera _cams[2];
+
+            Cameras() {};
+            Cameras(const TransformCamera& cam) { memcpy(_cams, &cam, sizeof(TransformCamera)); };
+            Cameras(const TransformCamera& camL, const TransformCamera& camR) { memcpy(_cams, &camL, sizeof(TransformCamera)); memcpy(_cams + 1, &camR, sizeof(TransformCamera)); };
+        };
+
+        using CameraBufferElement = Cameras;
+#else
         using CameraBufferElement = TransformCamera;
+#endif
         using TransformCameras = std::vector<CameraBufferElement>;
 
         TransformCamera _camera;
@@ -284,6 +333,8 @@ protected:
         bool _invalidView { false };
         bool _invalidProj { false };
         bool _invalidViewport { false };
+
+        bool _enabledDrawcallInfoBuffer{ false };
 
         using Pair = std::pair<size_t, size_t>;
         using List = std::list<Pair>;
@@ -359,10 +410,15 @@ protected:
 
     void resetQueryStage();
     struct QueryStageState {
-        
-    };
+        uint32_t _rangeQueryDepth { 0 };
+    } _queryStage;
 
     void resetStages();
+
+    struct TextureManagementStageState {
+        bool _sparseCapable { false };
+    } _textureManagement;
+    virtual void initTextureManagementStage() {}
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

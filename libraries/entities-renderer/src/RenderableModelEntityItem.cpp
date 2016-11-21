@@ -55,7 +55,10 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
     auto& currentURL = getParsedModelURL();
     ModelEntityItem::setModelURL(url);
 
-    if (currentURL != getParsedModelURL() || !_model) {
+    if (currentURL != getParsedModelURL()) {
+        _needsModelReload = true;
+    }
+    if (_needsModelReload || !_model) {
         EntityTreePointer tree = getTree();
         if (tree) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
@@ -65,7 +68,7 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
 
 void RenderableModelEntityItem::loader() {
     _needsModelReload = true;
-    EntityTreeRenderer* renderer = DependencyManager::get<EntityTreeRenderer>().data();
+    auto renderer = DependencyManager::get<EntityTreeRenderer>();
     assert(renderer);
     {
         PerformanceTimer perfTimer("getModel");
@@ -307,14 +310,14 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                         }
                         glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
                                               rotationMat * fbxJoints[index].postTransform);
-                        _absoluteJointTranslationsInObjectFrame[j] = extractTranslation(finalMat);
-                        _absoluteJointTranslationsInObjectFrameSet[j] = true;
-                        _absoluteJointTranslationsInObjectFrameDirty[j] = true;
+                        _localJointTranslations[j] = extractTranslation(finalMat);
+                        _localJointTranslationsSet[j] = true;
+                        _localJointTranslationsDirty[j] = true;
 
-                        _absoluteJointRotationsInObjectFrame[j] = glmExtractRotation(finalMat);
+                        _localJointRotations[j] = glmExtractRotation(finalMat);
 
-                        _absoluteJointRotationsInObjectFrameSet[j] = true;
-                        _absoluteJointRotationsInObjectFrameDirty[j] = true;
+                        _localJointRotationsSet[j] = true;
+                        _localJointRotationsDirty[j] = true;
                     }
                 }
             }
@@ -368,7 +371,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize
                 PerformanceTimer perfTimer("getModel");
-                EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
+                auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
                 getModel(renderer);
 
                 // Remap textures immediately after loading to avoid flicker
@@ -387,18 +390,18 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     getAnimationFrame();
 
                     // relay any inbound joint changes from scripts/animation/network to the model/rig
-                    for (int index = 0; index < _absoluteJointRotationsInObjectFrame.size(); index++) {
-                        if (_absoluteJointRotationsInObjectFrameDirty[index]) {
-                            glm::quat rotation = _absoluteJointRotationsInObjectFrame[index];
+                    for (int index = 0; index < _localJointRotations.size(); index++) {
+                        if (_localJointRotationsDirty[index]) {
+                            glm::quat rotation = _localJointRotations[index];
                             _model->setJointRotation(index, true, rotation, 1.0f);
-                            _absoluteJointRotationsInObjectFrameDirty[index] = false;
+                            _localJointRotationsDirty[index] = false;
                         }
                     }
-                    for (int index = 0; index < _absoluteJointTranslationsInObjectFrame.size(); index++) {
-                        if (_absoluteJointTranslationsInObjectFrameDirty[index]) {
-                            glm::vec3 translation = _absoluteJointTranslationsInObjectFrame[index];
+                    for (int index = 0; index < _localJointTranslations.size(); index++) {
+                        if (_localJointTranslationsDirty[index]) {
+                            glm::vec3 translation = _localJointTranslations[index];
                             _model->setJointTranslation(index, true, translation, 1.0f);
-                            _absoluteJointTranslationsInObjectFrameDirty[index] = false;
+                            _localJointTranslationsDirty[index] = false;
                         }
                     }
                 });
@@ -470,7 +473,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 }
 
-ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
+ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRenderer> renderer) {
     if (!renderer) {
         return nullptr;
     }
@@ -495,7 +498,7 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {
-            QMetaObject::invokeMethod(_myRenderer, "updateModel", Qt::QueuedConnection,
+            QMetaObject::invokeMethod(_myRenderer.data(), "updateModel", Qt::QueuedConnection,
                 Q_ARG(ModelPointer, _model),
                 Q_ARG(const QString&, getModelURL()));
             _needsInitialSimulation = true;
@@ -523,17 +526,24 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
 }
 
 void RenderableModelEntityItem::update(const quint64& now) {
-    if (!_dimensionsInitialized && _model && _model->isActive()) {
-        if (_model->isLoaded()) {
-            EntityItemProperties properties;
-            properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
-            auto extents = _model->getMeshExtents();
-            properties.setDimensions(extents.maximum - extents.minimum);
-            qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
-            QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(QUuid, getEntityItemID()),
-                                      Q_ARG(EntityItemProperties, properties));
+    if (!_dimensionsInitialized) {
+        if (_model) {
+            if (_model->isActive() && _model->isLoaded()) {
+                EntityItemProperties properties;
+                properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
+                auto extents = _model->getMeshExtents();
+                properties.setDimensions(extents.maximum - extents.minimum);
+                qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+                QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                                        Qt::QueuedConnection,
+                                        Q_ARG(QUuid, getEntityItemID()),
+                                        Q_ARG(EntityItemProperties, properties));
+            }
+        } else if (_needsModelReload) {
+            EntityTreePointer tree = getTree();
+            if (tree) {
+                QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+            }
         }
     }
 
@@ -1018,15 +1028,101 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
 }
 
 bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) {
+    if (!_model) {
+        return false;
+    }
+    RigPointer rig = _model->getRig();
+    if (!rig) {
+        return false;
+    }
+
+    int jointParentIndex = rig->getJointParentIndex(index);
+    if (jointParentIndex == -1) {
+        return setLocalJointRotation(index, rotation);
+    }
+
+    bool success;
+    AnimPose jointParentPose;
+    success = rig->getAbsoluteJointPoseInRigFrame(jointParentIndex, jointParentPose);
+    if (!success) {
+        return false;
+    }
+    AnimPose jointParentInversePose = jointParentPose.inverse();
+
+    AnimPose jointAbsolutePose; // in rig frame
+    success = rig->getAbsoluteJointPoseInRigFrame(index, jointAbsolutePose);
+    if (!success) {
+        return false;
+    }
+    jointAbsolutePose.rot = rotation;
+
+    AnimPose jointRelativePose = jointParentInversePose * jointAbsolutePose;
+    return setLocalJointRotation(index, jointRelativePose.rot);
+}
+
+bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
+    if (!_model) {
+        return false;
+    }
+    RigPointer rig = _model->getRig();
+    if (!rig) {
+        return false;
+    }
+
+    int jointParentIndex = rig->getJointParentIndex(index);
+    if (jointParentIndex == -1) {
+        return setLocalJointTranslation(index, translation);
+    }
+
+    bool success;
+    AnimPose jointParentPose;
+    success = rig->getAbsoluteJointPoseInRigFrame(jointParentIndex, jointParentPose);
+    if (!success) {
+        return false;
+    }
+    AnimPose jointParentInversePose = jointParentPose.inverse();
+
+    AnimPose jointAbsolutePose; // in rig frame
+    success = rig->getAbsoluteJointPoseInRigFrame(index, jointAbsolutePose);
+    if (!success) {
+        return false;
+    }
+    jointAbsolutePose.trans = translation;
+
+    AnimPose jointRelativePose = jointParentInversePose * jointAbsolutePose;
+    return setLocalJointTranslation(index, jointRelativePose.trans);
+}
+
+glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {
+    if (_model) {
+        glm::quat result;
+        if (_model->getJointRotation(index, result)) {
+            return result;
+        }
+    }
+    return glm::quat();
+}
+
+glm::vec3 RenderableModelEntityItem::getLocalJointTranslation(int index) const {
+    if (_model) {
+        glm::vec3 result;
+        if (_model->getJointTranslation(index, result)) {
+            return result;
+        }
+    }
+    return glm::vec3();
+}
+
+bool RenderableModelEntityItem::setLocalJointRotation(int index, const glm::quat& rotation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
         _jointRotationsExplicitlySet = true;
         resizeJointArrays();
-        if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size() &&
-            _absoluteJointRotationsInObjectFrame[index] != rotation) {
-            _absoluteJointRotationsInObjectFrame[index] = rotation;
-            _absoluteJointRotationsInObjectFrameSet[index] = true;
-            _absoluteJointRotationsInObjectFrameDirty[index] = true;
+        if (index >= 0 && index < _localJointRotations.size() &&
+            _localJointRotations[index] != rotation) {
+            _localJointRotations[index] = rotation;
+            _localJointRotationsSet[index] = true;
+            _localJointRotationsDirty[index] = true;
             result = true;
             _needsJointSimulation = true;
         }
@@ -1034,16 +1130,16 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
     return result;
 }
 
-bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
+bool RenderableModelEntityItem::setLocalJointTranslation(int index, const glm::vec3& translation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
         _jointTranslationsExplicitlySet = true;
         resizeJointArrays();
-        if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size() &&
-            _absoluteJointTranslationsInObjectFrame[index] != translation) {
-            _absoluteJointTranslationsInObjectFrame[index] = translation;
-            _absoluteJointTranslationsInObjectFrameSet[index] = true;
-            _absoluteJointTranslationsInObjectFrameDirty[index] = true;
+        if (index >= 0 && index < _localJointTranslations.size() &&
+            _localJointTranslations[index] != translation) {
+            _localJointTranslations[index] = translation;
+            _localJointTranslationsSet[index] = true;
+            _localJointTranslationsDirty[index] = true;
             result = true;
             _needsJointSimulation = true;
         }

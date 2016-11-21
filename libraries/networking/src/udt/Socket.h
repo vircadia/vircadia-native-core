@@ -16,13 +16,14 @@
 
 #include <functional>
 #include <unordered_map>
+#include <mutex>
 
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
-#include "CongestionControl.h"
+#include "TCPVegasCC.h"
 #include "Connection.h"
 
 //#define UDT_CONNECTION_DEBUG
@@ -37,6 +38,7 @@ class PacketList;
 class SequenceNumber;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
+using ConnectionCreationFilterOperator = std::function<bool(const HifiSockAddr&)>;
 
 using BasePacketHandler = std::function<void(std::unique_ptr<BasePacket>)>;
 using PacketHandler = std::function<void(std::unique_ptr<Packet>)>;
@@ -45,10 +47,14 @@ using MessageFailureHandler = std::function<void(HifiSockAddr, udt::Packet::Mess
 
 class Socket : public QObject {
     Q_OBJECT
+
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+
 public:
     using StatsVector = std::vector<std::pair<HifiSockAddr, ConnectionStats::Stats>>;
     
-    Socket(QObject* object = 0);
+    Socket(QObject* object = 0, bool shouldChangeSocketOptions = true);
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
@@ -68,6 +74,8 @@ public:
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
     void setMessageHandler(MessageHandler handler) { _messageHandler = handler; }
     void setMessageFailureHandler(MessageFailureHandler handler) { _messageFailureHandler = handler; }
+    void setConnectionCreationFilterOperator(ConnectionCreationFilterOperator filterOperator)
+        { _connectionCreationFilterOperator = filterOperator; }
     
     void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
@@ -80,12 +88,20 @@ public:
     
     StatsVector sampleStatsForAllConnections();
 
+#if (PR_BUILD || DEV_BUILD)
+    void sendFakedHandshakeRequest(const HifiSockAddr& sockAddr);
+#endif
+
+signals:
+    void clientHandshakeRequestComplete(const HifiSockAddr& sockAddr);
+
 public slots:
     void cleanupConnection(HifiSockAddr sockAddr);
     void clearConnections();
     
 private slots:
     void readPendingDatagrams();
+    void checkForReadyReadBackup();
     void rateControlSync();
 
     void handleSocketError(QAbstractSocket::SocketError socketError);
@@ -93,7 +109,8 @@ private slots:
 
 private:
     void setSystemBufferSizes();
-    Connection& findOrCreateConnection(const HifiSockAddr& sockAddr);
+    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr);
+    bool socketMatchesNodeOrDomain(const HifiSockAddr& sockAddr);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
@@ -109,7 +126,10 @@ private:
     PacketHandler _packetHandler;
     MessageHandler _messageHandler;
     MessageFailureHandler _messageFailureHandler;
-    
+    ConnectionCreationFilterOperator _connectionCreationFilterOperator;
+
+    Mutex _unreliableSequenceNumbersMutex;
+
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
     std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
@@ -117,9 +137,17 @@ private:
     int _synInterval { 10 }; // 10ms
     QTimer* _synTimer { nullptr };
 
+    QTimer* _readyReadBackupTimer { nullptr };
+
     int _maxBandwidth { -1 };
-    
-    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
+
+    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPVegasCC>() };
+
+    bool _shouldChangeSocketOptions { true };
+
+    int _lastPacketSizeRead { 0 };
+    SequenceNumber _lastReceivedSequenceNumber;
+    HifiSockAddr _lastPacketSockAddr;
     
     friend UDTTest;
 };

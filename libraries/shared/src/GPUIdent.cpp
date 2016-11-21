@@ -10,9 +10,15 @@
 
 #include <QtCore/QtGlobal>
 
+
 #ifdef Q_OS_WIN
-#include <atlbase.h>
-#include <Wbemidl.h>
+#include <string>
+
+//#include <atlbase.h>
+//#include <Wbemidl.h>
+
+#include <dxgi1_3.h>
+#pragma comment(lib, "dxgi.lib")
 
 #elif defined(Q_OS_MAC)
 #include <OpenGL/OpenGL.h>
@@ -53,9 +59,101 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     CGLDestroyRendererInfo(rendererInfo);
 
 #elif defined(Q_OS_WIN)
+
+    struct ConvertLargeIntegerToQString {
+        QString convert(const LARGE_INTEGER& version) {
+            QString value;
+            value.append(QString::number(uint32_t(((version.HighPart & 0xFFFF0000) >> 16) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t((version.HighPart) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t(((version.LowPart & 0xFFFF0000) >> 16) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t((version.LowPart) & 0x0000FFFF)));
+            return value;
+        }
+    } convertDriverVersionToString;
+
+    // Create the DXGI factory
+    // Let s get into DXGI land:
+    HRESULT hr = S_OK;
+
+    IDXGIFactory1* pFactory = nullptr;
+    hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)(&pFactory) );
+    if (hr != S_OK || pFactory == nullptr) {
+        qCDebug(shared) << "Unable to create DXGI";
+        return this;
+    }
+
+    std::vector<int> validAdapterList;
+    using AdapterEntry = std::pair<std::pair<DXGI_ADAPTER_DESC1, LARGE_INTEGER>, std::vector<DXGI_OUTPUT_DESC>>;
+    std::vector<AdapterEntry> adapterToOutputs;
+    // Enumerate adapters and outputs
+    {
+        UINT adapterNum = 0;
+        IDXGIAdapter1* pAdapter = nullptr;
+        while (pFactory->EnumAdapters1(adapterNum, &pAdapter) != DXGI_ERROR_NOT_FOUND) {
+
+            // Found an adapter, get descriptor
+            DXGI_ADAPTER_DESC1 adapterDesc;
+            pAdapter->GetDesc1(&adapterDesc);
+
+            LARGE_INTEGER version;
+            hr = pAdapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &version);
+
+            std::wstring wDescription (adapterDesc.Description);
+            std::string description(wDescription.begin(), wDescription.end());
+            qCDebug(shared) << "Found adapter: " << description.c_str()
+                << " Driver version: " << convertDriverVersionToString.convert(version);
+
+            AdapterEntry adapterEntry;
+            adapterEntry.first.first = adapterDesc;
+            adapterEntry.first.second = version;
+
+
+
+            UINT outputNum = 0;
+            IDXGIOutput * pOutput;
+            bool hasOutputConnectedToDesktop = false;
+            while (pAdapter->EnumOutputs(outputNum, &pOutput) != DXGI_ERROR_NOT_FOUND) {
+
+                // FOund an output attached to the adapter, get descriptor
+                DXGI_OUTPUT_DESC outputDesc;
+                pOutput->GetDesc(&outputDesc);
+
+                adapterEntry.second.push_back(outputDesc);
+
+                std::wstring wDeviceName(outputDesc.DeviceName);
+                std::string deviceName(wDeviceName.begin(), wDeviceName.end());
+                qCDebug(shared) << "    Found output: " << deviceName.c_str() << " desktop: " << (outputDesc.AttachedToDesktop ? "true" : "false")
+                    << " Rect [ l=" << outputDesc.DesktopCoordinates.left << " r=" << outputDesc.DesktopCoordinates.right
+                    << " b=" << outputDesc.DesktopCoordinates.bottom << " t=" << outputDesc.DesktopCoordinates.top << " ]";
+
+                hasOutputConnectedToDesktop |= (bool) outputDesc.AttachedToDesktop;
+
+                pOutput->Release();
+                outputNum++;
+            }
+
+            adapterToOutputs.push_back(adapterEntry);
+
+            // add this adapter to the valid list if has output
+            if (hasOutputConnectedToDesktop && !adapterEntry.second.empty()) {
+                validAdapterList.push_back(adapterNum);
+            }
+
+            pAdapter->Release();
+            adapterNum++;
+        }
+    }
+    pFactory->Release();
+
+
+    // THis was the previous technique used to detect the platform we are running on on windows.
+    /*
     // COM must be initialized already using CoInitialize. E.g., by the audio subsystem.
     CComPtr<IWbemLocator> spLoc = NULL;
-    HRESULT hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID *)&spLoc);
+    hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID *)&spLoc);
     if (hr != S_OK || spLoc == NULL) {
         qCDebug(shared) << "Unable to connect to WMI";
         return this;
@@ -99,7 +197,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
 
     ULONG uNumOfInstances = 0;
     CComPtr<IWbemClassObject> spInstance = NULL;
-    hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance, &uNumOfInstances);
+    hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance.p, &uNumOfInstances);
     while (hr == S_OK && spInstance && uNumOfInstances) {
         // Get properties from the object
         CComVariant var;
@@ -139,7 +237,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
                 var.ChangeType(CIM_UINT64);  // We're going to receive some integral type, but it might not be uint.
                 // We might be hosed here. The parameter is documented to be UINT32, but that's only 4 GB!
                 const ULONGLONG BYTES_PER_MEGABYTE = 1024 * 1024;
-                _dedicatedMemoryMB = (uint) (var.ullVal / BYTES_PER_MEGABYTE);
+                _dedicatedMemoryMB = (uint64_t) (var.ullVal / BYTES_PER_MEGABYTE);
             }
             else {
                 qCDebug(shared) << "Unable to get video AdapterRAM";
@@ -149,6 +247,22 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         }
         hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance.p, &uNumOfInstances);
     }
+    */
+
+    if (!validAdapterList.empty()) {
+        auto& adapterEntry = adapterToOutputs[validAdapterList.front()];
+
+        std::wstring wDescription(adapterEntry.first.first.Description);
+        std::string description(wDescription.begin(), wDescription.end());
+        _name = QString(description.c_str());
+
+        _driver = convertDriverVersionToString.convert(adapterEntry.first.second);
+
+        const ULONGLONG BYTES_PER_MEGABYTE = 1024 * 1024;
+        _dedicatedMemoryMB = (uint64_t)(adapterEntry.first.first.DedicatedVideoMemory / BYTES_PER_MEGABYTE);
+        _isValid = true;
+    }
+
 #endif
     return this;
 }

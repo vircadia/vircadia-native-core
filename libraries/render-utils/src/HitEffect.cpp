@@ -33,6 +33,14 @@
 
 
 HitEffect::HitEffect() {
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
+
+HitEffect::~HitEffect() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_geometryId && geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
@@ -77,10 +85,10 @@ void HitEffect::run(const render::SceneContextPointer& sceneContext, const rende
 
         batch.setPipeline(getHitEffectPipeline());
 
-        glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
-        glm::vec2 bottomLeft(-1.0f, -1.0f);
-        glm::vec2 topRight(1.0f, 1.0f);
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, color);
+        static const glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
+        static const glm::vec2 bottomLeft(-1.0f, -1.0f);
+        static const glm::vec2 topRight(1.0f, 1.0f);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, color, _geometryId);
     });
 }
 

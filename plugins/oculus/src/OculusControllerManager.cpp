@@ -25,11 +25,11 @@
 Q_DECLARE_LOGGING_CATEGORY(oculus)
 
 
-static const QString MENU_PARENT = "Avatar";
-static const QString MENU_NAME = "Oculus Touch Controllers";
-static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+static const char* MENU_PARENT = "Avatar";
+static const char* MENU_NAME = "Oculus Touch Controllers";
+static const char* MENU_PATH = "Avatar" ">" "Oculus Touch Controllers";
 
-const QString OculusControllerManager::NAME = "Oculus";
+const char* OculusControllerManager::NAME = "Oculus";
 
 bool OculusControllerManager::isSupported() const {
     return oculusAvailable();
@@ -115,6 +115,17 @@ void OculusControllerManager::stopHapticPulse(bool leftHand) {
     if (_touch) {
         _touch->stopHapticPulse(leftHand);
     }
+}
+
+QStringList OculusControllerManager::getSubdeviceNames() {
+    QStringList devices;
+    if (_touch) {
+        devices << _touch->getName();
+    }
+    if (_remote) {
+        devices << _remote->getName();
+    }
+    return devices;
 }
 
 using namespace controller;

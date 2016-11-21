@@ -228,7 +228,7 @@ var usersWindow = (function () {
 
     var WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
-        WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
+        WINDOW_BASE_MARGIN = 24, // A little less is needed in order look correct
         WINDOW_FONT = {
             size: 12
         },
@@ -253,11 +253,17 @@ var usersWindow = (function () {
         windowPane,
         windowHeading,
 
+        // Margin on the left and right side of the window to keep
+        // it from getting too close to the edge of the screen which
+        // is unclickable.
+        WINDOW_MARGIN_X = 20,
+
         // Window border is similar to that of edit.js.
-        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_LEFT_MARGIN = WINDOW_BASE_MARGIN,
+        WINDOW_MARGIN_HALF = WINDOW_MARGIN / 2,
+        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_LEFT_MARGIN = WINDOW_MARGIN_HALF,
         WINDOW_BORDER_RADIUS = 4,
         WINDOW_BORDER_COLOR = { red: 255, green: 255, blue: 255 },
         WINDOW_BORDER_ALPHA = 0.5,
@@ -371,7 +377,8 @@ var usersWindow = (function () {
 
         MENU_NAME = "View",
         MENU_ITEM = "Users Online",
-        MENU_ITEM_AFTER = "Overlays",
+        MENU_ITEM_OVERLAYS = "Overlays",
+        MENU_ITEM_AFTER = MENU_ITEM_OVERLAYS,
 
         SETTING_USERS_SHOW_ME = "UsersWindow.ShowMe",
         SETTING_USERS_VISIBLE_TO = "UsersWindow.VisibleTo",
@@ -381,7 +388,7 @@ var usersWindow = (function () {
 
         isLoggedIn = false,
         isVisible = true,
-        isMinimized = true,
+        isMinimized = false,
         isBorderVisible = false,
 
         viewport,
@@ -398,6 +405,10 @@ var usersWindow = (function () {
         scrollbarBarPosition = {},
         scrollbarBarClickedAt, // 0.0 .. 1.0
         scrollbarValue = 0.0; // 0.0 .. 1.0
+
+    function isWindowDisabled() {
+        return !Menu.isOptionChecked(MENU_ITEM) || !Menu.isOptionChecked(MENU_ITEM_OVERLAYS);
+    }
 
     function isValueTrue(value) {
         // Work around Boolean Settings values being read as string when Interface starts up but as Booleans when re-read after
@@ -418,7 +429,9 @@ var usersWindow = (function () {
         }
 
         // Reserve space for title, friends button, and option controls
-        nonUsersHeight = WINDOW_MARGIN + windowLineHeight + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER
+        nonUsersHeight = WINDOW_MARGIN + windowLineHeight
+            + (shouldShowFriendsButton() ? FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT : 0)
+            + DISPLAY_SPACER
             + windowLineHeight + VISIBILITY_SPACER
             + windowLineHeight + WINDOW_BASE_MARGIN;
 
@@ -443,7 +456,7 @@ var usersWindow = (function () {
     }
 
     function saturateWindowPosition() {
-        windowPosition.x = Math.max(0, Math.min(viewport.x - WINDOW_WIDTH, windowPosition.x));
+        windowPosition.x = Math.max(WINDOW_MARGIN_X, Math.min(viewport.x - WINDOW_WIDTH - WINDOW_MARGIN_X, windowPosition.x));
         windowPosition.y = Math.max(windowMinimumHeight, Math.min(viewport.y, windowPosition.y));
     }
 
@@ -485,16 +498,22 @@ var usersWindow = (function () {
             y: scrollbarBarPosition.y
         });
 
+
         x = windowLeft + WINDOW_MARGIN;
-        y = windowPosition.y - FRIENDS_BUTTON_HEIGHT - DISPLAY_SPACER
+        y = windowPosition.y
+            - DISPLAY_SPACER
             - windowLineHeight - VISIBILITY_SPACER
             - windowLineHeight - WINDOW_BASE_MARGIN;
-        Overlays.editOverlay(friendsButton, {
-            x: x,
-            y: y
-        });
+        if (shouldShowFriendsButton()) {
+            y -= FRIENDS_BUTTON_HEIGHT;
+            Overlays.editOverlay(friendsButton, {
+                x: x,
+                y: y
+            });
+            y += FRIENDS_BUTTON_HEIGHT;
+        }
 
-        y += FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER;
+        y += DISPLAY_SPACER;
         displayControl.updatePosition(x, y);
 
         y += windowLineHeight + VISIBILITY_SPACER;
@@ -563,6 +582,10 @@ var usersWindow = (function () {
         });
     }
 
+    function shouldShowFriendsButton() {
+        return isVisible && isLoggedIn && !isMinimized;
+    }
+
     function updateOverlayVisibility() {
         Overlays.editOverlay(windowBorder, {
             visible: isVisible && isBorderVisible
@@ -574,7 +597,7 @@ var usersWindow = (function () {
             visible: isVisible
         });
         Overlays.editOverlay(minimizeButton, {
-            visible: isLoggedIn && isVisible
+            visible: isVisible
         });
         Overlays.editOverlay(scrollbarBackground, {
             visible: isVisible && isUsingScrollbars && !isMinimized
@@ -583,7 +606,7 @@ var usersWindow = (function () {
             visible: isVisible && isUsingScrollbars && !isMinimized
         });
         Overlays.editOverlay(friendsButton, {
-            visible: isVisible && !isMinimized
+            visible: shouldShowFriendsButton()
         });
         displayControl.setVisible(isVisible && !isMinimized);
         visibilityControl.setVisible(isVisible && !isMinimized);
@@ -659,11 +682,10 @@ var usersWindow = (function () {
                     }
                 }
 
+                checkLoggedIn();
                 calculateWindowHeight();
                 updateUsersDisplay();
                 updateOverlayPositions();
-
-                checkLoggedIn();
 
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
@@ -733,7 +755,7 @@ var usersWindow = (function () {
             userClicked,
             delta;
 
-        if (!isVisible) {
+        if (!isVisible || isWindowDisabled()) {
             return;
         }
 
@@ -845,7 +867,7 @@ var usersWindow = (function () {
     function onMouseMoveEvent(event) {
         var isVisible;
 
-        if (!isLoggedIn) {
+        if (!isLoggedIn || isWindowDisabled()) {
             return;
         }
 
@@ -903,6 +925,10 @@ var usersWindow = (function () {
     function onMouseReleaseEvent() {
         var offset = {};
 
+        if (isWindowDisabled()) {
+            return;
+        }
+
         if (isMovingScrollbar) {
             Overlays.editOverlay(scrollbarBar, {
                 backgroundAlpha: SCROLLBAR_BAR_ALPHA
@@ -927,6 +953,10 @@ var usersWindow = (function () {
             oldIsFullscreenMirror = isFullscreenMirror,
             MIRROR_MENU_ITEM = "Mirror",
             FULLSCREEN_MIRROR_MENU_ITEM = "Fullscreen Mirror";
+
+        if (isWindowDisabled()) {
+            return;
+        }
 
         viewport = Controller.getViewportDimensions();
         isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);
@@ -1182,7 +1212,7 @@ var usersWindow = (function () {
         pollUsers();
 
         // Set minimized at end - setup code does not handle `minimized == false` correctly
-        setMinimized(isValueTrue(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, false)));
+        setMinimized(isValueTrue(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, true)));
     }
 
     function tearDown() {

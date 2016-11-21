@@ -88,9 +88,9 @@ public:
     ~Framebuffer();
 
     static Framebuffer* create(const SwapchainPointer& swapchain);
-    static Framebuffer* create();
-    static Framebuffer* create(const Format& colorBufferFormat, uint16 width, uint16 height);
-    static Framebuffer* create(const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height);
+    static Framebuffer* create(const std::string& name);
+    static Framebuffer* create(const std::string& name, const Format& colorBufferFormat, uint16 width, uint16 height);
+    static Framebuffer* create(const std::string& name, const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height);
     static Framebuffer* createShadowmap(uint16 width);
 
     bool isSwapchain() const;
@@ -127,6 +127,8 @@ public:
     uint16 getWidth() const;
     uint16 getHeight() const;
     uint16 getNumSamples() const;
+    const std::string& getName() const { return _name; }
+    void setName(const std::string& name) { _name = name; }
 
     float getAspectRatio() const { return getWidth() / (float) getHeight() ; }
 
@@ -145,6 +147,7 @@ public:
     static Transform evalSubregionTexcoordTransform(const glm::ivec2& sourceSurface, const glm::ivec4& destViewport);
 
 protected:
+    std::string _name;
     SwapchainPointer _swapchain;
 
     Stamp _depthStamp { 0 };

@@ -522,13 +522,13 @@ function onEditError(msg) {
 }
 
 
-function onSnapshotTaken(path, notify) {
+function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     if (notify) {
         var imageProperties = {
-            path: "file:///" + path,
+            path: "file:///" + pathStillSnapshot,
             aspectRatio: Window.innerWidth / Window.innerHeight
         };
-        createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
+        createNotification(wordWrap("Snapshot saved to " + pathStillSnapshot), NotificationType.SNAPSHOT, imageProperties);
     }
 }
 

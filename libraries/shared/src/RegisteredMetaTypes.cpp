@@ -263,6 +263,14 @@ void quatFromScriptValue(const QScriptValue& object, glm::quat &quat) {
     quat.y = object.property("y").toVariant().toFloat();
     quat.z = object.property("z").toVariant().toFloat();
     quat.w = object.property("w").toVariant().toFloat();
+
+    // enforce normalized quaternion
+    float length = glm::length(quat);
+    if (length > FLT_EPSILON) {
+        quat /= length;
+    } else {
+        quat = glm::quat();
+    }
 }
 
 glm::quat quatFromVariant(const QVariant &object, bool& isValid) {
@@ -273,6 +281,14 @@ glm::quat quatFromVariant(const QVariant &object, bool& isValid) {
         q.y = qvec3.y();
         q.z = qvec3.z();
         q.w = qvec3.scalar();
+
+        // enforce normalized quaternion
+        float length = glm::length(q);
+        if (length > FLT_EPSILON) {
+            q /= length;
+        } else {
+            q = glm::quat();
+        }
         isValid = true;
     } else {
         auto map = object.toMap();

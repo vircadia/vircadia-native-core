@@ -272,27 +272,17 @@ void DomainHandler::setIsConnected(bool isConnected) {
 }
 
 void DomainHandler::requestDomainSettings() {
-    // TODO: the nodes basically lock if they don't get a response - add a timeout to this so that they at least restart
-    // if they can't get settings
-    
-    NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
-    if (owningNodeType == NodeType::Agent) {
-        // for now the agent nodes don't need any domain settings
-        _settingsObject = QJsonObject();
-        emit settingsReceived(_settingsObject);
-    } else {
-        qCDebug(networking) << "Requesting settings from domain server";
-        
-        Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
-        
-        auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
-        packet->writePrimitive(assignmentType);
-        
-        auto nodeList = DependencyManager::get<LimitedNodeList>();
-        nodeList->sendPacket(std::move(packet), _sockAddr);
-        
-        _settingsTimer.start();
-    }
+    qCDebug(networking) << "Requesting settings from domain server";
+
+    Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
+
+    auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
+    packet->writePrimitive(assignmentType);
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->sendPacket(std::move(packet), _sockAddr);
+
+    _settingsTimer.start();
 }
 
 void DomainHandler::processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList) {

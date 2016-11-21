@@ -143,25 +143,24 @@ class Texture : public Resource {
     static std::atomic<uint32_t> _textureCPUCount;
     static std::atomic<Size> _textureCPUMemoryUsage;
     static std::atomic<Size> _allowedCPUMemoryUsage;
+    static std::atomic<bool> _enableSparseTextures;
     static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
-    static std::atomic<bool> _enableSparseTextures;
-    static std::atomic<bool> _enableIncrementalTextureTransfers;
 public:
     static uint32_t getTextureCPUCount();
     static Size getTextureCPUMemoryUsage();
     static uint32_t getTextureGPUCount();
+    static uint32_t getTextureGPUSparseCount();
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
+    static Size getTextureGPUFramebufferMemoryUsage();
+    static Size getTextureGPUSparseMemoryUsage();
     static uint32_t getTextureGPUTransferCount();
     static Size getAllowedGPUMemoryUsage();
     static void setAllowedGPUMemoryUsage(Size size);
 
-    static bool getEnableSparseTextures() { return _enableSparseTextures.load(); }
-    static bool getEnableIncrementalTextureTransfers() { return _enableIncrementalTextureTransfers.load(); }
-
+    static bool getEnableSparseTextures();
     static void setEnableSparseTextures(bool enabled);
-    static void setEnableIncrementalTextureTransfers(bool enabled);
 
     using ExternalRecycler = std::function<void(uint32, void*)>;
     using ExternalIdAndFence = std::pair<uint32, void*>;
@@ -365,9 +364,12 @@ public:
     // = 1 + log2(max(width, height, depth))
     uint16 evalNumMips() const;
 
+    static uint16 evalNumMips(const Vec3u& dimensions);
+
     // Eval the size that the mips level SHOULD have
     // not the one stored in the Texture
     static const uint MIN_DIMENSION = 1;
+
     Vec3u evalMipDimensions(uint16 level) const;
     uint16 evalMipWidth(uint16 level) const { return std::max(_width >> level, 1); }
     uint16 evalMipHeight(uint16 level) const { return std::max(_height >> level, 1); }
@@ -384,9 +386,9 @@ public:
     uint32 evalStoredMipFaceSize(uint16 level, const Element& format) const { return evalMipFaceNumTexels(level) * format.getSize(); }
     uint32 evalStoredMipSize(uint16 level, const Element& format) const { return evalMipNumTexels(level) * format.getSize(); }
 
-    uint32 evalTotalSize() const {
+    uint32 evalTotalSize(uint16 startingMip = 0) const {
         uint32 size = 0;
-        uint16 minMipLevel = minMip();
+        uint16 minMipLevel = std::max(minMip(), startingMip);
         uint16 maxMipLevel = maxMip();
         for (uint16 l = minMipLevel; l <= maxMipLevel; l++) {
             size += evalMipSize(l);
@@ -466,8 +468,8 @@ public:
     void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
 
     void setExternalTexture(uint32 externalId, void* externalFence);
-    void setExternalRecycler(const ExternalRecycler& recycler) { _externalRecycler = recycler; }
-    ExternalRecycler getExternalRecycler() const { return _externalRecycler; }
+    void setExternalRecycler(const ExternalRecycler& recycler);
+    ExternalRecycler getExternalRecycler() const;
 
     const GPUObjectPointer gpuObject {};
 

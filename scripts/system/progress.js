@@ -13,18 +13,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
 
     function debug() {
-        return;
-        print.apply(null, arguments);
+        //print.apply(null, arguments);
     }
 
     var rawProgress = 100, // % raw value.
         displayProgress = 100, // % smoothed value to display.
-        DISPLAY_PROGRESS_MINOR_MAXIMUM = 8, // % displayed progress bar goes up to while 0% raw progress.
-        DISPLAY_PROGRESS_MINOR_INCREMENT = 0.1, // % amount to increment display value each update when 0% raw progress.
-        DISPLAY_PROGRESS_MAJOR_INCREMENT = 5, // % maximum amount to increment display value when >0% raw progress.
         alpha = 0.0,
         alphaDelta = 0.0, // > 0 if fading in; < 0 if fading out.
         ALPHA_DELTA_IN = 0.15,
@@ -34,19 +30,60 @@
         fadeWaitTimer = null,
         FADE_OUT_WAIT = 1000, // Wait before starting to fade out after progress 100%.
         visible = false,
-        BAR_WIDTH = 480, // Dimension of SVG in pixels of visible portion (half) of the bar.
-        BAR_HEIGHT = 10,
-        BAR_Y_OFFSET_2D = -10, // Offset of progress bar while in desktop mode
-        BAR_Y_OFFSET_HMD = -300, // Offset of progress bar while in HMD
-        BAR_URL = Script.resolvePath("assets/images/progress-bar.svg"),
-        BACKGROUND_WIDTH = 520,
-        BACKGROUND_HEIGHT = 50,
-        BACKGROUND_URL = Script.resolvePath("assets/images/progress-bar-background.svg"),
+
+        BAR_DESKTOP_2K_WIDTH = 2240, // Width of SVG image in pixels. Sized for 1920 x 1080 display with 6 visible repeats.
+        BAR_DESKTOP_2K_REPEAT = 320,  // Length of repeat in bar = 2240 / 7.
+        BAR_DESKTOP_2K_HEIGHT = 3,  // Display height of SVG
+        BAR_DESKTOP_2K_URL = Script.resolvePath("assets/images/progress-bar-2k.svg"),
+
+        BAR_DESKTOP_4K_WIDTH = 4480, // Width of SVG image in pixels. Sized for 4096 x 1920 display with 6 visible repeats.
+        BAR_DESKTOP_4K_REPEAT = 640,  // Length of repeat in bar = 2240 / 7.
+        BAR_DESKTOP_4K_HEIGHT = 6,  // Display height of SVG
+        BAR_DESKTOP_4K_URL = Script.resolvePath("assets/images/progress-bar-4k.svg"),
+
+        BAR_HMD_WIDTH = 2240,  // Desktop image works with HMD well.
+        BAR_HMD_REPEAT = 320,
+        BAR_HMD_HEIGHT = 3,
+        BAR_HMD_URL = Script.resolvePath("assets/images/progress-bar-2k.svg"),
+
+        BAR_Y_OFFSET_DESKTOP = 0, // Offset of progress bar while in desktop mode
+        BAR_Y_OFFSET_HMD = -100, // Offset of progress bar while in HMD
+
+        ANIMATION_SECONDS_PER_REPEAT = 4,  // Speed of bar animation
+
+        TEXT_HEIGHT = 32,
+        TEXT_WIDTH = 256,
+        TEXT_URL = Script.resolvePath("assets/images/progress-bar-text.svg"),
         windowWidth = 0,
         windowHeight = 0,
-        background2D = {},
-        bar2D = {},
-        SCALE_2D = 0.35; // Scale the SVGs for 2D display.
+        barDesktop = {},
+        barHMD = {},
+        textDesktop = {},  // Separate desktop and HMD overlays because can't change text size after overlay created.
+        textHMD = {},
+        SCALE_TEXT_DESKTOP = 0.6,
+        SCALE_TEXT_HMD = 1.0,
+        isHMD = false,
+
+        // Max seen since downloads started. This is reset when all downloads have completed.
+        maxSeen = 0,
+
+        // Progress is defined as: (pending_downloads + active_downloads) / max_seen
+        // We keep track of both the current progress (rawProgress) and the
+        // best progress we've seen (bestRawProgress). As you are downloading, you may
+        // encounter new assets that require downloads, increasing the number of
+        // pending downloads and thus decreasing your overall progress.
+        bestRawProgress = 0,
+
+        // True if we have known active downloads
+        isDownloading = false,
+
+        // Entities are streamed to users, so you don't receive them all at once; instead, you
+        // receive them over a period of time. In many cases we end up in a situation where
+        //
+        // The initial delay cooldown keeps us from tracking progress before the allotted time
+        // has passed.
+        INITIAL_DELAY_COOLDOWN_TIME = 1000,
+        initialDelayCooldown = 0;
 
     function fade() {
 
@@ -67,45 +104,32 @@
             visible = false;
         }
 
-        Overlays.editOverlay(background2D.overlay, {
+        Overlays.editOverlay(barDesktop.overlay, {
             alpha: alpha,
-            visible: visible
+            visible: visible && !isHMD
         });
-        Overlays.editOverlay(bar2D.overlay, {
+        Overlays.editOverlay(barHMD.overlay, {
             alpha: alpha,
-            visible: visible
+            visible: visible && isHMD
+        });
+        Overlays.editOverlay(textDesktop.overlay, {
+            alpha: alpha,
+            visible: visible && !isHMD
+        });
+        Overlays.editOverlay(textHMD.overlay, {
+            alpha: alpha,
+            visible: visible && isHMD
         });
     }
 
-    Window.domainChanged.connect(function() {
+    Window.domainChanged.connect(function () {
         isDownloading = false;
         bestRawProgress = 100;
         rawProgress = 100;
         displayProgress = 100;
     });
 
-    // Max seen since downloads started. This is reset when all downloads have completed.
-    var maxSeen = 0;
-
-    // Progress is defined as: (pending_downloads + active_downloads) / max_seen
-    // We keep track of both the current progress (rawProgress) and the
-    // best progress we've seen (bestRawProgress). As you are downloading, you may
-    // encounter new assets that require downloads, increasing the number of
-    // pending downloads and thus decreasing your overall progress.
-    var bestRawProgress = 0;
-
-    // True if we have known active downloads
-    var isDownloading = false;
-
-    // Entities are streamed to users, so you don't receive them all at once; instead, you
-    // receive them over a period of time. In many cases we end up in a situation where
-    //
-    // The initial delay cooldown keeps us from tracking progress before the allotted time
-    // has passed.
-    var INITIAL_DELAY_COOLDOWN_TIME = 1000;
-    var initialDelayCooldown = 0;
     function onDownloadInfoChanged(info) {
-        var i;
 
         debug("PROGRESS: Download info changed ", info.downloading.length, info.pending, maxSeen);
 
@@ -140,43 +164,96 @@
     }
 
     function createOverlays() {
-        background2D.overlay = Overlays.addOverlay("image", {
-            imageURL: BACKGROUND_URL,
-            width: background2D.width,
-            height: background2D.height,
-            visible: false,
-            alpha: 0.0
-        });
-        bar2D.overlay = Overlays.addOverlay("image", {
-            imageURL: BAR_URL,
+        barDesktop.overlay = Overlays.addOverlay("image", {
+            imageURL: barDesktop.url,
             subImage: {
                 x: 0,
                 y: 0,
-                width: BAR_WIDTH,
-                height: BAR_HEIGHT
+                width: barDesktop.width - barDesktop.repeat,
+                height: barDesktop.height
             },
-            width: bar2D.width,
-            height: bar2D.height,
+            width: barDesktop.width,
+            height: barDesktop.height,
+            visible: false,
+            alpha: 0.0
+        });
+        barHMD.overlay = Overlays.addOverlay("image", {
+            imageURL: BAR_HMD_URL,
+            subImage: {
+                x: 0,
+                y: 0,
+                width: BAR_HMD_WIDTH - BAR_HMD_REPEAT,
+                height: BAR_HMD_HEIGHT
+            },
+            width: barHMD.width,
+            height: barHMD.height,
+            visible: false,
+            alpha: 0.0
+        });
+        textDesktop.overlay = Overlays.addOverlay("image", {
+            imageURL: TEXT_URL,
+            width: textDesktop.width,
+            height: textDesktop.height,
+            visible: false,
+            alpha: 0.0
+        });
+        textHMD.overlay = Overlays.addOverlay("image", {
+            imageURL: TEXT_URL,
+            width: textHMD.width,
+            height: textHMD.height,
             visible: false,
             alpha: 0.0
         });
     }
 
     function deleteOverlays() {
-        Overlays.deleteOverlay(background2D.overlay);
-        Overlays.deleteOverlay(bar2D.overlay);
+        Overlays.deleteOverlay(barDesktop.overlay);
+        Overlays.deleteOverlay(barHMD.overlay);
+        Overlays.deleteOverlay(textDesktop.overlay);
+        Overlays.deleteOverlay(textHMD.overlay);
     }
 
-    var b = 0;
-    var currentOrientation = null;
+    function updateProgressBarLocation() {
+        var viewport = Controller.getViewportDimensions();
+
+        windowWidth = viewport.x;
+        windowHeight = viewport.y;
+        isHMD = HMD.active;
+
+        if (isHMD) {
+
+            Overlays.editOverlay(barHMD.overlay, {
+                x: windowWidth / 2 - barHMD.width / 2,
+                y: windowHeight - 2 * barHMD.height + BAR_Y_OFFSET_HMD
+            });
+
+            Overlays.editOverlay(textHMD.overlay, {
+                x: windowWidth / 2 - textHMD.width / 2,
+                y: windowHeight - 2 * barHMD.height - textHMD.height + BAR_Y_OFFSET_HMD
+            });
+
+        } else {
+
+            Overlays.editOverlay(barDesktop.overlay, {
+                x: windowWidth / 2 - barDesktop.width / 2,
+                y: windowHeight - 2 * barDesktop.height + BAR_Y_OFFSET_DESKTOP,
+                width: barDesktop.width
+            });
+
+            Overlays.editOverlay(textDesktop.overlay, {
+                x: windowWidth / 2 - textDesktop.width / 2,
+                y: windowHeight - 2 * barDesktop.height - textDesktop.height + BAR_Y_OFFSET_DESKTOP
+            });
+        }
+    }
+
     function update() {
+        var viewport, diff, x, gpuTextures;
+
         initialDelayCooldown -= 30;
-        var viewport,
-            eyePosition,
-            avatarOrientation;
 
         if (displayProgress < rawProgress) {
-            var diff = rawProgress - displayProgress;
+            diff = rawProgress - displayProgress;
             if (diff < 0.5) {
                 displayProgress = rawProgress;
             } else {
@@ -184,34 +261,37 @@
             }
         }
 
+        gpuTextures = Render.getConfig("Stats").textureGPUTransferCount;
+
         // Update state
         if (!visible) { // Not visible because no recent downloads
-            if (displayProgress < 100) { // Have started downloading so fade in
+            if (displayProgress < 100 || gpuTextures > 0) { // Have started downloading so fade in
                 visible = true;
                 alphaDelta = ALPHA_DELTA_IN;
                 fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
             }
         } else if (alphaDelta !== 0.0) { // Fading in or out
             if (alphaDelta > 0) {
-                if (rawProgress === 100) { // Was downloading but now have finished so fade out
+                if (rawProgress === 100 && gpuTextures === 0) { // Was downloading but now have finished so fade out
                     alphaDelta = ALPHA_DELTA_OUT;
                 }
             } else {
-                if (displayProgress < 100) { // Was finished downloading but have resumed so fade in
+                if (displayProgress < 100 || gpuTextures > 0) { // Was finished downloading but have resumed so fade in
                     alphaDelta = ALPHA_DELTA_IN;
                 }
             }
         } else { // Fully visible because downloading or recently so
             if (fadeWaitTimer === null) {
-                if (rawProgress === 100) { // Was downloading but have finished so fade out soon
-                    fadeWaitTimer = Script.setTimeout(function() {
+                if (rawProgress === 100 && gpuTextures === 0) { // Was downloading but have finished so fade out soon
+                    fadeWaitTimer = Script.setTimeout(function () {
                         alphaDelta = ALPHA_DELTA_OUT;
                         fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
                         fadeWaitTimer = null;
                     }, FADE_OUT_WAIT);
                 }
             } else {
-                if (displayProgress < 100) { // Was finished and waiting to fade out but have resumed so don't fade out
+                if (displayProgress < 100 || gpuTextures > 0) { // Was finished and waiting to fade out but have resumed so 
+                                                                // don't fade out
                     Script.clearInterval(fadeWaitTimer);
                     fadeWaitTimer = null;
                 }
@@ -219,59 +299,67 @@
         }
 
         if (visible) {
+            x = ((Date.now() / 1000) % ANIMATION_SECONDS_PER_REPEAT) / ANIMATION_SECONDS_PER_REPEAT;
+            if (isHMD) {
+                x = x * barDesktop.repeat;
+            } else {
+                x = x * BAR_HMD_REPEAT;
+            }
 
             // Update progress bar
-            Overlays.editOverlay(bar2D.overlay, {
-                visible: true,
+            Overlays.editOverlay(barDesktop.overlay, {
+                visible: !isHMD,
                 subImage: {
-                    x: BAR_WIDTH * (1 - displayProgress / 100),
+                    x: barDesktop.repeat - x,
                     y: 0,
-                    width: BAR_WIDTH,
-                    height: BAR_HEIGHT
-                },
+                    width: barDesktop.width - barDesktop.repeat,
+                    height: barDesktop.height
+                }
             });
 
-            Overlays.editOverlay(background2D.overlay, {
-                visible: true,
+            Overlays.editOverlay(barHMD.overlay, {
+                visible: isHMD,
+                subImage: {
+                    x: BAR_HMD_REPEAT - x,
+                    y: 0,
+                    width: BAR_HMD_WIDTH - BAR_HMD_REPEAT,
+                    height: BAR_HMD_HEIGHT
+                }
+            });
+
+            Overlays.editOverlay(textDesktop.overlay, {
+                visible: !isHMD
+            });
+
+            Overlays.editOverlay(textHMD.overlay, {
+                visible: isHMD
             });
 
             // Update 2D overlays to maintain positions at bottom middle of window
             viewport = Controller.getViewportDimensions();
 
-            if (viewport.x !== windowWidth || viewport.y !== windowHeight) {
+            if (viewport.x !== windowWidth || viewport.y !== windowHeight || isHMD !== HMD.active) {
                 updateProgressBarLocation();
             }
         }
     }
 
-    function updateProgressBarLocation() {
-        var viewport = Controller.getViewportDimensions();
-        windowWidth = viewport.x;
-        windowHeight = viewport.y;
-
-        var yOffset = HMD.active ? BAR_Y_OFFSET_HMD : BAR_Y_OFFSET_2D;
-
-        background2D.width = SCALE_2D * BACKGROUND_WIDTH;
-        background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
-        bar2D.width = SCALE_2D * BAR_WIDTH;
-        bar2D.height = SCALE_2D * BAR_HEIGHT;
-
-        Overlays.editOverlay(background2D.overlay, {
-            x: windowWidth / 2 - background2D.width / 2,
-            y: windowHeight - background2D.height - bar2D.height + yOffset
-        });
-
-        Overlays.editOverlay(bar2D.overlay, {
-            x: windowWidth / 2 - bar2D.width / 2,
-            y: windowHeight - background2D.height - bar2D.height + (background2D.height - bar2D.height) / 2 + yOffset
-        });
-    }
-
     function setUp() {
-        background2D.width = SCALE_2D * BACKGROUND_WIDTH;
-        background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
-        bar2D.width = SCALE_2D * BAR_WIDTH;
-        bar2D.height = SCALE_2D * BAR_HEIGHT;
+        var is4k = Window.innerWidth > 3000;
+
+        isHMD = HMD.active;
+
+        barDesktop.width = is4k ? BAR_DESKTOP_4K_WIDTH - BAR_DESKTOP_4K_REPEAT : BAR_DESKTOP_2K_WIDTH - BAR_DESKTOP_2K_REPEAT;
+        barDesktop.height = is4k ? BAR_DESKTOP_4K_HEIGHT : BAR_DESKTOP_2K_HEIGHT;
+        barDesktop.repeat = is4k ? BAR_DESKTOP_4K_REPEAT : BAR_DESKTOP_2K_REPEAT;
+        barDesktop.url = is4k ? BAR_DESKTOP_4K_URL : BAR_DESKTOP_2K_URL;
+        barHMD.width = BAR_HMD_WIDTH - BAR_HMD_REPEAT;
+        barHMD.height = BAR_HMD_HEIGHT;
+
+        textDesktop.width = SCALE_TEXT_DESKTOP * TEXT_WIDTH;
+        textDesktop.height = SCALE_TEXT_DESKTOP * TEXT_HEIGHT;
+        textHMD.width = SCALE_TEXT_HMD * TEXT_WIDTH;
+        textHMD.height = SCALE_TEXT_HMD * TEXT_HEIGHT;
 
         createOverlays();
     }
@@ -283,7 +371,7 @@
     setUp();
     GlobalServices.downloadInfoChanged.connect(onDownloadInfoChanged);
     GlobalServices.updateDownloadInfo();
-    Script.setInterval(update, 1000/60);
+    Script.setInterval(update, 1000 / 60);
     Script.scriptEnding.connect(tearDown);
 
 }()); // END LOCAL_SCOPE

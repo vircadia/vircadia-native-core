@@ -2,6 +2,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.1;
 import Qt.labs.settings 1.0
+import HFWebEngineProfile 1.0
 
 import "../desktop" as OriginalDesktop
 import ".."
@@ -20,17 +21,14 @@ OriginalDesktop.Desktop {
         onEntered: ApplicationCompositor.reticleOverDesktop = true
         onExited: ApplicationCompositor.reticleOverDesktop = false
         acceptedButtons: Qt.NoButton
-		
-
     }
 
     // The tool window, one instance
     property alias toolWindow: toolWindow
     ToolWindow { id: toolWindow }
 
-    property var browserProfile: WebEngineProfile {
+    property var browserProfile: HFWebEngineProfile {
         id: webviewProfile
-        httpUserAgent: "Chrome/48.0 (HighFidelityInterface)"
         storageName: "qmlWebEngine"
     }
 
@@ -53,13 +51,23 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
-        // Magic: sysToolbar.x and y come from settings, and are bound before the properties specified here are applied.
-        x: sysToolbar.x;
-        y: sysToolbar.y;
+        anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
+        // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
+        x: sysToolbar.x
+        y: 50
+    }
+    Settings {
+        id: settings;
+        category: "toolbar";
+        property bool constrainToolbarToCenterX: true;
+    }
+    function setConstrainToolbarToCenterX(constrain) { // Learn about c++ preference change.
+        settings.constrainToolbarToCenterX = constrain;
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
         map[sysToolbar.objectName] = sysToolbar;
         return map; })({});
+
 
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;
@@ -67,12 +75,17 @@ OriginalDesktop.Desktop {
         WebEngine.settings.spatialNavigationEnabled = false;
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
 
-        var toggleHudButton = sysToolbar.addButton({
-            objectName: "hudToggle",
-            imageURL: "../../../icons/hud.svg",
-            visible: true,
-            pinned: true,
+        [ // Allocate the standard buttons in the correct order. They will get images, etc., via scripts.
+            "hmdToggle", "mute", "mod", "help",
+            "hudToggle",
+            "com.highfidelity.interface.system.editButton", "marketplace", "snapshot", "goto"
+        ].forEach(function (name) {
+            sysToolbar.addButton({objectName: name});
         });
+        var toggleHudButton = sysToolbar.findButton("hudToggle");
+        toggleHudButton.imageURL = "../../../icons/hud.svg";
+        toggleHudButton.pinned = true;
+        sysToolbar.updatePinned(); // automatic when adding buttons only IFF button is pinned at creation.
 
         toggleHudButton.buttonState = Qt.binding(function(){
             return desktop.pinned ? 1 : 0
@@ -127,5 +140,3 @@ OriginalDesktop.Desktop {
         return result;
     }
 }
-
-

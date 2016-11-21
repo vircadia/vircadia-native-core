@@ -9,8 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QDebug>
-
+#include <LogHandler.h>
 #include <SharedUtil.h>
 
 #include "AssignmentClientApp.h"
@@ -23,11 +22,15 @@ int main(int argc, char* argv[]) {
     QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
-    
+
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    qInfo() << "Starting.";
+
     AssignmentClientApp app(argc, argv);
     
     int acReturn = app.exec();
     qDebug() << "assignment-client process" <<  app.applicationPid() << "exiting with status code" << acReturn;
-    
+
+    qInfo() << "Quitting.";
     return acReturn;
 }

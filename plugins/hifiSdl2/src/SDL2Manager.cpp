@@ -41,7 +41,7 @@ static_assert(
     "SDL2 equvalence: Enums and values from StandardControls.h are assumed to match enums from SDL_gamecontroller.h");
 
 
-const QString SDL2Manager::NAME = "SDL2";
+const char* SDL2Manager::NAME = "SDL2";
 
 SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
     SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
@@ -65,8 +65,10 @@ void SDL2Manager::init() {
                     _openJoysticks[id] = joystick;
                     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                     userInputMapper->registerDevice(joystick);
+                    auto name = SDL_GameControllerName(controller);
+                    _subdeviceNames << name;
                     emit joystickAdded(joystick.get());
-                    emit subdeviceConnected(getName(), SDL_GameControllerName(controller));
+                    emit subdeviceConnected(getName(), name);
                 }
             }
         }
@@ -76,6 +78,10 @@ void SDL2Manager::init() {
     else {
         qDebug() << "Error initializing SDL2 Manager";
     }
+}
+
+QStringList SDL2Manager::getSubdeviceNames() {
+    return _subdeviceNames;
 }
 
 void SDL2Manager::deinit() {
@@ -157,15 +163,19 @@ void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrati
                     Joystick::Pointer joystick = std::make_shared<Joystick>(id, controller);
                     _openJoysticks[id] = joystick;
                     userInputMapper->registerDevice(joystick);
+                    QString name = SDL_GameControllerName(controller);
                     emit joystickAdded(joystick.get());
-                    emit subdeviceConnected(getName(), SDL_GameControllerName(controller));
+                    emit subdeviceConnected(getName(), name);
+                    _subdeviceNames << name;
                 }
             } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
                 if (_openJoysticks.contains(event.cdevice.which)) {
                     Joystick::Pointer joystick = _openJoysticks[event.cdevice.which];
                     _openJoysticks.remove(event.cdevice.which);
                     userInputMapper->removeDevice(joystick->getDeviceID());
+                    QString name = SDL_GameControllerName(joystick->getGameController());
                     emit joystickRemoved(joystick.get());
+                    _subdeviceNames.removeOne(name);
                 }
             }
         }

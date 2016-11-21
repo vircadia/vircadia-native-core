@@ -115,6 +115,7 @@ namespace gpu {
         GPUObject* getGPUObject() const { return _gpuObject.get(); }
 
         friend class Backend;
+        friend class Texture;
     };
 
     namespace gl {

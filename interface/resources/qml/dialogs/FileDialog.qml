@@ -27,7 +27,7 @@ ModalWindow {
     id: root
     resizable: true
     implicitWidth: 480
-    implicitHeight: 360 + (fileDialogItem.keyboardRaised ? 200 + hifi.dimensions.contentSpacing.y : 0)
+    implicitHeight: 360 + (fileDialogItem.keyboardEnabled && fileDialogItem.keyboardRaised ? keyboard.raisedHeight + hifi.dimensions.contentSpacing.y : 0)
 
     minSize: Qt.vector2d(360, 240)
     draggable: true
@@ -70,7 +70,9 @@ ModalWindow {
     signal canceled();
 
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives)
+        console.log("Helper " + helper + " drives " + drives);
+
+        fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
         // works properly from the initial screen.
@@ -85,6 +87,8 @@ ModalWindow {
 
         if (selectDirectory) {
             currentSelection.text = d.capitalizeDrive(helper.urlToPath(initialFolder));
+            d.currentSelectionIsFolder = true;
+            d.currentSelectionUrl = initialFolder;
         }
 
         helper.contentsChanged.connect(function() {
@@ -106,6 +110,7 @@ ModalWindow {
         height: pane.height
         anchors.margins: 0
 
+        property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
 
@@ -626,7 +631,7 @@ ModalWindow {
                 left: parent.left
                 right: selectionType.visible ? selectionType.left: parent.right
                 rightMargin: selectionType.visible ? hifi.dimensions.contentSpacing.x : 0
-                bottom: keyboard1.top
+                bottom: keyboard.top
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
             readOnly: !root.saveDialog
@@ -648,25 +653,15 @@ ModalWindow {
         }
 
         Keyboard {
-            id: keyboard1
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: visible
-            anchors.right: parent.right
-            anchors.left: parent.left
-            anchors.bottom: buttonRow.top
-            anchors.bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
-        }
-
-        KeyboardPunctuation {
-            id: keyboard2
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: visible
-            anchors.right: parent.right
-            anchors.left: parent.left
-            anchors.bottom: buttonRow.top
-            anchors.bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
+            id: keyboard
+            raised: parent.keyboardEnabled && parent.keyboardRaised
+            numeric: parent.punctuationMode
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: buttonRow.top
+                bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
+            }
         }
 
         Row {

@@ -30,7 +30,6 @@
 #include <ShutdownEventListener.h>
 #include <SoundCache.h>
 #include <ResourceScriptingInterface.h>
-#include <ScriptEngines.h>
 
 #include "AssignmentFactory.h"
 #include "AssignmentActionFactory.h"
@@ -50,10 +49,9 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogUtils::init();
 
     DependencyManager::set<AccountManager>();
- 
+
     auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto scriptEngines = DependencyManager::set<ScriptEngines>();
 
     // create a NodeList as an unassigned client, must be after addressManager
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned, listenPort);
@@ -174,11 +172,6 @@ AssignmentClient::~AssignmentClient() {
 
 void AssignmentClient::aboutToQuit() {
     stopAssignmentClient();
-
-    DependencyManager::destroy<ScriptEngines>();
-
-    // clear the log handler so that Qt doesn't call the destructor on LogHandler
-    qInstallMessageHandler(0);
 }
 
 void AssignmentClient::setUpStatusToMonitor() {

@@ -38,6 +38,7 @@ private slots:
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void domainSettingsRequestComplete();
     void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
 
@@ -58,6 +59,9 @@ private:
     int _sumIdentityPackets { 0 };
 
     float _maxKbpsPerNode = 0.0f;
+
+    float _domainMinimumScale { MIN_AVATAR_SCALE };
+    float _domainMaximumScale { MAX_AVATAR_SCALE };
 
     QTimer* _broadcastTimer = nullptr;
 };

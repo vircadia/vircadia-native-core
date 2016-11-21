@@ -15,6 +15,7 @@
 #include <render/Scene.h>
 #include <EntityItem.h>
 #include "AbstractViewStateInterface.h"
+#include "EntitiesRendererLogging.h"
 
 
 // These or the icon "name" used by the render item status value, they correspond to the atlas texture used by the DrawItemStatus
@@ -79,10 +80,14 @@ public:
         render::PendingChanges pendingChanges;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-        pendingChanges.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
-        });
+        if (scene) {
+            pendingChanges.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
+            });
 
-        scene->enqueuePendingChanges(pendingChanges);
+            scene->enqueuePendingChanges(pendingChanges);
+        } else {
+            qCWarning(entitiesrenderer) << "SimpleRenderableEntityItem::notifyChanged(), Unexpected null scene, possibly during application shutdown";
+        }
     }
 
 private:

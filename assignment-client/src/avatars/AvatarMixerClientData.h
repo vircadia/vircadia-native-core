@@ -79,6 +79,13 @@ public:
         { return _avgOtherAvatarDataRate.getAverageSampleValuePerSecond() / (float) BYTES_PER_KILOBIT; }
 
     void loadJSONStats(QJsonObject& jsonObject) const;
+
+    glm::vec3 getPosition() { return _avatar ? _avatar->getPosition() : glm::vec3(0); }
+    bool isRadiusIgnoring(const QUuid& other) { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
+    void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
+    void removeFromRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.erase(other); }
+    void ignoreOther(SharedNodePointer self, SharedNodePointer other);
+
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
@@ -99,6 +106,7 @@ private:
     int _numOutOfOrderSends = 0;
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
+    std::unordered_set<QUuid> _radiusIgnoredOthers;
 };
 
 #endif // hifi_AvatarMixerClientData_h

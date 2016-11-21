@@ -36,6 +36,19 @@ void ScriptCache::clearCache() {
     _scriptCache.clear();
 }
 
+void ScriptCache::clearATPScriptsFromCache() {
+    Lock lock(_containerLock);
+    qCDebug(scriptengine) << "Clearing ATP scripts from ScriptCache";
+    for (auto it = _scriptCache.begin(); it != _scriptCache.end();) {
+        if (it.key().scheme() == "atp") {
+            qCDebug(scriptengine) << "Removing: " << it.key();
+            it = _scriptCache.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 QString ScriptCache::getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUser, bool& isPending, bool reload) {
     QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
     QString scriptContents;
@@ -189,7 +202,14 @@ void ScriptCache::scriptContentAvailable() {
                 finished = true;
                 qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
             } else {
-                if (scriptRequest.numRetries < MAX_RETRIES) {
+                auto result = req->getResult();
+                bool irrecoverable =
+                    result == ResourceRequest::AccessDenied ||
+                    result == ResourceRequest::InvalidURL ||
+                    result == ResourceRequest::NotFound ||
+                    scriptRequest.numRetries >= MAX_RETRIES;
+
+                if (!irrecoverable) {
                     ++scriptRequest.numRetries;
 
                     qDebug() << "Script request failed: " << url;
@@ -209,6 +229,9 @@ void ScriptCache::scriptContentAvailable() {
                     });
                 } else {
                     // Dubious, but retained here because it matches the behavior before fixing the threading
+
+                    allCallbacks = scriptRequest.scriptUsers;
+
                     scriptContent = _scriptCache[url];
                     finished = true;
                     qCWarning(scriptengine) << "Error loading script from URL " << url;

@@ -15,8 +15,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QCoreApplication>
-
 #include <LogHandler.h>
 #include <SharedUtil.h>
 #include <BuildInfo.h>
@@ -35,6 +33,9 @@ int main(int argc, char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
 
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    qInfo() << "Starting.";
+
     int currentExitCode = 0;
 
     // use a do-while to handle domain-server restart
@@ -43,7 +44,7 @@ int main(int argc, char* argv[]) {
         currentExitCode = domainServer.exec();
     } while (currentExitCode == DomainServer::EXIT_CODE_REBOOT);
 
-
+    qInfo() << "Quitting.";
     return currentExitCode;
 }
 

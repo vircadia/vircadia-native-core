@@ -21,20 +21,24 @@ import "controls-uit" as HifiControls
 Window {
     id: root
     HifiConstants { id: hifi }
+    HifiStyles.HifiConstants { id: hifiStyleConstants }
 
     objectName: "AddressBarDialog"
-    frame: HiddenFrame {}
-    hideBackground: true
+    title: "Go To:"
 
     shown: false
     destroyOnHidden: false
     resizable: false
-    scale: 1.25  // Make this dialog a little larger than normal
+    pinnable: false;
 
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
+    property int gap: 14
 
-    onShownChanged: addressBarDialog.observeShownChanged(shown);
+    onShownChanged: {
+        addressBarDialog.keyboardEnabled = HMD.active;
+        addressBarDialog.observeShownChanged(shown);
+    }
     Component.onCompleted: {
         root.parentChanged.connect(center);
         center();
@@ -62,7 +66,7 @@ Window {
         clearAddressLineTimer.start();
     }
     property var allStories: [];
-    property int cardWidth: 200;
+    property int cardWidth: 212;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
     property bool isCursorVisible: false  // Override default cursor visibility.
@@ -70,11 +74,12 @@ Window {
     AddressBarDialog {
         id: addressBarDialog
 
+        property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + (keyboardRaised ? 200 : 0)
+        implicitHeight: scroll.height + gap + backgroundImage.height + (keyboardEnabled ? keyboard.height : 0);
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -88,14 +93,14 @@ Window {
 
         ListView {
             id: scroll
-            width: backgroundImage.width;
-            height: cardHeight;
-            spacing: hifi.layout.spacing;
+            height: cardHeight + scroll.stackedCardShadowHeight
+            property int stackedCardShadowHeight: 10;
+            spacing: gap;
             clip: true;
             anchors {
-                bottom: backgroundImage.top;
-                bottomMargin: 2 * hifi.layout.spacing;
-                horizontalCenter: backgroundImage.horizontalCenter
+                left: backgroundImage.left
+                right: swipe.left
+                bottom: backgroundImage.top
             }
             model: suggestions;
             orientation: ListView.Horizontal;
@@ -111,30 +116,71 @@ Window {
                 timestamp: model.created_at;
                 onlineUsers: model.online_users;
                 storyId: model.metaverseId;
+                drillDownToPlace: model.drillDownToPlace;
+                shadowHeight: scroll.stackedCardShadowHeight;
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
             highlightMoveDuration: -1;
             highlightMoveVelocity: -1;
-            highlight: Rectangle { color: "transparent"; border.width: 4; border.color: "#1DB5ED"; z: 1; }
-            leftMargin: 50; // Start the first item over by about the same amount as the last item peeks through on the other side.
-            rightMargin: 50;
+            highlight: Rectangle { color: "transparent"; border.width: 4; border.color: hifiStyleConstants.colors.blueHighlight; z: 1; }
         }
         Image { // Just a visual indicator that the user can swipe the cards over to see more.
-            source: "../images/Swipe-Icon-single.svg"
-            width: 50;
+            id: swipe;
+            source: "../images/swipe-chevron.svg";
+            width: 72;
             visible: suggestions.count > 3;
             anchors {
-                right: scroll.right;
-                verticalCenter: scroll.verticalCenter;
+                right: backgroundImage.right;
+                top: scroll.top;
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: scroll.currentIndex = (scroll.currentIndex < 0) ? 3 : (scroll.currentIndex + 3)
             }
         }
+
+        Row {
+            spacing: 2 * hifi.layout.spacing;
+            anchors {
+                top: parent.top;
+                left: parent.left;
+                leftMargin: 150;
+                topMargin: -30;
+            }
+            property var selected: allTab;
+            TextButton {
+                id: allTab;
+                text: "ALL";
+                property string includeActions: 'snapshot,concurrency';
+                selected: allTab === selectedTab;
+                action: tabSelect;
+            }
+            TextButton {
+                id: placeTab;
+                text: "PLACES";
+                property string includeActions: 'concurrency';
+                selected: placeTab === selectedTab;
+                action: tabSelect;
+            }
+            TextButton {
+                id: snapsTab;
+                text: "SNAPS";
+                property string includeActions: 'snapshot';
+                selected: snapsTab === selectedTab;
+                action: tabSelect;
+            }
+        }
+
         Image {
             id: backgroundImage
-            source: "../images/address-bar.svg"
-            width: 576 * root.scale
-            height: 80 * root.scale
-            property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
+            source: "../images/address-bar-856.svg"
+            width: 856
+            height: 100
+            anchors {
+                bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
+            }
+            property int inputAreaHeight: 70
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
             ToolbarButton {
@@ -181,7 +227,7 @@ Window {
 
             HifiStyles.RalewayLight {
                 id: notice;
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.50;
+                font.pixelSize: hifi.fonts.pixelSize * 0.50;
                 anchors {
                     top: parent.top
                     topMargin: parent.inputAreaStep + 12
@@ -210,7 +256,7 @@ Window {
                     topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
                     bottomMargin: parent.inputAreaStep
                 }
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
+                font.pixelSize: hifi.fonts.pixelSize * 0.75
                 cursorVisible: false
                 onTextChanged: {
                     filterChoicesByText();
@@ -259,7 +305,6 @@ Window {
         Window {
             width: 938
             height: 625
-            scale: 0.8  // Reset scale of Window to 1.0 (counteract address bar's scale value of 1.25)
             HifiControls.WebView {
                 anchors.fill: parent;
                 id: storyCardHTML;
@@ -274,35 +319,18 @@ Window {
                 verticalCenter: backgroundImage.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
             }
+            z: 100
         }
 
-        // virtual keyboard, letters
         HifiControls.Keyboard {
-            id: keyboard1
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-        }
-
-        HifiControls.KeyboardPunctuation {
-            id: keyboard2
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
+            id: keyboard
+            raised: parent.keyboardEnabled  // Ignore keyboardRaised; keep keyboard raised if enabled (i.e., in HMD).
+            numeric: parent.punctuationMode
+            anchors {
+                bottom: parent.bottom
+                left: parent.left
+                right: parent.right
+            }
         }
     }
 
@@ -373,6 +401,7 @@ Window {
             tags: tags,
             description: description,
             online_users: data.details.concurrency || 0,
+            drillDownToPlace: false,
 
             searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
         }
@@ -382,38 +411,54 @@ Window {
             return true;
         }
         return (place.place_name !== AddressManager.hostname); // Not our entry, but do show other entry points to current domain.
-        // could also require right protocolVersion
     }
+    property var selectedTab: allTab;
+    function tabSelect(textButton) {
+        selectedTab = textButton;
+        fillDestinations();
+    }
+    property var placeMap: ({});
+    function addToSuggestions(place) {
+        var collapse = allTab.selected && (place.action !== 'concurrency');
+        if (collapse) {
+            var existing = placeMap[place.place_name];
+            if (existing) {
+                existing.drillDownToPlace = true;
+                return;
+            }
+        }
+        suggestions.append(place);
+        if (collapse) {
+            placeMap[place.place_name] = suggestions.get(suggestions.count - 1);
+        } else if (place.action === 'concurrency') {
+            suggestions.get(suggestions.count - 1).drillDownToPlace = true; // Don't change raw place object (in allStories).
+        }
+    }
+    property int requestId: 0;
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         var options = [
-            'include_actions=snapshot,concurrency',
+            'include_actions=' + selectedTab.includeActions,
             'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
             'page=' + pageNumber
         ];
         var url = metaverseBase + 'user_stories?' + options.join('&');
+        var thisRequestId = ++requestId;
         getRequest(url, function (error, data) {
-            if (handleError(url, error, data, cb)) {
+            if ((thisRequestId !== requestId) || handleError(url, error, data, cb)) {
                 return;
             }
             var stories = data.user_stories.map(function (story) { // explicit single-argument function
                 return makeModelData(story, url);
             });
             allStories = allStories.concat(stories);
-            if (!addressLine.text) { // Don't add if the user is already filtering
-                stories.forEach(function (story) {
-                    if (suggestable(story)) {
-                        suggestions.append(story);
-                    }
-                });
-            }
+            stories.forEach(makeFilteredPlaceProcessor());
             if ((data.current_page < data.total_pages) && (data.current_page <=  10)) { // just 10 pages = 100 stories for now
                 return getUserStoryPage(pageNumber + 1, cb);
             }
             cb();
         });
     }
-    function filterChoicesByText() {
-        suggestions.clear();
+    function makeFilteredPlaceProcessor() { // answer a function(placeData) that adds it to suggestions if it matches
         var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity),
             data = allStories;
         function matches(place) {
@@ -424,16 +469,22 @@ Window {
                 return place.searchText.indexOf(word) >= 0;
             });
         }
-        data.forEach(function (place) {
+        return function (place) {
             if (matches(place)) {
-                suggestions.append(place);
+                addToSuggestions(place);
             }
-        });
+        };
+    }
+    function filterChoicesByText() {
+        suggestions.clear();
+        placeMap = {};
+        allStories.forEach(makeFilteredPlaceProcessor());
     }
 
     function fillDestinations() {
         allStories = [];
         suggestions.clear();
+        placeMap = {};
         getUserStoryPage(1, function (error) {
             console.log('user stories query', error || 'ok', allStories.length);
         });
@@ -442,10 +493,10 @@ Window {
     function updateLocationText(enteringAddress) {
         if (enteringAddress) {
             notice.text = "Go to a place, @user, path or network address";
-            notice.color = "gray";
+            notice.color = hifiStyleConstants.colors.baseGrayHighlight;
         } else {
             notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
-            notice.color = AddressManager.isConnected ? "gray" : "crimson";
+            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.baseGrayHighlight : hifiStyleConstants.colors.redHighlight;
             // Display hostname, which includes ip address, localhost, and other non-placenames.
             location.text = (AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
         }

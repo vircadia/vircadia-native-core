@@ -227,6 +227,7 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
+    CHECK_PROPERTY_CHANGE(PROP_LAST_EDITED_BY, lastEditedBy);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
     CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
@@ -368,6 +369,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
 
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
     if (!skipDefaults) {
@@ -611,6 +613,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
         setType(typeScriptValue.toVariant().toString());
     }
 
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(position, glmVec3, setPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, glmVec3, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, glmQuat, setRotation);
@@ -745,6 +748,134 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+
+    _lastEdited = usecTimestampNow();
+}
+
+void EntityItemProperties::merge(const EntityItemProperties& other) {
+    COPY_PROPERTY_IF_CHANGED(lastEditedBy);
+    COPY_PROPERTY_IF_CHANGED(position);
+    COPY_PROPERTY_IF_CHANGED(dimensions);
+    COPY_PROPERTY_IF_CHANGED(rotation);
+    COPY_PROPERTY_IF_CHANGED(density);
+    COPY_PROPERTY_IF_CHANGED(velocity);
+    COPY_PROPERTY_IF_CHANGED(gravity);
+    COPY_PROPERTY_IF_CHANGED(acceleration);
+    COPY_PROPERTY_IF_CHANGED(damping);
+    COPY_PROPERTY_IF_CHANGED(restitution);
+    COPY_PROPERTY_IF_CHANGED(friction);
+    COPY_PROPERTY_IF_CHANGED(lifetime);
+    COPY_PROPERTY_IF_CHANGED(script);
+    COPY_PROPERTY_IF_CHANGED(scriptTimestamp);
+    COPY_PROPERTY_IF_CHANGED(registrationPoint);
+    COPY_PROPERTY_IF_CHANGED(angularVelocity);
+    COPY_PROPERTY_IF_CHANGED(angularDamping);
+    COPY_PROPERTY_IF_CHANGED(visible);
+    COPY_PROPERTY_IF_CHANGED(color);
+    COPY_PROPERTY_IF_CHANGED(colorSpread);
+    COPY_PROPERTY_IF_CHANGED(colorStart);
+    COPY_PROPERTY_IF_CHANGED(colorFinish);
+    COPY_PROPERTY_IF_CHANGED(alpha);
+    COPY_PROPERTY_IF_CHANGED(alphaSpread);
+    COPY_PROPERTY_IF_CHANGED(alphaStart);
+    COPY_PROPERTY_IF_CHANGED(alphaFinish);
+    COPY_PROPERTY_IF_CHANGED(emitterShouldTrail);
+    COPY_PROPERTY_IF_CHANGED(modelURL);
+    COPY_PROPERTY_IF_CHANGED(compoundShapeURL);
+    COPY_PROPERTY_IF_CHANGED(localRenderAlpha);
+    COPY_PROPERTY_IF_CHANGED(collisionless);
+    COPY_PROPERTY_IF_CHANGED(collisionMask);
+    COPY_PROPERTY_IF_CHANGED(dynamic);
+    COPY_PROPERTY_IF_CHANGED(isSpotlight);
+    COPY_PROPERTY_IF_CHANGED(intensity);
+    COPY_PROPERTY_IF_CHANGED(falloffRadius);
+    COPY_PROPERTY_IF_CHANGED(exponent);
+    COPY_PROPERTY_IF_CHANGED(cutoff);
+    COPY_PROPERTY_IF_CHANGED(locked);
+    COPY_PROPERTY_IF_CHANGED(textures);
+    COPY_PROPERTY_IF_CHANGED(userData);
+    COPY_PROPERTY_IF_CHANGED(text);
+    COPY_PROPERTY_IF_CHANGED(lineHeight);
+    COPY_PROPERTY_IF_CHANGED(textColor);
+    COPY_PROPERTY_IF_CHANGED(backgroundColor);
+    COPY_PROPERTY_IF_CHANGED(shapeType);
+    COPY_PROPERTY_IF_CHANGED(maxParticles);
+    COPY_PROPERTY_IF_CHANGED(lifespan);
+    COPY_PROPERTY_IF_CHANGED(isEmitting);
+    COPY_PROPERTY_IF_CHANGED(emitRate);
+    COPY_PROPERTY_IF_CHANGED(emitSpeed);
+    COPY_PROPERTY_IF_CHANGED(speedSpread);
+    COPY_PROPERTY_IF_CHANGED(emitOrientation);
+    COPY_PROPERTY_IF_CHANGED(emitDimensions);
+    COPY_PROPERTY_IF_CHANGED(emitRadiusStart);
+    COPY_PROPERTY_IF_CHANGED(polarStart);
+    COPY_PROPERTY_IF_CHANGED(polarFinish);
+    COPY_PROPERTY_IF_CHANGED(azimuthStart);
+    COPY_PROPERTY_IF_CHANGED(azimuthFinish);
+    COPY_PROPERTY_IF_CHANGED(emitAcceleration);
+    COPY_PROPERTY_IF_CHANGED(accelerationSpread);
+    COPY_PROPERTY_IF_CHANGED(particleRadius);
+    COPY_PROPERTY_IF_CHANGED(radiusSpread);
+    COPY_PROPERTY_IF_CHANGED(radiusStart);
+    COPY_PROPERTY_IF_CHANGED(radiusFinish);
+    COPY_PROPERTY_IF_CHANGED(marketplaceID);
+    COPY_PROPERTY_IF_CHANGED(name);
+    COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
+
+    COPY_PROPERTY_IF_CHANGED(backgroundMode);
+    COPY_PROPERTY_IF_CHANGED(sourceUrl);
+    COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
+    COPY_PROPERTY_IF_CHANGED(voxelData);
+    COPY_PROPERTY_IF_CHANGED(voxelSurfaceStyle);
+    COPY_PROPERTY_IF_CHANGED(lineWidth);
+    COPY_PROPERTY_IF_CHANGED(linePoints);
+    COPY_PROPERTY_IF_CHANGED(href);
+    COPY_PROPERTY_IF_CHANGED(description);
+    COPY_PROPERTY_IF_CHANGED(faceCamera);
+    COPY_PROPERTY_IF_CHANGED(actionData);
+    COPY_PROPERTY_IF_CHANGED(normals);
+    COPY_PROPERTY_IF_CHANGED(strokeWidths);
+    COPY_PROPERTY_IF_CHANGED(created);
+
+    _animation.merge(other._animation);
+    _keyLight.merge(other._keyLight);
+    _skybox.merge(other._skybox);
+    _stage.merge(other._stage);
+
+    COPY_PROPERTY_IF_CHANGED(xTextureURL);
+    COPY_PROPERTY_IF_CHANGED(yTextureURL);
+    COPY_PROPERTY_IF_CHANGED(zTextureURL);
+
+    COPY_PROPERTY_IF_CHANGED(xNNeighborID);
+    COPY_PROPERTY_IF_CHANGED(yNNeighborID);
+    COPY_PROPERTY_IF_CHANGED(zNNeighborID);
+
+    COPY_PROPERTY_IF_CHANGED(xPNeighborID);
+    COPY_PROPERTY_IF_CHANGED(yPNeighborID);
+    COPY_PROPERTY_IF_CHANGED(zPNeighborID);
+
+    COPY_PROPERTY_IF_CHANGED(parentID);
+    COPY_PROPERTY_IF_CHANGED(parentJointIndex);
+    COPY_PROPERTY_IF_CHANGED(queryAACube);
+
+    COPY_PROPERTY_IF_CHANGED(localPosition);
+    COPY_PROPERTY_IF_CHANGED(localRotation);
+    COPY_PROPERTY_IF_CHANGED(localVelocity);
+    COPY_PROPERTY_IF_CHANGED(localAngularVelocity);
+
+    COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
+    COPY_PROPERTY_IF_CHANGED(jointRotations);
+    COPY_PROPERTY_IF_CHANGED(jointTranslationsSet);
+    COPY_PROPERTY_IF_CHANGED(jointTranslations);
+    COPY_PROPERTY_IF_CHANGED(shape);
+
+    COPY_PROPERTY_IF_CHANGED(flyingAllowed);
+    COPY_PROPERTY_IF_CHANGED(ghostingAllowed);
+
+    COPY_PROPERTY_IF_CHANGED(clientOnly);
+    COPY_PROPERTY_IF_CHANGED(owningAvatarID);
+
+    COPY_PROPERTY_IF_CHANGED(dpi);
 
     _lastEdited = usecTimestampNow();
 }
@@ -1540,6 +1671,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 }
 
 void EntityItemProperties::markAllChanged() {
+    _lastEditedByChanged = true;
     _simulationOwnerChanged = true;
     _positionChanged = true;
     _dimensionsChanged = true;

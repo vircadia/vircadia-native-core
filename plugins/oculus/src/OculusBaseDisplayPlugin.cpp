@@ -126,3 +126,7 @@ void OculusBaseDisplayPlugin::updatePresentPose() {
     //_currentPresentFrameInfo.presentPose = toGlm(trackingState.HeadPose.ThePose);
     _currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
 }
+
+OculusBaseDisplayPlugin::~OculusBaseDisplayPlugin() {
+    qDebug() << "Destroying OculusBaseDisplayPlugin";
+}

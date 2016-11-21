@@ -37,9 +37,13 @@ AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntit
 }
 
 AvatarActionHold::~AvatarActionHold() {
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    if (myAvatar) {
-        myAvatar->removeHoldAction(this);
+    // Sometimes actions are destroyed after the AvatarManager is destroyed by the Application.
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    if (avatarManager) {
+        auto myAvatar = avatarManager->getMyAvatar();
+        if (myAvatar) {
+            myAvatar->removeHoldAction(this);
+        }
     }
 
 #if WANT_DEBUG
@@ -148,7 +152,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
                 Transform avatarTransform;
                 auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
                 avatarTransform = myAvatar->getTransform();
-                palmPosition = avatarTransform.transform(pose.getTranslation() / myAvatar->getTargetScale());
+                palmPosition = avatarTransform.transform(pose.getTranslation() / myAvatar->getDomainLimitedScale());
                 palmRotation = avatarTransform.getRotation() * pose.getRotation();
             } else {
                 glm::vec3 avatarRigidBodyPosition;

@@ -37,7 +37,7 @@ QString fetchVersion(const QUrl& url) {
     return r.trimmed();
 }
 
-void InfoView::show(const QString& path, bool firstOrChangedOnly) {
+void InfoView::show(const QString& path, bool firstOrChangedOnly, QString urlQuery) {
     static bool registered{ false };
     if (!registered) {
         registerType();
@@ -49,6 +49,8 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly) {
     } else {
         url = QUrl::fromLocalFile(path);
     }
+    url.setQuery(urlQuery);
+
     if (firstOrChangedOnly) {
         const QString lastVersion = infoVersion.get();
         const QString version = fetchVersion(url);

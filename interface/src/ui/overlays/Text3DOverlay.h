@@ -74,6 +74,7 @@ private:
     float _topMargin { 0.1f };
     float _rightMargin { 0.1f };
     float _bottomMargin { 0.1f };
+    int _geometryId { 0 };
 };
 
 #endif // hifi_Text3DOverlay_h

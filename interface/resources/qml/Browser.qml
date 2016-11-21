@@ -31,13 +31,6 @@ ScrollingWindow {
         addressBar.text = webview.url
     }
 
-    onParentChanged: {
-        if (visible) {
-            addressBar.forceActiveFocus();
-            addressBar.selectAll()
-        }
-    }
-
     function showPermissionsBar(){
         permissionsContainer.visible=true;
     }

@@ -226,5 +226,5 @@ QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath, bool 
                                shouldCreateIfMissing);
     }
 
-    return NULL;
+    return nullptr;
 }

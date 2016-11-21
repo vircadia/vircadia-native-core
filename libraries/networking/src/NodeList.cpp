@@ -18,6 +18,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
+#include <QtNetwork/QNetworkInterface>
 
 #include <LogHandler.h>
 #include <UUID.h>
@@ -104,6 +105,10 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
+    // set our sockAddrBelongsToDomainOrNode method as the connection creation filter for the udt::Socket
+    using std::placeholders::_1;
+    _nodeSocket.setConnectionCreationFilterOperator(std::bind(&NodeList::sockAddrBelongsToDomainOrNode, this, _1));
+
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
 
@@ -123,19 +128,30 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
 }
 
-qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
+qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendStats", Qt::QueuedConnection,
+                                  Q_ARG(QJsonObject, statsObject),
+                                  Q_ARG(HifiSockAddr, destination));
+        return 0;
+    }
+
     auto statsPacketList = NLPacketList::create(PacketType::NodeJsonStats, QByteArray(), true, true);
 
     QJsonDocument jsonDocument(statsObject);
     statsPacketList->write(jsonDocument.toBinaryData());
 
     sendPacketList(std::move(statsPacketList), destination);
-
-    // enumerate the resulting strings, breaking them into MTU sized packets
     return 0;
 }
 
-qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
+qint64 NodeList::sendStatsToDomainServer(QJsonObject statsObject) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendStatsToDomainServer", Qt::QueuedConnection,
+                                  Q_ARG(QJsonObject, statsObject));
+        return 0;
+    }
+
     return sendStats(statsObject, _domainHandler.getSockAddr());
 }
 
@@ -247,11 +263,16 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 }
 
 void NodeList::sendDomainServerCheckIn() {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendDomainServerCheckIn", Qt::QueuedConnection);
+        return;
+    }
+
     if (_isShuttingDown) {
         qCDebug(networking) << "Refusing to send a domain-server check in while shutting down.";
         return;
     }
-    
+
     if (_publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
         qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
@@ -326,11 +347,33 @@ void NodeList::sendDomainServerCheckIn() {
             // include the protocol version signature in our connect request
             QByteArray protocolVersionSig = protocolVersionsSignature();
             packetStream.writeBytes(protocolVersionSig.constData(), protocolVersionSig.size());
+
+            // if possible, include the MAC address for the current interface in our connect request
+            QString hardwareAddress;
+
+            for (auto networkInterface : QNetworkInterface::allInterfaces()) {
+                for (auto interfaceAddress : networkInterface.addressEntries()) {
+                    if (interfaceAddress.ip() == _localSockAddr.getAddress()) {
+                        // this is the interface whose local IP matches what we've detected the current IP to be
+                        hardwareAddress = networkInterface.hardwareAddress();
+
+                        // stop checking interfaces and addresses
+                        break;
+                    }
+                }
+
+                // stop looping if this was the current interface
+                if (!hardwareAddress.isEmpty()) {
+                    break;
+                }
+            }
+
+            packetStream << hardwareAddress;
         }
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << _ownerType.load() << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!_domainHandler.isConnected()) {
@@ -389,7 +432,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     // only send a path query if we know who our DS is or is going to be
     if (_domainHandler.isSocketKnown()) {
         // construct the path query packet
-        auto pathQueryPacket = NLPacket::create(PacketType::DomainServerPathQuery);
+        auto pathQueryPacket = NLPacket::create(PacketType::DomainServerPathQuery, -1, true);
 
         // get the UTF8 representation of path query
         QByteArray pathQueryUTF8 = newPath.toUtf8();
@@ -703,9 +746,30 @@ void NodeList::sendKeepAlivePings() {
     });
 }
 
+bool NodeList::sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr) {
+    return _domainHandler.getSockAddr() == sockAddr || LimitedNodeList::sockAddrBelongsToNode(sockAddr);
+}
+
+void NodeList::ignoreNodesInRadius(float radiusToIgnore, bool enabled) {
+    _ignoreRadiusEnabled.set(enabled);
+    _ignoreRadius.set(radiusToIgnore);
+
+    eachMatchingNode([](const SharedNodePointer& node)->bool {
+        return (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer);
+    }, [this](const SharedNodePointer& destinationNode) {
+        sendIgnoreRadiusStateToNode(destinationNode);
+    });
+}
+
+void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode) {
+    auto ignorePacket = NLPacket::create(PacketType::RadiusIgnoreRequest, sizeof(bool) + sizeof(float), true);
+    ignorePacket->writePrimitive(_ignoreRadiusEnabled.get());
+    ignorePacket->writePrimitive(_ignoreRadius.get());
+    sendPacket(std::move(ignorePacket), *destinationNode);
+}
+
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
-
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
         eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
@@ -764,6 +828,9 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
             // send this NLPacketList to the new node
             sendPacketList(std::move(ignorePacketList), *newNode);
         }
+
+        // also send them the current ignore radius state.
+        sendIgnoreRadiusStateToNode(newNode);
     }
 }
 
@@ -788,6 +855,34 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
         }
     } else {
         qWarning() << "NodeList::kickNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
+
+    }
+}
+
+void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
+    // cannot mute yourself, or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+        if (getThisNodeCanKick()) {
+            auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+            if (audioMixer) {
+                // setup the packet
+                auto mutePacket = NLPacket::create(PacketType::NodeMuteRequest, NUM_BYTES_RFC4122_UUID, true);
+
+                // write the node ID to the packet
+                mutePacket->write(nodeID.toRfc4122());
+
+                qDebug() << "Sending packet to mute node" << uuidStringWithoutCurlyBraces(nodeID);
+            
+                sendPacket(std::move(mutePacket), *audioMixer);
+            } else {
+                qWarning() << "Couldn't find audio mixer to send node mute request";
+            }
+        } else {
+            qWarning() << "You do not have permissions to mute in this domain."
+                << "Request to mute node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+        }
+    } else {
+        qWarning() << "NodeList::muteNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
 
     }
 }

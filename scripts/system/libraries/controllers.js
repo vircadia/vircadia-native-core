@@ -7,13 +7,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /* global MyAvatar, Vec3, Controller, Quat */
 
+var GRAB_COMMUNICATIONS_SETTING = "io.highfidelity.isFarGrabbing";
+setGrabCommunications = function setFarGrabCommunications(on) {
+    Settings.setValue(GRAB_COMMUNICATIONS_SETTING, on ? "on" : "");
+}
+getGrabCommunications = function getFarGrabCommunications() {
+    return !!Settings.getValue(GRAB_COMMUNICATIONS_SETTING, "");
+}
 
-// var GRAB_POINT_SPHERE_OFFSET = { x: 0, y: 0.2, z: 0 };
-// var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.175, z: 0.04 };
-// var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.32, z: 0.04 };
-
-// this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp
-var GRAB_POINT_SPHERE_OFFSET = { x: 0.0, y: 0.175, z: 0.0 };
+// this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp:378
+var GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 };  // x = upward, y = forward, z = lateral
 
 getGrabPointSphereOffset = function(handController) {
     if (handController === Controller.Standard.RightHand) {
@@ -31,6 +34,7 @@ getControllerWorldLocation = function (handController, doOffset) {
     var orientation;
     var position;
     var pose = Controller.getPoseValue(handController);
+    var valid = pose.valid;
     if (pose.valid) {
         orientation = Quat.multiply(MyAvatar.orientation, pose.rotation);
         position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
@@ -38,10 +42,15 @@ getControllerWorldLocation = function (handController, doOffset) {
         if (doOffset) {
             position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, getGrabPointSphereOffset(handController)));
         }
+    } else if (!HMD.isHandControllerAvailable()) {
+        position = MyAvatar.getHeadPosition();
+        orientation = Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
+        valid = true;
     }
+
     return {position: position,
             translation: position,
             orientation: orientation,
             rotation: orientation,
-            valid: pose.valid};
+            valid: valid};
 };

@@ -64,18 +64,21 @@ public:
     
     void setEstimatedTimeout(int estimatedTimeout) { _estimatedTimeout = estimatedTimeout; }
     void setSyncInterval(int syncInterval) { _syncInterval = syncInterval; }
+
+    void setProbePacketEnabled(bool enabled);
     
 public slots:
     void stop();
     
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
+    void fastRetransmit(SequenceNumber ack);
     void overrideNAKListFromPacket(ControlPacket& packet);
     void handshakeACK(SequenceNumber initialSequenceNumber);
 
 signals:
-    void packetSent(int dataSize, int payloadSize);
-    void packetRetransmitted();
+    void packetSent(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
+    void packetRetransmitted(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
     
     void queueInactive();
 
@@ -139,6 +142,9 @@ private:
     std::condition_variable _handshakeACKCondition;
     
     std::condition_variable_any _emptyCondition;
+
+
+    std::atomic<bool> _shouldSendProbes { true };
 };
     
 }

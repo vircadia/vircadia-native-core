@@ -56,6 +56,10 @@ Windows.ScrollingWindow {
     onWidthChanged: notifyResized();
     onHeightChanged: notifyResized();
 
+    onShownChanged: {
+        keyboardEnabled = HMD.active;
+    }
+
     Item {
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight

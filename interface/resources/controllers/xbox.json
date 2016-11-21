@@ -3,8 +3,13 @@
     "channels": [
         { "from": "GamePad.LY", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateZ" },
         { "from": "GamePad.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateX" },
-        { "from": "GamePad.LT", "to": "Standard.LT" }, 
-        { "from": "GamePad.LB", "to": "Standard.LB" }, 
+
+        { "from": "GamePad.LT", "to": "Standard.LTClick",
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "GamePad.LT", "to": "Standard.LT" },
+        { "from": "GamePad.LB", "to": "Standard.LB" },
         { "from": "GamePad.LS", "to": "Standard.LS" },
 
 
@@ -22,30 +27,34 @@
 
         { "from": "GamePad.RX", "to": "Actions.Yaw" },
 
-        { "from": "GamePad.RY", 
-          "to": "Actions.VERTICAL_UP", 
-          "filters": 
+        { "from": "GamePad.RY",
+          "to": "Actions.VERTICAL_UP",
+          "filters":
             [
                 { "type": "deadZone", "min": 0.95 },
                 "invert"
             ]
-        }, 
+        },
 
-        { "from": "GamePad.RT", "to": "Standard.RT" }, 
-        { "from": "GamePad.RB", "to": "Standard.RB" }, 
+        { "from": "GamePad.RT", "to": "Standard.RTClick",
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "GamePad.RT", "to": "Standard.RT" },
+        { "from": "GamePad.RB", "to": "Standard.RB" },
         { "from": "GamePad.RS", "to": "Standard.RS" },
 
         { "from": "GamePad.Start", "to": "Actions.CycleCamera" },
-        { "from": "GamePad.Back", "to": "Actions.ContextMenu" },
+        { "from": "GamePad.Back", "to": "Standard.Start" },
 
         { "from": "GamePad.DU", "to": "Standard.DU" },
-        { "from": "GamePad.DD", "to": "Standard.DD" }, 
+        { "from": "GamePad.DD", "to": "Standard.DD" },
         { "from": "GamePad.DL", "to": "Standard.DL" },
-        { "from": "GamePad.DR", "to": "Standard.DR" }, 
+        { "from": "GamePad.DR", "to": "Standard.DR" },
 
         { "from": [ "GamePad.Y" ], "to": "Standard.RightPrimaryThumb", "peek": true },
-        { "from": "GamePad.A", "to": "Standard.A" }, 
-        { "from": "GamePad.B", "to": "Standard.B" }, 
+        { "from": "GamePad.A", "to": "Standard.A" },
+        { "from": "GamePad.B", "to": "Standard.B" },
         { "from": "GamePad.X", "to": "Standard.X" },
         { "from": "GamePad.Y", "to": "Standard.Y" }
     ]

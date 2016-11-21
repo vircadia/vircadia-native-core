@@ -30,6 +30,7 @@ public:
     virtual Rectangle3DOverlay* createClone() const override;
 private:
     int _geometryCacheID;
+    std::array<int, 4> _rectGeometryIds;
     glm::vec2 _previousHalfDimensions;
 };
 

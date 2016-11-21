@@ -22,7 +22,7 @@ ModalWindow {
     implicitWidth: 640;
     implicitHeight: 320;
     visible: true;
-    keyboardEnabled: false  // Disable ModalWindow's keyboard.
+    keyboardOverride: true  // Disable ModalWindow's keyboard.
 
     signal selected(var result);
     signal canceled();
@@ -51,6 +51,7 @@ ModalWindow {
         }
     }
 
+    property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
     onKeyboardRaisedChanged: d.resize();
@@ -116,7 +117,7 @@ ModalWindow {
                 var targetHeight = (textField.visible ? textField.controlHeight + hifi.dimensions.contentSpacing.y : 0) +
                                    (extraInputs.visible ? extraInputs.height + hifi.dimensions.contentSpacing.y : 0) +
                                    (buttons.height + 3 * hifi.dimensions.contentSpacing.y) +
-                                   (root.keyboardRaised ? (200 + hifi.dimensions.contentSpacing.y) : 0);
+                                   ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + hifi.dimensions.contentSpacing.y) : 0);
 
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
                 root.height = (targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ?
@@ -153,38 +154,15 @@ ModalWindow {
                 }
             }
 
-            Item {
+            Keyboard {
                 id: keyboard
-
-                height: keyboardRaised ? 200 : 0
-
+                raised: keyboardEnabled && keyboardRaised
+                numeric: punctuationMode
                 anchors {
                     left: parent.left
                     right: parent.right
                     bottom: parent.bottom
-                    bottomMargin: keyboardRaised ? hifi.dimensions.contentSpacing.y : 0
-                }
-
-                Keyboard {
-                    id: keyboard1
-                    visible: keyboardRaised && !punctuationMode
-                    enabled: keyboardRaised && !punctuationMode
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        bottom: parent.bottom
-                    }
-                }
-
-                KeyboardPunctuation {
-                    id: keyboard2
-                    visible: keyboardRaised && punctuationMode
-                    enabled: keyboardRaised && punctuationMode
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        bottom: parent.bottom
-                    }
+                    bottomMargin: raised ? hifi.dimensions.contentSpacing.y : 0
                 }
             }
         }
@@ -211,6 +189,7 @@ ModalWindow {
                     left: parent.left;
                     bottom: parent.bottom;
                     leftMargin: 6;  // Magic number to align with warning icon
+                    bottomMargin: 6;
                 }
             }
 
@@ -224,7 +203,10 @@ ModalWindow {
                     bottom: parent.bottom;
                 }
                 model: root.comboBox ? root.comboBox.items : [];
-                onCurrentTextChanged: updateCheckbox();
+                onAccepted: {
+                    updateCheckbox();
+                    focus = true;
+                }
             }
         }
 
@@ -335,7 +317,9 @@ ModalWindow {
     }
 
     Component.onCompleted: {
+        keyboardEnabled = HMD.active;
         updateIcon();
+        updateCheckbox();
         d.resize();
         textField.forceActiveFocus();
     }

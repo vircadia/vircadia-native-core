@@ -51,7 +51,7 @@ public:
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
-    ModelPointer getModel(EntityTreeRenderer* renderer);
+    ModelPointer getModel(QSharedPointer<EntityTreeRenderer> renderer);
 
     virtual bool needsToCallUpdate() const override;
     virtual void update(const quint64& now) override;
@@ -73,6 +73,12 @@ public:
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override;
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override;
+
+
+    virtual glm::quat getLocalJointRotation(int index) const override;
+    virtual glm::vec3 getLocalJointTranslation(int index) const override;
+    virtual bool setLocalJointRotation(int index, const glm::quat& rotation) override;
+    virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) override;
 
     virtual void setJointRotations(const QVector<glm::quat>& rotations) override;
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet) override;
@@ -105,7 +111,7 @@ private:
     ModelPointer _model = nullptr;
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
-    EntityTreeRenderer* _myRenderer = nullptr;
+    QSharedPointer<EntityTreeRenderer> _myRenderer;
     QString _lastTextures;
     QVariantMap _currentTextures;
     QVariantMap _originalTextures;

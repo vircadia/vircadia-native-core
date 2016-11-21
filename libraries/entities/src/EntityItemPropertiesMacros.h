@@ -305,7 +305,16 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
     }
     return newValue;
 }
-    
+
+
+#define COPY_PROPERTY_IF_CHANGED(P) \
+{                                   \
+    if (other._##P##Changed) {      \
+        _##P = other._##P;          \
+    }                               \
+}
+
+
 
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE(P, T, S)                     \
     {                                                                \

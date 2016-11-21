@@ -338,6 +338,9 @@ Menu::Menu() {
     // Developer > Render > Throttle FPS If Not Focus
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true);
 
+    // Developer > Render > OpenVR threaded submit
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::OpenVrThreadedSubmit, 0, true);
+
     // Developer > Render > Resolution
     MenuWrapper* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
@@ -384,33 +387,12 @@ Menu::Menu() {
     });
 
 #ifdef Q_OS_WIN
-    #define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
-    bool recommendedIncrementalTransfers = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
-    bool recommendedSparseTextures = recommendedIncrementalTransfers;
-
-    qDebug() << "[TEXTURE TRANSFER SUPPORT]"
-        << "\n\tidealThreadCount:" << QThread::idealThreadCount()
-        << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures
-        << "\n\tRECOMMENDED enableIncrementalTextures:" << recommendedIncrementalTransfers;
-
-    gpu::Texture::setEnableIncrementalTextureTransfers(recommendedIncrementalTransfers);
-    gpu::Texture::setEnableSparseTextures(recommendedSparseTextures);
-
-    // Developer > Render > Enable Dynamic Texture Management
+    // Developer > Render > Enable Sparse Textures
     {
-        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableDynamicTextureManagement, 0, recommendedSparseTextures);
+        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::SparseTextureManagement, 0, gpu::Texture::getEnableSparseTextures());
         connect(action, &QAction::triggered, [&](bool checked) {
             qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Dynamic Texture Management menu option:" << checked;
             gpu::Texture::setEnableSparseTextures(checked);
-        });
-    }
-
-    // Developer > Render > Enable Incremental Texture Transfer
-    {
-        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableIncrementalTextureTransfer, 0, recommendedIncrementalTransfers);
-        connect(action, &QAction::triggered, [&](bool checked) {
-            qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Incremental Texture Transfer menu option:" << checked;
-            gpu::Texture::setEnableIncrementalTextureTransfers(checked);
         });
     }
 
@@ -605,6 +587,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarSimulateTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPhysicsSimulationTiming, 0, false);
 
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));
@@ -615,6 +598,14 @@ Menu::Menu() {
 
     // Developer > Audio >>>
     MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");
+
+    action = addActionToQMenuAndActionHash(audioDebugMenu, "Stats...");
+    connect(action, &QAction::triggered, [] {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        QUrl defaultScriptsLoc = defaultScriptsLocation();
+        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/audio/stats.js");
+        scriptEngines->loadScript(defaultScriptsLoc.toString());
+    });
 
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
     connect(action, &QAction::triggered, [] {
@@ -653,10 +644,6 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(twentyFrames);
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
-
-    // Developer > Audio > Audio Network Stats...
-    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNetworkStats, 0,
-        dialogsManager.data(), SLOT(audioStatsDetails()));
 
     // Developer > Physics >>>
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");

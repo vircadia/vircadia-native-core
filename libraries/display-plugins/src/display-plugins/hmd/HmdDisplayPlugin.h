@@ -23,6 +23,7 @@
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
+    ~HmdDisplayPlugin();
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
@@ -37,10 +38,13 @@ public:
     virtual glm::mat4 getHeadPose() const override;
 
     bool setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) override;
+    bool setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) override;
 
     bool wantVsync() const override {
         return false;
     }
+
+    float stutterRate() const override;
 
 protected:
     virtual void hmdPresent() = 0;
@@ -79,6 +83,12 @@ protected:
     std::array<mat4, 2> _presentHandPoses;
     std::array<std::pair<vec3, vec3>, 2> _presentHandLaserPoints;
 
+    HandLaserInfo _extraLaser;
+    HandLaserInfo _presentExtraLaser;
+    vec3 _extraLaserStart;
+    vec3 _presentExtraLaserStart;
+    std::pair<vec3, vec3> _presentExtraLaserPoints;
+
     std::array<mat4, 2> _eyeOffsets;
     std::array<mat4, 2> _eyeProjections;
     std::array<mat4, 2> _eyeInverseProjections;
@@ -98,8 +108,9 @@ protected:
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
+    RateCounter<> _stutterRate;
 
-    bool _disablePreview{ true };
+    bool _disablePreview { true };
 private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
     float getLeftCenterPixel() const;
@@ -107,6 +118,10 @@ private:
     bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
+    std::array<gpu::BufferPointer, 2> _handLaserUniforms;
+    uint32_t _handLaserUniformSlot { 0 };
+    gpu::BufferPointer _extraLaserUniforms;
+    gpu::PipelinePointer _glowLinePipeline;
     gpu::TexturePointer _previewTexture;
     glm::vec2 _lastWindowSize;
 
@@ -129,6 +144,9 @@ private:
             vec2 resolution { CompositorHelper::VIRTUAL_SCREEN_SIZE };
             float radius { 0.005f };
             float alpha { 1.0f };
+
+            vec4 extraGlowColor;
+            vec2 extraGlowPoint { -1 };
         } uniforms;
         
         struct Vertex {

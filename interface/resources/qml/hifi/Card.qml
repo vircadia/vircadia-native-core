@@ -18,6 +18,7 @@ import "toolbars"
 import "../styles-uit"
 
 Rectangle {
+    id: root;
     property string userName: "";
     property string placeName: "";
     property string action: "";
@@ -27,13 +28,22 @@ Rectangle {
     property var goFunction: null;
     property string storyId: "";
 
+    property bool drillDownToPlace: false;
+    property bool showPlace: isConcurrency;
+    property string messageColor: hifi.colors.blueAccent;
     property string timePhrase: pastTime(timestamp);
     property int onlineUsers: 0;
+    property bool isConcurrency: action === 'concurrency';
+    property bool isStacked: !isConcurrency && drillDownToPlace;
 
     property int textPadding: 10;
+    property int smallMargin: 4;
+    property int messageHeight: 40;
     property int textSize: 24;
     property int textSizeSmall: 18;
+    property int stackShadowNarrowing: 5;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
+    property int shadowHeight: 20;
     HifiConstants { id: hifi }
 
     function pastTime(timestamp) { // Answer a descriptive string
@@ -59,18 +69,49 @@ Rectangle {
 
     Image {
         id: lobby;
-        width: parent.width;
-        height: parent.height;
+        width: parent.width - (isConcurrency ? 0 : (2 * smallMargin));
+        height: parent.height - messageHeight - (isConcurrency ? 0 : smallMargin);
         source: thumbnail || defaultThumbnail;
         fillMode: Image.PreserveAspectCrop;
         // source gets filled in later
-        anchors.verticalCenter: parent.verticalCenter;
-        anchors.left: parent.left;
+        anchors {
+            horizontalCenter: parent.horizontalCenter;
+            top: parent.top;
+            topMargin: isConcurrency ? 0 : smallMargin;
+        }
         onStatusChanged: {
             if (status == Image.Error) {
                 console.log("source: " + source + ": failed to load " + hifiUrl);
                 source = defaultThumbnail;
             }
+        }
+    }
+    Rectangle {
+        id: shadow1;
+        visible: isStacked;
+        width: parent.width - stackShadowNarrowing;
+        height: shadowHeight / 2;
+        anchors {
+            top: parent.bottom;
+            horizontalCenter: parent.horizontalCenter;
+        }
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: "gray" }
+            GradientStop { position: 1.0; color: "white" }
+        }
+    }
+    Rectangle {
+        id: shadow2;
+        visible: isStacked;
+        width: shadow1.width - stackShadowNarrowing;
+        height: shadowHeight / 2;
+        anchors {
+            top: shadow1.bottom;
+            horizontalCenter: parent.horizontalCenter;
+        }
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: "gray" }
+            GradientStop { position: 1.0; color: "white" }
         }
     }
     property int dropHorizontalOffset: 0;
@@ -79,7 +120,7 @@ Rectangle {
     property int dropSamples: 9;
     property int dropSpread: 0;
     DropShadow {
-        visible: desktop.gradientsSupported;
+        visible: showPlace && desktop.gradientsSupported;
         source: place;
         anchors.fill: place;
         horizontalOffset: dropHorizontalOffset;
@@ -89,38 +130,57 @@ Rectangle {
         color: hifi.colors.black;
         spread: dropSpread;
     }
-    DropShadow {
-        visible: users.visible && desktop.gradientsSupported;
-        source: users;
-        anchors.fill: users;
-        horizontalOffset: dropHorizontalOffset;
-        verticalOffset: dropVerticalOffset;
-        radius: dropRadius;
-        samples: dropSamples;
-        color: hifi.colors.black;
-        spread: dropSpread;
-    }
     RalewaySemiBold {
         id: place;
+        visible: showPlace;
         text: placeName;
         color: hifi.colors.white;
         size: textSize;
+        elide: Text.ElideRight; // requires constrained width
         anchors {
             top: parent.top;
             left: parent.left;
+            right: parent.right;
             margins: textPadding;
         }
     }
-    FiraSansRegular {
-        id: users;
-        visible: action === 'concurrency';
-        text: onlineUsers;
-        size: textSize;
-        color: hifi.colors.white;
+    Row {
+        FiraSansRegular {
+            id: users;
+            visible: isConcurrency;
+            text: onlineUsers;
+            size: textSize;
+            color: messageColor;
+            anchors.verticalCenter: message.verticalCenter;
+        }
+        Image {
+            id: icon;
+            source: "../../images/snap-icon.svg"
+            width: 40;
+            height: 40;
+            visible: action === 'snapshot';
+        }
+        RalewayRegular {
+            id: message;
+            text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
+            size: textSizeSmall;
+            color: messageColor;
+            elide: Text.ElideRight; // requires a width to be specified`
+            width: root.width - textPadding
+                - (users.visible ? users.width + parent.spacing : 0)
+                - (icon.visible ? icon.width + parent.spacing : 0)
+                - (actionIcon.width + (2 * smallMargin));
+            anchors {
+                bottom: parent.bottom;
+                bottomMargin: parent.spacing;
+            }
+        }
+        spacing: textPadding;
+        height: messageHeight;
         anchors {
-            verticalCenter: usersImage.verticalCenter;
-            right: usersImage.left;
-            margins: textPadding;
+            bottom: parent.bottom;
+            left: parent.left;
+            leftMargin: textPadding;
         }
     }
     // These two can be supplied to provide hover behavior.
@@ -129,7 +189,6 @@ Rectangle {
     property var hoverThunk: function () { };
     property var unhoverThunk: function () { };
     MouseArea {
-        id: zmouseArea;
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
         onClicked: goFunction("hifi://" + hifiUrl);
@@ -137,18 +196,26 @@ Rectangle {
         onEntered: hoverThunk();
         onExited: unhoverThunk();
     }
-    ToolbarButton {
-        id: usersImage;
-        imageURL: "../../images/" + action + ".svg";
+    StateImage {
+        id: actionIcon;
+        imageURL: "../../images/info-icon-2-state.svg";
         size: 32;
-        onClicked: goFunction("/user_stories/" + storyId);
-        buttonState: 0;
-        defaultState: 0;
-        hoverState: 1;
+        buttonState: messageArea.containsMouse ? 1 : 0;
         anchors {
             bottom: parent.bottom;
             right: parent.right;
-            margins: textPadding;
+            margins: smallMargin;
         }
+    }
+    MouseArea {
+        id: messageArea;
+        width: parent.width;
+        height: messageHeight;
+        anchors {
+            top: lobby.bottom;
+        }
+        acceptedButtons: Qt.LeftButton;
+        onClicked: goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
+        hoverEnabled: true;
     }
 }

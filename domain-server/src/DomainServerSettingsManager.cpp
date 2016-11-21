@@ -31,6 +31,7 @@
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 
+#include "DomainServerNodeData.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 
@@ -440,6 +441,9 @@ void DomainServerSettingsManager::packPermissions() {
     // save settings for IP addresses
     packPermissionsForMap("permissions", _ipPermissions, IP_PERMISSIONS_KEYPATH);
 
+    // save settings for MAC addresses
+    packPermissionsForMap("permissions", _macPermissions, MAC_PERMISSIONS_KEYPATH);
+
     // save settings for groups
     packPermissionsForMap("permissions", _groupPermissions, GROUP_PERMISSIONS_KEYPATH);
 
@@ -507,6 +511,17 @@ void DomainServerSettingsManager::unpackPermissions() {
             }
     });
 
+    needPack |= unpackPermissionsForKeypath(MAC_PERMISSIONS_KEYPATH, &_macPermissions,
+        [&](NodePermissionsPointer perms){
+            // make sure that this permission row is for a non-empty hardware
+            if (perms->getKey().first.isEmpty()) {
+                _macPermissions.remove(perms->getKey());
+                
+                // we removed a row from the MAC permissions, we'll need a re-pack
+                needPack = true;
+            }
+    });
+
 
     needPack |= unpackPermissionsForKeypath(GROUP_PERMISSIONS_KEYPATH, &_groupPermissions,
         [&](NodePermissionsPointer perms){
@@ -559,7 +574,8 @@ void DomainServerSettingsManager::unpackPermissions() {
     qDebug() << "--------------- permissions ---------------------";
     QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
     permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get()
-                    << _groupPermissions.get() << _groupForbiddens.get() << _ipPermissions.get();
+                    << _groupPermissions.get() << _groupForbiddens.get()
+                    << _ipPermissions.get() << _macPermissions.get();
     foreach (auto permissionSet, permissionsSets) {
         QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(permissionSet);
         while (i.hasNext()) {
@@ -635,7 +651,6 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
     return changed;
 }
 
-
 void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // before we do any processing on this packet make sure it comes from a node that is allowed to kick
     if (sendingNode->getCanKick()) {
@@ -655,19 +670,25 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 
                 auto verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
 
-                bool hadExistingPermissions = false;
+                bool newPermissions = false;
 
                 if (!verifiedUsername.isEmpty()) {
                     // if we have a verified user name for this user, we apply the kick to the username
 
                     // check if there were already permissions
-                    hadExistingPermissions = havePermissionsForName(verifiedUsername);
+                    bool hadPermissions = havePermissionsForName(verifiedUsername);
 
                     // grab or create permissions for the given username
-                    destinationPermissions = _agentPermissions[matchingNode->getPermissions().getKey()];
+                    auto userPermissions = _agentPermissions[matchingNode->getPermissions().getKey()];
+
+                    newPermissions = !hadPermissions || userPermissions->can(NodePermissions::Permission::canConnectToDomain);
+
+                    // ensure that the connect permission is clear
+                    userPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                 } else {
-                    // otherwise we apply the kick to the IP from active socket for this node
-                    // (falling back to the public socket if not yet active)
+                    // otherwise we apply the kick to the IP from active socket for this node and the MAC address
+
+                    // remove connect permissions for the IP (falling back to the public socket if not yet active)
                     auto& kickAddress = matchingNode->getActiveSocket()
                         ? matchingNode->getActiveSocket()->getAddress()
                         : matchingNode->getPublicSocket().getAddress();
@@ -675,32 +696,41 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                     NodePermissionsKey ipAddressKey(kickAddress.toString(), QUuid());
 
                     // check if there were already permissions for the IP
-                    hadExistingPermissions = hasPermissionsForIP(kickAddress);
+                    bool hadIPPermissions = hasPermissionsForIP(kickAddress);
 
                     // grab or create permissions for the given IP address
-                    destinationPermissions = _ipPermissions[ipAddressKey];
+                    auto ipPermissions = _ipPermissions[ipAddressKey];
+
+                    if (!hadIPPermissions || ipPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
+                        newPermissions = true;
+
+                        ipPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                    }
+
+                    // potentially remove connect permissions for the MAC address
+                    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+                    if (nodeData) {
+                        NodePermissionsKey macAddressKey(nodeData->getHardwareAddress(), 0);
+
+                        bool hadMACPermissions = hasPermissionsForMAC(nodeData->getHardwareAddress());
+
+                        auto macPermissions = _macPermissions[macAddressKey];
+
+                        if (!hadMACPermissions || macPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
+                            newPermissions = true;
+
+                            macPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                        }
+                    }
                 }
 
-                // make sure we didn't already have existing permissions that disallowed connect
-                if (!hadExistingPermissions
-                    || destinationPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
-
+                if (newPermissions) {
                     qDebug() << "Removing connect permission for node" << uuidStringWithoutCurlyBraces(matchingNode->getUUID())
-                        << "after kick request";
-
-                    // ensure that the connect permission is clear
-                    destinationPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                        << "after kick request from" << uuidStringWithoutCurlyBraces(sendingNode->getUUID());
 
                     // we've changed permissions, time to store them to disk and emit our signal to say they have changed
                     packPermissions();
-
-                    emit updateNodePermissions();
                 } else {
-                    qWarning() << "Received kick request for node" << uuidStringWithoutCurlyBraces(matchingNode->getUUID())
-                        << "that already did not have permission to connect";
-
-                    // in this case, though we don't expect the node to be connected to the domain, it is
-                    // emit updateNodePermissions so that the DomainGatekeeper kicks it out
                     emit updateNodePermissions();
                 }
 
@@ -749,6 +779,16 @@ NodePermissions DomainServerSettingsManager::getPermissionsForIP(const QHostAddr
     NodePermissionsKey ipKey = NodePermissionsKey(address.toString(), 0);
     if (_ipPermissions.contains(ipKey)) {
         return *(_ipPermissions[ipKey].get());
+    }
+    NodePermissions nullPermissions;
+    nullPermissions.setAll(false);
+    return nullPermissions;
+}
+
+NodePermissions DomainServerSettingsManager::getPermissionsForMAC(const QString& macAddress) const {
+    NodePermissionsKey macKey = NodePermissionsKey(macAddress, 0);
+    if (_macPermissions.contains(macKey)) {
+        return *(_macPermissions[macKey].get());
     }
     NodePermissions nullPermissions;
     nullPermissions.setAll(false);
@@ -1078,6 +1118,9 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
 }
 
 bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
+    static const QString SECURITY_ROOT_KEY = "security";
+    static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
+
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
 
@@ -1128,7 +1171,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
-                if (rootKey != "security") {
+                if (rootKey != SECURITY_ROOT_KEY) {
                     needRestart = true;
                 }
             } else {
@@ -1144,7 +1187,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 if (!matchingDescriptionObject.isEmpty()) {
                     QJsonValue settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
-                    if (rootKey != "security") {
+                    if (rootKey != SECURITY_ROOT_KEY || settingKey == AC_SUBNET_WHITELIST_KEY) {
                         needRestart = true;
                     }
                 } else {

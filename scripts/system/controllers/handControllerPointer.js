@@ -20,7 +20,7 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
-Script.include("/~/system/libraries/controllers.js");
+Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
 //
@@ -203,14 +203,40 @@ function overlayFromWorldPoint(point) {
     return { x: horizontalPixels, y: verticalPixels };
 }
 
+var gamePad = Controller.findDevice("GamePad");
+function activeHudPoint2dGamePad() {
+    if (!HMD.active) {
+      return;
+    }
+    var headPosition = MyAvatar.getHeadPosition();
+    var headDirection = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
+
+    var hudPoint3d = calculateRayUICollisionPoint(headPosition, headDirection);
+
+    if (!hudPoint3d) {
+        if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
+            print('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
+        }
+        return;
+    }
+    var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
+
+    // We don't know yet if we'll want to make the cursor or laser visble, but we need to move it to see if
+    // it's pointing at a QML tool (aka system overlay).
+    setReticlePosition(hudPoint2d);
+
+    return hudPoint2d;
+}
+
+
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
-    var controllerPose = getControllerWorldLocation(activeHand, true);
+    var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will return head pose if hand pose is invalid (third eye)
     if (!controllerPose.valid) {
         return; // Controller is cradled.
     }
     var controllerPosition = controllerPose.position;
     var controllerDirection = Quat.getUp(controllerPose.rotation);
-    
+
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
@@ -405,7 +431,7 @@ clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigg
 clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
 // The following is essentially like Left and Right versions of
 // clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
-// except that we first update the reticle position from the appropriate hand position, before invoking the ContextMenu.
+// except that we first update the reticle position from the appropriate hand position, before invoking the  .
 var wantsMenu = 0;
 clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
@@ -419,6 +445,13 @@ clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (cl
         activeHudPoint2d(Controller.Standard.LeftHand);
     }
     wantsMenu = clicked;
+});
+clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
+    if (clicked) {
+        activeHudPoint2dGamePad();
+      }
+
+      wantsMenu = clicked;
 });
 clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(function () {
     // Allow the reticle depth to be set correctly:
@@ -447,12 +480,20 @@ function clearSystemLaser() {
         return;
     }
     HMD.disableHandLasers(BOTH_HUD_LASERS);
+    HMD.disableExtraLaser();
     systemLaserOn = false;
     weMovedReticle = true;
     Reticle.position = { x: -1, y: -1 };
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+
+    if (!HMD.isHandControllerAvailable()) {
+        var position = MyAvatar.getHeadPosition();
+        var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
+        return HMD.setExtraLaser(position, true, color, direction);
+    }
+
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
 }
 
@@ -464,30 +505,55 @@ function update() {
         expireMouseCursor();
         clearSystemLaser();
     }
+
     updateSeeking(true);
     if (!handControllerLockOut.expired(now)) {
         return off(); // Let them use mouse in peace.
     }
+
     if (!Menu.isOptionChecked("First Person")) {
         return off(); // What to do? menus can be behind hand!
     }
-    if (!Window.hasFocus() || !Reticle.allowMouseCapture) {
+
+    if ((!Window.hasFocus() && !HMD.active) || !Reticle.allowMouseCapture) {
+        // In desktop it's pretty clear when another app is on top. In that case we bail, because
+        // hand controllers might be sputtering "valid" data and that will keep someone from deliberately
+        // using the mouse on another app. (Fogbugz case 546.)
+        // However, in HMD, you might not realize you're not on top, and you wouldn't be able to operate
+        // other apps anyway. So in that case, we DO keep going even though we're not on top. (Fogbugz 1831.)
         return off(); // Don't mess with other apps or paused mouse activity
     }
+
     leftTrigger.update();
     rightTrigger.update();
     if (!activeTrigger.state) {
         return off(); // No trigger
     }
+
+    if (getGrabCommunications()) {
+        return off();
+    }
+
+
     var hudPoint2d = activeHudPoint2d(activeHand);
     if (!hudPoint2d) {
         return off();
     }
+
+
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {
         if (HMD.active) {
             Reticle.depth = hudReticleDistance();
+
+            if (!HMD.isHandControllerAvailable()) {
+                var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+                var position = MyAvatar.getHeadPosition();
+                var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
+                HMD.setExtraLaser(position, true, color, direction);
+            }
         }
+
         if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
             // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
             systemLaserOn = setColoredLaser();
@@ -502,10 +568,15 @@ function update() {
     clearSystemLaser();
     Reticle.visible = false;
 }
-setupHandler(Script.update, update);
+
+var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
+var updateIntervalTimer = Script.setInterval(function(){
+    update();
+}, BASIC_TIMER_INTERVAL);
+
 
 // Check periodically for changes to setup.
-var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
+var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
 function checkSettings() {
     updateFieldOfView();
     updateRecommendedArea();
@@ -515,6 +586,7 @@ checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
+    Script.clearInterval(updateIntervalTimer);
     OffscreenFlags.navigationFocusDisabled = false;
 });
 

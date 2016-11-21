@@ -31,7 +31,7 @@
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount { 0 };
 // Don't allow more than 100 concurrent web views
-static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 100;
+static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 20;
 // If a web-view hasn't been rendered for 30 seconds, de-allocate the framebuffer
 static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 
@@ -52,20 +52,23 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
     destroyWebSurface();
     qDebug() << "Destroyed web entity " << getID();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
-bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
+bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer> renderer) {
     if (_currentWebCount >= MAX_CONCURRENT_WEB_VIEWS) {
         qWarning() << "Too many concurrent web views to create new view";
         return false;
     }
-    qDebug() << "Building web surface";
-
     QString javaScriptToInject;
     QFile webChannelFile(":qtwebchannel/qwebchannel.js");
     QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
@@ -80,26 +83,38 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
         qCWarning(entitiesrenderer) << "unable to find qwebchannel.js or createGlobalEventBridge.js";
     }
 
-    ++_currentWebCount;
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     if (!currentContext) {
         return false;
     }
+
+    ++_currentWebCount;
+    qDebug() << "Building web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
+
     QSurface * currentSurface = currentContext->surface();
 
     auto deleter = [](OffscreenQmlSurface* webSurface) {
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
-            webSurface->deleteLater();
+            if (AbstractViewStateInterface::instance()->isAboutToQuit()) {
+                // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
+                // if the application has already stopped its event loop, delete must be explicit
+                delete webSurface;
+            } else {
+                webSurface->deleteLater();
+            }
         });
     };
     _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
+
+    // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
+    // and the current rendering load)
+    _webSurface->setMaxFps(10);
 
     // The lifetime of the QML surface MUST be managed by the main thread
     // Additionally, we MUST use local variables copied by value, rather than
     // member variables, since they would implicitly refer to a this that 
     // is no longer valid
-
     _webSurface->create(currentContext);
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
     _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
@@ -108,6 +123,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
+    // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
 
     // forward web events to EntityScriptingInterface
     auto entities = DependencyManager::get<EntityScriptingInterface>();
@@ -124,10 +140,11 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             handlePointerEvent(event);
         }
     };
-    _mousePressConnection = QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardPointerEvent);
-    _mouseReleaseConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardPointerEvent);
-    _mouseMoveConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardPointerEvent);
-    _hoverLeaveConnection = QObject::connect(renderer, &EntityTreeRenderer::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const PointerEvent& event) {
+    _mousePressConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mousePressOnEntity, forwardPointerEvent);
+    _mouseReleaseConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mouseReleaseOnEntity, forwardPointerEvent);
+    _mouseMoveConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mouseMoveOnEntity, forwardPointerEvent);
+    _hoverLeaveConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::hoverLeaveEntity,
+                                             [=](const EntityItemID& entityItemID, const PointerEvent& event) {
         if (this->_pressed && this->getID() == entityItemID) {
             // If the user mouses off the entity while the button is down, simulate a touch end.
             QTouchEvent::TouchPoint point;
@@ -175,7 +192,8 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     #endif
 
     if (!_webSurface) {
-        if (!buildWebSurface(static_cast<EntityTreeRenderer*>(args->_renderer))) {
+        auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
+        if (!buildWebSurface(renderer)) {
             return;
         }
         _fadeStartTime = usecTimestampNow();
@@ -192,10 +210,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 
     if (!_texture) {
         auto webSurface = _webSurface;
-        auto recycler = [webSurface] (uint32_t recycleTexture, void* recycleFence) {
-            webSurface->releaseTexture({ recycleTexture, recycleFence });
-        };
-        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(recycler));
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
         _texture->setSource(__FUNCTION__);
     }
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;
@@ -227,7 +242,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     } else {
         DependencyManager::get<GeometryCache>()->bindOpaqueWebBrowserProgram(batch);
     }
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio));
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
@@ -320,7 +335,18 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
 void RenderableWebEntityItem::destroyWebSurface() {
     if (_webSurface) {
         --_currentWebCount;
+
+        QQuickItem* rootItem = _webSurface->getRootItem();
+        if (rootItem) {
+            QObject* obj = rootItem->findChild<QObject*>("webEngineView");
+            if (obj) {
+                // stop loading
+                QMetaObject::invokeMethod(obj, "stop");
+            }
+        }
+
         _webSurface->pause();
+
         _webSurface->disconnect(_connection);
         QObject::disconnect(_mousePressConnection);
         _mousePressConnection = QMetaObject::Connection();
@@ -331,6 +357,8 @@ void RenderableWebEntityItem::destroyWebSurface() {
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
         _webSurface.reset();
+
+        qDebug() << "Delete web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
     }
 }
 

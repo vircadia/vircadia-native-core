@@ -63,6 +63,11 @@ EntityTree::~EntityTree() {
     eraseAllOctreeElements(false);
 }
 
+void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
+    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',');
+}
+
+
 void EntityTree::createRootElement() {
     _rootElement = createNewElement();
 }
@@ -433,6 +438,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         return;
     }
 
+    unhookChildAvatar(entityID);
     emit deletingEntity(entityID);
 
     // NOTE: callers must lock the tree before using this method
@@ -440,6 +446,17 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     recurseTreeWithOperator(&theOperator);
     processRemovedEntities(theOperator);
     _isDirty = true;
+}
+
+void EntityTree::unhookChildAvatar(const EntityItemID entityID) {
+
+    EntityItemPointer entity = findEntityByEntityItemID(entityID);
+
+    entity->forEachDescendant([&](SpatiallyNestablePointer child) {
+        if (child->getNestableType() == NestableType::Avatar) {
+            child->setParentID(nullptr);
+        }
+    });
 }
 
 void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool ignoreWarnings) {
@@ -471,6 +488,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         }
 
         // tell our delete operator about this entityID
+        unhookChildAvatar(entityID);
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
     }
@@ -925,6 +943,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startCreate = 0, endCreate = 0;
             quint64 startLogging = 0, endLogging = 0;
 
+            const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
+            bool suppressDisallowedScript = false;
+
             _totalEditMessages++;
 
             EntityItemID entityItemID;
@@ -935,7 +956,31 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
 
-            const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
+            if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty() && !properties.getScript().isEmpty()) {
+                bool passedWhiteList = false;
+                auto entityScript = properties.getScript();
+                for (const auto& whiteListedPrefix : _entityScriptSourceWhitelist) {
+                    if (entityScript.startsWith(whiteListedPrefix, Qt::CaseInsensitive)) {
+                        passedWhiteList = true;
+                        break;
+                    }
+                }
+                if (!passedWhiteList) {
+                    if (wantEditLogging()) {
+                        qCDebug(entities) << "User [" << senderNode->getUUID() << "] attempting to set entity script not on whitelist, edit rejected";
+                    }
+
+                    // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                    if (message.getType() == PacketType::EntityAdd) {
+                        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                        validEditPacket = passedWhiteList;
+                    } else {
+                        suppressDisallowedScript = true;
+                    }
+                }
+            }
+
             if ((message.getType() == PacketType::EntityAdd ||
                  (message.getType() == PacketType::EntityEdit && properties.lifetimeChanged())) &&
                 !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
@@ -945,6 +990,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     properties.setLifetime(_maxTmpEntityLifetime);
                     // also bump up the lastEdited time of the properties so that the interface that created this edit
                     // will accept our adjustment to lifetime back into its own entity-tree.
+                    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
+                        properties.setLastEdited(usecTimestampNow());
+                    }
                     properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
                 }
             }
@@ -957,6 +1005,12 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
                 endLookup = usecTimestampNow();
                 if (existingEntity && message.getType() == PacketType::EntityEdit) {
+
+                    if (suppressDisallowedScript) {
+                        properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                        properties.setScript(existingEntity->getScript());
+                    }
+
                     // if the EntityItem exists, then update it
                     startLogging = usecTimestampNow();
                     if (wantEditLogging()) {
@@ -972,6 +1026,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     endLogging = usecTimestampNow();
 
                     startUpdate = usecTimestampNow();
+                    properties.setLastEditedBy(senderNode->getUUID());
                     updateEntity(entityItemID, properties, senderNode);
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
@@ -980,6 +1035,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
+                        properties.setLastEditedBy(senderNode->getUUID());
                         startCreate = usecTimestampNow();
                         EntityItemPointer newEntity = addEntity(entityItemID, properties);
                         endCreate = usecTimestampNow();

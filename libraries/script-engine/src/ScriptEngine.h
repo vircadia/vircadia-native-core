@@ -133,6 +133,7 @@ public:
     Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     Q_INVOKABLE void print(const QString& message);
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
+    Q_INVOKABLE QUrl resourcesPath() const;
 
     // Entity Script Related methods
     static void loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
@@ -144,6 +145,8 @@ public:
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
     Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }
+
+    Q_INVOKABLE QUuid generateUUID() { return QUuid::createUuid(); }
 
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
@@ -242,6 +245,7 @@ protected:
 
     std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
 
+    std::recursive_mutex _lock;
 };
 
 #endif // hifi_ScriptEngine_h

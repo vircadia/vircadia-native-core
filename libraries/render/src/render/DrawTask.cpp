@@ -86,7 +86,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
 
         {
             assert(item.getKey().isShape());
-            const auto& key = item.getShapeKey();
+            const auto key = item.getShapeKey();
             if (key.isValid() && !key.hasOwnPipeline()) {
                 auto& bucket = sortedShapes[key];
                 if (bucket.empty()) {

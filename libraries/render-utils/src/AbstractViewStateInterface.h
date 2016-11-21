@@ -40,7 +40,9 @@ public:
 
     virtual glm::vec3 getAvatarPosition() const = 0;
 
+    virtual bool isAboutToQuit() const = 0;
     virtual void postLambdaEvent(std::function<void()> f) = 0;
+
     virtual qreal getDevicePixelRatio() = 0;
 
     virtual render::ScenePointer getMain3DScene() = 0;

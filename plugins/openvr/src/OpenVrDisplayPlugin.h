@@ -15,9 +15,6 @@
 
 const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
-#define OPENVR_THREADED_SUBMIT 1
-
-#if OPENVR_THREADED_SUBMIT
 namespace gl {
     class OffscreenContext;
 }
@@ -34,17 +31,17 @@ struct CompositeInfo {
     glm::mat4 pose;
     GLsync fence{ 0 };
 };
-#endif
 
 class OpenVrDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     void init() override;
 
-    float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
+    float getTargetFrameRate() const override;
+    bool hasAsyncReprojection() const override { return _asyncReprojectionActive; }
 
     void customizeContext() override;
     void uncustomizeContext() override;
@@ -58,8 +55,8 @@ public:
     void unsuppressKeyboard() override;
     bool isKeyboardVisible() override;
 
-    // Needs an additional thread for VR submission
-    int getRequiredThreadCount() const override { return Parent::getRequiredThreadCount() + 1; }
+    // Possibly needs an additional thread for VR submission
+    int getRequiredThreadCount() const override; 
 
 protected:
     bool internalActivate() override;
@@ -71,21 +68,21 @@ protected:
     bool isHmdMounted() const override;
     void postPreview() override;
 
-
 private:
     vr::IVRSystem* _system { nullptr };
     std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
     std::atomic<uint32_t> _keyboardSupressionCount{ 0 };
-    static const QString NAME;
+    static const char* NAME;
 
     vr::HmdMatrix34_t _lastGoodHMDPose;
     mat4 _sensorResetMat;
+    bool _threadedSubmit { true };
 
-#if OPENVR_THREADED_SUBMIT
     CompositeInfo::Array _compositeInfos;
     size_t _renderingIndex { 0 };
     std::shared_ptr<OpenVrSubmitThread> _submitThread;
     std::shared_ptr<gl::OffscreenContext> _submitCanvas;
     friend class OpenVrSubmitThread;
-#endif
+
+    bool _asyncReprojectionActive { false };
 };

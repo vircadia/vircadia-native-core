@@ -17,6 +17,7 @@
 #include <AssetUpload.h>
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
+#include <NodeList.h>
 
 AssetScriptingInterface::AssetScriptingInterface(QScriptEngine* engine) :
     _engine(engine)
@@ -86,3 +87,13 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
 
     assetRequest->start();
 }
+
+#if (PR_BUILD || DEV_BUILD)
+void AssetScriptingInterface::sendFakedHandshake() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
+    nodeList->sendFakedHandshakeRequestToNode(assetServer);
+}
+
+#endif

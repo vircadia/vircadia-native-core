@@ -39,9 +39,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     ShutdownEventListener::getInstance();
 #   endif
 
-    // use the verbose message handler in Logging
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
-
     // parse command-line
     QCommandLineParser parser;
     parser.setApplicationDescription("High Fidelity Assignment Client");

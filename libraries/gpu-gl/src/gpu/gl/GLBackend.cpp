@@ -56,6 +56,7 @@ BackendPointer GLBackend::createBackend() {
     }
     result->initInput();
     result->initTransform();
+    result->initTextureManagementStage();
 
     INSTANCE = result.get();
     void* voidInstance = &(*result);
@@ -306,11 +307,20 @@ void GLBackend::render(const Batch& batch) {
         renderPassTransfer(batch);
     }
 
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    if (_stereo._enable) {
+        glEnable(GL_CLIP_DISTANCE0);
+    }
+#endif
     {
         PROFILE_RANGE(_stereo._enable ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
-
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    if (_stereo._enable) {
+        glDisable(GL_CLIP_DISTANCE0);
+    }
+#endif
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
 }
@@ -325,13 +335,24 @@ void GLBackend::syncCache() {
     glEnable(GL_LINE_SMOOTH);
 }
 
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
 void GLBackend::setupStereoSide(int side) {
     ivec4 vp = _transform._viewport;
     vp.z /= 2;
     glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
 
+
+#ifdef GPU_STEREO_CAMERA_BUFFER
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
+    glVertexAttribI1i(14, side);
+#endif
+#else
     _transform.bindCurrentCamera(side);
+#endif
+
 }
+#else
+#endif
 
 void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
     resetStages();
@@ -384,8 +405,11 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
 
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
-// #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo());
+#ifdef GPU_STEREO_CAMERA_BUFFER
+#define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo())
+#else
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
+#endif
 
 void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
@@ -663,9 +687,19 @@ void GLBackend::recycle() const {
             Lock lock(_trashMutex);
             std::swap(_externalTexturesTrash, externalTexturesTrash);
         }
-        for (auto pair : externalTexturesTrash) {
-            auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-            pair.second(pair.first, fence);
+        if (!externalTexturesTrash.empty()) {
+            std::vector<GLsync> fences;  
+            fences.resize(externalTexturesTrash.size());
+            for (size_t i = 0; i < externalTexturesTrash.size(); ++i) {
+                fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            }
+            // External texture fences will be read in another thread/context, so we need a flush
+            glFlush();
+            size_t index = 0;
+            for (auto pair : externalTexturesTrash) {
+                auto fence = fences[index++];
+                pair.second(pair.first, fence);
+            }
         }
     }
 

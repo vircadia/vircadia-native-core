@@ -46,6 +46,8 @@
 #include <ThreadSafeValueCache.h>
 #include <shared/FileLogger.h>
 
+#include <RunningMarker.h>
+
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
@@ -57,7 +59,6 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "ui/ApplicationOverlay.h"
-#include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
@@ -87,6 +88,8 @@ static const UINT UWM_SHOW_APPLICATION =
     RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
 #endif
 
+static const QString RUNNING_MARKER_FILENAME = "Interface.running";
+
 class Application;
 #if defined(qApp)
 #undef qApp
@@ -103,7 +106,16 @@ class Application : public QApplication,
     // TODO? Get rid of those
     friend class OctreePacketProcessor;
 
+private:
+    bool _shouldRunServer { false };
+    QString _runServerPath;
+    RunningMarker _runningMarker;
+
 public:
+    // startup related getter/setters
+    bool shouldRunServer() const { return _shouldRunServer; }
+    bool hasRunServerPath() const { return !_runServerPath.isEmpty(); }
+    QString getRunServerPath() const { return _runServerPath; }
 
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
@@ -127,7 +139,7 @@ public:
     static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer& startup_time);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runServer, QString runServerPathOption);
     ~Application();
 
     void postLambdaEvent(std::function<void()> f) override;
@@ -168,7 +180,7 @@ public:
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
     void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
+    QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
@@ -194,6 +206,9 @@ public:
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
 
+    float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
+    void setSettingConstrainToolbarPosition(bool setting);
+
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
@@ -217,7 +232,7 @@ public:
 
     qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
-    bool isAboutToQuit() const { return _aboutToQuit; }
+    bool isAboutToQuit() const override { return _aboutToQuit; }
     bool isPhysicsEnabled() const { return _physicsEnabled; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
@@ -251,7 +266,7 @@ public:
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
     
-    void takeSnapshot(bool notify, float aspectRatio = 0.0f);
+    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
     void shareSnapshot(const QString& filename);
 
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
@@ -494,6 +509,7 @@ private:
 
     Setting::Handle<QString> _previousScriptLocation;
     Setting::Handle<float> _fieldOfView;
+    Setting::Handle<bool> _constrainToolbarPosition;
 
     float _scaleMirror;
     float _rotateMirror;

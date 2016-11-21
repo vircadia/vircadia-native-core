@@ -26,7 +26,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
     << PacketType::OctreeDataNack << PacketType::EntityEditNack
     << PacketType::DomainListRequest << PacketType::StopNode
-    << PacketType::DomainDisconnectRequest << PacketType::NodeKickRequest;
+    << PacketType::DomainDisconnectRequest << PacketType::NodeKickRequest
+    << PacketType::NodeMuteRequest;
 
 const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment
@@ -47,7 +48,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_ARROW_ACTION;
+            return VERSION_ENTITIES_LAST_EDITED_BY;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
@@ -58,8 +59,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            // Removal of extension from Asset requests
-            return 18;
+            return static_cast<PacketVersion>(AssetServerPacketVersion::VegasCongestionControl);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
@@ -67,7 +67,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
-            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions);
+            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasMACAddress);
 
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
@@ -77,7 +77,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::InjectAudio:
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
-            return static_cast<PacketVersion>(AudioVersion::Exactly10msAudioPackets);
+        case PacketType::AudioStreamStats:
+            return static_cast<PacketVersion>(AudioVersion::TerminatingStreamStats);
 
         default:
             return 17;
