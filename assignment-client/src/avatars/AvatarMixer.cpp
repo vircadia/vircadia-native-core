@@ -46,6 +46,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
@@ -237,6 +238,20 @@ void AvatarMixer::broadcastAvatarData() {
                         || otherNode->isIgnoringNodeWithID(node->getUUID())) {
                         return false;
                     } else {
+                        AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
+                        AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+                        // check to see if we're ignoring in radius
+                        if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
+                            float ignoreRadius = glm::min(node->getIgnoreRadius(), otherNode->getIgnoreRadius());
+                            if (glm::distance(nodeData->getPosition(), otherData->getPosition()) < ignoreRadius) {
+                                nodeData->ignoreOther(node, otherNode);
+                                otherData->ignoreOther(otherNode, node);
+                                return false;
+                            }
+                        }
+                        // not close enough to ignore
+                        nodeData->removeFromRadiusIgnoringSet(otherNode->getUUID());
+                        otherData->removeFromRadiusIgnoringSet(node->getUUID());
                         return true;
                     }
                 },
@@ -440,6 +455,10 @@ void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message
 
 void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     senderNode->parseIgnoreRequestMessage(message);
+}
+
+void AvatarMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    sendingNode->parseIgnoreRadiusRequestMessage(packet);
 }
 
 void AvatarMixer::sendStatsPacket() {

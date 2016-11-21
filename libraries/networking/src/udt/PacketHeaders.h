@@ -100,7 +100,8 @@ public:
         MoreEntityShapes,
         NodeKickRequest,
         NodeMuteRequest,
-        LAST_PACKET_TYPE = NodeMuteRequest
+        RadiusIgnoreRequest,
+        LAST_PACKET_TYPE = RadiusIgnoreRequest
     };
 };
 
@@ -207,7 +208,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
 enum class DomainConnectRequestVersion : PacketVersion {
     NoHostname = 17,
     HasHostname,
-    HasProtocolVersions
+    HasProtocolVersions,
+    HasMACAddress
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {

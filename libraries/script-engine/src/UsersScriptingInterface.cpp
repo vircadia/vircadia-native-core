@@ -38,3 +38,27 @@ bool UsersScriptingInterface::getCanKick() {
     // ask the NodeList to return our ability to kick
     return DependencyManager::get<NodeList>()->getThisNodeCanKick();
 }
+
+void UsersScriptingInterface::toggleIgnoreRadius() {
+    DependencyManager::get<NodeList>()->toggleIgnoreRadius();
+}
+
+void UsersScriptingInterface::enableIgnoreRadius() {
+    DependencyManager::get<NodeList>()->enableIgnoreRadius();
+}
+
+void UsersScriptingInterface::disableIgnoreRadius() {
+    DependencyManager::get<NodeList>()->disableIgnoreRadius();
+}
+
+void UsersScriptingInterface::setIgnoreRadius(float radius, bool enabled) {
+    DependencyManager::get<NodeList>()->ignoreNodesInRadius(radius, enabled);
+}
+
+ float UsersScriptingInterface::getIgnoreRadius() {
+    return DependencyManager::get<NodeList>()->getIgnoreRadius();
+}
+
+bool UsersScriptingInterface::getIgnoreRadiusEnabled() {
+    return DependencyManager::get<NodeList>()->getIgnoreRadiusEnabled();
+}
