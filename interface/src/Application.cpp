@@ -152,6 +152,7 @@
 #include "ui/LoginDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
 #include "ui/Snapshot.h"
+#include "ui/SnapshotAnimated.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
@@ -5428,19 +5429,27 @@ void Application::toggleLogDialog() {
     }
 }
 
-void Application::takeSnapshot(bool notify, float aspectRatio) {
-    postLambdaEvent([notify, aspectRatio, this] {
+
+void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
+    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         QMediaPlayer* player = new QMediaPlayer();
         QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
         player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
         player->play();
 
+        // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
 
-        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
+        // If we're not doing an animated snapshot as well...
+        if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
+            // Tell the dependency manager that the capture of the still snapshot has taken place.
+            emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, "", notify);
+        } else {
+            // Get an animated GIF snapshot and save it
+            SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
+        }
     });
 }
-
 void Application::shareSnapshot(const QString& path) {
     postLambdaEvent([path] {
         // not much to do here, everything is done in snapshot code...

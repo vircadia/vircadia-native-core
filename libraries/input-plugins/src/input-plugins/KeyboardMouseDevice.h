@@ -52,21 +52,21 @@ public:
         MOUSE_AXIS_WHEEL_X_POS,
         MOUSE_AXIS_WHEEL_X_NEG,
     };
-        
+
     enum TouchAxisChannel {
         TOUCH_AXIS_X_POS = MOUSE_AXIS_WHEEL_X_NEG + 1,
         TOUCH_AXIS_X_NEG,
         TOUCH_AXIS_Y_POS,
         TOUCH_AXIS_Y_NEG,
     };
-        
+
     enum TouchButtonChannel {
         TOUCH_BUTTON_PRESS = TOUCH_AXIS_Y_NEG + 1,
     };
 
     // Plugin functions
     bool isSupported() const override { return true; }
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return false; }
 
@@ -88,8 +88,8 @@ public:
     void wheelEvent(QWheelEvent* event);
 
     static void enableTouch(bool enableTouch) { _enableTouch = enableTouch; }
-    
-    static const QString NAME;
+
+    static const char* NAME;
 
 protected:
 

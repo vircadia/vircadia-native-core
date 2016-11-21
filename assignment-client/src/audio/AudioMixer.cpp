@@ -95,7 +95,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
-    
+    packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
@@ -386,20 +386,33 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
     // loop through all other nodes that have sufficient audio to mix
 
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& otherNode){
-        // make sure that we have audio data for this other node and that it isn't being ignored by our listening node
-        if (otherNode->getLinkedData() && !node->isIgnoringNodeWithID(otherNode->getUUID())) {
+        // make sure that we have audio data for this other node
+        // and that it isn't being ignored by our listening node
+        // and that it isn't ignoring our listening node
+        if (otherNode->getLinkedData()
+            && !node->isIgnoringNodeWithID(otherNode->getUUID()) && !otherNode->isIgnoringNodeWithID(node->getUUID()))  {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
-            // enumerate the ARBs attached to the otherNode and add all that should be added to mix
-            auto streamsCopy = otherNodeClientData->getAudioStreams();
+            // check to see if we're ignoring in radius
+            bool insideIgnoreRadius = false;
+            if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
+                AudioMixerClientData* otherData = reinterpret_cast<AudioMixerClientData*>(otherNode->getLinkedData());
+                AudioMixerClientData* nodeData = reinterpret_cast<AudioMixerClientData*>(node->getLinkedData());
+                float ignoreRadius = glm::min(node->getIgnoreRadius(), otherNode->getIgnoreRadius());
+                if (glm::distance(nodeData->getPosition(), otherData->getPosition()) < ignoreRadius) {
+                    insideIgnoreRadius = true;
+                }
+            }
 
-            for (auto& streamPair : streamsCopy) {
-
-                auto otherNodeStream = streamPair.second;
-
-                if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
-                    addStreamToMixForListeningNodeWithStream(*listenerNodeData, *otherNodeStream, otherNode->getUUID(),
-                                                             *nodeAudioStream);
+            if (!insideIgnoreRadius) {
+                // enumerate the ARBs attached to the otherNode and add all that should be added to mix
+                auto streamsCopy = otherNodeClientData->getAudioStreams();
+                for (auto& streamPair : streamsCopy) {
+                    auto otherNodeStream = streamPair.second;
+                    if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
+                        addStreamToMixForListeningNodeWithStream(*listenerNodeData, *otherNodeStream, otherNode->getUUID(),
+                                                                 *nodeAudioStream);
+                    }
                 }
             }
         }
@@ -631,9 +644,12 @@ void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, 
     }
 }
 
-
 void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     sendingNode->parseIgnoreRequestMessage(packet);
+}
+
+void AudioMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    sendingNode->parseIgnoreRadiusRequestMessage(packet);
 }
 
 void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {

@@ -21,7 +21,7 @@ class OculusLegacyDisplayPlugin : public HmdDisplayPlugin {
 public:
     OculusLegacyDisplayPlugin();
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     void init() override;
 
@@ -41,9 +41,9 @@ protected:
     void uncustomizeContext() override;
     void hmdPresent() override;
     bool isHmdMounted() const override { return true; }
-    
+
 private:
-    static const QString NAME;
+    static const char* NAME;
 
     GLWindow* _hmdWindow{ nullptr };
     ovrHmd _hmd;
