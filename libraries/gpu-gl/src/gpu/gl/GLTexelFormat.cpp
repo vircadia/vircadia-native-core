@@ -120,7 +120,7 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                     break;
 
                 default:
-                    qCDebug(gpugllogging) << "Unknown combination of texel format";
+                    qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
@@ -132,7 +132,7 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                     result = GL_RG8;
                     break;
                 default:
-                    qCDebug(gpugllogging) << "Unknown combination of texel format";
+                    qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -155,7 +155,7 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                     result = GL_COMPRESSED_SRGB;
                     break;
                 default:
-                    qCDebug(gpugllogging) << "Unknown combination of texel format";
+                    qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -241,13 +241,13 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                     */
 
                 default:
-                    qCDebug(gpugllogging) << "Unknown combination of texel format";
+                    qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
 
         default:
-            qCDebug(gpugllogging) << "Unknown combination of texel format";
+            qCWarning(gpugllogging) << "Unknown combination of texel format";
     }
     return result;
 }
@@ -280,7 +280,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_DEPTH24_STENCIL8;
                 break;
             default:
-                qCDebug(gpugllogging) << "Unknown combination of texel format";
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
@@ -295,7 +295,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_RG8;
                 break;
             default:
-                qCDebug(gpugllogging) << "Unknown combination of texel format";
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -318,7 +318,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_COMPRESSED_SRGB;
                 break;
             default:
-                qCDebug(gpugllogging) << "Unknown combination of texel format";
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -381,13 +381,13 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 */
 
             default:
-                qCDebug(gpugllogging) << "Unknown combination of texel format";
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
 
         default:
-            qCDebug(gpugllogging) << "Unknown combination of texel format";
+            qCWarning(gpugllogging) << "Unknown combination of texel format";
         }
         return texel;
     } else {
@@ -523,7 +523,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_DEPTH24_STENCIL8;
                 break;
             default:
-                qCDebug(gpugllogging) << "Unknown combination of texel format";
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -539,7 +539,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_RG8;
                 break;
             default:
-                qCDebug(gpugllogging) << "Unknown combination of texel format";
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -566,7 +566,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_COMPRESSED_SRGB;
                 break;
             default:
-                qCDebug(gpugllogging) << "Unknown combination of texel format";
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
@@ -648,13 +648,13 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA;
                 break;
             default:
-                qCDebug(gpugllogging) << "Unknown combination of texel format";
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
 
         default:
-            qCDebug(gpugllogging) << "Unknown combination of texel format";
+            qCWarning(gpugllogging) << "Unknown combination of texel format";
         }
         return texel;
     }
