@@ -538,12 +538,10 @@ bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::
     void** intersectedObject, bool precisionPicking) {
 
     keepSearching = true; // assume that we will continue searching after this.
-
     float distanceToElementCube = std::numeric_limits<float>::max();
     float distanceToElementDetails = distance;
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
-
     // if the ray doesn't intersect with our cube, we can stop searching!
     if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)) {
         keepSearching = false; // no point in continuing to search
@@ -554,7 +552,6 @@ bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::
     if (!canRayIntersect()) {
         return false; // we don't intersect with non-leaves, and we keep searching
     }
-
     // if the distance to the element cube is not less than the current best distance, then it's not possible
     // for any details inside the cube to be closer so we don't need to consider them.
     if (_cube.contains(origin) || distanceToElementCube < distance) {
@@ -563,6 +560,7 @@ bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::
                 face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
                 intersectedObject, precisionPicking, distanceToElementCube)) {
 
+            qDebug() << "distanceToElementCube:  " << distanceToElementCube << "distanceToElementDetials  " << distanceToElementDetails << " distance: " << distance;
             if (distanceToElementDetails < distance) {
                 distance = distanceToElementDetails;
                 face = localFace;
@@ -583,6 +581,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     int entityNumber = 0;
     bool somethingIntersected = false;
     forEachEntity([&](EntityItemPointer entity) {
+
+        *intersectedObject = (void*)entity.get();
         if ( (visibleOnly && !entity->isVisible()) || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
             || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
             || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
@@ -623,14 +623,21 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         // and testing intersection there.
         if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance,
                                                 localFace, localSurfaceNormal)) {
-            if (localDistance < distance) {
+
+            //Compute the actual distance in world space
+            glm::vec3 finalPoint = origin + ((distanceToElementCube + localDistance) * direction);
+            float distanceInWorldSpace = glm::length(finalPoint);
+            if (distanceInWorldSpace <  distance) {
                 // now ask the entity if we actually intersect
                 if (entity->supportsDetailedRayIntersection()) {
                     if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance,
                         localFace, localSurfaceNormal, intersectedObject, precisionPicking)) {
 
-                        if (localDistance < distance) {
-                            distance = localDistance;
+                        finalPoint = origin + ((distanceToElementCube + localDistance) * direction);
+                        distanceInWorldSpace = glm::length(finalPoint);
+                        //qDebug() << " Total Distance: " << distanceInWorldSpace << " distance:  " <<  distance;
+                        if (distanceInWorldSpace < distance) {
+                            distance = distanceInWorldSpace;
                             face = localFace;
                             surfaceNormal = localSurfaceNormal;
                             *intersectedObject = (void*)entity.get();
@@ -640,8 +647,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 } else {
                     // if the entity type doesn't support a detailed intersection, then just return the non-AABox results
                     // Never intersect with particle entities
-                    if (localDistance < distance && entity->getType() != EntityTypes::ParticleEffect) {
-                        distance = localDistance;
+                    if (distanceInWorldSpace < distance && entity->getType() != EntityTypes::ParticleEffect) {
+                        distance = distanceInWorldSpace;
                         face = localFace;
                         surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 1.0f));
                         *intersectedObject = (void*)entity.get();
