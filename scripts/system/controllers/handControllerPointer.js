@@ -70,8 +70,6 @@ function Trigger(label) {
     that.triggerSmoothedClick = function () {
         return that.triggerClicked;
     };
-
-    
     that.triggerSmoothedSqueezed = function () {
         return that.triggerValue > that.TRIGGER_ON_VALUE;
     };
