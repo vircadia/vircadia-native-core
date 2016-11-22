@@ -35,11 +35,13 @@ class AddressManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     Q_PROPERTY(bool isConnected READ isConnected)
-    Q_PROPERTY(QUrl href READ currentAddress)
+    Q_PROPERTY(QUrl href READ currentShareableAddress)
     Q_PROPERTY(QString protocol READ getProtocol)
     Q_PROPERTY(QString hostname READ getHost)
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
+    Q_PROPERTY(QString domainId READ getDomainId)
+    Q_PROPERTY(QUrl metaverseServerUrl READ getMetaverseServerUrl)
 public:
     Q_INVOKABLE QString protocolVersion();
     using PositionGetter = std::function<glm::vec3()>;
@@ -67,7 +69,9 @@ public:
     QString currentFacingPath() const;
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
-    const QString& getPlaceName() const { return _placeName; }
+    const QString& getPlaceName() const { return _shareablePlaceName.isEmpty() ? _placeName : _shareablePlaceName; }
+    QString getDomainId() const;
+    const QUrl getMetaverseServerUrl() const;
 
     const QString& getHost() const { return _host; }
 
