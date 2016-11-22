@@ -560,7 +560,7 @@ bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::
                 face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
                 intersectedObject, precisionPicking, distanceToElementCube)) {
 
-            //qDebug() << "distanceToElementCube:  " << distanceToElementCube << "distanceToElementDetials  " << distanceToElementDetails << " distance: " << distance;
+
             if (distanceToElementDetails < distance) {
                 distance = distanceToElementDetails;
                 face = localFace;
