@@ -18,58 +18,13 @@
 #include <ThreadedAssignment.h>
 #include <UUIDHasher.h>
 
+#include "AudioMixerStats.h"
+#include "AudioMixerSlave.h"
+
 class PositionalAudioStream;
 class AvatarAudioStream;
 class AudioHRTF;
 class AudioMixerClientData;
-
-
-struct AudioMixerStats {
-    int sumStreams { 0 };
-    int sumListeners { 0 };
-
-    int totalMixes { 0 };
-
-    int hrtfRenders { 0 };
-    int hrtfSilentRenders { 0 };
-    int hrtfStruggleRenders { 0 };
-
-    int manualStereoMixes { 0 };
-    int manualEchoMixes { 0 };
-
-    void reset();
-    void accumulate(const AudioMixerStats& otherStats);
-};
-
-class AudioMixerSlave {
-public:
-    // mix and broadcast non-ignored streams to the node
-    // returns true if a listener mix was broadcast for the node
-    void mix(const SharedNodePointer& node, unsigned int frame);
-
-    AudioMixerStats stats;
-
-private:
-    void writeMixPacket(std::unique_ptr<NLPacket>& mixPacket, AudioMixerClientData* data, QByteArray& buffer);
-    void writeSilentPacket(std::unique_ptr<NLPacket>& mixPacket, AudioMixerClientData* data);
-
-    void sendEnvironmentPacket(const SharedNodePointer& node);
-
-    // create mix, returns true if mix has audio
-    bool prepareMix(const SharedNodePointer& node);
-    // add a stream to the mix
-    void addStreamToMix(AudioMixerClientData& listenerData, const QUuid& streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
-
-    float gainForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
-            const glm::vec3& relativePosition, bool isEcho);
-    float azimuthForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
-            const glm::vec3& relativePosition);
-
-    // mixing buffers
-    float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-    int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-};
 
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
