@@ -135,10 +135,6 @@ Var AR_RegFlags
   SectionSetFlags ${${SecName}} $AR_SecFlags
 
  "default_${SecName}:"
- ; The client is always selected by default
- ${If} ${SecName} == @CLIENT_COMPONENT_NAME@
-   SectionSetFlags ${${SecName}} 17
- ${EndIf}
 
  !insertmacro LoadSectionSelectedIntoVar ${SecName} ${SecName}_selected
 !macroend
@@ -368,7 +364,8 @@ Var PostInstallDialog
 Var DesktopClientCheckbox
 Var DesktopServerCheckbox
 Var ServerStartupCheckbox
-Var LaunchNowCheckbox
+Var LaunchServerNowCheckbox
+Var LaunchClientNowCheckbox
 Var CurrentOffset
 Var OffsetUnits
 Var CopyFromProductionCheckbox
@@ -431,17 +428,24 @@ Function PostInstallOptionsPage
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
-  ${Else}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
+    Pop $LaunchServerNowCheckbox
+
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $LaunchServerNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+
+    IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
-  Pop $LaunchNowCheckbox
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+	  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
+	  Pop $LaunchClientNowCheckbox
 
-  ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetPostInstallOption $LaunchNowCheckbox @LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+	  ; set the checkbox state depending on what is present in the registry
+	  !insertmacro SetPostInstallOption $LaunchClientNowCheckbox @CLIENT_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+  ${EndIf}
 
   ${If} @PR_BUILD@ == 1
-    ; a PR build defaults all install options expect LaunchNowCheckbox and the settings copy to unchecked
+    ; a PR build defaults all install options expect LaunchServerNowCheckbox, LaunchClientNowCheckbox and the settings copy to unchecked
     ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
       ${NSD_SetState} $DesktopClientCheckbox ${BST_UNCHECKED}
     ${EndIf}
@@ -471,7 +475,8 @@ FunctionEnd
 Var DesktopClientState
 Var DesktopServerState
 Var ServerStartupState
-Var LaunchNowState
+Var LaunchServerNowState
+Var LaunchClientNowState
 Var CopyFromProductionState
 
 Function ReadPostInstallOptions
@@ -493,8 +498,15 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
   ${EndIf}
 
-  ; check if we need to launch an application post-install
-  ${NSD_GetState} $LaunchNowCheckbox $LaunchNowState
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+	  ; check if we need to launch the server post-install
+	  ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
+  ${EndIf}
+
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+	  ; check if we need to launch the client post-install
+	  ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
+  ${EndIf}
 FunctionEnd
 
 Function HandlePostInstallOptions
@@ -565,20 +577,31 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} $LaunchNowState == ${BST_CHECKED}
-    !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ YES
+  ${If} $LaunchServerNowState == ${BST_CHECKED}
+    !insertmacro WritePostInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
 
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
-    ; it won't be possible to use this approach if either application should be launched with a command line param
-    ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ${If} $LaunchClientNowState == ${BST_CHECKED}
+      !insertmacro WritePostInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ YES
       ; create shortcut with ARGUMENTS
       CreateShortCut "$TEMP\SandboxShortcut.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@" "-- --launchInterface"
       Exec '"$WINDIR\explorer.exe" "$TEMP\SandboxShortcut.lnk"'
     ${Else}
-      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
+      !insertmacro WritePostInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
+      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
     ${EndIf}
+
   ${Else}
-    !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ NO
+    !insertmacro WritePostInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ NO
+
+    ; launch uses the explorer trick in case the user has elevated permissions for the installer
+    ${If} $LaunchClientNowState == ${BST_CHECKED}
+      !insertmacro WritePostInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ YES
+      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
+    ${Else}
+      !insertmacro WritePostInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
+    ${EndIf}
+
   ${EndIf}
 FunctionEnd
 

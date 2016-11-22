@@ -36,7 +36,7 @@ var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 
 var outstanding;
 function confirmShare(data) {
-    var dialog = new OverlayWebWindow('Snapshot Review', SNAPSHOT_REVIEW_URL, 800, 320);
+    var dialog = new OverlayWebWindow('Snapshot Review', SNAPSHOT_REVIEW_URL, 800, 520);
     function onMessage(message) {
         // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
         // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
@@ -120,11 +120,31 @@ function onClicked() {
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
-        Window.takeSnapshot(false, 1.91);
+        Window.takeSnapshot(false, true, 1.91);
     }, SNAPSHOT_DELAY);
 }
 
-function resetButtons(path, notify) {
+function isDomainOpen(id) {
+    var request = new XMLHttpRequest();
+    var options = [
+        'now=' + new Date().toISOString(),
+        'include_actions=concurrency',
+        'domain_id=' + id.slice(1, -1),
+        'restriction=open,hifi' // If we're sharing, we're logged in
+        // If we're here, protocol matches, and it is online
+    ];
+    var url = location.metaverseServerUrl + "/api/v1/user_stories?" + options.join('&');
+    request.open("GET", url, false);
+    request.send();
+    if (request.status != 200) {
+        return false;
+    }
+    var response = JSON.parse(request.response); // Not parsed for us.
+    return (response.status === 'success') &&
+        response.total_entries;
+}
+
+function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true); 
@@ -141,9 +161,10 @@ function resetButtons(path, notify) {
 
     // last element in data array tells dialog whether we can share or not
     confirmShare([ 
-        { localPath: path },
+        { localPath: pathAnimatedSnapshot },
+        { localPath: pathStillSnapshot },
         {
-            canShare: !!location.placename,
+            canShare: !!isDomainOpen(location.domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
     ]);

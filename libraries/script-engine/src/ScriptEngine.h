@@ -245,6 +245,7 @@ protected:
 
     std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
 
+    std::recursive_mutex _lock;
 };
 
 #endif // hifi_ScriptEngine_h

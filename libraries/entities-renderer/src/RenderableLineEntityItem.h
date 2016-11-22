@@ -23,6 +23,7 @@ public:
         LineEntityItem(entityItemID),
        _lineVerticesID(GeometryCache::UNKNOWN_ID)
     { }
+    ~RenderableLineEntityItem();
 
     virtual void render(RenderArgs* args) override;
 
