@@ -375,41 +375,53 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
 }
 
+// attempt to use the native sample rate and channel count
+bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
+                                QAudioFormat& audioFormat) {
+
+    audioFormat = audioDevice.preferredFormat();
+
+    audioFormat.setCodec("audio/pcm");
+    audioFormat.setSampleSize(16);
+    audioFormat.setSampleType(QAudioFormat::SignedInt);
+    audioFormat.setByteOrder(QAudioFormat::LittleEndian);
+
+    if (!audioDevice.isFormatSupported(audioFormat)) {
+        qCDebug(audioclient) << "WARNING: The native format is" << audioFormat << "but isFormatSupported() failed.";
+        return false;
+    }
+    // converting to/from this rate must produce an integral number of samples
+    if (audioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE != 0) {
+        qCDebug(audioclient) << "WARNING: The native sample rate [" << audioFormat.sampleRate() << "] is not supported.";
+        return false;
+    }
+    return true;
+}
+
 bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
                                   const QAudioFormat& desiredAudioFormat,
                                   QAudioFormat& adjustedAudioFormat) {
 
     qCDebug(audioclient) << "The desired format for audio I/O is" << desiredAudioFormat;
 
-    adjustedAudioFormat = desiredAudioFormat;
+#if defined(Q_OS_ANDROID) || defined(Q_OS_OSX)
+    // As of Qt5.6, Android returns the native OpenSLES sample rate when possible, else 48000
+    // Mac OSX returns the preferred CoreAudio format
+    if (nativeFormatForAudioDevice(audioDevice, adjustedAudioFormat)) {
+        return true;
+    }
+#endif
 
 #if defined(Q_OS_WIN)
-
-    // On Windows, using WASAPI shared mode, the sample rate and channel count must
-    // exactly match the internal mix format. Any other format will fail to open.
-
-    adjustedAudioFormat = audioDevice.preferredFormat();    // returns mixFormat
-
-    adjustedAudioFormat.setCodec("audio/pcm");
-    adjustedAudioFormat.setSampleSize(16);
-    adjustedAudioFormat.setSampleType(QAudioFormat::SignedInt);
-    adjustedAudioFormat.setByteOrder(QAudioFormat::LittleEndian);
-
-    if (!audioDevice.isFormatSupported(adjustedAudioFormat)) {
-        qCDebug(audioclient) << "WARNING: The mix format is" << adjustedAudioFormat << "but isFormatSupported() failed.";
-        return false;
+    if (IsWindows8OrGreater()) {
+        // On Windows using WASAPI shared-mode, returns the internal mix format
+        if (nativeFormatForAudioDevice(audioDevice, adjustedAudioFormat)) {
+            return true;
+        }
     }
-    // converting to/from this rate must produce an integral number of samples
-    if (adjustedAudioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE != 0) {
-        qCDebug(audioclient) << "WARNING: The current sample rate [" << adjustedAudioFormat.sampleRate() << "] is not supported.";
-        return false;
-    }
-    return true;
+#endif
 
-#elif defined(Q_OS_ANDROID)
-    // FIXME: query the native sample rate of the device?
-    adjustedAudioFormat.setSampleRate(48000);
-#else
+    adjustedAudioFormat = desiredAudioFormat;
 
     //
     // Attempt the device sample rate in decreasing order of preference.
@@ -433,7 +445,6 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     } else if (audioDevice.supportedSampleRates().contains(176400)) {
         adjustedAudioFormat.setSampleRate(176400);
     }
-#endif
 
     if (adjustedAudioFormat != desiredAudioFormat) {
         // return the nearest in case it needs 2 channels
