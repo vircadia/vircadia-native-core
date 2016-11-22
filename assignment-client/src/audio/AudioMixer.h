@@ -23,17 +23,76 @@ class AvatarAudioStream;
 class AudioHRTF;
 class AudioMixerClientData;
 
+class AudioMixerSlave {
+public:
+    // mix and broadcast non-ignored streams to the node
+    // returns true if a listener mix was broadcast for the node
+    bool mix(const SharedNodePointer& node, unsigned int frame);
+
+    // reset statistics accumulated over mixes
+    void resetStats() { /* TODO */ };
+    // get statistics accumulated over mixes
+    void getStats() { /* TODO */ };
+
+private:
+    void writeMixPacket(std::unique_ptr<NLPacket>& mixPacket, AudioMixerClientData* data, QByteArray& buffer);
+    void writeSilentPacket(std::unique_ptr<NLPacket>& mixPacket, AudioMixerClientData* data);
+
+    void sendEnvironmentPacket(const SharedNodePointer& node);
+
+    // create mix, returns true if mix has audio
+    bool prepareMix(const SharedNodePointer& node);
+    // add a stream to the mix
+    void addStreamToMix(AudioMixerClientData& listenerData, const QUuid& streamerID,
+            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
+
+    float gainForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
+            const glm::vec3& relativePosition, bool isEcho);
+    float azimuthForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
+            const glm::vec3& relativePosition);
+
+    // mixing buffers
+    float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+
+    // mixing statistics
+    unsigned int _sumListeners{ 0 };
+    unsigned int _totalMixes{ 0 };
+    unsigned int _hrtfRenders{ 0 };
+    unsigned int _hrtfStruggleRenders{ 0 };
+    unsigned int _hrtfSilentRenders{ 0 };
+    unsigned int _manualStereoMixes{ 0 };
+    unsigned int _manualEchoMixes{ 0 };
+};
+
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AudioMixer(ReceivedMessage& message);
 
+    struct ZoneSettings {
+        QString source;
+        QString listener;
+        float coefficient;
+    };
+    struct ReverbSettings {
+        QString zone;
+        float reverbTime;
+        float wetLevel;
+    };
+
+    static int getStaticJitterFrames() { return _numStaticJitterFrames; }
+    static bool shouldMute(float quietestFrame) { return quietestFrame > _noiseMutingThreshold; }
+    static float getAttenuationPerDoublingInDistance() { return _attenuationPerDoublingInDistance; }
+    static float getMinimumAudibilityThreshold() { return _performanceThrottlingRatio > 0.0f ? _minAudibilityThreshold : 0.0f; }
+    static const QHash<QString, AABox>& getAudioZones() { return _audioZones; }
+    static const QVector<ZoneSettings>& getZoneSettings() { return _zoneSettings; }
+    static const QVector<ReverbSettings>& getReverbSettings() { return _zoneReverbSettings; }
+
 public slots:
     void run() override;
     void sendStatsPacket() override;
-
-    static int getStaticJitterFrames() { return _numStaticJitterFrames; }
 
 private slots:
     // packet handlers
@@ -56,42 +115,13 @@ private:
     // pop a frame from any streams on the node
     // returns the number of available streams
     int prepareFrame(const SharedNodePointer& node, unsigned int frame);
-    // mix and broadcast non-ignored streams to the node
-    // returns true if a listener mix was broadcast for the node
-    bool mixFrame(const SharedNodePointer& node, unsigned int frame);
 
     AudioMixerClientData* getOrCreateClientData(Node* node);
 
-    /// adds one stream to the mix for a listening node
-    void addStreamToMixForListeningNodeWithStream(AudioMixerClientData& listenerNodeData,
-                                                  const PositionalAudioStream& streamToAdd,
-                                                  const QUuid& sourceNodeID,
-                                                  const AvatarAudioStream& listeningNodeStream);
-
-    float gainForSource(const PositionalAudioStream& streamToAdd, const AvatarAudioStream& listeningNodeStream,
-                        const glm::vec3& relativePosition, bool isEcho);
-    float azimuthForSource(const PositionalAudioStream& streamToAdd, const AvatarAudioStream& listeningNodeStream,
-                           const glm::vec3& relativePosition);
-
-    /// prepares and sends a mix to one Node
-    bool prepareMixForListeningNode(Node* node);
-
-    /// Send Audio Environment packet for a single node
-    void sendAudioEnvironmentPacket(SharedNodePointer node);
-
-    void perSecondActions();
-
     QString percentageForMixStats(int counter);
-
-    bool shouldMute(float quietestFrame);
 
     void parseSettingsObject(const QJsonObject& settingsObject);
 
-    float _trailingSleepRatio;
-    float _minAudibilityThreshold;
-    float _performanceThrottlingRatio;
-    float _attenuationPerDoublingInDistance;
-    float _noiseMutingThreshold;
     int _numStatFrames { 0 };
     int _sumStreams { 0 };
     int _sumListeners { 0 };
@@ -104,24 +134,17 @@ private:
 
     QString _codecPreferenceOrder;
 
-    float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-    int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-
-    QHash<QString, AABox> _audioZones;
-    struct ZonesSettings {
-        QString source;
-        QString listener;
-        float coefficient;
-    };
-    QVector<ZonesSettings> _zonesSettings;
-    struct ReverbSettings {
-        QString zone;
-        float reverbTime;
-        float wetLevel;
-    };
-    QVector<ReverbSettings> _zoneReverbSettings;
+    AudioMixerSlave slave;
 
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
+    static float _noiseMutingThreshold;
+    static float _attenuationPerDoublingInDistance;
+    static float _trailingSleepRatio;
+    static float _performanceThrottlingRatio;
+    static float _minAudibilityThreshold;
+    static QHash<QString, AABox> _audioZones;
+    static QVector<ZoneSettings> _zoneSettings;
+    static QVector<ReverbSettings> _zoneReverbSettings;
 };
 
 #endif // hifi_AudioMixer_h
