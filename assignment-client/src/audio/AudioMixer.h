@@ -23,16 +23,31 @@ class AvatarAudioStream;
 class AudioHRTF;
 class AudioMixerClientData;
 
+
+struct AudioMixerStats {
+    int sumStreams { 0 };
+    int sumListeners { 0 };
+
+    int totalMixes { 0 };
+
+    int hrtfRenders { 0 };
+    int hrtfSilentRenders { 0 };
+    int hrtfStruggleRenders { 0 };
+
+    int manualStereoMixes { 0 };
+    int manualEchoMixes { 0 };
+
+    void reset();
+    void accumulate(const AudioMixerStats& otherStats);
+};
+
 class AudioMixerSlave {
 public:
     // mix and broadcast non-ignored streams to the node
     // returns true if a listener mix was broadcast for the node
-    bool mix(const SharedNodePointer& node, unsigned int frame);
+    void mix(const SharedNodePointer& node, unsigned int frame);
 
-    // reset statistics accumulated over mixes
-    void resetStats() { /* TODO */ };
-    // get statistics accumulated over mixes
-    void getStats() { /* TODO */ };
+    AudioMixerStats stats;
 
 private:
     void writeMixPacket(std::unique_ptr<NLPacket>& mixPacket, AudioMixerClientData* data, QByteArray& buffer);
@@ -54,15 +69,6 @@ private:
     // mixing buffers
     float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-
-    // mixing statistics
-    unsigned int _sumListeners{ 0 };
-    unsigned int _totalMixes{ 0 };
-    unsigned int _hrtfRenders{ 0 };
-    unsigned int _hrtfStruggleRenders{ 0 };
-    unsigned int _hrtfSilentRenders{ 0 };
-    unsigned int _manualStereoMixes{ 0 };
-    unsigned int _manualEchoMixes{ 0 };
 };
 
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
@@ -123,14 +129,7 @@ private:
     void parseSettingsObject(const QJsonObject& settingsObject);
 
     int _numStatFrames { 0 };
-    int _sumStreams { 0 };
-    int _sumListeners { 0 };
-    int _hrtfRenders { 0 };
-    int _hrtfSilentRenders { 0 };
-    int _hrtfStruggleRenders { 0 };
-    int _manualStereoMixes { 0 };
-    int _manualEchoMixes { 0 };
-    int _totalMixes { 0 };
+    AudioMixerStats _stats;
 
     QString _codecPreferenceOrder;
 

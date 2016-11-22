@@ -329,8 +329,8 @@ void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
 }
 
 QString AudioMixer::percentageForMixStats(int counter) {
-    if (_totalMixes > 0) {
-        float mixPercentage = (float(counter) / _totalMixes) * 100.0f;
+    if (_stats.totalMixes > 0) {
+        float mixPercentage = (float(counter) / _stats.totalMixes) * 100.0f;
         return QString::number(mixPercentage, 'f', 2);
     } else {
         return QString("0.0");
@@ -348,30 +348,23 @@ void AudioMixer::sendStatsPacket() {
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
-    statsObject["avg_streams_per_frame"] = (float)_sumStreams / (float)_numStatFrames;
-    statsObject["avg_listeners_per_frame"] = (float)_sumListeners / (float)_numStatFrames;
+    statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
+    statsObject["avg_listeners_per_frame"] = (float)_stats.sumListeners / (float)_numStatFrames;
 
     QJsonObject mixStats;
-    mixStats["%_hrtf_mixes"] = percentageForMixStats(_hrtfRenders);
-    mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_hrtfSilentRenders);
-    mixStats["%_hrtf_struggle_mixes"] = percentageForMixStats(_hrtfStruggleRenders);
-    mixStats["%_manual_stereo_mixes"] = percentageForMixStats(_manualStereoMixes);
-    mixStats["%_manual_echo_mixes"] = percentageForMixStats(_manualEchoMixes);
+    mixStats["%_hrtf_mixes"] = percentageForMixStats(_stats.hrtfRenders);
+    mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_stats.hrtfSilentRenders);
+    mixStats["%_hrtf_struggle_mixes"] = percentageForMixStats(_stats.hrtfStruggleRenders);
+    mixStats["%_manual_stereo_mixes"] = percentageForMixStats(_stats.manualStereoMixes);
+    mixStats["%_manual_echo_mixes"] = percentageForMixStats(_stats.manualEchoMixes);
 
-    mixStats["total_mixes"] = _totalMixes;
-    mixStats["avg_mixes_per_block"] = _totalMixes / _numStatFrames;
+    mixStats["total_mixes"] = _stats.totalMixes;
+    mixStats["avg_mixes_per_block"] = _stats.totalMixes / _numStatFrames;
 
     statsObject["mix_stats"] = mixStats;
 
-    _sumStreams = 0;
-    _sumListeners = 0;
-    _hrtfRenders = 0;
-    _hrtfSilentRenders = 0;
-    _hrtfStruggleRenders = 0;
-    _manualStereoMixes = 0;
-    _manualEchoMixes = 0;
-    _totalMixes = 0;
     _numStatFrames = 0;
+    _stats.reset();
 
     // add stats for each listerner
     auto nodeList = DependencyManager::get<NodeList>();
@@ -447,18 +440,12 @@ void AudioMixer::start() {
     while (!_isFinished) {
         manageLoad(frameTimestamp, framesSinceManagement);
 
-        slave.resetStats();
+        slave.stats.reset();
 
-        nodeList->eachNode([&](const SharedNodePointer& node) {
-            _sumStreams += prepareFrame(node, frame);
-        });
-        nodeList->eachNode([&](const SharedNodePointer& node) {
-            if (slave.mix(node, frame)) {
-                ++_sumListeners;
-            }
-        });
+        nodeList->eachNode([&](const SharedNodePointer& node) { _stats.sumStreams += prepareFrame(node, frame); });
+        nodeList->eachNode([&](const SharedNodePointer& node) { slave.mix(node, frame); });
 
-        slave.getStats();
+        _stats.accumulate(slave.stats);
 
         ++frame;
         ++_numStatFrames;
@@ -754,15 +741,15 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
     }
 }
 
-bool AudioMixerSlave::mix(const SharedNodePointer& node, unsigned int frame) {
+void AudioMixerSlave::mix(const SharedNodePointer& node, unsigned int frame) {
     AudioMixerClientData* data = (AudioMixerClientData*)node->getLinkedData();
     if (data == nullptr) {
-        return false;
+        return;
     }
 
     auto avatarStream = data->getAvatarAudioStream();
     if (avatarStream == nullptr) {
-        return false;
+        return;
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -814,10 +801,8 @@ bool AudioMixerSlave::mix(const SharedNodePointer& node, unsigned int frame) {
             data->sendAudioStreamStatsPackets(node);
         }
 
-        return true;
+        ++stats.sumListeners;
     }
-
-    return false;
 }
 
 void AudioMixerSlave::writeMixPacket(std::unique_ptr<NLPacket>& mixPacket, AudioMixerClientData* data, QByteArray& buffer) {
@@ -981,7 +966,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
     // to reduce artifacts we calculate the gain and azimuth for every source for this listener
     // even if we are not going to end up mixing in this source
 
-    ++_totalMixes;
+    ++stats.totalMixes;
 
     // this ensures that the tail of any previously mixed audio or the first block of new audio sounds correct
 
@@ -1040,7 +1025,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
                 hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-                ++_hrtfSilentRenders;;
+                ++stats.hrtfSilentRenders;
             }
 
             return;
@@ -1058,7 +1043,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
                 _mixedSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
             }
 
-            ++_manualStereoMixes;
+            ++stats.manualStereoMixes;
         } else {
             for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i += 2) {
                 auto monoSample = float(streamPopOutput[i / 2] * gain / AudioConstants::MAX_SAMPLE_VALUE);
@@ -1066,7 +1051,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
                 _mixedSamples[i + 1] += monoSample;
             }
 
-            ++_manualEchoMixes;
+            ++stats.manualEchoMixes;
         }
 
         return;
@@ -1087,7 +1072,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
         hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-        ++_hrtfSilentRenders;
+        ++stats.hrtfSilentRenders;
 
         return;
     }
@@ -1101,12 +1086,12 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
         hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-        ++_hrtfStruggleRenders;
+        ++stats.hrtfStruggleRenders;
 
         return;
     }
 
-    ++_hrtfRenders;
+    ++stats.hrtfRenders;
 
     // mono stream, call the HRTF with our block and calculated azimuth and gain
     hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
@@ -1191,4 +1176,26 @@ float AudioMixerSlave::azimuthForSource(const AvatarAudioStream& listeningNodeSt
         // there is no distance between listener and source - return no azimuth
         return 0;
     }
+}
+
+void AudioMixerStats::reset() {
+    sumStreams = 0;
+    sumListeners = 0;
+    totalMixes = 0;
+    hrtfRenders = 0;
+    hrtfSilentRenders = 0;
+    hrtfStruggleRenders = 0;
+    manualStereoMixes = 0;
+    manualEchoMixes = 0;
+}
+
+void AudioMixerStats::accumulate(const AudioMixerStats& otherStats) {
+    sumStreams += otherStats.sumStreams;
+    sumListeners += otherStats.sumListeners;
+    totalMixes += otherStats.totalMixes;
+    hrtfRenders += otherStats.hrtfRenders;
+    hrtfSilentRenders += otherStats.hrtfSilentRenders;
+    hrtfStruggleRenders += otherStats.hrtfStruggleRenders;
+    manualStereoMixes += otherStats.manualStereoMixes;
+    manualEchoMixes += otherStats.manualEchoMixes;
 }
