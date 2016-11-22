@@ -124,6 +124,26 @@ function onClicked() {
     }, SNAPSHOT_DELAY);
 }
 
+function isDomainOpen(id) {
+    var request = new XMLHttpRequest();
+    var options = [
+        'now=' + new Date().toISOString(),
+        'include_actions=concurrency',
+        'domain_id=' + id.slice(1, -1),
+        'restriction=open,hifi' // If we're sharing, we're logged in
+        // If we're here, protocol matches, and it is online
+    ];
+    var url = location.metaverseServerUrl + "/api/v1/user_stories?" + options.join('&');
+    request.open("GET", url, false);
+    request.send();
+    if (request.status != 200) {
+        return false;
+    }
+    var response = JSON.parse(request.response); // Not parsed for us.
+    return (response.status === 'success') &&
+        response.total_entries;
+}
+
 function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     // show overlays if they were on
     if (resetOverlays) {
@@ -144,7 +164,7 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
         { localPath: pathAnimatedSnapshot },
         { localPath: pathStillSnapshot },
         {
-            canShare: !!location.placename,
+            canShare: !!isDomainOpen(location.domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
     ]);

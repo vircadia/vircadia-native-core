@@ -141,19 +141,19 @@ void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, co
     auto readFBO = getFramebufferID(srcFramebuffer);
     if (srcFramebuffer && readFBO) {
         if ((srcFramebuffer->getWidth() < (region.x + region.z)) || (srcFramebuffer->getHeight() < (region.y + region.w))) {
-          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : srcFramebuffer is too small to provide the region queried";
+          qCWarning(gpugllogging) << "GLBackend::downloadFramebuffer : srcFramebuffer is too small to provide the region queried";
           return;
         }
     }
 
     if ((destImage.width() < region.z) || (destImage.height() < region.w)) {
-          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
+          qCWarning(gpugllogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
           return;
     }
 
     GLenum format = GL_BGRA;
     if (destImage.format() != QImage::Format_ARGB32) {
-          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
+          qCWarning(gpugllogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
           return;
     }
 
