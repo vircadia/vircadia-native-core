@@ -30,14 +30,13 @@ public:
     AudioMixer(ReceivedMessage& message);
 
 public slots:
-    /// threaded run of assignment
     void run() override;
-
     void sendStatsPacket() override;
 
     static int getStaticJitterFrames() { return _numStaticJitterFrames; }
 
 private slots:
+    // packet handlers
     void handleNodeAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
@@ -51,6 +50,16 @@ private slots:
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
 
 private:
+    // mixing helpers
+    // check and maybe throttle mixer load by changing audibility threshold
+    void manageLoad(p_high_resolution_clock::time_point& frameTimestamp, unsigned int& framesSinceManagement);
+    // pop a frame from any streams on the node
+    // returns the number of available streams
+    int prepareFrame(const SharedNodePointer& node, unsigned int frame);
+    // mix and broadcast non-ignored streams to the node
+    // returns true if a listener mix was broadcast for the node
+    bool mixFrame(const SharedNodePointer& node, unsigned int frame);
+
     AudioMixerClientData* getOrCreateClientData(Node* node);
 
     /// adds one stream to the mix for a listening node
