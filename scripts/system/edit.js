@@ -1306,7 +1306,7 @@ Controller.keyReleaseEvent.connect(function (event) {
     }
 });
 
-function recursiveAdd(newParnetID, parentData) {
+function recursiveAdd(newParentID, parentData) {
     var children = parentData.children;
     for (var i = 0; i < children.length; i++) {
         var childProperties = children[i].properties;
