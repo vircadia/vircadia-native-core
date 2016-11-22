@@ -1029,28 +1029,24 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
 
 
 function sortDeleteSelected  (selected) {
-    var tempArray = selected;
+    var array = selected.slice();
     var begin = 0;
-    while (begin < tempArray.length) {
+    while (begin < array.length) {
         var elementRemoved = false;
         var next = begin + 1;
-        while (next < tempArray.length) {
-            var beginID = tempArray[begin];
-            var nextID = tempArray[next];
-            var beginProperties = Entities.getEntityProperties(beginID);
-            var nextProperties = Entities.getEntityProperties(nextID);
-            var nextParentID = nextProperties.parentID;
-            var beginParentID = beginProperties.parentID;
+        while (next < array.length) {
+            var beginID = array[begin];
+            var nextID = array[next];
 
-            if (beginID == nextParentID) {
+            if (Entities.isChildOfParent(beginID, nextID)) {
                 var temp = beginID;
-                tempArray[begin] = nextID
-                tempArray[next] = beginID
-                tempArray.splice(begin, 1);
+                array[begin] = nextID
+                array[next] = beginID
+                array.splice(next, 1);
                 elementRemoved = true;
                 break;
-            } else if (nextID == beginParentID) {
-                tempArray.splice(begin, 1);
+            } else if (Entities.isChildOfParent(nextID, beginID)) {
+                array.splice(next, 1);
                 elementRemoved = true;
                 break;
             }
@@ -1060,7 +1056,7 @@ function sortDeleteSelected  (selected) {
             begin++;
         }
     }
-    return tempArray;
+    return array;
 }
 
 function recursiveDelete(entities, list) {

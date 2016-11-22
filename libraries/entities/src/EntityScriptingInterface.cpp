@@ -1334,8 +1334,7 @@ bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
             }
         });
     });
-
-    qDebug() << "Is Child of parent? : " << isChild;
+    
     return isChild;
 }
 
