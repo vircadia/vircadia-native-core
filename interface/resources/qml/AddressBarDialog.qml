@@ -112,6 +112,7 @@ Window {
                 placeName: model.place_name;
                 hifiUrl: model.place_name + model.path;
                 thumbnail: model.thumbnail_url;
+                imageUrl: model.image_url;
                 action: model.action;
                 timestamp: model.created_at;
                 onlineUsers: model.online_users;
@@ -395,6 +396,7 @@ Window {
             created_at: data.created_at || "",
             action: data.action || "",
             thumbnail_url: resolveUrl(thumbnail_url),
+            image_url: resolveUrl(data.details.image_url),
 
             metaverseId: (data.id || "").toString(), // Some are strings from server while others are numbers. Model objects require uniformity.
 
