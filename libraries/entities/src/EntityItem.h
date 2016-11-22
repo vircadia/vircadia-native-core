@@ -95,7 +95,8 @@ public:
     virtual bool setProperties(const EntityItemProperties& properties);
 
     // Set properties for sub class so they can add their own properties
-    // it does nothing in the root  eclass
+    // it does nothing in the root class
+    // This function is called by setProperties which then can detects if any property changes value in the SubClass (see aboe comment on setProperties)
     virtual bool setSubClassProperties(const EntityItemProperties& properties) { return false; }
 
     // Update properties with empty parent id and globalized/absolute values (applying offset), and apply (non-empty) log template to args id, name-or-type, parent id.

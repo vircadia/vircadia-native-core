@@ -31,7 +31,7 @@ bool RenderableLightEntityItem::addToScene(EntityItemPointer self, std::shared_p
     _myItem = scene->allocateID();
 
     auto renderItem = std::make_shared<LightPayload>();
-    updateRenderItemFromEntity(renderItem.get());
+    updateRenderItemFromEntity((*renderItem));
 
     auto renderPayload = std::make_shared<LightPayload::Payload>(renderItem);
 
@@ -109,24 +109,24 @@ void RenderableLightEntityItem::updateLightFromEntity(render::PendingChanges& pe
     }
 
 
-    pendingChanges.updateItem<LightPayload>(_myItem, [this](LightPayload& data) {
-        this->updateRenderItemFromEntity(&data);
+    pendingChanges.updateItem<LightPayload>(_myItem, [&](LightPayload& data) {
+        updateRenderItemFromEntity(data);
     });
 }
 
-void RenderableLightEntityItem::updateRenderItemFromEntity(LightPayload* lightPayload) {
+void RenderableLightEntityItem::updateRenderItemFromEntity(LightPayload& lightPayload) {
     auto entity = this;
 
-    lightPayload->setVisible(entity->getVisible());
+    lightPayload.setVisible(entity->getVisible());
 
-    auto light = lightPayload->editLight();
+    auto light = lightPayload.editLight();
     light->setPosition(entity->getPosition());
     light->setOrientation(entity->getRotation());
 
     bool success;
-    lightPayload->editBound() = entity->getAABox(success);
+    lightPayload.editBound() = entity->getAABox(success);
     if (!success) {
-        lightPayload->editBound() = render::Item::Bound();
+        lightPayload.editBound() = render::Item::Bound();
     }
 
     glm::vec3 dimensions = entity->getDimensions();

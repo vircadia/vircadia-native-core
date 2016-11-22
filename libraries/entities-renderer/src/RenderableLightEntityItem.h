@@ -49,7 +49,7 @@ private:
 
     // Dirty flag turn true when either setSubClassProperties or readEntitySubclassDataFromBuffer is changing a value 
 
-    void updateRenderItemFromEntity(LightPayload* lightPayload);
+    void updateRenderItemFromEntity(LightPayload& lightPayload);
 
 };
 

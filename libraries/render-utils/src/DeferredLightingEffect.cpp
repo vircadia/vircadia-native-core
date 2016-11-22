@@ -719,80 +719,15 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
 
-    //    batch.setProjectionTransform(projMat);
-     //   batch.setViewTransform(viewTransform, true);
 
-        // gather lights
-     /*   auto& srcPointLights = deferredLightingEffect->_pointLights;
-        auto& srcSpotLights = deferredLightingEffect->_spotLights;
-        int numPointLights = (int) srcPointLights.size();
-        int offsetPointLights = 0;
-        int numSpotLights = (int) srcSpotLights.size();
-        int offsetSpotLights = numPointLights;
-
-
-        std::vector<int> lightIndices(numPointLights + numSpotLights + 1);
-        lightIndices[0] = 0;
-
-        if (points && !srcPointLights.empty()) {
-            memcpy(lightIndices.data() + (lightIndices[0] + 1), srcPointLights.data(), srcPointLights.size() * sizeof(int));
-            lightIndices[0] += (int)srcPointLights.size();
-        }
-        if (spots && !srcSpotLights.empty()) {
-            memcpy(lightIndices.data() + (lightIndices[0] + 1), srcSpotLights.data(), srcSpotLights.size() * sizeof(int));
-            lightIndices[0] += (int)srcSpotLights.size();
-        }*/
-        //auto lightClusters = deferredLightingEffect->_lightClusters;
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
-           // _localLightsBuffer._buffer->setData(lightIndices.size() * sizeof(int), (const gpu::Byte*) lightIndices.data());
-           // _localLightsBuffer._size = lightIndices.size() * sizeof(int);
-
-            
             // Bind the global list of lights and the visible lights this frame
             batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->_lightArrayBuffer);
 
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
-
-
-            // before we get to the real lighting, let s try to cull down the number of pixels
-            if (false) {/*
-                if (numPointLights > 0) {
-                    auto mesh = deferredLightingEffect->getPointLightMesh();
-                    batch.setIndexBuffer(mesh->getIndexBuffer());
-                    batch.setInputBuffer(0, mesh->getVertexBuffer());
-                    batch.setInputFormat(mesh->getVertexFormat());
-                    auto& pointPart = mesh->getPartBuffer().get<model::Mesh::Part>(0);
-
-                    // Point light pipeline
-                    batch.setPipeline(deferredLightingEffect->_pointLightBack);
-
-                    batch.drawIndexedInstanced(numPointLights, model::Mesh::topologyToPrimitive(pointPart._topology), pointPart._numIndices, pointPart._startIndex, offsetPointLights);
-
-                    batch.setPipeline(deferredLightingEffect->_pointLightFront);
-
-                    batch.drawIndexedInstanced(numPointLights, model::Mesh::topologyToPrimitive(pointPart._topology), pointPart._numIndices, pointPart._startIndex, offsetPointLights);
-                }
-                
-                if (numSpotLights > 0) {
-                    auto mesh = deferredLightingEffect->getSpotLightMesh();
-                    batch.setIndexBuffer(mesh->getIndexBuffer());
-                    batch.setInputBuffer(0, mesh->getVertexBuffer());
-                    batch.setInputFormat(mesh->getVertexFormat());
-                    auto& conePart = mesh->getPartBuffer().get<model::Mesh::Part>(0);
-
-                    // Spot light pipeline
-                    batch.setPipeline(deferredLightingEffect->_spotLightBack);
-
-                    batch.drawIndexedInstanced(numSpotLights, model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex, offsetSpotLights);
-
-                    batch.setPipeline(deferredLightingEffect->_spotLightFront);
-
-                    batch.drawIndexedInstanced(numSpotLights, model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex, offsetSpotLights);
-                }*/
-            }
 
             // Local light pipeline
             batch.setPipeline(deferredLightingEffect->_localLight);
