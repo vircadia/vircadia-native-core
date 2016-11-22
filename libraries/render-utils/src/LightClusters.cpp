@@ -726,13 +726,7 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
     // Then the actual ClusterGrid attributes
     batch.setModelTransform(Transform());
 
-    
-    // Bind the G-Buffer surfaces
-/*    batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, deferredFramebuffer->getDeferredColorTexture());
-    batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, deferredFramebuffer->getDeferredNormalTexture());
-    batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, deferredFramebuffer->getDeferredSpecularTexture());
-    batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, deferredFramebuffer->getPrimaryDepthTexture());
-*/
+    // Bind the Light CLuster data strucutre
     batch.setUniformBuffer(LIGHT_GPU_SLOT, lightClusters->_lightStage->_lightArrayBuffer);
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
