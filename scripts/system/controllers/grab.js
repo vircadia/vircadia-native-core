@@ -8,6 +8,8 @@
 //
 //  Grab's physically moveable entities with the mouse, by applying a spring force.
 //
+//  Updated November 22, 2016 by Philip Rosedale:  Add distance attenuation of grab effect 
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -47,6 +49,23 @@ var enabled = true;
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
+}
+  
+var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
+var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
+var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance holding action timeframe is unmodified
+
+function distanceGrabTimescale(mass, distance) {
+    var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass /
+    DISTANCE_HOLDING_UNITY_MASS * distance /
+    DISTANCE_HOLDING_UNITY_DISTANCE;
+    if (timeScale < DISTANCE_HOLDING_ACTION_TIMEFRAME) {
+        timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
+    }
+    return timeScale;
+}
+function getMass(dimensions, density) {
+    return (dimensions.x * dimensions.y * dimensions.z) * density;
 }
 
 function entityIsGrabbedByOther(entityID) {
@@ -445,6 +464,8 @@ Grabber.prototype.moveEvent = function(event) {
         this.originalGravity = entityProperties.gravity;
     }
     this.currentPosition = entityProperties.position;
+    this.mass = getMass(entityProperties.dimensions, entityProperties.density);
+    var cameraPosition = Camera.getPosition();
 
     var actionArgs = {
         tag: getTag(),
@@ -465,15 +486,19 @@ Grabber.prototype.moveEvent = function(event) {
         //var qZero = this.lastRotation;
         this.lastRotation = Quat.multiply(deltaQ, this.lastRotation);
 
+        var distanceToCamera = Vec3.length(Vec3.subtract(this.currentPosition, cameraPosition));
+        var angularTimeScale = distanceGrabTimescale(this.mass, distanceToCamera);
+
         actionArgs = {
             targetRotation: this.lastRotation,
-            angularTimeScale: 0.1,
+            angularTimeScale: angularTimeScale,
             tag: getTag(),
             ttl: ACTION_TTL
         };
 
     } else {
         var newPointOnPlane;
+        
         if (this.mode === "verticalCylinder") {
             // for this mode we recompute the plane based on current Camera
             var planeNormal = Quat.getFront(Camera.getOrientation());
@@ -487,8 +512,9 @@ Grabber.prototype.moveEvent = function(event) {
                 y: this.pointOnPlane.y,
                 z: this.pointOnPlane.z
             };
+
         } else {
-            var cameraPosition = Camera.getPosition();
+            
             newPointOnPlane = mouseIntersectionWithPlane(
                     this.pointOnPlane, this.planeNormal, mouse.current, this.maxDistance);
             var relativePosition = Vec3.subtract(newPointOnPlane, cameraPosition);
@@ -501,9 +527,12 @@ Grabber.prototype.moveEvent = function(event) {
         }
         this.targetPosition = Vec3.subtract(newPointOnPlane, this.offset);
 
+        var distanceToCamera = Vec3.length(Vec3.subtract(this.targetPosition, cameraPosition));
+        var linearTimeScale = distanceGrabTimescale(this.mass, distanceToCamera);
+
         actionArgs = {
             targetPosition: this.targetPosition,
-            linearTimeScale: 0.1,
+            linearTimeScale: linearTimeScale,
             tag: getTag(),
             ttl: ACTION_TTL
         };
