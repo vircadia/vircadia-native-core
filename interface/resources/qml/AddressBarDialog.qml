@@ -438,7 +438,7 @@ Window {
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         var options = [
             'now=' + new Date().toISOString(),
-            'include_actions=snapshot,concurrency',
+            'include_actions=' + selectedTab.includeActions,
             'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
             'require_online=true',
             'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
