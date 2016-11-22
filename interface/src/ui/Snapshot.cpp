@@ -151,13 +151,17 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     return imageTempFile;
 }
 
-void Snapshot::uploadSnapshot(const QString& filename) {
+void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
 
     const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
-    // Alternatively to parseSnapshotData, we could pass the inWorldLocation through the call chain. This way is less disruptive to existing code.
-    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
-    SnapshotUploader* uploader = new SnapshotUploader(snapshotData->getURL(), filename);
-    delete snapshotData;
+    SnapshotUploader* uploader;
+    if (href.isEmpty()) {
+        SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
+        uploader = new SnapshotUploader(snapshotData->getURL(), filename);
+        delete snapshotData;
+    } else {
+        uploader = new SnapshotUploader(href, filename);
+    }
     
     QFile* file = new QFile(filename);
     Q_ASSERT(file->exists());

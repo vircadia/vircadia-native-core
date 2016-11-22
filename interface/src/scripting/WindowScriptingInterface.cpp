@@ -203,8 +203,8 @@ void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, f
     qApp->takeSnapshot(notify, includeAnimated, aspectRatio);
 }
 
-void WindowScriptingInterface::shareSnapshot(const QString& path) {
-    qApp->shareSnapshot(path);
+void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {
+    qApp->shareSnapshot(path, href);
 }
 
 bool WindowScriptingInterface::isPhysicsEnabled() {

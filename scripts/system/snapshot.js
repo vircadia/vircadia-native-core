@@ -71,7 +71,7 @@ function confirmShare(data) {
                     if (submessage.share) {
                         print('sharing', submessage.localPath);
                         outstanding++;
-                        Window.shareSnapshot(submessage.localPath);
+                        Window.shareSnapshot(submessage.localPath, submessage.href);
                     } else {
                         print('not sharing', submessage.localPath);
                     }
@@ -159,10 +159,14 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
 
+    // A Snapshot Review dialog might be left open indefinitely after taking the picture,
+    // during which time the user may have moved. So stash that info in the dialog so that
+    // it records the correct href. (We can also stash in .jpegs, but not .gifs.)
+    var href = location.href;
     // last element in data array tells dialog whether we can share or not
     confirmShare([ 
-        { localPath: pathAnimatedSnapshot },
-        { localPath: pathStillSnapshot },
+        { localPath: pathAnimatedSnapshot, href: href },
+        { localPath: pathStillSnapshot, href: href },
         {
             canShare: !!isDomainOpen(location.domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
