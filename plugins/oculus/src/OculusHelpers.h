@@ -7,12 +7,18 @@
 //
 #pragma once
 
+
+#include <QtCore/QLoggingCategory>
+
 #include <OVR_CAPI_GL.h>
 #include <GLMHelpers.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <controllers/Forward.h>
+
+Q_DECLARE_LOGGING_CATEGORY(displayplugins)
+Q_DECLARE_LOGGING_CATEGORY(oculus)
 
 void logWarning(const char* what);
 void logCritical(const char* what);

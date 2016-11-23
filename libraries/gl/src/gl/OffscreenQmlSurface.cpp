@@ -284,7 +284,7 @@ void OffscreenQmlSurface::render() {
     GLuint texture = offscreenTextures.getNextTexture(_size);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
     glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
-    PROFILE_RANGE("qml_render->rendercontrol")
+    PROFILE_RANGE(glLogging, "qml_render->rendercontrol")
     _renderControl->render();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -622,7 +622,7 @@ void OffscreenQmlSurface::updateQuick() {
     }
 
     if (_render) {
-        PROFILE_RANGE(__FUNCTION__);
+        PROFILE_RANGE(glLogging, __FUNCTION__);
         render();
         _render = false;
     }

@@ -10,6 +10,7 @@
 //
 #include "GLBackend.h"
 #include "GLQuery.h"
+#include "GLShared.h"
 
 using namespace gpu;
 using namespace gpu::gl;
@@ -27,7 +28,7 @@ void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
-        PROFILE_RANGE_BEGIN(glquery->_profileRangeId, query->getName().c_str(), 0xFFFF7F00);
+        PROFILE_RANGE_BEGIN(gpugllogging, glquery->_profileRangeId, query->getName().c_str(), 0xFFFF7F00);
 
         ++_queryStage._rangeQueryDepth;
         glGetInteger64v(GL_TIMESTAMP, (GLint64*)&glquery->_batchElapsedTime);
@@ -61,7 +62,7 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
         glGetInteger64v(GL_TIMESTAMP, &now);
         glquery->_batchElapsedTime = now - glquery->_batchElapsedTime;
 
-        PROFILE_RANGE_END(glquery->_profileRangeId);
+        PROFILE_RANGE_END(gpugllogging, glquery->_profileRangeId);
 
         (void)CHECK_GL_ERROR();
     }

@@ -23,6 +23,7 @@
 #include "SettingHandle.h"
 
 #include "Context.h"
+#include "Logging.h"
 
 #include "gpu/Batch.h"
 #include <PerfStat.h>
@@ -571,7 +572,7 @@ public:
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
         PerformanceTimer perfTimer(_name.c_str());
-        PROFILE_RANGE(_name.c_str());
+        PROFILE_RANGE(renderlogging, _name.c_str());
         auto start = usecTimestampNow();
 
         _concept->run(sceneContext, renderContext);

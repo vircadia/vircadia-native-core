@@ -793,7 +793,7 @@ void RenderDeferred::configure(const Config& config) {
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
-    PROFILE_RANGE("DeferredLighting");
+    PROFILE_RANGE(renderlogging, "DeferredLighting");
 
     auto deferredTransform = inputs.get0();
     auto deferredFramebuffer = inputs.get1();

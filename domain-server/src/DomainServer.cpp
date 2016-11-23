@@ -43,6 +43,7 @@
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
+#include <Trace.h>
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -72,6 +73,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _iceServerPort(ICE_SERVER_DEFAULT_PORT)
 {
     parseCommandLine();
+
+    DependencyManager::set<tracing::Tracer>();
 
     LogUtils::init();
     Setting::init();
