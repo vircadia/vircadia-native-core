@@ -14,6 +14,7 @@ var SNAPSHOT_DELAY = 500; // 500ms
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var resetOverlays;
 var reticleVisible;
+var clearOverlayWhenMoving;
 var button = toolBar.addButton({
     objectName: "snapshot",
     imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
@@ -100,8 +101,13 @@ function snapshotShared(errorMessage) {
 }
 
 function onClicked() {
+    // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
+    // Turn it off now, before we start futzing with things (and possibly moving).
+    clearOverlayWhenMoving = MyAvatar.getClearOverlayWhenMoving(); // Do not use Settings. MyAvatar keeps a separate copy.
+    MyAvatar.setClearOverlayWhenMoving(false);
+
     // update button states
-    resetOverlays = Menu.isOptionChecked("Overlays");
+    resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicke.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     Window.snapshotTaken.connect(resetButtons);
@@ -109,7 +115,7 @@ function onClicked() {
     button.writeProperty("buttonState", 0);
     button.writeProperty("defaultState", 0);
     button.writeProperty("hoverState", 2);
-     
+
     // hide overlays if they are on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", false);
@@ -145,10 +151,6 @@ function isDomainOpen(id) {
 }
 
 function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
-    // show overlays if they were on
-    if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true); 
-    }
     // show hud
     toolBar.writeProperty("visible", true);
     Reticle.visible = reticleVisible;
@@ -158,6 +160,10 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     button.writeProperty("defaultState", 1);
     button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
+    // show overlays if they were on
+    if (resetOverlays) {
+        Menu.setIsOptionChecked("Overlays", true);
+    }
 
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
     // during which time the user may have moved. So stash that info in the dialog so that
@@ -172,7 +178,10 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
     ]);
- }
+    if (clearOverlayWhenMoving) {
+        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
+    }
+}
 
 button.clicked.connect(onClicked);
 Window.snapshotShared.connect(snapshotShared);
