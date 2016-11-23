@@ -155,7 +155,9 @@ void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
     QUrl url = href;
     if (url.isEmpty()) {
         SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
-        url = snapshotData->getURL();
+        if (snapshotData) {
+            url = snapshotData->getURL();
+        }
         delete snapshotData;
     }
     if (url.isEmpty()) {
