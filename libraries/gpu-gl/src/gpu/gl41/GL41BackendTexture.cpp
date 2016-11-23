@@ -12,7 +12,6 @@
 
 #include <unordered_set>
 #include <unordered_map>
-#include <QtCore/QThread>
 
 #include "../gl/GLTexelFormat.h"
 
@@ -123,7 +122,7 @@ void GL41Texture::transferMip(uint16_t mipLevel, uint8_t face) const {
 }
 
 void GL41Texture::startTransfer() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(gpugllogging, __FUNCTION__);
     Parent::startTransfer();
 
     glBindTexture(_target, _id);

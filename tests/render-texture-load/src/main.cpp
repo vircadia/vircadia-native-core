@@ -563,7 +563,6 @@ private:
         gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
-        PROFILE_RANGE(__FUNCTION__);
         auto framebuffer = DependencyManager::get<FramebufferCache>()->getFramebuffer();
 
         gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {

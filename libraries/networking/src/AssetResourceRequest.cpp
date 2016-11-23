@@ -17,6 +17,8 @@
 #include "AssetUtils.h"
 #include "MappingRequest.h"
 #include "NetworkLogging.h"
+#include <Trace.h>
+#include <Profile.h>
 
 static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
 
@@ -27,12 +29,18 @@ AssetResourceRequest::AssetResourceRequest(const QUrl& url) :
 }
 
 AssetResourceRequest::~AssetResourceRequest() {
-    if (_assetMappingRequest) {
-        _assetMappingRequest->deleteLater();
-    }
-    
-    if (_assetRequest) {
-        _assetRequest->deleteLater();
+    if (_assetRequest || _assetMappingRequest) {
+        if (_assetMappingRequest) {
+            _assetMappingRequest->deleteLater();
+//            PROFILE_ASYNC_END("resource", "AssetResourceRequestMapping", _url.toString());
+        }
+        
+        if (_assetRequest) {
+            _assetRequest->deleteLater();
+            //PROFILE_ASYNC_END("resource", "AssetResourceRequestData", _url.toString());
+        }
+
+        //trace::ASYNC_END("AssetResourceRequest", trace::cResource, _url.toString());
     }
 }
 
@@ -44,6 +52,8 @@ bool AssetResourceRequest::urlIsAssetHash() const {
 }
 
 void AssetResourceRequest::doSend() {
+    //trace::ASYNC_BEGIN("AssetResourceRequest", trace::cResource, _url.toString(), { { "url", _url.toString() } });
+
     // We'll either have a hash or an ATP path to a file (that maps to a hash)
     if (urlIsAssetHash()) {
         // We've detected that this is a hash - simply use AssetClient to request that asset
@@ -61,6 +71,8 @@ void AssetResourceRequest::doSend() {
 }
 
 void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
+    //trace::ASYNC_BEGIN("AssetResourceRequestMapping", trace::cResource, _url.toString());
+
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetMappingRequest = assetClient->createGetMappingRequest(path);
 
@@ -68,6 +80,8 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
     connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path](GetMappingRequest* request){
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(request == _assetMappingRequest);
+
+        //trace::ASYNC_END("AssetResourceRequestMapping", trace::cResource, _url.toString());
 
         switch (request->getError()) {
             case MappingRequest::NoError:
@@ -96,6 +110,8 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                 _state = Finished;
                 emit finished();
 
+                //trace::ASYNC_END("AssetResourceRequest", trace::cResource, _url.toString());
+
                 break;
             }
         }
@@ -108,6 +124,7 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
 }
 
 void AssetResourceRequest::requestHash(const AssetHash& hash) {
+    //trace::ASYNC_BEGIN("AssetResourceRequestData", trace::cResource, _url.toString());
 
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
@@ -118,6 +135,8 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(req == _assetRequest);
         Q_ASSERT(req->getState() == AssetRequest::Finished);
+
+        //trace::ASYNC_END("AssetResourceRequestData", trace::cResource, _url.toString());
         
         switch (req->getError()) {
             case AssetRequest::Error::NoError:
@@ -143,6 +162,8 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
 
         _assetRequest->deleteLater();
         _assetRequest = nullptr;
+
+        //trace::ASYNC_END("AssetResourceRequest", trace::cResource, _url.toString());
     });
 
     _assetRequest->start();

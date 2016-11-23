@@ -55,7 +55,8 @@ public:
     Assignment(Assignment::Command command,
                Assignment::Type type,
                const QString& pool = emptyPool,
-               Assignment::Location location = Assignment::LocalLocation);
+               Assignment::Location location = Assignment::LocalLocation,
+               QString dataDirectory = QString());
     Assignment(const Assignment& otherAssignment);
     Assignment& operator=(const Assignment &rhsAssignment);
 
@@ -103,6 +104,7 @@ protected:
     bool _isStatic; /// defines if this assignment needs to be re-queued in the domain-server if it stops being fulfilled
     QUuid _walletUUID; /// the UUID for the wallet that should be paid for this assignment
     QString _nodeVersion;
+    QString _dataDirectory;
 };
 
 uint qHash(const Assignment::Type& key, uint seed);
