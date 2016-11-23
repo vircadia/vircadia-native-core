@@ -28,17 +28,12 @@ class AudioMixerClientData;
 class AudioMixerSlave {
 public:
     // mix and broadcast non-ignored streams to the node
-    // returns true if a listener mix was broadcast for the node
+    // returns true if a mixed packet was sent to the node
     void mix(const SharedNodePointer& node, unsigned int frame);
 
     AudioMixerStats stats;
 
 private:
-    void writeMixPacket(std::unique_ptr<NLPacket>& mixPacket, AudioMixerClientData* data, QByteArray& buffer);
-    void writeSilentPacket(std::unique_ptr<NLPacket>& mixPacket, AudioMixerClientData* data);
-
-    void sendEnvironmentPacket(const SharedNodePointer& node);
-
     // create mix, returns true if mix has audio
     bool prepareMix(const SharedNodePointer& node);
     // add a stream to the mix
