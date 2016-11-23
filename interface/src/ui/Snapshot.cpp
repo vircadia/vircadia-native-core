@@ -63,8 +63,6 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
 
         // parsing URL
         url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
-    } else if (snapshotPath.right(3) == "gif") {
-        url = QUrl(DependencyManager::get<AddressManager>()->currentShareableAddress());
     } else {
         return NULL;
     }
@@ -154,14 +152,16 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
 void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
 
     const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
-    SnapshotUploader* uploader;
-    if (href.isEmpty()) {
+    QUrl url = href;
+    if (url.isEmpty()) {
         SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
-        uploader = new SnapshotUploader(snapshotData->getURL(), filename);
+        url = snapshotData->getURL();
         delete snapshotData;
-    } else {
-        uploader = new SnapshotUploader(href, filename);
     }
+    if (url.isEmpty()) {
+        url = QUrl(DependencyManager::get<AddressManager>()->currentShareableAddress());
+    }
+    SnapshotUploader* uploader = new SnapshotUploader(url, filename);
     
     QFile* file = new QFile(filename);
     Q_ASSERT(file->exists());
