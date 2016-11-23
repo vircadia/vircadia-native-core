@@ -13,11 +13,11 @@ protected:
     }
 
 public:
-    glm::quat getOrientation() const {
-        return glm::angleAxis(yawPitch.x, Vectors::UP) * glm::angleAxis(yawPitch.y, Vectors::RIGHT);
+    const glm::quat& getOrientation() const {
+        return orientation;
     }
 
-    vec2 yawPitch { 0 };
+    glm::quat orientation;
     glm::vec3 position;
     float rotationSpeed { 1.0f };
     float movementSpeed { 1.0f };
@@ -77,24 +77,25 @@ public:
     };
 
     void rotate(const float delta) {
-        yawPitch.x += delta;
+        orientation = glm::angleAxis(delta, Vectors::UP) * orientation;
         updateViewMatrix();
     }
 
     void rotate(const glm::vec2& delta) {
-        yawPitch += delta;
+
+        // create orientation vectors
+        auto lookat = orientation * Vectors::UNIT_NEG_Z;
+        auto forward = glm::normalize(vec3(lookat.x, 0, lookat.z));
+        auto side = glm::cross(Vectors::UP, forward);
+
+        // rotate camera with quaternions created from axis and angle
+        orientation = glm::angleAxis(delta.x, Vectors::UP) * orientation;
+        orientation = glm::angleAxis(-delta.y, side) * orientation;
         updateViewMatrix();
     }
 
     void setRotation(const glm::quat& rotation) {
-        glm::vec3 f = rotation * Vectors::UNIT_NEG_Z;
-        f.y = 0;
-        f = glm::normalize(f);
-        yawPitch.x = angleBetween(Vectors::UNIT_NEG_Z, f);
-        f = rotation * Vectors::UNIT_NEG_Z;
-        f.x = 0;
-        f = glm::normalize(f);
-        yawPitch.y = angleBetween(Vectors::UNIT_NEG_Z, f);
+        orientation = rotation;
         updateViewMatrix();
     }
 
