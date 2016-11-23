@@ -99,12 +99,17 @@ function snapshotShared(errorMessage) {
         showFeedWindow();
     }
 }
-
+var href, domainId;
 function onClicked() {
     // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
     // Turn it off now, before we start futzing with things (and possibly moving).
     clearOverlayWhenMoving = MyAvatar.getClearOverlayWhenMoving(); // Do not use Settings. MyAvatar keeps a separate copy.
     MyAvatar.setClearOverlayWhenMoving(false);
+
+    // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
+    // Even the domainId could change (e.g., if the user falls into a teleporter while recording).
+    href = location.href;
+    domainId = location.domainId;
 
     // update button states
     resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicke.
@@ -168,13 +173,12 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
     // during which time the user may have moved. So stash that info in the dialog so that
     // it records the correct href. (We can also stash in .jpegs, but not .gifs.)
-    var href = location.href;
     // last element in data array tells dialog whether we can share or not
     confirmShare([ 
         { localPath: pathAnimatedSnapshot, href: href },
         { localPath: pathStillSnapshot, href: href },
         {
-            canShare: !!isDomainOpen(location.domainId),
+            canShare: !!isDomainOpen(domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
     ]);
