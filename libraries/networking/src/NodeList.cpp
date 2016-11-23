@@ -751,6 +751,7 @@ bool NodeList::sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr) {
 }
 
 void NodeList::ignoreNodesInRadius(float radiusToIgnore, bool enabled) {
+    bool isEnabledChange = _ignoreRadiusEnabled.get() != enabled;
     _ignoreRadiusEnabled.set(enabled);
     _ignoreRadius.set(radiusToIgnore);
 
@@ -759,6 +760,9 @@ void NodeList::ignoreNodesInRadius(float radiusToIgnore, bool enabled) {
     }, [this](const SharedNodePointer& destinationNode) {
         sendIgnoreRadiusStateToNode(destinationNode);
     });
+    if (isEnabledChange) {
+        emit ignoreRadiusEnabledChanged(enabled);
+    }
 }
 
 void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode) {
@@ -885,10 +889,4 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
         qWarning() << "NodeList::muteNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
 
     }
-}
-
-void NodeList::toggleIgnoreRadius() {
-    bool isIgnored = !getIgnoreRadiusEnabled();
-    ignoreNodesInRadius(getIgnoreRadius(), isIgnored);
-    emit ignoreRadiusEnabledChanged(isIgnored);
 }

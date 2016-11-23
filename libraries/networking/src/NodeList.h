@@ -74,7 +74,7 @@ public:
     void ignoreNodesInRadius(float radiusToIgnore, bool enabled = true);
     float getIgnoreRadius() const { return _ignoreRadius.get(); }
     bool getIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled.get(); }
-    void toggleIgnoreRadius();
+    void toggleIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), !getIgnoreRadiusEnabled()); }
     void enableIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), true); }
     void disableIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), false); }
     void ignoreNodeBySessionID(const QUuid& nodeID);
