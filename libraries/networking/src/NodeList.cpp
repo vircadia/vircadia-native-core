@@ -886,3 +886,9 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
 
     }
 }
+
+void NodeList::toggleIgnoreRadius() {
+    bool isIgnored = !getIgnoreRadiusEnabled();
+    ignoreNodesInRadius(getIgnoreRadius(), isIgnored);
+    emit ignoreRadiusEnabledChanged(isIgnored);
+}
