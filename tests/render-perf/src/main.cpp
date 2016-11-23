@@ -946,7 +946,7 @@ private:
                         orientationRegex.cap(3).toFloat(),
                         orientationRegex.cap(4).toFloat());
                     if (!glm::any(glm::isnan(v))) {
-                        _camera.setRotation(glm::normalize(glm::quat(v.w, v.x, v.y, v.z)));
+                        _camera.setRotation(glm::quat(v.w, v.x, v.y, v.z));
                     }
                 }
             }
@@ -1008,6 +1008,7 @@ private:
             arg(v.x).arg(v.y).arg(v.z).
             arg(q.x).arg(q.y).arg(q.z).arg(q.w);
         _settings.setValue(LAST_LOCATION_KEY, viewpoint);
+        _camera.setRotation(q);
     }
 
     void restorePosition() {
@@ -1019,7 +1020,7 @@ private:
     }
 
     void resetPosition() {
-        _camera.yawPitch = vec3(0);
+        _camera.setRotation(quat());
         _camera.setPosition(vec3());
     }
 
