@@ -583,7 +583,6 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     syncSampler();
     updateSize();
 
-
     // Re-insert into the texture-by-mips map if appropriate
     mipLevels = usedMipLevels();
     if (mipLevels > 1 && (!_sparseInfo.sparse || _minMip < _sparseInfo.maxSparseLevel)) {
