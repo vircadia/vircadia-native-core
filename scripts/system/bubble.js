@@ -25,34 +25,30 @@ function buttonImageURL() {
     return TOOLS_PATH + 'bubble.svg';
 }
 
-var bubbleActive = Users.getIgnoreRadiusEnabled();
+function onBubbleToggled() {
+    var bubbleActive = Users.getIgnoreRadiusEnabled();
+    button.writeProperty('buttonState', bubbleActive ? 0 : 1);
+    button.writeProperty('defaultState', bubbleActive ? 0 : 1);
+    button.writeProperty('hoverState', bubbleActive ? 2 : 3);
+}
 
 // setup the mod button and add it to the toolbar
 var button = toolbar.addButton({
     objectName: 'bubble',
     imageURL: buttonImageURL(),
     visible: true,
-    buttonState: bubbleActive ? 0 : 1,
-    defaultState: bubbleActive ? 0 : 1,
-    hoverState: bubbleActive ? 2 : 3,
     alpha: 0.9
 });
+onBubbleToggled();
 
-
-// handle clicks on the toolbar button
-function buttonClicked(){
-    Users.toggleIgnoreRadius();
-    bubbleActive = Users.getIgnoreRadiusEnabled();
-    button.writeProperty('buttonState', bubbleActive ? 0 : 1);
-    button.writeProperty('defaultState', bubbleActive ? 0 : 1);
-    button.writeProperty('hoverState', bubbleActive ? 2 : 3);
-}
-
-button.clicked.connect(buttonClicked);
+button.clicked.connect(Users.toggleIgnoreRadius);
+Users.ignoreRadiusEnabledChanged.connect(onBubbleToggled);
 
 // cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
     toolbar.removeButton('bubble');
+    button.clicked.disconnect(Users.toggleIgnoreRadius);
+    Users.ignoreRadiusEnabledChanged.disconnect(onBubbleToggled);
 });
 
 }()); // END LOCAL_SCOPE

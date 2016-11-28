@@ -17,6 +17,7 @@ UsersScriptingInterface::UsersScriptingInterface() {
     // emit a signal when kick permissions have changed
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &LimitedNodeList::canKickChanged, this, &UsersScriptingInterface::canKickChanged);
+    connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &UsersScriptingInterface::ignoreRadiusEnabledChanged);
 }
 
 void UsersScriptingInterface::ignore(const QUuid& nodeID) {
