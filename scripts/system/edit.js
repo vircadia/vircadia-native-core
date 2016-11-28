@@ -1310,7 +1310,7 @@ function recursiveAdd(newParentID, parentData) {
     var children = parentData.children;
     for (var i = 0; i < children.length; i++) {
         var childProperties = children[i].properties;
-        childProperties.parentID = newParnetID;
+        childProperties.parentID = newParentID;
         var newChildID = Entities.addEntity(childProperties);
         recursiveAdd(newChildID, children[i]);
     }
