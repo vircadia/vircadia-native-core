@@ -174,7 +174,9 @@ public:
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
     SharedNodePointer findNodeWithAddr(const HifiSockAddr& addr);
-    
+
+    QReadWriteLock& getMutex() { return _nodeMutex; }
+
     template<typename NodeLambda>
     void eachNode(NodeLambda functor) {
         QReadLocker readLock(&_nodeMutex);
@@ -280,7 +282,7 @@ signals:
 protected slots:
     void connectedForLocalSocketTest();
     void errorTestingLocalSocket();
-    
+
     void clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr);
 
 protected:
@@ -347,7 +349,7 @@ protected:
             functor(it);
         }
     }
-    
+
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
     void possiblyTimeoutSTUNAddressLookup();
