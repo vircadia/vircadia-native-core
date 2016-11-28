@@ -88,7 +88,7 @@ private:
 
     QString _codecPreferenceOrder;
 
-    AudioMixerSlavePool slavePool;
+    AudioMixerSlavePool _slavePool;
 
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
     static float _noiseMutingThreshold;

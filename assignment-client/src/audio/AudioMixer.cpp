@@ -41,6 +41,7 @@ static const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 static const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 static const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
+static const QString AUDIO_THREADING_GROUP_KEY = "audio_threading";
 
 int AudioMixer::_numStaticJitterFrames{ -1 };
 float AudioMixer::_noiseMutingThreshold{ DEFAULT_NOISE_MUTING_THRESHOLD };
@@ -368,11 +369,11 @@ void AudioMixer::start() {
             });
 
             // mix across slave threads
-            slavePool.mix(nodes, frame);
+            _slavePool.mix(nodes, frame);
         }
 
         // gather stats
-        slavePool.each([&](AudioMixerSlave& slave) {
+        _slavePool.each([&](AudioMixerSlave& slave) {
             _stats.accumulate(slave.stats);
             slave.stats.reset();
         });
@@ -469,6 +470,17 @@ int AudioMixer::prepareFrame(const SharedNodePointer& node, unsigned int frame) 
 }
 
 void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
+    if (settingsObject.contains(AUDIO_THREADING_GROUP_KEY)) {
+        QJsonObject audioThreadingGroupObject = settingsObject[AUDIO_THREADING_GROUP_KEY].toObject();
+        const QString AUTO_THREADS = "auto_threads";
+        bool autoThreads = audioThreadingGroupObject[AUTO_THREADS].toBool();
+        if (!autoThreads) {
+            const QString NUM_THREADS = "num_threads";
+            int numThreads = audioThreadingGroupObject[NUM_THREADS].toInt();
+            _slavePool.setNumThreads(numThreads);
+        }
+    }
+
     if (settingsObject.contains(AUDIO_BUFFER_GROUP_KEY)) {
         QJsonObject audioBufferGroupObject = settingsObject[AUDIO_BUFFER_GROUP_KEY].toObject();
 
