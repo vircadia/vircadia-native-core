@@ -1,0 +1,66 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  lightClusters_drawClusterFrom Depth.slv
+//  Vertex shader
+//
+//  Created by Sam Gateau on 9/8/2016
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include LightClusterGrid.slh@>
+
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
+
+
+
+
+out vec4 varColor;
+
+
+void main(void) {
+    const vec4 UNIT_BOX[8] = vec4[8](
+        vec4(0.0, 0.0, 0.0, 1.0),
+        vec4(1.0, 0.0, 0.0, 1.0),
+        vec4(0.0, 1.0, 0.0, 1.0),
+        vec4(1.0, 1.0, 0.0, 1.0),
+        vec4(0.0, 0.0, 1.0, 1.0),
+        vec4(1.0, 0.0, 1.0, 1.0),
+        vec4(0.0, 1.0, 1.0, 1.0),
+        vec4(1.0, 1.0, 1.0, 1.0)
+    );
+    const int UNIT_BOX_LINE_INDICES[24] = int[24](
+        0, 1,
+        1, 3,
+        3, 2,
+        2, 0,
+        4, 5,
+        5, 7,
+        7, 6,
+        6, 4,
+        2, 6,
+        3, 7,
+        0, 4,
+        1, 5
+    );
+    vec4 pos = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
+
+    ivec3 clusterPos = frustumGrid_indexToCluster(gpu_InstanceID);
+    vec3 eyePos = frustumGrid_clusterPosToEye(clusterPos, vec3(0.05) + 0.9 * pos.xyz);
+    vec4 worldPos = frustumGrid_eyeToWorld(vec4(eyePos.xyz, 1.0));
+
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    <$transformWorldToClipPos(cam, worldPos, gl_Position)$>
+
+        varColor = vec4(colorWheel(fract(float(gpu_InstanceID) / float(frustumGrid_numClusters()))), 0.9);
+}

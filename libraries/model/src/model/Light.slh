@@ -11,121 +11,51 @@
 <@if not MODEL_LIGHT_SLH@>
 <@def MODEL_LIGHT_SLH@>
 
-struct SphericalHarmonics {
-    vec4 L00;
-    vec4 L1m1;
-    vec4 L10;
-    vec4 L11;
-    vec4 L2m2;
-    vec4 L2m1;
-    vec4 L20;
-    vec4 L21;
-    vec4 L22;
+<@include model/LightVolume.shared.slh@>
+<@include model/LightIrradiance.shared.slh@>
+
+// NOw lets define Light
+struct Light {
+    LightVolume volume;
+    LightIrradiance irradiance;
 };
 
-vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
+bool light_isSpot(Light l) { return lightVolume_isSpot(l.volume); }
 
-    vec3 dir = direction.xyz;
+vec3 getLightPosition(Light l) { return lightVolume_getPosition(l.volume); }
+vec3 getLightDirection(Light l) { return lightVolume_getDirection(l.volume); }
 
-    const float C1 = 0.429043;
-    const float C2 = 0.511664;
-    const float C3 = 0.743125;
-    const float C4 = 0.886227;
-    const float C5 = 0.247708;
+vec3 getLightColor(Light l) { return lightIrradiance_getColor(l.irradiance); }
+float getLightIntensity(Light l) { return lightIrradiance_getIntensity(l.irradiance); }
+vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradiance); }
 
-    vec4 value = C1 * sh.L22 * (dir.x * dir.x - dir.y * dir.y) + 
-                        C3 * sh.L20 * dir.z * dir.z + 
-                        C4 * sh.L00 - C5 * sh.L20 + 
-                        2.0 * C1 * (   sh.L2m2 * dir.x * dir.y + 
-                                    sh.L21  * dir.x * dir.z + 
-                                    sh.L2m1 * dir.y * dir.z ) + 
-                        2.0 * C2 * (   sh.L11  * dir.x + 
-                                    sh.L1m1 * dir.y + 
-                                    sh.L10  * dir.z ) ; 
-    return value;
-}
-
-
-struct Light {
-    vec4 _position;
-    vec4 _direction;
-    vec4 _color;
-    vec4 _attenuation;
-    vec4 _spot;
-
-    vec4 _shadow;
-    vec4 _control;
-
+// AMbient lighting needs extra info provided from a different Buffer
+<@include model/SphericalHarmonics.shared.slh@>
+// Light Ambient
+struct LightAmbient {
+    vec4 _ambient;
     SphericalHarmonics _ambientSphere;
 };
 
-vec3 getLightPosition(Light l) { return l._position.xyz; }
-vec3 getLightDirection(Light l) { return l._direction.xyz; } // direction is -Z axis
+SphericalHarmonics getLightAmbientSphere(LightAmbient l) { return l._ambientSphere; }
 
-vec3 getLightColor(Light l) { return l._color.rgb; }
-float getLightIntensity(Light l) { return l._color.w; }
-float getLightAmbientIntensity(Light l) { return l._direction.w; }
 
-float getLightSpotAngleCos(Light l) {
-    return l._spot.x;
+float getLightAmbientIntensity(LightAmbient l) { return l._ambient.x; }
+bool getLightHasAmbientMap(LightAmbient l) { return l._ambient.y > 0; }
+float getLightAmbientMapNumMips(LightAmbient l) { return l._ambient.y; }
+
+<@func declareLightBuffer(N)@>
+
+
+<@if N@>
+uniform lightBuffer {
+    Light lightArray[<$N$>];
+};
+Light getLight(int index) {
+    return lightArray[index];
 }
 
-vec2 getLightSpotOutsideNormal2(Light l) {
-    return vec2(-l._spot.y, l._spot.x);
-}
-
-float evalLightSpotAttenuation(Light l, float cosA) {
-    return pow(cosA, l._spot.w);
-}
-
-float getLightRadius(Light l) {
-    return l._attenuation.x;
-}
-
-float getLightSquareRadius(Light l) {
-    return getLightRadius(l) * getLightRadius(l);
-}
-
-float getLightCutoffRadius(Light l) {
-    return l._attenuation.z;
-}
-
-float getLightCutoffSquareRadius(Light l) {
-    return getLightCutoffRadius(l) * getLightCutoffRadius(l);
-}
-
-float getLightShowContour(Light l) {
-    return l._control.w;
-}
-
-// Light is the light source its self, d is the light's distance calculated as length(unnormalized light vector).
-float evalLightAttenuation(Light l, float d) {
-    float radius = getLightRadius(l);
-    float denom = d / radius + 1.0;
-    float attenuation = 1.0 / (denom * denom);
-    
-    float cutoff = getLightCutoffRadius(l);
-    
-    // "Fade" the edges of light sources to make things look a bit more attractive.
-    // Note: this tends to look a bit odd at lower exponents.
-    attenuation *= min(1.0, max(0.0, -(d - cutoff)));
-    
-    return attenuation;
-}
-
-SphericalHarmonics getLightAmbientSphere(Light l) {
-    return l._ambientSphere;
-}
-
-bool getLightHasAmbientMap(Light l) {
-    return l._control.x > 0.0;
-}
-
-float getLightAmbientMapNumMips(Light l) {
-    return l._control.x;
-}
-
-
+<@else@>
 uniform lightBuffer {
     Light light;
 };
@@ -133,42 +63,39 @@ Light getLight() {
     return light;
 }
 
+<@endif@>
+
+<@endfunc@>
 
 
 
-bool clipFragToLightVolumePoint(Light light, vec3 fragPos, out vec4 fragLightVecLen2) {
-    fragLightVecLen2.xyz = getLightPosition(light) - fragPos.xyz;
-    fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
 
-    // Kill if too far from the light center
-    if (fragLightVecLen2.w > getLightCutoffSquareRadius(light)) {
-        return false;
-    }
-    return true;
+
+
+<@func declareLightAmbientBuffer(N)@>
+
+<@if N@>
+
+uniform lightAmbientBuffer {
+    LightAmbient lightAmbientArray[<$N$>];
+};
+
+LightAmbient getLightAmbient(int index) {
+    return lightAmbientArray[index];
 }
 
-bool clipFragToLightVolumeSpot(Light light, vec3 fragPos, out vec4 fragLightVecLen2, out vec4 fragLightDirLen, out float cosSpotAngle) {
-    fragLightVecLen2.xyz = getLightPosition(light) - fragPos.xyz;
-    fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
+<@else@>
+uniform lightAmbientBuffer {
+    LightAmbient lightAmbient;
+};
 
-    // Kill if too far from the light center
-    if (fragLightVecLen2.w > getLightCutoffSquareRadius(light)) {
-        return false;
-    }
-
-    // Allright we re valid in the volume
-    fragLightDirLen.w = length(fragLightVecLen2.xyz);
-    fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
-
-    // Kill if not in the spot light (ah ah !)
-    cosSpotAngle = max(-dot(fragLightDirLen.xyz, getLightDirection(light)), 0.0);
-    if (cosSpotAngle < getLightSpotAngleCos(light)) {
-        return false;
-    }
-
-    return true;
+LightAmbient getLightAmbient() {
+    return lightAmbient;
 }
 
+<@endif@>
+
+<@endfunc@>
 
 
 <@endif@>
