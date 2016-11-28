@@ -744,7 +744,7 @@ void AudioMixer::run() {
 
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    connect(&domainHandler, &DomainHandler::settingsReceived, this, &AudioMixer::domainSettingsRequestComplete);
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &AudioMixer::start);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AudioMixer::domainSettingsRequestFailed);
 
     ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
@@ -762,7 +762,7 @@ AudioMixerClientData* AudioMixer::getOrCreateClientData(Node* node) {
     return clientData;
 }
 
-void AudioMixer::domainSettingsRequestComplete() {
+void AudioMixer::start() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
@@ -775,11 +775,6 @@ void AudioMixer::domainSettingsRequestComplete() {
     // check the settings object to see if we have anything we can parse out
     parseSettingsObject(settingsObject);
 
-    // queue up a connection to start broadcasting mixes now that we're ready to go
-    QMetaObject::invokeMethod(this, "broadcastMixes", Qt::QueuedConnection);
-}
-
-void AudioMixer::broadcastMixes() {
     const int TRAILING_AVERAGE_FRAMES = 100;
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
@@ -788,8 +783,6 @@ void AudioMixer::broadcastMixes() {
     const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
 
     const float RATIO_BACK_OFF = 0.02f;
-
-    auto nodeList = DependencyManager::get<NodeList>();
 
     auto nextFrameTimestamp = p_high_resolution_clock::now();
     auto timeToSleep = std::chrono::microseconds(0);

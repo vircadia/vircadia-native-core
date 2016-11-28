@@ -38,7 +38,6 @@ public slots:
     static int getStaticJitterFrames() { return _numStaticJitterFrames; }
 
 private slots:
-    void broadcastMixes();
     void handleNodeAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
@@ -48,11 +47,11 @@ private slots:
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
+    void start();
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
 
 private:
     AudioMixerClientData* getOrCreateClientData(Node* node);
-    void domainSettingsRequestComplete();
 
     /// adds one stream to the mix for a listening node
     void addStreamToMixForListeningNodeWithStream(AudioMixerClientData& listenerNodeData,
