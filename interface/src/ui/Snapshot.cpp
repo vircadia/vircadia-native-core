@@ -63,8 +63,6 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
 
         // parsing URL
         url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
-    } else if (snapshotPath.right(3) == "gif") {
-        url = QUrl(DependencyManager::get<AddressManager>()->currentShareableAddress());
     } else {
         return NULL;
     }
@@ -151,13 +149,21 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     return imageTempFile;
 }
 
-void Snapshot::uploadSnapshot(const QString& filename) {
+void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
 
     const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
-    // Alternatively to parseSnapshotData, we could pass the inWorldLocation through the call chain. This way is less disruptive to existing code.
-    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
-    SnapshotUploader* uploader = new SnapshotUploader(snapshotData->getURL(), filename);
-    delete snapshotData;
+    QUrl url = href;
+    if (url.isEmpty()) {
+        SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
+        if (snapshotData) {
+            url = snapshotData->getURL();
+        }
+        delete snapshotData;
+    }
+    if (url.isEmpty()) {
+        url = QUrl(DependencyManager::get<AddressManager>()->currentShareableAddress());
+    }
+    SnapshotUploader* uploader = new SnapshotUploader(url, filename);
     
     QFile* file = new QFile(filename);
     Q_ASSERT(file->exists());
