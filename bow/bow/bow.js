@@ -93,6 +93,14 @@
         return;
     }
 
+    const STRING_NAME = 'Hifi-Bow-String';
+    const ARROW_NAME = 'Hifi-Arrow';
+
+    const STATE_IDLE = 0;
+    const STATE_ARROW_KNOCKED = 1;
+    const STATE_ARROW_GRABBED = 2;
+    const STATE_ARROW_GRABBED_AND_PULLED = 3;
+
     Bow.prototype = {
         topString: null,
         aiming: false,
@@ -107,12 +115,7 @@
             }
         },
 
-        // 0 = start
-        // 1 = hand close to knock, arrow is drawn
-        // 2 = arrow is grabbed
-        // 3 = arrow is grabbed and pulled
-
-        state: 0,
+        state: STATE_IDLE,
         sinceLastUpdate: 0,
         preload: function(entityID) {
             this.entityID = entityID;
@@ -347,59 +350,61 @@
             var handToNotch = Vec3.subtract(notchPosition, stringHandPosition);
             var pullBackDistance = Vec3.length(handToNotch);
 
-            if (this.state === 0) {
+            if (this.state === STATE_IDLE) {
                 this.pullBackDistance = 0;
 
-                this.deleteStrings();
+                this.resetStringToIdlePosition();
+                //this.deleteStrings();
                 if (pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE - NEAR_TO_RELAXED_SCHMITT) && !this.backHandBusy) {
                     //the first time aiming the arrow
                     var handToDisable = (this.hand === 'right' ? 'left' : 'right');
-                    Messages.sendMessage('Hifi-Hand-Disabler', handToDisable);
+                    Messages.sendLocalMessage('Hifi-Hand-Disabler', handToDisable);
                     this.arrow = this.createArrow();
                     this.playStringPullSound();
-                    this.state = 1;
+                    this.state = STATE_ARROW_KNOCKED;
                 }
             }
-            if (this.state === 1) {
+            if (this.state === STATE_ARROW_KNOCKED) {
 
                 if (pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
                     // delete the unpulled arrow
-                    Messages.sendMessage('Hifi-Hand-Disabler', "none");
+                    Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
                     Entities.deleteEntity(this.arrow);
                     this.arrow = null;
-                    this.state = 0;
+                    this.state = STATE_IDLE;
                 } else if (this.triggerValue >= DRAW_STRING_THRESHOLD) {
                     // they've grabbed the arrow
                     this.pullBackDistance = 0;
-                    this.state = 2;
+                    this.state = STATE_ARROW_GRABBED;
                 } else {
-                    this.drawStrings();
+                    this.updateString();
                     this.updateArrowPositionInNotch(false, false);
                 }
             }
-            if (this.state === 2) {
+            if (this.state === STATE_ARROW_GRABBED) {
                 if (this.triggerValue < DRAW_STRING_THRESHOLD) {
                     // they let go without pulling
-                    this.state = 1;
+                    this.state = STATE_ARROW_KNOCKED;
                 } else if (pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
                     // they've grabbed the arrow and pulled it
-                    this.state = 3;
+                    this.state = STATE_ARROW_GRABBED_AND_PULLED;
                 } else {
-                    this.drawStrings();
+                    this.updateString();
                     this.updateArrowPositionInNotch(false, true);
                 }
             }
-            if (this.state === 3) {
+            if (this.state === STATE_ARROW_GRABBED_AND_PULLED) {
                 if (pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
                     // they unpulled without firing
-                    this.state = 2;
+                    this.state = STATE_ARROW_GRABBED;
                 } else if (this.triggerValue < DRAW_STRING_THRESHOLD) {
                     // they've fired the arrow
-                    Messages.sendMessage('Hifi-Hand-Disabler', "none");
+                    Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
                     this.updateArrowPositionInNotch(true, true);
-                    this.state = 0;
+                    this.state = STATE_IDLE;
+                    this.resetStringToIdlePosition();
                 } else {
-                    this.drawStrings();
+                    this.updateString();
                     this.updateArrowPositionInNotch(false, true);
                 }
             }
