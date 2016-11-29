@@ -264,6 +264,37 @@ float snoise(vec2 v) {
     return 130.0 * dot(m, g);
 }
 
+// https://www.shadertoy.com/view/lsfGRr
+float hash( float n )
+{
+    return fract(sin(n)*43758.5453);
+}
+
+float noise( in vec2 x )
+{
+    vec2 p = floor(x);
+    vec2 f = fract(x);
+
+    f = f*f*(3.0-2.0*f);
+
+    float n = p.x + p.y*57.0;
+
+    return mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
+               mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y);
+}
+
+// https://www.shadertoy.com/view/MdX3Rr
+// https://en.wikipedia.org/wiki/Fractional_Brownian_motion
+float fbm(in vec2 p) {
+	const mat2 m2 = mat2(0.8, -0.6, 0.6, 0.8);
+	float f = 0.0;
+	f += 0.5000 * noise(p); p = m2 * p * 2.02;
+	f += 0.2500 * noise(p); p = m2 * p * 2.03;
+	f += 0.1250 * noise(p); p = m2 * p * 2.01;
+	f += 0.0625 * noise(p);
+
+	return f / 0.9375;
+}
 
 #define PROCEDURAL 1
 
