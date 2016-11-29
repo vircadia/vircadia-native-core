@@ -18,7 +18,7 @@ describe('Bind', function() {
             return callAnotherFn(function() {
                 return this.foo;
             }.bind(this));
-        }
+        };
 
         var instance = new TestConstructor();
         
