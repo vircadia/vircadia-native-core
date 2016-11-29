@@ -17,11 +17,10 @@
 
     var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 
-    var NOTCH_ARROW_SOUND_URL = 'http://mpassets.highfidelity.com/32fc6d32-27a2-428e-937e-869f3f05e8e1-v1/notch.wav';
-    var SHOOT_ARROW_SOUND_URL =
-        'http://mpassets.highfidelity.com/32fc6d32-27a2-428e-937e-869f3f05e8e1-v1/String_release2.L.wav';
-    var STRING_PULL_SOUND_URL = 'http://mpassets.highfidelity.com/32fc6d32-27a2-428e-937e-869f3f05e8e1-v1/Bow_draw.1.L.wav';
-    var ARROW_HIT_SOUND_URL = 'http://mpassets.highfidelity.com/32fc6d32-27a2-428e-937e-869f3f05e8e1-v1/Arrow_impact1.L.wav';
+    var NOTCH_ARROW_SOUND_URL = Script.resolvePath('notch.wav');
+    var SHOOT_ARROW_SOUND_URL = Script.resolvePath('String_release2.L.wav');
+    var STRING_PULL_SOUND_URL = Script.resolvePath('Bow_draw.1.L.wav');
+    var ARROW_HIT_SOUND_URL = Script.resolvePath('Arrow_impact1.L.wav');
 
     var ARROW_TIP_OFFSET = 0.47;
     var ARROW_GRAVITY = {
@@ -30,9 +29,8 @@
         z: 0
     };
 
-    var ARROW_MODEL_URL = "http://mpassets.highfidelity.com/32fc6d32-27a2-428e-937e-869f3f05e8e1-v1/newarrow_textured.fbx";
-    var ARROW_COLLISION_HULL_URL =
-        "http://mpassets.highfidelity.com/32fc6d32-27a2-428e-937e-869f3f05e8e1-v1/newarrow_collision_hull.obj";
+    var ARROW_MODEL_URL = Script.resolvePath('newarrow_textured.fbx');
+    var ARROW_COLLISION_HULL_URL = Script.resolvePath('newarrow_collision_hull.obj');
 
     var ARROW_DIMENSIONS = {
         x: 0.03,
