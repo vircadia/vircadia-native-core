@@ -268,45 +268,45 @@ static void fft_radix4_pass(complex_t* x, complex_t* y, const complex_t* w, int 
         size_t k = i & (p-1);   // twiddle index
         size_t j = 4*(i-k) + k; // output index
 
-		float ar1 = xp1[i].re;
-		float ai1 = xp1[i].im;
-		float ar2 = xp2[i].re;
-		float ai2 = xp2[i].im;
-		float ar3 = xp3[i].re;
-		float ai3 = xp3[i].im;
+        float ar1 = xp1[i].re;
+        float ai1 = xp1[i].im;
+        float ar2 = xp2[i].re;
+        float ai2 = xp2[i].im;
+        float ar3 = xp3[i].re;
+        float ai3 = xp3[i].im;
 
-		float wr1 = w[3*k+0].re;
-		float wi1 = w[3*k+0].im;
-		float wr2 = w[3*k+1].re;
-		float wi2 = w[3*k+1].im;
-		float wr3 = w[3*k+2].re;
-		float wi3 = w[3*k+2].im;
+        float wr1 = w[3*k+0].re;
+        float wi1 = w[3*k+0].im;
+        float wr2 = w[3*k+1].re;
+        float wi2 = w[3*k+1].im;
+        float wr3 = w[3*k+2].re;
+        float wi3 = w[3*k+2].im;
 
-		float br1 = ar1 * wr1;
-		float bi1 = ai1 * wr1;
-		float br2 = ar2 * wr2;
-		float bi2 = ai2 * wr2;
-		float br3 = ar3 * wr3;
-		float bi3 = ai3 * wr3;
+        float br1 = ar1 * wr1;
+        float bi1 = ai1 * wr1;
+        float br2 = ar2 * wr2;
+        float bi2 = ai2 * wr2;
+        float br3 = ar3 * wr3;
+        float bi3 = ai3 * wr3;
 
-		br1 += ai1 * wi1;
-		bi1 -= ar1 * wi1;
-		br2 += ai2 * wi2;
-		bi2 -= ar2 * wi2;
-		br3 += ai3 * wi3;
-		bi3 -= ar3 * wi3;
+        br1 += ai1 * wi1;
+        bi1 -= ar1 * wi1;
+        br2 += ai2 * wi2;
+        bi2 -= ar2 * wi2;
+        br3 += ai3 * wi3;
+        bi3 -= ar3 * wi3;
 
-		float ar0 = xp0[i].re;
-		float ai0 = xp0[i].im;
+        float ar0 = xp0[i].re;
+        float ai0 = xp0[i].im;
 
-		float cr0 = ar0 + br2;
-		float ci0 = ai0 + bi2;
-		float cr2 = ar0 - br2;
-		float ci2 = ai0 - bi2;
-		float cr1 = br1 + br3;
-		float ci1 = bi1 + bi3;
-		float cr3 = br1 - br3;
-		float ci3 = bi1 - bi3;
+        float cr0 = ar0 + br2;
+        float ci0 = ai0 + bi2;
+        float cr2 = ar0 - br2;
+        float ci2 = ai0 - bi2;
+        float cr1 = br1 + br3;
+        float ci1 = bi1 + bi3;
+        float cr3 = br1 - br3;
+        float ci3 = bi1 - bi3;
 
         float dr0 = cr0 + cr1;
         float di0 = ci0 + ci1;
@@ -317,14 +317,14 @@ static void fft_radix4_pass(complex_t* x, complex_t* y, const complex_t* w, int 
         float dr3 = cr2 - ci3;
         float di3 = ci2 + cr3;
 
-		yp0[j].re = dr0;
-		yp0[j].im = di0;
-		yp1[j].re = dr1;
-		yp1[j].im = di1;
-		yp2[j].re = dr2;
-		yp2[j].im = di2;
-		yp3[j].re = dr3;
-		yp3[j].im = di3;
+        yp0[j].re = dr0;
+        yp0[j].im = di0;
+        yp1[j].re = dr1;
+        yp1[j].im = di1;
+        yp2[j].re = dr2;
+        yp2[j].im = di2;
+        yp3[j].re = dr3;
+        yp3[j].im = di3;
     }
 }
 
@@ -354,45 +354,45 @@ static void ifft_radix4_last(complex_t* x, complex_t* y, const complex_t* w, int
         size_t k = i & (p-1);   // twiddle index
         size_t j = 4*(i-k) + k; // output index
 
-		float ar1 = xp1[i].re;
-		float ai1 = xp1[i].im;
-		float ar2 = xp2[i].re;
-		float ai2 = xp2[i].im;
-		float ar3 = xp3[i].re;
-		float ai3 = xp3[i].im;
+        float ar1 = xp1[i].re;
+        float ai1 = xp1[i].im;
+        float ar2 = xp2[i].re;
+        float ai2 = xp2[i].im;
+        float ar3 = xp3[i].re;
+        float ai3 = xp3[i].im;
 
-		float wr1 = w[3*k+0].re;
-		float wi1 = w[3*k+0].im;
-		float wr2 = w[3*k+1].re;
-		float wi2 = w[3*k+1].im;
-		float wr3 = w[3*k+2].re;
-		float wi3 = w[3*k+2].im;
+        float wr1 = w[3*k+0].re;
+        float wi1 = w[3*k+0].im;
+        float wr2 = w[3*k+1].re;
+        float wi2 = w[3*k+1].im;
+        float wr3 = w[3*k+2].re;
+        float wi3 = w[3*k+2].im;
 
-		float br1 = ar1 * wr1;
-		float bi1 = ai1 * wr1;
-		float br2 = ar2 * wr2;
-		float bi2 = ai2 * wr2;
-		float br3 = ar3 * wr3;
-		float bi3 = ai3 * wr3;
+        float br1 = ar1 * wr1;
+        float bi1 = ai1 * wr1;
+        float br2 = ar2 * wr2;
+        float bi2 = ai2 * wr2;
+        float br3 = ar3 * wr3;
+        float bi3 = ai3 * wr3;
 
-		br1 += ai1 * wi1;
-		bi1 -= ar1 * wi1;
-		br2 += ai2 * wi2;
-		bi2 -= ar2 * wi2;
-		br3 += ai3 * wi3;
-		bi3 -= ar3 * wi3;
+        br1 += ai1 * wi1;
+        bi1 -= ar1 * wi1;
+        br2 += ai2 * wi2;
+        bi2 -= ar2 * wi2;
+        br3 += ai3 * wi3;
+        bi3 -= ar3 * wi3;
 
-		float ar0 = xp0[i].re;
-		float ai0 = xp0[i].im;
+        float ar0 = xp0[i].re;
+        float ai0 = xp0[i].im;
 
-		float cr0 = ar0 + br2;
-		float ci0 = ai0 + bi2;
-		float cr2 = ar0 - br2;
-		float ci2 = ai0 - bi2;
-		float cr1 = br1 + br3;
-		float ci1 = bi1 + bi3;
-		float cr3 = br1 - br3;
-		float ci3 = bi1 - bi3;
+        float cr0 = ar0 + br2;
+        float ci0 = ai0 + bi2;
+        float cr2 = ar0 - br2;
+        float ci2 = ai0 - bi2;
+        float cr1 = br1 + br3;
+        float ci1 = bi1 + bi3;
+        float cr3 = br1 - br3;
+        float ci3 = bi1 - bi3;
 
         float dr0 = cr0 + cr1;
         float di0 = ci0 + ci1;
@@ -413,14 +413,14 @@ static void ifft_radix4_last(complex_t* x, complex_t* y, const complex_t* w, int
         dr3 *= scale;
         di3 *= scale;
 
-		yp0[j].re = di0;    // swapped re,im for ifft
-		yp0[j].im = dr0;
-		yp1[j].re = di1;
-		yp1[j].im = dr1;
-		yp2[j].re = di2;
-		yp2[j].im = dr2;
-		yp3[j].re = di3;
-		yp3[j].im = dr3;
+        yp0[j].re = di0;    // swapped re,im for ifft
+        yp0[j].im = dr0;
+        yp1[j].re = di1;
+        yp1[j].im = dr1;
+        yp2[j].re = di2;
+        yp2[j].im = dr2;
+        yp3[j].re = di3;
+        yp3[j].im = dr3;
     }
 }
 
@@ -447,76 +447,76 @@ static void fft_radix8_first(complex_t* x, complex_t* y, int n, int p) {
         //
         // even
         //
-		float ar0 = xp0[i].re;
-		float ai0 = xp0[i].im;
-		float ar2 = xp2[i].re;
-		float ai2 = xp2[i].im;
-		float ar4 = xp4[i].re;
-		float ai4 = xp4[i].im;
-		float ar6 = xp6[i].re;
-		float ai6 = xp6[i].im;
+        float ar0 = xp0[i].re;
+        float ai0 = xp0[i].im;
+        float ar2 = xp2[i].re;
+        float ai2 = xp2[i].im;
+        float ar4 = xp4[i].re;
+        float ai4 = xp4[i].im;
+        float ar6 = xp6[i].re;
+        float ai6 = xp6[i].im;
 
-		float cr0 = ar0 + ar4;
-		float ci0 = ai0 + ai4;
-		float cr2 = ar2 + ar6;
-		float ci2 = ai2 + ai6;
-		float cr4 = ar0 - ar4;
-		float ci4 = ai0 - ai4;
-		float cr6 = ar2 - ar6;
-		float ci6 = ai2 - ai6;
+        float cr0 = ar0 + ar4;
+        float ci0 = ai0 + ai4;
+        float cr2 = ar2 + ar6;
+        float ci2 = ai2 + ai6;
+        float cr4 = ar0 - ar4;
+        float ci4 = ai0 - ai4;
+        float cr6 = ar2 - ar6;
+        float ci6 = ai2 - ai6;
 
-		float dr0 = cr0 + cr2;
-		float di0 = ci0 + ci2;
-		float dr2 = cr0 - cr2;
-		float di2 = ci0 - ci2;
-		float dr4 = cr4 + ci6;
-		float di4 = ci4 - cr6;
-		float dr6 = cr4 - ci6;
-		float di6 = ci4 + cr6;
+        float dr0 = cr0 + cr2;
+        float di0 = ci0 + ci2;
+        float dr2 = cr0 - cr2;
+        float di2 = ci0 - ci2;
+        float dr4 = cr4 + ci6;
+        float di4 = ci4 - cr6;
+        float dr6 = cr4 - ci6;
+        float di6 = ci4 + cr6;
 
         //
         // odd
         //
-		float ar1 = xp1[i].re;
-		float ai1 = xp1[i].im;
-		float ar3 = xp3[i].re;
-		float ai3 = xp3[i].im;
-		float ar5 = xp5[i].re;
-		float ai5 = xp5[i].im;
-		float ar7 = xp7[i].re;
-		float ai7 = xp7[i].im;
+        float ar1 = xp1[i].re;
+        float ai1 = xp1[i].im;
+        float ar3 = xp3[i].re;
+        float ai3 = xp3[i].im;
+        float ar5 = xp5[i].re;
+        float ai5 = xp5[i].im;
+        float ar7 = xp7[i].re;
+        float ai7 = xp7[i].im;
 
-		float br1 = ar1 + ar5;
-		float bi1 = ai1 + ai5;
-		float br3 = ar3 + ar7;
-		float bi3 = ai3 + ai7;
-		float br5 = ar1 - ar5;
-		float bi5 = ai1 - ai5;
-		float br7 = ar3 - ar7;
-		float bi7 = ai3 - ai7;
+        float br1 = ar1 + ar5;
+        float bi1 = ai1 + ai5;
+        float br3 = ar3 + ar7;
+        float bi3 = ai3 + ai7;
+        float br5 = ar1 - ar5;
+        float bi5 = ai1 - ai5;
+        float br7 = ar3 - ar7;
+        float bi7 = ai3 - ai7;
 
-		float cr1 = br1;
-		float ci1 = bi1;
-		float cr3 = br3;
-		float ci3 = bi3;
-		float cr5 = bi5 + br5;
-		float ci5 = bi5 - br5;
-		float cr7 = bi7 - br7;
-		float ci7 = bi7 + br7;
+        float cr1 = br1;
+        float ci1 = bi1;
+        float cr3 = br3;
+        float ci3 = bi3;
+        float cr5 = bi5 + br5;
+        float ci5 = bi5 - br5;
+        float cr7 = bi7 - br7;
+        float ci7 = bi7 + br7;
 
-		cr5 *= SQRT1_2;
-		ci5 *= SQRT1_2;
-		cr7 *= SQRT1_2;
-		ci7 *= SQRT1_2;
+        cr5 *= SQRT1_2;
+        ci5 *= SQRT1_2;
+        cr7 *= SQRT1_2;
+        ci7 *= SQRT1_2;
 
-		float dr1 = cr1 + cr3;
-		float di1 = ci1 + ci3;
-		float dr3 = cr1 - cr3;
-		float di3 = ci1 - ci3;
-		float dr5 = cr5 + cr7;
-		float di5 = ci5 - ci7;
-		float dr7 = cr5 - cr7;
-		float di7 = ci5 + ci7;
+        float dr1 = cr1 + cr3;
+        float di1 = ci1 + ci3;
+        float dr3 = cr1 - cr3;
+        float di3 = ci1 - ci3;
+        float dr5 = cr5 + cr7;
+        float di5 = ci5 - ci7;
+        float dr7 = cr5 - cr7;
+        float di7 = ci5 + ci7;
 
         //
         // merge
@@ -538,23 +538,23 @@ static void fft_radix8_first(complex_t* x, complex_t* y, int n, int p) {
         float er7 = dr6 - di7;
         float ei7 = di6 + dr7;
 
-		y[8*i+0].re = er0;
-		y[8*i+0].im = ei0;
-		y[8*i+1].re = er1;
-		y[8*i+1].im = ei1;
-		y[8*i+2].re = er2;
-		y[8*i+2].im = ei2;
-		y[8*i+3].re = er3;
-		y[8*i+3].im = ei3;
-		y[8*i+4].re = er4;
-		y[8*i+4].im = ei4;
-		y[8*i+5].re = er5;
-		y[8*i+5].im = ei5;
-		y[8*i+6].re = er6;
-		y[8*i+6].im = ei6;
-		y[8*i+7].re = er7;
-		y[8*i+7].im = ei7;
-	}
+        y[8*i+0].re = er0;
+        y[8*i+0].im = ei0;
+        y[8*i+1].re = er1;
+        y[8*i+1].im = ei1;
+        y[8*i+2].re = er2;
+        y[8*i+2].im = ei2;
+        y[8*i+3].re = er3;
+        y[8*i+3].im = ei3;
+        y[8*i+4].re = er4;
+        y[8*i+4].im = ei4;
+        y[8*i+5].re = er5;
+        y[8*i+5].im = ei5;
+        y[8*i+6].re = er6;
+        y[8*i+6].im = ei6;
+        y[8*i+7].re = er7;
+        y[8*i+7].im = ei7;
+    }
 }
 
 // x[n] in interleaved order
@@ -580,76 +580,76 @@ static void ifft_radix8_first(complex_t* x, complex_t* y, int n, int p) {
         //
         // even
         //
-		float ar0 = xp0[i].im;  // swapped re,im for ifft
-		float ai0 = xp0[i].re;
-		float ar2 = xp2[i].im;
-		float ai2 = xp2[i].re;
-		float ar4 = xp4[i].im;
-		float ai4 = xp4[i].re;
-		float ar6 = xp6[i].im;
-		float ai6 = xp6[i].re;
+        float ar0 = xp0[i].im;  // swapped re,im for ifft
+        float ai0 = xp0[i].re;
+        float ar2 = xp2[i].im;
+        float ai2 = xp2[i].re;
+        float ar4 = xp4[i].im;
+        float ai4 = xp4[i].re;
+        float ar6 = xp6[i].im;
+        float ai6 = xp6[i].re;
 
-		float cr0 = ar0 + ar4;
-		float ci0 = ai0 + ai4;
-		float cr2 = ar2 + ar6;
-		float ci2 = ai2 + ai6;
-		float cr4 = ar0 - ar4;
-		float ci4 = ai0 - ai4;
-		float cr6 = ar2 - ar6;
-		float ci6 = ai2 - ai6;
+        float cr0 = ar0 + ar4;
+        float ci0 = ai0 + ai4;
+        float cr2 = ar2 + ar6;
+        float ci2 = ai2 + ai6;
+        float cr4 = ar0 - ar4;
+        float ci4 = ai0 - ai4;
+        float cr6 = ar2 - ar6;
+        float ci6 = ai2 - ai6;
 
-		float dr0 = cr0 + cr2;
-		float di0 = ci0 + ci2;
-		float dr2 = cr0 - cr2;
-		float di2 = ci0 - ci2;
-		float dr4 = cr4 + ci6;
-		float di4 = ci4 - cr6;
-		float dr6 = cr4 - ci6;
-		float di6 = ci4 + cr6;
+        float dr0 = cr0 + cr2;
+        float di0 = ci0 + ci2;
+        float dr2 = cr0 - cr2;
+        float di2 = ci0 - ci2;
+        float dr4 = cr4 + ci6;
+        float di4 = ci4 - cr6;
+        float dr6 = cr4 - ci6;
+        float di6 = ci4 + cr6;
 
         //
         // odd
         //
-		float ar1 = xp1[i].im;  // swapped re,im for ifft
-		float ai1 = xp1[i].re;
-		float ar3 = xp3[i].im;
-		float ai3 = xp3[i].re;
-		float ar5 = xp5[i].im;
-		float ai5 = xp5[i].re;
-		float ar7 = xp7[i].im;
-		float ai7 = xp7[i].re;
+        float ar1 = xp1[i].im;  // swapped re,im for ifft
+        float ai1 = xp1[i].re;
+        float ar3 = xp3[i].im;
+        float ai3 = xp3[i].re;
+        float ar5 = xp5[i].im;
+        float ai5 = xp5[i].re;
+        float ar7 = xp7[i].im;
+        float ai7 = xp7[i].re;
 
-		float br1 = ar1 + ar5;
-		float bi1 = ai1 + ai5;
-		float br3 = ar3 + ar7;
-		float bi3 = ai3 + ai7;
-		float br5 = ar1 - ar5;
-		float bi5 = ai1 - ai5;
-		float br7 = ar3 - ar7;
-		float bi7 = ai3 - ai7;
+        float br1 = ar1 + ar5;
+        float bi1 = ai1 + ai5;
+        float br3 = ar3 + ar7;
+        float bi3 = ai3 + ai7;
+        float br5 = ar1 - ar5;
+        float bi5 = ai1 - ai5;
+        float br7 = ar3 - ar7;
+        float bi7 = ai3 - ai7;
 
-		float cr1 = br1;
-		float ci1 = bi1;
-		float cr3 = br3;
-		float ci3 = bi3;
-		float cr5 = bi5 + br5;
-		float ci5 = bi5 - br5;
-		float cr7 = bi7 - br7;
-		float ci7 = bi7 + br7;
+        float cr1 = br1;
+        float ci1 = bi1;
+        float cr3 = br3;
+        float ci3 = bi3;
+        float cr5 = bi5 + br5;
+        float ci5 = bi5 - br5;
+        float cr7 = bi7 - br7;
+        float ci7 = bi7 + br7;
 
-		cr5 *= SQRT1_2;
-		ci5 *= SQRT1_2;
-		cr7 *= SQRT1_2;
-		ci7 *= SQRT1_2;
+        cr5 *= SQRT1_2;
+        ci5 *= SQRT1_2;
+        cr7 *= SQRT1_2;
+        ci7 *= SQRT1_2;
 
-		float dr1 = cr1 + cr3;
-		float di1 = ci1 + ci3;
-		float dr3 = cr1 - cr3;
-		float di3 = ci1 - ci3;
-		float dr5 = cr5 + cr7;
-		float di5 = ci5 - ci7;
-		float dr7 = cr5 - cr7;
-		float di7 = ci5 + ci7;
+        float dr1 = cr1 + cr3;
+        float di1 = ci1 + ci3;
+        float dr3 = cr1 - cr3;
+        float di3 = ci1 - ci3;
+        float dr5 = cr5 + cr7;
+        float di5 = ci5 - ci7;
+        float dr7 = cr5 - cr7;
+        float di7 = ci5 + ci7;
 
         //
         // merge
@@ -671,23 +671,23 @@ static void ifft_radix8_first(complex_t* x, complex_t* y, int n, int p) {
         float er7 = dr6 - di7;
         float ei7 = di6 + dr7;
 
-		y[8*i+0].re = er0;
-		y[8*i+0].im = ei0;
-		y[8*i+1].re = er1;
-		y[8*i+1].im = ei1;
-		y[8*i+2].re = er2;
-		y[8*i+2].im = ei2;
-		y[8*i+3].re = er3;
-		y[8*i+3].im = ei3;
-		y[8*i+4].re = er4;
-		y[8*i+4].im = ei4;
-		y[8*i+5].re = er5;
-		y[8*i+5].im = ei5;
-		y[8*i+6].re = er6;
-		y[8*i+6].im = ei6;
-		y[8*i+7].re = er7;
-		y[8*i+7].im = ei7;
-	}
+        y[8*i+0].re = er0;
+        y[8*i+0].im = ei0;
+        y[8*i+1].re = er1;
+        y[8*i+1].im = ei1;
+        y[8*i+2].re = er2;
+        y[8*i+2].im = ei2;
+        y[8*i+3].re = er3;
+        y[8*i+3].im = ei3;
+        y[8*i+4].re = er4;
+        y[8*i+4].im = ei4;
+        y[8*i+5].re = er5;
+        y[8*i+5].im = ei5;
+        y[8*i+6].re = er6;
+        y[8*i+6].im = ei6;
+        y[8*i+7].re = er7;
+        y[8*i+7].im = ei7;
+    }
 }
 
 // x[n] in interleaved order
@@ -1004,29 +1004,29 @@ ALIGN32 static const float crossfadeTable[FOA_BLOCK] = {
 // convert quaternion to a column-major 3x3 rotation matrix
 static void quatToMatrix_3x3(float w, float x, float y, float z, float m[3][3]) {
 
-	float xx = x * (x + x);
-	float xy = x * (y + y);
-	float xz = x * (z + z);
+    float xx = x * (x + x);
+    float xy = x * (y + y);
+    float xz = x * (z + z);
 
-	float yy = y * (y + y);
-	float yz = y * (z + z);
-	float zz = z * (z + z);
+    float yy = y * (y + y);
+    float yz = y * (z + z);
+    float zz = z * (z + z);
 
-	float wx = w * (x + x);
-	float wy = w * (y + y);
-	float wz = w * (z + z);
+    float wx = w * (x + x);
+    float wy = w * (y + y);
+    float wz = w * (z + z);
 
-	m[0][0] = 1.0f - (yy + zz);
-	m[0][1] = xy - wz;
-	m[0][2] = xz + wy;
+    m[0][0] = 1.0f - (yy + zz);
+    m[0][1] = xy - wz;
+    m[0][2] = xz + wy;
 
-	m[1][0] = xy + wz;
-	m[1][1] = 1.0f - (xx + zz);
-	m[1][2] = yz - wx;
+    m[1][0] = xy + wz;
+    m[1][1] = 1.0f - (xx + zz);
+    m[1][2] = yz - wx;
 
-	m[2][0] = xz - wy;
-	m[2][1] = yz + wx;
-	m[2][2] = 1.0f - (xx + yy);
+    m[2][0] = xz - wy;
+    m[2][1] = yz + wx;
+    m[2][2] = 1.0f - (xx + yy);
 }
 
 // Ambisonic to binaural render
