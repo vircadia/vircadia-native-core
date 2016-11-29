@@ -12,14 +12,14 @@
 
 namespace hifi { namespace properties {
 
-    static const char* CRASHED = "com.highfidelity.crashed";
-    static const char* STEAM = "com.highfidelity.launchedFromSteam";
-    static const char* LOGGER = "com.highfidelity.logger";
+    extern const char* CRASHED;
+    extern const char* STEAM;
+    extern const char* LOGGER;
 
     namespace gl {
-        static const char* BACKEND = "com.highfidelity.gl.backend";
-        static const char* MAKE_PROGRAM_CALLBACK = "com.highfidelity.gl.makeProgram";
-        static const char* PRIMARY_CONTEXT = "com.highfidelity.gl.primaryContext";
+        extern const char* BACKEND;
+        extern const char* MAKE_PROGRAM_CALLBACK;
+        extern const char* PRIMARY_CONTEXT;
     }
 
 } }

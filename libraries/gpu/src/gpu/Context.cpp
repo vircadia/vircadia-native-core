@@ -126,7 +126,7 @@ bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     // FIXME find a way to do this without reliance on Qt app properties
     if (!_makeProgramCallback) {
         void* rawCallback = qApp->property(hifi::properties::gl::MAKE_PROGRAM_CALLBACK).value<void*>();
-        _makeProgramCallback = static_cast<Context::MakeProgram>(rawCallback);
+        _makeProgramCallback = reinterpret_cast<Context::MakeProgram>(rawCallback);
     }
     if (shader.isProgram() && _makeProgramCallback) {
         return _makeProgramCallback(shader, bindings);
