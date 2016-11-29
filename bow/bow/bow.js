@@ -106,6 +106,7 @@
         aiming: false,
         arrowTipPosition: null,
         preNotchString: null,
+        stringID: null,
         arrow: null,
         stringData: {
             currentColor: {
@@ -125,13 +126,7 @@
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
             var userData = Entities.getEntityProperties(this.entityID, ["userData"]).userData;
             this.userData = JSON.parse(userData);
-            var children = Entities.getChildrenIDs(this.entityID);
-            children.forEach(function(childID) {
-                var childName = Entities.getEntityProperties(childID, ["name"]).name;
-                if (childName == "Hifi-Bow-Pre-Notch-String") {
-                    this.preNotchString = children[0];
-                }
-            });
+            this.stringID = null;
         },
 
         unload: function() {
@@ -152,21 +147,8 @@
             var data = getEntityCustomData('grabbableKey', this.entityID, {});
             data.grabbable = false;
             setEntityCustomData('grabbableKey', this.entityID, data);
-            Entities.editEntity(_this.entityID, {
-                collidesWith: ""
-            });
 
-            //make sure the string is ready
-            if (!this.preNotchString) {
-                this.createPreNotchString();
-            }
-            var preNotchStringProps = Entities.getEntityProperties(this.preNotchString);
-            if (!preNotchStringProps || preNotchStringProps.name != "Hifi-Bow-Pre-Notch-String") {
-                this.createPreNotchString();
-            }
-            Entities.editEntity(this.preNotchString, {
-                visible: true
-            });
+            this.initString();
         },
         continueEquip: function(entityID, args) {
             this.deltaTime = checkInterval();
@@ -184,17 +166,27 @@
             this.checkStringHand();
         },
         releaseEquip: function(entityID, args) {
-            Messages.sendMessage('Hifi-Hand-Disabler', "none");
+            Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
 
             this.stringDrawn = false;
-            this.deleteStrings();
 
             var data = getEntityCustomData('grabbableKey', this.entityID, {});
             data.grabbable = true;
             setEntityCustomData('grabbableKey', this.entityID, data);
             Entities.deleteEntity(this.arrow);
-            Entities.editEntity(_this.entityID, {
-                collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar"
+            this.resetStringToIdlePosition();
+            this.destroyArrow();
+        },
+
+        destroyArrow: function() {
+            var children = Entities.getChildrenIDs(this.entityID);
+            children.forEach(function(childID) {
+                var childName = Entities.getEntityProperties(childID, ["name"]).name;
+                if (childName == ARROW_NAME) {
+                    Entities.deleteEntity(childID);
+                    // Continue iterating through children in case we've ended up in
+                    // a bad state where there are multiple arrows.
+                }
             });
         },
 
@@ -202,7 +194,7 @@
             this.playArrowNotchSound();
 
             var arrow = Entities.addEntity({
-                name: 'Hifi-Arrow',
+                name: ARROW_NAME,
                 type: 'Model',
                 modelURL: ARROW_MODEL_URL,
                 shapeType: 'compound',
@@ -252,60 +244,51 @@
             return arrow;
         },
 
-        createPreNotchString: function() {
-            this.preNotchString = Entities.addEntity({
-                "collisionless": 1,
-                "dimensions": { "x": 5, "y": 5, "z": 5 },
-                "ignoreForCollisions": 1,
-                "linePoints": [ { "x": 0, "y": 0, "z": 0 }, { "x": 0, "y": -1.2, "z": 0 } ],
-                "lineWidth": 5,
-                "name": "Hifi-Bow-Pre-Notch-String",
-                "parentID": this.entityID,
-                "localPosition": { "x": 0, "y": 0.6, "z": 0.1 },
-                "localRotation": { "w": 1, "x": 0, "y": 0, "z": 0 },
-                "type": "Line",
-                "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+        initString: function() {
+            // Check for existence of string
+            var children = Entities.getChildrenIDs(this.entityID);
+            children.forEach(function(childID) {
+                var childName = Entities.getEntityProperties(childID, ["name"]).name;
+                if (childName == STRING_NAME) {
+                    this.stringID = childID;
+                }
+            });
+
+            // If thie string wasn't found, create it
+            if (this.stringID === null) {
+                this.stringID = Entities.addEntity({
+                    collisionless: true,
+                    dimensions: { "x": 5, "y": 5, "z": 5 },
+                    ignoreForCollisions: 1,
+                    linePoints: [ { "x": 0, "y": 0, "z": 0 }, { "x": 0, "y": -1.2, "z": 0 } ],
+                    lineWidth: 5,
+                    name: STRING_NAME,
+                    parentID: this.entityID,
+                    localPosition: { "x": 0, "y": 0.6, "z": 0.1 },
+                    localRotation: { "w": 1, "x": 0, "y": 0, "z": 0 },
+                    type: 'Line',
+                    userData: JSON.stringify({
+                        grabbableKey: {
+                            grabbable: false
+                        }
+                    })
+                });
+            }
+
+            this.resetStringToIdlePosition();
+        },
+
+        // This resets the string to a straight line
+        resetStringToIdlePosition: function() {
+            Entities.editEntity(this.stringID, {
+                linePoints: [ { "x": 0, "y": 0, "z": 0 }, { "x": 0, "y": -1.2, "z": 0 } ],
+                lineWidth: 5,
+                localPosition: { "x": 0, "y": 0.6, "z": 0.1 },
+                localRotation: { "w": 1, "x": 0, "y": 0, "z": 0 },
             });
         },
 
-        createStrings: function() {
-            if (!this.topString) {
-                this.createTopString();
-                Entities.editEntity(this.preNotchString, { visible: false });
-            }
-        },
-
-        createTopString: function() {
-            var stringProperties = {
-                name: 'Hifi-Bow-Top-String',
-                type: 'Line',
-                position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
-                dimensions: LINE_DIMENSIONS,
-                dynamic: false,
-                collisionless: true,
-                lineWidth: 5,
-                color: this.stringData.currentColor,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                })
-            };
-
-            this.topString = Entities.addEntity(stringProperties);
-        },
-
-        deleteStrings: function() {
-            if (this.topString) {
-                Entities.deleteEntity(this.topString);
-                this.topString = null;
-                Entities.editEntity(this.preNotchString, { visible: true });
-            }
-        },
-
-        drawStrings: function() {
-            this.createStrings();
-
+        updateString: function() {
             var upVector = Quat.getUp(this.bowProperties.rotation);
             var upOffset = Vec3.multiply(upVector, TOP_NOTCH_OFFSET);
             var downVector = Vec3.multiply(-1, Quat.getUp(this.bowProperties.rotation));
@@ -317,11 +300,20 @@
             var bottomStringPosition = Vec3.sum(this.bowProperties.position, downOffset);
             this.bottomStringPosition = Vec3.sum(bottomStringPosition, backOffset);
 
-            var lineVectors = this.getLocalLineVectors();
+            var stringProps = Entities.getEntityProperties(this.stringID, ['position', 'rotation']);
+            var handPositionLocal = Vec3.subtract(this.arrowRearPosition, stringProps.position);
+            //handPositionLocal = Vec3.subtract(handPositionLocal, { x: 0, y: 0.6, z: 0 });
+            handPositionLocal = Vec3.multiplyQbyV(Quat.inverse(stringProps.rotation), handPositionLocal);
 
-            Entities.editEntity(this.topString, {
-                position: this.topStringPosition,
-                linePoints: [{ x: 0, y: 0, z: 0 }, lineVectors[0], lineVectors[1]]
+            var linePoints = [
+                { x: 0, y: 0, z: 0 },
+                //{ x: 0, y: -0.6, z: 1 },
+                handPositionLocal,
+                { x: 0, y: -1.2, z: 0 },
+            ];
+
+            Entities.editEntity(this.stringID, {
+                linePoints: linePoints,
             });
         },
 
@@ -511,19 +503,7 @@
                 });
 
 
-            } // else if (shouldReleaseArrow === true) {
-                // they released without pulling back; just delete the arrow.
-                // Entities.deleteEntity(this.arrow);
-                // this.arrow = null;
-            // }
-
-            // if (shouldReleaseArrow === true) {
-            //     //clear the strings back to only the single straight one
-            //     Entities.editEntity(this.preNotchString, {
-            //         visible: true
-            //     });
-            // }
-
+            }
         },
 
         scaleArrowShotStrength: function(value) {
@@ -566,6 +546,7 @@
 
             this.stringPullInjector.options = audioProperties;
         },
+
         scaleSoundVolume: function(value) {
             var min1 = SHOT_SCALE.min1;
             var max1 = SHOT_SCALE.max1;
