@@ -130,7 +130,7 @@
         },
 
         unload: function() {
-            this.deleteStrings();
+            Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
             Entities.deleteEntity(this.arrow);
         },
 
