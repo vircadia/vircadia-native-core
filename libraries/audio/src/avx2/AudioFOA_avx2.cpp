@@ -977,16 +977,19 @@ FORCEINLINE static void ifft_radix8_first(complex_t* x, complex_t* y, int n, int
 // n >= 32
 static void rfft_post(complex_t* x, const complex_t* w, int n) {
 
+    size_t t = n/4;
+    assert(n/4 >= 8);   // SIMD8
+
     // NOTE: x[n/2].re is packed into x[0].im
-    float t = x[0].re;
-    x[0].re = t + x[0].im;
-    x[0].im = t - x[0].im;
+    float tr = x[0].re;
+    float ti = x[0].im;
+    x[0].re = tr + ti;
+    x[0].im = tr - ti;
 
     complex_t* xp0 = &x[1];
     complex_t* xp1 = &x[n/2 - 8];
 
-    assert(n/4 >= 8);   // SIMD8
-    for (size_t i = 0; i < n/4; i += 8) {
+    for (size_t i = 0; i < t; i += 8) {
 
         __m256 z0 = _mm256_loadu_ps(&xp0[i+0].re);
         __m256 z1 = _mm256_loadu_ps(&xp0[i+4].re);
@@ -1034,16 +1037,19 @@ static void rfft_post(complex_t* x, const complex_t* w, int n) {
 // n >= 32
 static void rifft_pre(complex_t* x, const complex_t* w, int n) {
 
+    size_t t = n/4;
+    assert(n/4 >= 8);   // SIMD8
+
     // NOTE: x[n/2].re is packed into x[0].im
-    float t = x[0].re;
-    x[0].re = 0.5f * (t + x[0].im); // halved for ifft
-    x[0].im = 0.5f * (t - x[0].im); // halved for ifft
+    float tr = x[0].re;
+    float ti = x[0].im;
+    x[0].re = 0.5f * (tr + ti); // halved for ifft
+    x[0].im = 0.5f * (tr - ti); // halved for ifft
 
     complex_t* xp0 = &x[1];
     complex_t* xp1 = &x[n/2 - 8];
 
-    assert(n/4 >= 8);   // SIMD8
-    for (size_t i = 0; i < n/4; i += 8) {
+    for (size_t i = 0; i < t; i += 8) {
 
         __m256 z0 = _mm256_loadu_ps(&xp0[i+0].re);
         __m256 z1 = _mm256_loadu_ps(&xp0[i+4].re);
