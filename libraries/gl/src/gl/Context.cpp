@@ -19,9 +19,10 @@
 #include <QtGui/QWindow>
 #include <QtGui/QGuiApplication>
 
+#include <shared/AbstractLoggerInterface.h>
+#include <shared/GlobalAppProperties.h>
 #include <GLMHelpers.h>
 #include "GLLogging.h"
-
 
 #ifdef Q_OS_WIN
 
@@ -36,7 +37,6 @@ static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contain
 
 #include "Config.h"
 #include "GLHelpers.h"
-
 
 using namespace gl;
 
@@ -131,7 +131,6 @@ void Context::setWindow(QWindow* window) {
 }
 
 #ifdef Q_OS_WIN
-static const char* PRIMARY_CONTEXT_PROPERTY_NAME = "com.highfidelity.gl.primaryContext";
 
 bool Context::makeCurrent() {
     BOOL result = wglMakeCurrent(_hdc, _hglrc);
@@ -153,7 +152,17 @@ void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id, GLen
     if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
         return;
     }
-    qCDebug(glLogging) << "QQQ " << message;
+    qCDebug(glLogging) << "OpenGL: " << message;
+    
+    // For high severity errors, force a sync to the log, since we might crash 
+    // before the log file was flushed otherwise.  Performance hit here
+    if (GL_DEBUG_SEVERITY_HIGH == severity) {
+        AbstractLoggerInterface* logger = AbstractLoggerInterface::get();
+        if (logger) {
+            // FIXME find a way to force the log file to sync that doesn't lead to a deadlock
+            // logger->sync();
+        }
+    }
 }
 
 // FIXME build the PFD based on the 
@@ -192,7 +201,7 @@ void setupPixelFormatSimple(HDC hdc) {
 
 void Context::create() {
     if (!PRIMARY) {
-        PRIMARY = static_cast<Context*>(qApp->property(PRIMARY_CONTEXT_PROPERTY_NAME).value<void*>());
+        PRIMARY = static_cast<Context*>(qApp->property(hifi::properties::gl::PRIMARY_CONTEXT).value<void*>());
     }
 
     if (PRIMARY) {
@@ -205,6 +214,11 @@ void Context::create() {
     // Create a temporary context to initialize glew
     static std::once_flag once;
     std::call_once(once, [&] {
+        // If the previous run crashed, force GL debug logging on
+        if (qApp->property(hifi::properties::CRASHED).toBool()) {
+            enableDebugLogger = true;
+        }
+
         auto hdc = GetDC(hwnd);
         setupPixelFormatSimple(hdc);
         auto glrc = wglCreateContext(hdc);
@@ -290,7 +304,7 @@ void Context::create() {
 
     if (!PRIMARY) {
         PRIMARY = this;
-        qApp->setProperty(PRIMARY_CONTEXT_PROPERTY_NAME, QVariant::fromValue((void*)PRIMARY));
+        qApp->setProperty(hifi::properties::gl::PRIMARY_CONTEXT, QVariant::fromValue((void*)PRIMARY));
     }
 
     if (enableDebugLogger) {
