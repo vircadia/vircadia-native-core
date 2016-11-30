@@ -240,11 +240,8 @@ var toolBar = (function () {
             hoverState: 3,
             defaultState: 1
         });
-        activeButton.clicked.connect(function () {
-            that.setActive(!isActive);
-            activeButton.writeProperty("buttonState", isActive ? 0 : 1);
-            activeButton.writeProperty("defaultState", isActive ? 0 : 1);
-            activeButton.writeProperty("hoverState", isActive ? 2 : 3);
+        activeButton.clicked.connect(function() {
+            that.toggle();
         });
 
         toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
@@ -438,6 +435,14 @@ var toolBar = (function () {
 
     that.clearEntityList = function () {
         entityListTool.clearEntityList();
+    };
+
+
+    that.toggle = function () {
+        that.setActive(!isActive);
+        activeButton.writeProperty("buttonState", isActive ? 0 : 1);
+        activeButton.writeProperty("defaultState", isActive ? 0 : 1);
+        activeButton.writeProperty("hoverState", isActive ? 2 : 3);
     };
 
     that.setActive = function (active) {
@@ -1093,7 +1098,6 @@ function handeMenuEvent(menuItem) {
             }
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
-
         var importURL = null;
         if (menuItem === "Import Entities") {
             var fullPath = Window.browse("Select Model to Import", "", "*.json");
@@ -1105,6 +1109,9 @@ function handeMenuEvent(menuItem) {
         }
 
         if (importURL) {
+            if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+                toolBar.toggle();
+            }
             importSVO(importURL);
         }
     } else if (menuItem === "Entity List...") {
@@ -1185,8 +1192,6 @@ function importSVO(importURL) {
             if (isActive) {
                 selectionManager.setSelections(pastedEntityIDs);
             }
-
-            Window.raiseMainWindow();
         } else {
             Window.notifyEditError("Can't import objects: objects would be out of bounds.");
         }

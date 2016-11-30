@@ -1,0 +1,73 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  lightClusters_drawClusterFro Depth.slf
+//
+//  Created by Sam Gateau on 9/8/2016.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+// Everything about deferred buffer
+<@include DeferredBufferRead.slh@>
+
+
+<@include LightClusterGrid.slh@>
+
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
+
+
+in vec2 varTexCoord0;
+out vec4 _fragColor;
+
+void main(void) {
+
+    // Grab the fragment data from the uv
+    vec2 texCoord = varTexCoord0.st;
+
+    vec4 fragEyePos = unpackDeferredPositionFromZeye(texCoord);
+    vec4 fragWorldPos = getViewInverse() * fragEyePos;
+    
+    // From frag world pos find the cluster
+    vec4 clusterEyePos = frustumGrid_worldToEye(fragWorldPos);
+    ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
+
+
+    ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
+    int numLights = cluster.x + cluster.y;
+    float numLightsScale = clamp(numLights * 0.05, 0.01, 1.0);
+
+
+   ivec3 dims = frustumGrid.dims.xyz;
+   dims.z +=1;
+   ivec3 summedDims = ivec3(dims.x * dims.y, dims.x, 1);
+   
+   if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
+       _fragColor = vec4(0.0);
+       return;
+   }
+   
+   if (clusterPos.y < 0 || clusterPos.y >= dims.y) {
+       _fragColor = vec4(0.0);
+       return;
+   }
+   if (clusterPos.z < 0 || clusterPos.z > dims.z) {
+       _fragColor = vec4(0.0);
+       return;
+   }
+   
+   float relClusterId = float(clusterPos.z * summedDims.x + clusterPos.y * summedDims.y + clusterPos.x) / float(frustumGrid_numClusters());
+   
+   if (relClusterId < 0.0) {
+       _fragColor = vec4(0.0);
+   } else if (relClusterId >= 1.0) {
+       _fragColor = vec4(vec3(1.0), 0.2);
+   } else {
+       _fragColor = vec4(colorWheel(fract(relClusterId)), (numLights > 0 ? 0.05 + 0.95 * numLightsScale : 0.0));
+   }
+}
+

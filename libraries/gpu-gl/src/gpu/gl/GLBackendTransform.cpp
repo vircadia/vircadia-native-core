@@ -85,6 +85,9 @@ void GLBackend::syncTransformStateCache() {
     Mat4 modelView;
     auto modelViewInv = glm::inverse(modelView);
     _transform._view.evalFromRawMatrix(modelViewInv);
+
+    glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
+    _transform._enabledDrawcallInfoBuffer = false;
 }
 
 void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
@@ -162,29 +165,7 @@ void GLBackend::TransformStageState::bindCurrentCamera(int eye) const {
     }
 }
 
-void GLBackend::updateTransform(const Batch& batch) {
-    _transform.update(_commandIndex, _stereo);
-
-    auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
-    if (batch._currentNamedCall.empty()) {
-        auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
-        glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
-        glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
-    } else {
-        glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
-        glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
-        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0,
-                               _transform._drawCallInfoOffsets[batch._currentNamedCall]);
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2 : 1));
-#else
-        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
-#endif
-    }
-    
-    (void)CHECK_GL_ERROR();
-}
-
 void GLBackend::resetTransformStage() {
-    
+    glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
+    _transform._enabledDrawcallInfoBuffer = false;
 }

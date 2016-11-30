@@ -236,6 +236,7 @@ public:
     static const Element VEC3F_XYZ;
     static const Element VEC4F_XYZW;
     static const Element INDEX_UINT16;
+    static const Element INDEX_INT32;
     static const Element PART_DRAWCALL;
     
  protected:

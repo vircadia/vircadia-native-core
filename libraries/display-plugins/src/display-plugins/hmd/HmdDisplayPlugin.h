@@ -80,8 +80,6 @@ protected:
 
     Transform _presentUiModelTransform;
     std::array<HandLaserInfo, 2> _presentHandLasers;
-    std::array<int, 2> _geometryIds;
-    int _extraLaserID;
     std::array<mat4, 2> _presentHandPoses;
     std::array<std::pair<vec3, vec3>, 2> _presentHandLaserPoints;
 
@@ -120,6 +118,10 @@ private:
     bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
+    std::array<gpu::BufferPointer, 2> _handLaserUniforms;
+    uint32_t _handLaserUniformSlot { 0 };
+    gpu::BufferPointer _extraLaserUniforms;
+    gpu::PipelinePointer _glowLinePipeline;
     gpu::TexturePointer _previewTexture;
     glm::vec2 _lastWindowSize;
 

@@ -24,7 +24,7 @@
 #include "FramebufferCache.h"
 
 #include "deferred_light_vert.h"
-#include "deferred_light_limited_vert.h"
+#include "deferred_light_point_vert.h"
 #include "deferred_light_spot_vert.h"
 
 #include "directional_light_frag.h"
@@ -35,6 +35,8 @@
 #include "directional_ambient_light_shadow_frag.h"
 #include "directional_skybox_light_shadow_frag.h"
 
+#include "local_lights_shading_frag.h"
+#include "local_lights_drawOutline_frag.h"
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
@@ -42,11 +44,10 @@ using namespace render;
 
 struct LightLocations {
     int radius{ -1 };
-    int ambientSphere{ -1 };
     int lightBufferUnit{ -1 };
+    int ambientBufferUnit { -1 };
+    int lightIndexBufferUnit { -1 };
     int texcoordFrameTransform{ -1 };
-    int sphereParam{ -1 };
-    int coneParam{ -1 };
     int deferredFrameTransformBuffer{ -1 };
     int subsurfaceScatteringParametersBuffer{ -1 };
     int shadowTransformBuffer{ -1 };
@@ -60,6 +61,7 @@ enum DeferredShader_MapSlot {
     DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
     SHADOW_MAP_UNIT = 5,
     SKYBOX_MAP_UNIT = 6,
+    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT,
     DEFERRED_BUFFER_CURVATURE_UNIT,
     DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT,
     SCATTERING_LUT_UNIT,
@@ -71,9 +73,26 @@ enum DeferredShader_BufferSlot {
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
+    LIGHT_AMBIENT_SLOT,
+    LIGHT_INDEX_GPU_SLOT,
+    LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
+    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
+static void loadLightVolumeProgram(const char* vertSource, const char* fragSource, bool front, gpu::PipelinePointer& program, LightLocationsPtr& locations);
+
+const char no_light_frag[] =
+R"SCRIBE(
+out vec4 _fragColor;
+
+void main(void) {
+    _fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+}
+)SCRIBE"
+;
 
 void DeferredLightingEffect::init() {
     _directionalLightLocations = std::make_shared<LightLocations>();
@@ -84,6 +103,8 @@ void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightShadowLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightShadowLocations = std::make_shared<LightLocations>();
 
+    _localLightLocations = std::make_shared<LightLocations>();
+    _localLightOutlineLocations = std::make_shared<LightLocations>();
     _pointLightLocations = std::make_shared<LightLocations>();
     _spotLightLocations = std::make_shared<LightLocations>();
 
@@ -95,25 +116,43 @@ void DeferredLightingEffect::init() {
     loadLightProgram(deferred_light_vert, directional_ambient_light_shadow_frag, false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
     loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_frag, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
-    loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
-    loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
+    loadLightProgram(deferred_light_vert, local_lights_shading_frag, true, _localLight, _localLightLocations);
+    loadLightProgram(deferred_light_vert, local_lights_drawOutline_frag, true, _localLightOutline, _localLightOutlineLocations);
 
+    loadLightVolumeProgram(deferred_light_point_vert, no_light_frag, false, _pointLightBack, _pointLightLocations);
+    loadLightVolumeProgram(deferred_light_point_vert, no_light_frag, true, _pointLightFront, _pointLightLocations);
+    loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, false, _spotLightBack, _spotLightLocations);
+    loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, true, _spotLightFront, _spotLightLocations);
+
+    // Light Stage and clusters
+    _lightStage = std::make_shared<LightStage>();
+    
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
-    _globalLights.push_back(0);
     _allocatedLights.push_back(std::make_shared<model::Light>());
-
     model::LightPointer lp = _allocatedLights[0];
     lp->setType(model::Light::SUN);
-
-    // Add the global light to the light stage (for later shadow rendering)
-    _lightStage.addLight(lp);
-
     lp->setDirection(glm::vec3(-1.0f));
     lp->setColor(glm::vec3(1.0f));
     lp->setIntensity(1.0f);
     lp->setType(model::Light::SUN);
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
+
+    // Add the global light to the light stage (for later shadow rendering)
+    _globalLights.push_back(_lightStage->addLight(lp));
+    _lightStage->addShadow(_globalLights[0]);
+
 }
+
+void DeferredLightingEffect::addLight(const model::LightPointer& light) {
+    assert(light);
+    auto lightID = _lightStage->addLight(light);
+    if (light->getType() == model::Light::POINT) {
+        _pointLights.push_back(lightID);
+    } else {
+        _spotLights.push_back(lightID);
+    }
+}
+
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
         float intensity, float falloffRadius) {
@@ -148,12 +187,15 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     }
 }
 
-void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit) {
+void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
     auto keyLight = _allocatedLights[_globalLights.front()];
 
     if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, keyLight->getSchemaBuffer());
+        batch.setUniformBuffer(lightBufferUnit, keyLight->getLightSchemaBuffer());
+    }
+    if (keyLight->hasAmbient() && (ambientBufferUnit >= 0)) {
+        batch.setUniformBuffer(ambientBufferUnit, keyLight->getAmbientSchemaBuffer());
     }
 
     if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
@@ -161,7 +203,22 @@ void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBuff
     }
 }
 
-static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
+    auto keyLight = _allocatedLights[_globalLights.front()];
+
+    if (lightBufferUnit >= 0) {
+        batch.setUniformBuffer(lightBufferUnit, nullptr);
+    }
+    if (keyLight->hasAmbient() && (ambientBufferUnit >= 0)) {
+        batch.setUniformBuffer(ambientBufferUnit, nullptr);
+    }
+
+    if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, nullptr);
+    }
+}
+
+static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* fragSource, LightLocationsPtr& locations) {
     auto VS = gpu::Shader::createVertex(std::string(vertSource));
     auto PS = gpu::Shader::createPixel(std::string(fragSource));
     
@@ -176,6 +233,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), SHADOW_MAP_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), DEFERRED_BUFFER_CURVATURE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), SCATTERING_LUT_UNIT));
@@ -187,40 +245,89 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
-    
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), LIGHT_AMBIENT_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightIndexBuffer"), LIGHT_INDEX_GPU_SLOT));
+
+
+    slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
     locations->radius = program->getUniforms().findLocation("radius");
-    locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
 
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
-    locations->sphereParam = program->getUniforms().findLocation("sphereParam");
-    locations->coneParam = program->getUniforms().findLocation("coneParam");
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
+    locations->ambientBufferUnit = program->getBuffers().findLocation("lightAmbientBuffer");
+    locations->lightIndexBufferUnit = program->getBuffers().findLocation("lightIndexBuffer");
     locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
     locations->subsurfaceScatteringParametersBuffer = program->getBuffers().findLocation("subsurfaceScatteringParametersBuffer");
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 
+    return program;
+}
+
+static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+
+    gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
+
     auto state = std::make_shared<gpu::State>();
     state->setColorWriteMask(true, true, true, false);
 
-    // Stencil test all the light passes for objects pixels only, not the background
-    state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-    
     if (lightVolume) {
+        state->setStencilTest(true, 0x00, gpu::State::StencilTest(1, 0xFF, gpu::LESS_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+       
         state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+   //     state->setCullMode(gpu::State::CULL_FRONT);
+     //   state->setDepthTest(true, false, gpu::GREATER_EQUAL);
 
+        //state->setDepthClampEnable(true);
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     } else {
+        // Stencil test all the light passes for objects pixels only, not the background
+        state->setStencilTest(true, 0x00, gpu::State::StencilTest(0, 0x01, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+
         state->setCullMode(gpu::State::CULL_BACK);
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    }
+    pipeline = gpu::Pipeline::create(program, state);
+
+}
+
+
+static void loadLightVolumeProgram(const char* vertSource, const char* fragSource, bool front, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+    gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
+
+    auto state = std::make_shared<gpu::State>();
+
+    // Stencil test all the light passes for objects pixels only, not the background
+
+    if (front) {
+        state->setCullMode(gpu::State::CULL_BACK);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_DECR, gpu::State::STENCIL_OP_KEEP));
+
+      //  state->setDepthClampEnable(true);
+        // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
+        // additive blending
+       // state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        //state->setColorWriteMask(true, true, true, false);
+        state->setColorWriteMask(false, false, false, false);
+    } else {
+        state->setCullMode(gpu::State::CULL_FRONT);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_INCR, gpu::State::STENCIL_OP_KEEP));
+        // additive blending
+       // state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        // state->setColorWriteMask(true, true, true, false);
+        state->setColorWriteMask(false, false, false, false);
     }
     pipeline = gpu::Pipeline::create(program, state);
 
@@ -236,11 +343,50 @@ void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
     globalLight->setAmbientMap(light->getAmbientMap());
 }
 
+#include <shared/Shapes.h>
+
+model::MeshPointer DeferredLightingEffect::getPointLightMesh() {
+    if (!_pointLightMesh) {
+        _pointLightMesh = std::make_shared<model::Mesh>();
+
+        // let's use a icosahedron
+        auto solid = geometry::icosahedron();
+        solid.fitDimension(1.05f); // scaled to 1.05 meters, it will be scaled by the shader accordingly to the light size
+
+        int verticesSize = (int) (solid.vertices.size() * 3 * sizeof(float));
+        float* vertexData = (float*) solid.vertices.data();
+
+        _pointLightMesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(verticesSize, (gpu::Byte*) vertexData), gpu::Element::VEC3F_XYZ));
+
+        int nbIndices = (int) solid.faces.size() * 3;
+
+        gpu::uint16* indexData = new gpu::uint16[nbIndices];
+        gpu::uint16* index = indexData;
+        for (auto face : solid.faces) {
+            *(index++) = face[0];
+            *(index++) = face[1];
+            *(index++) = face[2];
+        }
+
+        _pointLightMesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(unsigned short) * nbIndices, (gpu::Byte*) indexData), gpu::Element::INDEX_UINT16));
+        delete[] indexData;
+
+
+        std::vector<model::Mesh::Part> parts;
+        parts.push_back(model::Mesh::Part(0, nbIndices, 0, model::Mesh::TRIANGLES));
+        parts.push_back(model::Mesh::Part(0, nbIndices, 0, model::Mesh::LINE_STRIP)); // outline version
+
+
+        _pointLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+    }
+    return _pointLightMesh;
+}
+
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
         _spotLightMesh = std::make_shared<model::Mesh>();
 
-        int slices = 32;
+        int slices = 16;
         int rings = 3;
         int vertices = 2 + rings * slices;
         int originVertex = vertices - 2;
@@ -362,6 +508,7 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
         _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
     }
 
+    
     primaryFramebuffer = _primaryFramebuffer;
 }
 
@@ -378,7 +525,6 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 
     outputs.edit0() = _deferredFramebuffer;
     outputs.edit1() = _deferredFramebuffer->getLightingFramebuffer();
-
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -399,6 +545,11 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
         // For the rest of the rendering, bind the lighting model
         batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
     });
+    
+    
+    // Prepare a fresh Light Frame
+    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+    deferredLightingEffect->getLightStage()->_currentFrame.clear();
 }
 
 
@@ -409,10 +560,10 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
-    
+
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        
+    auto& batch = (*args->_batch);
+    {
         // Framebuffer copy operations cannot function as multipass stereo operations.
         batch.enableStereo(false);
         
@@ -452,6 +603,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 
         // Subsurface scattering specific
         if (surfaceGeometryFramebuffer) {
+            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, surfaceGeometryFramebuffer->getLinearDepthTexture());
             batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
             batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
@@ -463,11 +615,14 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 
         // Global directional light and ambient pass
 
-        assert(deferredLightingEffect->getLightStage().lights.size() > 0);
-        const auto& globalShadow = deferredLightingEffect->getLightStage().lights[0]->shadow;
+        assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
+        auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
+        const auto& globalShadow = lightAndShadow.second;
 
         // Bind the shadow buffer
-        batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow.map);
+        if (globalShadow) {
+            batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow->map);
+        }
 
         auto& program = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadow : deferredLightingEffect->_directionalLight;
         LightLocationsPtr locations = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadowLocations : deferredLightingEffect->_directionalLightLocations;
@@ -498,7 +653,9 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
             }
 
             if (locations->shadowTransformBuffer >= 0) {
-                batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow.getBuffer());
+                if (globalShadow) {
+                    batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow->getBuffer());
+                }
             }
             batch.setPipeline(program);
         }
@@ -507,24 +664,28 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), args->_viewport);
         batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
-        { // Setup the global lighting
-            deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, SKYBOX_MAP_UNIT);
-        }
-
+        // Setup the global lighting
+        deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        if (keyLight->getAmbientMap()) {
-            batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
-        }
+        deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+
+
         batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
-    });
-    
+    }
+}
+
+RenderDeferredLocals::RenderDeferredLocals() :
+    _localLightsBuffer(std::make_shared<gpu::Buffer>()) {
+
 }
 
 void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
-    const LightingModelPointer& lightingModel) {
+    const LightingModelPointer& lightingModel,
+    const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer, const LightClustersPointer& lightClusters) {
 
     bool points = lightingModel->isPointLightEnabled();
     bool spots = lightingModel->isSpotLightEnabled();
@@ -533,133 +694,62 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         return;
     }
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-
+    auto& batch = (*args->_batch);
+    {
         // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
-        auto monoViewport = args->_viewport;
+        auto viewport = args->_viewport;
 
         // The view frustum is the mono frustum base
         auto viewFrustum = args->getViewFrustum();
 
         // Eval the mono projection
-        mat4 monoProjMat;
-        viewFrustum.evalProjectionMatrix(monoProjMat);
+        mat4 projMat;
+        viewFrustum.evalProjectionMatrix(projMat);
 
-        // The mono view transform
-        Transform monoViewTransform;
-        viewFrustum.evalViewTransform(monoViewTransform);
+        // The view transform
+        Transform viewTransform;
+        viewFrustum.evalViewTransform(viewTransform);
 
-        // THe mono view matrix coming from the mono view transform
-        glm::mat4 monoViewMat;
-        monoViewTransform.getMatrix(monoViewMat);
-
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-
-        auto eyePoint = viewFrustum.getPosition();
-        float nearRadius = glm::distance(eyePoint, viewFrustum.getNearTopLeft());
 
         auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
-        // Render in this side's viewport
-        batch.setViewportTransform(monoViewport);
-        batch.setStateScissorRect(monoViewport);
+        // Render in this viewport
+        batch.setViewportTransform(viewport);
+        batch.setStateScissorRect(viewport);
 
-        // enlarge the scales slightly to account for tesselation
-        const float SCALE_EXPANSION = 0.05f;
+        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
 
-        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), monoViewport);
 
-        batch.setProjectionTransform(monoProjMat);
-        batch.setViewTransform(monoViewTransform, true);
+        auto& lightIndices = lightClusters->_visibleLightIndices;
+        if (!lightIndices.empty() && lightIndices[0] > 0) {
+            // Bind the global list of lights and the visible lights this frame
+            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->_lightArrayBuffer);
 
-        // Splat Point lights
-        if (points && !deferredLightingEffect->_pointLights.empty()) {
-            // POint light pipeline
-            batch.setPipeline(deferredLightingEffect->_pointLight);
-            batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
+            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
+            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
+            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
 
-            for (auto lightID : deferredLightingEffect->_pointLights) {
-                auto& light = deferredLightingEffect->_allocatedLights[lightID];
-                // IN DEBUG: light->setShowContour(true);
-                batch.setUniformBuffer(deferredLightingEffect->_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
+            // Local light pipeline
+            batch.setPipeline(deferredLightingEffect->_localLight);
+            batch._glUniform4fv(deferredLightingEffect->_localLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
-                float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-                glm::vec4 sphereParam(expandedRadius, 0.0f, 0.0f, 1.0f);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-                // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
-                // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-                if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
-                    sphereParam.w = 0.0f;
-                    batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
-                    batch.draw(gpu::TRIANGLE_STRIP, 4);
-                } else {
-                    sphereParam.w = 1.0f;
-                    batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
-                    
-                    Transform model;
-                    model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
-                    batch.setModelTransform(model.postScale(expandedRadius));
-                    batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-                    geometryCache->renderSphere(batch);
-                }
+             // Draw outline as well ?
+            if (lightingModel->isShowLightContourEnabled()) {
+                batch.setPipeline(deferredLightingEffect->_localLightOutline);
+                batch._glUniform4fv(deferredLightingEffect->_localLightOutlineLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
+
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }
-
-        // Splat spot lights
-        if (spots && !deferredLightingEffect->_spotLights.empty()) {
-            // Spot light pipeline
-            batch.setPipeline(deferredLightingEffect->_spotLight);
-            batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
-
-            // Spot mesh
-            auto mesh = deferredLightingEffect->getSpotLightMesh();
-            batch.setIndexBuffer(mesh->getIndexBuffer());
-            batch.setInputBuffer(0, mesh->getVertexBuffer());
-            batch.setInputFormat(mesh->getVertexFormat());
-            auto& conePart = mesh->getPartBuffer().get<model::Mesh::Part>(0);
-
-            for (auto lightID : deferredLightingEffect->_spotLights) {
-                auto light = deferredLightingEffect->_allocatedLights[lightID];
-                // IN DEBUG: 
-                // light->setShowContour(true);
-                batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());
-
-                auto eyeLightPos = eyePoint - light->getPosition();
-                auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
-
-                const float TANGENT_LENGTH_SCALE = 0.666f;
-                glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * light->getSpotAngle()), 1.0f);
-
-                float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-                // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
-                // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-                const float OVER_CONSERVATIVE_SCALE = 1.1f;
-                if ((eyeHalfPlaneDistance > -nearRadius) &&
-                    (glm::distance(eyePoint, glm::vec3(light->getPosition())) < (expandedRadius * OVER_CONSERVATIVE_SCALE) + nearRadius)) {
-                    coneParam.w = 0.0f;
-                    batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
-                    batch.draw(gpu::TRIANGLE_STRIP, 4);
-                } else {
-                    coneParam.w = 1.0f;
-                    batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
-
-                    Transform model;
-                    model.setTranslation(light->getPosition());
-                    model.postRotate(light->getOrientation());
-                    model.postScale(glm::vec3(expandedRadius, expandedRadius, expandedRadius));
-
-                    batch.setModelTransform(model);
-
-                    batch.drawIndexed(model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex);
-                }
-            }
-        }
-    });
+    }
 }
 
 void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    auto& batch = (*args->_batch);
+    {
         // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
         batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
@@ -667,16 +757,22 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
         batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, nullptr);
 
+        batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, nullptr);
         batch.setResourceTexture(SCATTERING_LUT_UNIT, nullptr);
         batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, nullptr);
-        
+
         batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, nullptr);
-   //     batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, nullptr);
+        //     batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
-    });
-    
+
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, nullptr);
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, nullptr);
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, nullptr);
+
+    }
+
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
     // End of the Lighting pass
@@ -697,28 +793,37 @@ void RenderDeferred::configure(const Config& config) {
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+    PROFILE_RANGE("DeferredLighting");
+
     auto deferredTransform = inputs.get0();
     auto deferredFramebuffer = inputs.get1();
     auto lightingModel = inputs.get2();
     auto surfaceGeometryFramebuffer = inputs.get3();
     auto ssaoFramebuffer = inputs.get4();
     auto subsurfaceScatteringResource = inputs.get5();
+    auto lightClusters = inputs.get6();
     auto args = renderContext->args;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-       _gpuTimer.begin(batch);
-    });
+    if (!_gpuTimer) {
+        _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
+    }
+
+    auto previousBatch = args->_batch;
+    gpu::Batch batch;
+    args->_batch = &batch;
+     _gpuTimer->begin(batch);
 
     setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
-    lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel);
+    lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 
     cleanupJob.run(sceneContext, renderContext);
-    
-     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-         _gpuTimer.end(batch);
-    });
-    
+
+    _gpuTimer->end(batch);
+     args->_context->appendFrameBatch(batch);
+     args->_batch = previousBatch;
+
+
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
+    config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
