@@ -266,8 +266,8 @@ public:
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
     
-    void takeSnapshot(bool notify, float aspectRatio = 0.0f);
-    void shareSnapshot(const QString& filename);
+    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }

@@ -1,0 +1,194 @@
+// glsl / C++ compatible source as interface for FrustrumGrid
+#if defined(Q_OS_LINUX)
+#define float_exp2 exp2f
+#else
+#define float_exp2 exp2
+#endif
+
+float frustumGrid_depthRampGridToVolume(float ngrid) {
+   //  return ngrid;
+   // return sqrt(ngrid);
+    return float_exp2(ngrid) - 1.0f;
+}
+float frustumGrid_depthRampInverseVolumeToGrid(float nvolume) {
+   //   return nvolume;
+   // return nvolume * nvolume;
+    return log2(nvolume + 1.0f);
+}
+
+vec3 frustumGrid_gridToVolume(vec3 pos, ivec3 dims) {
+    vec3 gridScale = vec3(1.0f) / vec3(dims);
+    vec3 volumePos = pos * gridScale;
+    volumePos.z = frustumGrid_depthRampGridToVolume(volumePos.z);
+    return volumePos;
+}
+
+
+float frustumGrid_volumeToGridDepth(float vposZ, ivec3 dims) {
+    return frustumGrid_depthRampInverseVolumeToGrid(vposZ) * float(dims.z);
+}
+
+vec3 frustumGrid_volumeToGrid(vec3 vpos, ivec3 dims) {
+    vec3 gridPos = vec3(vpos.x, vpos.y, frustumGrid_depthRampInverseVolumeToGrid(vpos.z)) * vec3(dims);
+    return gridPos;
+}
+
+
+vec4 frustumGrid_volumeToClip(vec3 vpos, float rangeNear, float rangeFar) {
+    vec3 ndcPos = vec3(-1.0f + 2.0f * vpos.x, -1.0f + 2.0f * vpos.y, vpos.z);
+    float depth = rangeNear * (1 - ndcPos.z) + rangeFar * (ndcPos.z);
+    vec4 clipPos = vec4(ndcPos.x * depth, ndcPos.y * depth, 1.0f, depth);
+    return clipPos;
+}
+
+vec3 frustumGrid_clipToEye(vec4 clipPos, mat4 projection) {
+    return vec3(
+        (clipPos.x + projection[2][0] * clipPos.w) / projection[0][0],
+        (clipPos.y + projection[2][1] * clipPos.w) / projection[1][1],
+        -clipPos.w
+        //, (clipPos.z - projection[3][3] * clipPos.w) / projection[3][2]
+        );
+}
+
+vec3 frustumGrid_volumeToEye(vec3 vpos, mat4 projection, float rangeNear, float rangeFar) {
+    return frustumGrid_clipToEye(frustumGrid_volumeToClip(vpos, rangeNear, rangeFar), projection);
+}
+
+float frustumGrid_eyeToVolumeDepth(float eposZ, float rangeNear, float rangeFar) {
+    return (-eposZ - rangeNear) / (rangeFar - rangeNear);
+}
+
+
+vec3 frustumGrid_eyeToVolume(vec3 epos, mat4 projection, float rangeNear, float rangeFar) {
+    vec4 clipPos = vec4(epos.x * projection[0][0] + epos.z * projection[2][0],
+        epos.y * projection[1][1] + epos.z * projection[2][1],
+        epos.z * projection[2][2] + projection[2][3],
+        -epos.z);
+    vec4 ndcPos = clipPos / clipPos.w;
+
+    vec3 volumePos = vec3(0.5f * (ndcPos.x + 1.0f), 0.5f * (ndcPos.y + 1.0f), (clipPos.w - rangeNear) / (rangeFar - rangeNear));
+    return volumePos;
+}
+
+
+
+int frustumGrid_numClusters() {
+    return frustumGrid.dims.x * frustumGrid.dims.y * (frustumGrid.dims.z + 1);
+}
+
+int frustumGrid_clusterToIndex(ivec3 pos) {
+    return pos.x + (pos.y + pos.z * frustumGrid.dims.y) * frustumGrid.dims.x;
+}
+ivec3 frustumGrid_indexToCluster(int index) {
+    ivec3 summedDims = ivec3(frustumGrid.dims.x * frustumGrid.dims.y, frustumGrid.dims.x, 1);
+    int layer = index / summedDims.x;
+    int offsetInLayer = index % summedDims.x;
+    ivec3 clusterPos = ivec3(offsetInLayer % summedDims.y, offsetInLayer / summedDims.y, layer);
+    return clusterPos;
+}
+
+vec3 frustumGrid_clusterPosToEye(vec3 clusterPos) {
+
+    vec3 cvpos = clusterPos;
+
+
+    vec3 volumePos = frustumGrid_gridToVolume(cvpos, frustumGrid.dims);
+
+    vec3 eyePos = frustumGrid_volumeToEye(volumePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
+
+    return eyePos;
+}
+
+vec3 frustumGrid_clusterPosToEye(ivec3 clusterPos, vec3 offset) {
+    vec3 cvpos = vec3(clusterPos) + offset;
+    return frustumGrid_clusterPosToEye(cvpos);
+}
+
+int frustumGrid_eyeDepthToClusterLayer(float eyeZ) {
+    if ((eyeZ > -frustumGrid.frustumNear) || (eyeZ < -frustumGrid.frustumFar)) {
+        return -2;
+    }
+
+    if (eyeZ > -frustumGrid.rangeNear) {
+        return -1;
+    }
+
+    float volumeZ = frustumGrid_eyeToVolumeDepth(eyeZ, frustumGrid.rangeNear, frustumGrid.rangeFar);
+
+    float gridZ = frustumGrid_volumeToGridDepth(volumeZ, frustumGrid.dims);
+
+    if (gridZ >= frustumGrid.dims.z) {
+        gridZ = frustumGrid.dims.z;
+    }
+
+
+    return int(gridZ);
+}
+
+ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
+    if ((eyePos.z > -frustumGrid.frustumNear) || (eyePos.z < -frustumGrid.frustumFar)) {
+        return ivec3(-2);
+    }
+    
+    if (eyePos.z > -frustumGrid.rangeNear) {
+        return ivec3(0,0,-1);
+    }
+    
+    vec3 volumePos = frustumGrid_eyeToVolume(eyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
+
+
+    vec3 gridPos = frustumGrid_volumeToGrid(volumePos, frustumGrid.dims);
+    
+    if (gridPos.z >= frustumGrid.dims.z) {
+        gridPos.z = frustumGrid.dims.z;
+    }
+
+
+    return ivec3(floor(gridPos));
+}
+
+int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
+    if (eyeDir.z >= 0.0f) {
+        return (eyeDir.x > 0 ? frustumGrid.dims.x : -1);
+    }
+
+    float eyeDepth = -eyeDir.z;
+    float nclipDir = eyeDir.x / eyeDepth;
+    float ndcDir = nclipDir * frustumGrid.eyeToGridProj[0][0] - frustumGrid.eyeToGridProj[2][0];
+    float volumeDir = 0.5f * (ndcDir + 1.0f);
+    float gridPos = volumeDir * float(frustumGrid.dims.x);
+
+    return int(gridPos);
+}
+
+int frustumGrid_eyeToClusterDirV(vec3 eyeDir) {
+    if (eyeDir.z >= 0.0f) {
+        return (eyeDir.y > 0 ? frustumGrid.dims.y : -1);
+    }
+
+    float eyeDepth = -eyeDir.z;
+    float nclipDir = eyeDir.y / eyeDepth;
+    float ndcDir = nclipDir * frustumGrid.eyeToGridProj[1][1] - frustumGrid.eyeToGridProj[2][1];
+    float volumeDir = 0.5f * (ndcDir + 1.0f);
+    float gridPos = volumeDir * float(frustumGrid.dims.y);
+
+    return int(gridPos);
+}
+
+ivec2 frustumGrid_eyeToClusterDir(vec3 eyeDir) {
+    return ivec2(frustumGrid_eyeToClusterDirH(eyeDir), frustumGrid_eyeToClusterDirV(eyeDir));
+}
+
+vec4 frustumGrid_eyeToWorld(vec4 eyePos) {
+    return frustumGrid.eyeToWorldMat * eyePos;
+}
+
+vec4 frustumGrid_worldToEye(vec4 worldPos) {
+    return frustumGrid.worldToEyeMat * worldPos;
+}
+
+
+
+    // <@if 1@>
+    // Trigger Scribe include 
+    // <@endif@> <!def that !> End C++ compatible

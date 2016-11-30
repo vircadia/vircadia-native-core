@@ -51,15 +51,21 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
         return NULL;
     }
 
-    QImage shot(snapshotPath);
+    QUrl url;
 
-    // no location data stored
-    if (shot.text(URL).isEmpty()) {
+    if (snapshotPath.right(3) == "jpg") {
+        QImage shot(snapshotPath);
+
+        // no location data stored
+        if (shot.text(URL).isEmpty()) {
+            return NULL;
+        }
+
+        // parsing URL
+        url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
+    } else {
         return NULL;
     }
-
-    // parsing URL
-    QUrl url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
 
     SnapshotMetaData* data = new SnapshotMetaData();
     data->setURL(url);
@@ -143,20 +149,32 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     return imageTempFile;
 }
 
-void Snapshot::uploadSnapshot(const QString& filename) {
+void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
 
     const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
-    // Alternatively to parseSnapshotData, we could pass the inWorldLocation through the call chain. This way is less disruptive to existing code.
-    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
-    SnapshotUploader* uploader = new SnapshotUploader(snapshotData->getURL(), filename);
-    delete snapshotData;
+    QUrl url = href;
+    if (url.isEmpty()) {
+        SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
+        if (snapshotData) {
+            url = snapshotData->getURL();
+        }
+        delete snapshotData;
+    }
+    if (url.isEmpty()) {
+        url = QUrl(DependencyManager::get<AddressManager>()->currentShareableAddress());
+    }
+    SnapshotUploader* uploader = new SnapshotUploader(url, filename);
     
     QFile* file = new QFile(filename);
     Q_ASSERT(file->exists());
     file->open(QIODevice::ReadOnly);
 
     QHttpPart imagePart;
-    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/jpeg"));
+    if (filename.right(3) == "gif") {
+        imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/gif"));
+    } else {
+        imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/jpeg"));
+    }
     imagePart.setHeader(QNetworkRequest::ContentDispositionHeader,
                         QVariant("form-data; name=\"image\"; filename=\"" + file->fileName() + "\""));
     imagePart.setBodyDevice(file);

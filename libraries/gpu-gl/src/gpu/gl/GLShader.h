@@ -19,6 +19,8 @@ public:
 
     enum Version {
         Mono = 0,
+        Stereo,
+
         NumVersions
     };
 
@@ -40,8 +42,8 @@ public:
 
     GLint getUniformLocation(GLint srcLoc, Version version = Mono) {
         // THIS will be used in the future PR as we grow the number of versions
-        // return _uniformMappings[version][srcLoc];
-        return srcLoc;
+        return _uniformMappings[version][srcLoc];
+       // return srcLoc;
     }
 
     const std::weak_ptr<GLBackend> _backend;

@@ -199,12 +199,12 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
     QApplication::clipboard()->setText(text);
 }
 
-void WindowScriptingInterface::takeSnapshot(bool notify, float aspectRatio) {
-    qApp->takeSnapshot(notify, aspectRatio);
+void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
+    qApp->takeSnapshot(notify, includeAnimated, aspectRatio);
 }
 
-void WindowScriptingInterface::shareSnapshot(const QString& path) {
-    qApp->shareSnapshot(path);
+void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {
+    qApp->shareSnapshot(path, href);
 }
 
 bool WindowScriptingInterface::isPhysicsEnabled() {

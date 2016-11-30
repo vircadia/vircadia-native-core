@@ -16,6 +16,11 @@
 
 #include "DependencyManager.h"
 
+/**jsdoc
+ * @namespace Paths
+ * @readonly
+ * @property {string} resources The path to the resources directory.
+ */
 class PathUtils : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY

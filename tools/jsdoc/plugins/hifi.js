@@ -16,9 +16,11 @@ exports.handlers = {
         var dirList = [
             '../../interface/src',
             '../../interface/src/scripting',
+            '../../interface/src/ui/overlays',
             '../../libraries/script-engine/src',
             '../../libraries/networking/src',
             '../../libraries/animation/src',
+            '../../libraries/entities/src',
         ];
         var exts = ['.h', '.cpp'];
 

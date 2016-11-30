@@ -46,7 +46,8 @@ _numVertices(0)
 
 gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
 gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
-int32_t RenderablePolyLineEntityItem::PAINTSTROKE_GPU_SLOT;
+const int32_t RenderablePolyLineEntityItem::PAINTSTROKE_TEXTURE_SLOT;
+const int32_t RenderablePolyLineEntityItem::PAINTSTROKE_UNIFORM_SLOT;
 
 void RenderablePolyLineEntityItem::createPipeline() {
     static const int NORMAL_OFFSET = 12;
@@ -62,8 +63,8 @@ void RenderablePolyLineEntityItem::createPipeline() {
     gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
-    PAINTSTROKE_GPU_SLOT = 0;
-    slotBindings.insert(gpu::Shader::Binding(std::string("paintStrokeTextureBinding"), PAINTSTROKE_GPU_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), PAINTSTROKE_TEXTURE_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("polyLineBuffer"), PAINTSTROKE_UNIFORM_SLOT));
     gpu::Shader::makeProgram(*program, slotBindings);
 
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -193,14 +194,14 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     Transform transform = Transform();
     transform.setTranslation(getPosition());
     transform.setRotation(getRotation());
-    batch.setUniformBuffer(0, _uniformBuffer);
+    batch.setUniformBuffer(PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
     batch.setModelTransform(transform);
 
     batch.setPipeline(_pipeline);
     if (_texture->isLoaded()) {
-        batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, _texture->getGPUTexture());
+        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
     } else {
-        batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, args->_whiteTexture);
+        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, args->_whiteTexture);
     }
    
     batch.setInputFormat(_format);
@@ -208,6 +209,8 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
 
     if (_isFading) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
+    } else {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);

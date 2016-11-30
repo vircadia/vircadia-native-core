@@ -1,0 +1,85 @@
+<!
+//  LightClusterGrid.slh
+//
+//  Created by Sam Gateau on 9/8/16.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not RENDER_LIGHT_CLUSTER_GRID_SLH@>
+<@def RENDER_LIGHT_CLUSTER_GRID_SLH@>
+
+
+
+struct FrustumGrid {
+    float frustumNear;
+    float rangeNear;
+    float rangeFar;
+    float frustumFar;
+    ivec3 dims;
+    float spare;
+    mat4 eyeToGridProj;
+    mat4 worldToEyeMat;
+    mat4 eyeToWorldMat;
+};
+
+uniform frustumGridBuffer {
+    FrustumGrid frustumGrid;
+};
+
+float projection_getNear(mat4 projection) {
+    float planeC = projection[2][3] + projection[2][2];
+    float planeD = projection[3][2];
+    return planeD / planeC;
+}
+float projection_getFar(mat4 projection) {
+    //float planeA = projection[0][3] - projection[0][2]; All Zeros
+    //float planeB = projection[1][3] - projection[1][2]; All Zeros
+    float planeC = projection[2][3] - projection[2][2];
+    float planeD = /*projection[3][3]*/ -projection[3][2];
+    return planeD / planeC;
+}
+
+// glsl / C++ compatible source as interface for FrustrumGrid
+<@include LightClusterGrid_shared.slh@>
+
+// end of hybrid include
+
+<@if GLPROFILE == MAC_GL @>
+#define GRID_NUM_ELEMENTS 4096
+#define GRID_INDEX_TYPE ivec4
+#define GRID_FETCH_BUFFER(i) i / 4][i % 4
+<@else@>
+#define GRID_NUM_ELEMENTS 16384
+#define GRID_INDEX_TYPE int
+#define GRID_FETCH_BUFFER(i) i
+<@endif@>
+
+uniform clusterGridBuffer {
+    GRID_INDEX_TYPE _clusterGridTable[GRID_NUM_ELEMENTS];
+};
+
+uniform clusterContentBuffer {
+    GRID_INDEX_TYPE _clusterGridContent[GRID_NUM_ELEMENTS];
+};
+
+ivec3 clusterGrid_getCluster(int index) {
+    int clusterDesc = _clusterGridTable[GRID_FETCH_BUFFER(index)];
+    int numPointLights = 0xFF & (clusterDesc >> 16);
+    int numSpotLights = 0xFF & (clusterDesc >> 24);
+    int contentOffset = 0xFFFF & (clusterDesc);
+    return ivec3(numPointLights, numSpotLights, contentOffset);
+}
+
+int clusterGrid_getClusterLightId(int index, int offset) {
+    int elementIndex = offset + index;
+    /*
+    int element = _clusterGridContent[GRID_FETCH_BUFFER(elementIndex)];
+    return element;
+    */
+    int element = _clusterGridContent[GRID_FETCH_BUFFER((elementIndex >> 1))];
+    return (((elementIndex & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
+}
+
+<@endif@>
