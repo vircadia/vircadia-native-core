@@ -40,8 +40,8 @@ private:
     bool _isReady;
     float _duration; // In seconds
     
-    void downSample(const QByteArray& rawAudioByteArray);
-    void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
+    void downSample(const QByteArray& rawAudioByteArray, int sampleRate);
+    int interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
     
     virtual void downloadFinished(const QByteArray& data) override;
 };
