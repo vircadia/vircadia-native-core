@@ -52,8 +52,10 @@ getControllerWorldLocation = function (handController, doOffset) {
         }
 
     } else if (!HMD.isHandControllerAvailable()) {
-        position = MyAvatar.getHeadPosition();
-        orientation = Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
+        // NOTE: keep this offset in sync with scripts/system/controllers/handControllerPointer.js:493
+        var VERTICAL_HEAD_LASER_OFFSET = 0.1;
+        position = Vec3.sum(Camera.position, Vec3.multiplyQbyV(Camera.orientation, {x: 0, y: VERTICAL_HEAD_LASER_OFFSET, z: 0}));
+        orientation = Quat.multiply(Camera.orientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
         valid = true;
     }
 
