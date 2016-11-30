@@ -142,6 +142,9 @@
             } else if (this.hand === 'right') {
                 this.getStringHandPosition = function() { return _this.getControllerLocation("left").position; };
             }
+            Entities.editEntity(_this.entityID, {
+                collidesWith: "",
+            });
 
             var data = getEntityCustomData('grabbableKey', this.entityID, {});
             data.grabbable = false;
@@ -175,6 +178,9 @@
             Entities.deleteEntity(this.arrow);
             this.resetStringToIdlePosition();
             this.destroyArrow();
+            Entities.editEntity(_this.entityID, {
+                collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar"
+            });
         },
 
         destroyArrow: function() {
