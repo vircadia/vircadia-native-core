@@ -267,6 +267,15 @@ void AudioMixer::sendStatsPacket() {
     statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
     statsObject["avg_listeners_per_frame"] = (float)_stats.sumListeners / (float)_numStatFrames;
 
+    _sumMixTimesIndex = (_sumMixTimesIndex + 1) % MIX_TIMES_TRAILING_SECONDS;
+    _sumMixTimesTrailing -= _sumMixTimesHistory[_sumMixTimesIndex];
+    _sumMixTimesHistory[_sumMixTimesIndex] = _sumMixTimes.count();
+    _sumMixTimesTrailing += _sumMixTimesHistory[_sumMixTimesIndex];
+
+    statsObject["avg_us_per_frame"] = (qint64)(_sumMixTimes.count() / _numStatFrames);
+    statsObject["avg_us_per_frames_trailing"] =
+        (qint64)((_sumMixTimesTrailing / MIX_TIMES_TRAILING_SECONDS) / _numStatFrames);
+
     QJsonObject mixStats;
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_stats.hrtfRenders);
     mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_stats.hrtfSilentRenders);
@@ -280,6 +289,7 @@ void AudioMixer::sendStatsPacket() {
     statsObject["mix_stats"] = mixStats;
 
     _numStatFrames = 0;
+    _sumMixTimes = std::chrono::microseconds(0);
     _stats.reset();
 
     // add stats for each listerner
@@ -356,6 +366,9 @@ void AudioMixer::start() {
     while (!_isFinished) {
         manageLoad(frameTimestamp, framesSinceManagement);
 
+        // start timing the frame
+        auto startTime = p_high_resolution_clock::now();
+
         // aquire the read-lock in a single thread, to avoid canonical rwlock undefined behaviors
         //   node removal will acquire a write lock;
         //   read locks (in slave threads) while a write lock is pending have undefined order in pthread
@@ -374,6 +387,9 @@ void AudioMixer::start() {
             _stats.accumulate(slave.stats);
             slave.stats.reset();
         });
+
+        // stop timing the frame
+        _sumMixTimes += std::chrono::duration_cast<std::chrono::microseconds>(p_high_resolution_clock::now() - startTime);
 
         ++frame;
         ++_numStatFrames;
