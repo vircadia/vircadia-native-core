@@ -543,7 +543,7 @@ bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::
     float distanceToElementDetails = distance;
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
-    
+
     // if the ray doesn't intersect with our cube, we can stop searching!
     if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)) {
         keepSearching = false; // no point in continuing to search
