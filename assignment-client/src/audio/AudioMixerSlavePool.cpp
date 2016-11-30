@@ -14,22 +14,59 @@
 
 #include "AudioMixerSlavePool.h"
 
+void AudioMixerSlaveThread::run() {
+    while (!_stop) {
+        wait();
+
+        SharedNodePointer node;
+        while (try_pop(node)) {
+            mix(node);
+        }
+
+        notify();
+    }
+}
+
+void AudioMixerSlaveThread::wait() {
+    Lock lock(_pool._mutex);
+
+    _pool._slaveCondition.wait(lock, [&] {
+         return _pool._numStarted != _pool._numThreads;
+    });
+
+    // toggle running state
+    ++_pool._numStarted;
+    configure(_pool._begin, _pool._end, _pool._frame);
+}
+
+void AudioMixerSlaveThread::notify() {
+    {
+        Lock lock(_pool._mutex);
+        ++_pool._numFinished;
+    }
+    _pool._poolCondition.notify_one();
+}
+
+bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node) {
+    return _pool._queue.try_pop(node);
+}
+
 AudioMixerSlavePool::~AudioMixerSlavePool() {
     {
-        std::unique_lock<std::mutex> lock(_mutex);
+        Lock lock(_mutex);
         wait(lock);
     }
     setNumThreads(0);
 }
 
-void AudioMixerSlavePool::mix(const std::vector<SharedNodePointer>& nodes, unsigned int frame) {
-    std::unique_lock<std::mutex> lock(_mutex);
-    start(lock, nodes, frame);
+void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame) {
+    Lock lock(_mutex);
+    start(lock, begin, end, frame);
     wait(lock);
 }
 
 void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> functor) {
-    std::unique_lock<std::mutex> lock(_mutex);
+    Lock lock(_mutex);
     assert(!_running);
 
     for (auto& slave : _slaves) {
@@ -37,24 +74,26 @@ void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> funct
     }
 }
 
-void AudioMixerSlavePool::start(std::unique_lock<std::mutex>& lock, const std::vector<SharedNodePointer>& nodes, unsigned int frame) {
+void AudioMixerSlavePool::start(Lock& lock, ConstIter begin, ConstIter end, unsigned int frame) {
     assert(!_running);
 
     // fill the queue
-    for (auto& node : nodes) {
+    std::for_each(begin, end, [&](const SharedNodePointer& node) {
         _queue.emplace(node);
-    }
+    });
 
     // toggle running state
     _frame = frame;
     _running = true;
     _numStarted = 0;
     _numFinished = 0;
+    _begin = begin;
+    _end = end;
 
     _slaveCondition.notify_all();
 }
 
-void AudioMixerSlavePool::wait(std::unique_lock<std::mutex>& lock) {
+void AudioMixerSlavePool::wait(Lock& lock) {
     if (_running) {
         _poolCondition.wait(lock, [&] {
             return _numFinished == _numThreads;
@@ -67,27 +106,8 @@ void AudioMixerSlavePool::wait(std::unique_lock<std::mutex>& lock) {
     _running = false;
 }
 
-void AudioMixerSlavePool::slaveWait() {
-    std::unique_lock<std::mutex> lock(_mutex);
-
-    _slaveCondition.wait(lock, [&] {
-            return _numStarted != _numThreads;
-    });
-
-    // toggle running state
-    ++_numStarted;
-}
-
-void AudioMixerSlavePool::slaveNotify() {
-    {
-        std::unique_lock<std::mutex> lock(_mutex);
-        ++_numFinished;
-    }
-    _poolCondition.notify_one();
-}
-
 void AudioMixerSlavePool::setNumThreads(int numThreads) {
-    std::unique_lock<std::mutex> lock(_mutex);
+    Lock lock(_mutex);
 
     // ensure slave are not running
     assert(!_running);
@@ -121,7 +141,7 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
         }
 
         // ...cycle slaves with empty queue...
-        start(lock, std::vector<SharedNodePointer>(), 0);
+        start(lock);
         wait(lock);
 
         // ...wait for them to finish...
@@ -135,15 +155,4 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
     }
 
     _numThreads = _numStarted = _numFinished = numThreads;
-}
-
-void AudioMixerSlaveThread::run() {
-    while (!_stop) {
-        _pool.slaveWait();
-        SharedNodePointer node;
-        while (_pool._queue.try_pop(node)) {
-            mix(node, _pool._frame);
-        }
-        _pool.slaveNotify();
-    }
 }

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <algorithm>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -131,7 +133,13 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
     }
 }
 
-void AudioMixerSlave::mix(const SharedNodePointer& node, unsigned int frame) {
+void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame) {
+    _begin = begin;
+    _end = end;
+    _frame = frame;
+}
+
+void AudioMixerSlave::mix(const SharedNodePointer& node) {
     // check that the node is valid
     AudioMixerClientData* data = (AudioMixerClientData*)node->getLinkedData();
     if (data == nullptr) {
@@ -181,7 +189,7 @@ void AudioMixerSlave::mix(const SharedNodePointer& node, unsigned int frame) {
 
         // send stats packet (about every second)
         static const unsigned int NUM_FRAMES_PER_SEC = (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC);
-        if (data->shouldSendStats(frame % NUM_FRAMES_PER_SEC)) {
+        if (data->shouldSendStats(_frame % NUM_FRAMES_PER_SEC)) {
             data->sendAudioStreamStatsPackets(node);
         }
     }
@@ -195,7 +203,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
     memset(_mixedSamples, 0, sizeof(_mixedSamples));
 
     // loop through all other nodes that have sufficient audio to mix
-    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& otherNode){
+    std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode){
         // make sure that we have audio data for this other node
         // and that it isn't being ignored by our listening node
         // and that it isn't ignoring our listening node

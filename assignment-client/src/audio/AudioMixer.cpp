@@ -356,21 +356,18 @@ void AudioMixer::start() {
     while (!_isFinished) {
         manageLoad(frameTimestamp, framesSinceManagement);
 
-        {
-            QReadLocker readLocker(&nodeList->getMutex());
-            std::vector<SharedNodePointer> nodes;
-
-            nodeList->eachNode([&](const SharedNodePointer& node) {
-                // collect the available nodes (to queue them for the slavePool)
-                nodes.emplace_back(node);
-
-                // prepare frames; pop off any new audio from their streams
+        // aquire the read-lock in a single thread, to avoid canonical rwlock undefined behaviors
+        //   node removal will acquire a write lock;
+        //   read locks (in slave threads) while a write lock is pending have undefined order in pthread
+        nodeList->algorithm([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+            // prepare frames; pop off any new audio from their streams
+            std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
                 _stats.sumStreams += prepareFrame(node, frame);
             });
 
             // mix across slave threads
-            _slavePool.mix(nodes, frame);
-        }
+            _slavePool.mix(cbegin, cend, frame);
+        });
 
         // gather stats
         _slavePool.each([&](AudioMixerSlave& slave) {

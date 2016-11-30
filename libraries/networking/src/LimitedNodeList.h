@@ -175,7 +175,24 @@ public:
 
     SharedNodePointer findNodeWithAddr(const HifiSockAddr& addr);
 
-    QReadWriteLock& getMutex() { return _nodeMutex; }
+    // for use with algorithm
+    using value_type = SharedNodePointer;
+    using const_iterator = std::vector<value_type>::const_iterator;
+
+    // Cede control of iteration under a single read lock (e.g. for use by thread pools)
+    //   This allows multiple threads (i.e. a thread pool) to share a lock
+    //   without deadlocking when a dying node attempts to acquire a write lock
+    template<typename NodeAlgorithmLambda>
+    void algorithm(NodeAlgorithmLambda functor) {
+        QReadLocker readLock(&_nodeMutex);
+
+        std::vector<SharedNodePointer> nodes(_nodeHash.size());
+        std::transform(_nodeHash.cbegin(), _nodeHash.cend(), nodes.begin(), [](const NodeHash::value_type& it) {
+            return it.second;
+        });
+
+        functor(nodes.cbegin(), nodes.cend());
+    }
 
     template<typename NodeLambda>
     void eachNode(NodeLambda functor) {

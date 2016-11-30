@@ -17,6 +17,7 @@
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
 #include <UUIDHasher.h>
+#include <NodeList.h>
 
 #include "AudioMixerStats.h"
 
@@ -27,9 +28,13 @@ class AudioMixerClientData;
 
 class AudioMixerSlave {
 public:
+    using ConstIter = NodeList::const_iterator;
+
+    void configure(ConstIter begin, ConstIter end, unsigned int frame);
+
     // mix and broadcast non-ignored streams to the node
     // returns true if a mixed packet was sent to the node
-    void mix(const SharedNodePointer& node, unsigned int frame);
+    void mix(const SharedNodePointer& node);
 
     AudioMixerStats stats;
 
@@ -48,6 +53,11 @@ private:
     // mixing buffers
     float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+
+    // frame state
+    ConstIter _begin;
+    ConstIter _end;
+    unsigned int _frame { 0 };
 };
 
 #endif // hifi_AudioMixerSlave_h
