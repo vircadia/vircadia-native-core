@@ -81,23 +81,22 @@ void GL45Backend::updateInput() {
                 glVertexBindingDivisor(bufferChannelNum, frequency);
 #endif
             }
-
-
-            // Manage Activation what was and what is expected now
-            // This should only disable VertexAttribs since the one in use have been disabled above
-            for (GLuint i = 0; i < (GLuint)newActivation.size(); i++) {
-                bool newState = newActivation[i];
-                if (newState != _input._attributeActivation[i]) {
-                    if (newState) {
-                        glEnableVertexAttribArray(i);
-                    } else {
-                        glDisableVertexAttribArray(i);
-                    }
-                    _input._attributeActivation.flip(i);
-                }
-            }
-            (void)CHECK_GL_ERROR();
         }
+
+        // Manage Activation what was and what is expected now
+        // This should only disable VertexAttribs since the one needed by the vertex format (if it exists) have been enabled above
+        for (GLuint i = 0; i < (GLuint)newActivation.size(); i++) {
+            bool newState = newActivation[i];
+            if (newState != _input._attributeActivation[i]) {
+                if (newState) {
+                    glEnableVertexAttribArray(i);
+                } else {
+                    glDisableVertexAttribArray(i);
+                }
+                _input._attributeActivation.flip(i);
+            }
+        }
+        (void)CHECK_GL_ERROR();
 
         _input._invalidFormat = false;
         _stats._ISNumFormatChanges++;

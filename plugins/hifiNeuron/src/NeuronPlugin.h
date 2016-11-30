@@ -28,6 +28,7 @@ public:
     bool isHandController() const override { return false; }
 
     // Plugin functions
+    virtual void init() override;
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
     const QString getID() const override { return NEURON_ID_STRING; }
@@ -68,7 +69,8 @@ protected:
     static const char* NAME;
     static const char* NEURON_ID_STRING;
 
-    std::string _serverAddress;
+    bool _enabled;
+    QString _serverAddress;
     int _serverPort;
     void* _socketRef;
 

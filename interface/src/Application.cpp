@@ -5444,10 +5444,10 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         }
     });
 }
-void Application::shareSnapshot(const QString& path) {
-    postLambdaEvent([path] {
+void Application::shareSnapshot(const QString& path, const QUrl& href) {
+    postLambdaEvent([path, href] {
         // not much to do here, everything is done in snapshot code...
-        Snapshot::uploadSnapshot(path);
+        Snapshot::uploadSnapshot(path, href);
     });
 }
 

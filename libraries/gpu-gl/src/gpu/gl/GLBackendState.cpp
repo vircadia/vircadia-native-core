@@ -213,13 +213,13 @@ void GLBackend::do_setStateStencil(State::StencilActivation activation, State::S
             GL_DECR };
 
         if (testFront != testBack) {
-            glStencilOpSeparate(GL_FRONT, STENCIL_OPS[testFront.getFailOp()], STENCIL_OPS[testFront.getPassOp()], STENCIL_OPS[testFront.getDepthFailOp()]);
+            glStencilOpSeparate(GL_FRONT, STENCIL_OPS[testFront.getFailOp()], STENCIL_OPS[testFront.getDepthFailOp()], STENCIL_OPS[testFront.getPassOp()]);
             glStencilFuncSeparate(GL_FRONT, COMPARISON_TO_GL[testFront.getFunction()], testFront.getReference(), testFront.getReadMask());
 
-            glStencilOpSeparate(GL_BACK, STENCIL_OPS[testBack.getFailOp()], STENCIL_OPS[testBack.getPassOp()], STENCIL_OPS[testBack.getDepthFailOp()]);
+            glStencilOpSeparate(GL_BACK, STENCIL_OPS[testBack.getFailOp()], STENCIL_OPS[testBack.getDepthFailOp()], STENCIL_OPS[testBack.getPassOp()]);
             glStencilFuncSeparate(GL_BACK, COMPARISON_TO_GL[testBack.getFunction()], testBack.getReference(), testBack.getReadMask());
         } else {
-            glStencilOp(STENCIL_OPS[testFront.getFailOp()], STENCIL_OPS[testFront.getPassOp()], STENCIL_OPS[testFront.getDepthFailOp()]);
+            glStencilOp(STENCIL_OPS[testFront.getFailOp()], STENCIL_OPS[testFront.getDepthFailOp()], STENCIL_OPS[testFront.getPassOp()]);
             glStencilFunc(COMPARISON_TO_GL[testFront.getFunction()], testFront.getReference(), testFront.getReadMask());
         }
 

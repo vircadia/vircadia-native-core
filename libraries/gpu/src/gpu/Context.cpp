@@ -53,7 +53,7 @@ void Context::beginFrame(const glm::mat4& renderPose) {
     _currentFrame->pose = renderPose;
 
     if (!_frameRangeTimer) {
-        _frameRangeTimer = std::make_shared<RangeTimer>();
+        _frameRangeTimer = std::make_shared<RangeTimer>("gpu::Context::Frame");
     }
 }
 

@@ -108,6 +108,7 @@ signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
     void ignoredNode(const QUuid& nodeID);
+    void ignoreRadiusEnabledChanged(bool isIgnored);
 
 private slots:
     void stopKeepalivePingTimer();
@@ -154,7 +155,7 @@ private:
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
-    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false };
+    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };
     Setting::Handle<float> _ignoreRadius { "IgnoreRadius", 1.0f };
 
 #if (PR_BUILD || DEV_BUILD)

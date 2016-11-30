@@ -201,6 +201,7 @@ public:
             TEXMAPARRAY,
             LIGHTING_MODEL,
             LIGHT,
+            LIGHT_AMBIENT_BUFFER,
         };
 
         enum MAP {
@@ -231,6 +232,7 @@ public:
         int materialBufferUnit;
         int texMapArrayBufferUnit;
         int lightBufferUnit;
+        int lightAmbientBufferUnit;
         int lightAmbientMapUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;

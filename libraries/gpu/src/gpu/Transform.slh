@@ -35,14 +35,24 @@ layout(std140) uniform transformCameraBuffer {
 
 #ifdef GPU_VERTEX_SHADER
 #ifdef GPU_TRANSFORM_IS_STEREO
-
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
 #ifdef GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED
 layout(location=14) in int _inStereoSide;
 #endif
 
 flat out int _stereoSide;
+
+// In stereo drawcall mode Instances are drawn twice (left then right) hence the true InstanceID is the gl_InstanceID / 2
+int gpu_InstanceID = gl_InstanceID >> 1;
+
+#else
+
+int gpu_InstanceID = gl_InstanceID;
+
 #endif
+#else
+
+int gpu_InstanceID = gl_InstanceID;
 
 #endif
 
@@ -53,6 +63,7 @@ flat out int _stereoSide;
 flat in int _stereoSide;
 #endif
 #endif
+
 
 TransformCamera getTransformCamera() {
 #ifdef GPU_TRANSFORM_IS_STEREO
@@ -203,6 +214,16 @@ TransformObject getTransformObject() {
         vec4 eyeWAPos;
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
         <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+    }
+<@endfunc@>
+
+
+<@func transformWorldToClipPos(cameraTransform, worldPos, clipPos)@>
+    { // transformWorldToClipPos
+        vec4 eyeWAPos = <$worldPos$> - vec4(<$cameraTransform$>._viewInverse[3].xyz, 0.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
     }
 <@endfunc@>
 
