@@ -136,7 +136,6 @@
 
         startEquip: function(entityID, args) {
             this.hand = args[0];
-            // var avatarID = args[1];
 
             if (this.hand === 'left') {
                 this.getStringHandPosition = function() { return _this.getControllerLocation("right").position; };
