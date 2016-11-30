@@ -28,7 +28,7 @@ public:
     virtual void addMessage(const QString&) override;
     virtual QString getLogData() override;
     virtual void locateLog() override;
-    void sync();
+    virtual void sync() override;
 
 signals:
     void rollingLogFile(QString newFilename);
@@ -37,24 +37,6 @@ private:
     const QString _fileName;
     friend class FilePersistThread;
 };
-
-class FilePersistThread : public GenericQueueThread < QString > {
-    Q_OBJECT
-public:
-    FilePersistThread(const FileLogger& logger);
-
-signals:
-    void rollingLogFile(QString newFilename);
-
-protected:
-    void rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled = true);
-    virtual bool processQueueItems(const Queue& messages) override;
-
-private:
-    const FileLogger& _logger;
-    uint64_t _lastRollTime;
-};
-
 
 
 
