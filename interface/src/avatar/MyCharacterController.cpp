@@ -20,9 +20,7 @@
 
 
 void MyCharacterController::RayShotgunResult::reset() {
-    //hitNormal = glm::vec3(0.0f);
     hitFraction = 1.0f;
-    //numHits = 0;
     walkable = true;
 }
 
@@ -441,7 +439,7 @@ void MyCharacterController::initRayShotgun(const btCollisionWorld* world) {
         for (int32_t i = 0; i < NUM_ROWS; ++i) {
             int32_t maxJ = NUM_COLUMNS;
             btScalar offsetX = -(btScalar)((NUM_COLUMNS - 1) / 2) * stepX;
-            if (i%2 == 1) {
+            if (i % 2 == 1) {
                 // odd rows have one less point and start a halfStep closer
                 maxJ -= 1;
                 offsetX += 0.5f * stepX;
@@ -473,7 +471,7 @@ void MyCharacterController::initRayShotgun(const btCollisionWorld* world) {
         for (int32_t i = 0; i < NUM_ROWS; ++i) {
             int32_t maxJ = NUM_COLUMNS;
             btScalar offsetX = -(btScalar)((NUM_COLUMNS - 1) / 2) * stepX;
-            if (i%2 == 1) {
+            if (i % 2 == 1) {
                 // odd rows have one less point and start a halfStep closer
                 maxJ -= 1;
                 offsetX += 0.5f * stepX;

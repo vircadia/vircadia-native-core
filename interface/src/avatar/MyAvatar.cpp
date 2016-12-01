@@ -1444,9 +1444,6 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     }
     nextAttitude(position, orientation);
 
-    // compute new _bodyToSensorMatrix
-    //_bodySensorMatrix = deriveBodyFromHMDSensor();
-
     if (_characterController.isEnabledAndReady()) {
         setVelocity(_characterController.getLinearVelocity());
     }

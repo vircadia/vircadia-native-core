@@ -1,6 +1,6 @@
 //
 //  CharacterGhostObject.h
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2016.08.26
 //  Copyright 2016 High Fidelity, Inc.

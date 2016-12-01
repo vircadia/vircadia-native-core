@@ -1,6 +1,6 @@
 //
 //  CharacterGhostObject.cpp
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2016.08.26
 //  Copyright 2016 High Fidelity, Inc.
@@ -289,7 +289,7 @@ void CharacterGhostObject::measurePenetration(btVector3& minBoxOut, btVector3& m
 
         btScalar mostFloorPenetration = 0.0f;
         collisionPair->m_algorithm->getAllContactManifolds(manifoldArray);
-        for (int j = 0;j < manifoldArray.size(); j++) {
+        for (int j = 0; j < manifoldArray.size(); j++) {
             btPersistentManifold* manifold = manifoldArray[j];
             btScalar directionSign = (manifold->getBody0() == this) ? btScalar(1.0) : btScalar(-1.0);
             for (int p = 0; p < manifold->getNumContacts(); p++) {

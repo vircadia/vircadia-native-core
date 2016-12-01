@@ -34,9 +34,7 @@ public:
     public:
         void reset();
 
-        //glm::vec3 hitNormal { 0.0f, 0.0f, 0.0f };
         float hitFraction { 1.0f };
-        //int32_t numHits { 0 };
         bool walkable { true };
     };
 
