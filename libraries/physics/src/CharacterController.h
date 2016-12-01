@@ -169,7 +169,7 @@ protected:
     quint32 _takeoffJumpButtonID;
 
     // data for walking up steps
-    btVector3 _stepPoint;
+    btVector3 _stepPoint { 0.0f, 0.0f, 0.0f };
     btVector3 _stepNormal { 0.0f, 0.0f, 0.0f };
     btVector3 _stepUpVelocity { 0.0f, 0.0f, 0.0f };
     btScalar _stepHeight { 0.0f };
