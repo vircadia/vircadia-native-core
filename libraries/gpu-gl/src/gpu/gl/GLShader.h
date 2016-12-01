@@ -41,7 +41,7 @@ public:
     }
 
     GLint getUniformLocation(GLint srcLoc, Version version = Mono) const {
-        // THIS will be used in the future PR as we grow the number of versions
+        // This check protect against potential invalid src location for this shader, if unknown then return -1.
         const auto& mapping = _uniformMappings[version];
         auto found = mapping.find(srcLoc);
         if (found == mapping.end()) {
