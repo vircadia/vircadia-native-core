@@ -104,6 +104,8 @@ public:
     void clearJointAnimationPriority(int index);
 
     void clearIKJointLimitHistory();
+    void updateMaxHipsOffsetLength(float maxLength, float deltaTime);
+    float getMaxHipsOffsetLength() const;
 
     int getJointParentIndex(int childIndex) const;
 
@@ -213,6 +215,8 @@ public:
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
+    void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
+
 signals:
     void onLoadComplete();
 
@@ -315,6 +319,12 @@ protected:
     bool _enableInverseKinematics { true };
 
     mutable uint32_t _jointNameWarningCount { 0 };
+    glm::vec3 _desiredRigHeadPosition;
+    bool _truncateIKTargets { false };
+    bool _enableDebugDrawIKTargets { false };
+
+    float _maxHipsOffsetLength { 1.0f };
+    float _desiredMaxHipsOffsetLength { 1.0f };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

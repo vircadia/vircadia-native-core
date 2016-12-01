@@ -298,7 +298,6 @@ void Rig::clearJointAnimationPriority(int index) {
 void Rig::clearIKJointLimitHistory() {
     if (_animNode) {
         _animNode->traverse([&](AnimNode::Pointer node) {
-            // only report clip nodes as valid roles.
             auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
             if (ikNode) {
                 ikNode->clearIKJointLimitHistory();
@@ -306,6 +305,30 @@ void Rig::clearIKJointLimitHistory() {
             return true;
         });
     }
+}
+
+void Rig::updateMaxHipsOffsetLength(float maxLength, float deltaTime) {
+
+    _desiredMaxHipsOffsetLength = maxLength;
+
+    // OUTOFBODY_HACK: smoothly update update _hipsOffsetLength, otherwise we risk introducing oscillation in the hips offset.
+    const float MAX_HIPS_OFFSET_TIMESCALE = 0.33f;
+    float tau = deltaTime / MAX_HIPS_OFFSET_TIMESCALE;
+    _maxHipsOffsetLength = (1.0f - tau) * _maxHipsOffsetLength + tau * _desiredMaxHipsOffsetLength;
+
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
+            }
+            return true;
+        });
+    }
+}
+
+float Rig::getMaxHipsOffsetLength() const {
+    return _maxHipsOffsetLength;
 }
 
 int Rig::getJointParentIndex(int childIndex) const {
@@ -495,14 +518,21 @@ bool Rig::getRelativeDefaultJointTranslation(int index, glm::vec3& translationOu
 }
 
 // animation reference speeds.
-static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
-static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
-static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
+static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.3f, 4.5f }; // m/s
+static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.05f }; // m/s
+static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.5f }; // m/s
+static const float DEFAULT_AVATAR_EYE_HEIGHT = 1.65f; // movement speeds are for characters of this eye-height. ~170 cm tall.
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState) {
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
     glm::vec3 workingVelocity = worldVelocity;
+
+    // TODO: account for avatar scaling
+    int eyeJoint = indexOfJoint("LeftEye");
+    int toeJoint = indexOfJoint("LeftToeBase");
+    const float AVATAR_EYE_HEIGHT = (eyeJoint >= 0 && toeJoint >= 0) ? getAbsoluteDefaultPose(eyeJoint).trans.y - getAbsoluteDefaultPose(toeJoint).trans.y : DEFAULT_AVATAR_EYE_HEIGHT;
+    const float AVATAR_HEIGHT_RATIO = DEFAULT_AVATAR_EYE_HEIGHT / AVATAR_EYE_HEIGHT;
 
     {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
@@ -523,18 +553,22 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         float moveBackwardAlpha = 0.0f;
         float moveLateralAlpha = 0.0f;
 
-        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
-        calcAnimAlpha(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha);
-        calcAnimAlpha(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha);
-        calcAnimAlpha(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha);
+        float averageForwardSpeed = AVATAR_HEIGHT_RATIO * _averageForwardSpeed.getAverage();
+        float averageBackwardSpeed = -averageForwardSpeed;
+        float averageLateralSpeed = AVATAR_HEIGHT_RATIO * fabsf(_averageLateralSpeed.getAverage());
 
-        _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
+        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
+        calcAnimAlpha(averageForwardSpeed, FORWARD_SPEEDS, &moveForwardAlpha);
+        calcAnimAlpha(averageBackwardSpeed, BACKWARD_SPEEDS, &moveBackwardAlpha);
+        calcAnimAlpha(averageLateralSpeed, LATERAL_SPEEDS, &moveLateralAlpha);
+
+        _animVars.set("moveForwardSpeed", averageForwardSpeed);
         _animVars.set("moveForwardAlpha", moveForwardAlpha);
 
-        _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
+        _animVars.set("moveBackwardSpeed", averageBackwardSpeed);
         _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
 
-        _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
+        _animVars.set("moveLateralSpeed", averageLateralSpeed);
         _animVars.set("moveLateralAlpha", moveLateralAlpha);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
@@ -592,7 +626,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
         }
 
-        const float STATE_CHANGE_HYSTERESIS_TIMER = 0.1f;
+        const float STATE_CHANGE_HYSTERESIS_TIMER = 1.0f / 60.0f;
 
         // Skip hystersis timer for jump transitions.
         if (_desiredState == RigRole::Takeoff) {
@@ -891,9 +925,11 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
 
+        AnimContext context(_enableDebugDrawIKTargets, getGeometryToRigTransform());
+
         // evaluate the animation
         AnimNode::Triggers triggersOut;
-        _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
             _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -1022,20 +1058,6 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
             AnimPose hmdPose(glm::vec3(1.0f), params.rigHeadOrientation * yFlip180, params.rigHeadPosition);
             computeHeadNeckAnimVars(hmdPose, headPos, headRot, neckPos, neckRot);
 
-            // debug rendering
-#ifdef DEBUG_RENDERING
-            const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
-            const glm::vec4 green(0.0f, 1.0f, 0.0f, 1.0f);
-
-            // transform from bone into avatar space
-            AnimPose headPose(glm::vec3(1), headRot, headPos);
-            DebugDraw::getInstance().addMyAvatarMarker("headTarget", headPose.rot, headPose.trans, red);
-
-            // transform from bone into avatar space
-            AnimPose neckPose(glm::vec3(1), neckRot, neckPos);
-            DebugDraw::getInstance().addMyAvatarMarker("neckTarget", neckPose.rot, neckPose.trans, green);
-#endif
-
             _animVars.set("headPosition", headPos);
             _animVars.set("headRotation", headRot);
             _animVars.set("headType", (int)IKTarget::Type::HmdHead);
@@ -1108,8 +1130,9 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
         if (params.isLeftEnabled) {
 
-            // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 handPosition = params.leftPosition;
+
+            // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 displacement;
             if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
                 handPosition -= displacement;
@@ -1126,8 +1149,9 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
         if (params.isRightEnabled) {
 
-            // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 handPosition = params.rightPosition;
+
+            // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 displacement;
             if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
                 handPosition -= displacement;
@@ -1379,9 +1403,10 @@ void Rig::computeAvatarBoundingCapsule(
 
     // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
     AnimNode::Triggers triggersOut;
+    AnimContext context(false, glm::mat4());
     float dt = 1.0f; // the value of this does not matter
-    ikNode.overlay(animVars, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
-    AnimPoseVec finalPoses =  ikNode.overlay(animVars, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
+    ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
+    AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
 
     // convert relative poses to absolute
     _animSkeleton->convertRelativePosesToAbsolute(finalPoses);
