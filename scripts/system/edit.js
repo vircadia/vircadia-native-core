@@ -1027,26 +1027,24 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
     }
 }
 
-
-function sortDeleteSelected  (selected) {
-    var array = selected.slice();
+function sortSelectedEntities(selected) {
+    var sortedEntities = selected.slice();
     var begin = 0;
-    while (begin < array.length) {
+    while (begin < sortedEntities.length) {
         var elementRemoved = false;
         var next = begin + 1;
-        while (next < array.length) {
-            var beginID = array[begin];
-            var nextID = array[next];
+        while (next < sortedEntities.length) {
+            var beginID = sortedEntities[begin];
+            var nextID = sortedEntities[next];
 
             if (Entities.isChildOfParent(beginID, nextID)) {
-                var temp = beginID;
-                array[begin] = nextID
-                array[next] = beginID
-                array.splice(next, 1);
+                sortedEntities[begin] = nextID;
+                sortedEntities[next] = beginID;
+                sortedEntities.splice(next, 1);
                 elementRemoved = true;
                 break;
             } else if (Entities.isChildOfParent(nextID, beginID)) {
-                array.splice(next, 1);
+                sortedEntities.splice(next, 1);
                 elementRemoved = true;
                 break;
             }
@@ -1056,21 +1054,21 @@ function sortDeleteSelected  (selected) {
             begin++;
         }
     }
-    return array;
+    return sortedEntities;
 }
 
-function recursiveDelete(entities, list) {
+function recursiveDelete(entities, childrenList) {
     var entitiesLength = entities.length;
     for (var i = 0; i < entitiesLength; i++) {
         var entityID = entities[i];
         var children = Entities.getChildrenIDs(entityID);
-        var childList = []
-        recursiveDelete(children, childList);
+        var grandchildrenList = [];
+        recursiveDelete(children, grandchildrenList);
         var initialProperties = Entities.getEntityProperties(entityID);
-        list.push({
+        childrenList.push({
             entityID: entityID,
             properties: initialProperties,
-            children: childList
+            children: grandchildrenList
         });
         Entities.deleteEntity(entityID);
     }
@@ -1082,12 +1080,12 @@ function deleteSelectedEntities() {
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
-        var newSortedSelection = sortDeleteSelected(selectionManager.selections);
+        var newSortedSelection = sortSelectedEntities(selectionManager.selections);
         for (var i = 0; i < newSortedSelection.length; i++) {
             var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
             var children = Entities.getChildrenIDs(entityID);
-            var childList = []
+            var childList = [];
             recursiveDelete(children, childList);
             savedProperties.push({
                 entityID: entityID,

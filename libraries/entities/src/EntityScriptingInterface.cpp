@@ -1321,7 +1321,7 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
 bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
     bool isChild = false;
 
-    if(!_entityTree) {
+    if (!_entityTree) {
         return isChild;
     }
 
