@@ -45,6 +45,7 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <shared/GlobalAppProperties.h>
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -166,6 +167,8 @@
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
+#include <VersionHelpers.h>
+
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
@@ -413,6 +416,17 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::init();
 
+#if defined(Q_OS_WIN)
+    // Select appropriate audio DLL
+    QString audioDLLPath = QCoreApplication::applicationDirPath();
+    if (IsWindows8OrGreater()) {
+        audioDLLPath += "/audioWin8";
+    } else {
+        audioDLLPath += "/audioWin7";
+    }
+    QCoreApplication::addLibraryPath(audioDLLPath);
+#endif
+
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
     bool previousSessionCrashed = CrashHandler::checkForResetSettings(suppressPrompt);
@@ -530,7 +544,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
-    setProperty("com.highfidelity.launchedFromSteam", SteamClient::isRunning());
+    setProperty(hifi::properties::STEAM, SteamClient::isRunning());
+    setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
     _runningMarker.startRunningMarker();
 
@@ -1680,6 +1695,8 @@ void Application::initializeGL() {
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
+    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK, 
+        QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
     _gpuContext = std::make_shared<gpu::Context>();
     // The gpu context can make child contexts for transfers, so 
     // we need to restore primary rendering context
