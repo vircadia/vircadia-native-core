@@ -31,7 +31,7 @@ void AudioMixerSlaveThread::wait() {
     Lock lock(_pool._mutex);
 
     _pool._slaveCondition.wait(lock, [&] {
-         return _pool._numStarted != _pool._numThreads;
+        return _pool._numStarted != _pool._numThreads;
     });
 
     // toggle running state
@@ -52,26 +52,40 @@ bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node) {
 }
 
 AudioMixerSlavePool::~AudioMixerSlavePool() {
-    {
-        Lock lock(_mutex);
-        wait(lock);
-    }
     resize(0);
 }
 
+#ifdef AUDIO_SINGLE_THREADED
+static AudioMixerSlave slave;
+#endif
+
 void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame) {
     Lock lock(_mutex);
+
+#ifdef AUDIO_SINGLE_THREADED
+    slave.configure(_begin, _end, frame);
+    std::for_each(begin, end, [&](const SharedNodePointer& node) {
+        slave.mix(node);
+    });
+
+#else
     start(lock, begin, end, frame);
     wait(lock);
+#endif
+
 }
 
 void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> functor) {
     Lock lock(_mutex);
     assert(!_running);
 
+#ifdef AUDIO_SINGLE_THREADED
+    functor(slave);
+#else
     for (auto& slave : _slaves) {
         functor(*slave.get());
     }
+#endif
 }
 
 void AudioMixerSlavePool::start(Lock& lock, ConstIter begin, ConstIter end, unsigned int frame) {
@@ -83,12 +97,12 @@ void AudioMixerSlavePool::start(Lock& lock, ConstIter begin, ConstIter end, unsi
     });
 
     // toggle running state
-    _frame = frame;
     _running = true;
     _numStarted = 0;
     _numFinished = 0;
     _begin = begin;
     _end = end;
+    _frame = frame;
 
     _slaveCondition.notify_all();
 }
@@ -130,8 +144,12 @@ void AudioMixerSlavePool::resize(int numThreads) {
 
     // ensure slave are not running
     assert(!_running);
+    assert(_numThreads == _slaves.size());
 
-    qDebug("%s: set %d threads", __FUNCTION__, numThreads);
+#ifdef AUDIO_SINGLE_THREADED
+    qDebug("%s: running single threaded", __FUNCTION__, numThreads);
+#else
+    qDebug("%s: set %d threads (was %d)", __FUNCTION__, numThreads, _numThreads);
 
     if (numThreads > _numThreads) {
         // start new slaves
@@ -141,23 +159,25 @@ void AudioMixerSlavePool::resize(int numThreads) {
             _slaves.emplace_back(slave);
         }
     } else if (numThreads < _numThreads) {
-        auto extraBegin = _slaves.begin() + _numThreads;
+        auto extraBegin = _slaves.begin() + numThreads;
 
         // stop extra slaves...
         auto slave = extraBegin;
         while (slave != _slaves.end()) {
             (*slave)->stop();
+            ++slave;
         }
 
         // ...cycle slaves with empty queue...
         start(lock);
-        wait(lock);
+        lock.unlock();
 
         // ...wait for them to finish...
         slave = extraBegin;
         while (slave != _slaves.end()) {
             QThread* thread = reinterpret_cast<QThread*>(slave->get());
             thread->wait();
+            ++slave;
         }
 
         // ...and delete them
@@ -165,4 +185,7 @@ void AudioMixerSlavePool::resize(int numThreads) {
     }
 
     _numThreads = _numStarted = _numFinished = numThreads;
+#endif
+
+    assert(_numThreads == _slaves.size());
 }
