@@ -72,32 +72,23 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
-    var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
-    var WEB_ENTITY_Z_OFFSET = -0.01;
+    var WEB_OVERLAY_SCALE_FACTOR = { x: 2, y: 1.6 };
+    var WEB_OVERLAY_Z_OFFSET = -0.01;
     var HOME_BUTTON_Y_OFFSET = -0.32;
 
-    this.createWebEntity = function(url) {
-        if (_this.webEntityID) {
-            Entities.deleteEntity(_this.webEntityID);
-        }
-        _this.webEntityID = Entities.addEntity({
-            name: "WebTablet Web",
-            type: "Web",
-            sourceUrl: url,
-            dimensions: {x: WIDTH * WEB_ENTITY_REDUCTION_FACTOR.x,
-                         y: HEIGHT * WEB_ENTITY_REDUCTION_FACTOR.y,
-                         z: 0.1},
-            localPosition: { x: 0, y: 0, z: WEB_ENTITY_Z_OFFSET },
-            localRotation: Quat.angleAxis(180, Y_AXIS),
-            shapeType: "box",
-            dpi: DPI,
-            parentID: _this.tabletEntityID,
-            parentJointIndex: -1
-        }, clientOnly);
-    }
+    var webOverlayRotation = Quat.multiply(spawnInfo.rotation, Quat.angleAxis(180, Y_AXIS));
+    var webOverlayPosition = Vec3.sum(spawnInfo.position, Vec3.multiply(WEB_OVERLAY_Z_OFFSET, Quat.getFront(webOverlayRotation)));
 
-    this.createWebEntity(url);
-
+    this.webOverlayID = Overlays.addOverlay("web3d", {
+        url: url,
+        dimensions: { x: WIDTH * WEB_OVERLAY_SCALE_FACTOR.x, y: HEIGHT * WEB_OVERLAY_SCALE_FACTOR.y },
+        position: webOverlayPosition,
+        rotation: webOverlayRotation,
+        resolution: { x: 480, y: 640 },
+        color: { red: 255, green: 255, blue: 255 },
+        parentID: this.tabletEntityID,
+        parentJointIndex: -1
+    });
 
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
@@ -106,18 +97,18 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
         dimensions: {x: 0.05, y: 0.05, z: 0.05},
         parentID: this.tabletEntityID,
         script: Script.resolvePath("../tablet-ui/HomeButton.js")
-        }, clientOnly);
+    }, clientOnly);
 
     setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonEntity == senderID) {
             if (_this.clicked) {
-               Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
-               _this.clicked = false;
+                Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
+                _this.clicked = false;
             } else {
-               Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
-               _this.clicked = true;
+                Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
+                _this.clicked = true;
             }
         }
     }
@@ -135,12 +126,14 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 };
 
 WebTablet.prototype.destroy = function () {
-    Entities.deleteEntity(this.webEntityID);
+    Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
     Entities.deleteEntity(this.homeButtonEntity);
 };
+
+
 WebTablet.prototype.pickle = function () {
-    return JSON.stringify({webEntityID: this.webEntityID, tabletEntityID: this.tabletEntityID});
+    return JSON.stringify({ webOverlayID: this.webOverlayID, tabletEntityID: this.tabletEntityID });
 };
 
 
