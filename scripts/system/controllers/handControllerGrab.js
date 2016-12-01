@@ -2346,6 +2346,7 @@ function MyController(hand) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
             }
 
+
             //  Make a small release haptic pulse if we really were holding something
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
