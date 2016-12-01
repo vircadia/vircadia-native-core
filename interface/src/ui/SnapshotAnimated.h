@@ -21,8 +21,8 @@
 #include "scripting/WindowScriptingInterface.h"
 
 // If the snapshot width or the framerate are too high for the
-// application to handle, the framerate of the output GIF will drop.
-#define SNAPSNOT_ANIMATED_WIDTH (480)
+// computer to handle, the framerate of the output GIF will drop.
+#define SNAPSNOT_ANIMATED_WIDTH (720)
 // This value should divide evenly into 100. Snapshot framerate is NOT guaranteed.
 #define SNAPSNOT_ANIMATED_TARGET_FRAMERATE (25)
 #define SNAPSNOT_ANIMATED_DURATION_SECS (3)
