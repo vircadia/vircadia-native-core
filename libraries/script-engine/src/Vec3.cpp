@@ -83,15 +83,7 @@ glm::vec3 Vec3::fromPolar(float elevation, float azimuth) {
     return fromPolar(v);
 }
 
-float Vec3::angle(const glm::vec3& fromV, const glm::vec3& toV) {
-	glm::vec3 fromVNormalized = glm::normalize(fromV);
-	glm::vec3 toVNormalized = glm::normalize(toV);
-
-	float radians = glm::acos(glm::dot(fromVNormalized, toVNormalized));
-
-	return radians * 180.0f / PI;
+float Vec3::getAngle(const glm::vec3& v1, const glm::vec3& v2) {
+	return glm::acos(glm::dot(glm::normalize(v1), glm::normalize(v2)));
 }
 
-glm::vec3 Vec3::lerp(const glm::vec3& v1, const glm::vec3& v2, float t) {
-	return v1 * (1.0f - t) + v2 * t;
-}
