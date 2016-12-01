@@ -147,15 +147,15 @@ QString getCollisionGroupAsString(uint8_t group) {
 }
 
 uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
-    if (0 == name.compare("dynamic")) {
+    if (0 == name.compare(QString("dynamic"))) {
         return USER_COLLISION_GROUP_DYNAMIC;
-    } else if (0 == name.compare("static")) {
+    } else if (0 == name.compare(QString("static"))) {
         return USER_COLLISION_GROUP_STATIC;
-    } else if (0 == name.compare("kinematic")) {
+    } else if (0 == name.compare(QString("kinematic"))) {
         return USER_COLLISION_GROUP_KINEMATIC;
-    } else if (0 == name.compare("myAvatar")) {
+    } else if (0 == name.compare(QString("myAvatar"))) {
         return USER_COLLISION_GROUP_MY_AVATAR;
-    } else if (0 == name.compare("otherAvatar")) {
+    } else if (0 == name.compare(QString("otherAvatar"))) {
         return USER_COLLISION_GROUP_OTHER_AVATAR;
     }
     return 0;
