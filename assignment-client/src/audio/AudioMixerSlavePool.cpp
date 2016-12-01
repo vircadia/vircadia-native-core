@@ -56,7 +56,7 @@ AudioMixerSlavePool::~AudioMixerSlavePool() {
         Lock lock(_mutex);
         wait(lock);
     }
-    setNumThreads(0);
+    resize(0);
 }
 
 void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame) {
@@ -107,21 +107,30 @@ void AudioMixerSlavePool::wait(Lock& lock) {
 }
 
 void AudioMixerSlavePool::setNumThreads(int numThreads) {
-    Lock lock(_mutex);
-
-    // ensure slave are not running
-    assert(!_running);
-
     // clamp to allowed size
     {
-        // idealThreadCount returns -1 if cores cannot be detected - cast it to a large number
-        int maxThreads = (int)((unsigned int)QThread::idealThreadCount());
+        int maxThreads = QThread::idealThreadCount();
+        if (maxThreads == -1) {
+            // idealThreadCount returns -1 if cores cannot be detected
+            maxThreads = std::numeric_limits<int>::max();
+        }
+
         int clampedThreads = std::min(std::max(1, numThreads), maxThreads);
         if (clampedThreads != numThreads) {
             qWarning("%s: clamped to %d (was %d)", __FUNCTION__, numThreads, clampedThreads);
             numThreads = clampedThreads;
         }
     }
+
+    resize(numThreads);
+}
+
+void AudioMixerSlavePool::resize(int numThreads) {
+    Lock lock(_mutex);
+
+    // ensure slave are not running
+    assert(!_running);
+
     qDebug("%s: set %d threads", __FUNCTION__, numThreads);
 
     if (numThreads > _numThreads) {
@@ -147,7 +156,8 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
         // ...wait for them to finish...
         slave = extraBegin;
         while (slave != _slaves.end()) {
-            (*slave)->wait();
+            QThread* thread = reinterpret_cast<QThread*>(slave->get());
+            thread->wait();
         }
 
         // ...and delete them

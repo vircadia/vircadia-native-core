@@ -75,6 +75,8 @@ private:
     void start(Lock& lock, ConstIter begin = ConstIter(), ConstIter end = ConstIter(), unsigned int frame = 0);
     void wait(Lock& lock);
 
+    void resize(int numThreads);
+
     std::vector<std::unique_ptr<AudioMixerSlaveThread>> _slaves;
 
     friend void AudioMixerSlaveThread::wait();
