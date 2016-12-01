@@ -57,8 +57,8 @@ var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance 
 
 function distanceGrabTimescale(mass, distance) {
     var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass /
-    DISTANCE_HOLDING_UNITY_MASS * distance /
-    DISTANCE_HOLDING_UNITY_DISTANCE;
+        DISTANCE_HOLDING_UNITY_MASS * distance /
+        DISTANCE_HOLDING_UNITY_DISTANCE;
     if (timeScale < DISTANCE_HOLDING_ACTION_TIMEFRAME) {
         timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
     }
