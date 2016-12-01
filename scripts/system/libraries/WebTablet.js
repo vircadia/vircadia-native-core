@@ -65,36 +65,34 @@ WebTablet = function (url, width, dpi, clientOnly) {
         parentJointIndex: -2
     }, clientOnly);
 
-    var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
-    var WEB_ENTITY_Z_OFFSET = -0.01;
+    var WEB_OVERLAY_SCALE_FACTOR = { x: 2, y: 1.6 };
+    var WEB_OVERLAY_Z_OFFSET = -0.01;
 
-    var webEntityRotation = Quat.multiply(spawnInfo.rotation, Quat.angleAxis(180, Y_AXIS));
-    var webEntityPosition = Vec3.sum(spawnInfo.position, Vec3.multiply(WEB_ENTITY_Z_OFFSET, Quat.getFront(webEntityRotation)));
+    var webOverlayRotation = Quat.multiply(spawnInfo.rotation, Quat.angleAxis(180, Y_AXIS));
+    var webOverlayPosition = Vec3.sum(spawnInfo.position, Vec3.multiply(WEB_OVERLAY_Z_OFFSET, Quat.getFront(webOverlayRotation)));
 
-    this.webEntityID = Entities.addEntity({
-        name: "web",
-        type: "Web",
-        sourceUrl: url,
-        dimensions: {x: WIDTH * WEB_ENTITY_REDUCTION_FACTOR.x,
-                     y: HEIGHT * WEB_ENTITY_REDUCTION_FACTOR.y,
-                     z: 0.1},
-        position: webEntityPosition,
-        rotation: webEntityRotation,
-        shapeType: "box",
-        dpi: DPI,
+    this.webOverlayID = Overlays.addOverlay("web3d", {
+        url: url,
+        dimensions: { x: WIDTH * WEB_OVERLAY_SCALE_FACTOR.x, y: HEIGHT * WEB_OVERLAY_SCALE_FACTOR.y },
+        position: webOverlayPosition,
+        rotation: webOverlayRotation,
+        resolution: { x: 480, y: 640 },
+        color: { red: 255, green: 255, blue: 255 },
         parentID: this.tabletEntityID,
         parentJointIndex: -1
-    }, clientOnly);
+    });
 
     this.state = "idle";
 };
 
 WebTablet.prototype.destroy = function () {
-    Entities.deleteEntity(this.webEntityID);
+    Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
 };
+
+
 WebTablet.prototype.pickle = function () {
-    return JSON.stringify({webEntityID: this.webEntityID, tabletEntityID: this.tabletEntityID});
+    return JSON.stringify({ webOverlayID: this.webOverlayID, tabletEntityID: this.tabletEntityID });
 };
 WebTablet.unpickle = function (string) {
     if (!string) {
