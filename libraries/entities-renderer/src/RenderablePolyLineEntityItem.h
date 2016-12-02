@@ -50,6 +50,7 @@ protected:
     gpu::BufferPointer _verticesBuffer;
     gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
+    bool _empty { true };
     QVector<glm::vec3> _vertices;
 };
 
