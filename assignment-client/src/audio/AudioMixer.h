@@ -93,7 +93,7 @@ private:
     static const int MIX_TIMES_TRAILING_SECONDS = 10;
     std::chrono::microseconds _sumMixTimes { 0 };
     uint64_t _sumMixTimesTrailing { 0 };
-    uint64_t _sumMixTimesHistory[MIX_TIMES_TRAILING_SECONDS] { 0 };
+    uint64_t _sumMixTimesHistory[MIX_TIMES_TRAILING_SECONDS] {};
     int _sumMixTimesIndex { 0 };
 
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
