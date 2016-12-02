@@ -630,6 +630,17 @@ Section "-Core installation"
   Delete "$INSTDIR\version"
   Delete "$INSTDIR\xinput1_3.dll"
 
+  ; The installer includes two different Qt audio plugins.
+  ; On Windows 8 and above, only qtaudio_wasapi.dll should be installed.
+  ; On Windows 7 and below, only qtaudio_windows.dll should be installed.
+  ${If} ${AtLeastWin8}
+    Delete "$INSTDIR\audio\qtaudio_windows.dll"
+    Delete "$INSTDIR\audio\qtaudio_windows.pdb"
+  ${Else}
+    Delete "$INSTDIR\audio\qtaudio_wasapi.dll"
+    Delete "$INSTDIR\audio\qtaudio_wasapi.pdb"
+  ${EndIf}
+
   ; Delete old desktop shortcuts before they were renamed during Sandbox rename
   Delete "$DESKTOP\@PRE_SANDBOX_INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"

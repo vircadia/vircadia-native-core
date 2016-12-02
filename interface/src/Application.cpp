@@ -167,8 +167,6 @@
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
-#include <VersionHelpers.h>
-
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
@@ -419,16 +417,6 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-#if defined(Q_OS_WIN)
-    // Select appropriate audio DLL
-    QString audioDLLPath = QCoreApplication::applicationDirPath();
-    if (IsWindows8OrGreater()) {
-        audioDLLPath += "/audioWin8";
-    } else {
-        audioDLLPath += "/audioWin7";
-    }
-    QCoreApplication::addLibraryPath(audioDLLPath);
-#endif
 
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
