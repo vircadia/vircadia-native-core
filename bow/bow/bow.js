@@ -94,7 +94,7 @@
     }
 
     const STRING_NAME = 'Hifi-Bow-String';
-    const ARROW_NAME = 'Hifi-Arrow';
+    const ARROW_NAME = 'Hifi-Arrow-projectile';
 
     const STATE_IDLE = 0;
     const STATE_ARROW_KNOCKED = 1;
