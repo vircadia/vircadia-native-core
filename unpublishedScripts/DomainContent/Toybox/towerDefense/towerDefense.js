@@ -58,7 +58,7 @@ function setup() {
         position: BUTTON_POSITION,
         dimensions: { x: 1, y: 1, z: 1 },
         color: { red: 0, green: 255, blue: 0 },
-        script: "file:/Users/clement/hifi/unpublishedScripts/DomainContent/Toybox/towerDefense/towerButton.js",
+        script: Script.resolvePath("towerButton.js"),
         userData: JSON.stringify({
             grabbableKey: { 
                 wantsTrigger: true
