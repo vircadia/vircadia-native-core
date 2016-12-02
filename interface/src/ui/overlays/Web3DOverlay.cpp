@@ -195,9 +195,10 @@ bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
     // FIXME - face and surfaceNormal not being returned
 
     // Make sure position and rotation is updated.
-    Transform transform;
-    applyTransformTo(transform, true);
-    setTransform(transform);
+    // XXX this code runs too often for this...
+    //Transform transform = getTransform();
+    //applyTransformTo(transform, true);
+    //setTransform(transform);
 
     vec2 size = _resolution / _dpi * INCHES_TO_METERS * vec2(getDimensions());
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
