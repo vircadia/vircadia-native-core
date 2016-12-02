@@ -162,9 +162,7 @@ void RenderablePolyLineEntityItem::update(const quint64& now) {
     memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
     if (_pointsChanged || _strokeWidthsChanged || _normalsChanged) {
         QWriteLocker lock(&_quadReadWriteLock);
-        if (_points.size() < 2 || _normals.size() < 2 || _strokeWidths.size() < 2) {
-            _empty = true;
-        }
+        _empty = (_points.size() < 2 || _normals.size() < 2 || _strokeWidths.size() < 2);
         if (!_empty) {
             updateVertices();
             updateGeometry();
