@@ -605,3 +605,134 @@ float Overlays::height() const {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->getWindow()->size().height();
 }
+
+static const uint32_t MOUSE_POINTER_ID = 0;
+
+static glm::vec2 projectOntoOverlayXYPlane(glm::vec3 position, glm::quat rotation, glm::vec2 dimensions, const PickRay& pickRay, 
+    const RayToOverlayIntersectionResult& rayPickResult) {
+
+    // Project the intersection point onto the local xy plane of the overlay.
+    float distance;
+    glm::vec3 planePosition = position;
+    glm::vec3 planeNormal = rotation * Vectors::UNIT_Z;
+    glm::vec3 overlayDimensions = glm::vec3(dimensions.x, dimensions.y, 0.0f);
+    glm::vec3 rayDirection = pickRay.direction;
+    glm::vec3 rayStart = pickRay.origin;
+    glm::vec3 p;
+    if (rayPlaneIntersection(planePosition, planeNormal, rayStart, rayDirection, distance)) {
+        p = rayStart + rayDirection * distance;
+    } else {
+        p = rayPickResult.intersection;
+    }
+    glm::vec3 localP = glm::inverse(rotation) * (p - position);
+    glm::vec3 normalizedP = (localP / overlayDimensions) + glm::vec3(0.5f);
+    return glm::vec2(normalizedP.x * overlayDimensions.x,
+        (1.0f - normalizedP.y) * overlayDimensions.y);  // flip y-axis
+}
+
+static uint32_t toPointerButtons(const QMouseEvent& event) {
+    uint32_t buttons = 0;
+    buttons |= event.buttons().testFlag(Qt::LeftButton) ? PointerEvent::PrimaryButton : 0;
+    buttons |= event.buttons().testFlag(Qt::RightButton) ? PointerEvent::SecondaryButton : 0;
+    buttons |= event.buttons().testFlag(Qt::MiddleButton) ? PointerEvent::TertiaryButton : 0;
+    return buttons;
+}
+
+static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
+    switch (event.button()) {
+        case Qt::LeftButton:
+            return PointerEvent::PrimaryButton;
+        case Qt::RightButton:
+            return PointerEvent::SecondaryButton;
+        case Qt::MiddleButton:
+            return PointerEvent::TertiaryButton;
+        default:
+            return PointerEvent::NoButtons;
+    }
+}
+
+void Overlays::mousePressEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mousePressEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    if (rayPickResult.intersects) {
+        _currentClickingOnOverlayID = rayPickResult.overlayID;
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
+        if (thisOverlay) {
+            QReadLocker lock(&_lock);
+            auto position = thisOverlay->getPosition();
+            auto rotation = thisOverlay->getRotation();
+            auto dimensions = thisOverlay->getSize();
+
+            glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
+            PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
+                pos2D, rayPickResult.intersection,
+                rayPickResult.surfaceNormal, ray.direction,
+                toPointerButton(*event), toPointerButtons(*event));
+
+            emit mousePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+
+        } else {
+            emit mousePressOffOverlay();
+        }
+    } else {
+        emit mousePressOffOverlay();
+    }
+}
+
+void Overlays::mouseReleaseEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    if (rayPickResult.intersects) {
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(rayPickResult.overlayID));
+        if (thisOverlay) {
+            QReadLocker lock(&_lock);
+            auto position = thisOverlay->getPosition();
+            auto rotation = thisOverlay->getRotation();
+            auto dimensions = thisOverlay->getSize();
+
+            glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
+            PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
+                pos2D, rayPickResult.intersection,
+                rayPickResult.surfaceNormal, ray.direction,
+                toPointerButton(*event), toPointerButtons(*event));
+
+            emit mouseReleaseOnOverlay(rayPickResult.overlayID, pointerEvent);
+        }
+    }
+
+    _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
+}
+
+void Overlays::mouseMoveEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    if (rayPickResult.intersects) {
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
+        if (thisOverlay) {
+            QReadLocker lock(&_lock);
+            auto position = thisOverlay->getPosition();
+            auto rotation = thisOverlay->getRotation();
+            auto dimensions = thisOverlay->getSize();
+
+            glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
+            PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+                pos2D, rayPickResult.intersection,
+                rayPickResult.surfaceNormal, ray.direction,
+                toPointerButton(*event), toPointerButtons(*event));
+
+            emit mouseMoveOnOverlay(rayPickResult.overlayID, pointerEvent);
+        }
+    }
+}

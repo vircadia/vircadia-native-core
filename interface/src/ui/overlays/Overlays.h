@@ -18,11 +18,13 @@
 #ifndef hifi_Overlays_h
 #define hifi_Overlays_h
 
+#include <QMouseEvent>
 #include <QReadWriteLock>
 #include <QScriptValue>
 
-#include "Overlay.h"
+#include <PointerEvent.h>
 
+#include "Overlay.h"
 #include "OverlayPanel.h"
 #include "PanelAttachable.h"
 
@@ -75,6 +77,8 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * @namespace Overlays
  */
 
+const int UNKNOWN_OVERLAY_ID = -1;
+
 class Overlays : public QObject {
     Q_OBJECT
 
@@ -93,6 +97,10 @@ public:
     /// adds an overlay that's already been created
     unsigned int addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     unsigned int addOverlay(Overlay::Pointer overlay);
+
+    void mousePressEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event);
 
     void cleanupAllOverlays();
 
@@ -249,6 +257,11 @@ signals:
     void overlayDeleted(unsigned int id);
     void panelDeleted(unsigned int id);
 
+    void mousePressOnOverlay(const int overlayID, const PointerEvent& event);
+    void mouseReleaseOnOverlay(const int overlayID, const PointerEvent& event);
+    void mouseMoveOnOverlay(const int overlayID, const PointerEvent& event);
+    void mousePressOffOverlay();
+
 private:
     void cleanupOverlaysToDelete();
 
@@ -262,8 +275,8 @@ private:
     QReadWriteLock _deleteLock;
     QScriptEngine* _scriptEngine;
     bool _enabled = true;
+
+    int _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
 };
-
-
 
 #endif // hifi_Overlays_h
