@@ -262,6 +262,10 @@ signals:
     void mouseMoveOnOverlay(const int overlayID, const PointerEvent& event);
     void mousePressOffOverlay();
 
+    void hoverEnterOverlay(const int overlayID, const PointerEvent& event);
+    void hoverOverOverlay(const int overlayID, const PointerEvent& event);
+    void hoverLeaveOverlay(const int overlayID, const PointerEvent& event);
+
 private:
     void cleanupOverlaysToDelete();
 
@@ -277,6 +281,7 @@ private:
     bool _enabled = true;
 
     int _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
+    int _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
 };
 
 #endif // hifi_Overlays_h

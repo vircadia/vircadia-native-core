@@ -719,7 +719,7 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
     if (rayPickResult.intersects) {
 
         // Only Web overlays can have focus.
-        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(rayPickResult.overlayID));
         if (thisOverlay) {
             QReadLocker lock(&_lock);
             auto position = thisOverlay->getPosition();
@@ -733,6 +733,57 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
                 toPointerButton(*event), toPointerButtons(*event));
 
             emit mouseMoveOnOverlay(rayPickResult.overlayID, pointerEvent);
+
+            // If previously hovering over a different overlay then leave hover on that overlay.
+            if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
+                auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentHoverOverOverlayID));
+                if (thisOverlay) {
+                    QReadLocker lock(&_lock);
+                    auto position = thisOverlay->getPosition();
+                    auto rotation = thisOverlay->getRotation();
+                    auto dimensions = thisOverlay->getSize();
+
+                    glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
+                    PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+                        pos2D, rayPickResult.intersection,
+                        rayPickResult.surfaceNormal, ray.direction,
+                        toPointerButton(*event), toPointerButtons(*event));
+
+                    emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
+                }
+            }
+
+            // If hovering over a new overlay then enter hover on that overlay.
+            if (rayPickResult.overlayID != _currentHoverOverOverlayID) {
+                emit hoverEnterOverlay(rayPickResult.overlayID, pointerEvent);
+            }
+
+            // Hover over current overlay.
+            emit hoverOverOverlay(rayPickResult.overlayID, pointerEvent);
+
+            _currentHoverOverOverlayID = rayPickResult.overlayID;
+        }
+    } else {
+        // If previously hovering an overlay then leave hover.
+        if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID) {
+
+            auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentHoverOverOverlayID));
+            if (thisOverlay) {
+                QReadLocker lock(&_lock);
+                auto position = thisOverlay->getPosition();
+                auto rotation = thisOverlay->getRotation();
+                auto dimensions = thisOverlay->getSize();
+
+                glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
+                PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+                    pos2D, rayPickResult.intersection,
+                    rayPickResult.surfaceNormal, ray.direction,
+                    toPointerButton(*event), toPointerButtons(*event));
+
+                emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
+            }
+
+            _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
         }
     }
 }
