@@ -80,7 +80,6 @@ void GL45Backend::updateTransform(const Batch& batch) {
         }
         glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
     } else {
-#ifdef GPU_USE_SEPARATE_VERTEX_FORMAT
         if (!_transform._enabledDrawcallInfoBuffer) {
             glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
             glVertexAttribIFormat(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0);
@@ -96,19 +95,6 @@ void GL45Backend::updateTransform(const Batch& batch) {
         //       so we must provide a stride.
         //       This is in contrast to VertexAttrib*Pointer, where a zero signifies tightly-packed elements.
         glBindVertexBuffer(gpu::Stream::DRAW_CALL_INFO, _transform._drawCallInfoBuffer, (GLintptr)_transform._drawCallInfoOffsets[batch._currentNamedCall], 2 * sizeof(GLushort));
-#else
-        if (!_transform._enabledDrawcallInfoBuffer) {
-            glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
-            glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2 : 1));
-#else
-            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
-#endif
-            _transform._enabledDrawcallInfoBuffer = true;
-        }
-        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0, _transform._drawCallInfoOffsets[batch._currentNamedCall]);
-#endif
     }
 
     (void)CHECK_GL_ERROR();
