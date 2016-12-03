@@ -166,6 +166,21 @@ const render::ShapeKey Web3DOverlay::getShapeKey() {
     return builder.build();
 }
 
+QObject* Web3DOverlay::getEventHandler() {
+    if (!_webSurface) {
+        return nullptr;
+    }
+    return _webSurface->getEventHandler();
+}
+
+void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
+    if (!_webSurface) {
+        return;
+    }
+
+    _webSurface->setProxyWindow(proxyWindow);
+}
+
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     if (!_webSurface) {
         return;

@@ -33,6 +33,8 @@ public:
 
     virtual void update(float deltatime) override;
 
+    QObject* getEventHandler();
+    void setProxyWindow(QWindow* proxyWindow);
     void handlePointerEvent(const PointerEvent& event);
 
     // setters
