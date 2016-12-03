@@ -48,7 +48,6 @@ createControllerDisplay = function(config) {
         mappingName: "mapping-display-" + Math.random(),
 
         setVisible: function(visible) {
-            debug("Setting visible", this.overlays.length);
             for (var i = 0; i < this.overlays.length; ++i) {
                 Overlays.editOverlay(this.overlays[i], {
                     visible: visible
@@ -77,9 +76,6 @@ createControllerDisplay = function(config) {
                         textures[part.textureName] = layer.defaultTextureURL;
                     }
                     for (var i = 0; i < this.partOverlays[partName].length; ++i) {
-
-                        // AJT: REMOVE
-                        print("AJT: Overlays.editOverlays(" + partName + ", " + i + ", { textures: " + JSON.stringify(textures) + " })");
                         Overlays.editOverlay(this.partOverlays[partName][i], {
                             textures: textures
                         });

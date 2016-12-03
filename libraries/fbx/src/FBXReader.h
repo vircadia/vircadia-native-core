@@ -88,6 +88,12 @@ public:
     QString name;
     bool isSkeletonJoint;
     bool bindTransformFoundInCluster;
+
+    // geometric offset is applied in local space but does NOT affect children.
+    bool hasGeometricOffset;
+    glm::vec3 geometricTranslation;
+    glm::quat geometricRotation;
+    glm::vec3 geometricScaling;
 };
 
 

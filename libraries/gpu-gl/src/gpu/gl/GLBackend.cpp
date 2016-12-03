@@ -406,7 +406,7 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
 
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
 #ifdef GPU_STEREO_CAMERA_BUFFER
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo())
+#define GET_UNIFORM_LOCATION(shaderUniformLoc) ((_pipeline._programShader) ? _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo()) : -1)
 #else
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
 #endif

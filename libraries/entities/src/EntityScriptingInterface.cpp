@@ -1318,6 +1318,26 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
     return result;
 }
 
+bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
+    bool isChild = false;
+
+    if (!_entityTree) {
+        return isChild;
+    }
+
+    _entityTree->withReadLock([&] {
+        EntityItemPointer parent = _entityTree->findEntityByEntityItemID(parentID);
+        parent->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+            if(descendant->getID() == childID) {
+                isChild = true;
+                return; 
+            }
+        });
+    });
+    
+    return isChild;
+}
+
 QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex) {
     QVector<QUuid> result;
     if (!_entityTree) {

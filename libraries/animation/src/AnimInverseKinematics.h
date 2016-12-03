@@ -34,10 +34,12 @@ public:
 
     void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar, const QString& typeVar);
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) override;
-    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) override;
+    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
     void clearIKJointLimitHistory();
+
+    void setMaxHipsOffsetLength(float maxLength);
 
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
@@ -83,6 +85,7 @@ protected:
 
     // experimental data for moving hips during IK
     glm::vec3 _hipsOffset { Vectors::ZERO };
+    float _maxHipsOffsetLength { 1.0f };
     int _headIndex { -1 };
     int _hipsIndex { -1 };
     int _hipsParentIndex { -1 };
@@ -90,6 +93,8 @@ protected:
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm
     int _maxTargetIndex { 0 };
+
+    bool _previousEnableDebugIKTargets { false };
 };
 
 #endif // hifi_AnimInverseKinematics_h

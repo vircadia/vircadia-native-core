@@ -87,6 +87,8 @@ namespace MenuOption {
     const QString DiskCacheEditor = "Disk Cache Editor";
     const QString DisplayCrashOptions = "Display Crash Options";
     const QString DisplayHandTargets = "Show Hand Targets";
+    const QString DisplayLeftFootTrace = "Show Left Foot Trace";
+    const QString DisplayRightFootTrace = "Show Right Foot Trace";
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelTriangles = "Display Model Triangles";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
@@ -96,8 +98,11 @@ namespace MenuOption {
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
-    const QString EnableCharacterController = "Enable avatar collisions";
+    const QString EnableAvatarCollisions = "Enable Avatar Collisions";
+    const QString EnableIncrementalTextureTransfer = "Enable Incremental Texture Transfer";
+    const QString EnableDynamicTextureManagement = "Enable Dynamic Texture Management";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
+    const QString EnableVerticalComfortMode = "Enable Vertical Comfort Mode";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -163,6 +168,7 @@ namespace MenuOption {
     const QString RenderResolutionThird = "1/3";
     const QString RenderResolutionQuarter = "1/4";
     const QString RenderSensorToWorldMatrix = "Show SensorToWorld Matrix";
+    const QString RenderIKTargets = "Show IK Targets";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";
@@ -191,6 +197,7 @@ namespace MenuOption {
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
     const QString UseAnimPreAndPostRotations = "Use Anim Pre and Post Rotations";
+    const QString MoveKinematically = "Move Kinematically"; // KINEMATIC_CONTROLLER_HACK
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
