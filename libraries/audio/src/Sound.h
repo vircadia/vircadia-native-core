@@ -22,9 +22,10 @@ class Sound : public Resource {
     Q_OBJECT
 
 public:
-    Sound(const QUrl& url, bool isStereo = false);
+    Sound(const QUrl& url, bool isStereo = false, bool isAmbisonic = false);
     
     bool isStereo() const { return _isStereo; }    
+    bool isAmbisonic() const { return _isAmbisonic; }    
     bool isReady() const { return _isReady; }
     float getDuration() const { return _duration; }
 
@@ -37,6 +38,7 @@ signals:
 private:
     QByteArray _byteArray;
     bool _isStereo;
+    bool _isAmbisonic;
     bool _isReady;
     float _duration; // In seconds
     
