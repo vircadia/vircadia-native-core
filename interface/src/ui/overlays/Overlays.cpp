@@ -651,7 +651,29 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
+PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, 
+    RayToOverlayIntersectionResult rayPickResult, QMouseEvent* event, PointerEvent::EventType eventType) {
+
+    auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlay);
+
+    QReadLocker lock(&_lock);
+    auto position = thisOverlay->getPosition();
+    auto rotation = thisOverlay->getRotation();
+    auto dimensions = thisOverlay->getSize();
+
+    glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
+    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID,
+        pos2D, rayPickResult.intersection,
+        rayPickResult.surfaceNormal, ray.direction,
+        toPointerButton(*event), toPointerButtons(*event));
+
+    return pointerEvent;
+}
+
 void Overlays::mousePressEvent(QMouseEvent* event) {
+
+    qDebug() << "####### Overlays::mousePressEvent()";
+
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
@@ -662,19 +684,12 @@ void Overlays::mousePressEvent(QMouseEvent* event) {
         // Only Web overlays can have focus.
         auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
         if (thisOverlay) {
-            QReadLocker lock(&_lock);
-            auto position = thisOverlay->getPosition();
-            auto rotation = thisOverlay->getRotation();
-            auto dimensions = thisOverlay->getSize();
-
-            glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-            PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
-                pos2D, rayPickResult.intersection,
-                rayPickResult.surfaceNormal, ray.direction,
-                toPointerButton(*event), toPointerButtons(*event));
-
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
             emit mousePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
 
+            // ####### TODO: From EntityTreeRendered ... needed?
+            //_lastPointerEvent = pointerEvent;
+            //_lastPointerEventValid = true;
         } else {
             emit mousePressOffOverlay();
         }
@@ -693,18 +708,12 @@ void Overlays::mouseReleaseEvent(QMouseEvent* event) {
         // Only Web overlays can have focus.
         auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(rayPickResult.overlayID));
         if (thisOverlay) {
-            QReadLocker lock(&_lock);
-            auto position = thisOverlay->getPosition();
-            auto rotation = thisOverlay->getRotation();
-            auto dimensions = thisOverlay->getSize();
-
-            glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-            PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
-                pos2D, rayPickResult.intersection,
-                rayPickResult.surfaceNormal, ray.direction,
-                toPointerButton(*event), toPointerButtons(*event));
-
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Release);
             emit mouseReleaseOnOverlay(rayPickResult.overlayID, pointerEvent);
+
+            // ####### TODO: From EntityTreeRendered ... needed?
+            //_lastPointerEvent = pointerEvent;
+            //_lastPointerEventValid = true;
         }
     }
 
@@ -721,34 +730,14 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
         // Only Web overlays can have focus.
         auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(rayPickResult.overlayID));
         if (thisOverlay) {
-            QReadLocker lock(&_lock);
-            auto position = thisOverlay->getPosition();
-            auto rotation = thisOverlay->getRotation();
-            auto dimensions = thisOverlay->getSize();
-
-            glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-            PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
-                pos2D, rayPickResult.intersection,
-                rayPickResult.surfaceNormal, ray.direction,
-                toPointerButton(*event), toPointerButtons(*event));
-
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
             emit mouseMoveOnOverlay(rayPickResult.overlayID, pointerEvent);
 
             // If previously hovering over a different overlay then leave hover on that overlay.
             if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
                 auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentHoverOverOverlayID));
                 if (thisOverlay) {
-                    QReadLocker lock(&_lock);
-                    auto position = thisOverlay->getPosition();
-                    auto rotation = thisOverlay->getRotation();
-                    auto dimensions = thisOverlay->getSize();
-
-                    glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-                    PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
-                        pos2D, rayPickResult.intersection,
-                        rayPickResult.surfaceNormal, ray.direction,
-                        toPointerButton(*event), toPointerButtons(*event));
-
+                    auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
                     emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
                 }
             }
@@ -766,20 +755,9 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
     } else {
         // If previously hovering an overlay then leave hover.
         if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID) {
-
             auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentHoverOverOverlayID));
             if (thisOverlay) {
-                QReadLocker lock(&_lock);
-                auto position = thisOverlay->getPosition();
-                auto rotation = thisOverlay->getRotation();
-                auto dimensions = thisOverlay->getSize();
-
-                glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-                PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
-                    pos2D, rayPickResult.intersection,
-                    rayPickResult.surfaceNormal, ray.direction,
-                    toPointerButton(*event), toPointerButtons(*event));
-
+                auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
                 emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
             }
 

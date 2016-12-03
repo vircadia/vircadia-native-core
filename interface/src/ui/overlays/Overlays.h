@@ -280,6 +280,9 @@ private:
     QScriptEngine* _scriptEngine;
     bool _enabled = true;
 
+    PointerEvent calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
+        QMouseEvent* event, PointerEvent::EventType eventType);
+
     int _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
     int _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
 };
