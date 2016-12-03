@@ -364,6 +364,8 @@ public slots:
     void setKeyboardFocusEntity(QUuid id);
     void setKeyboardFocusEntity(EntityItemID entityItemID);
 
+    void setKeyboardFocusOverlay(int id);
+
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
@@ -578,7 +580,8 @@ private:
 
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
-    ThreadSafeValueCache<EntityItemID> _keyboardFocusedItem;
+    ThreadSafeValueCache<EntityItemID> _keyboardFocusedEntity;
+    ThreadSafeValueCache<int> _keyboardFocusedOverlay;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
