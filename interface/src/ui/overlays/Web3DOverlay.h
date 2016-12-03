@@ -11,6 +11,10 @@
 
 #include "Billboard3DOverlay.h"
 
+#include <QTouchEvent>
+
+#include <PointerEvent.h>
+
 class OffscreenQmlSurface;
 
 class Web3DOverlay : public Billboard3DOverlay {
@@ -29,11 +33,15 @@ public:
 
     virtual void update(float deltatime) override;
 
+    void handlePointerEvent(const PointerEvent& event);
+
     // setters
     void setURL(const QString& url);
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
+
+    glm::vec2 getSize();
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
         BoxFace& face, glm::vec3& surfaceNormal) override;
@@ -48,6 +56,12 @@ private:
     float _dpi;
     vec2 _resolution{ 640, 480 };
     int _geometryId { 0 };
+
+    QTouchDevice _touchDevice;
+
+    QMetaObject::Connection _mousePressConnection;
+    QMetaObject::Connection _mouseReleaseConnection;
+    QMetaObject::Connection _mouseMoveConnection;
 };
 
 #endif // hifi_Web3DOverlay_h

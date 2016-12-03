@@ -2867,6 +2867,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
         getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
+        getOverlays().mouseMoveEvent(&mappedEvent);
         getEntities()->mouseMoveEvent(&mappedEvent);
     }
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
@@ -2901,6 +2902,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
+        getOverlays().mousePressEvent(&mappedEvent);
         getEntities()->mousePressEvent(&mappedEvent);
     }
 
@@ -2947,6 +2949,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
+        getOverlays().mouseReleaseEvent(&mappedEvent);
         getEntities()->mouseReleaseEvent(&mappedEvent);
     }
 

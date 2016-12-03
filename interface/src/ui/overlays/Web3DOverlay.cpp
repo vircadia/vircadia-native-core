@@ -1,7 +1,6 @@
 //
 //  Web3DOverlay.cpp
 //
-//
 //  Created by Clement on 7/1/14.
 //  Modified and renamed by Zander Otavka on 8/4/15
 //  Copyright 2014 High Fidelity, Inc.
@@ -12,6 +11,9 @@
 
 #include "Web3DOverlay.h"
 
+#include <Application.h>
+
+#include <QQuickWindow>
 #include <QtGui/QOpenGLContext>
 #include <QtQuick/QQuickItem>
 
@@ -33,6 +35,11 @@ static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 QString const Web3DOverlay::TYPE = "web3d";
 
 Web3DOverlay::Web3DOverlay() : _dpi(DPI) { 
+    _touchDevice.setCapabilities(QTouchDevice::Position);
+    _touchDevice.setType(QTouchDevice::TouchScreen);
+    _touchDevice.setName("RenderableWebEntityItemTouchDevice");
+    _touchDevice.setMaximumTouchPoints(4);
+
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
@@ -50,6 +57,12 @@ Web3DOverlay::~Web3DOverlay() {
         _webSurface->pause();
         _webSurface->disconnect(_connection);
 
+        QObject::disconnect(_mousePressConnection);
+        _mousePressConnection = QMetaObject::Connection();
+        QObject::disconnect(_mouseReleaseConnection);
+        _mouseReleaseConnection = QMetaObject::Connection();
+        QObject::disconnect(_mouseMoveConnection);
+        _mouseMoveConnection = QMetaObject::Connection();
 
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
@@ -98,10 +111,19 @@ void Web3DOverlay::render(RenderArgs* args) {
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
         currentContext->makeCurrent(currentSurface);
+
+        auto forwardPointerEvent = [=](const int overlayID, const PointerEvent& event) {
+            if (overlayID == getOverlayID()) {
+                handlePointerEvent(event);
+            }
+        };
+
+        _mousePressConnection = connect(&(qApp->getOverlays()), &Overlays::mousePressOnOverlay, forwardPointerEvent);
+        _mouseReleaseConnection = connect(&(qApp->getOverlays()), &Overlays::mouseReleaseOnOverlay, forwardPointerEvent);
+        _mouseMoveConnection = connect(&(qApp->getOverlays()), &Overlays::mouseMoveOnOverlay, forwardPointerEvent);
     }
 
-    vec2 size = _resolution / _dpi * INCHES_TO_METERS;
-    vec2 halfSize = size / 2.0f;
+    vec2 halfSize = getSize() / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
 
     Transform transform = getTransform();
@@ -142,6 +164,59 @@ const render::ShapeKey Web3DOverlay::getShapeKey() {
         builder.withTranslucent();
     }
     return builder.build();
+}
+
+void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
+    if (!_webSurface) {
+        return;
+    }
+
+    const float METERS_TO_INCHES = 39.3701f;
+    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
+    QPointF windowPoint(windowPos.x, windowPos.y);
+
+    if (event.getType() == PointerEvent::Move) {
+        // Forward a mouse move event to the Web surface.
+        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, 
+            Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    }
+
+    QEvent::Type type;
+    Qt::TouchPointState touchPointState;
+    switch (event.getType()) {
+        case PointerEvent::Press:
+            type = QEvent::TouchBegin;
+            touchPointState = Qt::TouchPointPressed;
+            break;
+        case PointerEvent::Release:
+            type = QEvent::TouchEnd;
+            touchPointState = Qt::TouchPointReleased;
+            break;
+        case PointerEvent::Move:
+        default:
+            type = QEvent::TouchUpdate;
+            touchPointState = Qt::TouchPointMoved;
+            break;
+    }
+
+    QTouchEvent::TouchPoint point;
+    point.setId(event.getID());
+    point.setState(touchPointState);
+    point.setPos(windowPoint);
+    point.setScreenPos(windowPoint);
+    QList<QTouchEvent::TouchPoint> touchPoints;
+    touchPoints.push_back(point);
+
+    QTouchEvent* touchEvent = new QTouchEvent(type);
+    touchEvent->setWindow(_webSurface->getWindow());
+    touchEvent->setDevice(&_touchDevice);
+    touchEvent->setTarget(_webSurface->getRootItem());
+    touchEvent->setTouchPoints(touchPoints);
+    touchEvent->setTouchPointStates(touchPointState);
+
+
+    QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 }
 
 void Web3DOverlay::setProperties(const QVariantMap& properties) {
@@ -188,8 +263,11 @@ void Web3DOverlay::setURL(const QString& url) {
             _webSurface->getRootItem()->setProperty("url", url);
         });
     }
-
 }
+
+glm::vec2 Web3DOverlay::getSize() {
+    return _resolution / _dpi * INCHES_TO_METERS * getDimensions();
+};
 
 bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
     // FIXME - face and surfaceNormal not being returned
@@ -200,9 +278,8 @@ bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
     //applyTransformTo(transform, true);
     //setTransform(transform);
 
-    vec2 size = _resolution / _dpi * INCHES_TO_METERS * vec2(getDimensions());
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
-    return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), size, distance);
+    return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), getSize(), distance);
 }
 
 Web3DOverlay* Web3DOverlay::createClone() const {
