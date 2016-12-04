@@ -39,6 +39,7 @@ public:
 
     // setters
     void setURL(const QString& url);
+    void setScriptURL(const QString& script);
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
@@ -55,6 +56,7 @@ private:
     QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
     QString _url;
+    QString _scriptURL;
     float _dpi;
     vec2 _resolution{ 640, 480 };
     int _geometryId { 0 };

@@ -47,6 +47,7 @@ Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     Billboard3DOverlay(Web3DOverlay),
     _url(Web3DOverlay->_url),
+    _scriptURL(Web3DOverlay->_scriptURL),
     _dpi(Web3DOverlay->_dpi),
     _resolution(Web3DOverlay->_resolution)
 {
@@ -112,6 +113,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         _webSurface->load("WebView.qml");
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
+        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
         currentContext->makeCurrent(currentSurface);
 
@@ -273,6 +275,14 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
         }
     }
 
+    auto scriptURLValue = properties["scriptURL"];
+    if (scriptURLValue.isValid()) {
+        QString newScriptURL = scriptURLValue.toString();
+        if (newScriptURL != _scriptURL) {
+            setScriptURL(newScriptURL);
+        }
+    }
+
     auto resolution = properties["resolution"];
     if (resolution.isValid()) {
         bool valid;
@@ -281,7 +291,6 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
             _resolution = res;
         }
     }
-
 
     auto dpi = properties["dpi"];
     if (dpi.isValid()) {
@@ -292,6 +301,9 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
 QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;
+    }
+    if (property == "scriptURL") {
+        return _scriptURL;
     }
     if (property == "dpi") {
         return _dpi;
@@ -304,6 +316,15 @@ void Web3DOverlay::setURL(const QString& url) {
     if (_webSurface) {
         AbstractViewStateInterface::instance()->postLambdaEvent([this, url] {
             _webSurface->getRootItem()->setProperty("url", url);
+        });
+    }
+}
+
+void Web3DOverlay::setScriptURL(const QString& scriptURL) {
+    _scriptURL = scriptURL;
+    if (_webSurface) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([this, scriptURL] {
+            _webSurface->getRootItem()->setProperty("scriptURL", scriptURL);
         });
     }
 }

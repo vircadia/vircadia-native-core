@@ -125,17 +125,19 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     this.clicked = false;
 };
 
+WebTablet.prototype.setScriptURL = function (scriptURL) {
+    Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
+};
+
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
     Entities.deleteEntity(this.homeButtonEntity);
 };
 
-
 WebTablet.prototype.pickle = function () {
     return JSON.stringify({ webOverlayID: this.webOverlayID, tabletEntityID: this.tabletEntityID });
 };
-
 
 WebTablet.prototype.register = function() {
     Messages.subscribe("home");
