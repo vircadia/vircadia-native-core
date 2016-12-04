@@ -77,7 +77,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * @namespace Overlays
  */
 
-const int UNKNOWN_OVERLAY_ID = -1;
+const unsigned int UNKNOWN_OVERLAY_ID = 0;
 
 class Overlays : public QObject {
     Q_OBJECT
@@ -257,14 +257,14 @@ signals:
     void overlayDeleted(unsigned int id);
     void panelDeleted(unsigned int id);
 
-    void mousePressOnOverlay(const int overlayID, const PointerEvent& event);
-    void mouseReleaseOnOverlay(const int overlayID, const PointerEvent& event);
-    void mouseMoveOnOverlay(const int overlayID, const PointerEvent& event);
+    void mousePressOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void mouseReleaseOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void mouseMoveOnOverlay(unsigned int overlayID, const PointerEvent& event);
     void mousePressOffOverlay();
 
-    void hoverEnterOverlay(const int overlayID, const PointerEvent& event);
-    void hoverOverOverlay(const int overlayID, const PointerEvent& event);
-    void hoverLeaveOverlay(const int overlayID, const PointerEvent& event);
+    void hoverEnterOverlay(unsigned int overlayID, const PointerEvent& event);
+    void hoverOverOverlay(unsigned int overlayID, const PointerEvent& event);
+    void hoverLeaveOverlay(unsigned int overlayID, const PointerEvent& event);
 
 private:
     void cleanupOverlaysToDelete();
@@ -283,8 +283,8 @@ private:
     PointerEvent calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
-    int _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
-    int _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
+    unsigned int _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
+    unsigned int _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
 };
 
 #endif // hifi_Overlays_h

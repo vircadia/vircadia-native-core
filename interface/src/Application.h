@@ -366,7 +366,7 @@ public slots:
     void setKeyboardFocusEntity(QUuid id);
     void setKeyboardFocusEntity(EntityItemID entityItemID);
 
-    void setKeyboardFocusOverlay(int id);
+    void setKeyboardFocusOverlay(unsigned int overlayID);
 
 private slots:
     void showDesktop();

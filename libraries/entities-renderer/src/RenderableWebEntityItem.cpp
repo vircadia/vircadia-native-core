@@ -350,8 +350,6 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         touchEvent->setTouchPoints(touchPoints);
         touchEvent->setTouchPointStates(touchPointState);
 
-        _lastTouchEvent = *touchEvent;
-
         QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
     }
 }

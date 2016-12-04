@@ -30,7 +30,8 @@
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
-static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
+static const float METERS_TO_INCHES = 39.3701f;
+static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 QString const Web3DOverlay::TYPE = "web3d";
 
@@ -63,6 +64,8 @@ Web3DOverlay::~Web3DOverlay() {
         _mouseReleaseConnection = QMetaObject::Connection();
         QObject::disconnect(_mouseMoveConnection);
         _mouseMoveConnection = QMetaObject::Connection();
+        QObject::disconnect(_hoverLeaveConnection);
+        _hoverLeaveConnection = QMetaObject::Connection();
 
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
@@ -112,7 +115,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
         currentContext->makeCurrent(currentSurface);
 
-        auto forwardPointerEvent = [=](const int overlayID, const PointerEvent& event) {
+        auto forwardPointerEvent = [=](unsigned int overlayID, const PointerEvent& event) {
             if (overlayID == getOverlayID()) {
                 handlePointerEvent(event);
             }
@@ -121,6 +124,27 @@ void Web3DOverlay::render(RenderArgs* args) {
         _mousePressConnection = connect(&(qApp->getOverlays()), &Overlays::mousePressOnOverlay, forwardPointerEvent);
         _mouseReleaseConnection = connect(&(qApp->getOverlays()), &Overlays::mouseReleaseOnOverlay, forwardPointerEvent);
         _mouseMoveConnection = connect(&(qApp->getOverlays()), &Overlays::mouseMoveOnOverlay, forwardPointerEvent);
+        _hoverLeaveConnection = connect(&(qApp->getOverlays()), &Overlays::hoverLeaveOverlay,
+            [=](unsigned int overlayID, const PointerEvent& event) {
+            if (this->_pressed && this->getOverlayID() == overlayID) {
+                // If the user mouses off the overlay while the button is down, simulate a touch end.
+                QTouchEvent::TouchPoint point;
+                point.setId(event.getID());
+                point.setState(Qt::TouchPointReleased);
+                glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
+                QPointF windowPoint(windowPos.x, windowPos.y);
+                point.setScenePos(windowPoint);
+                point.setPos(windowPoint);
+                QList<QTouchEvent::TouchPoint> touchPoints;
+                touchPoints.push_back(point);
+                QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, 
+                    touchPoints);
+                touchEvent->setWindow(_webSurface->getWindow());
+                touchEvent->setDevice(&_touchDevice);
+                touchEvent->setTarget(_webSurface->getRootItem());
+                QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
+            }
+        });
     }
 
     vec2 halfSize = getSize() / 2.0f;
@@ -186,7 +210,6 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
         return;
     }
 
-    const float METERS_TO_INCHES = 39.3701f;
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
@@ -195,6 +218,12 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
         QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, 
             Qt::NoButton, Qt::NoModifier);
         QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    }
+
+    if (event.getType() == PointerEvent::Press) {
+        this->_pressed = true;
+    } else if (event.getType() == PointerEvent::Release) {
+        this->_pressed = false;
     }
 
     QEvent::Type type;
@@ -229,7 +258,6 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     touchEvent->setTarget(_webSurface->getRootItem());
     touchEvent->setTouchPoints(touchPoints);
     touchEvent->setTouchPointStates(touchPointState);
-
 
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 }
