@@ -158,6 +158,15 @@ void DialogsManager::showScriptEditor() {
     _scriptEditor->raise();
 }
 
+void DialogsManager::showTestingResults() {
+	if (!_testingDialog) {
+		_testingDialog = new TestingDialog(qApp->getWindow());
+		connect(_testingDialog, SIGNAL(closed()), _testingDialog, SLOT(deleteLater()));
+	}
+	_testingDialog->show();
+	_testingDialog->raise();
+}
+
 void DialogsManager::showDomainConnectionDialog() {
     // if the dialog already exists we delete it so the connection data is refreshed
     if (_domainConnectionDialog) {
