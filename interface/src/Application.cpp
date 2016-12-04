@@ -1161,11 +1161,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
 
-    connect(overlays, &Overlays::mousePressOnOverlay, [=](const int overlayID, const PointerEvent& event) {
+    connect(overlays, &Overlays::mousePressOnOverlay, [=](unsigned int overlayID, const PointerEvent& event) {
         setKeyboardFocusOverlay(overlayID);
     });
 
-    connect(overlays, &Overlays::overlayDeleted, [=](const int overlayID) {
+    connect(overlays, &Overlays::overlayDeleted, [=](unsigned int overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
@@ -3886,7 +3886,7 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
     }
 }
 
-void Application::setKeyboardFocusOverlay(int overlayID) {
+void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
     if (overlayID != _keyboardFocusedOverlay.get()) {
         _keyboardFocusedOverlay.set(overlayID);
 

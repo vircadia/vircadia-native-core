@@ -59,11 +59,13 @@ private:
     vec2 _resolution{ 640, 480 };
     int _geometryId { 0 };
 
+    bool _pressed{ false };
     QTouchDevice _touchDevice;
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
+    QMetaObject::Connection _hoverLeaveConnection;
 };
 
 #endif // hifi_Web3DOverlay_h

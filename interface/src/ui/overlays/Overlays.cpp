@@ -671,9 +671,6 @@ PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay r
 }
 
 void Overlays::mousePressEvent(QMouseEvent* event) {
-
-    qDebug() << "####### Overlays::mousePressEvent()";
-
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
@@ -686,10 +683,6 @@ void Overlays::mousePressEvent(QMouseEvent* event) {
         if (thisOverlay) {
             auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
             emit mousePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
-
-            // ####### TODO: From EntityTreeRendered ... needed?
-            //_lastPointerEvent = pointerEvent;
-            //_lastPointerEventValid = true;
         } else {
             emit mousePressOffOverlay();
         }
@@ -710,10 +703,6 @@ void Overlays::mouseReleaseEvent(QMouseEvent* event) {
         if (thisOverlay) {
             auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Release);
             emit mouseReleaseOnOverlay(rayPickResult.overlayID, pointerEvent);
-
-            // ####### TODO: From EntityTreeRendered ... needed?
-            //_lastPointerEvent = pointerEvent;
-            //_lastPointerEventValid = true;
         }
     }
 
