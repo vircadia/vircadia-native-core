@@ -85,15 +85,19 @@ WebTablet = function (url, width, dpi, clientOnly) {
     this.state = "idle";
 };
 
+WebTablet.prototype.setScriptURL = function (scriptURL) {
+    Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
+};
+
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
 };
 
-
 WebTablet.prototype.pickle = function () {
     return JSON.stringify({ webOverlayID: this.webOverlayID, tabletEntityID: this.tabletEntityID });
 };
+
 WebTablet.unpickle = function (string) {
     if (!string) {
         return;
