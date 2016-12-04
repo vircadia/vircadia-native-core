@@ -3302,7 +3302,7 @@ void Application::idle(float nsecsElapsed) {
     }
 
 
-    // Update focus for entity or overlay.
+    // Update focus highlight for entity or overlay.
     {
         if (!_keyboardFocusedEntity.get().isInvalidID() || _keyboardFocusedOverlay.get() != UNKNOWN_OVERLAY_ID) {
             const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
@@ -3312,11 +3312,20 @@ void Application::idle(float nsecsElapsed) {
                 setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
             } else {
                 // update position of highlight overlay
-                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
-                if (entity && _keyboardFocusHighlight) {
-                    _keyboardFocusHighlight->setRotation(entity->getRotation());
-                    _keyboardFocusHighlight->setPosition(entity->getPosition());
+                if (!_keyboardFocusedEntity.get().isInvalidID()) {
+                    auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
+                    if (entity && _keyboardFocusHighlight) {
+                        _keyboardFocusHighlight->setRotation(entity->getRotation());
+                        _keyboardFocusHighlight->setPosition(entity->getPosition());
+                    }
+                } else {
+                    // Only Web overlays can have focus.
+                    auto overlay =
+                        std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
+                    if (overlay && _keyboardFocusHighlight) {
+                        _keyboardFocusHighlight->setRotation(overlay->getRotation());
+                        _keyboardFocusHighlight->setPosition(overlay->getPosition());
+                    }
                 }
             }
         }
@@ -3904,6 +3913,29 @@ void Application::rotationModeChanged() const {
     }
 }
 
+void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions) {
+    // Create focus
+    if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+        _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
+        _keyboardFocusHighlight->setAlpha(1.0f);
+        _keyboardFocusHighlight->setBorderSize(1.0f);
+        _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
+        _keyboardFocusHighlight->setIsSolid(false);
+        _keyboardFocusHighlight->setPulseMin(0.5);
+        _keyboardFocusHighlight->setPulseMax(1.0);
+        _keyboardFocusHighlight->setColorPulse(1.0);
+        _keyboardFocusHighlight->setIgnoreRayIntersection(true);
+        _keyboardFocusHighlight->setDrawInFront(false);
+        _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
+    }
+
+    // Position focus
+    _keyboardFocusHighlight->setRotation(rotation);
+    _keyboardFocusHighlight->setPosition(position);
+    _keyboardFocusHighlight->setDimensions(dimensions);
+    _keyboardFocusHighlight->setVisible(true);
+}
+
 QUuid Application::getKeyboardFocusEntity() const {
     return _keyboardFocusedEntity.get();
 }
@@ -3915,18 +3947,16 @@ void Application::setKeyboardFocusEntity(QUuid id) {
 
 void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
     if (_keyboardFocusedEntity.get() != entityItemID) {
-        // reset focused entity
-        _keyboardFocusedEntity.set(UNKNOWN_ENTITY_ID);
-        if (_keyboardFocusHighlight) {
+        _keyboardFocusedEntity.set(entityItemID);
+
+        if (_keyboardFocusHighlight && _keyboardFocusedOverlay.get() == UNKNOWN_OVERLAY_ID) {
             _keyboardFocusHighlight->setVisible(false);
         }
 
-        // if invalid, return without expensive (locking) operations
         if (entityItemID == UNKNOWN_ENTITY_ID) {
             return;
         }
 
-        // if valid, query properties
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
         if (!properties.getLocked() && properties.getVisible()) {
@@ -3936,29 +3966,9 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                 if (_keyboardMouseDevice->isActive()) {
                     _keyboardMouseDevice->pluginFocusOutEvent();
                 }
-                _keyboardFocusedEntity.set(entityItemID);
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                // create a focus
-                if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
-                    _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
-                    _keyboardFocusHighlight->setAlpha(1.0f);
-                    _keyboardFocusHighlight->setBorderSize(1.0f);
-                    _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
-                    _keyboardFocusHighlight->setIsSolid(false);
-                    _keyboardFocusHighlight->setPulseMin(0.5);
-                    _keyboardFocusHighlight->setPulseMax(1.0);
-                    _keyboardFocusHighlight->setColorPulse(1.0);
-                    _keyboardFocusHighlight->setIgnoreRayIntersection(true);
-                    _keyboardFocusHighlight->setDrawInFront(false);
-                    _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
-                }
-
-                // position the focus
-                _keyboardFocusHighlight->setRotation(entity->getRotation());
-                _keyboardFocusHighlight->setPosition(entity->getPosition());
-                _keyboardFocusHighlight->setDimensions(entity->getDimensions() * 1.05f);
-                _keyboardFocusHighlight->setVisible(true);
+                setKeyboardFocusHighlight(entity->getPosition(), entity->getRotation(), entity->getDimensions() * 1.05f);
             }
         }
     }
@@ -3966,19 +3976,16 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
 
 void Application::setKeyboardFocusOverlay(int overlayID) {
     if (overlayID != _keyboardFocusedOverlay.get()) {
+        _keyboardFocusedOverlay.set(overlayID);
 
-        // Reset focused overlay
-        _keyboardFocusedOverlay.set(UNKNOWN_OVERLAY_ID);
-        if (_keyboardFocusHighlight) {
+        if (_keyboardFocusHighlight && _keyboardFocusedEntity.get() == UNKNOWN_ENTITY_ID) {
             _keyboardFocusHighlight->setVisible(false);
         }
 
-        // No further action if invalid overlay
         if (overlayID == UNKNOWN_OVERLAY_ID) {
             return;
         }
 
-        // 
         auto overlayType = getOverlays().getOverlayType(overlayID);
         auto isVisible = getOverlays().getProperty(overlayID, "visible").value.toBool();
         if (overlayType == Web3DOverlay::TYPE && isVisible) {
@@ -3988,8 +3995,11 @@ void Application::setKeyboardFocusOverlay(int overlayID) {
             if (_keyboardMouseDevice->isActive()) {
                 _keyboardMouseDevice->pluginFocusOutEvent();
             }
-            _keyboardFocusedOverlay.set(overlayID);
             _lastAcceptedKeyPress = usecTimestampNow();
+
+            auto size = overlay->getSize() * 1.05f;
+            const float OVERLAY_DEPTH = 0.0105f;
+            setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
         }
     }
 }

@@ -360,6 +360,8 @@ public slots:
 
     static void runTests();
 
+    void setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions);
+
     QUuid getKeyboardFocusEntity() const;  // thread-safe
     void setKeyboardFocusEntity(QUuid id);
     void setKeyboardFocusEntity(EntityItemID entityItemID);
