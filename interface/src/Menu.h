@@ -156,6 +156,7 @@ namespace MenuOption {
     const QString RenderOtherLookAtVectors = "Show Other Eye Vectors";
     const QString RenderMaxTextureMemory = "Maximum Texture Memory";
     const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
+    const QString RenderMaxTexture4MB = "4 MB";
     const QString RenderMaxTexture64MB = "64 MB";
     const QString RenderMaxTexture256MB = "256 MB";
     const QString RenderMaxTexture512MB = "512 MB";
