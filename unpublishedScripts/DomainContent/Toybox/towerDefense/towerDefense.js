@@ -10,28 +10,56 @@
 
 print("============= Script Starting =============");
 
-var BUILD_TIME = 1; // in minutes
-var BUTTON_POSITION = { x: 100, y: 100, z: 100 };
+function findSurfaceBelowPosition(pos) {
+    var result = Entities.findRayIntersection({
+        origin: pos,
+        direction: { x: 0, y: -1, z: 0 }
+    });
+    if (result.intersects) {
+        return result.intersection;
+    }
+    return pos;
+}
+
+var GAME_STATES = {
+    IDLE: 0,
+    BUILD: 1,
+    FIGHT: 2,
+    GAMEOVER: 3,
+};
+
+var BASE_POSITION = findSurfaceBelowPosition(MyAvatar.position);
+var BUILD_TIME_SECONDS = 5;
+var BUTTON_POSITION = { x: 0, y: 0, z: 0 };
 var BASES = [
     {
-        position: { x: 80, y: 100, z: 100 },
+        position: { x: -20, y: 0, z: 0 },
         color: { red: 255, green: 0, blue: 0 },
+        spawnerPosition: { x: -20, y: 0, z: -1 },
+        buttonPosition: { x: -20, y: 0, z: -1 },
     },
     {
-        position: { x: 120, y: 100, z: 100 },
+        position: { x: 20, y: 0, z: 0 },
         color: { red: 0, green: 255, blue: 0 },
+        spawnerPosition: { x: 20, y: 0, z: 1 },
+        buttonPosition: { x: 20, y: 0, z: 1 },
     },
     {
-        position: { x: 100, y: 100, z: 80 },
+        position: { x: 0, y: 0, z: -20 },
         color: { red: 0, green: 0, blue: 255 },
+        spawnerPosition: { x: 1, y: 0, z: -20 },
+        buttonPosition: { x: 1, y: 0, z: -20 },
     },
     {
-        position: { x: 100, y: 100, z: 120 },
+        position: { x: 0, y: 0, z: 20 },
         color: { red: 255, green: 0, blue: 255 },
+        spawnerPosition: { x: -1, y: 0, z: 20 },
+        buttonPosition: { x: -1, y: 0, z: 20 },
     },
 ];
-var BASES_SIZE = 10;
-var BASES_HEIGHT = 2;
+var BASES_SIZE = 20;
+var TARGET_SIZE = 2;
+var BASES_HEIGHT = 6;
 var BASES_TRANSPARENCY = 0.2;
 
 
@@ -42,11 +70,21 @@ var QUERY_RADIUS = 200;
 
 var buttonID;
 var bases = [];
+var entityIDs = [];
+var spawnerIDs = [];
 
+var currentState = GAME_STATES.IDLE;
 
 Messages.subscribe(CHANNEL_NAME);
-EntityViewer.setPosition(BUTTON_POSITION);
-EntityViewer.setCenterRadius(QUERY_RADIUS);
+
+if (this.EntityViewer) {
+    EntityViewer.setPosition(Vec3.sum(BASE_POSITION, BUTTON_POSITION));
+    EntityViewer.setCenterRadius(QUERY_RADIUS);
+}
+
+var BEGIN_BUILDING_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/letTheGamesBegin.wav"));
+var BEGIN_FIGHTING_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/fight.wav"));
+var GAME_OVER_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/gameOver.wav"));
 
 setup();
 
@@ -54,8 +92,8 @@ setup();
 function setup() {
     var buttonProperties = {
         type: 'Box',
-        name: 'TestBox',
-        position: BUTTON_POSITION,
+        name: 'TD.StartButton',
+        position: Vec3.sum(BASE_POSITION, BUTTON_POSITION),
         dimensions: { x: 1, y: 1, z: 1 },
         color: { red: 0, green: 255, blue: 0 },
         script: Script.resolvePath("towerButton.js"),
@@ -69,20 +107,40 @@ function setup() {
     buttonID = Entities.addEntity(buttonProperties);
 
     for (var i in BASES) {
-        var baseProperties = {
+        var position = Vec3.sum(BASE_POSITION, BASES[i].position);
+        var arenaProperties = {
+            name: 'TD.Arena',
             type: 'Box',
-            name: 'TestBox',
-            position: BASES[i].position,
-            dimensions: { x: BASES_SIZE, y: 0.2, z: BASES_SIZE },
-            color: BASES[i].color,
-            alpha: 1.0,
-        }
+            position: position,
+            registrationPoint: { x: 0.5, y: 0, z: 0.5 },
+            dimensions: { x: BASES_SIZE, y: BASES_HEIGHT, z: BASES_SIZE },
+            color: { red: 255, green: 255, blue: 255 },
+            script: Script.resolvePath("teamAreaEntity.js"),
+            visible: false,
+            collisionless: true,
+            userData: JSON.stringify({
+                gameChannel: CHANNEL_NAME,
+            })
+        };
         // Base block
-        bases.push(Entities.addEntity(baseProperties));
-        baseProperties.alpha = BASES_TRANSPARENCY;
-        baseProperties.position.y += BASES_HEIGHT;
+        bases.push(Entities.addEntity(arenaProperties));
+
+
+        const ROOF_HEIGHT = 0.2;
+        position.y += BASES_HEIGHT - ROOF_HEIGHT;
+        var roofProperties = {
+            name: 'TD.Roof',
+            type: 'Box',
+            position: position,
+            registrationPoint: { x: 0.5, y: 0, z: 0.5 },
+            dimensions: { x: BASES_SIZE, y: ROOF_HEIGHT, z: BASES_SIZE },
+            color: BASES[i].color,
+            userData: JSON.stringify({
+                gameChannel: CHANNEL_NAME,
+            })
+        }
         // Player area
-        bases.push(Entities.addEntity(baseProperties));
+        bases.push(Entities.addEntity(roofProperties));
     }
 }
 
@@ -91,6 +149,12 @@ function cleanup() {
         Entities.deleteEntity(bases.pop());
     }
     Entities.deleteEntity(buttonID);
+    print("Size of entityIDs:", entityIDs.length);
+    for (var i = 0; i < entityIDs.length; ++i) {
+        print("Deleting: ", entityIDs[i]);
+        Entities.deleteEntity(entityIDs[i]);
+    }
+    entityIDs = [];
 
     print("============= Script Stopping =============");
     Script.stop();
@@ -100,16 +164,81 @@ Messages.messageReceived.connect(function(channel, message, senderID) {
     print("Recieved: " + message + " from " + senderID);
     if (channel === CHANNEL_NAME) {
         switch (message) {
-            case "BUILD":
+            case "START":
+                if (currentState != GAME_STATES.IDLE) {
+                    print("Got start message, but not in idle state. Current state: " + currentState);
+                    return;
+                }
 
-                // Spawn spawner
+                Entities.deleteEntity(buttonID);
 
-                Script.setTimer(function() {
+                for (var i in BASES) {
+                    var position = Vec3.sum(BASE_POSITION, BASES[i].position);
+
+                    // Create target entity
+                    var targetID = Entities.addEntity({
+                        name: 'TD.TargetEntity',
+                        type: 'Sphere',
+                        position: position,
+                        dimensions: { x: TARGET_SIZE, y: TARGET_SIZE, z: TARGET_SIZE },
+                        color: BASES[i].color,
+                        script: Script.resolvePath("targetEntity.js"),
+                        userData: JSON.stringify({
+                            gameChannel: CHANNEL_NAME,
+                        }),
+                    });
+                    entityIDs.push(targetID);
+
+                    // Create box spawner
+                    var spawnerID = Entities.addEntity({
+                        name: 'TD.BoxSpawner',
+                        type: 'Box',
+                        position: Vec3.sum(BASE_POSITION, BASES[i].spawnerPosition),
+                        dimensions: { x: TARGET_SIZE, y: TARGET_SIZE, z: TARGET_SIZE },
+                        color: BASES[i].color,
+                        script: Script.resolvePath("launch.js"),
+                        userData: JSON.stringify({
+                            gameChannel: CHANNEL_NAME,
+                        })
+                    });
+                    spawnerIDs.push(spawnerID);
+                    Audio.playSound(BEGIN_BUILDING_SOUND, {
+                        volume: 1.0,
+                        position: BASE_POSITION
+                    });
+                }
+
+                currentState = GAME_STATES.BUILD;
+
+                Script.setTimeout(function() {
+                    print("============ Done building, FIGHT =============");
+
+                    Audio.playSound(BEGIN_FIGHTING_SOUND, {
+                        volume: 1.0,
+                        position: BASE_POSITION
+                    });
+
                     Messages.sendMessage(CHANNEL_NAME, "FIGHT");
-                }, BUILD_TIME);
+
+
+                    // Cleanup spawner cubes
+                    currentState = GAME_STATES.FIGHT;
+                    for (var i = 0; i < spawnerIDs.length; ++i) {
+                        Entities.deleteEntity(spawnerIDs[i]);
+                    }
+
+                    // Spawn bows
+
+                }, BUILD_TIME_SECONDS * 1000);
                 break;
             case "STOP":
+                Audio.playSound(GAME_OVER_SOUND, {
+                    volume: 1.0,
+                    position: BASE_POSITION
+                });
+                currentState = GAME_STATES.GAME_OVER;
                 cleanup();
+                currentState = GAME_STATES.IDLE;
                 break;
         }
 

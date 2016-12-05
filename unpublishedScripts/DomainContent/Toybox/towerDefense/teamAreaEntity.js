@@ -30,7 +30,7 @@
                     // Set position to top of entity
                     var props = Entities.getEntityProperties(this.entityID, ['position', 'dimensions', 'registrationPoint']);
                     var teleportPoint = MyAvatar.position;
-                    teleportPoint.y = props.position.y + (props.dimensions.y * props.registrationPoint.y);
+                    teleportPoint.y = props.position.y + (props.dimensions.y * (1 - props.registrationPoint.y)) + 0.5;
                     MyAvatar.position = teleportPoint;
                 }
             }
