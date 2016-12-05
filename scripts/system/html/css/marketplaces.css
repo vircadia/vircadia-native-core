@@ -93,7 +93,8 @@ body {
     */
     font-family: sans-serif;
     font-size: 24px;
-    margin-left: 30px; margin-right: 8px; 
+    margin-left: 25px; 
+    margin-right: 5px; 
     color: #fff;
     line-height: 50px;
 }
@@ -107,7 +108,7 @@ body {
 }
 #marketplace-navigation input {
     float: right;
-    margin-right: 50px;
+    margin-right: 25px;
     margin-top: 12px;
 }
 
