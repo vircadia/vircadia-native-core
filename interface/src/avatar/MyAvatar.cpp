@@ -467,8 +467,6 @@ void MyAvatar::simulate(float deltaTime) {
 
     if (_characterController.getState() != CharacterController::State::Hover) {
         updateSensorToWorldMatrix(_enableVerticalComfortMode ? SensorToWorldUpdateMode::VerticalComfort : SensorToWorldUpdateMode::Vertical);
-    } else {
-        updateSensorToWorldMatrix(SensorToWorldUpdateMode::None);
     }
 
     {
@@ -618,8 +616,6 @@ void MyAvatar::updateSensorToWorldMatrix(SensorToWorldUpdateMode mode) {
         } else if (mode == SensorToWorldUpdateMode::Vertical) {
             setSensorToWorldMatrix(sensorToWorldMat);
         }
-    } else if (mode == SensorToWorldUpdateMode::None) {
-        setSensorToWorldMatrix(_sensorToWorldMatrix);
     }
 }
 
@@ -1901,7 +1897,7 @@ void MyAvatar::applyVelocityToSensorToWorldMatrix(const glm::vec3& velocity, flo
         // update the position column of matrix
         glm::mat4 newSensorToWorldMatrix = _sensorToWorldMatrix;
         newSensorToWorldMatrix[3] = glm::vec4(position, 1.0f);
-        _sensorToWorldMatrix = newSensorToWorldMatrix;
+        setSensorToWorldMatrix(newSensorToWorldMatrix);
     }
 }
 
