@@ -18,7 +18,6 @@
 class FingerprintUtils {
 public:
     static QString getMachineFingerprint();
-
 };
 
 #endif // hifi_FingerprintUtils_h
