@@ -14,10 +14,6 @@
 
 #include <QString>
 
-#ifdef Q_OS_WIN
-#include <comdef.h>
-#include <Wbemidl.h>
-#endif //Q_OS_WIN
 
 class FingerprintUtils {
 public:

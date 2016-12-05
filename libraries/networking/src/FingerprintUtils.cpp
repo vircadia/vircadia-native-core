@@ -12,8 +12,34 @@
 #include "FingerprintUtils.h"
 #include <QDebug>
 
+#ifdef Q_OS_WIN
+#include <comdef.h>
+#include <Wbemidl.h>
+#endif //Q_OS_WIN
+
+#ifdef Q_OS_MAC
+#include <IOKit/IOBSD.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/storage/IOMedia.h>
+#endif //Q_OS_MAC
+
 QString FingerprintUtils::getMachineFingerprint() {
     QString retval;
+
+#ifdef Q_OS_LINUX
+    // sadly need to be root to get smbios guid from linux, so 
+    // for now lets do nothing.
+#endif //Q_OS_LINUX
+
+#ifdef Q_OS_MAC
+    io_registry_entry_t ioRegistryRoot = IORegistryEntryFromPath(kIOMasterPortDefault, "IOService:/");
+    CFStringRef uuidCf = (CFStringRef) IORegistryEntryCreateCFProperty(ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
+    IOObjectRelease(ioRegistryRoot);
+    retval = QString::fromCFString(uuidCf);
+    CFRelease(uuidCf); 
+    qDebug() << "Mac serial number: " << retval;
+#endif //Q_OS_MAC
+
 #ifdef Q_OS_WIN
     HRESULT hres;
     IWbemLocator *pLoc = NULL;
@@ -125,16 +151,10 @@ QString FingerprintUtils::getMachineFingerprint() {
     qDebug() << "Windows BIOS UUID: " << retval;
 #endif //Q_OS_WIN
 
-#ifdef Q_OS_MAC
-
-    io_registry_entry_t ioRegistryRoot = IORegistryEntryFromPath(kIOMasterPortDefault, "IOService:/");
-    CFStringRef uuidCf = (CFStringRef) IORegistryEntryCreateCFProperty(ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
-    IOObjectRelease(ioRegistryRoot);
-    retval = QString::fromCFString(uuidCf);
-    CFRelease(uuidCf); 
-    qDebug() << "Mac serial number: " << retval;
-#endif //Q_OS_MAC
-
+    // TODO: should we have a fallback for cases where this failed, 
+    // leaving us with an empty string or something that isn't a 
+    // guid?  For now keeping this a string, but maybe best to return
+    // a QUuid?
     return retval;
 }
 
