@@ -56,8 +56,6 @@ enum AudioListenerMode {
 };
 Q_DECLARE_METATYPE(AudioListenerMode);
 
-const size_t DEBUG_LINE_LOOP_SIZE = 500;
-
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
@@ -86,7 +84,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
-    Q_PROPERTY(bool avatarCollisionsEnabled READ getAvatarCollisionsEnabled WRITE setAvatarCollisionsEnabled)
+    Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
 
 public:
     explicit MyAvatar(RigPointer rig);
@@ -110,7 +108,6 @@ public:
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
-    const glm::vec2& getHMDSensorFacing() const { return _hmdSensorFacing; }
     const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
 
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
@@ -128,14 +125,7 @@ public:
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
     // This is so the correct camera can be used for rendering.
-    enum class SensorToWorldUpdateMode {
-        Full = 0,
-        Vertical,
-        VerticalComfort
-    };
-    void updateSensorToWorldMatrix(SensorToWorldUpdateMode mode = SensorToWorldUpdateMode::Full);
-
-    void setSensorToWorldMatrix(const glm::mat4& sensorToWorld);
+    void updateSensorToWorldMatrix();
 
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
@@ -237,7 +227,7 @@ public:
     const MyCharacterController* getCharacterController() const { return &_characterController; }
 
     void updateMotors();
-    void prepareForPhysicsSimulation(float deltaTime);
+    void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
@@ -282,13 +272,11 @@ public:
 
     bool hasDriveInput() const;
 
-    Q_INVOKABLE void setAvatarCollisionsEnabled(bool enabled);
-    Q_INVOKABLE bool getAvatarCollisionsEnabled();
+    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
+    Q_INVOKABLE bool getCharacterControllerEnabled();
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
-
-    glm::vec3 getPreActionVelocity() const;
 
     void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
@@ -314,19 +302,15 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    void setEnableDebugDrawLeftFootTrace(bool isEnabled);
-    void setEnableDebugDrawRightFootTrace(bool isEnabled);
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
     void setEnableDebugDrawHandControllers(bool isEnabled);
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
-    void setEnableDebugDrawIKTargets(bool isEnabled);
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
-    void setEnableVerticalComfortMode(bool isEnabled);
 
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe
     void setAnimGraphOverrideUrl(QUrl value);  // thread-safe
@@ -335,8 +319,6 @@ public slots:
 
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
-
-    bool isOutOfBody() const;
 
 signals:
     void audioListenerModeChanged();
@@ -389,8 +371,6 @@ private:
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();
-
-    void applyVelocityToSensorToWorldMatrix(const glm::vec3& velocity, float deltaTime);
 
     void clampTargetScaleToDomainLimits();
     void clampScaleChangeToDomainLimits(float desiredScale);
@@ -472,9 +452,8 @@ private:
             Vertical,
             NumFollowTypes
         };
-        uint8_t _activeBits { 0 };
-        bool _isOutOfBody { false };
-        float _outOfBodyDistance { 0.0f };
+        glm::mat4 _desiredBodyMatrix;
+        float _timeRemaining[NumFollowTypes];
 
         void deactivate();
         void deactivate(FollowType type);
@@ -482,11 +461,13 @@ private:
         void activate(FollowType type);
         bool isActive() const;
         bool isActive(FollowType followType) const;
-        void updateRotationActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix);
-        void updateHorizontalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix);
-        void updateVerticalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix);
-        glm::mat4 prePhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput, float deltaTime);
-        void postPhysicsUpdate(MyAvatar& myAvatar);
+        float getMaxTimeRemaining() const;
+        void decrementTimeRemaining(float dt);
+        bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
+        glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
     };
     FollowHelper _follow;
 
@@ -498,14 +479,10 @@ private:
     RigPointer _rig;
     bool _prevShouldDrawHead;
 
-    bool _enableDebugDrawLeftFootTrace { false };
-    bool _enableDebugDrawRightFootTrace { false };
     bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
     bool _enableDebugDrawHandControllers { false };
     bool _enableDebugDrawSensorToWorldMatrix { false };
-    bool _enableDebugDrawIKTargets { false };
-    bool _enableVerticalComfortMode { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
@@ -521,8 +498,6 @@ private:
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
-    bool _moveKinematically { false }; // KINEMATIC_CONTROLLER_HACK
-    float _canonicalScale { 1.0f };
 
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
@@ -540,18 +515,6 @@ private:
     float getEnergy();
     void setEnergy(float value);
     bool didTeleport();
-
-    struct DebugDrawVertex {
-        DebugDrawVertex() : pos(), color() {}
-        DebugDrawVertex(const glm::vec3& posIn, const glm::vec4& colorIn) : pos(posIn), color(colorIn) {}
-        glm::vec3 pos;
-        glm::vec4 color;
-    };
-    DebugDrawVertex _debugLineLoop[DEBUG_LINE_LOOP_SIZE];
-    size_t _debugLineLoopIndex { 0 };
-
-    bool _handControllerShow { false };
-    float _handControllerShowTimer { 0.0f };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

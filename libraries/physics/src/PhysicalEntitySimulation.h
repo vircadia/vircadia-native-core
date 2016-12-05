@@ -1,6 +1,6 @@
 //
 //  PhysicalEntitySimulation.h
-//  libraries/physics/src
+//  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2015.04.27
 //  Copyright 2015 High Fidelity, Inc.

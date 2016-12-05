@@ -498,10 +498,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderMyLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderOtherLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisplayLeftFootTrace, 0, false,
-        avatar.get(), SLOT(setEnableDebugDrawLeftFootTrace(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisplayRightFootTrace, 0, false,
-        avatar.get(), SLOT(setEnableDebugDrawRightFootTrace(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawDefaultPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
@@ -518,8 +514,6 @@ Menu::Menu() {
         avatar.get(), SLOT(setEnableInverseKinematics(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSensorToWorldMatrix, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawSensorToWorldMatrix(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKTargets, 0, false,
-        avatar.get(), SLOT(setEnableDebugDrawIKTargets(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
@@ -529,17 +523,9 @@ Menu::Menu() {
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAvatarCollisions, 0, true,
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableCharacterController, 0, true,
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
-
-    // KINEMATIC_CONTROLLER_HACK
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MoveKinematically, 0, false,
-        avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
-        UNSPECIFIED_POSITION, "Developer");
-
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableVerticalComfortMode, 0, false,
-        avatar.get(), SLOT(setEnableVerticalComfortMode(bool)));
 
     // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
