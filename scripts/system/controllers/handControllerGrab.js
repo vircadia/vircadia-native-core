@@ -1012,7 +1012,7 @@ function MyController(hand) {
 
         // The value to check if we will allow the release function to be called
         var allowReleaseValue = 0.1;
-        if (value > 0 && _this.rawTriggerValue <= allowReleaseValue) {
+        if (value > 0 && _this.state == STATE_HOLD) {
             _this.release();
         }
     };
