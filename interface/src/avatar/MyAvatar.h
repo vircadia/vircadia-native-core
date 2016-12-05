@@ -192,7 +192,8 @@ public:
     enum class SensorToWorldUpdateMode {
         Full = 0,
         Vertical,
-        VerticalComfort
+        VerticalComfort,
+        None
     };
     void updateSensorToWorldMatrix(SensorToWorldUpdateMode mode = SensorToWorldUpdateMode::Full);
 
