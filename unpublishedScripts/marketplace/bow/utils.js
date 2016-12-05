@@ -98,10 +98,14 @@ getEntityCustomData = function(customKey, id, defaultValue) {
 mergeObjects = function(proto, custom) {
     var result = {};
     for (var attrname in proto) {
-        result[attrname] = proto[attrname];
+        if (proto.hasOwnProperty(attrname)) {
+            result[attrname] = proto[attrname];
+        }
     }
     for (var attrname in custom) {
-        result[attrname] = custom[attrname];
+        if (custom.hasOwnProperty(attrname)) {
+            result[attrname] = custom[attrname];
+        }
     }
     return result;
 }
