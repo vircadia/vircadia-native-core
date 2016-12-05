@@ -4733,13 +4733,13 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     renderArgs->_viewport =  originalViewport;
 }
 
-void Application::resetSensors(bool andRecenter) {
+void Application::resetSensors(bool andReload) {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
     _overlayConductor.centerUI();
-    getMyAvatar()->reset(andRecenter);
+    getMyAvatar()->reset(andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 
