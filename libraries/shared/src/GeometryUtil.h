@@ -160,5 +160,10 @@ private:
     static void copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& lengthB, glm::vec2* vertexArrayB);
 };
 
+glm::vec3 nearestPointOnLineSegment(const glm::vec3& point, const glm::vec3& segmentStart, const glm::vec3& segmentEnd);
+float distanceFromLineSegment(const glm::vec3& point, const glm::vec3& segmentStart, const glm::vec3& segmentEnd);
+float distanceFromCapsule(const glm::vec3& point, const glm::vec3& segmentStart, const glm::vec3& segmentEnd, float capsuleRadius);
+bool pointIsInsideCapsule(const glm::vec3& point, const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius);
+glm::vec3 projectPointOntoCapsule(const glm::vec3& point, const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius);
 
 #endif // hifi_GeometryUtil_h

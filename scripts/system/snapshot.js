@@ -156,19 +156,22 @@ function isDomainOpen(id) {
 }
 
 function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
-    // show hud
-    toolBar.writeProperty("visible", true);
-    Reticle.visible = reticleVisible;
-    
+    // If we're not taking an animated snapshot, we have to show the HUD.
+    // If we ARE taking an animated snapshot, we've already re-enabled the HUD by this point.
+    if (pathAnimatedSnapshot === "") {
+        // show hud
+        toolBar.writeProperty("visible", true);
+        Reticle.visible = reticleVisible;
+        // show overlays if they were on
+        if (resetOverlays) {
+            Menu.setIsOptionChecked("Overlays", true);
+        }
+    }
     // update button states
     button.writeProperty("buttonState", 1);
     button.writeProperty("defaultState", 1);
     button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
-    // show overlays if they were on
-    if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
-    }
 
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
     // during which time the user may have moved. So stash that info in the dialog so that
@@ -187,13 +190,30 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     }
 }
 
+function processingGif() {
+    // show hud
+    toolBar.writeProperty("visible", true);
+    Reticle.visible = reticleVisible;
+
+    // update button states
+    button.writeProperty("buttonState", 1);
+    button.writeProperty("defaultState", 1);
+    button.writeProperty("hoverState", 3);
+    // show overlays if they were on
+    if (resetOverlays) {
+        Menu.setIsOptionChecked("Overlays", true);
+    }
+}
+
 button.clicked.connect(onClicked);
 Window.snapshotShared.connect(snapshotShared);
+Window.processingGif.connect(processingGif);
 
 Script.scriptEnding.connect(function () {
     toolBar.removeButton("snapshot");
     button.clicked.disconnect(onClicked);
     Window.snapshotShared.disconnect(snapshotShared);
+    Window.processingGif.disconnect(processingGif);
 });
 
 }()); // END LOCAL_SCOPE

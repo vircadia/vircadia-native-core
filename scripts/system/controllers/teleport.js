@@ -13,7 +13,7 @@
 var inTeleportMode = false;
 
 var SMOOTH_ARRIVAL_SPACING = 33;
-var NUMBER_OF_STEPS = 6;
+var NUMBER_OF_STEPS_FOR_TELEPORT = 6;
 
 var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport-destination.fbx");
 var TOO_CLOSE_MODEL_URL = Script.resolvePath("../assets/models/teleport-cancel.fbx");
@@ -44,6 +44,7 @@ var COLORS_TELEPORT_TOO_CLOSE = {
 var TELEPORT_CANCEL_RANGE = 1;
 var USE_COOL_IN = true;
 var COOL_IN_DURATION = 500;
+var MAX_HMD_AVATAR_SEPARATION = 10.0;
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -88,6 +89,7 @@ function Teleporter() {
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
     this.teleportHand = null;
+    this.teleportMode = "HMDAndAvatarTogether";
     this.tooClose = false;
     this.inCoolIn = false;
 
@@ -543,43 +545,68 @@ function Teleporter() {
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
+            if (MyAvatar.hmdLeanRecenterEnabled) {
+                if (Vec3.distance(MyAvatar.position, _this.intersection.intersection) > MAX_HMD_AVATAR_SEPARATION) {
+                    this.teleportMode = "HMDAndAvatarTogether";
+                } else {
+                    this.teleportMode = "HMDFirstAvatarWillFollow";
+                }
+            } else {
+                this.teleportMode = "AvatarOnly";
+            }
+
             // Disable smooth arrival, possibly temporarily
             //this.smoothArrival();
-            MyAvatar.position = _this.intersection.intersection;
+            // Instead jump to the intersection directly.
+            var landingPoint = _this.intersection.intersection;
+            _this.teleportTo(landingPoint);
+            if (this.teleportMode === "HMDFirstAvatarWillFollow") {
+                MyAvatar.position = landingPoint;
+            }
+
+            // cleanup UI
             _this.hideTargetOverlay();
             _this.hideCancelOverlay();
             HMD.centerUI();
         }
     };
 
-    this.findMidpoint = function(start, end) {
-        var xy = Vec3.sum(start, end);
-        var midpoint = Vec3.multiply(0.5, xy);
-        return midpoint
-    };
+    this.getWayPoints = function(startPoint, endPoint, numberOfSteps) {
+        var travel = Vec3.subtract(endPoint, startPoint);
+        var distance = Vec3.length(travel);
+        var wayPoints = [];
+        if (distance > 1.0) {
+            var base = Math.exp(Math.log(distance + 1.0) / numberOfSteps);
+            var i;
 
-    this.getArrivalPoints = function(startPoint, endPoint) {
-        var arrivalPoints = [];
-        var i;
-        var lastPoint;
-
-        for (i = 0; i < NUMBER_OF_STEPS; i++) {
-            if (i === 0) {
-                lastPoint = startPoint;
+            // this fancy math generates regular points in logarithmic space
+            for (i = 0; i < numberOfSteps - 1; i++) {
+                var backFraction = (1.0 - Math.exp((numberOfSteps - 1 - i) * Math.log(base))) / distance;
+                wayPoints.push(Vec3.sum(endPoint, Vec3.multiply(backFraction, travel)));
             }
-            var newPoint = _this.findMidpoint(lastPoint, endPoint);
-            lastPoint = newPoint;
-            arrivalPoints.push(newPoint);
         }
-
-        arrivalPoints.push(endPoint);
-
-        return arrivalPoints;
+        wayPoints.push(endPoint);
+        return wayPoints;
     };
+
+    this.teleportTo = function(landingPoint) {
+        if (this.teleportMode === "AvatarOnly") {
+            MyAvatar.position = landingPoint;
+        } else if (this.teleportMode === "HMDAndAvatarTogether") {
+            var leanEnabled = MyAvatar.hmdLeanRecenterEnabled;
+            MyAvatar.setHMDLeanRecenterEnabled(false);
+            MyAvatar.position = landingPoint;
+            HMD.snapToAvatar();
+            MyAvatar.hmdLeanRecenterEnabled = leanEnabled;
+        } else if (this.teleportMode === "HMDFirstAvatarWillFollow") {
+            var eyeOffset = Vec3.subtract(MyAvatar.getEyePosition(), MyAvatar.position);
+            landingPoint = Vec3.sum(landingPoint, eyeOffset);
+            HMD.position = landingPoint;
+        }
+    }
 
     this.smoothArrival = function() {
-
-        _this.arrivalPoints = _this.getArrivalPoints(MyAvatar.position, _this.intersection.intersection);
+        _this.arrivalPoints = _this.getWayPoints(MyAvatar.position, _this.intersection.intersection, NUMBER_OF_STEPS_FOR_TELEPORT);
         _this.smoothArrivalInterval = Script.setInterval(function() {
             if (_this.arrivalPoints.length === 0) {
                 Script.clearInterval(_this.smoothArrivalInterval);
@@ -587,7 +614,7 @@ function Teleporter() {
                 return;
             }
             var landingPoint = _this.arrivalPoints.shift();
-            MyAvatar.position = landingPoint;
+            _this.teleportTo(landingPoint);
 
             if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
                 _this.hideTargetOverlay();
@@ -599,7 +626,6 @@ function Teleporter() {
 
     this.createTargetOverlay(false);
     this.createCancelOverlay(false);
-
 }
 
 //related to repositioning the avatar after you teleport

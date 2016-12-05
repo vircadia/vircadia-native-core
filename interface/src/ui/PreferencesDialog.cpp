@@ -105,8 +105,8 @@ void setupPreferences() {
         auto getter = []()->float { return SnapshotAnimated::snapshotAnimatedDuration.get(); };
         auto setter = [](float value) { SnapshotAnimated::snapshotAnimatedDuration.set(value); };
         auto preference = new SpinnerPreference(SNAPSHOTS, "Animated Snapshot Duration", getter, setter);
-        preference->setMin(3);
-        preference->setMax(10);
+        preference->setMin(1);
+        preference->setMax(5);
         preference->setStep(1);
         preferences->addPreference(preference);
     }

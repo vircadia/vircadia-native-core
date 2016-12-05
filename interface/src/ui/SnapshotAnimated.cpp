@@ -92,6 +92,9 @@ void SnapshotAnimated::captureFrames() {
                 SnapshotAnimated::snapshotAnimatedTimestamp = 0;
                 SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = 0;
 
+                // Notify the user that we're processing the snapshot
+                emit SnapshotAnimated::snapshotAnimatedDM->processingGif();
+
                 // Kick off the thread that'll pack the frames into the GIF
                 QtConcurrent::run(processFrames);
                 // Stop the snapshot QTimer. This action by itself DOES NOT GUARANTEE

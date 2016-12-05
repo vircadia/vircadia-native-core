@@ -539,6 +539,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534; // -2
 const int CONTROLLER_RIGHTHAND_INDEX = 65533; // -3
 const int CONTROLLER_LEFTHAND_INDEX = 65532; // -4
-
+const int CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX = 65531; // -5
+const int CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX = 65530; // -6
 
 #endif // hifi_AvatarData_h

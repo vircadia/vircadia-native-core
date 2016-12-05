@@ -30,7 +30,7 @@ public:
     AnimBlendLinear(const QString& id, float alpha);
     virtual ~AnimBlendLinear() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) override;
 
     void setAlphaVar(const QString& alphaVar) { _alphaVar = alphaVar; }
 
@@ -38,7 +38,7 @@ protected:
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
 
-    void evaluateAndBlendChildren(const AnimVariantMap& animVars, Triggers& triggersOut, float alpha,
+    void evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
                                   size_t prevPoseIndex, size_t nextPoseIndex, float dt);
 
     AnimPoseVec _poses;

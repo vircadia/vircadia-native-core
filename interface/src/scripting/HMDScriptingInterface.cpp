@@ -114,6 +114,21 @@ glm::vec3 HMDScriptingInterface::getPosition() const {
     return glm::vec3();
 }
 
+void HMDScriptingInterface::setPosition(const glm::vec3& position) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setPosition", Qt::QueuedConnection, Q_ARG(const glm::vec3&, position));
+        return;
+    } else {
+        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        glm::mat4 hmdToSensor = myAvatar->getHMDSensorMatrix();
+        glm::mat4 sensorToWorld = myAvatar->getSensorToWorldMatrix();
+        glm::mat4 hmdToWorld = sensorToWorld * hmdToSensor;
+        setTranslation(hmdToWorld, position);
+        sensorToWorld = hmdToWorld * glm::inverse(hmdToSensor);
+        myAvatar->setSensorToWorldMatrix(sensorToWorld);
+    }
+}
+
 glm::quat HMDScriptingInterface::getOrientation() const {
     if (qApp->getActiveDisplayPlugin()->isHmd()) {
         return glm::normalize(glm::quat_cast(getWorldHMDMatrix()));
@@ -183,4 +198,9 @@ bool HMDScriptingInterface::isKeyboardVisible() {
 
 void HMDScriptingInterface::centerUI() {
     QMetaObject::invokeMethod(qApp, "centerUI", Qt::QueuedConnection);
+}
+
+void HMDScriptingInterface::snapToAvatar() {
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    myAvatar->updateSensorToWorldMatrix();
 }

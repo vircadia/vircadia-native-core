@@ -532,6 +532,10 @@ function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     }
 }
 
+function processingGif() {
+    createNotification("Processing GIF snapshot...", NotificationType.SNAPSHOT);
+}
+
 //  handles mouse clicks on buttons
 function mousePressEvent(event) {
     var pickRay,
@@ -631,6 +635,7 @@ Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
+Window.processingGif.connect(processingGif);
 Window.notifyEditError = onEditError;
 
 setup();

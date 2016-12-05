@@ -62,6 +62,7 @@ signals:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
     void snapshotTaken(const QString& pathStillSnapshot, const QString& pathAnimatedSnapshot, bool notify);
     void snapshotShared(const QString& error);
+    void processingGif();
 
 private:
     QString getPreviousBrowseLocation() const;
