@@ -14,7 +14,6 @@ describe("MyAvatar", function () {
 
         // wait until we are finished loading
         var id = Script.setInterval(function () {
-            print(MyAvatar.jointNames.length);
             if (MyAvatar.jointNames.length == 72) {
                 // assume we are finished loading.
                 Script.clearInterval(id);

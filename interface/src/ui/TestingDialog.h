@@ -21,16 +21,15 @@ const QString testRunnerRelativePath = "/scripts/developer/tests/unit_tests/test
 const unsigned int TESTING_CONSOLE_HEIGHT = 400;
 
 class TestingDialog : public QDialog {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	TestingDialog(QWidget* parent);
-	~TestingDialog();
+    TestingDialog(QWidget* parent);
 
-	void onTestingFinished(const QString& scriptPath);
+    void onTestingFinished(const QString& scriptPath);
 
 private:
-	JSConsole* _console;
-	ScriptEngine* _engine;
+    std::unique_ptr<JSConsole> _console;
+    ScriptEngine* _engine;
 };
 
 #endif

@@ -159,12 +159,12 @@ void DialogsManager::showScriptEditor() {
 }
 
 void DialogsManager::showTestingResults() {
-	if (!_testingDialog) {
-		_testingDialog = new TestingDialog(qApp->getWindow());
-		connect(_testingDialog, SIGNAL(closed()), _testingDialog, SLOT(deleteLater()));
-	}
-	_testingDialog->show();
-	_testingDialog->raise();
+    if (!_testingDialog) {
+        _testingDialog = new TestingDialog(qApp->getWindow());
+        connect(_testingDialog, SIGNAL(closed()), _testingDialog, SLOT(deleteLater()));
+    }
+    _testingDialog->show();
+    _testingDialog->raise();
 }
 
 void DialogsManager::showDomainConnectionDialog() {
