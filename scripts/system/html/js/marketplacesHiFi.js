@@ -16,9 +16,9 @@ function onLoad() {
     $("head").append(
         '<style>' +
             '#marketplace-navigation { font-family: Arial, Helvetica, sans-serif; width: 100%; height: 50px; background: #00b4ef; position: fixed; bottom: 0; }' +
-            '#marketplace-navigation .glyph { margin-left: 30px; margin-right: 8px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
+            '#marketplace-navigation .glyph { margin-left: 25px; margin-right: 5px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
             '#marketplace-navigation .text { color: #fff; font-size: 18px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
-            '#marketplace-navigation input { float: right; margin-right: 50px; margin-top: 12px; }' +
+            '#marketplace-navigation input { float: right; margin-right: 25px; margin-top: 12px; }' +
         '</style>'
     );
 
@@ -26,7 +26,7 @@ function onLoad() {
     // Font family, size, and position adjusted because Raleway-Bold cannot be used cross-domain.
     $("head").append(
         '<style>' +
-            'input[type=button] { font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: 12px; text-transform: uppercase; vertical-align: center; height: 28px; min-width: 120px; padding: 0 18px; margin-right: 6px; border-radius: 5px; border: none; color: #fff; background-color: #000; background: linear-gradient(#343434 20%, #000 100%); cursor: pointer; }' +
+            'input[type=button] { font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: 12px; text-transform: uppercase; vertical-align: center; height: 28px; min-width: 100px; padding: 0 15px; border-radius: 5px; border: none; color: #fff; background-color: #000; background: linear-gradient(#343434 20%, #000 100%); cursor: pointer; }' +
             'input[type=button].white { color: #121212; background-color: #afafaf; background: linear-gradient(#fff 20%, #afafaf 100%); }' +
             'input[type=button].white:enabled:hover { background: linear-gradient(#fff, #fff); border: none; }' +
             'input[type=button].white:active { background: linear-gradient(#afafaf, #afafaf); }' +
@@ -36,7 +36,7 @@ function onLoad() {
     // Marketplaces footer.
     $("body").append(
         '<div id="marketplace-navigation">' +
-            '<span class="glyph">&#x1f6c8;</span> <span class="text">Check out other marketplaces.</span>' +
+            '<span class="glyph">&#x1f6c8;</span> <span class="text">Check out other markets.</span>' +
             '<input id="all-markets" type="button" class="white" value="See All Markets" />' +
         '</div>'
     );

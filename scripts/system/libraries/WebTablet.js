@@ -78,6 +78,7 @@ WebTablet = function (url, width, dpi, clientOnly) {
         resolution: { x: 480, y: 640 },
         dpi: DPI,
         color: { red: 255, green: 255, blue: 255 },
+        alpha: 1.0,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
     });
