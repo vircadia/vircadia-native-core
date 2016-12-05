@@ -85,8 +85,16 @@ WebTablet = function (url, width, dpi, clientOnly) {
     this.state = "idle";
 };
 
+WebTablet.prototype.setURL = function (url) {
+    Overlays.editOverlay(this.webOverlayID, { url: url });
+};
+
 WebTablet.prototype.setScriptURL = function (scriptURL) {
     Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
+};
+
+WebTablet.prototype.getOverlayObject = function () {
+    return Overlays.getOverlayObject(this.webOverlayID);
 };
 
 WebTablet.prototype.destroy = function () {

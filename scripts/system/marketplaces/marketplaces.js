@@ -28,7 +28,6 @@ var marketplaceWindow = new OverlayWebWindow({
     visible: false
 });
 marketplaceWindow.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
-
 marketplaceWindow.webEventReceived.connect(function (data) {
     if (data === "INJECT_CLARA") {
         marketplaceWindow.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
@@ -65,10 +64,22 @@ function showMarketplace(marketplaceID) {
         marketplaceWebTablet = new WebTablet(MARKETPLACES_URL, null, null, true);
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
         marketplaceWebTablet.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
+        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (data) {
+            if (data === "INJECT_CLARA") {
+                marketplaceWebTablet.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
+            }
+            if (data === "INJECT_HIFI") {
+                marketplaceWebTablet.setScriptURL(MARKETPLACES_HFIF_SCRIPT_URL);
+            }
+            if (data === "RELOAD_DIRECTORY") {
+                marketplaceWebTablet.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
+                marketplaceWebTablet.setURL("");  // Force reload of URL.
+                marketplaceWebTablet.setURL(MARKETPLACES_URL);
+            }
+        });
     } else {
         var url = MARKETPLACES_URL;
         if (marketplaceID) {
-            // $$$$$$$ TODO
             url = url + "/items/" + marketplaceID;
         }
         marketplaceWindow.setURL(url);
