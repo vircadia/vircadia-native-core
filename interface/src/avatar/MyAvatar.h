@@ -88,57 +88,6 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool avatarCollisionsEnabled READ getAvatarCollisionsEnabled WRITE setAvatarCollisionsEnabled)
 
-    /**jsdoc
-     * Your avatar is your in-world representation of you. The MyAvatar API is used to manipulate the avatar.
-     * For example, using the MyAvatar API you can customize the avatar's appearance, run custom avatar animations,
-     * change the avatar's position within the domain, or manage the avatar's collisions with other objects.
-     * NOTE: MyAvatar extends Avatar and AvatarData, see those namespace for more properties/methods.
-     *
-     * @namespace MyAvatar
-     * @augments Avatar
-     * @property shouldRenderLocally {bool} Set it to true if you would like to see MyAvatar in your local interface,
-     *   and false if you would not like to see MyAvatar in your local interface.
-     * @property motorVelocity {Vec3} Can be used to move the avatar with this velocity.
-     * @property motorTimescale {float} Specifies how quickly the avatar should accelerate to meet the motorVelocity,
-     *   smaller values will result in higher acceleration.
-     * @property motorReferenceFrame {string} Reference frame of the motorVelocity, must be one of the following: "avatar", "camera", "world"
-     * @property collisionSoundURL {string} Specifies the sound to play when the avatar experiences a collision.
-     *   You can provide a mono or stereo 16-bit WAV file running at either 24 Khz or 48 Khz.
-     *   The latter is downsampled by the audio mixer, so all audio effectively plays back at a 24 Khz sample rate.
-     *   48 Khz RAW files are also supported.
-     * @property audioListenerMode {number} When hearing spatialized audio this determines where the listener placed.
-     *   Should be one of the following values:
-     *   MyAvatar.audioListenerModeHead - the listener located at the avatar's head.
-     *   MyAvatar.audioListenerModeCamera - the listener is relative to the camera.
-     *   MyAvatar.audioListenerModeCustom - the listener is at a custom location specified by the MyAvatar.customListenPosition
-     *   and MyAvatar.customListenOrientation properties.
-     * @property customListenPosition {Vec3} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the position
-     *   of audio spatialization listener.
-     * @property customListenOreintation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
-     *   of the audio spatialization listener.
-     * @property audioListenerModeHead {number} READ-ONLY. When passed to MyAvatar.audioListenerMode, it will set the audio listener
-     *   around the avatar's head.
-     * @property audioListenerModeCamera {number} READ-ONLY. When passed to MyAvatar.audioListenerMode, it will set the audio listener
-     *   around the camera.
-     * @property audioListenerModeCustom {number} READ-ONLY. When passed to MyAvatar.audioListenerMode, it will set the audio listener
-     *  around the value specified by MyAvatar.customListenPosition and MyAvatar.customListenOrientation.
-     * @property leftHandPosition {Vec3} READ-ONLY. The desired position of the left wrist in avatar space, determined by the hand controllers.
-     *   Note: only valid if hand controllers are in use.
-     * @property rightHandPosition {Vec3} READ-ONLY. The desired position of the right wrist in avatar space, determined by the hand controllers.
-     *   Note: only valid if hand controllers are in use.
-     * @property leftHandTipPosition {Vec3} READ-ONLY. A position 30 cm offset from MyAvatar.leftHandPosition
-     * @property rightHandTipPosition {Vec3} READ-ONLY. A position 30 cm offset from MyAvatar.rightHandPosition
-     * @property leftHandPose {Pose} READ-ONLY. Returns full pose (translation, orientation, velocity & angularVelocity) of the desired
-     *   wrist position, determined by the hand controllers.
-     * @property rightHandPose {Pose} READ-ONLY. Returns full pose (translation, orientation, velocity & angularVelocity) of the desired
-     *   wrist position, determined by the hand controllers.
-     * @property leftHandTipPose {Pose} READ-ONLY. Returns a pose offset 30 cm from MyAvatar.leftHandPose
-     * @property rightHandTipPose {Pose} READ-ONLY. Returns a pose offset 30 cm from MyAvatar.rightHandPose
-     * @property hmdLeanRecenterEnabled {bool} This can be used disable the hmd lean recenter behavior.  This behavior is what causes your avatar
-     *   to follow your HMD as you walk around the room, in room scale VR.  Disabling this is useful if you desire to pin the avatar to a fixed location.
-     * @property avatarCollisionsEnabled {bool} This can be used to disable collisions between the avatar and the world.
-     */
-
 public:
     explicit MyAvatar(RigPointer rig);
     ~MyAvatar();
@@ -151,17 +100,7 @@ public:
 
     void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
 
-    /**jsdoc
-     * Moves and orients the avatar, such that it is directly underneath the HMD, with toes pointed forward.
-     * @function MyAvatar.centerBody
-     */
     Q_INVOKABLE void centerBody(); // thread-safe
-
-    /**jsdoc
-     * The internal inverse-kinematics system maintains a record of which joints are "locked". Sometimes it is useful to forget this history, to prevent
-     * contorted joints.
-     * @function MyAvatar.centerBody
-     */
     Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
 
     void update(float deltaTime);
@@ -200,109 +139,23 @@ public:
 
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
-    /**jsdoc
-     * The default position in world coordinates of the point directly between the avatar's eyes
-     * @function MyAvatar.getDefaultEyePosition
-     * @example <caption>This example gets the default eye position and prints it to the debug log.</caption>
-     * var defaultEyePosition = MyAvatar.getDefaultEyePosition();
-     * print (JSON.stringify(defaultEyePosition));
-     * @returns {Vec3} Position between the avatar's eyes.
-     */
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
 
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
 
-    /**jsdoc
-     * The avatar animation system includes a set of default animations along with rules for how those animations are blended
-     * together with procedural data (such as look at vectors, hand sensors etc.). overrideAnimation() is used to completely
-     * override all motion from the default animation system (including inverse kinematics for hand and head controllers) and
-     * play a specified animation.  To end this animation and restore the default animations, use MyAvatar.restoreAnimation.
-     * @function MyAvatar.overrideAnimation
-     * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
-     * // Clap your hands for 3 seconds then restore animation back to the avatar.
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
-     * MyAvatar.overrideAnimation(ANIM_URL, 30, true, 0, 53);
-     * Script.setTimeout(function () {
-     *     MyAvatar.restoreAnimation();
-     * }, 3000);
-     * @param url {string} The URL to the animation file. Animation files need to be .FBX format, but only need to contain the avatar skeleton and animation data.
-     * @param fps {number} The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
-     * @param loop {bool} Set to true if the animation should loop.
-     * @param firstFrame {number} The frame the animation should start at.
-     * @param lastFrame {number} The frame the animation should end at.
-     */
+    // Interrupt the current animation with a custom animation.
     Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
-    /**jsdoc
-     * The avatar animation system includes a set of default animations along with rules for how those animations are blended together with
-     * procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will override the default animations.
-     * restoreAnimation() is used to restore all motion from the default animation system including inverse kinematics for hand and head
-     * controllers. If you aren't currently playing an override animation, this function will have no effect.
-     * @function MyAvatar.restoreAnimation
-     * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
-     * // Clap your hands for 3 seconds then restore animation back to the avatar.
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
-     * MyAvatar.overrideAnimation(ANIM_URL, 30, true, 0, 53);
-     * Script.setTimeout(function () {
-     *     MyAvatar.restoreAnimation();
-     * }, 3000);
-     */
+    // Stop the animation that was started with overrideAnimation and go back to the standard animation.
     Q_INVOKABLE void restoreAnimation();
 
-    /**jsdoc
-     * Each avatar has an avatar-animation.json file that defines which animations are used and how they are blended together with procedural data
-     * (such as look at vectors, hand sensors etc.). Each animation specified in the avatar-animation.json file is known as an animation role.
-     * Animation roles map to easily understandable actions that the avatar can perform, such as "idleStand", "idleTalk", or "walkFwd."
-     * getAnimationRoles() is used get the list of animation roles defined in the avatar-animation.json.
-     * @function MyAvatar.getAnimatationRoles
-     * @example <caption>This example prints the list of animation roles defined in the avatar's avatar-animation.json file to the debug log.</caption>
-     * var roles = MyAvatar.getAnimationRoles();
-     * print("Animation Roles:");
-     * for (var i = 0; i < roles.length; i++) {
-     *     print(roles[i]);
-     * }
-     * @returns {string[]} Array of role strings
-     */
+    // Returns a list of all clips that are available
     Q_INVOKABLE QStringList getAnimationRoles();
 
-    /**jsdoc
-     * Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily understandable actions
-     * that the avatar can perform, such as "idleStand", "idleTalk", or "walkFwd". To get the full list of roles, use getAnimationRoles().
-     * For each role, the avatar-animation.json defines when the animation is used, the animation clip (.FBX) used, and how animations are blended
-     * together with procedural data (such as look at vectors, hand sensors etc.).
-     * overrideRoleAnimation() is used to change the animation clip (.FBX) associated with a specified animation role.
-     * Note: Hand roles only affect the hand. Other 'main' roles, like 'idleStand', 'idleTalk', 'takeoffStand' are full body.
-     * @function MyAvatar.overrideRoleAnimation
-     * @example <caption>The default avatar-animation.json defines an "idleStand" animation role. This role specifies that when the avatar is not moving,
-     * an animation clip of the avatar idling with hands hanging at its side will be used. It also specifies that when the avatar moves, the animation
-     * will smoothly blend to the walking animation used by the "walkFwd" animation role.
-     * In this example, the "idleStand" role animation clip has been replaced with a clapping animation clip. Now instead of standing with its arms
-     * hanging at its sides when it is not moving, the avatar will stand and clap its hands. Note that just as it did before, as soon as the avatar
-     * starts to move, the animation will smoothly blend into the walk animation used by the "walkFwd" animation role.</caption>
-     * // An animation of the avatar clapping its hands while standing
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
-     * MyAvatar.overrideRoleAnimation("idleStand", ANIM_URL, 30, true, 0, 53);
-     * // To restore the default animation, use MyAvatar.restoreRoleAnimation().
-     * @param role {string} The animation role to override
-     * @param url {string} The URL to the animation file. Animation files need to be .FBX format, but only need to contain the avatar skeleton and animation data.
-     * @param fps {number} The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
-     * @param loop {bool} Set to true if the animation should loop
-     * @param firstFrame {number} The frame the animation should start at
-     * @param lastFrame {number} The frame the animation should end at
-     */
+    // Replace an existing standard role animation with a custom one.
     Q_INVOKABLE void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
-    /**jsdoc
-     * Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily understandable actions that
-     * the avatar can perform, such as "idleStand", "idleTalk", or "walkFwd". To get the full list of roles, use getAnimationRoles(). For each role,
-     * the avatar-animation.json defines when the animation is used, the animation clip (.FBX) used, and how animations are blended together with
-     * procedural data (such as look at vectors, hand sensors etc.). You can change the animation clip (.FBX) associated with a specified animation
-     * role using overrideRoleAnimation().
-     * restoreRoleAnimation() is used to restore a specified animation role's default animation clip. If you have not specified an override animation
-     * for the specified role, this function will have no effect.
-     * @function MyAvatar.restoreRoleAnimation
-     * @param rule {string} The animation role clip to restore
-     */
+    // remove an animation role override and return to the standard animation.
     Q_INVOKABLE void restoreRoleAnimation(const QString& role);
 
     // Adds handler(animStateDictionaryIn) => animStateDictionaryOut, which will be invoked just before each animGraph state update.
