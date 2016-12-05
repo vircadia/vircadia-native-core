@@ -254,6 +254,10 @@ void MyAvatar::centerBody() {
         return;
     }
 
+    if (!qApp->isHMDMode()) {
+        return;
+    }
+
     // derive the desired body orientation from the current hmd orientation, before the sensor reset.
     auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
 
@@ -308,7 +312,7 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
     }
     setThrust(glm::vec3(0.0f));
 
-    if (andRecenter) {
+    if (andRecenter && qApp->isHMDMode()) {
         // derive the desired body orientation from the *old* hmd orientation, before the sensor reset.
         auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
 

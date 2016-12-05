@@ -317,7 +317,7 @@ public slots:
 
     void openUrl(const QUrl& url) const;
 
-    void resetSensors(bool andReload = false);
+    void resetSensors(bool andRecenter = false);
     void setActiveFaceTracker() const;
 
 #if (PR_BUILD || DEV_BUILD)
