@@ -51,6 +51,9 @@ public:
 
     virtual Web3DOverlay* createClone() const override;
 
+signals:
+    void webEventReceived(const QVariant& message);
+
 private:
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
@@ -68,6 +71,8 @@ private:
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
+
+    QMetaObject::Connection _webEventReceivedConnection;
 };
 
 #endif // hifi_Web3DOverlay_h

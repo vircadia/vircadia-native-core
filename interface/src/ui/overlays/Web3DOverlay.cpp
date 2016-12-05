@@ -68,6 +68,9 @@ Web3DOverlay::~Web3DOverlay() {
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
 
+        QObject::disconnect(_webEventReceivedConnection);
+        _webEventReceivedConnection = QMetaObject::Connection();
+
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
         // member variables, since they would implicitly refer to a this that
@@ -147,6 +150,8 @@ void Web3DOverlay::render(RenderArgs* args) {
                 QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
             }
         });
+
+        _webEventReceivedConnection = connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
     }
 
     vec2 halfSize = getSize() / 2.0f;

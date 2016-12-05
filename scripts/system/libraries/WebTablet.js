@@ -125,8 +125,16 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     this.clicked = false;
 };
 
+WebTablet.prototype.setURL = function (url) {
+    Overlays.editOverlay(this.webOverlayID, { url: url });
+};
+
 WebTablet.prototype.setScriptURL = function (scriptURL) {
     Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
+};
+
+WebTablet.prototype.getOverlayObject = function () {
+    return Overlays.getOverlayObject(this.webOverlayID);
 };
 
 WebTablet.prototype.destroy = function () {

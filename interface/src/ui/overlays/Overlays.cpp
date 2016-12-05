@@ -292,6 +292,14 @@ QString Overlays::getOverlayType(unsigned int overlayId) const {
     return "";
 }
 
+QObject* Overlays::getOverlayObject(unsigned int id) {
+    Overlay::Pointer thisOverlay = getOverlay(id);
+    if (thisOverlay) {
+        return qobject_cast<QObject*>(&(*thisOverlay));
+    }
+    return nullptr;
+}
+
 unsigned int Overlays::getParentPanel(unsigned int childId) const {
     Overlay::Pointer overlay = getOverlay(childId);
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);

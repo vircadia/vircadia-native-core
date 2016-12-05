@@ -156,6 +156,15 @@ public slots:
     QString getOverlayType(unsigned int overlayId) const;
 
     /**jsdoc
+    * Get the overlay Script object.
+    *
+    * @function Overlays.getOverlayObject
+    * @param {Overlays.OverlayID} overlayID The ID of the overlay to get the script object of.
+    * @return {Object} The script object for the overlay if found.
+    */
+    QObject* getOverlayObject(unsigned int id);
+
+    /**jsdoc
      * Get the ID of the overlay at a particular point on the HUD/screen.
      *
      * @function Overlays.getOverlayAtPoint
