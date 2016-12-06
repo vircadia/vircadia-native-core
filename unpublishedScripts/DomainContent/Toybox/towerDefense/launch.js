@@ -18,7 +18,7 @@
         y: 1,
         z: 1
     };
-    var BLOCK_LIFETIME = 10;
+    var BLOCK_LIFETIME = 120;
 
     var MUZZLE_SOUND_URL = Script.resolvePath("air_gun_1_converted.wav");
     var MUZZLE_SOUND_VOLUME = 0.5;
@@ -35,6 +35,7 @@
     }
 
     this.launchBlock = function () {
+        print("launch.js | Launching block");
         var cylinder = Entities.getEntityProperties(cylinderID, ["position", "rotation", "dimensions"]);
         var muzzlePosition = Vec3.sum(cylinder.position,
             Vec3.multiplyQbyV(cylinder.rotation, { x: 0.0, y: 0.5 * (cylinder.dimensions.y + BLOCK_DIMENSIONS.y), Z: 0.0 }));
@@ -45,6 +46,7 @@
 
         Entities.addEntity({
             type: "Model",
+            name: "TD.block",
             modelURL: BLOCK_MODEL_URL,
             shapeType: "compound",
             //compoundShapeURL: BLOCK_COMPOUND_SHAPE_URL,
@@ -55,7 +57,8 @@
             position: muzzlePosition,
             rotation: Quat.multiply(cylinder.rotation, Quat.fromPitchYawRollDegrees(0.0, Math.random() * 360.0, 0.0)),
             velocity: muzzleVelocity,
-            lifetime: BLOCK_LIFETIME
+            lifetime: BLOCK_LIFETIME,
+            script: Script.resolvePath("destructibleEntity.js")
         });
 
         Audio.playSound(muzzleSound, {
@@ -66,14 +69,17 @@
     }
 
     this.clickDownOnEntity = function () {
+        print("launch.js | got click down");
         this.launchBlock();
     }
     
     this.startNearTrigger = function () {
+        print("launch.js | got start near trigger");
         this.launchBlock();
     }
 
     this.startFarTrigger = function () {
+        print("launch.js | got start far trigger");
         this.launchBlock();
     }
 })

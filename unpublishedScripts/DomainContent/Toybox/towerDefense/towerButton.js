@@ -7,7 +7,9 @@
 
 	function signalAC() {
         var userData = Entities.getEntityProperties(itemID, ["userData"]).userData;
-        Messages.sendMessage(JSON.parse(userData).gameChannel, "START");
+        Messages.sendMessage(JSON.parse(userData).gameChannel, JSON.stringify({
+            type: 'start-game'
+        }));
     }
 
     this.startNearTrigger = signalAC;

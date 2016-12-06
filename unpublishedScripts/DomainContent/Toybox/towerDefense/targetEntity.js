@@ -46,10 +46,11 @@ if (!Function.prototype.bind) {
 
             var userData = Entities.getEntityProperties(this.entityID, 'userData').userData;
             var data = parseJSON(userData);
-            if (data !== undefined && data.gameChannel) {
-                this.gameChannel = data.gameChannel
+            if (data !== undefined && data.gameChannel !== undefined && data.teamNumber !== undefined) {
+                this.gameChannel = data.gameChannel;
+                this.teamNumber = data.teamNumber;
             } else {
-                print("targetEntity.js | ERROR: userData does not contain a game channel");
+                print("targetEntity.js | ERROR: userData does not contain a game channel and/or team number");
             }
         },
         onCollide: function(entityA, entityB, collision) {
@@ -63,7 +64,8 @@ if (!Function.prototype.bind) {
                 this.entityIDsThatHaveCollidedWithMe.push(entityB);
                 Messages.sendMessage(this.gameChannel, JSON.stringify({
                     type: "target-hit",
-                    entityID: this.entityID
+                    entityID: this.entityID,
+                    teamNumber: this.teamNumber
                 }));
             }
         }
