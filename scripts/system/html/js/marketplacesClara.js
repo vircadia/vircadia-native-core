@@ -85,9 +85,9 @@
         $("head").append(
             '<style>' +
                 '#marketplace-navigation { font-family: Arial, Helvetica, sans-serif; width: 100%; height: 50px; background: #00b4ef; position: fixed; bottom: 0; }' +
-                '#marketplace-navigation .glyph { margin-left: 25px; margin-right: 5px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
+                '#marketplace-navigation .glyph { margin-left: 20px; margin-right: 3px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
                 '#marketplace-navigation .text { color: #fff; font-size: 18px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
-                '#marketplace-navigation input { float: right; margin-right: 25px; margin-top: 12px; }' +
+                '#marketplace-navigation input { position: absolute; right: 20px; margin-top: 12px; padding-left: 10px; padding-right: 10px; }' +
             '</style>'
         );
 
@@ -113,7 +113,7 @@
         // Marketplaces footer.
         $("body").append(
             '<div id="marketplace-navigation">' +
-                '<span class="glyph">&#x1f6c8;</span> <span class="text">Check out other markets.</span>' +
+            '<span class="glyph">&#x1f6c8;</span> <span class="text">Check out other marketplaces.</span>' +
                 '<input id="all-markets" type="button" class="white" value="See All Markets" />' +
             '</div>'
         );
