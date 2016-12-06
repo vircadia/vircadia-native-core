@@ -42,16 +42,6 @@ namespace controller {
 
         Pose transform(const glm::mat4& mat) const;
 
-        /**jsdoc
-         * Represents a hand controller pose typically received from Controller.getPoseValue
-         * Unless otherwise noted all properties are in avatar space.
-         *
-         * @typedef Pose
-         * @property translation {Vec3} position of controller
-         * @property rotation {Quat} orientation of controller
-         * @property velocity {Vec3} current velocity of controller (meters/sec)
-         * @property angularVelocity {Vec3} current angular velocity of controller (radians/sec)
-         */
         static QScriptValue toScriptValue(QScriptEngine* engine, const Pose& event);
         static void fromScriptValue(const QScriptValue& object, Pose& event);
     };

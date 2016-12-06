@@ -1,9 +1,12 @@
-Script.include('../libraries/jasmine/jasmine.js');
-Script.include('../libraries/jasmine/hifi-boot.js');
-Script.include('../../system/libraries/utils.js');
+Script.include('../../../system/libraries/utils.js');
 
 describe('Bind', function() {
-    it('functions should have bind available', function() {
+    it('exists for functions', function() {
+        var FUNC = 'function';
+        expect(typeof(function() {}.bind)).toEqual(FUNC);
+    });
+
+    it('should allow for setting context of this', function() {
         var foo = 'bar';
 
         function callAnotherFn(anotherFn) {
@@ -22,10 +25,6 @@ describe('Bind', function() {
 
         var instance = new TestConstructor();
         
-        expect(typeof(instance.doSomething.bind) !== 'undefined');
         expect(instance.doSomething()).toEqual(foo);
     });
 });
-
-jasmine.getEnv().execute();
-Script.stop();

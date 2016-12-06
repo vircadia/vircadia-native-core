@@ -26,6 +26,15 @@
 #include <windows.h>
 #include "CPUIdent.h"
 #include <Psapi.h>
+
+#if _MSC_VER >= 1900
+#pragma comment(lib, "legacy_stdio_definitions.lib")
+FILE _iob[] = {*stdin, *stdout, *stderr};
+extern "C" FILE * __cdecl __iob_func(void) {
+    return _iob;
+}
+#endif
+
 #endif
 
 
