@@ -586,7 +586,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     FingerprintUtils::getMachineFingerprint();
     // End TODO
     auto nodeList = DependencyManager::get<NodeList>();
-    
+
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     _deadlockWatchdogThread = new DeadlockWatchdogThread();
     _deadlockWatchdogThread->start();
