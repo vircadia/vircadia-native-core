@@ -1098,6 +1098,8 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
     for (AudioInjector* injector : getActiveLocalAudioInjectors()) {
         if (injector->getLocalBuffer()) {
 
+            static const int HRTF_DATASET_INDEX = 1;
+
             int numChannels = injector->isAmbisonic() ? 4 : (injector->isStereo() ? 2 : 1);
             qint64 bytesToRead = numChannels * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
 
@@ -1109,9 +1111,12 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
                     float gain = injector->getVolume();
 
-                    // injector orientation can be used to align a recording to our world coordinates
+                    //
+                    // Calculate the soundfield orientation relative to the listener.
+                    // Injector orientation can be used to align a recording to our world coordinates.
+                    //
                     glm::quat relativeOrientation = injector->getOrientation() * glm::inverse(_orientationGetter());
-
+#if 0
                     ////////////// debug //////////////////
                     {
                         float x = relativeOrientation.x;
@@ -1194,7 +1199,17 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                         mixBuffer[2*i+0] += wCoef * buffer[0][i] + yCoef * buffer[2][i];
                         mixBuffer[2*i+1] += wCoef * buffer[0][i] - yCoef * buffer[2][i];
                     }
+#else
+                    // convert from Y-up (OpenGL) to Z-up (Ambisonic) coordinate system
+                    float qw = relativeOrientation.w;
+                    float qx = -relativeOrientation.z;
+                    float qy = -relativeOrientation.x;
+                    float qz = relativeOrientation.y;
 
+                    // Ambisonic gets spatialized into mixBuffer
+                    injector->getLocalFOA().render(_scratchBuffer, mixBuffer, HRTF_DATASET_INDEX, 
+                                                   qw, qx, qy, qz, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+#endif
                 } else if (injector->isStereo()) {
 
                     // stereo gets directly mixed into mixBuffer
@@ -1211,7 +1226,8 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     float azimuth = azimuthForSource(relativePosition);         
                 
                     // mono gets spatialized into mixBuffer
-                    injector->getLocalHRTF().render(_scratchBuffer, mixBuffer, 1, azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    injector->getLocalHRTF().render(_scratchBuffer, mixBuffer, HRTF_DATASET_INDEX, 
+                                                    azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                 }
             
             } else {

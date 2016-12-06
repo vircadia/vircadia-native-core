@@ -27,6 +27,7 @@
 #include "AudioInjectorLocalBuffer.h"
 #include "AudioInjectorOptions.h"
 #include "AudioHRTF.h"
+#include "AudioFOA.h"
 #include "Sound.h"
 
 class AbstractAudioInterface;
@@ -59,6 +60,7 @@ public:
     
     AudioInjectorLocalBuffer* getLocalBuffer() const { return _localBuffer; }
     AudioHRTF& getLocalHRTF() { return _localHRTF; }
+    AudioFOA& getLocalFOA() { return _localFOA; }
 
     bool isLocalOnly() const { return _options.localOnly; }
     float getVolume() const { return _options.volume; }
@@ -115,6 +117,7 @@ private:
     
     // when the injector is local, we need this
     AudioHRTF _localHRTF;
+    AudioFOA _localFOA;
     friend class AudioInjectorManager;
 };
 
