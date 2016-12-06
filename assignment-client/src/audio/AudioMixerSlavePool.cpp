@@ -176,7 +176,8 @@ void AudioMixerSlavePool::resize(int numThreads) {
         slave = extraBegin;
         while (slave != _slaves.end()) {
             QThread* thread = reinterpret_cast<QThread*>(slave->get());
-            thread->wait();
+            static const int MAX_THREAD_WAIT_TIME = 10;
+            thread->wait(MAX_THREAD_WAIT_TIME);
             ++slave;
         }
 
