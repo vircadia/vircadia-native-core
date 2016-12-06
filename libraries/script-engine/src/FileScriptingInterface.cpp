@@ -80,7 +80,6 @@ bool FileScriptingInterface::isZipped(QUrl url) {
     return (url.toString().endsWith(".zip"));
 }
 
-// this function is not in use
 QString FileScriptingInterface::getTempDir() {
     QTemporaryDir dir;
     dir.setAutoRemove(false);
@@ -105,7 +104,6 @@ void FileScriptingInterface::downloadZip(QString path, const QString link) {
     });
     request->send();
 }
-
 
 QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
 

@@ -5623,7 +5623,7 @@ void Application::addAssetToWorld(QString filePath) {
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "Do not have permissions to write to asset server.";
-        qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
         addAssetToWorldError(errorInfo);
         return;
     }
@@ -5648,7 +5648,7 @@ void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, i
         } else if (result != GetMappingRequest::NoError) {
             QString errorInfo = "Could not map asset name: "
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
-            qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
             addAssetToWorldError(errorInfo);
         } else if (copy < MAX_COPY_COUNT - 1) {
             if (copy > 0) {
@@ -5660,7 +5660,7 @@ void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, i
         } else {
             QString errorInfo = "Too many copies of asset name: " 
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
-            qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
             addAssetToWorldError(errorInfo);
         }
         request->deleteLater();
@@ -5678,7 +5678,7 @@ void Application::addAssetToWorldUpload(QString path, QString mapping) {
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
             QString errorInfo = "Could not upload asset to asset server.";
-            qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
             addAssetToWorldError(errorInfo);
         } else {
             addAssetToWorldSetMapping(mapping, hash);
@@ -5707,7 +5707,7 @@ void Application::addAssetToWorldSetMapping(QString mapping, QString hash) {
     connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
         if (request->getError() != SetMappingRequest::NoError) {
             QString errorInfo = "Could not set asset mapping.";
-            qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
             addAssetToWorldError(errorInfo);
         } else {
             addAssetToWorldAddEntity(mapping);
@@ -5734,12 +5734,12 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
     auto result = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
     
     if (result == QUuid()) {
-        QString errorInfo = "Could not add downloaded asset " + mapping + " to world.";
-        qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+        QString errorInfo = "Could not add asset " + mapping + " to world.";
+        qWarning(interfaceapp) << "Could not add asset to world: " + errorInfo;
         addAssetToWorldError(errorInfo);
     } else {
-        QString successInfo = "Downloaded asset " + mapping + " added to world.";
-        qCDebug(interfaceapp) << "Downloading asset completed: " + successInfo;
+        QString successInfo = mapping + " added to world.";
+        qInfo() << "Downloading asset completed: " + successInfo;
         _addAssetToWorldMessageBox->setProperty("text", successInfo);
         _addAssetToWorldMessageBox->setProperty("buttons", QMessageBox::Ok);
         _addAssetToWorldMessageBox->setProperty("defaultButton", QMessageBox::Ok);

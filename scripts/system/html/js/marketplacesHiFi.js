@@ -10,7 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-function onLoad() {
+$(document).ready(function () {
+
     // Supporting styles from marketplaces.css.
     // Glyph font family, size, and spacing adjusted because HiFi-Glyphs cannot be used cross-domain.
     $("head").append(
@@ -46,6 +47,5 @@ function onLoad() {
         $("#marketplace-content").attr("src", "marketplacesDirectory.html");
         EventBridge.emitWebEvent("RELOAD_DIRECTORY");
     });
-}
 
-window.addEventListener("load", onLoad);
+});
