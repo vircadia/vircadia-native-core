@@ -12,12 +12,15 @@ function loaded() {
 }
 
 function bindExploreButtons() {
+    $('#claraSignUp').on('click', function () {
+        EventBridge.emitWebEvent("INJECT_CLARA");
+    });
     $('#exploreClaraMarketplace').on('click', function () {
         EventBridge.emitWebEvent("INJECT_CLARA");
         window.location = "https://clara.io/library?gameCheck=true&public=true"
-    })
+    });
     $('#exploreHifiMarketplace').on('click', function () {
         EventBridge.emitWebEvent("INJECT_HIFI");
         window.location = "http://www.highfidelity.com/marketplace"
-    })
+    });
 }
