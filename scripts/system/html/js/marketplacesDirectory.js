@@ -10,4 +10,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// Nothing to do; just need empty script to replace individual marketplace ones.
+// Only used in WebTablet.
+
+$(document).ready(function () {
+
+    // Remove e-mail hyperlink.
+    var letUsKnow = $("#letUsKnow");
+    letUsKnow.replaceWith(letUsKnow.html());
+
+});
