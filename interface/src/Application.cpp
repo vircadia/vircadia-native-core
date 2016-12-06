@@ -3882,6 +3882,13 @@ void Application::update(float deltaTime) {
             if (nearbyEntitiesAreReadyForPhysics()) {
                 _physicsEnabled = true;
                 getMyAvatar()->updateMotionBehaviorFromMenu();
+            } else {
+                auto characterController = getMyAvatar()->getCharacterController();
+                if (characterController) {
+                    // if we have a character controller, disable it here so the avatar doesn't get stuck due to
+                    // a non-loading collision hull.
+                    characterController->setEnabled(false);
+                }
             }
         }
     }
@@ -4010,7 +4017,7 @@ void Application::update(float deltaTime) {
             avatarManager->getObjectsToChange(motionStates);
             _physicsEngine->changeObjects(motionStates);
 
-            myAvatar->prepareForPhysicsSimulation(deltaTime);
+            myAvatar->prepareForPhysicsSimulation();
             _physicsEngine->forEachAction([&](EntityActionPointer action) {
                 action->prepareForPhysicsSimulation();
             });
@@ -4733,13 +4740,13 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     renderArgs->_viewport =  originalViewport;
 }
 
-void Application::resetSensors(bool andRecenter) {
+void Application::resetSensors(bool andReload) {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
     _overlayConductor.centerUI();
-    getMyAvatar()->reset(andRecenter);
+    getMyAvatar()->reset(andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 

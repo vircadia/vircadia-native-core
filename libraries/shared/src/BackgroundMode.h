@@ -1,6 +1,6 @@
 //
 //  BackgroundMode.h
-//  libraries/physics/src
+//  libraries/physcis/src
 //
 //  Copyright 2015 High Fidelity, Inc.
 //
