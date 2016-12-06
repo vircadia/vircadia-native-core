@@ -129,7 +129,8 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
         int maxThreads = QThread::idealThreadCount();
         if (maxThreads == -1) {
             // idealThreadCount returns -1 if cores cannot be detected
-            maxThreads = std::numeric_limits<int>::max();
+            static const int MAX_THREADS_IF_UNKNOWN = 4;
+            maxThreads = MAX_THREADS_IF_UNKNOWN;
         }
 
         int clampedThreads = std::min(std::max(1, numThreads), maxThreads);
