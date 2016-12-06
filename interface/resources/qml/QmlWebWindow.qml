@@ -99,6 +99,16 @@ Windows.ScrollingWindow {
             }
 
             userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
+
+            function onWebEventReceived(event) {
+                if (event.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+                    ApplicationInterface.addAssetToWorldFromURL(event.slice(18));
+                }
+            }
+
+            Component.onCompleted: {
+                eventBridge.webEventReceived.connect(onWebEventReceived);
+            }
         }
     }
 }

@@ -64,9 +64,8 @@
                             downloadTimer = null;
                             var href = downloadButton[0].href;
                             EventBridge.emitWebEvent("CLARA.IO DOWNLOAD " + href);
-                            console.log("Clara.io FBX file download initiated");
+                            console.log("Clara.io FBX file download initiated for " + href);
                             $("a.btn.cancel").click();
-                            setTimeout(function () { window.open(href); }, 500);  // Let cancel click take effect.
                         };
                     } else {
                         clearInterval(downloadTimer);

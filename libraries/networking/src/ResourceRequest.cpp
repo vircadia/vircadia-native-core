@@ -26,3 +26,16 @@ void ResourceRequest::send() {
     _state = InProgress;
     doSend();
 }
+
+QString ResourceRequest::getResultString() const {
+    switch (_result) {
+        case Success: return "Success";
+        case Error: return "Error";
+        case Timeout: return "Timeout";
+        case ServerUnavailable: return "Server Unavailable";
+        case AccessDenied: return "Access Denied";
+        case InvalidURL: return "Ivalid URL";
+        case NotFound: return "Not Found";
+        default: return "Unspecified Error";
+    }
+}

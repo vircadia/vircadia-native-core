@@ -42,6 +42,7 @@
 #include <QtMultimedia/QMediaPlayer>
 
 #include <QProcessEnvironment>
+#include <QTemporaryDir>
 
 #include <gl/QOpenGLContextWrapper.h>
 
@@ -1803,9 +1804,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
-    FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
-    rootContext->setContextProperty("File", fileDownload);
-    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::handleUnzip);
+    _fileDownload = new FileScriptingInterface(engine);
+    rootContext->setContextProperty("File", _fileDownload);
+    connect(_fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::handleUnzip);
     rootContext->setContextProperty("MyAvatar", getMyAvatar().get());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -5457,15 +5458,52 @@ void Application::showAssetServerWidget(QString filePath) {
     startUpload(nullptr, nullptr);
 }
 
-void Application::addAssetToWorldInitiate() {
-    qCDebug(interfaceapp) << "Start downloading asset file";
+void Application::addAssetToWorldFromURL(QString url) {
+    qInfo(interfaceapp) << "Download asset and add to world from" << url;
+
+    QUrl urlURL = QUrl(url);
+    auto request = ResourceManager::createResourceRequest(nullptr, urlURL);
+    connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
+    request->send();
 
     if (!_addAssetToWorldMessageBox) {
-        _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, 
-            "Downloading Asset", "Downloading asset file.", QMessageBox::Cancel, QMessageBox::NoButton);
+        _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
+            "Downloading Asset", "Downloading asset file " + url.section("filename=", 1, 1), 
+            QMessageBox::Cancel, QMessageBox::NoButton);
+    }
+    connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
+}
+
+void Application::addAssetToWorldFromURLRequestFinished() {
+    auto request = qobject_cast<ResourceRequest*>(sender());
+    auto url = request->getUrl().toString();
+    auto result = request->getResult();
+
+    if (result == ResourceRequest::Success) {
+        qInfo(interfaceapp) << "Downloaded asset from" << url;
+
+        QTemporaryDir temporaryDir;
+        temporaryDir.setAutoRemove(false);
+        QString temporaryDirPath = temporaryDir.path();
+        QString filename = url.section("filename=", 1, 1);
+        QString downloadPath = temporaryDirPath + "/" + filename;
+        qInfo() << "Download path:" << downloadPath;
+
+        QFile tempFile(downloadPath);
+        if (tempFile.open(QIODevice::WriteOnly)) {
+            tempFile.write(request->getData());
+            qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true);
+        } else {
+            QString errorInfo = "Couldn't open temporary file for writing";
+            qWarning(interfaceapp) << errorInfo;
+            addAssetToWorldError(errorInfo);
+        }
+    } else {
+        qWarning(interfaceapp) << "Error downloading" << url << ":" << request->getResultString();
+        addAssetToWorldError("Error downloading " + url.section("filename=", 1, 1) + " : " + request->getResultString());
     }
 
-    connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
+    request->deleteLater();
 }
 
 void Application::onAssetToWorldMessageBoxClosed() {
