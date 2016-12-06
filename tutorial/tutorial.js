@@ -126,20 +126,6 @@ function setControllerPartLayer(part, layer) {
     Messages.sendLocalMessage('Controller-Set-Part-Layer', JSON.stringify(data));
 }
 
-function triggerHapticPulse() {
-    function scheduleHaptics(delay, strength, duration) {
-        Script.setTimeout(function() {
-            Controller.triggerHapticPulse(strength, duration, 0);
-            Controller.triggerHapticPulse(strength, duration, 1);
-        }, delay);
-    }
-    scheduleHaptics(0, 0.8, 100);
-    scheduleHaptics(300, 0.5, 100);
-    scheduleHaptics(600, 0.3, 100);
-    scheduleHaptics(900, 0.2, 100);
-    scheduleHaptics(1200, 0.1, 100);
-}
-
 function spawn(entityData, transform, modifyFn) {
     debug("Creating: ", entityData);
     if (!transform) {
