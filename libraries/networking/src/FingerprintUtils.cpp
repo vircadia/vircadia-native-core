@@ -25,7 +25,7 @@
 
 static const QString FALLBACK_FINGERPRINT_KEY = "fallbackFingerprint";
 
-QUuid FingerprintUtils::getMachineFingerprint() {
+QUuid fingerprint::getMachineFingerprint() {
 
     QString uuidString;
 
@@ -56,7 +56,6 @@ QUuid FingerprintUtils::getMachineFingerprint() {
 
     if (FAILED(hres)) {
         qDebug() << "Failed to initialize WbemLocator";
-        return uuidString;
     }
     
     // Connect to WMI through the IWbemLocator::ConnectServer method
@@ -79,7 +78,6 @@ QUuid FingerprintUtils::getMachineFingerprint() {
     if (FAILED(hres)) {
         pLoc->Release();
         qDebug() << "Failed to connect to WMI";
-        return uuidString;
     }
     
     // Set security levels on the proxy
@@ -98,7 +96,6 @@ QUuid FingerprintUtils::getMachineFingerprint() {
         pSvc->Release();
         pLoc->Release();     
         qDebug() << "Failed to set security on proxy blanket";
-        return uuidString;
     }
     
     // Use the IWbemServices pointer to grab the Win32_BIOS stuff
@@ -114,7 +111,6 @@ QUuid FingerprintUtils::getMachineFingerprint() {
         pSvc->Release();
         pLoc->Release();
         qDebug() << "query to get Win32_ComputerSystemProduct info";
-        return uuidString;
     }
     
     // Get the SerialNumber from the Win32_BIOS data 

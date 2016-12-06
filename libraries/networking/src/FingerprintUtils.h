@@ -15,7 +15,7 @@
 #include <QString>
 #include <QUuid>
 
-namespace FingerprintUtils {
+namespace fingerprint {
     QUuid getMachineFingerprint();
 };
 
