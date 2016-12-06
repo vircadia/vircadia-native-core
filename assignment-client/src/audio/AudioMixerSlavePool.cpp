@@ -89,6 +89,7 @@ void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> funct
 }
 
 void AudioMixerSlavePool::start(Lock& lock, ConstIter begin, ConstIter end, unsigned int frame) {
+    assert(lock.owns_lock());
     assert(!_running);
 
     // fill the queue
@@ -108,6 +109,8 @@ void AudioMixerSlavePool::start(Lock& lock, ConstIter begin, ConstIter end, unsi
 }
 
 void AudioMixerSlavePool::wait(Lock& lock) {
+    assert(lock.owns_lock());
+
     if (_running) {
         _poolCondition.wait(lock, [&] {
             return _numFinished == _numThreads;

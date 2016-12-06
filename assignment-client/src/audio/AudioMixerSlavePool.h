@@ -72,6 +72,7 @@ public:
     int numThreads() { return _numThreads; }
 
 private:
+    // these methods require access to guarded members, so require a lock as argument
     void start(Lock& lock, ConstIter begin = ConstIter(), ConstIter end = ConstIter(), unsigned int frame = 0);
     void wait(Lock& lock);
 
