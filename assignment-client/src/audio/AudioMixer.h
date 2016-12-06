@@ -90,11 +90,32 @@ private:
 
     AudioMixerSlavePool _slavePool;
 
-    static const int MIX_TIMES_TRAILING_SECONDS = 10;
-    std::chrono::microseconds _sumMixTimes { 0 };
-    uint64_t _sumMixTimesTrailing { 0 };
-    uint64_t _sumMixTimesHistory[MIX_TIMES_TRAILING_SECONDS] {};
-    int _sumMixTimesIndex { 0 };
+    class Timer {
+    public:
+        class Timing{
+        public:
+            Timing(uint64_t& sum);
+            ~Timing();
+        private:
+            p_high_resolution_clock::time_point _timing;
+            uint64_t& _sum;
+        };
+
+        Timing timer() { return Timing(_sum); }
+        void get(uint64_t& timing, uint64_t& trailing);
+    private:
+        static const int TIMER_TRAILING_SECONDS = 10;
+
+        uint64_t _sum { 0 };
+        uint64_t _trailing { 0 };
+        uint64_t _history[TIMER_TRAILING_SECONDS] {};
+        int _index { 0 };
+    };
+    Timer _sleepTiming;
+    Timer _frameTiming;
+    Timer _prepareTiming;
+    Timer _mixTiming;
+    Timer _eventsTiming;
 
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
     static float _noiseMutingThreshold;

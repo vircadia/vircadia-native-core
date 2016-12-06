@@ -260,6 +260,7 @@ void AudioMixer::sendStatsPacket() {
         return;
     }
 
+    // general stats
     statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == -1;
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
@@ -267,16 +268,36 @@ void AudioMixer::sendStatsPacket() {
     statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
     statsObject["avg_listeners_per_frame"] = (float)_stats.sumListeners / (float)_numStatFrames;
 
-    _sumMixTimesIndex = (_sumMixTimesIndex + 1) % MIX_TIMES_TRAILING_SECONDS;
-    _sumMixTimesTrailing -= _sumMixTimesHistory[_sumMixTimesIndex];
-    _sumMixTimesHistory[_sumMixTimesIndex] = _sumMixTimes.count();
-    _sumMixTimesTrailing += _sumMixTimesHistory[_sumMixTimesIndex];
+    // timing stats
+    QJsonObject timingStats;
+    uint64_t timing, trailing;
 
-    statsObject["avg_us_per_frame"] = (qint64)(_sumMixTimes.count() / _numStatFrames);
-    statsObject["avg_us_per_frames_trailing"] =
-        (qint64)((_sumMixTimesTrailing / MIX_TIMES_TRAILING_SECONDS) / _numStatFrames);
+    _sleepTiming.get(timing, trailing);
+    timingStats["us_per_sleep"] = (qint64)(timing / _numStatFrames);
+    timingStats["us_per_sleep_trailing"] = (qint64)(trailing / _numStatFrames);
 
+    _frameTiming.get(timing, trailing);
+    timingStats["us_per_frame"] = (qint64)(timing / _numStatFrames);
+    timingStats["us_per_frame_trailing"] = (qint64)(trailing / _numStatFrames);
+
+    _prepareTiming.get(timing, trailing);
+    timingStats["us_per_prepare"] = (qint64)(timing / _numStatFrames);
+    timingStats["us_per_prepare_trailing"] = (qint64)(trailing / _numStatFrames);
+
+    _mixTiming.get(timing, trailing);
+    timingStats["us_per_mix"] = (qint64)(timing / _numStatFrames);
+    timingStats["us_per_mix_trailing"] = (qint64)(trailing / _numStatFrames);
+
+    _eventsTiming.get(timing, trailing);
+    timingStats["us_per_events"] = (qint64)(timing / _numStatFrames);
+    timingStats["us_per_events_trailing"] = (qint64)(trailing / _numStatFrames);
+
+    // call it "avg_..." to keep it higher in the display, sorted alphabetically
+    statsObject["avg_timing_stats"] = timingStats;
+
+    // mix stats
     QJsonObject mixStats;
+
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_stats.hrtfRenders);
     mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_stats.hrtfSilentRenders);
     mixStats["%_hrtf_struggle_mixes"] = percentageForMixStats(_stats.hrtfStruggleRenders);
@@ -289,7 +310,6 @@ void AudioMixer::sendStatsPacket() {
     statsObject["mix_stats"] = mixStats;
 
     _numStatFrames = 0;
-    _sumMixTimes = std::chrono::microseconds(0);
     _stats.reset();
 
     // add stats for each listerner
@@ -364,22 +384,30 @@ void AudioMixer::start() {
     unsigned int frame = 1;
 
     while (!_isFinished) {
-        manageLoad(frameTimestamp, framesSinceManagement);
+        {
+            auto timer = _sleepTiming.timer();
+            manageLoad(frameTimestamp, framesSinceManagement);
+        }
 
-        // start timing the frame
-        auto startTime = p_high_resolution_clock::now();
+        auto timer = _frameTiming.timer();
 
         // aquire the read-lock in a single thread, to avoid canonical rwlock undefined behaviors
         //   node removal will acquire a write lock;
         //   read locks (in slave threads) while a write lock is pending have undefined order in pthread
         nodeList->algorithm([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
             // prepare frames; pop off any new audio from their streams
-            std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                _stats.sumStreams += prepareFrame(node, frame);
-            });
+            {
+                auto timer = _prepareTiming.timer();
+                std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
+                    _stats.sumStreams += prepareFrame(node, frame);
+                });
+            }
 
             // mix across slave threads
-            _slavePool.mix(cbegin, cend, frame);
+            {
+                auto timer = _mixTiming.timer();
+                _slavePool.mix(cbegin, cend, frame);
+            }
         });
 
         // gather stats
@@ -388,14 +416,13 @@ void AudioMixer::start() {
             slave.stats.reset();
         });
 
-        // stop timing the frame
-        _sumMixTimes += std::chrono::duration_cast<std::chrono::microseconds>(p_high_resolution_clock::now() - startTime);
-
         ++frame;
         ++_numStatFrames;
 
         // play nice with qt event-looping
         {
+            auto timer = _eventsTiming.timer();
+
             // since we're a while loop we need to yield to qt's event processing
             QCoreApplication::processEvents();
 
@@ -694,4 +721,29 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
             }
         }
     }
+}
+
+AudioMixer::Timer::Timing::Timing(uint64_t& sum) : _sum(sum) {
+    _timing = p_high_resolution_clock::now();
+}
+
+AudioMixer::Timer::Timing::~Timing() {
+    _sum += std::chrono::duration_cast<std::chrono::microseconds>(p_high_resolution_clock::now() - _timing).count();
+}
+
+void AudioMixer::Timer::get(uint64_t& timing, uint64_t& trailing) {
+    // update history
+    _index = (_index + 1) % TIMER_TRAILING_SECONDS;
+    uint64_t oldTiming = _history[_index];
+    _history[_index] = _sum;
+
+    // update trailing
+    _trailing -= oldTiming;
+    _trailing += _sum;
+
+    timing = _sum;
+    trailing = _trailing / TIMER_TRAILING_SECONDS;
+
+    // reset _sum;
+    _sum = 0;
 }
