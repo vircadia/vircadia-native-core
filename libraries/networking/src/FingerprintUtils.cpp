@@ -11,7 +11,7 @@
 
 #include "FingerprintUtils.h"
 #include <QDebug>
-
+#include <SettingHandle.h>
 #ifdef Q_OS_WIN
 #include <comdef.h>
 #include <Wbemidl.h>
@@ -23,8 +23,11 @@
 #include <IOKit/storage/IOMedia.h>
 #endif //Q_OS_MAC
 
-QString FingerprintUtils::getMachineFingerprint() {
-    QString retval;
+static const QString FALLBACK_FINGERPRINT_KEY = "fallbackFingerprint";
+
+QUuid FingerprintUtils::getMachineFingerprint() {
+
+    QString uuidString;
 
 #ifdef Q_OS_LINUX
     // sadly need to be root to get smbios guid from linux, so 
@@ -35,9 +38,9 @@ QString FingerprintUtils::getMachineFingerprint() {
     io_registry_entry_t ioRegistryRoot = IORegistryEntryFromPath(kIOMasterPortDefault, "IOService:/");
     CFStringRef uuidCf = (CFStringRef) IORegistryEntryCreateCFProperty(ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
     IOObjectRelease(ioRegistryRoot);
-    retval = QString::fromCFString(uuidCf);
+    uuidString = QString::fromCFString(uuidCf);
     CFRelease(uuidCf); 
-    qDebug() << "Mac serial number: " << retval;
+    qDebug() << "Mac serial number: " << uuidString;
 #endif //Q_OS_MAC
 
 #ifdef Q_OS_WIN
@@ -53,7 +56,7 @@ QString FingerprintUtils::getMachineFingerprint() {
 
     if (FAILED(hres)) {
         qDebug() << "Failed to initialize WbemLocator";
-        return retval;
+        return uuidString;
     }
     
     // Connect to WMI through the IWbemLocator::ConnectServer method
@@ -76,7 +79,7 @@ QString FingerprintUtils::getMachineFingerprint() {
     if (FAILED(hres)) {
         pLoc->Release();
         qDebug() << "Failed to connect to WMI";
-        return retval;
+        return uuidString;
     }
     
     // Set security levels on the proxy
@@ -95,7 +98,7 @@ QString FingerprintUtils::getMachineFingerprint() {
         pSvc->Release();
         pLoc->Release();     
         qDebug() << "Failed to set security on proxy blanket";
-        return retval;
+        return uuidString;
     }
     
     // Use the IWbemServices pointer to grab the Win32_BIOS stuff
@@ -111,7 +114,7 @@ QString FingerprintUtils::getMachineFingerprint() {
         pSvc->Release();
         pLoc->Release();
         qDebug() << "query to get Win32_ComputerSystemProduct info";
-        return retval;
+        return uuidString;
     }
     
     // Get the SerialNumber from the Win32_BIOS data 
@@ -134,7 +137,7 @@ QString FingerprintUtils::getMachineFingerprint() {
         if (!FAILED(hres)) {
             switch (vtProp.vt) {
                 case VT_BSTR:
-                    retval = QString::fromWCharArray(vtProp.bstrVal);
+                    uuidString = QString::fromWCharArray(vtProp.bstrVal);
                     break;
             }
         }
@@ -148,13 +151,24 @@ QString FingerprintUtils::getMachineFingerprint() {
     pSvc->Release();
     pLoc->Release();
     
-    qDebug() << "Windows BIOS UUID: " << retval;
+    qDebug() << "Windows BIOS UUID: " << uuidString;
 #endif //Q_OS_WIN
 
-    // TODO: should we have a fallback for cases where this failed, 
-    // leaving us with an empty string or something that isn't a 
-    // guid?  For now keeping this a string, but maybe best to return
-    // a QUuid?
-    return retval;
+    // now, turn into uuid.  A malformed string will
+    // return QUuid() ("{00000...}")
+    QUuid uuid(uuidString);
+    if (uuid == QUuid()) {
+        // read fallback key (if any)
+        Settings settings;
+        uuid = QUuid(settings.value(FALLBACK_FINGERPRINT_KEY).toString());
+        qDebug() << "read fallback maching fingerprint: " << uuid.toString();
+        if (uuid == QUuid()) {
+            // no fallback yet, set one
+            uuid = QUuid::createUuid();
+            settings.setValue(FALLBACK_FINGERPRINT_KEY, uuid.toString());
+            qDebug() << "no fallback machine fingerprint, setting it to: " << uuid.toString();
+        }
+    }
+    return uuid;
 }
 

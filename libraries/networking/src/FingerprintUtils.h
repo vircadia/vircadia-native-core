@@ -13,12 +13,10 @@
 #define hifi_FingerprintUtils_h
 
 #include <QString>
+#include <QUuid>
 
-
-class FingerprintUtils {
-public:
-    static QString getMachineFingerprint();
-
+namespace FingerprintUtils {
+    QUuid getMachineFingerprint();
 };
 
 #endif // hifi_FingerprintUtils_h
