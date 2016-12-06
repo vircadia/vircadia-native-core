@@ -25,7 +25,7 @@
             ]
         },
 
-        { "from": "GamePad.RX", "to": "Actions.Yaw" },
+        { "from": "GamePad.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.Yaw" },
 
         { "from": "GamePad.RY",
           "to": "Actions.VERTICAL_UP",
