@@ -583,7 +583,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
     
     // TODO: This is temporary, while developing
-    fingerprint::getMachineFingerprint();
+    FingerprintUtils::getMachineFingerprint();
     // End TODO
     auto nodeList = DependencyManager::get<NodeList>();
 
