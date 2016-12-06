@@ -16,6 +16,7 @@
 #include <QQuickWindow>
 #include <QtGui/QOpenGLContext>
 #include <QtQuick/QQuickItem>
+#include <QtQml/QQmlContext>
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
@@ -112,11 +113,12 @@ void Web3DOverlay::render(RenderArgs* args) {
         // and the current rendering load)
         _webSurface->setMaxFps(10);
         _webSurface->create(currentContext);
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
-        _webSurface->load("WebView.qml");
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        _webSurface->load("Web3DOverlay.qml");
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
+        _webSurface->getRootContext()->setContextProperty("ApplicationInterface", qApp);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
         currentContext->makeCurrent(currentSurface);
 

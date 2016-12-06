@@ -29,6 +29,7 @@
 #include <AbstractViewStateInterface.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
+#include <FileScriptingInterface.h>
 #include <input-plugins/KeyboardMouseDevice.h>
 #include <input-plugins/TouchscreenDevice.h>
 #include <OctreeQuery.h>
@@ -310,13 +311,18 @@ public slots:
     void toggleLogDialog();
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
-    Q_INVOKABLE void addAssetToWorldInitiate();
+
+    // FIXME: Move addAssetToWorld* methods to own class?
+    void addAssetToWorldFromURL(QString url);
+    void addAssetToWorldFromURLRequestFinished();
     void addAssetToWorld(QString filePath);
     void addAssetToWorldWithNewMapping(QString path, QString mapping, int copy);
     void addAssetToWorldUpload(QString path, QString mapping);
     void addAssetToWorldSetMapping(QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString mapping);
     void handleUnzip(QString filePath = "", bool autoAdd = false);
+
+    FileScriptingInterface* getFileDownloadInterface() { return _fileDownload; }
 
     void handleLocalServerConnection() const;
     void readArgumentsFromLocalSocket() const;
@@ -628,6 +634,8 @@ private:
 
     QQuickItem* _addAssetToWorldMessageBox{ nullptr };
     void addAssetToWorldError(QString errorText);
+
+    FileScriptingInterface* _fileDownload;
 };
 
 
