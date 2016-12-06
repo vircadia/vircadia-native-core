@@ -5578,20 +5578,25 @@ void Application::addAssetToWorldFromURLRequestFinished() {
 
     if (result == ResourceRequest::Success) {
         qInfo(interfaceapp) << "Downloaded asset from" << url;
-
         QTemporaryDir temporaryDir;
         temporaryDir.setAutoRemove(false);
-        QString temporaryDirPath = temporaryDir.path();
-        QString filename = url.section("filename=", 1, 1);
-        QString downloadPath = temporaryDirPath + "/" + filename;
-        qInfo() << "Download path:" << downloadPath;
+        if (temporaryDir.isValid()) {
+            QString temporaryDirPath = temporaryDir.path();
+            QString filename = url.section("filename=", 1, 1);
+            QString downloadPath = temporaryDirPath + "/" + filename;
+            qInfo() << "Download path:" << downloadPath;
 
-        QFile tempFile(downloadPath);
-        if (tempFile.open(QIODevice::WriteOnly)) {
-            tempFile.write(request->getData());
-            qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true);
+            QFile tempFile(downloadPath);
+            if (tempFile.open(QIODevice::WriteOnly)) {
+                tempFile.write(request->getData());
+                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true);
+            } else {
+                QString errorInfo = "Couldn't open temporary file for download";
+                qWarning(interfaceapp) << errorInfo;
+                addAssetToWorldError(errorInfo);
+            }
         } else {
-            QString errorInfo = "Couldn't open temporary file for writing";
+            QString errorInfo = "Couldn't create temporary directory for download";
             qWarning(interfaceapp) << errorInfo;
             addAssetToWorldError(errorInfo);
         }
