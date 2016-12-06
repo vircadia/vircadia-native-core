@@ -29,11 +29,11 @@ var marketplaceWindow = new OverlayWebWindow({
 });
 marketplaceWindow.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
 marketplaceWindow.webEventReceived.connect(function (data) {
-    if (data === "INJECT_CLARA") {
-        marketplaceWindow.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
-    }
     if (data === "INJECT_HIFI") {
         marketplaceWindow.setScriptURL(MARKETPLACES_HFIF_SCRIPT_URL);
+    }
+    if (data === "INJECT_CLARA") {
+        marketplaceWindow.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
     }
     if (data === "RELOAD_DIRECTORY") {
         marketplaceWindow.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
@@ -47,7 +47,7 @@ var TOOLBAR_MARGIN_Y = 0;
 var marketplaceVisible = false;
 var marketplaceWebTablet;
 
-// We persist clientOnly data in the .ini file, and reconsistitute it on restart.
+// We persist clientOnly data in the .ini file, and reconstitute it on restart.
 // To keep things consistent, we pickle the tablet data in Settings, and kill any existing such on restart and domain change.
 var persistenceKey = "io.highfidelity.lastDomainTablet";
 
@@ -65,11 +65,11 @@ function showMarketplace(marketplaceID) {
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
         marketplaceWebTablet.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
         marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (data) {
-            if (data === "INJECT_CLARA") {
-                marketplaceWebTablet.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
-            }
             if (data === "INJECT_HIFI") {
                 marketplaceWebTablet.setScriptURL(MARKETPLACES_HFIF_SCRIPT_URL);
+            }
+            if (data === "INJECT_CLARA") {
+                marketplaceWebTablet.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
             }
             if (data === "RELOAD_DIRECTORY") {
                 marketplaceWebTablet.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
