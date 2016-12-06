@@ -27,7 +27,7 @@ var marketplaceWindow = new OverlayWebWindow({
     height: 700,
     visible: false
 });
-marketplaceWindow.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
+marketplaceWindow.setScriptURL("");
 marketplaceWindow.webEventReceived.connect(function (data) {
     if (data === "INJECT_HIFI") {
         marketplaceWindow.setScriptURL(MARKETPLACES_HFIF_SCRIPT_URL);
@@ -36,7 +36,7 @@ marketplaceWindow.webEventReceived.connect(function (data) {
         marketplaceWindow.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
     }
     if (data === "RELOAD_DIRECTORY") {
-        marketplaceWindow.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
+        marketplaceWindow.setScriptURL("");
         marketplaceWindow.setURL(MARKETPLACES_URL);
     }
 });
