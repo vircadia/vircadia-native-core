@@ -1109,6 +1109,7 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                 
                 if (injector->isAmbisonic()) {
 
+                    // no distance attenuation
                     float gain = injector->getVolume();
 
                     //
@@ -1116,90 +1117,7 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     // Injector orientation can be used to align a recording to our world coordinates.
                     //
                     glm::quat relativeOrientation = injector->getOrientation() * glm::inverse(_orientationGetter());
-#if 0
-                    ////////////// debug //////////////////
-                    {
-                        float x = relativeOrientation.x;
-                        float y = relativeOrientation.y;
-                        float z = relativeOrientation.z;
-                        float w = relativeOrientation.w;
 
-                        float azimuth = atan2f(2.0f*y*w - 2.0f*x*z, 1.0f - 2.0f*y*y - 2.0f*z*z) * (180/3.141592654f);
-
-                        // log only once per second
-                        static int counter;
-                        if (counter++ % 100 == 0) {
-                            qCDebug(audioclient) << "Azimuth:" << azimuth;
-                        }
-                    }
-                    ////////////// debug //////////////////
-
-                    // convert quaternion to 3x3 rotation
-                    float m[3][3];
-                    {
-                        // convert from Y-up (OpenGL) to Z-up (Ambisonic) coordinate system
-                        float x = -relativeOrientation.z;
-                        float y = -relativeOrientation.x;
-                        float z = relativeOrientation.y;
-                        float w = relativeOrientation.w;
-
-                        float xx = x * (x + x);
-                        float xy = x * (y + y);
-                        float xz = x * (z + z);
-
-                        float yy = y * (y + y);
-                        float yz = y * (z + z);
-                        float zz = z * (z + z);
-
-                        float wx = w * (x + x);
-                        float wy = w * (y + y);
-                        float wz = w * (z + z);
-
-                        m[0][0] = 1.0f - (yy + zz);
-                        m[0][1] = xy - wz;
-                        m[0][2] = xz + wy;
-
-                        m[1][0] = xy + wz;
-                        m[1][1] = 1.0f - (xx + zz);
-                        m[1][2] = yz - wx;
-
-                        m[2][0] = xz - wy;
-                        m[2][1] = yz + wx;
-                        m[2][2] = 1.0f - (xx + yy);
-                    }
-
-                    // convert to deinterleaved float
-                    float buffer[4][AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL];
-                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-                        buffer[0][i] = (float)_scratchBuffer[4*i+0] * (1/32768.0f);
-                        buffer[1][i] = (float)_scratchBuffer[4*i+1] * (1/32768.0f);
-                        buffer[2][i] = (float)_scratchBuffer[4*i+2] * (1/32768.0f);
-                        buffer[3][i] = (float)_scratchBuffer[4*i+3] * (1/32768.0f);
-                    }
-
-                    // rotate the soundfield
-                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-
-                        float x = m[0][0] * buffer[1][i] + m[0][1] * buffer[2][i] + m[0][2] * buffer[3][i];
-                        float y = m[1][0] * buffer[1][i] + m[1][1] * buffer[2][i] + m[1][2] * buffer[3][i];
-                        float z = m[2][0] * buffer[1][i] + m[2][1] * buffer[2][i] + m[2][2] * buffer[3][i];
-
-                        buffer[1][i] = x;
-                        buffer[2][i] = y;
-                        buffer[3][i] = z;
-                    }
-
-                    //
-                    // Ambisonic to simple (non-spatialized) stereo decoder,
-                    // using virtual cardioid microphones facing +y and -y.
-                    //
-                    float wCoef = gain * 0.7071f;
-                    float yCoef = gain * 0.5000f;
-                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-                        mixBuffer[2*i+0] += wCoef * buffer[0][i] + yCoef * buffer[2][i];
-                        mixBuffer[2*i+1] += wCoef * buffer[0][i] - yCoef * buffer[2][i];
-                    }
-#else
                     // convert from Y-up (OpenGL) to Z-up (Ambisonic) coordinate system
                     float qw = relativeOrientation.w;
                     float qx = -relativeOrientation.z;
@@ -1209,7 +1127,7 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     // Ambisonic gets spatialized into mixBuffer
                     injector->getLocalFOA().render(_scratchBuffer, mixBuffer, HRTF_DATASET_INDEX, 
                                                    qw, qx, qy, qz, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-#endif
+
                 } else if (injector->isStereo()) {
 
                     // stereo gets directly mixed into mixBuffer
