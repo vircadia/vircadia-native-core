@@ -231,10 +231,10 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
         }
     });
 
-    // use the per listner AudioLimiter to render the mixed data...
+    // use the per listener AudioLimiter to render the mixed data...
     nodeData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-    // check for silent audio after the peak limitor has converted the samples
+    // check for silent audio after the peak limiter has converted the samples
     bool hasAudio = false;
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
         if (_bufferSamples[i] != 0) {
