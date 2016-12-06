@@ -53,7 +53,7 @@ class RayToOverlayIntersectionResult {
 public:
     RayToOverlayIntersectionResult();
     bool intersects;
-    int overlayID;
+    unsigned int overlayID;
     float distance;
     BoxFace face;
     glm::vec3 surfaceNormal;

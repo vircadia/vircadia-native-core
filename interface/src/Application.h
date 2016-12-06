@@ -589,7 +589,7 @@ private:
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     ThreadSafeValueCache<EntityItemID> _keyboardFocusedEntity;
-    ThreadSafeValueCache<int> _keyboardFocusedOverlay;
+    ThreadSafeValueCache<unsigned int> _keyboardFocusedOverlay;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
