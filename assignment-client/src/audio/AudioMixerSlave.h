@@ -51,8 +51,8 @@ private:
             const glm::vec3& relativePosition);
 
     // mixing buffers
-    float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-    int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    float _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _bufferSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
 
     // frame state
     ConstIter _begin;

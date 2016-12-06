@@ -172,7 +172,7 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
             // encode the audio
             QByteArray encodedBuffer;
             if (mixHasAudio) {
-                QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                QByteArray decodedBuffer(reinterpret_cast<char*>(_bufferSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                 data->encode(decodedBuffer, encodedBuffer);
             } else {
                 // time to flush, which resets the shouldFlush until next time we encode something
@@ -200,16 +200,16 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
 
     // zero out the client mix for this node
-    memset(_mixedSamples, 0, sizeof(_mixedSamples));
+    memset(_mixSamples, 0, sizeof(_mixSamples));
 
     // loop through all other nodes that have sufficient audio to mix
     std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode){
         // make sure that we have audio data for this other node
         // and that it isn't being ignored by our listening node
         // and that it isn't ignoring our listening node
-        if (otherNode->getLinkedData()
+        AudioMixerClientData* otherData = static_cast<AudioMixerClientData*>(otherNode->getLinkedData());
+        if (otherData
             && !node->isIgnoringNodeWithID(otherNode->getUUID()) && !otherNode->isIgnoringNodeWithID(node->getUUID()))  {
-            AudioMixerClientData* otherData = static_cast<AudioMixerClientData*>(otherNode->getLinkedData());
 
             // check if distance is inside ignore radius
             if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
@@ -232,12 +232,12 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
     });
 
     // use the per listner AudioLimiter to render the mixed data...
-    nodeData->audioLimiter.render(_mixedSamples, _clampedSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    nodeData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
     // check for silent audio after the peak limitor has converted the samples
     bool hasAudio = false;
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-        if (_clampedSamples[i] != 0) {
+        if (_bufferSamples[i] != 0) {
             hasAudio = true;
             break;
         }
@@ -306,7 +306,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
 
                 // this is not done for stereo streams since they do not go through the HRTF
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
-                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
+                hrtf.renderSilent(silentMonoBlock, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 ++stats.hrtfSilentRenders;
@@ -324,15 +324,15 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
         // simply apply our calculated gain to each sample
         if (streamToAdd.isStereo()) {
             for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-                _mixedSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
+                _mixSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
             }
 
             ++stats.manualStereoMixes;
         } else {
             for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i += 2) {
                 auto monoSample = float(streamPopOutput[i / 2] * gain / AudioConstants::MAX_SAMPLE_VALUE);
-                _mixedSamples[i] += monoSample;
-                _mixedSamples[i + 1] += monoSample;
+                _mixSamples[i] += monoSample;
+                _mixSamples[i + 1] += monoSample;
             }
 
             ++stats.manualEchoMixes;
@@ -344,16 +344,14 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
     // get the existing listener-source HRTF object, or create a new one
     auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
 
-    static int16_t streamBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL];
-
-    streamPopOutput.readSamples(streamBlock, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
     // if the frame we're about to mix is silent, simply call render silent and move on
     if (streamToAdd.getLastPopOutputLoudness() == 0.0f) {
         // silent frame from source
 
         // we still need to call renderSilent via the HRTF for mono source
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
+        hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++stats.hrtfSilentRenders;
@@ -367,7 +365,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
         // the mixer is struggling so we're going to drop off some streams
 
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
+        hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++stats.hrtfStruggleRenders;
@@ -378,7 +376,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
     ++stats.hrtfRenders;
 
     // mono stream, call the HRTF with our block and calculated azimuth and gain
-    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
+    hrtf.render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 }
 
