@@ -512,9 +512,12 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
         const QString AUTO_THREADS = "auto_threads";
         bool autoThreads = audioThreadingGroupObject[AUTO_THREADS].toBool();
         if (!autoThreads) {
+            bool ok;
             const QString NUM_THREADS = "num_threads";
-            int numThreads = audioThreadingGroupObject[NUM_THREADS].toInt();
-            _slavePool.setNumThreads(numThreads);
+            int numThreads = audioThreadingGroupObject[NUM_THREADS].toString().toInt(&ok);
+            if (ok) {
+                _slavePool.setNumThreads(numThreads);
+            }
         }
     }
 

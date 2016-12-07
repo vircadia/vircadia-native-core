@@ -113,7 +113,7 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
 
         int clampedThreads = std::min(std::max(1, numThreads), maxThreads);
         if (clampedThreads != numThreads) {
-            qWarning("%s: clamped to %d (was %d)", __FUNCTION__, numThreads, clampedThreads);
+            qWarning("%s: clamped to %d (was %d)", __FUNCTION__, clampedThreads, numThreads);
             numThreads = clampedThreads;
         }
     }
