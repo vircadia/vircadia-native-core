@@ -467,40 +467,41 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
     }
 
     qCDebug(glLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height();
+    gl::withSavedContext([&] {
+        _canvas->makeCurrent();
 
-    _canvas->makeCurrent();
-
-    // Release hold on the textures of the old size
-    if (uvec2() != _size) {
-        // If the most recent texture was unused, we can directly recycle it
-        if (_latestTextureAndFence.first) {
-            offscreenTextures.releaseTexture(_latestTextureAndFence);
-            _latestTextureAndFence = { 0, 0 };
+        // Release hold on the textures of the old size
+        if (uvec2() != _size) {
+            // If the most recent texture was unused, we can directly recycle it
+            if (_latestTextureAndFence.first) {
+                offscreenTextures.releaseTexture(_latestTextureAndFence);
+                _latestTextureAndFence = { 0, 0 };
+            }
+            offscreenTextures.releaseSize(_size);
         }
-        offscreenTextures.releaseSize(_size);
-    }
 
-    _size = newOffscreenSize;
+        _size = newOffscreenSize;
 
-    // Acquire the new texture size
-    if (uvec2() != _size) {
-        offscreenTextures.acquireSize(_size);
-        if (_depthStencil) {
-            glDeleteRenderbuffers(1, &_depthStencil);
-            _depthStencil = 0;
+        // Acquire the new texture size
+        if (uvec2() != _size) {
+            offscreenTextures.acquireSize(_size);
+            if (_depthStencil) {
+                glDeleteRenderbuffers(1, &_depthStencil);
+                _depthStencil = 0;
+            }
+            glGenRenderbuffers(1, &_depthStencil);
+            glBindRenderbuffer(GL_RENDERBUFFER, _depthStencil);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, _size.x, _size.y);
+            if (!_fbo) {
+                glGenFramebuffers(1, &_fbo);
+            }
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
+            glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthStencil);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         }
-        glGenRenderbuffers(1, &_depthStencil);
-        glBindRenderbuffer(GL_RENDERBUFFER, _depthStencil);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, _size.x, _size.y);
-        if (!_fbo) {
-            glGenFramebuffers(1, &_fbo);
-        }
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
-        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthStencil);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    }
 
-    _canvas->doneCurrent();
+        _canvas->doneCurrent();
+    });
 }
 
 QQuickItem* OffscreenQmlSurface::getRootItem() {

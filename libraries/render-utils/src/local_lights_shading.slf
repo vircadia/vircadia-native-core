@@ -30,7 +30,6 @@
 
 <@include LightClusterGrid.slh@>
 
-
 in vec2 _texCoord0;
 out vec4 _fragColor;
 
@@ -39,15 +38,13 @@ void main(void) {
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st;
 
-    vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
-    DeferredFragment frag = unpackDeferredFragmentNoPosition(texCoord);
+    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
+    DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
+    vec4 fragPosition = frag.position;
 
     if (frag.mode == FRAG_MODE_UNLIT) {
         discard;
     }
-
-    frag.position = fragPosition;
-
 
     // Frag pos in world
     mat4 invViewMat = getViewInverse();
@@ -56,7 +53,6 @@ void main(void) {
     // From frag world pos find the cluster
     vec4 clusterEyePos = frustumGrid_worldToEye(fragPos);
     ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
-
 
     ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
     int numLights = cluster.x + cluster.y;
