@@ -369,7 +369,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
 
-	COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED, lastEdited);
+
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
