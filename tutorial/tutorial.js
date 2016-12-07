@@ -344,8 +344,8 @@ function playFirecrackerSound(position) {
 // STEP: DISABLE CONTROLLERS                                                 //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepStart = function(name) {
-    this.tag = name;
+var stepStart = function() {
+    this.tag = "start";
 }
 stepStart.prototype = {
     start: function(onFinish) {
@@ -402,8 +402,7 @@ function reenableEverything() {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-var stepEnableControllers = function(name) {
-    this.tag = name;
+var stepEnableControllers = function() {
     this.shouldLog = false;
 }
 stepEnableControllers.prototype = {
@@ -446,9 +445,9 @@ stepWelcome.prototype = {
 // STEP: Orient and raise hands above head                                   //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepOrient = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepOrient = function() {
+    this.tag = "orient";
+    this.tempTag = "orient-temporary";
 }
 stepOrient.prototype = {
     start: function(onFinish) {
@@ -500,8 +499,8 @@ stepOrient.prototype = {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepNearGrab = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+    this.tag = "nearGrab";
+    this.tempTag = "nearGrab-temporary";
     this.birdIDs = [];
 
     Messages.subscribe("Entity-Exploded");
@@ -572,9 +571,9 @@ stepNearGrab.prototype = {
 // STEP: Far Grab                                                            //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepFarGrab = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepFarGrab = function() {
+    this.tag = "farGrab;
+    this.tempTag = "farGrab-temporary";
     this.finished = true;
     this.birdIDs = [];
 
@@ -675,11 +674,11 @@ PositionWatcher.prototype = {
 // STEP: Equip                                                               //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepEquip = function(name) {
-    this.tag = name;
-    this.tagPart1 = name + "-part1";
-    this.tagPart2 = name + "-part2";
-    this.tempTag = name + "-temporary";
+var stepEquip = function() {
+    this.tag = "equip";
+    this.tagPart1 = "equip-part1";
+    this.tagPart2 = "equip-part2";
+    this.tempTag = "equip-temporary";
     this.PART1 = 0;
     this.PART2 = 1;
     this.PART3 = 2;
@@ -809,9 +808,9 @@ stepEquip.prototype = {
 // STEP: Turn Around                                                         //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepTurnAround = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepTurnAround = function() {
+    this.tag = "turnAround";
+    this.tempTag = "turnAround-temporary";
 
     this.onActionBound = this.onAction.bind(this);
     this.numTimesSnapTurnPressed = 0;
@@ -895,9 +894,9 @@ stepTurnAround.prototype = {
 // STEP: Teleport                                                            //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepTeleport = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepTeleport = function() {
+    this.tag = "teleport";
+    this.tempTag = "teleport-temporary";
 }
 stepTeleport.prototype = {
     start: function(onFinish) {
@@ -955,9 +954,9 @@ stepTeleport.prototype = {
 // STEP: Finish                                                              //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepFinish = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepFinish = function() {
+    this.tag = "finish";
+    this.tempTag = "finish-temporary";
 }
 stepFinish.prototype = {
     start: function(onFinish) {
@@ -1010,15 +1009,15 @@ TutorialManager = function() {
         // If Script.generateUUID is not available, default to an empty string.
         tutorialID = Script.generateUUID ? Script.generateUUID() : "";
         STEPS = [
-            new stepStart("start"),
-            new stepOrient("orient"),
-            new stepNearGrab("nearGrab"),
-            new stepFarGrab("farGrab"),
-            new stepEquip("equip"),
-            new stepTurnAround("turnAround"),
-            new stepTeleport("teleport"),
-            new stepFinish("finish"),
-            new stepEnableControllers("enableControllers"),
+            new stepStart(),
+            new stepOrient(),
+            new stepNearGrab(),
+            new stepFarGrab(),
+            new stepEquip(),
+            new stepTurnAround(),
+            new stepTeleport(),
+            new stepFinish(),
+            new stepEnableControllers(),
         ];
         wentToEntryStepNum = STEPS.length;
         for (var i = 0; i < STEPS.length; ++i) {
