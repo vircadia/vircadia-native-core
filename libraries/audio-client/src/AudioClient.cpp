@@ -1100,7 +1100,7 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
             static const int HRTF_DATASET_INDEX = 1;
 
-            int numChannels = injector->isAmbisonic() ? 4 : (injector->isStereo() ? 2 : 1);
+            int numChannels = injector->isAmbisonic() ? AudioConstants::AMBISONIC : (injector->isStereo() ? AudioConstants::STEREO : AudioConstants::MONO);
             qint64 bytesToRead = numChannels * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
 
             // get one frame from the injector
