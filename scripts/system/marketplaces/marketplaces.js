@@ -16,9 +16,8 @@ Script.include("../libraries/WebTablet.js");
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 
 var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
-var MARKETPLACES_DIRECTORY_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesDirectory.js");
-var MARKETPLACES_HFIF_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesHiFi.js");
-var MARKETPLACES_CLARA_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesClara.js");
+var MARKETPLACES_URL_AMENDED = MARKETPLACES_URL + "?";  // Append "?" to signal injected script that it's not the initial page.
+var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 
 var marketplaceWindow = new OverlayWebWindow({
     title: "Marketplace",
@@ -27,17 +26,10 @@ var marketplaceWindow = new OverlayWebWindow({
     height: 700,
     visible: false
 });
-marketplaceWindow.setScriptURL("");
+marketplaceWindow.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
 marketplaceWindow.webEventReceived.connect(function (data) {
-    if (data === "INJECT_HIFI") {
-        marketplaceWindow.setScriptURL(MARKETPLACES_HFIF_SCRIPT_URL);
-    }
-    if (data === "INJECT_CLARA") {
-        marketplaceWindow.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
-    }
-    if (data === "RELOAD_DIRECTORY") {
-        marketplaceWindow.setScriptURL("");
-        marketplaceWindow.setURL(MARKETPLACES_URL);
+    if (data === "GOTO_DIRECTORY") {
+        marketplaceWindow.setURL(MARKETPLACES_URL_AMENDED);
     }
 });
 
@@ -63,18 +55,11 @@ function showMarketplace(marketplaceID) {
         updateButtonState(true);
         marketplaceWebTablet = new WebTablet(MARKETPLACES_URL, null, null, true);
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
-        marketplaceWebTablet.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
+        marketplaceWebTablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
         marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (data) {
-            if (data === "INJECT_HIFI") {
-                marketplaceWebTablet.setScriptURL(MARKETPLACES_HFIF_SCRIPT_URL);
-            }
-            if (data === "INJECT_CLARA") {
-                marketplaceWebTablet.setScriptURL(MARKETPLACES_CLARA_SCRIPT_URL);
-            }
-            if (data === "RELOAD_DIRECTORY") {
-                marketplaceWebTablet.setScriptURL(MARKETPLACES_DIRECTORY_SCRIPT_URL);
-                marketplaceWebTablet.setURL("");  // Force reload of URL.
-                marketplaceWebTablet.setURL(MARKETPLACES_URL);
+            if (data === "GOTO_DIRECTORY") {
+                marketplaceWebTablet.setURL("");  // Force reload of URL to work around WetTablet bug.
+                marketplaceWebTablet.setURL(MARKETPLACES_URL_AMENDED);
             }
         });
     } else {

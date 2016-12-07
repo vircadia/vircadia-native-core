@@ -110,8 +110,8 @@ body {
     position: absolute;
     right: 20px;
     margin-top: 12px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
 }
 
 @media (max-width:768px) {
@@ -128,10 +128,10 @@ body {
         text-align:center;
     }
     .tile-divider {
-    width: 100%;
-    margin-left: 0%;
-}
-.marketplace-tile-image{
-    margin-bottom:15px;
-}
+        width:  100%;
+        margin-left: 0;
+    }
+    .marketplace-tile-image {
+        margin-bottom: 15px;
+    }
 }
