@@ -167,8 +167,6 @@
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
-#include <VersionHelpers.h>
-
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
@@ -419,16 +417,6 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-#if defined(Q_OS_WIN)
-    // Select appropriate audio DLL
-    QString audioDLLPath = QCoreApplication::applicationDirPath();
-    if (IsWindows8OrGreater()) {
-        audioDLLPath += "/audioWin8";
-    } else {
-        audioDLLPath += "/audioWin7";
-    }
-    QCoreApplication::addLibraryPath(audioDLLPath);
-#endif
 
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
@@ -3894,13 +3882,6 @@ void Application::update(float deltaTime) {
             if (nearbyEntitiesAreReadyForPhysics()) {
                 _physicsEnabled = true;
                 getMyAvatar()->updateMotionBehaviorFromMenu();
-            } else {
-                auto characterController = getMyAvatar()->getCharacterController();
-                if (characterController) {
-                    // if we have a character controller, disable it here so the avatar doesn't get stuck due to
-                    // a non-loading collision hull.
-                    characterController->setEnabled(false);
-                }
             }
         }
     }
@@ -4029,7 +4010,7 @@ void Application::update(float deltaTime) {
             avatarManager->getObjectsToChange(motionStates);
             _physicsEngine->changeObjects(motionStates);
 
-            myAvatar->prepareForPhysicsSimulation();
+            myAvatar->prepareForPhysicsSimulation(deltaTime);
             _physicsEngine->forEachAction([&](EntityActionPointer action) {
                 action->prepareForPhysicsSimulation();
             });

@@ -202,6 +202,11 @@ public:
 
     glm::vec3 rotationMin;  // radians
     glm::vec3 rotationMax;  // radians
+
+    bool hasGeometricOffset;
+    glm::vec3 geometricTranslation;
+    glm::quat geometricRotation;
+    glm::vec3 geometricScaling;
 };
 
 glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
@@ -639,9 +644,17 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     glm::vec3 scalePivot, rotationPivot, scaleOffset;
                     bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
                     bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
+
+                    // local offset transforms from 3ds max
+                    bool hasGeometricOffset = false;
+                    glm::vec3 geometricTranslation;
+                    glm::vec3 geometricScaling(1.0f, 1.0f, 1.0f);
+                    glm::vec3 geometricRotation;
+
                     glm::vec3 rotationMin, rotationMax;
                     FBXModel model = { name, -1, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(), glm::quat(),
-                                       glm::mat4(), glm::vec3(), glm::vec3()};
+                                       glm::mat4(), glm::vec3(), glm::vec3(),
+                                       false, glm::vec3(), glm::quat(), glm::vec3(1.0f) };
                     ExtractedMesh* mesh = NULL;
                     QVector<ExtractedBlendshape> blendshapes;
                     foreach (const FBXNode& subobject, object.children) {
@@ -712,6 +725,15 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                                     } else if (property.properties.at(0) == "RotationMaxZ") {
                                         rotationMaxZ = property.properties.at(index).toBool();
+                                    } else if (property.properties.at(0) == "GeometricTranslation") {
+                                        geometricTranslation = getVec3(property.properties, index);
+                                        hasGeometricOffset = true;
+                                    } else if (property.properties.at(0) == "GeometricRotation") {
+                                        geometricRotation = getVec3(property.properties, index);
+                                        hasGeometricOffset = true;
+                                    } else if (property.properties.at(0) == "GeometricScaling") {
+                                        geometricScaling = getVec3(property.properties, index);
+                                        hasGeometricOffset = true;
                                     }
                                 }
                             }
@@ -768,8 +790,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f));
                     model.rotationMax = glm::radians(glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
                         rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f));
-                    models.insert(getID(object.properties), model);
 
+                    model.hasGeometricOffset = hasGeometricOffset;
+                    model.geometricTranslation = geometricTranslation;
+                    model.geometricRotation = glm::quat(glm::radians(geometricRotation));
+                    model.geometricScaling = geometricScaling;
+
+                    models.insert(getID(object.properties), model);
                 } else if (object.name == "Texture") {
                     TextureParam tex;
                     foreach (const FBXNode& subobject, object.children) {
@@ -1286,7 +1313,14 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         joint.postTransform = model.postTransform;
         joint.rotationMin = model.rotationMin;
         joint.rotationMax = model.rotationMax;
+
+        joint.hasGeometricOffset = model.hasGeometricOffset;
+        joint.geometricTranslation = model.geometricTranslation;
+        joint.geometricRotation = model.geometricRotation;
+        joint.geometricScaling = model.geometricScaling;
+
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
+
         if (joint.parentIndex == -1) {
             joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
@@ -1602,6 +1636,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 points.push_back(extractTranslation(vertexTransform) * clusterScale);
             }
 
+            // Apply geometric offset, if present, by transforming the vertices directly
+            if (joint.hasGeometricOffset) {
+                glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
+                for (int i = 0; i < extracted.mesh.vertices.size(); i++) {
+                    extracted.mesh.vertices[i] = transformPoint(geometricOffset, extracted.mesh.vertices[i]);
+                }
+            }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
 

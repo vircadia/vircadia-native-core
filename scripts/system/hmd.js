@@ -22,11 +22,24 @@ var desktopMenuItemName = "Desktop";
     }
 });
 
+var controllerDisplay = false;
+function updateControllerDisplay() {
+    if (HMD.active && Menu.isOptionChecked("Third Person")) {
+        if (!controllerDisplay) {
+            HMD.requestShowHandControllers();
+            controllerDisplay = true;
+        }
+    } else if (controllerDisplay) {
+        HMD.requestHideHandControllers();
+        controllerDisplay = false;
+    }
+}
+
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var button;
 // Independent and Entity mode make people sick. Third Person and Mirror have traps that we need to work through.
 // Disable them in hmd.
-var desktopOnlyViews = ['Third Person', 'Mirror', 'Independent Mode', 'Entity Mode'];
+var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
     button.writeProperty('buttonState', isHmd ? 0 : 1);
     button.writeProperty('defaultState', isHmd ? 0 : 1);
@@ -34,6 +47,7 @@ function onHmdChanged(isHmd) {
     desktopOnlyViews.forEach(function (view) {
         Menu.setMenuEnabled("View>" + view, !isHmd);
     });
+    updateControllerDisplay();
 }
 function onClicked(){
     var isDesktop = Menu.isOptionChecked(desktopMenuItemName);
@@ -52,11 +66,13 @@ if (headset) {
 
     button.clicked.connect(onClicked);
     HMD.displayModeChanged.connect(onHmdChanged);
+    Camera.modeUpdated.connect(updateControllerDisplay);
 
     Script.scriptEnding.connect(function () {
         toolBar.removeButton("hmdToggle");
         button.clicked.disconnect(onClicked);
         HMD.displayModeChanged.disconnect(onHmdChanged);
+        Camera.modeUpdated.disconnect(updateControllerDisplay);
     });
 }
 
