@@ -16,32 +16,34 @@
 
 void AudioMixerSlaveThread::run() {
     while (!_stop) {
-        wait();
+        wait(); // for the audio pool to notify
 
+        // iterate over all available nodes
         SharedNodePointer node;
         while (try_pop(node)) {
             mix(node);
         }
 
-        notify();
+        notify(); // the audio pool we are done
     }
 }
 
 void AudioMixerSlaveThread::wait() {
-    Lock lock(_pool._mutex);
-
-    _pool._slaveCondition.wait(lock, [&] {
-        return _pool._numStarted != _pool._numThreads;
-    });
-
-    // toggle running state
-    ++_pool._numStarted;
+    {
+        Lock lock(_pool._mutex);
+        _pool._slaveCondition.wait(lock, [&] {
+            assert(_pool._numStarted <= _pool._numThreads);
+            return _pool._numStarted != _pool._numThreads;
+        });
+        ++_pool._numStarted;
+    }
     configure(_pool._begin, _pool._end, _pool._frame);
 }
 
 void AudioMixerSlaveThread::notify() {
     {
         Lock lock(_pool._mutex);
+        assert(_pool._numFinished < _pool._numThreads);
         ++_pool._numFinished;
     }
     _pool._poolCondition.notify_one();
@@ -51,34 +53,45 @@ bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node) {
     return _pool._queue.try_pop(node);
 }
 
-AudioMixerSlavePool::~AudioMixerSlavePool() {
-    resize(0);
-}
-
 #ifdef AUDIO_SINGLE_THREADED
 static AudioMixerSlave slave;
 #endif
 
 void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame) {
-    Lock lock(_mutex);
+    _begin = begin;
+    _end = end;
+    _frame = frame;
 
 #ifdef AUDIO_SINGLE_THREADED
     slave.configure(_begin, _end, frame);
     std::for_each(begin, end, [&](const SharedNodePointer& node) {
         slave.mix(node);
     });
-
 #else
-    start(lock, begin, end, frame);
-    wait(lock);
-#endif
+    // fill the queue
+    std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
+        _queue.emplace(node);
+    });
 
+    {
+        Lock lock(_mutex);
+
+        // mix
+        _numStarted = _numFinished = 0;
+        _slaveCondition.notify_all();
+
+        // wait
+        _poolCondition.wait(lock, [&] {
+            assert(_numFinished <= _numThreads);
+            return _numFinished == _numThreads;
+        });
+    }
+    assert(_numStarted == _numThreads);
+    assert(_queue.empty());
+#endif
 }
 
 void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> functor) {
-    Lock lock(_mutex);
-    assert(!_running);
-
 #ifdef AUDIO_SINGLE_THREADED
     functor(slave);
 #else
@@ -86,41 +99,6 @@ void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> funct
         functor(*slave.get());
     }
 #endif
-}
-
-void AudioMixerSlavePool::start(Lock& lock, ConstIter begin, ConstIter end, unsigned int frame) {
-    assert(lock.owns_lock());
-    assert(!_running);
-
-    // fill the queue
-    std::for_each(begin, end, [&](const SharedNodePointer& node) {
-        _queue.emplace(node);
-    });
-
-    // toggle running state
-    _running = true;
-    _numStarted = 0;
-    _numFinished = 0;
-    _begin = begin;
-    _end = end;
-    _frame = frame;
-
-    _slaveCondition.notify_all();
-}
-
-void AudioMixerSlavePool::wait(Lock& lock) {
-    assert(lock.owns_lock());
-
-    if (_running) {
-        _poolCondition.wait(lock, [&] {
-            return _numFinished == _numThreads;
-        });
-    }
-
-    assert(_queue.empty());
-
-    // toggle running state
-    _running = false;
 }
 
 void AudioMixerSlavePool::setNumThreads(int numThreads) {
@@ -144,10 +122,6 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
 }
 
 void AudioMixerSlavePool::resize(int numThreads) {
-    Lock lock(_mutex);
-
-    // ensure slave are not running
-    assert(!_running);
     assert(_numThreads == _slaves.size());
 
 #ifdef AUDIO_SINGLE_THREADED
@@ -173,8 +147,8 @@ void AudioMixerSlavePool::resize(int numThreads) {
         }
 
         // ...cycle slaves with empty queue...
-        start(lock);
-        lock.unlock();
+        _numStarted = _numFinished = 0;
+        _slaveCondition.notify_all();
 
         // ...wait for them to finish...
         slave = extraBegin;

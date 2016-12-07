@@ -50,6 +50,8 @@ private:
     std::atomic<bool> _stop;
 };
 
+// Slave pool for audio mixers
+//   AudioMixerSlavePool is not thread-safe! It should be instantiated and used from a single thread.
 class AudioMixerSlavePool {
     using Queue = tbb::concurrent_queue<SharedNodePointer>;
     using Mutex = std::mutex;
@@ -60,7 +62,7 @@ public:
     using ConstIter = NodeList::const_iterator;
 
     AudioMixerSlavePool(int numThreads = QThread::idealThreadCount()) { setNumThreads(numThreads); }
-    ~AudioMixerSlavePool();
+    ~AudioMixerSlavePool() { resize(0); }
 
     // mix on slave threads
     void mix(ConstIter begin, ConstIter end, unsigned int frame);
@@ -72,10 +74,6 @@ public:
     int numThreads() { return _numThreads; }
 
 private:
-    // these methods require access to guarded members, so require a lock as argument
-    void start(Lock& lock, ConstIter begin = ConstIter(), ConstIter end = ConstIter(), unsigned int frame = 0);
-    void wait(Lock& lock);
-
     void resize(int numThreads);
 
     std::vector<std::unique_ptr<AudioMixerSlaveThread>> _slaves;
@@ -89,9 +87,8 @@ private:
     ConditionVariable _slaveCondition;
     ConditionVariable _poolCondition;
     int _numThreads { 0 };
-    int _numStarted { 0 };
-    int _numFinished { 0 };
-    bool _running { false };
+    int _numStarted { 0 }; // guarded by _mutex
+    int _numFinished { 0 }; // guarded by _mutex
 
     // frame state
     Queue _queue;
