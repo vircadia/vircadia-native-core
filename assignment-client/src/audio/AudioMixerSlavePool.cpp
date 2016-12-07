@@ -15,8 +15,8 @@
 #include "AudioMixerSlavePool.h"
 
 void AudioMixerSlaveThread::run() {
-    while (!_stop) {
-        wait(); // for the audio pool to notify
+    while (true) {
+        wait();
 
         // iterate over all available nodes
         SharedNodePointer node;
@@ -24,7 +24,11 @@ void AudioMixerSlaveThread::run() {
             mix(node);
         }
 
-        notify(); // the audio pool we are done
+        bool stopping = _stop;
+        notify(stopping);
+        if (stopping) {
+            return;
+        }
     }
 }
 
@@ -40,11 +44,14 @@ void AudioMixerSlaveThread::wait() {
     configure(_pool._begin, _pool._end, _pool._frame);
 }
 
-void AudioMixerSlaveThread::notify() {
+void AudioMixerSlaveThread::notify(bool stopping) {
     {
         Lock lock(_pool._mutex);
         assert(_pool._numFinished < _pool._numThreads);
         ++_pool._numFinished;
+        if (stopping) {
+            ++_pool._numStopped;
+        }
     }
     _pool._poolCondition.notify_one();
 }
@@ -139,18 +146,28 @@ void AudioMixerSlavePool::resize(int numThreads) {
     } else if (numThreads < _numThreads) {
         auto extraBegin = _slaves.begin() + numThreads;
 
-        // stop extra slaves...
+        // mark slaves to stop...
         auto slave = extraBegin;
         while (slave != _slaves.end()) {
-            (*slave)->stop();
+            (*slave)->_stop = true;
             ++slave;
         }
 
-        // ...cycle slaves with empty queue...
-        _numStarted = _numFinished = 0;
-        _slaveCondition.notify_all();
+        // ...cycle them until they do stop...
+        {
+            Lock lock(_mutex);
+            _numStopped = 0;
+            while (_numStopped != (_numThreads - numThreads)) {
+                _numStarted = _numFinished = _numStopped;
+                _slaveCondition.notify_all();
+                _poolCondition.wait(lock, [&] {
+                    assert(_numFinished <= _numThreads);
+                    return _numFinished == _numThreads;
+                });
+            }
+        }
 
-        // ...wait for them to finish...
+        // ...wait for threads to finish...
         slave = extraBegin;
         while (slave != _slaves.end()) {
             QThread* thread = reinterpret_cast<QThread*>(slave->get());
@@ -159,7 +176,7 @@ void AudioMixerSlavePool::resize(int numThreads) {
             ++slave;
         }
 
-        // ...and delete them
+        // ...and erase them
         _slaves.erase(extraBegin, _slaves.end());
     }
 

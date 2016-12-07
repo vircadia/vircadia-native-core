@@ -34,20 +34,16 @@ public:
     AudioMixerSlaveThread(AudioMixerSlavePool& pool) : _pool(pool) {}
 
     void run() override final;
-    void stop() { _stop = true; }
 
 private:
     friend class AudioMixerSlavePool;
 
     void wait();
-    void notify();
+    void notify(bool stopping);
     bool try_pop(SharedNodePointer& node);
 
-    // frame state
     AudioMixerSlavePool& _pool;
-
-    // synchronization state
-    std::atomic<bool> _stop;
+    bool _stop;
 };
 
 // Slave pool for audio mixers
@@ -79,7 +75,7 @@ private:
     std::vector<std::unique_ptr<AudioMixerSlaveThread>> _slaves;
 
     friend void AudioMixerSlaveThread::wait();
-    friend void AudioMixerSlaveThread::notify();
+    friend void AudioMixerSlaveThread::notify(bool stopping);
     friend bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node);
 
     // synchronization state
@@ -89,6 +85,7 @@ private:
     int _numThreads { 0 };
     int _numStarted { 0 }; // guarded by _mutex
     int _numFinished { 0 }; // guarded by _mutex
+    int _numStopped { 0 }; // guarded by _mutex
 
     // frame state
     Queue _queue;
