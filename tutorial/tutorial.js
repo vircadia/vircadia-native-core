@@ -58,11 +58,6 @@ function info() {
     }
 }
 
-// Return a number between min (inclusive) and max (exclusive)
-function randomInt(min, max) {
-    return min + Math.floor(Math.random() * (max - min))
-}
-
 var NEAR_BOX_SPAWN_NAME = "tutorial/nearGrab/box_spawn";
 var FAR_BOX_SPAWN_NAME = "tutorial/farGrab/box_spawn";
 var GUN_SPAWN_NAME = "tutorial/gun_spawn";
@@ -76,10 +71,6 @@ var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
 function setAwayEnabled(value) {
     var message = value ? 'enable' : 'disable';
     Messages.sendLocalMessage(CHANNEL_AWAY_ENABLE, message);
-}
-
-function beginsWithFilter(value, key) {
-    return value.indexOf(properties[key]) == 0;
 }
 
 findEntity = function(properties, searchRadius, filterFn) {
@@ -116,18 +107,29 @@ findEntities = function(properties, searchRadius, filterFn) {
     return matchedEntities;
 }
 
-function setControllerPartsVisible(parts) {
-    Messages.sendLocalMessage('Controller-Display-Parts', JSON.stringify(parts));
+function findEntitiesWithTag(tag) {
+    return findEntities({ userData: "" }, 10000, function(properties, key, value) {
+        data = parseJSON(value);
+        return data.tag === tag;
+    });
 }
 
+/**
+ * A controller in made up of parts, and each part can have multiple "layers,"
+ * which are really just different texures. For example, the "trigger" part
+ * has "normal" and "highlight" layers.
+ */
 function setControllerPartLayer(part, layer) {
     data = {};
     data[part] = layer;
     Messages.sendLocalMessage('Controller-Set-Part-Layer', JSON.stringify(data));
 }
 
-function spawn(entityData, transform, modifyFn) {
-    debug("Creating: ", entityData);
+/**
+ * @param {object[]} entityPropertiesList A list of properties to 
+ */
+function spawn(entityPropertiesList, transform, modifyFn) {
+    debug("Creating: ", entityPropertiesList);
     if (!transform) {
         transform = {
             position: { x: 0, y: 0, z: 0 },
@@ -135,8 +137,8 @@ function spawn(entityData, transform, modifyFn) {
         }
     }
     var ids = [];
-    for (var i = 0; i < entityData.length; ++i) {
-        var data = entityData[i];
+    for (var i = 0; i < entityPropertiesList.length; ++i) {
+        var data = entityPropertiesList[i];
         debug("Creating: ", data.name);
         data.position = Vec3.sum(transform.position, data.position);
         data.rotation = Quat.multiply(data.rotation, transform.rotation);
@@ -150,6 +152,12 @@ function spawn(entityData, transform, modifyFn) {
     return ids;
 }
 
+/**
+ * @function parseJSON
+ * @param {string} jsonString The string to parse.
+ * @return {object} Return an empty if the string was not valid JSON, otherwise
+ *   the parsed object is returned.
+ */
 function parseJSON(jsonString) {
     var data;
     try {
@@ -160,6 +168,10 @@ function parseJSON(jsonString) {
     return data;
 }
 
+/**
+ * Spawn entities with `tag` in the userData.
+ * @function spawnWithTag
+ */
 function spawnWithTag(entityData, transform, tag) {
     function modifyFn(data) {
         var userData = parseJSON(data.userData);
@@ -171,6 +183,10 @@ function spawnWithTag(entityData, transform, tag) {
     return spawn(entityData, transform, modifyFn);
 }
 
+/**
+ * Delete all entities with the tag `tag` in their userData.
+ * @function deleteEntitiesWithTag
+ */
 function deleteEntitiesWithTag(tag) {
     debug("searching for...:", tag);
     var entityIDs = findEntitiesWithTag(tag);
@@ -178,6 +194,7 @@ function deleteEntitiesWithTag(tag) {
         Entities.deleteEntity(entityIDs[i]);
     }
 }
+
 function editEntitiesWithTag(tag, propertiesOrFn) {
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
 
@@ -194,17 +211,115 @@ function editEntitiesWithTag(tag, propertiesOrFn) {
     }
 }
 
-function findEntitiesWithTag(tag) {
-    return findEntities({ userData: "" }, 10000, function(properties, key, value) {
-        data = parseJSON(value);
-        return data.tag == tag;
-    });
-}
-
 // From http://stackoverflow.com/questions/5999998/how-can-i-check-if-a-javascript-variable-is-function-type
 function isFunction(functionToCheck) {
     var getType = {};
     return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
+}
+
+/**
+ * Return `true` if `entityID` can be found in the local entity tree, otherwise `false`.
+ */
+function isEntityInLocalTree(entityID) {
+    return Entities.getEntityProperties(entityID, 'visible').visible !== undefined;
+}
+
+/**
+ *
+ */
+function showEntitiesWithTag(tag) {
+    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
+    if (entities) {
+        for (entityID in entities) {
+            var data = entities[entityID];
+
+            var collisionless = data.visible === false ? true : false;
+            if (data.collidable !== undefined) {
+                collisionless = data.collidable === true ? false : true;
+            }
+            if (data.soundKey) {
+                data.soundKey.playing = true;
+            }
+            var newProperties = {
+                visible: data.visible == false ? false : true,
+                collisionless: collisionless,
+                userData: JSON.stringify(data),
+            };
+            debug("Showing: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
+            Entities.editEntity(entityID, newProperties);
+        }
+    }
+
+    // Dynamic method, suppressed for now
+    return;
+    editEntitiesWithTag(tag, function(entityID) {
+        var userData = Entities.getEntityProperties(entityID, "userData").userData;
+        var data = parseJSON(userData);
+        var collisionless = data.visible === false ? true : false;
+        if (data.collidable !== undefined) {
+            collisionless = data.collidable === true ? false : true;
+        }
+        if (data.soundKey) {
+            data.soundKey.playing = true;
+        }
+        var newProperties = {
+            visible: data.visible == false ? false : true,
+            collisionless: collisionless,
+            userData: JSON.stringify(data),
+        };
+        Entities.editEntity(entityID, newProperties);
+    });
+}
+
+/**
+ * @function hideEntitiesWithTag
+ */
+function hideEntitiesWithTag(tag) {
+    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
+    if (entities) {
+        for (entityID in entities) {
+            var data = entities[entityID];
+
+            if (data.soundKey) {
+                data.soundKey.playing = false;
+            }
+            var newProperties = {
+                visible: false,
+                collisionless: 1,
+                ignoreForCollisions: 1,
+                userData: JSON.stringify(data),
+            };
+
+            debug("Hiding: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
+            Entities.editEntity(entityID, newProperties);
+        }
+    }
+
+    // Dynamic method, suppressed for now
+    return;
+    editEntitiesWithTag(tag, function(entityID) {
+        var userData = Entities.getEntityProperties(entityID, "userData").userData;
+        var data = parseJSON(userData);
+        if (data.soundKey) {
+            data.soundKey.playing = false;
+        }
+        var newProperties = {
+            visible: false,
+            collisionless: 1,
+            ignoreForCollisions: 1,
+            userData: JSON.stringify(data),
+        };
+        Entities.editEntity(entityID, newProperties);
+    });
+}
+
+// Return the entity properties for an entity with a given name if it is in our
+// cached list of entities. Otherwise, return undefined.
+function getEntityWithName(name) {
+    debug("Getting entity with name:", name);
+    var entityID = TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP[name];
+    debug("Entity id: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
+    return entityID;
 }
 
 function playSuccessSound() {
@@ -214,7 +329,6 @@ function playSuccessSound() {
         loop: false
     });
 }
-
 
 function playFirecrackerSound(position) {
     Audio.playSound(firecrackerSound, {
@@ -400,7 +514,6 @@ stepNearGrab.prototype = {
 
         setControllerPartLayer('tips', 'trigger');
         setControllerPartLayer('trigger', 'highlight');
-        var tag = this.tag;
 
         // Spawn content set
         showEntitiesWithTag(this.tag, { visible: true });
@@ -871,101 +984,6 @@ stepCleanupFinish.prototype = {
 
 
 
-function isEntityInLocalTree(entityID) {
-    return Entities.getEntityProperties(entityID, 'visible').visible !== undefined;
-}
-
-function showEntitiesWithTag(tag) {
-    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
-    if (entities) {
-        for (entityID in entities) {
-            var data = entities[entityID];
-
-            var collisionless = data.visible === false ? true : false;
-            if (data.collidable !== undefined) {
-                collisionless = data.collidable === true ? false : true;
-            }
-            if (data.soundKey) {
-                data.soundKey.playing = true;
-            }
-            var newProperties = {
-                visible: data.visible == false ? false : true,
-                collisionless: collisionless,
-                userData: JSON.stringify(data),
-            };
-            debug("Showing: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
-            Entities.editEntity(entityID, newProperties);
-        }
-    }
-
-    // Dynamic method, suppressed for now
-    return;
-    editEntitiesWithTag(tag, function(entityID) {
-        var userData = Entities.getEntityProperties(entityID, "userData").userData;
-        var data = parseJSON(userData);
-        var collisionless = data.visible === false ? true : false;
-        if (data.collidable !== undefined) {
-            collisionless = data.collidable === true ? false : true;
-        }
-        if (data.soundKey) {
-            data.soundKey.playing = true;
-        }
-        var newProperties = {
-            visible: data.visible == false ? false : true,
-            collisionless: collisionless,
-            userData: JSON.stringify(data),
-        };
-        Entities.editEntity(entityID, newProperties);
-    });
-}
-
-function hideEntitiesWithTag(tag) {
-    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
-    if (entities) {
-        for (entityID in entities) {
-            var data = entities[entityID];
-
-            if (data.soundKey) {
-                data.soundKey.playing = false;
-            }
-            var newProperties = {
-                visible: false,
-                collisionless: 1,
-                ignoreForCollisions: 1,
-                userData: JSON.stringify(data),
-            };
-
-            debug("Hiding: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
-            Entities.editEntity(entityID, newProperties);
-        }
-    }
-
-    // Dynamic method, suppressed for now
-    return;
-    editEntitiesWithTag(tag, function(entityID) {
-        var userData = Entities.getEntityProperties(entityID, "userData").userData;
-        var data = parseJSON(userData);
-        if (data.soundKey) {
-            data.soundKey.playing = false;
-        }
-        var newProperties = {
-            visible: false,
-            collisionless: 1,
-            ignoreForCollisions: 1,
-            userData: JSON.stringify(data),
-        };
-        Entities.editEntity(entityID, newProperties);
-    });
-}
-
-// Return the entity properties for an entity with a given name if it is in our
-// cached list of entities. Otherwise, return undefined.
-function getEntityWithName(name) {
-    debug("Getting entity with name:", name);
-    var entityID = TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP[name];
-    debug("Entity id: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
-    return entityID;
-}
 
 
 TutorialManager = function() {
@@ -1085,6 +1103,25 @@ TutorialManager = function() {
 
 // To run the tutorial:
 //
-// var tutorialManager = new TutorialManager();
-// tutorialManager.startTutorial();
-//
+var tutorialManager = new TutorialManager();
+tutorialManager.startTutorial();
+
+
+var keyReleaseHandler = function(event) {
+    if (event.isShifted && event.isAlt) {
+        print('here', event.text);
+        if (event.text == "F12") {
+            if (!tutorialManager.startNextStep()) {
+                tutorialManager.startTutorial();
+            }
+        } else if (event.text == "F11") {
+            tutorialManager.restartStep();
+        } else if (event.text == "F10") {
+            MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
+        } else if (event.text == "r") {
+            tutorialManager.stopTutorial();
+            tutorialManager.startTutorial();
+        }
+    }
+};
+Controller.keyReleaseEvent.connect(keyReleaseHandler);
