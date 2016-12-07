@@ -415,29 +415,6 @@ stepEnableControllers.prototype = {
     }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// STEP: Welcome                                                             //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
-var stepWelcome = function(name) {
-    this.tag = name;
-}
-stepWelcome.prototype = {
-    start: function(onFinish) {
-        this.timerID = Script.setTimeout(onFinish, 8000);
-        showEntitiesWithTag(this.tag);
-    },
-    cleanup: function() {
-        if (this.timerID) {
-            Script.clearTimeout(this.timerID);
-            this.timerID = null;
-        }
-        hideEntitiesWithTag(this.tag);
-    }
-};
-
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
