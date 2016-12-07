@@ -391,10 +391,7 @@ void AudioMixer::start() {
 
         auto timer = _frameTiming.timer();
 
-        // aquire the read-lock in a single thread, to avoid canonical rwlock undefined behaviors
-        //   node removal will acquire a write lock;
-        //   read locks (in slave threads) while a write lock is pending have undefined order in pthread
-        nodeList->algorithm([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+        nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
             // prepare frames; pop off any new audio from their streams
             {
                 auto timer = _prepareTiming.timer();
