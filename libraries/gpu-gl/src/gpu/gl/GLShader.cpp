@@ -119,7 +119,7 @@ GLShader* compileBackendProgram(GLBackend& backend, const Shader& program) {
             if (object) {
                 shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
             } else {
-                qCDebug(gpugllogging) << "GLShader::compileBackendProgram - One of the shaders of the program is not compiled?";
+                qCWarning(gpugllogging) << "GLShader::compileBackendProgram - One of the shaders of the program is not compiled?";
                 return nullptr;
             }
         }

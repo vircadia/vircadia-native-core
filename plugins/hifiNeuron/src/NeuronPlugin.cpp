@@ -18,6 +18,8 @@
 #include <cassert>
 #include <NumericalConstants.h>
 #include <StreamUtils.h>
+#include <Preferences.h>
+#include <SettingHandle.h>
 
 Q_DECLARE_LOGGING_CATEGORY(inputplugins)
 Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
@@ -29,6 +31,10 @@ Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
 const char* NeuronPlugin::NAME = "Neuron";
 const char* NeuronPlugin::NEURON_ID_STRING = "Perception Neuron";
+
+const bool DEFAULT_ENABLED = false;
+const QString DEFAULT_SERVER_ADDRESS = "localhost";
+const int DEFAULT_SERVER_PORT = 7001;
 
 // indices of joints of the Neuron standard skeleton.
 // This is 'almost' the same as the High Fidelity standard skeleton.
@@ -356,6 +362,39 @@ static void SocketStatusChangedCallback(void* context, SOCKET_REF sender, Socket
 // NeuronPlugin
 //
 
+void NeuronPlugin::init() {
+    loadSettings();
+
+    auto preferences = DependencyManager::get<Preferences>();
+    static const QString NEURON_PLUGIN { "Perception Neuron" };
+    {
+        auto getter = [this]()->QString { return _serverAddress; };
+        auto setter = [this](const QString& value) { _serverAddress = value; saveSettings(); };
+        auto preference = new EditPreference(NEURON_PLUGIN, "Server Address", getter, setter);
+        preference->setPlaceholderText("");
+        preferences->addPreference(preference);
+    }
+    {
+        static const int MIN_PORT_NUMBER { 0 };
+        static const int MAX_PORT_NUMBER { 65535 };
+
+        auto getter = [this]()->float { return (float)_serverPort; };
+        auto setter = [this](float value) { _serverPort = (int)value; saveSettings(); };
+        auto preference = new SpinnerPreference(NEURON_PLUGIN, "Server Port", getter, setter);
+
+        preference->setMin(MIN_PORT_NUMBER);
+        preference->setMax(MAX_PORT_NUMBER);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [this]()->bool { return _enabled; };
+        auto setter = [this](bool value) { _enabled = value; saveSettings(); };
+        auto preference = new CheckPreference(NEURON_PLUGIN, "Enabled", getter, setter);
+        preferences->addPreference(preference);
+    }
+}
+
 bool NeuronPlugin::isSupported() const {
     // Because it's a client/server network architecture, we can't tell
     // if the neuron is actually connected until we connect to the server.
@@ -365,32 +404,37 @@ bool NeuronPlugin::isSupported() const {
 bool NeuronPlugin::activate() {
     InputPlugin::activate();
 
-    // register with userInputMapper
-    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    userInputMapper->registerDevice(_inputDevice);
+    loadSettings();
 
-    // register c-style callbacks
-    BRRegisterFrameDataCallback((void*)this, FrameDataReceivedCallback);
-    BRRegisterCommandDataCallback((void*)this, CommandDataReceivedCallback);
-    BRRegisterSocketStatusCallback((void*)this, SocketStatusChangedCallback);
+    if (_enabled) {
 
-    // TODO: Pull these from prefs dialog?
-    // localhost is fine for now.
-    _serverAddress = "localhost";
-    _serverPort = 7001;  // default port for TCP Axis Neuron server.
+        // register with userInputMapper
+        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+        userInputMapper->registerDevice(_inputDevice);
 
-    _socketRef = BRConnectTo((char*)_serverAddress.c_str(), _serverPort);
-    if (!_socketRef) {
-        // error
-        qCCritical(inputplugins) << "NeuronPlugin: error connecting to " << _serverAddress.c_str() << ":" << _serverPort << ", error = " << BRGetLastErrorMessage();
-        return false;
+        // register c-style callbacks
+        BRRegisterFrameDataCallback((void*)this, FrameDataReceivedCallback);
+        BRRegisterCommandDataCallback((void*)this, CommandDataReceivedCallback);
+        BRRegisterSocketStatusCallback((void*)this, SocketStatusChangedCallback);
+
+        // convert _serverAddress into a c-string.
+        QByteArray serverAddressByteArray = _serverAddress.toUtf8();
+        char* cstr = serverAddressByteArray.data();
+
+        _socketRef = BRConnectTo(cstr, _serverPort);
+        if (!_socketRef) {
+            qCWarning(inputplugins) << "NeuronPlugin: error connecting to " << _serverAddress << ":" << _serverPort << ", error = " << BRGetLastErrorMessage();
+            return false;
+        } else {
+            qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress << ":" << _serverPort;
+
+            emit deviceConnected(getName());
+
+            BRRegisterAutoSyncParmeter(_socketRef, Cmd_CombinationMode);
+            return true;
+        }
     } else {
-        qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress.c_str() << ":" << _serverPort;
-
-        emit deviceConnected(getName());
-
-        BRRegisterAutoSyncParmeter(_socketRef, Cmd_CombinationMode);
-        return true;
+        return false;
     }
 }
 
@@ -407,6 +451,7 @@ void NeuronPlugin::deactivate() {
     }
 
     InputPlugin::deactivate();
+    saveSettings();
 }
 
 void NeuronPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -426,11 +471,36 @@ void NeuronPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrat
 }
 
 void NeuronPlugin::saveSettings() const {
-    InputPlugin::saveSettings();
+    Settings settings;
+    QString idString = getID();
+    settings.beginGroup(idString);
+    {
+        settings.setValue(QString("enabled"), _enabled);
+        settings.setValue(QString("serverAddress"), _serverAddress);
+        settings.setValue(QString("serverPort"), _serverPort);
+    }
+    settings.endGroup();
 }
 
 void NeuronPlugin::loadSettings() {
-    InputPlugin::loadSettings();
+    Settings settings;
+    QString idString = getID();
+    settings.beginGroup(idString);
+    {
+        // enabled
+        _enabled = settings.value("enabled", QVariant(DEFAULT_ENABLED)).toBool();
+
+        // serverAddress
+        _serverAddress = settings.value("serverAddress", QVariant(DEFAULT_SERVER_ADDRESS)).toString();
+
+        // serverPort
+        bool canConvertPortToInt = false;
+        int port = settings.value("serverPort", QVariant(DEFAULT_SERVER_PORT)).toInt(&canConvertPortToInt);
+        if (canConvertPortToInt) {
+            _serverPort = port;
+        }
+    }
+    settings.endGroup();
 }
 
 //
@@ -478,3 +548,4 @@ void NeuronPlugin::InputDevice::update(float deltaTime, const controller::InputC
     _poseStateMap[controller::RIGHT_HAND_THUMB1] = controller::Pose(rightHandThumb1DefaultAbsTranslation, glm::quat(), glm::vec3(), glm::vec3());
     _poseStateMap[controller::LEFT_HAND_THUMB1] = controller::Pose(leftHandThumb1DefaultAbsTranslation, glm::quat(), glm::vec3(), glm::vec3());
 }
+

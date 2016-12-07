@@ -14,6 +14,7 @@ var SNAPSHOT_DELAY = 500; // 500ms
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var resetOverlays;
 var reticleVisible;
+var clearOverlayWhenMoving;
 var button = toolBar.addButton({
     objectName: "snapshot",
     imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
@@ -71,7 +72,7 @@ function confirmShare(data) {
                     if (submessage.share) {
                         print('sharing', submessage.localPath);
                         outstanding++;
-                        Window.shareSnapshot(submessage.localPath);
+                        Window.shareSnapshot(submessage.localPath, submessage.href);
                     } else {
                         print('not sharing', submessage.localPath);
                     }
@@ -98,10 +99,20 @@ function snapshotShared(errorMessage) {
         showFeedWindow();
     }
 }
-
+var href, domainId;
 function onClicked() {
+    // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
+    // Turn it off now, before we start futzing with things (and possibly moving).
+    clearOverlayWhenMoving = MyAvatar.getClearOverlayWhenMoving(); // Do not use Settings. MyAvatar keeps a separate copy.
+    MyAvatar.setClearOverlayWhenMoving(false);
+
+    // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
+    // Even the domainId could change (e.g., if the user falls into a teleporter while recording).
+    href = location.href;
+    domainId = location.domainId;
+
     // update button states
-    resetOverlays = Menu.isOptionChecked("Overlays");
+    resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicke.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     Window.snapshotTaken.connect(resetButtons);
@@ -109,7 +120,7 @@ function onClicked() {
     button.writeProperty("buttonState", 0);
     button.writeProperty("defaultState", 0);
     button.writeProperty("hoverState", 2);
-     
+
     // hide overlays if they are on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", false);
@@ -124,39 +135,85 @@ function onClicked() {
     }, SNAPSHOT_DELAY);
 }
 
-function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
-    // show overlays if they were on
-    if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true); 
+function isDomainOpen(id) {
+    var request = new XMLHttpRequest();
+    var options = [
+        'now=' + new Date().toISOString(),
+        'include_actions=concurrency',
+        'domain_id=' + id.slice(1, -1),
+        'restriction=open,hifi' // If we're sharing, we're logged in
+        // If we're here, protocol matches, and it is online
+    ];
+    var url = location.metaverseServerUrl + "/api/v1/user_stories?" + options.join('&');
+    request.open("GET", url, false);
+    request.send();
+    if (request.status != 200) {
+        return false;
     }
-    // show hud
-    toolBar.writeProperty("visible", true);
-    Reticle.visible = reticleVisible;
-    
+    var response = JSON.parse(request.response); // Not parsed for us.
+    return (response.status === 'success') &&
+        response.total_entries;
+}
+
+function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
+    // If we're not taking an animated snapshot, we have to show the HUD.
+    // If we ARE taking an animated snapshot, we've already re-enabled the HUD by this point.
+    if (pathAnimatedSnapshot === "") {
+        // show hud
+        toolBar.writeProperty("visible", true);
+        Reticle.visible = reticleVisible;
+        // show overlays if they were on
+        if (resetOverlays) {
+            Menu.setIsOptionChecked("Overlays", true);
+        }
+    }
     // update button states
     button.writeProperty("buttonState", 1);
     button.writeProperty("defaultState", 1);
     button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
 
+    // A Snapshot Review dialog might be left open indefinitely after taking the picture,
+    // during which time the user may have moved. So stash that info in the dialog so that
+    // it records the correct href. (We can also stash in .jpegs, but not .gifs.)
     // last element in data array tells dialog whether we can share or not
     confirmShare([ 
-        { localPath: pathAnimatedSnapshot },
-        { localPath: pathStillSnapshot },
+        { localPath: pathAnimatedSnapshot, href: href },
+        { localPath: pathStillSnapshot, href: href },
         {
-            canShare: !!location.placename,
+            canShare: !!isDomainOpen(domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
     ]);
- }
+    if (clearOverlayWhenMoving) {
+        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
+    }
+}
+
+function processingGif() {
+    // show hud
+    toolBar.writeProperty("visible", true);
+    Reticle.visible = reticleVisible;
+
+    // update button states
+    button.writeProperty("buttonState", 1);
+    button.writeProperty("defaultState", 1);
+    button.writeProperty("hoverState", 3);
+    // show overlays if they were on
+    if (resetOverlays) {
+        Menu.setIsOptionChecked("Overlays", true);
+    }
+}
 
 button.clicked.connect(onClicked);
 Window.snapshotShared.connect(snapshotShared);
+Window.processingGif.connect(processingGif);
 
 Script.scriptEnding.connect(function () {
     toolBar.removeButton("snapshot");
     button.clicked.disconnect(onClicked);
     Window.snapshotShared.disconnect(snapshotShared);
+    Window.processingGif.disconnect(processingGif);
 });
 
 }()); // END LOCAL_SCOPE

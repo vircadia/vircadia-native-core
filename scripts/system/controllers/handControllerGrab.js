@@ -1009,7 +1009,10 @@ function MyController(hand) {
 
     this.secondaryPress = function(value) {
         _this.rawSecondaryValue = value;
-        if (value > 0) {
+
+        // The value to check if we will allow the release function to be called
+        var allowReleaseValue = 0.1;
+        if (value > 0 && _this.state == STATE_HOLD) {
             _this.release();
         }
     };
@@ -2047,8 +2050,6 @@ function MyController(hand) {
             }
 
             if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
-                this.callEntityMethodOnGrabbed("releaseEquip");
-
                 // store the offset attach points into preferences.
                 if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
                     var prefprops = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
@@ -2344,6 +2345,9 @@ function MyController(hand) {
 
         var noVelocity = false;
         if (this.grabbedEntity !== null) {
+            if (this.state === STATE_HOLD) {
+                this.callEntityMethodOnGrabbed("releaseEquip");
+            }
 
             //  Make a small release haptic pulse if we really were holding something
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);

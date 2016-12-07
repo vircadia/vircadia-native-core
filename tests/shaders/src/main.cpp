@@ -28,7 +28,8 @@
 #include <render-utils/simple_textured_unlit_frag.h>
 
 #include <render-utils/deferred_light_vert.h>
-#include <render-utils/deferred_light_limited_vert.h>
+#include <render-utils/deferred_light_point_vert.h>
+#include <render-utils/deferred_light_spot_vert.h>
 
 #include <render-utils/directional_light_frag.h>
 #include <render-utils/directional_ambient_light_frag.h>
@@ -157,8 +158,8 @@ void QTestWindow::draw() {
         testShaderBuild(deferred_light_vert, directional_light_frag);
         testShaderBuild(deferred_light_vert, directional_ambient_light_frag);
         testShaderBuild(deferred_light_vert, directional_skybox_light_frag);
-        testShaderBuild(deferred_light_limited_vert, point_light_frag);
-        testShaderBuild(deferred_light_limited_vert, spot_light_frag);
+        testShaderBuild(deferred_light_point_vert, point_light_frag);
+        testShaderBuild(deferred_light_spot_vert, spot_light_frag);
         testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag);
         testShaderBuild(standardTransformPNTC_vert, DrawTextureOpaque_frag);
 

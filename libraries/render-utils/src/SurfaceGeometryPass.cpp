@@ -61,9 +61,9 @@ void LinearDepthFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depth
 void LinearDepthFramebuffer::clear() {
     _linearDepthFramebuffer.reset();
     _linearDepthTexture.reset();
-	_downsampleFramebuffer.reset();
-	_halfLinearDepthTexture.reset();
-	_halfNormalTexture.reset();
+    _downsampleFramebuffer.reset();
+    _halfLinearDepthTexture.reset();
+    _halfNormalTexture.reset();
 }
 
 void LinearDepthFramebuffer::allocate() {
@@ -142,6 +142,10 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
     const auto frameTransform = inputs.get0();
     const auto deferredFramebuffer = inputs.get1();
 
+    if (!_gpuTimer) {
+        _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
+    }
+
     if (!_linearDepthFramebuffer) {
         _linearDepthFramebuffer = std::make_shared<LinearDepthFramebuffer>();
     }
@@ -171,7 +175,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
     float clearLinearDepth = args->getViewFrustum().getFarClip() * 2.0f;
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-        _gpuTimer.begin(batch);
+        _gpuTimer->begin(batch);
         batch.enableStereo(false);
 
         batch.setViewportTransform(depthViewport);
@@ -197,11 +201,11 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
         batch.setPipeline(downsamplePipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         
-        _gpuTimer.end(batch);
+        _gpuTimer->end(batch);
     });
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
+    config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
 
 
@@ -406,6 +410,10 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
 
     RenderArgs* args = renderContext->args;
 
+    if (!_gpuTimer) {
+        _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
+    }
+
     const auto frameTransform = inputs.get0();
     const auto deferredFramebuffer = inputs.get1();
     const auto linearDepthFramebuffer = inputs.get2();
@@ -458,7 +466,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
 
  
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-        _gpuTimer.begin(batch);
+        _gpuTimer->begin(batch);
         batch.enableStereo(false);
 
         batch.setProjectionTransform(glm::mat4());
@@ -519,12 +527,12 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setResourceTexture(BlurTask_DepthSlot, nullptr);
         batch.setUniformBuffer(BlurTask_ParamsSlot, nullptr);
 
-        _gpuTimer.end(batch);
+        _gpuTimer->end(batch);
     });
        
  
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
+    config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
 
 

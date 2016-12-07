@@ -13,77 +13,103 @@
 //
 
 // Everything about deferred buffer
-<@include DeferredBufferRead.slh@>
+<!<@include DeferredBufferRead.slh@>
 
 <$declareDeferredCurvature()$>
 
 // Everything about light
 <@include model/Light.slh@>
-
+<$declareLightBuffer(256)$>
+uniform lightIndexBuffer {
+    int lightIndex[256];
+};
 <@include LightingModel.slh@>
 
+<@include LightPoint.slh@>
+<$declareLightingPoint(supportScattering)$>
 <@include LightSpot.slh@>
 <$declareLightingSpot(supportScattering)$>
 
-uniform vec4 texcoordFrameTransform;
+//uniform vec4 texcoordFrameTransform;
+!>
 
-in vec4 _texCoord0;
+
+//in vec4 _texCoord0;
+//flat in int instanceID;
 out vec4 _fragColor;
 
 void main(void) {
+    _fragColor = vec4(1.0, 1.0, 1.0, 1.0);
 
-    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
-
+//    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
+    
     // Grab the fragment data from the uv
-    vec2 texCoord = _texCoord0.st / _texCoord0.q;
-    texCoord *= texcoordFrameTransform.zw;
-    texCoord += texcoordFrameTransform.xy;
-
-    DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
+    //vec2 texCoord = _texCoord0.st;/* / _texCoord0.q;
+    /*texCoord *= texcoordFrameTransform.zw;
+    texCoord += texcoordFrameTransform.xy;*/
+    /*
+    vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
+    DeferredFragment frag = unpackDeferredFragmentNoPosition(texCoord);
 
     if (frag.mode == FRAG_MODE_UNLIT) {
         discard;
     }
 
-    // Kill if in front of the light volume
-    float depth = frag.depthVal;
-    if (depth < gl_FragCoord.z) {
-        discard;
-    }
 
-    // Need the light now
-    Light light = getLight();
+   // frag.depthVal = depthValue;
+    frag.position = fragPosition;
 
-    // Frag pos in world
-    mat4 invViewMat = getViewInverse();
-    vec4 fragPos = invViewMat * frag.position;
-
-    // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
-    vec4 fragLightVecLen2;
-    vec4 fragLightDirLen;
-    float cosSpotAngle;
-    if (!clipFragToLightVolumeSpot(light, fragPos.xyz, fragLightVecLen2, fragLightDirLen, cosSpotAngle)) {
-        discard;
-    }
-
-    // Frag to eye vec
-    vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
-    vec3 fragEyeDir = normalize(fragEyeVector.xyz);
-
-
-    vec3 diffuse;
-    vec3 specular;
     vec4 midNormalCurvature;
     vec4 lowNormalCurvature;
     if (frag.mode == FRAG_MODE_SCATTERING) {
         unpackMidLowNormalCurvature(texCoord, midNormalCurvature, lowNormalCurvature);
     }
-    evalLightingSpot(diffuse, specular, light,
-        fragLightDirLen.xyzw, cosSpotAngle, fragEyeDir, frag.normal, frag.roughness,
-        frag.metallic, frag.fresnel, frag.albedo, 1.0,
-        frag.scattering, midNormalCurvature, lowNormalCurvature);
 
-    _fragColor.rgb += diffuse;
-    _fragColor.rgb += specular;
+    // Frag pos in world
+    mat4 invViewMat = getViewInverse();
+    vec4 fragPos = invViewMat * fragPosition;
+
+    // Frag to eye vec
+    vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
+    vec3 fragEyeDir = normalize(fragEyeVector.xyz);
+
+    int numLights = lightIndex[0];
+    for (int i = 0; i < numLights; i++) {
+        // Need the light now
+        Light light = getLight(lightIndex[i + 1]);
+        bool isSpot = light_isSpot(light);
+        // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
+        vec4 fragLightVecLen2;
+        vec4 fragLightDirLen;
+        float cosSpotAngle;
+        if (isSpot) {
+            if (!clipFragToLightVolumeSpot(light, fragPos.xyz, fragLightVecLen2, fragLightDirLen, cosSpotAngle)) {
+                continue;
+            }
+        } else {
+            if (!clipFragToLightVolumePoint(light, fragPos.xyz, fragLightVecLen2)) {
+                continue;
+            }
+        }
+
+        vec3 diffuse;
+        vec3 specular;
+
+        if (isSpot) {
+            evalLightingSpot(diffuse, specular, light,
+                fragLightDirLen.xyzw, cosSpotAngle, fragEyeDir, frag.normal, frag.roughness,
+                frag.metallic, frag.fresnel, frag.albedo, 1.0,
+                frag.scattering, midNormalCurvature, lowNormalCurvature);
+        } else {
+            evalLightingPoint(diffuse, specular, light,
+                fragLightVecLen2.xyz, fragEyeDir, frag.normal, frag.roughness,
+                frag.metallic, frag.fresnel, frag.albedo, 1.0,
+                frag.scattering, midNormalCurvature, lowNormalCurvature);
+        }
+
+        _fragColor.rgb += diffuse;
+        _fragColor.rgb += specular;
+    }
+    */
 }
 

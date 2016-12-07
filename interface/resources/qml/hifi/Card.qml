@@ -25,6 +25,7 @@ Rectangle {
     property string timestamp: "";
     property string hifiUrl: "";
     property string thumbnail: defaultThumbnail;
+    property string imageUrl: "";
     property var goFunction: null;
     property string storyId: "";
 
@@ -67,13 +68,21 @@ Rectangle {
         return 'about a minute ago';
     }
 
+    property bool hasGif: imageUrl.indexOf('.gif') === (imageUrl.length - 4);
+    AnimatedImage {
+        id: animation;
+        // Always visible, to drive loading, but initially covered up by lobby during load.
+        source: hasGif ? imageUrl : "";
+        fillMode: lobby.fillMode;
+        anchors.fill: lobby;
+    }
     Image {
         id: lobby;
+        visible: !hasGif || (animation.status !== Image.Ready);
         width: parent.width - (isConcurrency ? 0 : (2 * smallMargin));
         height: parent.height - messageHeight - (isConcurrency ? 0 : smallMargin);
         source: thumbnail || defaultThumbnail;
         fillMode: Image.PreserveAspectCrop;
-        // source gets filled in later
         anchors {
             horizontalCenter: parent.horizontalCenter;
             top: parent.top;

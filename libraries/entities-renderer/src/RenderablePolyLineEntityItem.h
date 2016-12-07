@@ -40,7 +40,9 @@ public:
 
     static gpu::PipelinePointer _pipeline;
     static gpu::Stream::FormatPointer _format;
-    static int32_t PAINTSTROKE_GPU_SLOT;
+
+    static const int32_t PAINTSTROKE_TEXTURE_SLOT { 0 };
+    static const int32_t PAINTSTROKE_UNIFORM_SLOT { 0 };
 
 protected:
     void updateGeometry();
@@ -48,6 +50,7 @@ protected:
     gpu::BufferPointer _verticesBuffer;
     gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
+    bool _empty { true };
     QVector<glm::vec3> _vertices;
 };
 

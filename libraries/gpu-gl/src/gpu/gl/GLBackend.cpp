@@ -23,6 +23,7 @@
 #include "nvToolsExt.h"
 #endif
 
+#include <shared/GlobalAppProperties.h>
 #include <GPUIdent.h>
 #include <gl/QOpenGLContextWrapper.h>
 #include <QtCore/QProcessEnvironment>
@@ -36,7 +37,6 @@ static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
 static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 static GLBackend* INSTANCE{ nullptr };
-static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 
 BackendPointer GLBackend::createBackend() {
     // The ATI memory info extension only exposes 'free memory' so we want to force it to 
@@ -60,7 +60,7 @@ BackendPointer GLBackend::createBackend() {
 
     INSTANCE = result.get();
     void* voidInstance = &(*result);
-    qApp->setProperty(GL_BACKEND_PROPERTY_NAME, QVariant::fromValue(voidInstance));
+    qApp->setProperty(hifi::properties::gl::BACKEND, QVariant::fromValue(voidInstance));
 
     gl::GLTexture::initTextureTransferHelper();
     return result;
@@ -68,7 +68,7 @@ BackendPointer GLBackend::createBackend() {
 
 GLBackend& getBackend() {
     if (!INSTANCE) {
-        INSTANCE = static_cast<GLBackend*>(qApp->property(GL_BACKEND_PROPERTY_NAME).value<void*>());
+        INSTANCE = static_cast<GLBackend*>(qApp->property(hifi::properties::gl::BACKEND).value<void*>());
     }
     return *INSTANCE;
 }
@@ -406,7 +406,7 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
 
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
 #ifdef GPU_STEREO_CAMERA_BUFFER
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo())
+#define GET_UNIFORM_LOCATION(shaderUniformLoc) ((_pipeline._programShader) ? _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo()) : -1)
 #else
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
 #endif
