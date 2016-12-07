@@ -988,7 +988,7 @@
           "label": "Automatically determine thread count",
           "type": "checkbox",
           "help": "Allow system to determine number of threads (recommended)",
-          "default": true,
+          "default": false,
           "advanced": true
         },
         {
