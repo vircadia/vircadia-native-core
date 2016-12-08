@@ -5546,6 +5546,8 @@ void Application::addAssetToWorld(QString filePath) {
     QString path = QUrl(filePath).toLocalFile();
     QString mapping = path.right(path.length() - path.lastIndexOf("/"));
 
+    _addAssetToWorldMessageBox->setProperty("text", "Adding " + mapping.mid(1) + " to Asset Server");
+
     addAssetToWorldWithNewMapping(path, mapping, 0);
 }
 
@@ -5653,7 +5655,7 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
         qWarning(interfaceapp) << "Could not add asset to world: " + errorInfo;
         addAssetToWorldError(errorInfo);
     } else {
-        QString successInfo = mapping + " added to world.";
+        QString successInfo = "Asset " + mapping.mid(1) + " added to world.";
         qInfo() << "Downloading asset completed: " + successInfo;
         _addAssetToWorldMessageBox->setProperty("text", successInfo);
         _addAssetToWorldMessageBox->setProperty("buttons", QMessageBox::Ok);
