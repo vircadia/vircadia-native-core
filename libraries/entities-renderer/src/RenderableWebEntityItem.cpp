@@ -116,6 +116,16 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
     // member variables, since they would implicitly refer to a this that 
     // is no longer valid
     _webSurface->create(currentContext);
+
+#define AJT_TABLET_HACK
+
+#ifdef AJT_TABLET_HACK
+    _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/hifi/tablet/"));
+    _webSurface->load("Tablet.qml", [&](QQmlContext* context, QObject* obj) {
+        ;
+    });
+    _webSurface->resume();
+#else
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
     _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
         context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
@@ -123,6 +133,7 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
+#endif
     // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
 
     // forward web events to EntityScriptingInterface

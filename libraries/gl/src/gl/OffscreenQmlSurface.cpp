@@ -743,8 +743,12 @@ void OffscreenQmlSurface::resume() {
     _paused = false;
     _render = true;
 
-    getRootItem()->setProperty("eventBridge", QVariant::fromValue(this));
-    getRootContext()->setContextProperty("webEntity", this);
+    if (getRootItem()) {
+        getRootItem()->setProperty("eventBridge", QVariant::fromValue(this));
+    }
+    if (getRootContext()) {
+        getRootContext()->setContextProperty("webEntity", this);
+    }
 }
 
 bool OffscreenQmlSurface::isPaused() const {
