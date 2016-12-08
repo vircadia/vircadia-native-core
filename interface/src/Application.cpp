@@ -3981,6 +3981,10 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
     }
 }
 
+unsigned int Application::getKeyboardFocusOverlay() {
+    return _keyboardFocusedOverlay.get();
+}
+
 void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
     if (overlayID != _keyboardFocusedOverlay.get()) {
         _keyboardFocusedOverlay.set(overlayID);

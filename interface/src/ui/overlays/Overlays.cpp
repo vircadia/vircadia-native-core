@@ -604,6 +604,38 @@ bool Overlays::isAddedOverlay(unsigned int id) {
     return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
 }
 
+void Overlays::sendMousePressOnOverlay(unsigned int overlayID, const PointerEvent& event) {
+    emit mousePressOnOverlay(overlayID, event);
+}
+
+void Overlays::sendMouseReleaseOnOverlay(unsigned int overlayID, const PointerEvent& event) {
+    emit mouseReleaseOnOverlay(overlayID, event);
+}
+
+void Overlays::sendMouseMoveOnOverlay(unsigned int overlayID, const PointerEvent& event) {
+    emit mouseMoveOnOverlay(overlayID, event);
+}
+
+void Overlays::sendHoverEnterOverlay(unsigned int id, PointerEvent event) {
+    emit hoverEnterOverlay(id, event);
+}
+
+void Overlays::sendHoverOverOverlay(unsigned int  id, PointerEvent event) {
+    emit hoverOverOverlay(id, event);
+}
+
+void Overlays::sendHoverLeaveOverlay(unsigned int  id, PointerEvent event) {
+    emit hoverLeaveOverlay(id, event);
+}
+
+unsigned int Overlays::getKeyboardFocusOverlay() const {
+    return qApp->getKeyboardFocusOverlay();
+}
+
+void Overlays::setKeyboardFocusOverlay(unsigned int id) {
+    qApp->setKeyboardFocusOverlay(id);
+}
+
 float Overlays::width() const {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->getWindow()->size().width();
