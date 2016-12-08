@@ -21,6 +21,15 @@ void OculusBaseDisplayPlugin::resetSensors() {
 }
 
 bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    handleOVREvents();
+    if (quitRequested()) {
+        QMetaObject::invokeMethod(qApp, "quit");
+        return false;
+    }
+    if (reorientRequested()) {
+        emit resetSensorsRequested();
+    }
+
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);

@@ -4750,7 +4750,7 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
     _overlayConductor.centerUI();
-    getMyAvatar()->reset(andReload);
+    getMyAvatar()->reset(true, andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 
@@ -5735,6 +5735,7 @@ void Application::updateDisplayMode() {
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
             first = false;
         }
 
