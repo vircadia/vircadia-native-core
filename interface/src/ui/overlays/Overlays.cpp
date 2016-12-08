@@ -396,7 +396,7 @@ QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const Ove
     if (!value.value.isValid()) {
         return QScriptValue::UndefinedValue;
     }
-    return engine->newVariant(value.value);
+    return engine->toScriptValue(value.value);
 }
 
 void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPropertyResult& value) {
