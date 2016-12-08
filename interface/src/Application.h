@@ -320,6 +320,8 @@ public slots:
     void addAssetToWorldUpload(QString path, QString mapping);
     void addAssetToWorldSetMapping(QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString mapping);
+    void addAssetToWorldCheckModelSize();
+
     void handleUnzip(QString filePath = "", bool autoAdd = false);
 
     FileScriptingInterface* getFileDownloadInterface() { return _fileDownload; }
@@ -634,6 +636,8 @@ private:
 
     QQuickItem* _addAssetToWorldMessageBox{ nullptr };
     void addAssetToWorldError(QString errorText);
+    QTimer _addAssetToWorldTimer;
+    QHash<QUuid, int> _addAssetToWorldResizeList;
 
     FileScriptingInterface* _fileDownload;
 };

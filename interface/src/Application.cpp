@@ -1470,9 +1470,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         _connectionMonitor.init();
 
-        // After all of the constructor is completed, then set firstRun to false.
-        firstRun.set(false);
     }
+
+    // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
+    static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
+    _addAssetToWorldTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS);
+    connect(&_addAssetToWorldTimer, &QTimer::timeout, this, &Application::addAssetToWorldCheckModelSize);
+
+    // After all of the constructor is completed, then set firstRun to false.
+    firstRun.set(false);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -5636,7 +5642,7 @@ void Application::addAssetToWorld(QString filePath) {
     QString path = QUrl(filePath).toLocalFile();
     QString mapping = path.right(path.length() - path.lastIndexOf("/"));
 
-    _addAssetToWorldMessageBox->setProperty("text", "Adding " + mapping.mid(1) + " to Asset Server");
+    _addAssetToWorldMessageBox->setProperty("text", "Adding " + mapping.mid(1) + " to Asset Server.");
 
     addAssetToWorldWithNewMapping(path, mapping, 0);
 }
@@ -5735,21 +5741,87 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
     properties.setName(mapping.right(mapping.length() - 1));
     properties.setModelURL("atp:" + mapping);
     properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setDynamic(false);
     properties.setPosition(getMyAvatar()->getPosition() + getMyAvatar()->getOrientation() * glm::vec3(0.0f, 0.0f, -2.0f));
     properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
-    auto result = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
+    auto entityID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
+    // Note: Model dimensions are not available here; model is scaled per FBX mesh in RenderableModelEntityItem::update() later
+    // on. But FBX dimensions may be in cm or mm, so we monitor for the dimension change and rescale again if warranted.
     
-    if (result == QUuid()) {
+    if (entityID == QUuid()) {
         QString errorInfo = "Could not add asset " + mapping + " to world.";
         qWarning(interfaceapp) << "Could not add asset to world: " + errorInfo;
         addAssetToWorldError(errorInfo);
     } else {
+        // Monitor when asset is rendered in world so that can resize if necessary.
+        _addAssetToWorldResizeList.insert(entityID, 0);  // List value is count of checks performed.
+        if (!_addAssetToWorldTimer.isActive()) {
+            _addAssetToWorldTimer.start();
+        }
+
+        // Inform user.
         QString successInfo = "Asset " + mapping.mid(1) + " added to world.";
         qInfo() << "Downloading asset completed: " + successInfo;
         _addAssetToWorldMessageBox->setProperty("text", successInfo);
         _addAssetToWorldMessageBox->setProperty("buttons", QMessageBox::Ok);
         _addAssetToWorldMessageBox->setProperty("defaultButton", QMessageBox::Ok);
+    }
+}
+
+void Application::addAssetToWorldCheckModelSize() {
+    if (_addAssetToWorldResizeList.size() == 0) {
+        return;
+    }
+
+    auto item = _addAssetToWorldResizeList.begin();
+    while (item != _addAssetToWorldResizeList.end()) {
+        auto entityID = item.key();
+        auto count = item.value();
+
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        auto properties = entityScriptingInterface->getEntityProperties(entityID, EntityPropertyFlags("dimensions"));
+        auto dimensions = properties.getDimensions();
+        const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
+        if (dimensions != DEFAULT_DIMENSIONS) {
+            // Entity has been auto-resized; adjust dimensions if it seems too big.
+
+            const float RESCALE_THRESHOLD = 10.0f;  // Resize entities larger than this as the FBX is likely in cm or mm.
+            if (dimensions.x > RESCALE_THRESHOLD || dimensions.y > RESCALE_THRESHOLD || dimensions.z > RESCALE_THRESHOLD) {
+                dimensions *= 0.1f;
+                EntityItemProperties properties;
+                properties.setDimensions(dimensions);
+                properties.setCollisionless(false);  // Reset to default.
+                entityScriptingInterface->editEntity(entityID, properties);
+                qInfo() << "Asset auto-resized";
+            }
+
+            item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity.
+
+        } else {
+            // Increment count of checks done.
+            _addAssetToWorldResizeList[entityID]++;
+
+            const int CHECK_MODEL_SIZE_MAX_CHECKS = 10;
+            if (_addAssetToWorldResizeList[entityID] > CHECK_MODEL_SIZE_MAX_CHECKS) {
+                // Have done enough checks; model was either the default size or something's gone wrong.
+
+                EntityItemProperties properties;
+                properties.setCollisionless(false);  // Reset to default.
+                entityScriptingInterface->editEntity(entityID, properties);
+
+                item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity.
+
+            } else {
+                // No action on this entity; advance to next.
+                ++item;
+            }
+        }
+    }
+
+    // Stop timer if nothing in list to check.
+    if (_addAssetToWorldResizeList.size() == 0) {
+        _addAssetToWorldTimer.stop();
     }
 }
 
