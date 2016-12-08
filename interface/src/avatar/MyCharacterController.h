@@ -24,37 +24,10 @@ public:
     explicit MyCharacterController(MyAvatar* avatar);
     ~MyCharacterController ();
 
-    void setDynamicsWorld(btDynamicsWorld* world) override;
-    void updateShapeIfNecessary() override;
-
-    // Sweeping a convex shape through the physics simulation can expensive when the obstacles are too complex
-    // (e.g. small 20k triangle static mesh) so instead as a fallback we cast several rays forward and if they
-    // don't hit anything we consider it a clean sweep.  Hence the "Shotgun" code.
-    class RayShotgunResult {
-    public:
-        void reset();
-
-        float hitFraction { 1.0f };
-        bool walkable { true };
-    };
-
-    /// return true if RayShotgun hits anything
-    bool testRayShotgun(const glm::vec3& position, const glm::vec3& step, RayShotgunResult& result);
-
-    glm::vec3 computeHMDStep(const glm::vec3& position, const glm::vec3& step);
-
-protected:
-    void initRayShotgun(const btCollisionWorld* world);
-
-private:
-    btConvexHullShape* computeShape() const;
+    virtual void updateShapeIfNecessary() override;
 
 protected:
     MyAvatar* _avatar { nullptr };
-
-    // shotgun scan data
-    btAlignedObjectArray<btVector3> _topPoints;
-    btAlignedObjectArray<btVector3> _bottomPoints;
 };
 
 #endif // hifi_MyCharacterController_h

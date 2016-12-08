@@ -1086,7 +1086,7 @@ private:
     QSize _size;
     QSettings _settings;
 
-    std::atomic<size_t> _renderCount;
+    std::atomic<size_t> _renderCount{ 0 };
     gl::OffscreenContext _initContext;
     RenderThread _renderThread;
     QWindowCamera _camera;
@@ -1152,3 +1152,4 @@ int main(int argc, char** argv) {
 }
 
 #include "main.moc"
+

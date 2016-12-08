@@ -69,3 +69,15 @@ QThread* RENDER_THREAD = nullptr;
 bool isRenderThread() {
     return QThread::currentThread() == RENDER_THREAD;
 }
+
+namespace gl {
+    void withSavedContext(const std::function<void()>& f) {
+        // Save the original GL context, because creating a QML surface will create a new context
+        QOpenGLContext * savedContext = QOpenGLContext::currentContext();
+        QSurface * savedSurface = savedContext ? savedContext->surface() : nullptr;
+        f();
+        if (savedContext) {
+            savedContext->makeCurrent(savedSurface);
+        }
+    }
+}

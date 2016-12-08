@@ -15,6 +15,10 @@ add_dependency_external_projects(tbb)
 find_package(OpenSSL REQUIRED)
 find_package(TBB REQUIRED)
 
+if (APPLE)
+    find_library(FRAMEWORK_IOKIT IOKit)
+endif ()
+
 if (APPLE AND ${OPENSSL_INCLUDE_DIR} STREQUAL "/usr/include")
   # this is a user on OS X using system OpenSSL, which is going to throw warnings since they're deprecating for their common crypto
   message(WARNING "The found version of OpenSSL is the OS X system version. This will produce deprecation warnings."
@@ -25,6 +29,11 @@ include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 
 # append OpenSSL to our list of libraries to link
 target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES} ${TBB_LIBRARIES})
+
+# IOKit is needed for getting machine fingerprint
+if (APPLE)
+    target_link_libraries(${TARGET_NAME} ${FRAMEWORK_IOKIT})
+endif (APPLE)
 
 # libcrypto uses dlopen in libdl
 if (UNIX)
