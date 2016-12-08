@@ -82,6 +82,8 @@ const unsigned int UNKNOWN_OVERLAY_ID = 0;
 class Overlays : public QObject {
     Q_OBJECT
 
+    Q_PROPERTY(unsigned int keyboardFocusOverlay READ getKeyboardFocusOverlay WRITE setKeyboardFocusOverlay)
+
 public:
     Overlays();
 
@@ -255,6 +257,17 @@ public slots:
 
     /// return true if there is a panel with that id else false
     bool isAddedPanel(unsigned int id) { return _panels.contains(id); }
+
+    void sendMousePressOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void sendMouseReleaseOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void sendMouseMoveOnOverlay(unsigned int overlayID, const PointerEvent& event);
+
+    void sendHoverEnterOverlay(unsigned int id, PointerEvent event);
+    void sendHoverOverOverlay(unsigned int id, PointerEvent event);
+    void sendHoverLeaveOverlay(unsigned int id, PointerEvent event);
+
+    unsigned int getKeyboardFocusOverlay() const;
+    void setKeyboardFocusOverlay(unsigned int id);
 
 signals:
     /**jsdoc

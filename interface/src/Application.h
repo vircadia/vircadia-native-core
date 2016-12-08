@@ -374,6 +374,7 @@ public slots:
     void setKeyboardFocusEntity(QUuid id);
     void setKeyboardFocusEntity(EntityItemID entityItemID);
 
+    unsigned int getKeyboardFocusOverlay();
     void setKeyboardFocusOverlay(unsigned int overlayID);
 
 private slots:
