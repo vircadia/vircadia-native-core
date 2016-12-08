@@ -27,7 +27,7 @@ void AudioMixerSlaveThread::run() {
         bool stopping = _stop;
         notify(stopping);
         if (stopping) {
-            return;
+            break;
         }
     }
 }
@@ -80,14 +80,13 @@ void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame
         _queue.emplace(node);
     });
 
+    // mix
+    _numStarted = _numFinished = 0;
+    _slaveCondition.notify_all();
+
+    // wait
     {
         Lock lock(_mutex);
-
-        // mix
-        _numStarted = _numFinished = 0;
-        _slaveCondition.notify_all();
-
-        // wait
         _poolCondition.wait(lock, [&] {
             assert(_numFinished <= _numThreads);
             return _numFinished == _numThreads;
@@ -154,12 +153,12 @@ void AudioMixerSlavePool::resize(int numThreads) {
         }
 
         // ...cycle them until they do stop...
-        {
-            Lock lock(_mutex);
-            _numStopped = 0;
-            while (_numStopped != (_numThreads - numThreads)) {
-                _numStarted = _numFinished = _numStopped;
-                _slaveCondition.notify_all();
+        _numStopped = 0;
+        while (_numStopped != (_numThreads - numThreads)) {
+            _numStarted = _numFinished = _numStopped;
+            _slaveCondition.notify_all();
+            {
+                Lock lock(_mutex);
                 _poolCondition.wait(lock, [&] {
                     assert(_numFinished <= _numThreads);
                     return _numFinished == _numThreads;
