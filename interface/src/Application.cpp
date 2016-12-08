@@ -5686,7 +5686,6 @@ void Application::addAssetToWorldCheckModelSize() {
     auto item = _addAssetToWorldResizeList.begin();
     while (item != _addAssetToWorldResizeList.end()) {
         auto entityID = item.key();
-        auto count = item.value();
 
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         auto properties = entityScriptingInterface->getEntityProperties(entityID, EntityPropertyFlags("dimensions"));
