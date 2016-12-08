@@ -30,6 +30,7 @@
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
 #include "ScriptEditorWindow.h"
+#include "SignupDialog.h"
 #include "UpdateDialog.h"
 
 template<typename T>
@@ -74,7 +75,7 @@ void DialogsManager::toggleDiskCacheEditor() {
 }
 
 void DialogsManager::toggleLoginDialog() {
-    LoginDialog::toggleAction();
+    SignupDialog::show();
 }
 
 void DialogsManager::showLoginDialog() {

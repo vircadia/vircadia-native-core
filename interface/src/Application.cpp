@@ -153,6 +153,7 @@
 #include "ui/DialogsManager.h"
 #include "ui/LoginDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
+#include "ui/SignupDialog.h"
 #include "ui/Snapshot.h"
 #include "ui/SnapshotAnimated.h"
 #include "ui/StandAloneJSConsole.h"
@@ -1751,6 +1752,7 @@ void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
+    SignupDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
