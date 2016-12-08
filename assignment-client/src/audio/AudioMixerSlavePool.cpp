@@ -92,8 +92,10 @@ void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame
             assert(_numFinished <= _numThreads);
             return _numFinished == _numThreads;
         });
+
+        assert(_numStarted == _numThreads);
     }
-    assert(_numStarted == _numThreads);
+
     assert(_queue.empty());
 #endif
 }
@@ -136,6 +138,8 @@ void AudioMixerSlavePool::resize(int numThreads) {
 #else
     qDebug("%s: set %d threads (was %d)", __FUNCTION__, numThreads, _numThreads);
 
+    Lock lock(_mutex);
+
     if (numThreads > _numThreads) {
         // start new slaves
         for (int i = 0; i < numThreads - _numThreads; ++i) {
@@ -154,17 +158,14 @@ void AudioMixerSlavePool::resize(int numThreads) {
         }
 
         // ...cycle them until they do stop...
-        {
-            Lock lock(_mutex);
-            _numStopped = 0;
-            while (_numStopped != (_numThreads - numThreads)) {
-                _numStarted = _numFinished = _numStopped;
-                _slaveCondition.notify_all();
-                _poolCondition.wait(lock, [&] {
-                    assert(_numFinished <= _numThreads);
-                    return _numFinished == _numThreads;
-                });
-            }
+        _numStopped = 0;
+        while (_numStopped != (_numThreads - numThreads)) {
+            _numStarted = _numFinished = _numStopped;
+            _slaveCondition.notify_all();
+            _poolCondition.wait(lock, [&] {
+                assert(_numFinished <= _numThreads);
+                return _numFinished == _numThreads;
+            });
         }
 
         // ...wait for threads to finish...
@@ -181,7 +182,6 @@ void AudioMixerSlavePool::resize(int numThreads) {
     }
 
     _numThreads = _numStarted = _numFinished = numThreads;
-#endif
-
     assert(_numThreads == _slaves.size());
+#endif
 }
