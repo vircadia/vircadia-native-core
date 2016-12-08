@@ -43,7 +43,7 @@ private:
     bool try_pop(SharedNodePointer& node);
 
     AudioMixerSlavePool& _pool;
-    bool _stop;
+    bool _stop { false };
 };
 
 // Slave pool for audio mixers
