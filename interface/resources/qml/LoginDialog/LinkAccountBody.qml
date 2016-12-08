@@ -174,6 +174,35 @@ Item {
     }
 
     Row {
+        id: leftButton
+        anchors {
+            left: parent.left
+            bottom: parent.bottom
+            bottomMargin: hifi.dimensions.contentSpacing.y
+        }
+
+        spacing: hifi.dimensions.contentSpacing.x
+        onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
+        Button {
+          id: signupButton
+
+          anchors.verticalCenter: parent.verticalCenter
+
+          width: 150
+
+          text: qsTr("Sign Up")
+          visible: !loginDialog.isSteamRunning()
+
+          onClicked: {
+              bodyLoader.setSource("SignUpBody.qml")
+              bodyLoader.item.width = root.pane.width
+              bodyLoader.item.height = root.pane.height
+          }
+        }
+    }
+
+    Row {
         id: buttons
         anchors {
             right: parent.right

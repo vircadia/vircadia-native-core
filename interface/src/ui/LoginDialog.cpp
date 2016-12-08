@@ -153,3 +153,33 @@ void LoginDialog::createFailed(QNetworkReply& reply) {
     emit handleCreateFailed(reply.errorString());
 }
 
+void LoginDialog::signup(const QString& username, const QString& password) {
+    
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "signupCompleted";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "signupFailed";
+    
+    QJsonObject payload;
+    payload.insert("username", username);
+    payload.insert("password", password);
+    
+    static const QString API_SIGNUP_PATH = "api/v1/users";
+    
+    qDebug() << "Sending a request to create an account for" << username;
+    
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->sendRequest(API_SIGNUP_PATH, AccountManagerAuth::None,
+                                QNetworkAccessManager::PostOperation, callbackParams,
+                                QJsonDocument(payload).toJson());
+}
+
+void LoginDialog::signupCompleted(QNetworkReply& reply) {
+    emit handleSignupCompleted();
+}
+
+void LoginDialog::signupFailed(QNetworkReply& reply) {
+    qDebug() << "SIGNUP FAILED" << reply.readAll();
+}
+
