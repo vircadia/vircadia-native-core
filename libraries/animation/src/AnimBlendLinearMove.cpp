@@ -26,7 +26,7 @@ AnimBlendLinearMove::~AnimBlendLinearMove() {
 
 }
 
-const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
 
     assert(_children.size() == _characteristicSpeeds.size());
 
@@ -43,7 +43,7 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         const int nextPoseIndex = 0;
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
-        evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
+        evaluateAndBlendChildren(animVars, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
     } else {
 
         auto clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
@@ -52,7 +52,7 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         auto alpha = glm::fract(clampedAlpha);
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
-        evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
+        evaluateAndBlendChildren(animVars, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
     }
     return _poses;
 }
@@ -62,16 +62,16 @@ const AnimPoseVec& AnimBlendLinearMove::getPosesInternal() const {
     return _poses;
 }
 
-void AnimBlendLinearMove::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
+void AnimBlendLinearMove::evaluateAndBlendChildren(const AnimVariantMap& animVars, Triggers& triggersOut, float alpha,
                                                    size_t prevPoseIndex, size_t nextPoseIndex,
                                                    float prevDeltaTime, float nextDeltaTime) {
     if (prevPoseIndex == nextPoseIndex) {
         // this can happen if alpha is on an integer boundary
-        _poses = _children[prevPoseIndex]->evaluate(animVars, context, prevDeltaTime, triggersOut);
+        _poses = _children[prevPoseIndex]->evaluate(animVars, prevDeltaTime, triggersOut);
     } else {
         // need to eval and blend between two children.
-        auto prevPoses = _children[prevPoseIndex]->evaluate(animVars, context, prevDeltaTime, triggersOut);
-        auto nextPoses = _children[nextPoseIndex]->evaluate(animVars, context, nextDeltaTime, triggersOut);
+        auto prevPoses = _children[prevPoseIndex]->evaluate(animVars, prevDeltaTime, triggersOut);
+        auto nextPoses = _children[nextPoseIndex]->evaluate(animVars, nextDeltaTime, triggersOut);
 
         if (prevPoses.size() > 0 && prevPoses.size() == nextPoses.size()) {
             _poses.resize(prevPoses.size());

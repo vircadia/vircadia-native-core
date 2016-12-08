@@ -1009,7 +1009,10 @@ function MyController(hand) {
 
     this.secondaryPress = function(value) {
         _this.rawSecondaryValue = value;
-        if (value > 0) {
+
+        // The value to check if we will allow the release function to be called
+        var allowReleaseValue = 0.1;
+        if (value > 0 && _this.state == STATE_HOLD) {
             _this.release();
         }
     };

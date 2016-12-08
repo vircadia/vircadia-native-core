@@ -1,6 +1,6 @@
 //
 //  BulletUtil.h
-//  libraries/physics/src
+//  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.11.02
 //  Copyright 2014 High Fidelity, Inc.
