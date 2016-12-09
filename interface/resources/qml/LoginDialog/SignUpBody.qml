@@ -24,6 +24,7 @@ Item {
 
   function signup() {
       mainTextContainer.visible = false
+      toggleLoading(true)
       loginDialog.signup(emailField.text, usernameField.text, passwordField.text)
   }
 
@@ -50,6 +51,30 @@ Item {
           root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                   + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
       }
+  }
+
+  function toggleLoading(isLoading) {
+      linkAccountSpinner.visible = isLoading
+      form.visible = !isLoading
+
+      leftButton.visible = !isLoading
+      buttons.visible = !isLoading
+  }
+
+  BusyIndicator {
+      id: linkAccountSpinner
+
+      anchors {
+          top: parent.top
+          horizontalCenter: parent.horizontalCenter
+          topMargin: hifi.dimensions.contentSpacing.y
+      }
+
+      visible: false
+      running: true
+
+      width: 48
+      height: 48
   }
 
   ShortcutText {
@@ -231,10 +256,12 @@ Item {
           console.log("Sign Up Succeeded");
 
           // now that we have an account, login with that username and password
-          loginDialog.login(usernameField.text, "test")
+          loginDialog.login(usernameField.text, passwordField.text)
       }
       onHandleSignupFailed: {
           console.log("Sign Up Failed")
+          toggleLoading(false)
+
           mainTextContainer.text = errorString
           mainTextContainer.visible = true
       }
