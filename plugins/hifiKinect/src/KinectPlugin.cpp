@@ -28,7 +28,7 @@ Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 const char* KinectPlugin::NAME = "Kinect";
 const char* KinectPlugin::KINECT_ID_STRING = "Kinect";
 
-QStringList jointNames = {
+QStringList kinectJointNames = {
     "SpineBase",
     "SpineMid",
     "Neck",
@@ -198,71 +198,75 @@ static controller::StandardPoseChannel KinectJointIndexToPoseIndex(KinectJointIn
     }
 }
 
-static const char* controllerJointName(controller::StandardPoseChannel i) {
-    switch (i) {
-        case controller::HIPS: return "Hips";
-        case controller::RIGHT_UP_LEG: return "RightUpLeg";
-        case controller::RIGHT_LEG: return "RightLeg";
-        case controller::RIGHT_FOOT: return "RightFoot";
-        case controller::LEFT_UP_LEG: return "LeftUpLeg";
-        case controller::LEFT_LEG: return "LeftLeg";
-        case controller::LEFT_FOOT: return "LeftFoot";
-        case controller::SPINE: return "Spine";
-        case controller::SPINE1: return "Spine1";
-        case controller::SPINE2: return "Spine2";
-        case controller::SPINE3: return "Spine3";
-        case controller::NECK: return "Neck";
-        case controller::HEAD: return "Head";
-        case controller::RIGHT_SHOULDER: return "RightShoulder";
-        case controller::RIGHT_ARM: return "RightArm";
-        case controller::RIGHT_FORE_ARM: return "RightForeArm";
-        case controller::RIGHT_HAND: return "RightHand";
-        case controller::RIGHT_HAND_THUMB1: return "RightHandThumb1";
-        case controller::RIGHT_HAND_THUMB2: return "RightHandThumb2";
-        case controller::RIGHT_HAND_THUMB3: return "RightHandThumb3";
-        case controller::RIGHT_HAND_THUMB4: return "RightHandThumb4";
-        case controller::RIGHT_HAND_INDEX1: return "RightHandIndex1";
-        case controller::RIGHT_HAND_INDEX2: return "RightHandIndex2";
-        case controller::RIGHT_HAND_INDEX3: return "RightHandIndex3";
-        case controller::RIGHT_HAND_INDEX4: return "RightHandIndex4";
-        case controller::RIGHT_HAND_MIDDLE1: return "RightHandMiddle1";
-        case controller::RIGHT_HAND_MIDDLE2: return "RightHandMiddle2";
-        case controller::RIGHT_HAND_MIDDLE3: return "RightHandMiddle3";
-        case controller::RIGHT_HAND_MIDDLE4: return "RightHandMiddle4";
-        case controller::RIGHT_HAND_RING1: return "RightHandRing1";
-        case controller::RIGHT_HAND_RING2: return "RightHandRing2";
-        case controller::RIGHT_HAND_RING3: return "RightHandRing3";
-        case controller::RIGHT_HAND_RING4: return "RightHandRing4";
-        case controller::RIGHT_HAND_PINKY1: return "RightHandPinky1";
-        case controller::RIGHT_HAND_PINKY2: return "RightHandPinky2";
-        case controller::RIGHT_HAND_PINKY3: return "RightHandPinky3";
-        case controller::RIGHT_HAND_PINKY4: return "RightHandPinky4";
-        case controller::LEFT_SHOULDER: return "LeftShoulder";
-        case controller::LEFT_ARM: return "LeftArm";
-        case controller::LEFT_FORE_ARM: return "LeftForeArm";
-        case controller::LEFT_HAND: return "LeftHand";
-        case controller::LEFT_HAND_THUMB1: return "LeftHandThumb1";
-        case controller::LEFT_HAND_THUMB2: return "LeftHandThumb2";
-        case controller::LEFT_HAND_THUMB3: return "LeftHandThumb3";
-        case controller::LEFT_HAND_THUMB4: return "LeftHandThumb4";
-        case controller::LEFT_HAND_INDEX1: return "LeftHandIndex1";
-        case controller::LEFT_HAND_INDEX2: return "LeftHandIndex2";
-        case controller::LEFT_HAND_INDEX3: return "LeftHandIndex3";
-        case controller::LEFT_HAND_INDEX4: return "LeftHandIndex4";
-        case controller::LEFT_HAND_MIDDLE1: return "LeftHandMiddle1";
-        case controller::LEFT_HAND_MIDDLE2: return "LeftHandMiddle2";
-        case controller::LEFT_HAND_MIDDLE3: return "LeftHandMiddle3";
-        case controller::LEFT_HAND_MIDDLE4: return "LeftHandMiddle4";
-        case controller::LEFT_HAND_RING1: return "LeftHandRing1";
-        case controller::LEFT_HAND_RING2: return "LeftHandRing2";
-        case controller::LEFT_HAND_RING3: return "LeftHandRing3";
-        case controller::LEFT_HAND_RING4: return "LeftHandRing4";
-        case controller::LEFT_HAND_PINKY1: return "LeftHandPinky1";
-        case controller::LEFT_HAND_PINKY2: return "LeftHandPinky2";
-        case controller::LEFT_HAND_PINKY3: return "LeftHandPinky3";
-        case controller::LEFT_HAND_PINKY4: return "LeftHandPinky4";
-        default: return "???";
+QStringList controllerJointNames = {
+    "Hips",
+    "RightUpLeg",
+    "RightLeg",
+    "RightFoot",
+    "LeftUpLeg",
+    "LeftLeg",
+    "LeftFoot",
+    "Spine",
+    "Spine1",
+    "Spine2",
+    "Spine3",
+    "Neck",
+    "Head",
+    "RightShoulder",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "RightHandThumb1",
+    "RightHandThumb2",
+    "RightHandThumb3",
+    "RightHandThumb4",
+    "RightHandIndex1",
+    "RightHandIndex2",
+    "RightHandIndex3",
+    "RightHandIndex4",
+    "RightHandMiddle1",
+    "RightHandMiddle2",
+    "RightHandMiddle3",
+    "RightHandMiddle4",
+    "RightHandRing1",
+    "RightHandRing2",
+    "RightHandRing3",
+    "RightHandRing4",
+    "RightHandPinky1",
+    "RightHandPinky2",
+    "RightHandPinky3",
+    "RightHandPinky4",
+    "LeftShoulder",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "LeftHandThumb1",
+    "LeftHandThumb2",
+    "LeftHandThumb3",
+    "LeftHandThumb4",
+    "LeftHandIndex1",
+    "LeftHandIndex2",
+    "LeftHandIndex3",
+    "LeftHandIndex4",
+    "LeftHandMiddle1",
+    "LeftHandMiddle2",
+    "LeftHandMiddle3",
+    "LeftHandMiddle4",
+    "LeftHandRing1",
+    "LeftHandRing2",
+    "LeftHandRing3",
+    "LeftHandRing4",
+    "LeftHandPinky1",
+    "LeftHandPinky2",
+    "LeftHandPinky3",
+    "LeftHandPinky4"
+};
+
+static const char* getControllerJointName(controller::StandardPoseChannel i) {
+    if (i >= 0 && i < controller::NUM_STANDARD_POSES) {
+        return qPrintable(controllerJointNames[i]);
     }
+    return "unknown";
 }
 
 // convert between YXZ Kinect euler angles in degrees to quaternion
@@ -356,26 +360,6 @@ bool KinectPlugin::initializeDefaultSensor() {
 #endif
 }
 
-/// <summary>
-/// Converts a body point to screen space
-/// </summary>
-/// <param name="bodyPoint">body point to tranform</param>
-/// <param name="width">width (in pixels) of output buffer</param>
-/// <param name="height">height (in pixels) of output buffer</param>
-/// <returns>point in screen-space</returns>
-#if 0 
-D2D1_POINT_2F KinectPlugin::BodyToScreen(const CameraSpacePoint& bodyPoint, int width, int height) {
-    // Calculate the body's position on the screen
-    DepthSpacePoint depthPoint = { 0 };
-    _coordinateMapper->MapCameraPointToDepthSpace(bodyPoint, &depthPoint);
-
-    float screenPointX = static_cast<float>(depthPoint.X * width) / cDepthWidth;
-    float screenPointY = static_cast<float>(depthPoint.Y * height) / cDepthHeight;
-
-    return D2D1::Point2F(screenPointX, screenPointY);
-}
-#endif
-
 void KinectPlugin::updateBody() {
 #ifndef HAVE_KINECT
     return;
@@ -389,15 +373,9 @@ void KinectPlugin::updateBody() {
     HRESULT hr = _bodyFrameReader->AcquireLatestFrame(&pBodyFrame);
 
     if (SUCCEEDED(hr)) {
-
-        //qDebug() << __FUNCTION__ << "line:" << __LINE__;
-
         INT64 nTime = 0;
-
         hr = pBodyFrame->get_RelativeTime(&nTime);
-
         IBody* ppBodies[BODY_COUNT] = {0};
-
         if (SUCCEEDED(hr)) {
             hr = pBodyFrame->GetAndRefreshBodyData(_countof(ppBodies), ppBodies);
         }
@@ -441,7 +419,6 @@ void KinectPlugin::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                         _joints.resize(JointType_Count, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } });
                     }
 
-
                     Joint joints[JointType_Count];
                     JointOrientation jointOrientations[JointType_Count];
                     HandState leftHandState = HandState_Unknown;
@@ -456,38 +433,17 @@ void KinectPlugin::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                     if (SUCCEEDED(hr)) {
                         auto jointCount = _countof(joints);
                         //qDebug() << __FUNCTION__ << "nBodyCount:" << nBodyCount << "body:" << i << "jointCount:" << jointCount;
-                        QString state;
                         for (int j = 0; j < jointCount; ++j) {
-                            QString jointName = jointNames[joints[j].JointType];
+                            //QString jointName = kinectJointNames[joints[j].JointType];
 
-                            switch(joints[j].TrackingState) {
-                                case TrackingState_NotTracked: 
-                                    state = "Not Tracked"; 
-                                    break;
-                                case TrackingState_Inferred:
-                                    state = "Inferred";
-                                    break;
-                                case TrackingState_Tracked:
-                                    state = "Tracked";
-                                    break;
-                            }
                             glm::vec3 jointPosition { joints[j].Position.X,
                                                       joints[j].Position.Y,
                                                       joints[j].Position.Z };
 
+                            // filling in the _joints data...
                             if (joints[j].TrackingState != TrackingState_NotTracked) {
                                 _joints[j].pos = jointPosition;
-
-                                if (joints[j].JointType == JointType_HandLeft ||
-                                    joints[j].JointType == JointType_HandRight) {
-                                    //qDebug() << __FUNCTION__ << jointName << ":" << state << "pos:" << jointPosition;
-                                }
-
                             }
-
-
-                            // FIXME - do something interesting with the joints...
-                            //jointPoints[j] = BodyToScreen(joints[j].Position, width, height);
                         }
                     }
                 }
@@ -516,8 +472,7 @@ void KinectPlugin::deactivate() {
     SafeRelease(_coordinateMapper);
 
     // close the Kinect Sensor
-    if (_kinectSensor)
-    {
+    if (_kinectSensor) {
         _kinectSensor->Close();
     }
 
@@ -531,8 +486,6 @@ void KinectPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrat
     if (!_enabled) {
         return;
     }
-
-    //qDebug() << __FUNCTION__ << "deltaTime:" << deltaTime;
 
     updateBody(); // updates _joints
 
@@ -554,7 +507,6 @@ void KinectPlugin::saveSettings() const {
         settings.setValue(QString("enabled"), _enabled);
     }
     settings.endGroup();
-    qDebug() << __FUNCTION__ << "_enabled:" << _enabled;
 }
 
 void KinectPlugin::loadSettings() {
@@ -566,7 +518,6 @@ void KinectPlugin::loadSettings() {
         _enabled = settings.value("enabled", QVariant(DEFAULT_ENABLED)).toBool();
     }
     settings.endGroup();
-    qDebug() << __FUNCTION__ << "_enabled:" << _enabled;
 }
 
 //
@@ -577,9 +528,9 @@ void KinectPlugin::loadSettings() {
 controller::Input::NamedVector KinectPlugin::InputDevice::getAvailableInputs() const {
     static controller::Input::NamedVector availableInputs;
     if (availableInputs.size() == 0) {
-        for (int i = 0; i < controller::NUM_STANDARD_POSES; i++) {
-            auto channel = static_cast<controller::StandardPoseChannel>(i);
-            availableInputs.push_back(makePair(channel, controllerJointName(channel)));
+        for (int i = 0; i < KinectJointIndex::Size; i++) {
+            auto channel = KinectJointIndexToPoseIndex(static_cast<KinectJointIndex>(i));
+            availableInputs.push_back(makePair(channel, getControllerJointName(channel)));
         }
     };
     return availableInputs;
@@ -596,6 +547,8 @@ void KinectPlugin::InputDevice::update(float deltaTime, const controller::InputC
         int poseIndex = KinectJointIndexToPoseIndex((KinectJointIndex)i);
         glm::vec3 linearVel, angularVel;
         const glm::vec3& pos = joints[i].pos;
+
+        // FIXME - left over from neuron, needs to be turned into orientations from kinect SDK
         const glm::vec3& rotEuler = joints[i].euler;
 
         if (Vectors::ZERO == pos && Vectors::ZERO == rotEuler) {
@@ -604,6 +557,7 @@ void KinectPlugin::InputDevice::update(float deltaTime, const controller::InputC
         }
 
 
+        // FIXME - left over from neuron, needs to be turned into orientations from kinect SDK
         glm::quat rot = eulerToQuat(rotEuler);
         if (i < prevJoints.size()) {
             linearVel = (pos - (prevJoints[i].pos * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
@@ -612,14 +566,9 @@ void KinectPlugin::InputDevice::update(float deltaTime, const controller::InputC
             angularVel = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime); // radians/s
         }
         _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVel, angularVel);
-
-        if (poseIndex == controller::LEFT_HAND ||
-            poseIndex == controller::RIGHT_HAND) {
-            //qDebug() << __FUNCTION__ << "_poseStateMap[]=" << _poseStateMap[poseIndex].translation;
-        }
-
     }
 
+    // FIXME - left over from neuron
     _poseStateMap[controller::RIGHT_HAND_THUMB1] = controller::Pose(rightHandThumb1DefaultAbsTranslation, glm::quat(), glm::vec3(), glm::vec3());
     _poseStateMap[controller::LEFT_HAND_THUMB1] = controller::Pose(leftHandThumb1DefaultAbsTranslation, glm::quat(), glm::vec3(), glm::vec3());
 }
