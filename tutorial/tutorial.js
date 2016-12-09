@@ -227,6 +227,12 @@ function isEntityInLocalTree(entityID) {
 /**
  *
  */
+function showEntitiesWithTags(tags) {
+    for (var i = 0; i < tags.length; ++i) {
+        showEntitiesWithTag(tags[i]);
+    }
+}
+
 function showEntitiesWithTag(tag) {
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
     if (entities) {
@@ -271,9 +277,12 @@ function showEntitiesWithTag(tag) {
     });
 }
 
-/**
- * @function hideEntitiesWithTag
- */
+function hideEntitiesWithTags(tags) {
+    for (var i = 0; i < tags.length; ++i) {
+        hideEntitiesWithTag(tags[i]);
+    }
+}
+
 function hideEntitiesWithTag(tag) {
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
     if (entities) {
@@ -313,8 +322,10 @@ function hideEntitiesWithTag(tag) {
     });
 }
 
-// Return the entity properties for an entity with a given name if it is in our
-// cached list of entities. Otherwise, return undefined.
+/** 
+ * Return the entity properties for an entity with a given name if it is in our
+ * cached list of entities. Otherwise, return undefined.
+ */
 function getEntityWithName(name) {
     debug("Getting entity with name:", name);
     var entityID = TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP[name];
@@ -338,27 +349,17 @@ function playFirecrackerSound(position) {
     });
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// STEP: DISABLE CONTROLLERS                                                 //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
-var stepStart = function() {
-    this.tag = "start";
-}
-stepStart.prototype = {
-    start: function(onFinish) {
-        disableEverything();
-
-        HMD.requestShowHandControllers();
-
-        onFinish();
-    },
-    cleanup: function() {
-    }
-};
-
+/**
+ * This disables everything, including:
+ *
+ *   - The door to leave the tutorial
+ *   - Overlays
+ *   - Hand controlelrs
+ *   - Teleportation
+ *   - Advanced movement
+ *   - Equip and far grab
+ *   - Away mode
+ */
 function disableEverything() {
     editEntitiesWithTag('door', { visible: true, collisionless: false });
     Menu.setIsOptionChecked("Overlays", false);
@@ -371,6 +372,11 @@ function disableEverything() {
         farGrabEnabled: false,
     }));
     setControllerPartLayer('touchpad', 'blank');
+    setControllerPartLayer('trigger', 'blank');
+    setControllerPartLayer('joystick', 'blank');
+    setControllerPartLayer('grip', 'blank');
+    setControllerPartLayer('button_a', 'blank');
+    setControllerPartLayer('button_b', 'blank');
     setControllerPartLayer('tips', 'blank');
 
     hideEntitiesWithTag('finish');
@@ -378,6 +384,10 @@ function disableEverything() {
     setAwayEnabled(false);
 }
 
+/**
+ * This reenables everything that disableEverything() disables. This can be
+ * used when leaving the tutorial to ensure that nothing is left disabled.
+ */
 function reenableEverything() {
     editEntitiesWithTag('door', { visible: false, collisionless: true });
     Menu.setIsOptionChecked("Overlays", true);
@@ -390,10 +400,37 @@ function reenableEverything() {
         farGrabEnabled: true,
     }));
     setControllerPartLayer('touchpad', 'blank');
+    setControllerPartLayer('trigger', 'blank');
+    setControllerPartLayer('joystick', 'blank');
+    setControllerPartLayer('grip', 'blank');
+    setControllerPartLayer('button_a', 'blank');
+    setControllerPartLayer('button_b', 'blank');
     setControllerPartLayer('tips', 'blank');
     MyAvatar.shouldRenderLocally = true;
     setAwayEnabled(true);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// STEP: DISABLE CONTROLLERS                                                 //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+var stepStart = function() {
+};
+stepStart.prototype = {
+    start: function(onFinish) {
+        disableEverything();
+
+        HMD.requestShowHandControllers();
+
+        onFinish();
+    },
+    cleanup: function() {
+    }
+};
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -404,7 +441,7 @@ function reenableEverything() {
 
 var stepEnableControllers = function() {
     this.shouldLog = false;
-}
+};
 stepEnableControllers.prototype = {
     start: function(onFinish) {
         reenableEverything();
@@ -416,6 +453,7 @@ stepEnableControllers.prototype = {
 };
 
 
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -424,7 +462,6 @@ stepEnableControllers.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepOrient = function() {
     this.tag = "orient";
-    this.tempTag = "orient-temporary";
 }
 stepOrient.prototype = {
     start: function(onFinish) {
@@ -463,7 +500,6 @@ stepOrient.prototype = {
             this.checkIntervalID = null;
         }
         editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
-        deleteEntitiesWithTag(this.tempTag);
     }
 };
 
@@ -475,7 +511,7 @@ stepOrient.prototype = {
 // STEP: Near Grab                                                           //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepNearGrab = function(name) {
+var stepNearGrab = function() {
     this.tag = "nearGrab";
     this.tempTag = "nearGrab-temporary";
     this.birdIDs = [];
@@ -549,7 +585,7 @@ stepNearGrab.prototype = {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepFarGrab = function() {
-    this.tag = "farGrab;
+    this.tag = "farGrab";
     this.tempTag = "farGrab-temporary";
     this.finished = true;
     this.birdIDs = [];
@@ -651,11 +687,14 @@ PositionWatcher.prototype = {
 // STEP: Equip                                                               //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepEquip = function() {
-    this.tag = "equip";
-    this.tagPart1 = "equip-part1";
-    this.tagPart2 = "equip-part2";
+var stepEquip = function(tutorialManager) {
+    const controllerName = tutorialManager.controllerName;
+
+    this.tags = ["equip", "equip-" + controllerName];
+    this.tagsPart1 = ["equip-part1", "equip-part1-" + controllerName];
+    this.tagsPart2 = ["equip-part2", "equip-part2-" + controllerName];
     this.tempTag = "equip-temporary";
+
     this.PART1 = 0;
     this.PART2 = 1;
     this.PART3 = 2;
@@ -668,6 +707,7 @@ stepEquip.prototype = {
     start: function(onFinish) {
         setControllerPartLayer('tips', 'trigger');
         setControllerPartLayer('trigger', 'highlight');
+
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             holdEnabled: true,
         }));
@@ -675,8 +715,8 @@ stepEquip.prototype = {
         var tag = this.tag;
 
         // Spawn content set
-        showEntitiesWithTag(this.tag);
-        showEntitiesWithTag(this.tagPart1);
+        showEntitiesWithTags(this.tags);
+        showEntitiesWithTags(this.tagsPart1);
 
         this.currentPart = this.PART1;
 
@@ -733,9 +773,10 @@ stepEquip.prototype = {
                 Script.setTimeout(function() {
                     debug("Equip | Starting part 3");
                     this.currentPart = this.PART3;
-                    hideEntitiesWithTag(this.tagPart1);
-                    showEntitiesWithTag(this.tagPart2);
+                    hideEntitiesWithTags(this.tagsPart1);
+                    showEntitiesWithTags(this.tagsPart2);
                     setControllerPartLayer('trigger', 'normal');
+                    setControllerPartLayer('grip', 'highlight');
                     setControllerPartLayer('tips', 'grip');
                     Messages.subscribe('Hifi-Object-Manipulation');
                     debug("Equip | Finished starting part 3");
@@ -762,16 +803,19 @@ stepEquip.prototype = {
         }
 
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('grip', 'normal');
         setControllerPartLayer('trigger', 'normal');
         this.stopWatchingGun();
         this.currentPart = this.COMPLETE;
 
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);
+            this.checkColllidesTimer = null;
         }
-        hideEntitiesWithTag(this.tagPart1);
-        hideEntitiesWithTag(this.tagPart2);
-        hideEntitiesWithTag(this.tag);
+
+        hideEntitiesWithTags(this.tagsPart1);
+        hideEntitiesWithTags(this.tagsPart2);
+        hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -785,8 +829,8 @@ stepEquip.prototype = {
 // STEP: Turn Around                                                         //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepTurnAround = function() {
-    this.tag = "turnAround";
+var stepTurnAround = function(tutorialManager) {
+    this.tags = ["turnAround", "turnAround-" + tutorialManager.controllerName];
     this.tempTag = "turnAround-temporary";
 
     this.onActionBound = this.onAction.bind(this);
@@ -795,10 +839,11 @@ var stepTurnAround = function() {
 }
 stepTurnAround.prototype = {
     start: function(onFinish) {
+        setControllerPartLayer('joystick', 'highlight');
         setControllerPartLayer('touchpad', 'arrows');
         setControllerPartLayer('tips', 'arrows');
 
-        showEntitiesWithTag(this.tag);
+        showEntitiesWithTags(this.tags);
 
         this.numTimesSnapTurnPressed = 0;
         this.numTimesSmoothTurnPressed = 0;
@@ -851,13 +896,14 @@ stepTurnAround.prototype = {
         } catch (e) {
         }
 
+        setControllerPartLayer('joystick', 'normal');
         setControllerPartLayer('touchpad', 'blank');
         setControllerPartLayer('tips', 'blank');
 
         if (this.interval) {
             Script.clearInterval(this.interval);
         }
-        hideEntitiesWithTag(this.tag);
+        hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -871,12 +917,13 @@ stepTurnAround.prototype = {
 // STEP: Teleport                                                            //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepTeleport = function() {
-    this.tag = "teleport";
+var stepTeleport = function(tutorialManager) {
+    this.tags = ["teleport", "teleport-" + tutorialManager.controllerName];
     this.tempTag = "teleport-temporary";
 }
 stepTeleport.prototype = {
     start: function(onFinish) {
+        setControllerPartLayer('button_a', 'highlight');
         setControllerPartLayer('touchpad', 'teleport');
         setControllerPartLayer('tips', 'teleport');
 
@@ -906,17 +953,18 @@ stepTeleport.prototype = {
         }
         this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
 
-        showEntitiesWithTag(this.tag);
+        showEntitiesWithTags(this.tags);
     },
     cleanup: function() {
         debug("Teleport | Cleanup");
+        setControllerPartLayer('button_a', 'normal');
         setControllerPartLayer('touchpad', 'blank');
         setControllerPartLayer('tips', 'blank');
 
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);
         }
-        hideEntitiesWithTag(this.tag);
+        hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -977,6 +1025,15 @@ TutorialManager = function() {
 
     var self = this;
 
+    if (HMD.isSubdeviceContainingNameAvailable("OculusTouch")) {
+        this.controllerName = "touch";
+    } else if (HMD.isHandControllerAvailable("OpenVR")) {
+        this.controllerName = "vive";
+    } else {
+        info("ERROR, no known hand controller found, defaulting to Vive");
+        this.controllerName = "vive";
+    }
+
     this.startTutorial = function() {
         currentStepNum = -1;
         currentStep = null;
@@ -986,15 +1043,15 @@ TutorialManager = function() {
         // If Script.generateUUID is not available, default to an empty string.
         tutorialID = Script.generateUUID ? Script.generateUUID() : "";
         STEPS = [
-            new stepStart(),
-            new stepOrient(),
-            new stepNearGrab(),
-            new stepFarGrab(),
-            new stepEquip(),
-            new stepTurnAround(),
-            new stepTeleport(),
-            new stepFinish(),
-            new stepEnableControllers(),
+            new stepStart(this),
+            new stepOrient(this),
+            new stepNearGrab(this),
+            new stepFarGrab(this),
+            new stepEquip(this),
+            new stepTurnAround(this),
+            new stepTeleport(this),
+            new stepFinish(this),
+            new stepEnableControllers(this),
         ];
         wentToEntryStepNum = STEPS.length;
         for (var i = 0; i < STEPS.length; ++i) {
