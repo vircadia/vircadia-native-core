@@ -5791,7 +5791,7 @@ void Application::addAssetToWorldCheckModelSize() {
 
             const float RESCALE_THRESHOLD = 10.0f;  // Resize entities larger than this as the FBX is likely in cm or mm.
             if (dimensions.x > RESCALE_THRESHOLD || dimensions.y > RESCALE_THRESHOLD || dimensions.z > RESCALE_THRESHOLD) {
-                dimensions *= 0.1f;
+                dimensions *= 0.01f;
                 EntityItemProperties properties;
                 properties.setDimensions(dimensions);
                 properties.setCollisionless(false);  // Reset to default.
