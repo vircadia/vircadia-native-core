@@ -35,7 +35,7 @@ var DEFAULT_SCRIPTS = [
     "system/snapshot.js",
     "system/help.js",
     "system/bubble.js",
-    "system/tablet-ui/tablet-ui.js"
+    "system/tablet-ui/tabletUI.js"
 ];
 
 // add a menu item for debugging

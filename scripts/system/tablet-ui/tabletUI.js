@@ -1,7 +1,7 @@
 "use strict";
 
 //
-//  tablet-ui.js
+//  tabletUI.js
 //
 //  scripts/system/tablet-ui/
 //

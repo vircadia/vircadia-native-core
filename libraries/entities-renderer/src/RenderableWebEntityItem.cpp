@@ -45,8 +45,6 @@ EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID,
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID) :
     WebEntityItem(entityItemID) {
-    qDebug() << "Created web entity " << getID();
-
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
@@ -56,7 +54,6 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
     destroyWebSurface();
-    qDebug() << "Destroyed web entity " << getID();
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_geometryId);
@@ -68,8 +65,6 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
         qWarning() << "Too many concurrent web views to create new view";
         return false;
     }
-    qDebug() << "Building web surface";
-
     QString javaScriptToInject;
     QFile webChannelFile(":qtwebchannel/qwebchannel.js");
     QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
@@ -91,7 +86,6 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
     }
 
     ++_currentWebCount;
-    qDebug() << "Building web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
 
     QSurface * currentSurface = currentContext->surface();
 
@@ -114,15 +108,13 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
 
     // The lifetime of the QML surface MUST be managed by the main thread
     // Additionally, we MUST use local variables copied by value, rather than
-    // member variables, since they would implicitly refer to a this that 
+    // member variables, since they would implicitly refer to a this that
     // is no longer valid
     _webSurface->create(currentContext);
 
     loadSourceURL();
 
     _webSurface->resume();
-    // _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
-    //     _texture = textureId;
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
     // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
@@ -253,26 +245,15 @@ void RenderableWebEntityItem::loadSourceURL() {
     QUrl sourceUrl(_sourceUrl);
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
         _sourceUrl.toLower().endsWith(".htm") || _sourceUrl.toLower().endsWith(".html")) {
-
-        qDebug() << "HERE RenderableWebEntityItem::loadSourceURL http -- " << _sourceUrl;
-
         _contentType = htmlContent;
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/controls/"));
-
-        QString fuh = QUrl::fromLocalFile(PathUtils::resourcesPath()).toString() + "qml/controls/" + "WebView.qml";
-        qDebug() << "HERE full name is " << fuh;
-            
         _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
             context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(_javaScriptToInject));
         });
-        // _webSurface->getRootItem()->setProperty("eventBridge", QVariant::fromValue(_webEntityAPIHelper));
         _webSurface->getRootItem()->setProperty("url", _sourceUrl);
         _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
-        // _webSurface->getRootContext()->setContextProperty("webEntity", _webEntityAPIHelper);
 
     } else {
-        qDebug() << "HERE RenderableWebEntityItem::loadSourceURL qml -- " << _sourceUrl;
-
         _contentType = qmlContent;
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
         _webSurface->load(_sourceUrl, [&](QQmlContext* context, QObject* obj) { });
@@ -282,12 +263,9 @@ void RenderableWebEntityItem::loadSourceURL() {
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
     if (_sourceUrl != value) {
-        qDebug() << "Setting web entity source URL to " << value;
         _sourceUrl = value;
         if (_webSurface) {
-            qDebug() << "HERE RenderableWebEntityItem::setSourceUrl has _webSurface";
             AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                    qDebug() << "HERE RenderableWebEntityItem::setSourceUrl in lambda";
                 loadSourceURL();
                 if (_contentType == htmlContent) {
                     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
@@ -399,8 +377,6 @@ void RenderableWebEntityItem::destroyWebSurface() {
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
         _webSurface.reset();
-
-        qDebug() << "Delete web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
     }
 }
 
@@ -420,69 +396,8 @@ QObject* RenderableWebEntityItem::getRootItem() {
     if (_webSurface) {
         return dynamic_cast<QObject*>(_webSurface->getRootItem());
     }
-
-    qDebug() << "HERE no _websurface";
     return nullptr;
 }
-
-
-// UTF-8 encoded symbols
-static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
-static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90, 0x00 }; // backspace
-static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6, 0x00 }; // left arrow
-static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 }; // right arrow
-static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
-static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
-static const char PUNCTUATION_STRING[] = "&123";
-static const char ALPHABET_STRING[] = "abc";
-
-static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
-    int i;
-    for (i = 0; i < byteArray.size(); i++) {
-        if ((char)ptr[i] != byteArray[i]) {
-            return false;
-        }
-    }
-    return ptr[i] == 0x00;
-}
-
-void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
-    auto utf8Key = key.toUtf8();
-
-    int scanCode = (int)utf8Key[0];
-    QString keyString = key;
-    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
-        equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
-        return;  // ignore
-    } else if (equals(utf8Key, LEFT_ARROW)) {
-        scanCode = Qt::Key_Backspace;
-        keyString = "\x08";
-    } else if (equals(utf8Key, RETURN_SYMBOL)) {
-        scanCode = Qt::Key_Return;
-        keyString = "\x0d";
-    } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
-        scanCode = Qt::Key_Left;
-        keyString = "";
-    } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
-        scanCode = Qt::Key_Right;
-        keyString = "";
-    }
-
-    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
-    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
-    QCoreApplication::postEvent(getEventHandler(), pressEvent);
-    QCoreApplication::postEvent(getEventHandler(), releaseEvent);
-}
-
-// void RenderableWebEntityItem::setKeyboardRaised(bool raised) {
-//
-//     // raise the keyboard only while in HMD mode and it's being requested.
-//     bool value = AbstractViewStateInterface::instance()->isHMDMode() && raised;
-//
-//     if (_contentType == htmlContent) {
-//         _webSurface->getRootItem()->setProperty("keyboardRaised", QVariant(value));
-//     }
-// }
 
 void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
     if (_webSurface) {

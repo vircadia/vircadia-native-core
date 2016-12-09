@@ -54,9 +54,8 @@ public:
     virtual bool isTransparent() override;
 
  public:
-    void synthesizeKeyPress(QString key);
 
-    QObject* getRootItem() override;
+    virtual QObject* getRootItem() override;
 
 private:
     bool buildWebSurface(QSharedPointer<EntityTreeRenderer> renderer);
