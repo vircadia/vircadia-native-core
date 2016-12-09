@@ -150,12 +150,11 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
             point.setPos(windowPoint);
             QList<QTouchEvent::TouchPoint> touchPoints;
             touchPoints.push_back(point);
-            QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
+            QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr,
+                                                      Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
             touchEvent->setWindow(_webSurface->getWindow());
             touchEvent->setDevice(&_touchDevice);
-            if (_contentType == htmlContent) {
-                touchEvent->setTarget(_webSurface->getRootItem());
-            }
+            touchEvent->setTarget(_webSurface->getRootItem());
             QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
         }
     });
@@ -340,9 +339,7 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         QTouchEvent* touchEvent = new QTouchEvent(type);
         touchEvent->setWindow(_webSurface->getWindow());
         touchEvent->setDevice(&_touchDevice);
-        if (_contentType == htmlContent) {
-            touchEvent->setTarget(_webSurface->getRootItem());
-        }
+        touchEvent->setTarget(_webSurface->getRootItem());
         touchEvent->setTouchPoints(touchPoints);
         touchEvent->setTouchPointStates(touchPointState);
 
