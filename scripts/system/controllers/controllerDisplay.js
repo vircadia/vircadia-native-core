@@ -21,14 +21,17 @@ function clamp(value, min, max) {
 }
 
 function resolveHardware(path) {
-    var parts = path.split(".");
-    function resolveInner(base, path, i) {
-        if (i >= path.length) {
-            return base;
+    if (typeof path === 'string') {
+        var parts = path.split(".");
+        function resolveInner(base, path, i) {
+            if (i >= path.length) {
+                return base;
+            }
+            return resolveInner(base[path[i]], path, ++i);
         }
-        return resolveInner(base[path[i]], path, ++i);
+        return resolveInner(Controller.Hardware, parts, 0);
     }
-    return resolveInner(Controller.Hardware, parts, 0);
+    return path;
 }
 
 var DEBUG = true;
@@ -132,7 +135,9 @@ createControllerDisplay = function(config) {
                 overlayID = Overlays.addOverlay("model", properties);
 
                 if (part.type === "rotational") {
-                    mapping.from([part.input]).peek().to(function(controller, overlayID, part) {
+                    var input = resolveHardware(part.input);
+                    print("Mapping to: ", part.input, input);
+                    mapping.from([input]).peek().to(function(controller, overlayID, part) {
                         return function(value) {
                             value = clamp(value, part.minValue, part.maxValue);
 
