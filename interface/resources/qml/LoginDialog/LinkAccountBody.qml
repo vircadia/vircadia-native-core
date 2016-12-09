@@ -26,6 +26,7 @@ Item {
 
     function login() {
         mainTextContainer.visible = false
+        toggleLoading(true)
         loginDialog.login(usernameField.text, passwordField.text)
     }
 
@@ -57,6 +58,34 @@ Item {
             root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }
+    }
+
+    function toggleLoading(isLoading) {
+        linkAccountSpinner.visible = isLoading
+        form.visible = !isLoading
+
+        if (loginDialog.isSteamRunning()) {
+            additionalInformation.visible = !isLoading
+        }
+
+        leftButton.visible = !isLoading
+        buttons.visible = !isLoading
+    }
+
+    BusyIndicator {
+        id: linkAccountSpinner
+
+        anchors {
+            top: parent.top
+            horizontalCenter: parent.horizontalCenter
+            topMargin: hifi.dimensions.contentSpacing.y
+        }
+
+        visible: false
+        running: true
+
+        width: 48
+        height: 48
     }
 
     ShortcutText {
@@ -266,6 +295,7 @@ Item {
         onHandleLoginFailed: {
             console.log("Login Failed")
             mainTextContainer.visible = true
+            toggleLoading(false)
         }
         onHandleLinkCompleted: {
             console.log("Link Succeeded")
@@ -276,7 +306,7 @@ Item {
         }
         onHandleLinkFailed: {
             console.log("Link Failed")
-
+            toggleLoading(false)
         }
     }
 
