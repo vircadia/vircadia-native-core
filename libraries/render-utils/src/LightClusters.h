@@ -21,20 +21,17 @@
 
 class FrustumGrid {
 public:
-
-    glm::mat4 eyeToGridProj;
-    glm::mat4 worldToEyeMat;
-    glm::mat4 eyeToWorldMat;
-
     float frustumNear { 0.1f };
     float rangeNear { 0.1f };
     float rangeFar { 200.0f };
     float frustumFar { 10000.0f };
-  //  glm::ivec4 dims { 1, 1, 1, 1 };
 
     glm::ivec3 dims { 1, 1, 1 };
     float spare;
 
+    glm::mat4 eyeToGridProj;
+    glm::mat4 worldToEyeMat;
+    glm::mat4 eyeToWorldMat;
 
     FrustumGrid() = default;
     FrustumGrid(const FrustumGrid& source);

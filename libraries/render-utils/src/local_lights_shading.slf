@@ -58,11 +58,6 @@ void main(void) {
 
     vec3 gridPos = frustumGrid_volumeToGrid(volumePos, dims);
 
-     _fragColor = vec4(fract(volumePos.xyz), 1.0);
-  //   _fragColor = vec4(fract(gridPos / vec3(dims)), 1.0);
-
-    return;
-
     ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
 
     int numLights = cluster.x + cluster.y;
