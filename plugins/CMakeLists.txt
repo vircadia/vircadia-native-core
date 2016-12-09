@@ -26,6 +26,9 @@ if (NOT SERVER_ONLY AND NOT ANDROID)
   add_subdirectory(${DIR})
   set(DIR "hifiNeuron")
   add_subdirectory(${DIR})
+
+  set(DIR "hifiKinect")
+  add_subdirectory(${DIR})
 endif()
 
 # server-side plugins
