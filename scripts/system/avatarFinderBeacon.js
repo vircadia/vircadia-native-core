@@ -3,12 +3,12 @@
 //  Created by Thijs Wenker on 12/7/16
 //  Copyright 2016 High Fidelity, Inc.
 //
-//  Shows 2km long red beams for each avatar outside of the 10 meter radius of your avatar, tries to ignore AC Agents.
+//  Shows 2km long red beams for each avatar outside of the 20 meter radius of your avatar, tries to ignore AC Agents.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var MIN_DISPLAY_DISTANCE = 10.0; // meters
+var MIN_DISPLAY_DISTANCE = 20.0; // meters
 var BEAM_COLOR = {red: 255, green: 0, blue: 0};
 var SHOW_THROUGH_WALLS = false;
 var BEACON_LENGTH = 2000.0; // meters
