@@ -225,7 +225,7 @@ void LoginDialog::signupFailed(QNetworkReply& reply) {
             errorStringList.append(QString("Password %1.").arg(errorStringFromAPIObject(dataObject[PASSWORD_DATA_KEY])));
         }
         
-        emit handleSignupFailed(errorStringList.join(' '));
+        emit handleSignupFailed(errorStringList.join('\n'));
     } else {
         static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE = "There was an unknown error while creating your account. Please try again later.";
         emit handleSignupFailed(DEFAULT_SIGN_UP_FAILURE_MESSAGE);

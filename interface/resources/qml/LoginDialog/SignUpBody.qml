@@ -63,12 +63,10 @@ Item {
 
       visible: false
 
-      text: qsTr("Username or password incorrect.")
+      text: qsTr("There was an unknown error while creating your account.")
       wrapMode: Text.WordWrap
       color: hifi.colors.redAccent
-      lineHeight: 1
-      lineHeightMode: Text.ProportionalHeight
-      horizontalAlignment: Text.AlignHCenter
+      horizontalAlignment: Text.AlignLeft
   }
 
   Column {
