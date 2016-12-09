@@ -78,7 +78,7 @@ Script.update.connect(function() {
 
 AvatarList.avatarRemovedEvent.connect(function(avatarSessionUUID) {
     if (avatarSessionUUID in beacons) {
-        beacons[avatarSessionUUID].clear();
+        beacons[avatarSessionUUID].cleanup();
         delete beacons[avatarSessionUUID];
     }
 });
