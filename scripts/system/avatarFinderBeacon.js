@@ -56,8 +56,8 @@ AvatarFinderBeacon = function(avatar) {
 function updateBeacon(avatarSessionUUID) {
     if (!(avatarSessionUUID in beacons)) {
         var avatar = AvatarList.getAvatar(avatarSessionUUID);
-        if (TRY_TO_IGNORE_AC_AGENTS && (POSSIBLE_AC_AVATARS.indexOf(avatar.skeletonModelURL) !== -1 ||
-                                        Vec3.length(avatar.position) === 0.0)) {
+        if (TRY_TO_IGNORE_AC_AGENTS
+            && (POSSIBLE_AC_AVATARS.indexOf(avatar.skeletonModelURL) !== -1 || Vec3.length(avatar.position) === 0.0)) {
             return;
         }
         beacons[avatarSessionUUID] = new AvatarFinderBeacon(avatar);
