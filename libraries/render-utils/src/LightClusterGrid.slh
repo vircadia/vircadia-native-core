@@ -13,15 +13,15 @@
 
 
 struct FrustumGrid {
+    mat4 eyeToGridProj;
+    mat4 worldToEyeMat;
+    mat4 eyeToWorldMat;
     float frustumNear;
     float rangeNear;
     float rangeFar;
     float frustumFar;
-    ivec3 dims;
-    float spare;
-    mat4 eyeToGridProj;
-    mat4 worldToEyeMat;
-    mat4 eyeToWorldMat;
+    vec4 dims;
+ //   float spare;
 };
 
 uniform frustumGridBuffer {

@@ -34,7 +34,6 @@ in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st;
 
@@ -49,19 +48,31 @@ void main(void) {
     // Frag pos in world
     mat4 invViewMat = getViewInverse();
     vec4 fragPos = invViewMat * fragPosition;
-    
+
     // From frag world pos find the cluster
     vec4 clusterEyePos = frustumGrid_worldToEye(fragPos);
     ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
 
+    vec3 volumePos = frustumGrid_eyeToVolume(clusterEyePos.xyz, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
+    ivec3 dims = ivec3(frustumGrid.dims.x, frustumGrid.dims.y, frustumGrid.dims.z);
+
+    vec3 gridPos = frustumGrid_volumeToGrid(volumePos, dims);
+
+     _fragColor = vec4(fract(volumePos.xyz), 1.0);
+  //   _fragColor = vec4(fract(gridPos / vec3(dims)), 1.0);
+
+    return;
+
     ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
+
     int numLights = cluster.x + cluster.y;
     if (numLights <= 0) {
         discard;
     }
     int lightClusterOffset = cluster.z;
+  //  ivec3 dims = ivec3(frustumGrid.dims.x, frustumGrid.dims.y, frustumGrid.dims.z);
+    //ivec3 dims = frustumGrid.dims.xyz;
 
-    ivec3 dims = frustumGrid.dims.xyz;
     if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
         discard;
     }
@@ -84,7 +95,7 @@ void main(void) {
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
 
-    // COmpute the rougness into gloss2 once:
+    // Compute the rougness into gloss2 once:
     float fragGloss2 = pow(frag.roughness + 0.001, 4.0);
     bool withScattering = (frag.scattering * isScatteringEnabled() > 0.0);
 

@@ -42,7 +42,7 @@ void main(void) {
     float numLightsScale = clamp(numLights * 0.05, 0.01, 1.0);
 
 
-   ivec3 dims = frustumGrid.dims.xyz;
+   ivec3 dims = ivec3(frustumGrid.dims.x, frustumGrid.dims.y, frustumGrid.dims.z);
    dims.z +=1;
    ivec3 summedDims = ivec3(dims.x * dims.y, dims.x, 1);
    
