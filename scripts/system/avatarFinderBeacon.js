@@ -64,6 +64,10 @@ function updateBeacon(avatarSessionUUID) {
     beacons[avatarSessionUUID].update();
 }
 
+Window.domainChanged.connect(function () {
+    beacons = {};
+});
+
 Script.update.connect(function() {
     AvatarList.getAvatarIdentifiers().forEach(function(avatarSessionUUID) {
         updateBeacon(avatarSessionUUID);
