@@ -43,7 +43,7 @@ AvatarFinderBeacon = function(avatar) {
         Overlays.deleteOverlay(this.overlay);
     };
     this.shouldShow = function() {
-        return (Vec3.distance(MyAvatar.position, avatar.position) >= MIN_DISPLAY_DISTANCE);
+        return Vec3.distance(MyAvatar.position, avatar.position) >= MIN_DISPLAY_DISTANCE;
     };
     this.update = function() {
         avatar = AvatarList.getAvatar(avatarSessionUUID);
