@@ -169,6 +169,73 @@ createControllerDisplay = function(config) {
                     });
                     mapping.from([yinput]).peek().invert().to(function(value) {
                     });
+                } else if (part.type === "joystick") {
+                    (function(controller, overlayID, part) {
+                        const xinput = resolveHardware(part.xInput);
+                        const yinput = resolveHardware(part.yInput);
+
+                        var xvalue = 0;
+                        var yvalue = 0;
+
+                        function calculatePositionAndRotation(xValue, yValue) {
+                            var rotation = Quat.fromPitchYawRollDegrees(yValue * part.xHalfAngle, 0, xValue * part.yHalfAngle);
+
+                            var offset = { x: 0, y: 0, z: 0 };
+                            if (part.originOffset) {
+                                offset = Vec3.multiplyQbyV(rotation, part.originOffset);
+                                offset = Vec3.subtract(part.originOffset, offset);
+                            }
+                            
+                            var partPosition = Vec3.sum(controller.position,
+                                    Vec3.multiplyQbyV(controller.rotation, Vec3.sum(offset, part.naturalPosition)));
+
+                            var partRotation = Quat.multiply(controller.rotation, rotation)
+
+                            return {
+                                position: partPosition,
+                                rotation: partRotation
+                            }
+                        }
+
+                        mapping.from([xinput]).peek().to(function(value) {
+                            xvalue = value;
+                            //print(overlayID, xvalue.toFixed(3), yvalue.toFixed(3));
+                            var posRot = calculatePositionAndRotation(xvalue, yvalue);
+                            Overlays.editOverlay(overlayID, {
+                                localPosition: posRot.position,
+                                localRotation: posRot.rotation
+                            });
+                        });
+
+                        mapping.from([yinput]).peek().to(function(value) {
+                            yvalue = value;
+                            var posRot = calculatePositionAndRotation(xvalue, yvalue);
+                            Overlays.editOverlay(overlayID, {
+                                localPosition: posRot.position,
+                                localRotation: posRot.rotation
+                            });
+                        });
+                    })(controller, overlayID, part);
+
+                } else if (part.type === "linear") {
+                    (function(controller, overlayID, part) {
+                        const input = resolveHardware(part.input);
+
+                        mapping.from([input]).peek().to(function(value) {
+                            //print(value);
+                            var axis = Vec3.multiplyQbyV(controller.rotation, part.axis);
+                            var offset = Vec3.multiply(part.maxTranslation * value, axis);
+
+                            var partPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition));
+                            var position = Vec3.sum(partPosition, offset);
+
+                            Overlays.editOverlay(overlayID, {
+                                localPosition: position
+                            });
+                        });
+
+                    })(controller, overlayID, part);
+
                 } else if (part.type === "static") {
                     // do nothing
                 } else {

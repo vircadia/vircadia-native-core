@@ -13,8 +13,9 @@
 
 (function () {
 
-Script.include("controllerDisplay.js");
+Script.include("controllerDisplay.js?" + Date.now());
 Script.include("viveControllerConfiguration.js");
+Script.include("touchControllerConfiguration.js?" + Date.now());
 
 var HIDE_CONTROLLERS_ON_EQUIP = false;
 
@@ -40,13 +41,29 @@ ControllerDisplayManager = function() {
     };
 
     function updateControllers() {
-        if (HMD.active && HMD.shouldShowHandControllers()) {
+        if (HMD.active && true) { //HMD.shouldShowHandControllers()) {
+            var leftConfig = null;
+            var rightConfig = null;
+
             if ("Vive" in Controller.Hardware) {
-                if (!controllerLeft) {
-                    controllerLeft = createControllerDisplay(VIVE_CONTROLLER_CONFIGURATION_LEFT);
+                leftConfig = VIVE_CONTROLLER_CONFIGURATION_LEFT;
+                rightConfig = VIVE_CONTROLLER_CONFIGURATION_RIGHT;
+            } 
+
+            if ("OculusTouch" in Controller.Hardware) {
+                leftConfig = TOUCH_CONTROLLER_CONFIGURATION_LEFT;
+                rightConfig = TOUCH_CONTROLLER_CONFIGURATION_RIGHT;
+            }
+
+            if (leftConfig !== null && rightConfig !== null) {
+                print("Loading controllers");
+                if (controllerLeft === null) {
+                    controllerLeft = createControllerDisplay(leftConfig);
+                    controllerLeft.setVisible(true);
                 }
-                if (!controllerRight) {
-                    controllerRight = createControllerDisplay(VIVE_CONTROLLER_CONFIGURATION_RIGHT);
+                if (controllerRight === null) {
+                    controllerRight = createControllerDisplay(rightConfig);
+                    controllerRight.setVisible(true);
                 }
                 // We've found the controllers, we no longer need to look for active controllers
                 if (controllerCheckerIntervalID) {
