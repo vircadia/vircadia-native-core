@@ -140,6 +140,10 @@ var ONE_VEC = {
 
 var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 
+var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
+var INCHES_TO_METERS = 1.0 / 39.3701;
+
+
 // these control how long an abandoned pointer line or action will hang around
 var ACTION_TTL = 15; // seconds
 var ACTION_TTL_REFRESH = 5;
@@ -301,12 +305,20 @@ function projectOntoEntityXYPlane(entityID, worldPos) {
 function projectOntoOverlayXYPlane(overlayID, worldPos) {
     var position = Overlays.getProperty(overlayID, "position");
     var rotation = Overlays.getProperty(overlayID, "rotation");
-    var dimensions = Overlays.getProperty(overlayID, "dimensions");
-    if (!dimensions.z) {
-        dimensions.z = 0;
+    var dimensions;
+
+    var dpi = Overlays.getProperty(overlayID, "dpi");
+    if (dpi) {
+        // Calculate physical dimensions for web3d overlay; "dimensions" property is used as a scale.
+        var resolution = Overlays.getProperty(overlayID, "resolution");
+        resolution.z = 1;  // Circumvent divide-by-zero.
+        var scale = Overlays.getProperty(overlayID, "dimensions");
+        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+    } else {
+        dimensions = Overlays.getProperty(overlayID, "dimensions");
     }
-    var registrationPoint = { x: 0.5, y: 0.5, z: 0.5 };
-    return projectOntoXYPlane(worldPos, position, rotation, dimensions, registrationPoint);
+
+    return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
 }
 
 function handLaserIntersectItem(position, rotation, start) {
@@ -2450,9 +2462,6 @@ function MyController(hand) {
                 isPrimaryHeld: true
             };
 
-            // TODO: post2D isn't calculated correctly; use dummy values to prevent crash.
-            pointerEvent.pos2D.x = 50;
-            pointerEvent.pos2D.y = 50;
 
             Overlays.sendMousePressOnOverlay(this.grabbedOverlay, pointerEvent);
 
