@@ -1420,7 +1420,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         bool hasTutorialContent = contentVersion >= 1;
 
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
-        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable("OpenVR (Vive)") && PluginUtils::isHandControllerAvailable();
+        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && PluginUtils::isHandControllerAvailable();
         Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
         bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
