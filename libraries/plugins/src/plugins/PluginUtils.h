@@ -15,7 +15,8 @@
 class PluginUtils {
 public:
     static bool isHMDAvailable(const QString& pluginName = "");
-    static bool isHandControllerAvailable();
+    static bool isHandControllerAvailable(const QString& pluginName = "");
+    static bool isSubdeviceContainingNameAvailable(QString name);
     static bool isViveControllerAvailable();
     static bool isOculusTouchControllerAvailable();
     static bool isXboxControllerAvailable();
