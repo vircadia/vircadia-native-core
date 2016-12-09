@@ -18,7 +18,6 @@
 
 #include <GeometryCache.h>
 #include <PerfStat.h>
-#include <gl/OffscreenQmlSurface.h>
 #include <AbstractViewStateInterface.h>
 #include <GLMHelpers.h>
 #include <PathUtils.h>
@@ -46,8 +45,6 @@ EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID,
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID) :
     WebEntityItem(entityItemID) {
-    qDebug() << "Created web entity " << getID();
-
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
@@ -57,7 +54,6 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
     destroyWebSurface();
-    qDebug() << "Destroyed web entity " << getID();
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_geometryId);
@@ -78,19 +74,18 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
         QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
 
         // concatenate these js files
-        javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
+        _javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
     } else {
         qCWarning(entitiesrenderer) << "unable to find qwebchannel.js or createGlobalEventBridge.js";
     }
 
     // Save the original GL context, because creating a QML surface will create a new context
-    QOpenGLContext * currentContext = QOpenGLContext::currentContext();
+    QOpenGLContext* currentContext = QOpenGLContext::currentContext();
     if (!currentContext) {
         return false;
     }
 
     ++_currentWebCount;
-    qDebug() << "Building web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
 
     QSurface * currentSurface = currentContext->surface();
 
@@ -113,27 +108,15 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
 
     // The lifetime of the QML surface MUST be managed by the main thread
     // Additionally, we MUST use local variables copied by value, rather than
-    // member variables, since they would implicitly refer to a this that 
+    // member variables, since they would implicitly refer to a this that
     // is no longer valid
     _webSurface->create(currentContext);
 
-#define AJT_TABLET_HACK
+    loadSourceURL();
 
-#ifdef AJT_TABLET_HACK
-    _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/hifi/tablet/"));
-    _webSurface->load("Tablet.qml", [&](QQmlContext* context, QObject* obj) {
-        ;
-    });
-    _webSurface->resume();
-#else
-    _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
-    _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
-        context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
-    });
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
-#endif
     // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
 
     // forward web events to EntityScriptingInterface
@@ -167,7 +150,8 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
             point.setPos(windowPoint);
             QList<QTouchEvent::TouchPoint> touchPoints;
             touchPoints.push_back(point);
-            QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
+            QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr,
+                                                      Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
             touchEvent->setWindow(_webSurface->getWindow());
             touchEvent->setDevice(&_touchDevice);
             touchEvent->setTarget(_webSurface->getRootItem());
@@ -256,13 +240,35 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
 }
 
+void RenderableWebEntityItem::loadSourceURL() {
+    QUrl sourceUrl(_sourceUrl);
+    if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
+        _sourceUrl.toLower().endsWith(".htm") || _sourceUrl.toLower().endsWith(".html")) {
+        _contentType = htmlContent;
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/controls/"));
+        _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
+            context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(_javaScriptToInject));
+        });
+        _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+        _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
+
+    } else {
+        _contentType = qmlContent;
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
+        _webSurface->load(_sourceUrl, [&](QQmlContext* context, QObject* obj) { });
+    }
+}
+
+
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
     if (_sourceUrl != value) {
-        qDebug() << "Setting web entity source URL to " << value;
         _sourceUrl = value;
         if (_webSurface) {
             AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+                loadSourceURL();
+                if (_contentType == htmlContent) {
+                    _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+                }
             });
         }
     }
@@ -368,8 +374,6 @@ void RenderableWebEntityItem::destroyWebSurface() {
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
         _webSurface.reset();
-
-        qDebug() << "Delete web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
     }
 }
 
@@ -383,6 +387,13 @@ void RenderableWebEntityItem::update(const quint64& now) {
 bool RenderableWebEntityItem::isTransparent() {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     return fadeRatio < OPAQUE_ALPHA_THRESHOLD;
+}
+
+QObject* RenderableWebEntityItem::getRootItem() {
+    if (_webSurface) {
+        return dynamic_cast<QObject*>(_webSurface->getRootItem());
+    }
+    return nullptr;
 }
 
 void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {

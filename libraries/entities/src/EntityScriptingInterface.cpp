@@ -25,7 +25,7 @@
 #include "QVariantGLM.h"
 #include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
-
+#include "WebEntityItem.h"
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
     _entityTree(NULL),
@@ -1453,3 +1453,12 @@ void EntityScriptingInterface::setCostMultiplier(float value) {
     costMultiplier = value;
 }
 
+QObject* EntityScriptingInterface::getWebViewRoot(const QUuid& entityID) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Web)) {
+        auto webEntity = std::dynamic_pointer_cast<WebEntityItem>(entity);
+        QObject* root = webEntity->getRootItem();
+        return root;
+    } else {
+        return nullptr;
+    }
+}

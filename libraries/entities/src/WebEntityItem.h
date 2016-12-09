@@ -59,6 +59,8 @@ public:
     void setDPI(uint16_t value);
     uint16_t getDPI() const;
 
+    virtual QObject* getRootItem() { return nullptr; }
+
 protected:
     QString _sourceUrl;
     uint16_t _dpi;
