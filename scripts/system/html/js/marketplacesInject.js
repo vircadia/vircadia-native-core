@@ -82,6 +82,7 @@
 
             // Clara library page.
             if (location.href.indexOf("clara.io/library") !== -1) {
+                // Make entries navigate to "Image" view instead of default "Real Time" view.
                 var elements = $("a.thumbnail");
                 for (var i = 0, length = elements.length; i < length; i++) {
                     var value = elements[i].getAttribute("href");
@@ -93,12 +94,15 @@
 
             // Clara item page.
             if (location.href.indexOf("clara.io/view/") !== -1) {
+                // Make site navigation links retain gameCheck etc. parameters.
                 var element = $("a[href^=\'/library\']")[0];
                 var parameters = "?gameCheck=true&public=true";
                 var href = element.getAttribute("href");
                 if (href.slice(-parameters.length) !== parameters) {
                     element.setAttribute("href", href + parameters);
                 }
+
+                // Replace download options with a single, "Download to High Fidelity" option.
                 var buttons = $("a.embed-button").parent("div");
                 if (buttons.length > 0) {
                     var downloadFBX = buttons.find("a[data-extension=\'fbx\']")[0];
@@ -109,6 +113,8 @@
                     downloadFBX.innerHTML = "<i class=\'glyphicon glyphicon-download-alt\'></i> Download to High Fidelity";
                     buttons.children(":nth-child(2), .btn-group , .embed-button").each(function () { this.remove(); });
                 }
+
+                // Automatic download to High Fidelity.
                 var downloadTimer;
                 function startAutoDownload() {
                     if (!downloadTimer) {

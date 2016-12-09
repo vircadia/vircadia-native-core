@@ -49,9 +49,9 @@ WebTablet = function (url, width, dpi, clientOnly) {
     var DPI = dpi || DEFAULT_DPI;
 
     var spawnInfo = calcSpawnInfo();
-
     var tabletEntityPosition = spawnInfo.position;
     var tabletEntityRotation = spawnInfo.rotation;
+
     this.tabletEntityID = Entities.addEntity({
         name: "tablet",
         type: "Model",
