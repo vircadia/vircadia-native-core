@@ -26,6 +26,7 @@ var POSSIBLE_AC_AVATARS = [
 
 AvatarFinderBeacon = function(avatar) {
     var visible = false;
+    var avatarSessionUUID = avatar.sessionUUID;
     this.overlay = Overlays.addOverlay('line3d', {
         color: BEAM_COLOR,
         dashed: false,
@@ -35,7 +36,7 @@ AvatarFinderBeacon = function(avatar) {
         visible: visible,
         drawInFront: SHOW_THROUGH_WALLS,
         ignoreRayIntersection: true,
-        parentID: avatar.sessionUUID,
+        parentID: avatarSessionUUID,
         parentJointIndex: -2
     });
     this.cleanup = function() {
@@ -45,7 +46,7 @@ AvatarFinderBeacon = function(avatar) {
         return (Vec3.distance(MyAvatar.position, avatar.position) >= MIN_DISPLAY_DISTANCE);
     };
     this.update = function() {
-        avatar = AvatarList.getAvatar(avatar.sessionUUID);
+        avatar = AvatarList.getAvatar(avatarSessionUUID);
         Overlays.editOverlay(this.overlay, {
             visible: this.shouldShow()
         });
