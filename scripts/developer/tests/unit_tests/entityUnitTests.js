@@ -50,4 +50,16 @@ describe('Entity', function() {
         var props = Entities.getEntityProperties(boxEntity);
         expect(Math.round(props.position.z)).toEqual(Math.round(newPos.z));
     });
+
+    it("\'s last edited property working correctly", function() {
+        var props = Entities.getEntityProperties(boxEntity);
+        expect(props.lastEdited).toBeDefined();
+        expect(props.lastEdited).not.toBe(0);
+        var prevLastEdited = props.lastEdited;
+
+        // Now we make an edit to the entity, which should update its last edited time
+        Entities.editEntity(boxEntity, {color: {red: 0, green: 255, blue: 0}});
+        props = Entities.getEntityProperties(boxEntity);
+        expect(props.lastEdited).toBeGreaterThan(prevLastEdited);
+    });
 });
