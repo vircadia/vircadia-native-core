@@ -1558,6 +1558,7 @@ function MyController(hand) {
             name = entityPropertiesCache.getProps(entity).name;
 
             if (Entities.keyboardFocusEntity != entity) {
+                Overlays.keyboardFocusOverlay = 0;
                 Entities.keyboardFocusEntity = entity;
 
                 pointerEvent = {
@@ -1637,6 +1638,7 @@ function MyController(hand) {
             overlay = rayPickInfo.overlayID;
 
             if (Overlays.keyboardFocusOverlay != overlay) {
+                Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = overlay;
 
                 pointerEvent = {
@@ -2412,6 +2414,7 @@ function MyController(hand) {
         if (intersectInfo) {
 
             if (Entities.keyboardFocusEntity != this.grabbedEntity) {
+                Overlays.keyboardFocusOverlay = 0;
                 Entities.keyboardFocusEntity = this.grabbedEntity;
             }
 
@@ -2514,6 +2517,7 @@ function MyController(hand) {
         if (intersectInfo) {
 
             if (Overlays.keyboardFocusOverlay != this.grabbedOverlay) {
+                Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = this.grabbedOverlay;
             }
 

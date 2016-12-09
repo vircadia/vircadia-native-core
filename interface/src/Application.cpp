@@ -1147,6 +1147,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
             [this](const EntityItemID& entityItemID, const PointerEvent& event) {
+        setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(entityItemID);
     });
 
@@ -1165,6 +1166,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto overlays = &(qApp->getOverlays());
 
     connect(overlays, &Overlays::mousePressOnOverlay, [=](unsigned int overlayID, const PointerEvent& event) {
+        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         setKeyboardFocusOverlay(overlayID);
     });
 
