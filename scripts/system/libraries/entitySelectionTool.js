@@ -1038,10 +1038,6 @@ SelectionDisplay = (function() {
                         if (entityIntersection.intersects &&
                             (!overlayIntersection.intersects || (entityIntersection.distance < overlayIntersection.distance))) {
 
-                            // if (entityIntersection.properties.name == "WebTablet Web") {
-                            //     return;
-                            // }
-
                             if (HMD.tabletID == entityIntersection.entityID) {
                                 return;
                             }
