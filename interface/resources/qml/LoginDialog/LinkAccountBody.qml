@@ -22,6 +22,8 @@ Item {
     width: root.pane.width
     height: root.pane.height
 
+    property bool failAfterSignUp: false
+
     function login() {
         mainTextContainer.visible = false
         loginDialog.login(usernameField.text, passwordField.text)
@@ -96,7 +98,7 @@ Item {
                 }
                 width: 350
 
-                label: "User Name or Email"
+                label: "Username or Email"
             }
 
             ShortcutText {
@@ -108,6 +110,7 @@ Item {
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+                linkColor: hifi.colors.blueAccent
 
                 onLinkActivated: loginDialog.openUrl(link)
             }
@@ -135,6 +138,7 @@ Item {
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+                linkColor: hifi.colors.blueAccent
 
                 onLinkActivated: loginDialog.openUrl(link)
             }
@@ -237,6 +241,11 @@ Item {
         root.iconText = "<"
         keyboardEnabled = HMD.active;
         d.resize();
+
+        if (failAfterSignUp) {
+            mainTextContainer.text = "Account created successfully."
+            mainTextContainer.visible = true
+        }
 
         usernameField.forceActiveFocus();
     }
