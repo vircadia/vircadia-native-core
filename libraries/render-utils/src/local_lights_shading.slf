@@ -53,21 +53,14 @@ void main(void) {
     vec4 clusterEyePos = frustumGrid_worldToEye(fragPos);
     ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
 
-    vec3 volumePos = frustumGrid_eyeToVolume(clusterEyePos.xyz, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
-    ivec3 dims = ivec3(frustumGrid.dims.x, frustumGrid.dims.y, frustumGrid.dims.z);
-
-    vec3 gridPos = frustumGrid_volumeToGrid(volumePos, dims);
-
     ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
-
     int numLights = cluster.x + cluster.y;
     if (numLights <= 0) {
         discard;
     }
     int lightClusterOffset = cluster.z;
-  //  ivec3 dims = ivec3(frustumGrid.dims.x, frustumGrid.dims.y, frustumGrid.dims.z);
-    //ivec3 dims = frustumGrid.dims.xyz;
 
+    ivec3 dims = frustumGrid.dims.xyz;
     if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
         discard;
     }

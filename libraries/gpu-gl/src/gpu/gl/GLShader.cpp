@@ -32,7 +32,7 @@ GLShader::~GLShader() {
 
 // GLSL version
 static const std::string glslVersion {
-    "#version 450 core"
+    "#version 410 core"
 };
 
 // Shader domain

@@ -65,7 +65,7 @@ void main(void) {
     }
     int lightClusterOffset = cluster.z;
 
-    ivec3 dims = ivec3(frustumGrid.dims.x, frustumGrid.dims.y, frustumGrid.dims.z);
+    ivec3 dims = frustumGrid.dims.xyz;
     if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
         discard;
     }
