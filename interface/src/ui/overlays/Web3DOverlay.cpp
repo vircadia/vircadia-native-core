@@ -312,6 +312,9 @@ QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "scriptURL") {
         return _scriptURL;
     }
+    if (property == "resolution") {
+        return vec2toVariant(_resolution);
+    }
     if (property == "dpi") {
         return _dpi;
     }
