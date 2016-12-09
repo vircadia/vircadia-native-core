@@ -20,7 +20,8 @@ var beacons = {};
 
 // List of .fst files used by AC scripts, that should be ignored in the script in case TRY_TO_IGNORE_AC_AGENTS is enabled
 var POSSIBLE_AC_AVATARS = [
-    'http://hifi-content.s3.amazonaws.com/ozan/dev/avatars/invisible_avatar/invisible_avatar.fst'
+    'http://hifi-content.s3.amazonaws.com/ozan/dev/avatars/invisible_avatar/invisible_avatar.fst',
+    'http://hifi-content.s3.amazonaws.com/ozan/dev/avatars/camera_man/pod/_latest/camera_man_pod.fst'
 ];
 
 AvatarFinderBeacon = function(avatar) {
