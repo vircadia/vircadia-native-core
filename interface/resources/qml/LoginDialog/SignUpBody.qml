@@ -24,7 +24,7 @@ Item {
 
   function signup() {
       mainTextContainer.visible = false
-      loginDialog.signup(usernameField.text, passwordField.text)
+      loginDialog.signup(emailField.text, usernameField.text, passwordField.text)
   }
 
   property bool keyboardEnabled: false
@@ -85,6 +85,20 @@ Item {
           spacing: hifi.dimensions.contentSpacing.x
 
           TextField {
+              id: emailField
+              anchors {
+                  verticalCenter: parent.verticalCenter
+              }
+              width: 350
+
+              label: "Email"
+          }
+      }
+
+      Row {
+          spacing: hifi.dimensions.contentSpacing.x
+
+          TextField {
               id: usernameField
               anchors {
                   verticalCenter: parent.verticalCenter
@@ -99,11 +113,7 @@ Item {
                   verticalCenter: parent.verticalCenter
               }
 
-              wrapMode: Text.WordWrap
-              lineHeight: 1
-              lineHeightMode: Text.ProportionalHeight
-
-              text: qsTr("Must be unique. No spaces or other special characters")
+              text: qsTr("No spaces / special chars.")
 
               verticalAlignment: Text.AlignVCenter
               horizontalAlignment: Text.AlignHCenter
@@ -111,6 +121,7 @@ Item {
               color: hifi.colors.blueAccent
           }
       }
+
       Row {
           spacing: hifi.dimensions.contentSpacing.x
 
@@ -213,20 +224,21 @@ Item {
       keyboardEnabled = HMD.active;
       d.resize();
 
-      usernameField.forceActiveFocus();
+      emailField.forceActiveFocus();
   }
 
   Connections {
       target: loginDialog
       onHandleSignupCompleted: {
-          console.log("Signup Succeeded")
+          console.log("Sign Up Succeeded")
 
-          bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack" : true })
+          bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack": false })
           bodyLoader.item.width = root.pane.width
           bodyLoader.item.height = root.pane.height
       }
       onHandleSignupFailed: {
-          console.log("Signup Failed")
+          console.log("Sign Up Failed")
+          mainTextContainer.text = errorString
           mainTextContainer.visible = true
       }
   }

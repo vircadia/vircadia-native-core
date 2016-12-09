@@ -11,9 +11,10 @@
 
 #include "LoginDialog.h"
 
-#include <QDesktopServices>
-#include <QJsonDocument>
-#include <QNetworkReply>
+#include <QtGui/QDesktopServices>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
+#include <QtNetwork/QNetworkReply>
 
 #include <NetworkingConstants.h>
 #include <steamworks-wrapper/SteamClient.h>
@@ -47,7 +48,7 @@ void LoginDialog::toggleAction() {
         connection = connect(loginAction, &QAction::triggered, accountManager.data(), &AccountManager::logout);
     } else {
         // change the menu item to login
-        loginAction->setText("Login");
+        loginAction->setText("Login / Sign Up");
         connection = connect(loginAction, &QAction::triggered, [] {
             LoginDialog::show();
         });
@@ -153,7 +154,7 @@ void LoginDialog::createFailed(QNetworkReply& reply) {
     emit handleCreateFailed(reply.errorString());
 }
 
-void LoginDialog::signup(const QString& username, const QString& password) {
+void LoginDialog::signup(const QString& email, const QString& username, const QString& password) {
     
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;
@@ -162,8 +163,13 @@ void LoginDialog::signup(const QString& username, const QString& password) {
     callbackParams.errorCallbackMethod = "signupFailed";
     
     QJsonObject payload;
-    payload.insert("username", username);
-    payload.insert("password", password);
+    
+    QJsonObject userObject;
+    userObject.insert("email", email);
+    userObject.insert("username", username);
+    userObject.insert("password", password);
+    
+    payload.insert("user", userObject);
     
     static const QString API_SIGNUP_PATH = "api/v1/users";
     
@@ -179,7 +185,52 @@ void LoginDialog::signupCompleted(QNetworkReply& reply) {
     emit handleSignupCompleted();
 }
 
+QString errorStringFromAPIObject(const QJsonValue& apiObject) {
+    if (apiObject.isArray()) {
+        return apiObject.toArray()[0].toString();
+    } else if (apiObject.isString()) {
+        return apiObject.toString();
+    } else {
+        return "is invalid";
+    }
+}
+
 void LoginDialog::signupFailed(QNetworkReply& reply) {
-    qDebug() << "SIGNUP FAILED" << reply.readAll();
+    
+    // parse the returned JSON to see what the problem was
+    auto jsonResponse = QJsonDocument::fromJson(reply.readAll());
+    
+    static const QString RESPONSE_DATA_KEY = "data";
+    
+    auto dataJsonValue = jsonResponse.object()[RESPONSE_DATA_KEY];
+    
+    if (dataJsonValue.isObject()) {
+        auto dataObject = dataJsonValue.toObject();
+        
+        static const QString EMAIL_DATA_KEY = "email";
+        static const QString USERNAME_DATA_KEY = "username";
+        static const QString PASSWORD_DATA_KEY = "password";
+        
+        QStringList errorStringList;
+        
+        if (dataObject.contains(EMAIL_DATA_KEY)) {
+            errorStringList.append(QString("Email %1.").arg(errorStringFromAPIObject(dataObject[EMAIL_DATA_KEY])));
+        }
+        
+        if (dataObject.contains(USERNAME_DATA_KEY)) {
+            errorStringList.append(QString("Username %1.").arg(errorStringFromAPIObject(dataObject[USERNAME_DATA_KEY])));
+        }
+        
+        if (dataObject.contains(PASSWORD_DATA_KEY)) {
+            errorStringList.append(QString("Password %1.").arg(errorStringFromAPIObject(dataObject[PASSWORD_DATA_KEY])));
+        }
+        
+        emit handleSignupFailed(errorStringList.join(' '));
+    } else {
+        static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE = "There was an unknown error while creating your account. Please try again later.";
+        emit handleSignupFailed(DEFAULT_SIGN_UP_FAILURE_MESSAGE);
+    }
+    
+    
 }
 
