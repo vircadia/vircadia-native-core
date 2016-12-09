@@ -50,6 +50,10 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     var DEPTH = 0.025;
     var DPI = dpi || DEFAULT_DPI;
 
+    var spawnInfo = calcSpawnInfo();
+    var tabletEntityPosition = spawnInfo.position;
+    var tabletEntityRotation = spawnInfo.rotation;
+
     var tabletProperties = {
         name: "WebTablet Tablet",
         type: "Model",
