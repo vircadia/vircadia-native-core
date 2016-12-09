@@ -1,8 +1,25 @@
 TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
-    "teleport": {
+    "teleport-vive": {
+        "{7df1abc4-1b7c-4352-985c-f3f6ad8d65b7}": {
+            "tag": "teleport-vive"
+        }
+    },
+    "teleport-touch": {
         "{ff064b9e-7fa4-4693-a386-a67b9f92a948}": {
-            "tag": "teleport"
-        },
+            "tag": "teleport-touch"
+        }
+    },
+    "turnAround-vive": {
+        "{9b14f224-b2f6-447f-bb86-f5d875cf4c33}": {
+            "tag": "turnAround-vive"
+        }
+    },
+    "turnAround-touch": {
+        "{ce74b3ca-d1c7-4980-bd98-2d488095a39e}": {
+            "tag": "turnAround-touch"
+        }
+    },
+    "teleport": {
         "{4478f7b5-d3ac-4213-9a7b-ad8cd69575b8}": {
             "tag": "teleport"
         }
@@ -90,11 +107,11 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "equip-part2"
         }
     },
-    "turnAround": {
-        "{ce74b3ca-d1c7-4980-bd98-2d488095a39e}": {
-            "tag": "turnAround"
-        }
-    },
+    //"turnAround": {
+    //    "{ce74b3ca-d1c7-4980-bd98-2d488095a39e}": {
+    //        "tag": "turnAround"
+    //    }
+    //},
     "bothGrab": {
         "{14792a6e-dc6f-4e7a-843f-4b109b06b5a4}": {
             "visible": false,
@@ -143,9 +160,14 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "equip"
         }
     },
-    "orient": {
+    "orient-vive": {
         "{95d233ab-ed0a-46e1-b047-1c542688ef3f}": {
-            "tag": "orient"
+            "tag": "orient-vive"
+        }
+    },
+    "orient-oculus": {
+        "{95d233ab-ed0a-46e1-b047-1c542688ef3f}": {
+            "tag": "orient-oculus"
         }
     }
 };
