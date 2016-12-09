@@ -400,23 +400,23 @@ void KinectPlugin::updateBody() {
 /// <param name="nBodyCount">body data count</param>
 /// <param name="ppBodies">body data in frame</param>
 /// </summary>
-void KinectPlugin::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
+void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
     bool foundOneBody = false;
     if (_coordinateMapper) {
-        for (int i = 0; i < nBodyCount; ++i) {
+        for (int i = 0; i < bodyCount; ++i) {
             if (foundOneBody) {
                 break;
             }
-            IBody* pBody = ppBodies[i];
-            if (pBody) {
+            IBody* body = bodies[i];
+            if (body) {
                 BOOLEAN tracked = false;
-                HRESULT hr = pBody->get_IsTracked(&tracked);
+                HRESULT hr = body->get_IsTracked(&tracked);
 
                 if (SUCCEEDED(hr) && tracked) {
                     foundOneBody = true;
 
                     if (_joints.size() != JointType_Count) {
-                        _joints.resize(JointType_Count, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } });
+                        _joints.resize(JointType_Count, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f } });
                     }
 
                     Joint joints[JointType_Count];
@@ -424,11 +424,11 @@ void KinectPlugin::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                     HandState leftHandState = HandState_Unknown;
                     HandState rightHandState = HandState_Unknown;
 
-                    pBody->get_HandLeftState(&leftHandState);
-                    pBody->get_HandRightState(&rightHandState);
+                    body->get_HandLeftState(&leftHandState);
+                    body->get_HandRightState(&rightHandState);
 
-                    hr = pBody->GetJoints(_countof(joints), joints);
-                    hr = pBody->GetJointOrientations(_countof(jointOrientations), jointOrientations);
+                    hr = body->GetJoints(_countof(joints), joints);
+                    hr = body->GetJointOrientations(_countof(jointOrientations), jointOrientations);
 
                     if (SUCCEEDED(hr)) {
                         auto jointCount = _countof(joints);
@@ -438,11 +438,20 @@ void KinectPlugin::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
 
                             glm::vec3 jointPosition { joints[j].Position.X,
                                                       joints[j].Position.Y,
-                                                      joints[j].Position.Z };
+                                                      -joints[j].Position.Z };
+
+                            // Kinect Documentation is unclear on what these orientations are, are they absolute? 
+                            // or are the relative to the parent bones. It appears as if it has changed between the
+                            // older 1.x SDK and the 2.0 sdk
+                            glm::quat jointOrientation { jointOrientations[j].Orientation.x,
+                                                         jointOrientations[j].Orientation.y,
+                                                         jointOrientations[j].Orientation.z,
+                                                         jointOrientations[j].Orientation.w };
 
                             // filling in the _joints data...
                             if (joints[j].TrackingState != TrackingState_NotTracked) {
-                                _joints[j].pos = jointPosition;
+                                _joints[j].position = jointPosition;
+                                _joints[j].orientation = jointOrientation;
                             }
                         }
                     }
@@ -546,23 +555,20 @@ void KinectPlugin::InputDevice::update(float deltaTime, const controller::InputC
     for (size_t i = 0; i < joints.size(); i++) {
         int poseIndex = KinectJointIndexToPoseIndex((KinectJointIndex)i);
         glm::vec3 linearVel, angularVel;
-        const glm::vec3& pos = joints[i].pos;
+        const glm::vec3& pos = joints[i].position;
 
-        // FIXME - left over from neuron, needs to be turned into orientations from kinect SDK
-        const glm::vec3& rotEuler = joints[i].euler;
-
-        if (Vectors::ZERO == pos && Vectors::ZERO == rotEuler) {
+        if (Vectors::ZERO == pos) {
             _poseStateMap[poseIndex] = controller::Pose();
             continue;
         }
 
 
         // FIXME - left over from neuron, needs to be turned into orientations from kinect SDK
-        glm::quat rot = eulerToQuat(rotEuler);
+        glm::quat rot = joints[i].orientation;
         if (i < prevJoints.size()) {
-            linearVel = (pos - (prevJoints[i].pos * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
+            linearVel = (pos - (prevJoints[i].position * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
             // quat log imaginary part points along the axis of rotation, with length of one half the angle of rotation.
-            glm::quat d = glm::log(rot * glm::inverse(eulerToQuat(prevJoints[i].euler)));
+            glm::quat d = glm::log(rot * glm::inverse(prevJoints[i].orientation));
             angularVel = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime); // radians/s
         }
         _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVel, angularVel);

@@ -63,8 +63,8 @@ public:
 protected:
 
     struct KinectJoint {
-        glm::vec3 pos;
-        glm::vec3 euler; // FIXME -- we don't get this...
+        glm::vec3 position;
+        glm::quat orientation;
     };
 
     class InputDevice : public controller::InputDevice {
@@ -103,7 +103,7 @@ protected:
     void updateBody();
 
 #ifdef HAVE_KINECT
-    void ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies);
+    void ProcessBody(INT64 time, int bodyCount, IBody** bodies);
 
     // Current Kinect
     IKinectSensor*          _kinectSensor { nullptr };
