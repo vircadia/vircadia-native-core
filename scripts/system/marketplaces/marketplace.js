@@ -44,7 +44,20 @@ function shouldShowWebTablet() {
 function showMarketplace(marketplaceID) {
     if (shouldShowWebTablet()) {
         updateButtonState(true);
-        marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace", null, null, true);
+
+        print("HERE shouldShowWebTablet");
+        if (HMD.tabletID) {
+            print("HERE shouldShowWebTablet tabletID is ", HMD.tabletID);
+            UIWebTablet.createWebEntity("https://metaverse.highfidelity.com/marketplace");
+            HMD.tabletID = UIWebTablet.webEntityID;
+        } else {
+            print("HERE shouldShowWebTablet making new tablet");
+            marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace",
+                                                 null, // width
+                                                 null, // dpi
+                                                 null, // location
+                                                 true); // client-only
+        }
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
     } else {
         var url = MARKETPLACE_URL;

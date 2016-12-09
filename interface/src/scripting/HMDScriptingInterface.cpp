@@ -18,6 +18,7 @@
 #include <display-plugins/CompositorHelper.h>
 #include <OffscreenUi.h>
 #include <plugins/PluginUtils.h>
+#include <QUuid>
 
 #include "Application.h"
 

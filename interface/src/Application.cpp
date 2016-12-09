@@ -1018,7 +1018,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                     toggleMenuUnderReticle();
                 }
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                toggleMenuUnderReticle();
+                toggleTabletUI();
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = getApplicationCompositor().getReticlePosition();
                 getApplicationCompositor().setReticlePosition({ oldPos.x + state, oldPos.y });
@@ -1482,6 +1482,11 @@ void Application::toggleMenuUnderReticle() const {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto reticlePosition = getApplicationCompositor().getReticlePosition();
     offscreenUi->toggleMenu(QPoint(reticlePosition.x - X_LEFT_SHIFT, reticlePosition.y));
+}
+
+void Application::toggleTabletUI() const {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    HMD->toggleShouldShowTablet();
 }
 
 void Application::checkChangeCursor() {

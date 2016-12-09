@@ -34,7 +34,8 @@ var DEFAULT_SCRIPTS = [
     "system/firstPersonHMD.js",
     "system/snapshot.js",
     "system/help.js",
-    "system/bubble.js"
+    "system/bubble.js",
+    "system/tablet-ui/tablet-ui.js"
 ];
 
 // add a menu item for debugging

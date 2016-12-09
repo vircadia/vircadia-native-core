@@ -1267,6 +1267,9 @@ function MyController(hand) {
         var grabbableProps = entityPropertiesCache.getGrabbableProps(entityID);
         var grabProps = entityPropertiesCache.getGrabProps(entityID);
         var props = entityPropertiesCache.getProps(entityID);
+        if (!props) {
+            return false;
+        }
         var physical = propsArePhysical(props);
         var grabbable = false;
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
@@ -1546,7 +1549,7 @@ function MyController(hand) {
                 Entities.sendHoverOverEntity(entity, pointerEvent);
             }
 
-            if (this.triggerSmoothedGrab() && !isEditing()) {
+            if (this.triggerSmoothedGrab() && (!isEditing() || name == "WebTablet Web")) {
                 this.grabbedEntity = entity;
                 this.setState(STATE_ENTITY_TOUCHING, "begin touching entity '" + name + "'");
                 return;
