@@ -49,6 +49,7 @@
         Entities.deleteEntity(this.modelEntityID);
         // create new model at centre of the photobooth
         var newProps = {
+            name: "Photo Booth Model",
             type: "Model",
             modelURL: newModelURL,
             position: this.centrePos
