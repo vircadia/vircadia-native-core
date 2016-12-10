@@ -20,14 +20,14 @@
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
 
-using Mutex = std::mutex;
-using Lock = std::unique_lock<Mutex>;
-
 Q_DECLARE_LOGGING_CATEGORY(oculus)
 Q_LOGGING_CATEGORY(oculus, "hifi.plugins.oculus")
 
 static std::atomic<uint32_t> refCount { 0 };
 static ovrSession session { nullptr };
+
+static bool _quitRequested { false };
+static bool _reorientRequested { false };
 
 inline ovrErrorInfo getError() {
     ovrErrorInfo error;
@@ -116,6 +116,26 @@ void releaseOculusSession() {
 #endif
 }
 
+void handleOVREvents() {
+    if (!session) {
+        return;
+    }
+
+    ovrSessionStatus status;
+    if (!OVR_SUCCESS(ovr_GetSessionStatus(session, &status))) {
+        return;
+    }
+
+    _quitRequested = status.ShouldQuit;
+    _reorientRequested = status.ShouldRecenter;
+}
+
+bool quitRequested() {
+    return _quitRequested;
+}
+bool reorientRequested() {
+    return _reorientRequested;
+}
 
 controller::Pose ovrControllerPoseToHandPose(
     ovrHandType hand,
