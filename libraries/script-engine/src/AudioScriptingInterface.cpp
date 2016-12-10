@@ -46,7 +46,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
         AudioInjectorOptions optionsCopy = injectorOptions;
         optionsCopy.stereo = sound->isStereo();
         optionsCopy.ambisonic = sound->isAmbisonic();
-        optionsCopy.localOnly = sound->isAmbisonic();   // always localOnly for Ambisonic
+        optionsCopy.localOnly = optionsCopy.localOnly || sound->isAmbisonic();  // force localOnly when Ambisonic
 
         auto injector = AudioInjector::playSound(sound->getByteArray(), optionsCopy);
         if (!injector) {
