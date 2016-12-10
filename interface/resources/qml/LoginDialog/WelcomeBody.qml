@@ -39,8 +39,8 @@ Item {
             var targetWidth = Math.max(titleWidth, mainTextContainer.contentWidth)
             var targetHeight = mainTextContainer.height + 3 * hifi.dimensions.contentSpacing.y + buttons.height
 
-            root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
-            root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+            height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
         }
     }
 

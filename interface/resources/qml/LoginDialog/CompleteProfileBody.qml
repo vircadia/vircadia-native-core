@@ -33,8 +33,8 @@ Item {
                                                             termsContainer.contentWidth))
             var targetHeight = 5 * hifi.dimensions.contentSpacing.y + buttons.height + additionalTextContainer.height + termsContainer.height
 
-            root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
-            root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+            height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
         }
     }
 

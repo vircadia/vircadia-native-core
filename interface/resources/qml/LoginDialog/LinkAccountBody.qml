@@ -54,8 +54,8 @@ Item {
                 targetHeight += hifi.dimensions.contentSpacing.y + additionalInformation.height
             }
 
-            root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
-            root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
+            height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }
     }
