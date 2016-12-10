@@ -218,11 +218,7 @@ Item {
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
         Button {
-          id: signupButton
-
           anchors.verticalCenter: parent.verticalCenter
-
-          width: 150
 
           text: qsTr("Sign Up")
           visible: !loginDialog.isSteamRunning()
