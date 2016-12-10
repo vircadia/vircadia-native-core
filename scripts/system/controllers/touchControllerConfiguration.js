@@ -48,8 +48,8 @@ rightBasePosition = {
     z: CONTROLLER_LATERAL_OFFSET
 };
 
-var BASE_URL = "file:///C:/Users/Ryan/dev/hifi/interface/resources/meshes/controller/touch/";
-//var BASE_URL = Script.resourcesPath() + "meshes/controller/touch/";
+//var BASE_URL = "file:///C:/Users/Ryan/dev/hifi/interface/resources/meshes/controller/touch/";
+var BASE_URL = Script.resourcesPath() + "meshes/controller/touch/";
 
 TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
     name: "Touch",
@@ -309,8 +309,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     xHalfAngle: 20,
                     yHalfAngle: 20,
 
-
-                    textureName: "psdFileTex2",
+                    textureName: "R_controller_DIF.jpg",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
