@@ -13,7 +13,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
-   Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset, setGrabCommunications */
+   Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset, setGrabCommunications,
+   Menu */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -747,6 +748,7 @@ function MyController(hand) {
     this.hand = hand;
     this.autoUnequipCounter = 0;
     this.grabPointIntersectsEntity = false;
+    this.stylus = null;
 
     this.shouldScale = false;
 
@@ -946,6 +948,39 @@ function MyController(hand) {
         }
     };
 
+    this.showStylus = function() {
+        if (this.stylus) {
+            return;
+        }
+        if (!MyAvatar.sessionUUID) {
+            return;
+        }
+        var stylusProperties = {
+            localPosition: getGrabPointSphereOffset(this.handToController()),
+            localRotation: { x: 0, y: 0, z: 0, w: 1 },
+            dimensions: 0.1,
+            color: GRAB_POINT_SPHERE_COLOR,
+            alpha: GRAB_POINT_SPHERE_ALPHA,
+            solid: true,
+            visible: true,
+            ignoreRayIntersection: true,
+            drawInFront: false,
+            parentID: MyAvatar.sessionUUID,
+            parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                     "_CONTROLLER_RIGHTHAND" :
+                                                     "_CONTROLLER_LEFTHAND")
+        };
+        this.stylus = Overlays.addOverlay("sphere", stylusProperties);
+    };
+
+    this.hideStylus = function() {
+        if (!this.stylus) {
+            return;
+        }
+        Overlays.deleteOverlay(this.stylus);
+        this.stylus = null;
+    };
+
     this.overlayLineOn = function(closePoint, farPoint, color) {
         if (this.overlayLine === null) {
             var lineProperties = {
@@ -1064,7 +1099,6 @@ function MyController(hand) {
         _this.rawSecondaryValue = value;
 
         // The value to check if we will allow the release function to be called
-        var allowReleaseValue = 0.1;
         if (value > 0 && _this.state == STATE_HOLD) {
             _this.release();
         }
@@ -1161,6 +1195,13 @@ function MyController(hand) {
         } else {
             this.grabPointIntersectsEntity = false;
             this.grabPointSphereOff();
+        }
+
+        var rayPickInfo = this.calcRayPickInfo(this.hand);
+        if (rayPickInfo.overlayID && rayPickInfo.distance < 0.3) {
+            this.showStylus();
+        } else {
+            this.hideStylus();
         }
     };
 
