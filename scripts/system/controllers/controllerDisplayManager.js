@@ -41,14 +41,14 @@ ControllerDisplayManager = function() {
     };
 
     function updateControllers() {
-        if (HMD.active && true) { //HMD.shouldShowHandControllers()) {
+        if (HMD.active && HMD.shouldShowHandControllers()) {
             var leftConfig = null;
             var rightConfig = null;
 
             if ("Vive" in Controller.Hardware) {
                 leftConfig = VIVE_CONTROLLER_CONFIGURATION_LEFT;
                 rightConfig = VIVE_CONTROLLER_CONFIGURATION_RIGHT;
-            } 
+            }
 
             if ("OculusTouch" in Controller.Hardware) {
                 leftConfig = TOUCH_CONTROLLER_CONFIGURATION_LEFT;
