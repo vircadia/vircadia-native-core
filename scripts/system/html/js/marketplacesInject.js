@@ -117,6 +117,7 @@
                 // Automatic download to High Fidelity.
                 var downloadTimer;
                 function startAutoDownload() {
+                    window.scrollTo(0, 0);  // Scroll to top ready for history.back().
                     if (!downloadTimer) {
                         downloadTimer = setInterval(autoDownload, 1000);
                     }
@@ -131,6 +132,7 @@
                             EventBridge.emitWebEvent("CLARA.IO DOWNLOAD " + href);
                             console.log("Clara.io FBX file download initiated for " + href);
                             $("a.btn.cancel").click();
+                            history.back();  // Remove history item created by clicking "download".
                         };
                     } else {
                         clearInterval(downloadTimer);
