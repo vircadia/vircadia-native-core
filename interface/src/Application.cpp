@@ -5806,7 +5806,15 @@ void Application::addAssetToWorldCheckModelSize() {
                 EntityItemProperties properties;
                 properties.setDimensions(dimensions);
                 properties.setCollisionless(false);  // Reset to default.
-                entityScriptingInterface->editEntity(entityID, properties);
+
+                // Edit entity via invokeMethod() to ensure that observers get this resize after the auto-resize edit performed
+                // in RenderableModelEntityItem::update().
+                //entityScriptingInterface->editEntity(entityID, properties);
+                QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                    Qt::QueuedConnection,
+                    Q_ARG(QUuid, entityID),
+                    Q_ARG(EntityItemProperties, properties));
+
                 qInfo() << "Asset auto-resized";
             }
 
