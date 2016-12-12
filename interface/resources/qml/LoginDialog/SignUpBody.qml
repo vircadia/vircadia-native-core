@@ -264,6 +264,8 @@ Item {
 
             mainTextContainer.text = errorString
             mainTextContainer.visible = true
+
+            d.resize();
         }
         onHandleLoginCompleted: {
             bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack": false })
