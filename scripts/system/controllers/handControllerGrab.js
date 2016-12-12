@@ -1009,7 +1009,10 @@ function MyController(hand) {
 
     this.secondaryPress = function(value) {
         _this.rawSecondaryValue = value;
-        if (value > 0) {
+
+        // The value to check if we will allow the release function to be called
+        var allowReleaseValue = 0.1;
+        if (value > 0 && _this.state == STATE_HOLD) {
             _this.release();
         }
     };
@@ -1611,6 +1614,8 @@ function MyController(hand) {
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
+         this.shouldScale = false;
+
         var worldControllerPosition = getControllerWorldLocation(this.handToController(), true).position;
 
         // transform the position into room space
@@ -1770,6 +1775,7 @@ function MyController(hand) {
             }
         }
 
+        this.maybeScale(grabbedProperties);
         // visualizations
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
@@ -1878,6 +1884,8 @@ function MyController(hand) {
 
         this.dropGestureReset();
         this.clearEquipHaptics();
+
+        this.shouldScale = false;
 
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
@@ -2047,8 +2055,6 @@ function MyController(hand) {
             }
 
             if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
-                this.callEntityMethodOnGrabbed("releaseEquip");
-
                 // store the offset attach points into preferences.
                 if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
                     var prefprops = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
@@ -2150,6 +2156,10 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("continueNearGrab");
         }
 
+        if (this.state == STATE_NEAR_GRABBING) {
+            this.maybeScale(props);
+        }
+
         if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSECS_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl
             var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
@@ -2171,6 +2181,25 @@ function MyController(hand) {
             }
         }
     };
+
+    this.maybeScale = function(props) {
+        if (!this.shouldScale) {
+            //  If both secondary triggers squeezed, start scaling
+            if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed()) {
+                this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+                this.scalingStartDimensions = props.dimensions;
+                this.shouldScale = true;
+            }
+        } else if (!this.secondarySqueezed() || !this.getOtherHandController().secondarySqueezed()) {
+            this.shouldScale = false;
+        }
+        if (this.shouldScale) {
+             var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+             var currentRescale = scalingCurrentDistance / this.scalingStartDistance;
+             var newDimensions = Vec3.multiply(currentRescale, this.scalingStartDimensions);
+             Entities.editEntity(this.grabbedEntity, { dimensions: newDimensions })
+        }
+    }
 
     this.nearTriggerEnter = function() {
         this.clearEquipHaptics();
@@ -2344,6 +2373,9 @@ function MyController(hand) {
 
         var noVelocity = false;
         if (this.grabbedEntity !== null) {
+            if (this.state === STATE_HOLD) {
+                this.callEntityMethodOnGrabbed("releaseEquip");
+            }
 
             //  Make a small release haptic pulse if we really were holding something
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
