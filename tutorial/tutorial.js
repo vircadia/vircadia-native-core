@@ -254,6 +254,8 @@ function showEntitiesWithTag(tag) {
             debug("Showing: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
             Entities.editEntity(entityID, newProperties);
         }
+    } else {
+        debug("ERROR | No entities for tag: ", tag);
     }
 
     // Dynamic method, suppressed for now
@@ -460,8 +462,8 @@ stepEnableControllers.prototype = {
 // STEP: Orient and raise hands above head                                   //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepOrient = function() {
-    this.tag = "orient";
+var stepOrient = function(tutorialManager) {
+    this.tags = ["orient", "orient-" + tutorialManager.controllerName];
 }
 stepOrient.prototype = {
     start: function(onFinish) {
@@ -470,7 +472,8 @@ stepOrient.prototype = {
         var tag = this.tag;
 
         // Spawn content set
-        editEntitiesWithTag(this.tag, { visible: true });
+        //editEntitiesWithTag(this.tag, { visible: true });
+        showEntitiesWithTags(this.tags);
 
         this.checkIntervalID = null;
         function checkForHandsAboveHead() {
@@ -499,7 +502,8 @@ stepOrient.prototype = {
             Script.clearInterval(this.checkIntervalID);
             this.checkIntervalID = null;
         }
-        editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
+        //editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
+        hideEntitiesWithTags(this.tags);
     }
 };
 
