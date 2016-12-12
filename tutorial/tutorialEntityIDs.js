@@ -165,9 +165,9 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "orient-vive"
         }
     },
-    "orient-oculus": {
-        "{95d233ab-ed0a-46e1-b047-1c542688ef3f}": {
-            "tag": "orient-oculus"
+    "orient-touch": {
+        "{1c95f945-ec46-4aac-b0f1-e64e073dbfaa}": {
+            "tag": "orient-touch"
         }
     }
 };
