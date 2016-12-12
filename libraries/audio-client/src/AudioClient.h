@@ -169,7 +169,7 @@ public slots:
 
     int setOutputBufferSize(int numFrames, bool persist = true);
 
-    bool outputLocalInjector(bool isStereo, AudioInjector* injector) override;
+    bool outputLocalInjector(AudioInjector* injector) override;
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
@@ -297,7 +297,7 @@ private:
 
     // for local hrtf-ing
     float _mixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-    int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
     AudioLimiter _audioLimiter;
 
     // Adds Reverb

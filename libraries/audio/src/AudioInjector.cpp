@@ -58,8 +58,10 @@ void AudioInjector::setOptions(const AudioInjectorOptions& options) {
     // since options.stereo is computed from the audio stream,
     // we need to copy it from existing options just in case.
     bool currentlyStereo = _options.stereo;
+    bool currentlyAmbisonic = _options.ambisonic;
     _options = options;
     _options.stereo = currentlyStereo;
+    _options.ambisonic = currentlyAmbisonic;
 }
 
 void AudioInjector::finishNetworkInjection() {
@@ -134,7 +136,8 @@ bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(AudioInjector*
 
     int byteOffset = 0;
     if (_options.secondOffset > 0.0f) {
-        byteOffset = (int)floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+        int numChannels = _options.ambisonic ? 4 : (_options.stereo ? 2 : 1);
+        byteOffset = (int)(AudioConstants::SAMPLE_RATE * _options.secondOffset * numChannels);
         byteOffset *= sizeof(AudioConstants::SAMPLE_SIZE);
     }
     _currentSendOffset = byteOffset;
@@ -169,7 +172,7 @@ bool AudioInjector::injectLocally() {
             _localBuffer->setCurrentOffset(_currentSendOffset);
 
             // call this function on the AudioClient's thread
-            success = QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector", Q_ARG(bool, _options.stereo), Q_ARG(AudioInjector*, this));
+            success = QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector", Q_ARG(AudioInjector*, this));
 
             if (!success) {
                 qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
