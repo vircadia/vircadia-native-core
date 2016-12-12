@@ -39,7 +39,7 @@ function calcSpawnInfo() {
 }
 
 // ctor
-WebTablet = function (url, width, dpi, clientOnly) {
+WebTablet = function (url, width, dpi, location,  clientOnly) {
     var _this = this;
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
@@ -99,11 +99,10 @@ WebTablet = function (url, width, dpi, clientOnly) {
 
     this.createWebEntity(url);
 
-    var homeButtonPosition = Vec3.sum(spawnInfo.position, Vec3.multiply(HOME_BUTTON_Y_OFFSET, Quat.getUp(webEntityRotation)));
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
         type: "Sphere",
-        position: homeButtonPosition,
+        localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: 0},
         dimensions: {x: 0.05, y: 0.05, z: 0.05},
         parentID: this.tabletEntityID,
         script: "https://people.ucsc.edu/~druiz4/scripts/homeButton.js"
