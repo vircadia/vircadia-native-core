@@ -131,6 +131,7 @@
 #include "LODManager.h"
 #include "ModelPackager.h"
 #include "networking/HFWebEngineProfile.h"
+#include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -552,6 +553,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 {
     setProperty(hifi::properties::STEAM, SteamClient::isRunning());
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
+
+    {
+        const QString TEST_SCRIPT = "--testScript";
+        const QStringList args = arguments();
+        for (int i = 0; i < args.size() - 1; ++i) {
+            if (args.at(i) == TEST_SCRIPT) {
+                QString testScriptPath = args.at(i + 1);
+                if (QFileInfo(testScriptPath).exists()) {
+                    setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
+                }
+            }
+        }
+    }
+
 
     _runningMarker.startRunningMarker();
 
@@ -1341,90 +1356,96 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
+    QVariant testProperty = property(hifi::properties::TEST);
+    qDebug() << testProperty;
+    if (testProperty.isValid()) {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        const auto testScript = property(hifi::properties::TEST).toUrl();
+        scriptEngines->loadScript(testScript, false);
+    } else {
+        // Get sandbox content set version, if available
+        auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
+        auto contentVersionPath = acDirPath + "content-version.txt";
+        qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
+        auto contentVersion = 0;
+        QFile contentVersionFile(contentVersionPath);
+        if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QString line = contentVersionFile.readAll();
+            // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
+            contentVersion = line.toInt();
+        }
+        qCDebug(interfaceapp) << "Server content version: " << contentVersion;
 
+        bool hasTutorialContent = contentVersion >= 1;
 
-    // Get sandbox content set version, if available
-    auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
-    auto contentVersionPath = acDirPath + "content-version.txt";
-    qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
-    auto contentVersion = 0;
-    QFile contentVersionFile(contentVersionPath);
-    if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QString line = contentVersionFile.readAll();
-        // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
-        contentVersion = line.toInt();
-    }
-    qCDebug(interfaceapp) << "Server content version: " << contentVersion;
+        Setting::Handle<bool> firstRun { Settings::firstRun, true };
+        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable("OpenVR (Vive)") && PluginUtils::isHandControllerAvailable();
+        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
-    bool hasTutorialContent = contentVersion >= 1;
+        bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
 
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
-    bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable("OpenVR (Vive)") && PluginUtils::isHandControllerAvailable();
-    Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
+        qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
+        qCDebug(interfaceapp) << "Has tutorial content: " << hasTutorialContent;
+        qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
+        qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
 
-    bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
+        // when --url in command line, teleport to location
+        const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
+        int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+        QString addressLookupString;
+        if (urlIndex != -1) {
+            addressLookupString = arguments().value(urlIndex + 1);
+        }
 
-    qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-    qCDebug(interfaceapp) << "Has tutorial content: " << hasTutorialContent;
-    qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
-    qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
+        const QString TUTORIAL_PATH = "/tutorial_begin";
 
-    // when --url in command line, teleport to location
-    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
-    QString addressLookupString;
-    if (urlIndex != -1) {
-        addressLookupString = arguments().value(urlIndex + 1);
-    }
-
-    const QString TUTORIAL_PATH = "/tutorial_begin";
-
-    if (shouldGoToTutorial) {
-        if(sandboxIsRunning) {
-            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-            DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
+        if (shouldGoToTutorial) {
+            if (sandboxIsRunning) {
+                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+                DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
+            } else {
+                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
+                if (firstRun.get()) {
+                    showHelp();
+                }
+                if (addressLookupString.isEmpty()) {
+                    DependencyManager::get<AddressManager>()->goToEntry();
+                } else {
+                    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+                }
+            }
         } else {
-            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-            if (firstRun.get()) {
+
+            bool isFirstRun = firstRun.get();
+
+            if (isFirstRun) {
                 showHelp();
             }
-            if (addressLookupString.isEmpty()) {
-                DependencyManager::get<AddressManager>()->goToEntry();
-            } else {
-                DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-            }
-        }
-    } else {
 
-        bool isFirstRun = firstRun.get();
-
-        if (isFirstRun) {
-            showHelp();
-        }
-
-        // If this is a first run we short-circuit the address passed in
-        if (isFirstRun) {
-            if (hasHMDAndHandControllers) {
-                if(sandboxIsRunning) {
-                    qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                    DependencyManager::get<AddressManager>()->goToLocalSandbox();
+            // If this is a first run we short-circuit the address passed in
+            if (isFirstRun) {
+                if (hasHMDAndHandControllers) {
+                    if (sandboxIsRunning) {
+                        qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+                        DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                    } else {
+                        qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
+                        DependencyManager::get<AddressManager>()->goToEntry();
+                    }
                 } else {
-                    qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                     DependencyManager::get<AddressManager>()->goToEntry();
                 }
             } else {
-                DependencyManager::get<AddressManager>()->goToEntry();
+                qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+                DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
             }
-        } else {
-            qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
-            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         }
+
+        _connectionMonitor.init();
+
+        // After all of the constructor is completed, then set firstRun to false.
+        firstRun.set(false);
     }
-
-    _connectionMonitor.init();
-
-    // After all of the constructor is completed, then set firstRun to false.
-    firstRun.set(false);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -5074,6 +5095,11 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
 
+    if (property(hifi::properties::TEST).isValid()) {
+        scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());
+    }
+
+    scriptEngine->registerGlobalObject("Overlays", &_overlays);
     scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
