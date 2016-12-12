@@ -15,7 +15,7 @@ var DEFAULT_DPI = 32;
 var DEFAULT_WIDTH = 0.5;
 
 
-var TABLET_URL =  "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx"
+var TABLET_URL = "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx"
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -39,7 +39,7 @@ function calcSpawnInfo() {
 }
 
 // ctor
-WebTablet = function (url, width, dpi, location,  clientOnly) {
+WebTablet = function (url, width, dpi, location, clientOnly) {
     var _this = this;
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
@@ -70,8 +70,6 @@ WebTablet = function (url, width, dpi, location,  clientOnly) {
     }
 
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
-
-   
 
     var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
     var WEB_ENTITY_Z_OFFSET = -0.01;

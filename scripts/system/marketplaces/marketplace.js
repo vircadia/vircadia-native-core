@@ -30,7 +30,6 @@ var TOOLBAR_MARGIN_Y = 0;
 var marketplaceVisible = false;
 var marketplaceWebTablet;
 
-
 // We persist clientOnly data in the .ini file, and reconsistitute it on restart.
 // To keep things consistent, we pickle the tablet data in Settings, and kill any existing such on restart and domain change.
 var persistenceKey = "io.highfidelity.lastDomainTablet";
