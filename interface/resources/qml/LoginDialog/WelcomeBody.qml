@@ -17,8 +17,8 @@ import "../styles-uit"
 Item {
     id: welcomeBody
     clip: true
-    width: pane.width
-    height: pane.height
+    width: root.pane.width
+    height: root.pane.height
 
     property bool welcomeBack: false
 
@@ -39,8 +39,8 @@ Item {
             var targetWidth = Math.max(titleWidth, mainTextContainer.contentWidth)
             var targetHeight = mainTextContainer.height + 3 * hifi.dimensions.contentSpacing.y + buttons.height
 
-            root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
-            root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
         }
     }
 
