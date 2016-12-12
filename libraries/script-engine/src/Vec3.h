@@ -83,6 +83,7 @@ public slots:
     glm::vec3 toPolar(const glm::vec3& v);
     glm::vec3 fromPolar(const glm::vec3& polar);
     glm::vec3 fromPolar(float elevation, float azimuth);
+    float getAngle(const glm::vec3& v1, const glm::vec3& v2);
 
 private:
     const glm::vec3& UNIT_X() { return Vectors::UNIT_X; }

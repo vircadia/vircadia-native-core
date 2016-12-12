@@ -205,7 +205,8 @@ public:
 
 
 signals:
-    void recommendedFramebufferSizeChanged(const QSize & size);
+    void recommendedFramebufferSizeChanged(const QSize& size);
+    void resetSensorsRequested();
 
 protected:
     void incrementPresentCount();

@@ -9,8 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Context.h"
+
+#include <shared/GlobalAppProperties.h>
+
 #include "Frame.h"
 #include "GPULogging.h"
+
 using namespace gpu;
 
 
@@ -53,7 +57,7 @@ void Context::beginFrame(const glm::mat4& renderPose) {
     _currentFrame->pose = renderPose;
 
     if (!_frameRangeTimer) {
-        _frameRangeTimer = std::make_shared<RangeTimer>();
+        _frameRangeTimer = std::make_shared<RangeTimer>("gpu::Context::Frame");
     }
 }
 
@@ -118,6 +122,12 @@ void Context::executeFrame(const FramePointer& frame) const {
 }
 
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
+    // If we're running in another DLL context, we need to fetch the program callback out of the application
+    // FIXME find a way to do this without reliance on Qt app properties
+    if (!_makeProgramCallback) {
+        void* rawCallback = qApp->property(hifi::properties::gl::MAKE_PROGRAM_CALLBACK).value<void*>();
+        _makeProgramCallback = reinterpret_cast<Context::MakeProgram>(rawCallback);
+    }
     if (shader.isProgram() && _makeProgramCallback) {
         return _makeProgramCallback(shader, bindings);
     }

@@ -100,6 +100,7 @@ public slots:
 
 signals:
     void canKickChanged(bool canKick);
+    void ignoreRadiusEnabledChanged(bool isEnabled);
 };
 
 

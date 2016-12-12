@@ -751,6 +751,7 @@ bool NodeList::sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr) {
 }
 
 void NodeList::ignoreNodesInRadius(float radiusToIgnore, bool enabled) {
+    bool isEnabledChange = _ignoreRadiusEnabled.get() != enabled;
     _ignoreRadiusEnabled.set(enabled);
     _ignoreRadius.set(radiusToIgnore);
 
@@ -759,6 +760,9 @@ void NodeList::ignoreNodesInRadius(float radiusToIgnore, bool enabled) {
     }, [this](const SharedNodePointer& destinationNode) {
         sendIgnoreRadiusStateToNode(destinationNode);
     });
+    if (isEnabledChange) {
+        emit ignoreRadiusEnabledChanged(enabled);
+    }
 }
 
 void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode) {

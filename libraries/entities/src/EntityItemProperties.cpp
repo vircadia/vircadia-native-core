@@ -147,15 +147,15 @@ QString getCollisionGroupAsString(uint8_t group) {
 }
 
 uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
-    if (0 == name.compare("dynamic")) {
+    if (0 == name.compare(QString("dynamic"))) {
         return USER_COLLISION_GROUP_DYNAMIC;
-    } else if (0 == name.compare("static")) {
+    } else if (0 == name.compare(QString("static"))) {
         return USER_COLLISION_GROUP_STATIC;
-    } else if (0 == name.compare("kinematic")) {
+    } else if (0 == name.compare(QString("kinematic"))) {
         return USER_COLLISION_GROUP_KINEMATIC;
-    } else if (0 == name.compare("myAvatar")) {
+    } else if (0 == name.compare(QString("myAvatar"))) {
         return USER_COLLISION_GROUP_MY_AVATAR;
-    } else if (0 == name.compare("otherAvatar")) {
+    } else if (0 == name.compare(QString("otherAvatar"))) {
         return USER_COLLISION_GROUP_OTHER_AVATAR;
     }
     return 0;
@@ -369,6 +369,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
 
+    properties.setProperty("lastEdited", convertScriptValue(engine, _lastEdited));
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);

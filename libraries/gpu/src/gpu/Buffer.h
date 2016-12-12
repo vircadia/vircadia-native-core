@@ -62,7 +62,7 @@ public:
     // The size in bytes of data stored in the buffer
     Size getSize() const override;
     template <typename T>
-    Size getTypedSize() const { return getSize() / sizeof(T); };
+    Size getNumTypedElements() const { return getSize() / sizeof(T); };
 
     const Byte* getData() const { return getSysmem().readData(); }
     
@@ -179,7 +179,7 @@ protected:
 
 public:
     using Size = Resource::Size;
-    using Index = int;
+    using Index = int32_t;
 
     BufferPointer _buffer;
     Size _offset { 0 };
@@ -382,6 +382,26 @@ public:
     }
 };
  
+
+    template <class T> class StructBuffer : public gpu::BufferView {
+    public:
+
+        template <class U> static BufferPointer makeBuffer() {
+            U t;
+            return std::make_shared<gpu::Buffer>(sizeof(U), (const gpu::Byte*) &t, sizeof(U));
+        }
+        ~StructBuffer<T>() {};
+        StructBuffer<T>() : gpu::BufferView(makeBuffer<T>()) {}
+
+
+        T& edit() {
+            return BufferView::edit<T>(0);
+        }
+        const T& get() const {
+            return BufferView::get<T>(0);
+        }
+        const T* operator ->() const { return &get(); }
+    };
 };
 
 #endif

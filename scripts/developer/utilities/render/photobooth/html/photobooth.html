@@ -1,0 +1,167 @@
+<html>
+  <head>
+    <title>Photo Booth</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="../../../../../system/html/css/edit-style.css">
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    
+    <script>
+      var EventBridge;
+      var openEventBridge = function (callback) {
+        var WebChannel = new QWebChannel(qt.webChannelTransport, function (channel) {
+            EventBridge = WebChannel.objects.eventBridgeWrapper.eventBridge;
+            callback();
+        });
+      };
+
+      var emit = function (eventType, data) {
+        data = data || {};
+        data.type = eventType;
+        EventBridge.emitWebEvent(JSON.stringify(data));
+      };
+
+      function loaded () {
+        openEventBridge(function () {
+          emit("onLoad", {value: "faye"});
+          
+          var elModelURL = document.getElementById("model-url");
+          var elReloadModelButton = document.getElementById("reload-model-button");
+          var elCamera = document.getElementById("property-camera");
+          //var elLightingPreset = document.getElementById("property-lighting-preset");
+          var elPictureButton = document.getElementById("picture-button");
+
+          elReloadModelButton.addEventListener('click', function() {
+              emit("onClickReloadModelButton", {value: elModelURL.value});
+          });
+          elCamera.addEventListener('change', function() {
+              emit("onSelectCamera", {value: this.value});
+          });
+          // elLightingPreset.addEventListener('change', function() {
+          //     emit("onSelectLightingPreset", {value: "faye"});
+          // });
+          elPictureButton.addEventListener('click', function() {
+              emit("onClickPictureButton", {value: "faye"});
+          });
+
+
+        });
+
+        // Drop downs
+        function setDropdownText(dropdown) {
+          var lis = dropdown.parentNode.getElementsByTagName("li");
+          var text = "";
+          for (var i = 0; i < lis.length; i++) {
+              if (lis[i].getAttribute("value") === dropdown.value) {
+                  text = lis[i].textContent;
+              }
+          }
+          dropdown.firstChild.textContent = text;
+        }
+        function toggleDropdown(event) {
+          var element = event.target;
+          if (element.nodeName !== "DT") {
+              element = element.parentNode;
+          }
+          element = element.parentNode;
+          var isDropped = element.getAttribute("dropped");
+          element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
+        }
+        function setDropdownValue(event) {
+          var dt = event.target.parentNode.parentNode.previousSibling;
+          dt.value = event.target.getAttribute("value");
+          dt.firstChild.textContent = event.target.textContent;
+
+          dt.parentNode.setAttribute("dropped", "false");
+
+          var evt = document.createEvent("HTMLEvents");
+          evt.initEvent("change", true, true);
+          dt.dispatchEvent(evt);
+        }
+
+        var elDropdowns = document.getElementsByTagName("select");
+        for (var i = 0; i < elDropdowns.length; i++) {
+          var options = elDropdowns[i].getElementsByTagName("option");
+          var selectedOption = 0;
+          for (var j = 0; j < options.length; j++) {
+              if (options[j].getAttribute("selected") === "selected") {
+                  selectedOption = j;
+              }
+          }
+          var div = elDropdowns[i].parentNode;
+
+          var dl = document.createElement("dl");
+          div.appendChild(dl);
+
+          var dt = document.createElement("dt");
+          dt.name = elDropdowns[i].name;
+          dt.id = elDropdowns[i].id;
+          dt.addEventListener("click", toggleDropdown, true);
+          dl.appendChild(dt);
+
+          var span = document.createElement("span");
+          span.setAttribute("value", options[selectedOption].value);
+          span.textContent = options[selectedOption].firstChild.textContent;
+          dt.appendChild(span);
+
+          var span = document.createElement("span");
+          span.textContent = "5"; // caratDn
+          dt.appendChild(span);
+
+          var dd = document.createElement("dd");
+          dl.appendChild(dd);
+
+          var ul = document.createElement("ul");
+          dd.appendChild(ul);
+
+          for (var j = 0; j < options.length; j++) {
+              var li = document.createElement("li");
+              li.setAttribute("value", options[j].value);
+              li.textContent = options[j].firstChild.textContent;
+              li.addEventListener("click", setDropdownValue);
+              ul.appendChild(li);
+          }
+        }
+        elDropdowns = document.getElementsByTagName("select");
+        while (elDropdowns.length > 0) {
+          var el = elDropdowns[0];
+          el.parentNode.removeChild(el);
+          elDropdowns = document.getElementsByTagName("select");
+        }
+      }
+    </script>
+
+    <style>
+    </style>
+  </head>
+  <body onload="loaded()">
+    <div id="properties-list">
+      <div class="property url refresh">
+        <label>Model URL</label>
+        <input type="text" id="model-url"></input>
+        <input type="button" id="reload-model-button" class="glyph" value="F">
+      </div>
+       <!--
+      <div class="property dropdown">
+        <label>Lighting Preset</label>
+        <select id="property-lighting-preset">
+          <option>Default Lighting</option>
+          <option>Sam's Cool Light</option>
+          <option>Alan's Light Magic</option>
+        </select>
+      </div>
+      -->
+      <div class="property dropdown">
+        <label>Camera</label>
+        <select id="property-camera">
+          <option>First Person Camera</option>
+          <option>Main Camera</option>
+          <option>Left Camera</option>
+          <option>Right Camera</option>
+        </select>
+      </div>
+      <div class="property">
+        <input id="picture-button" type="button" class="blue" value="Take Picture">
+      </div>
+    </div>
+  </body>
+</html>

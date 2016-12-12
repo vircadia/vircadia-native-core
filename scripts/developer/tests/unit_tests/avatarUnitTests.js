@@ -1,7 +1,4 @@
 
-Script.include("../libraries/jasmine/jasmine.js");
-Script.include("../libraries/jasmine/hifi-boot.js");
-
 // Art3mis
 var DEFAULT_AVATAR_URL = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/contents/e76946cc-c272-4adf-9bb6-02cde0a4b57d/8fd984ea6fe1495147a3303f87fa6e23.fst?1460131758";
 
@@ -54,6 +51,4 @@ describe("MyAvatar", function () {
     });
 
 });
-
-jasmine.getEnv().execute();
 

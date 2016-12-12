@@ -45,6 +45,7 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <shared/GlobalAppProperties.h>
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -61,6 +62,7 @@
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
+#include <FingerprintUtils.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -536,7 +538,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
-    setProperty("com.highfidelity.launchedFromSteam", SteamClient::isRunning());
+    setProperty(hifi::properties::STEAM, SteamClient::isRunning());
+    setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
     _runningMarker.startRunningMarker();
 
@@ -566,7 +569,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _window->setWindowTitle("Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
-
+    
+    // TODO: This is temporary, while developing
+    FingerprintUtils::getMachineFingerprint();
+    // End TODO
     auto nodeList = DependencyManager::get<NodeList>();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
@@ -585,8 +591,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "[VERSION] We will use DEVELOPMENT global services.";
 #endif
 
-    
-    bool wantsSandboxRunning = shouldRunServer();
+
+    static const QString NO_UPDATER_ARG = "--no-updater";
+    static const bool noUpdater = arguments().indexOf(NO_UPDATER_ARG) != -1;
+    static const bool wantsSandboxRunning = shouldRunServer();
     static bool determinedSandboxState = false;
     static bool sandboxIsRunning = false;
     SandboxUtils sandboxUtils;
@@ -596,11 +604,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
         determinedSandboxState = true;
         sandboxIsRunning = true;
-    }, [&, wantsSandboxRunning]() {
+    }, [&]() {
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
-            bool noUpdater = SteamClient::isRunning();
             SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
             sandboxIsRunning = true;
         }
@@ -1122,7 +1129,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
 
     // If launched from Steam, let it handle updates
-    if (!SteamClient::isRunning()) {
+    if (!noUpdater) {
         auto applicationUpdater = DependencyManager::get<AutoUpdater>();
         connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
         applicationUpdater->checkForUpdate();
@@ -1686,6 +1693,8 @@ void Application::initializeGL() {
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
+    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK, 
+        QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
     _gpuContext = std::make_shared<gpu::Context>();
     // The gpu context can make child contexts for transfers, so 
     // we need to restore primary rendering context
@@ -4742,7 +4751,7 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
     _overlayConductor.centerUI();
-    getMyAvatar()->reset(andReload);
+    getMyAvatar()->reset(true, andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 
@@ -5450,10 +5459,10 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         }
     });
 }
-void Application::shareSnapshot(const QString& path) {
-    postLambdaEvent([path] {
+void Application::shareSnapshot(const QString& path, const QUrl& href) {
+    postLambdaEvent([path, href] {
         // not much to do here, everything is done in snapshot code...
-        Snapshot::uploadSnapshot(path);
+        Snapshot::uploadSnapshot(path, href);
     });
 }
 
@@ -5727,6 +5736,7 @@ void Application::updateDisplayMode() {
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
             first = false;
         }
 

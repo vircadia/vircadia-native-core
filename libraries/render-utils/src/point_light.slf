@@ -11,7 +11,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+<!
 // Everything about deferred buffer
 <@include DeferredBufferRead.slh@>
 
@@ -19,6 +19,7 @@
 
 // Everything about light
 <@include model/Light.slh@>
+<$declareLightBuffer()$>
 
 <@include LightingModel.slh@>
 
@@ -28,10 +29,13 @@
 
 uniform vec4 texcoordFrameTransform;
 
-in vec4 _texCoord0;
+in vec4 _texCoord0;!>
 out vec4 _fragColor;
 
 void main(void) {
+    _fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+
+    <!
     DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
 
     // Grab the fragment data from the uv
@@ -45,12 +49,6 @@ void main(void) {
         discard;
     }
 
-    // Kill if in front of the light volume
-    float depth = frag.depthVal;
-    if (depth < gl_FragCoord.z) {
-        discard;
-    }
-
     // Need the light now
     Light light = getLight();
 
@@ -60,7 +58,7 @@ void main(void) {
 
     // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
     vec4 fragLightVecLen2;
-    if (!clipFragToLightVolumePoint(light, fragPos.xyz, fragLightVecLen2)) {
+    if (!lightVolume_clipFragToLightVolumePoint(light.volume, fragPos.xyz, fragLightVecLen2)) {
         discard;
     }
 
@@ -83,4 +81,5 @@ void main(void) {
 
     _fragColor.rgb += diffuse;
     _fragColor.rgb += specular;
+    !>
 }

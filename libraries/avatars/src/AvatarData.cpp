@@ -953,6 +953,12 @@ int AvatarData::getFauxJointIndex(const QString& name) const {
     if (name == "_CONTROLLER_RIGHTHAND") {
         return CONTROLLER_RIGHTHAND_INDEX;
     }
+    if (name == "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND") {
+        return CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX;
+    }
+    if (name == "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND") {
+        return CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX;
+    }
     return -1;
 }
 

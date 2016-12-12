@@ -1,0 +1,54 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  deferred_light_limited.vert
+//  vertex shader
+//
+//  Created by Sam Gateau on 6/16/16.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<@include gpu/Inputs.slh@>
+
+<$declareStandardTransform()$>
+
+<@include model/Light.slh@>
+
+<$declareLightBuffer(256)$>
+
+uniform lightIndexBuffer {
+    int lightIndex[256];
+};
+
+out vec4 _texCoord0;
+
+void main(void) {
+
+    int instanceID = lightIndex[gl_InstanceID];
+    Light light = getLight(instanceID);
+    vec4 sphereVertex = inPosition;
+    vec3 lightOrigin = getLightPosition(light);
+    vec4 sphereParam = vec4(1.0); // = getLightVolumeGeometry(light);
+
+    sphereVertex.xyz *= sphereParam.w;
+
+    sphereVertex.xyz += lightOrigin;
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    <$transformWorldToClipPos(cam, sphereVertex, gl_Position)$>;
+
+    vec4 projected = gl_Position / gl_Position.w;
+    projected.xy = (projected.xy + 1.0) * 0.5;
+
+    if (cam_isStereo()) {
+        projected.x = 0.5 * (projected.x + cam_getStereoSide());
+    }
+    _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
+}

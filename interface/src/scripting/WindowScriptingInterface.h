@@ -53,7 +53,7 @@ public slots:
     void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
-    void shareSnapshot(const QString& path);
+    void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));
     bool isPhysicsEnabled();
 
 signals:
@@ -62,6 +62,7 @@ signals:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
     void snapshotTaken(const QString& pathStillSnapshot, const QString& pathAnimatedSnapshot, bool notify);
     void snapshotShared(const QString& error);
+    void processingGif();
 
 private:
     QString getPreviousBrowseLocation() const;

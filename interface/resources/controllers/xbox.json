@@ -25,7 +25,7 @@
             ]
         },
 
-        { "from": "GamePad.RX", "to": "Actions.Yaw" },
+        { "from": "GamePad.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.Yaw" },
 
         { "from": "GamePad.RY",
           "to": "Actions.VERTICAL_UP",
@@ -44,8 +44,8 @@
         { "from": "GamePad.RB", "to": "Standard.RB" },
         { "from": "GamePad.RS", "to": "Standard.RS" },
 
-        { "from": "GamePad.Start", "to": "Actions.CycleCamera" },
-        { "from": "GamePad.Back", "to": "Standard.Start" },
+        { "from": "GamePad.Start", "to": "Standard.Start" },
+        { "from": "GamePad.Back", "to": "Actions.CycleCamera" },
 
         { "from": "GamePad.DU", "to": "Standard.DU" },
         { "from": "GamePad.DD", "to": "Standard.DD" },
