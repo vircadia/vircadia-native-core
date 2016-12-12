@@ -7,6 +7,7 @@
 #
 
 if (WIN32)
+    find_package(KINECT)
     if (KINECT_FOUND) 
         set(TARGET_NAME hifiKinect)
         setup_hifi_plugin(Script Qml Widgets)

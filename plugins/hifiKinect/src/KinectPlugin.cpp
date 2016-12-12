@@ -438,7 +438,7 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
 
                             glm::vec3 jointPosition { joints[j].Position.X,
                                                       joints[j].Position.Y,
-                                                      -joints[j].Position.Z };
+                                                      joints[j].Position.Z };
 
                             // Kinect Documentation is unclear on what these orientations are, are they absolute? 
                             // or are the relative to the parent bones. It appears as if it has changed between the
@@ -451,7 +451,7 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
                             // filling in the _joints data...
                             if (joints[j].TrackingState != TrackingState_NotTracked) {
                                 _joints[j].position = jointPosition;
-                                _joints[j].orientation = jointOrientation;
+                                //_joints[j].orientation = jointOrientation;
                             }
                         }
                     }
@@ -552,30 +552,39 @@ QString KinectPlugin::InputDevice::getDefaultMappingConfig() const {
 
 void KinectPlugin::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, 
                                         const std::vector<KinectPlugin::KinectJoint>& joints, const std::vector<KinectPlugin::KinectJoint>& prevJoints) {
+
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    glm::quat controllerToAvatarRotation = glmExtractRotation(controllerToAvatar);
+
+    vec3 kinectHipPos;
+    if (joints.size() > JointType_SpineBase) {
+        kinectHipPos = joints[JointType_SpineBase].position;
+    }
+    auto hipOffset = -1.0f * kinectHipPos;
+
     for (size_t i = 0; i < joints.size(); i++) {
         int poseIndex = KinectJointIndexToPoseIndex((KinectJointIndex)i);
         glm::vec3 linearVel, angularVel;
-        const glm::vec3& pos = joints[i].position;
+
+        // Adjust the position to be hip (avatar) relative, and rotated to match the avatar rotation
+        const glm::vec3& pos = controllerToAvatarRotation * (joints[i].position + hipOffset);
 
         if (Vectors::ZERO == pos) {
             _poseStateMap[poseIndex] = controller::Pose();
             continue;
         }
 
-
-        // FIXME - left over from neuron, needs to be turned into orientations from kinect SDK
+        // FIXME - determine the correct orientation transform
         glm::quat rot = joints[i].orientation;
+
         if (i < prevJoints.size()) {
             linearVel = (pos - (prevJoints[i].position * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
             // quat log imaginary part points along the axis of rotation, with length of one half the angle of rotation.
             glm::quat d = glm::log(rot * glm::inverse(prevJoints[i].orientation));
             angularVel = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime); // radians/s
         }
+
         _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVel, angularVel);
     }
-
-    // FIXME - left over from neuron
-    _poseStateMap[controller::RIGHT_HAND_THUMB1] = controller::Pose(rightHandThumb1DefaultAbsTranslation, glm::quat(), glm::vec3(), glm::vec3());
-    _poseStateMap[controller::LEFT_HAND_THUMB1] = controller::Pose(leftHandThumb1DefaultAbsTranslation, glm::quat(), glm::vec3(), glm::vec3());
 }
 
