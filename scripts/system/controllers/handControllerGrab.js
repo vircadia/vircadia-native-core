@@ -703,6 +703,8 @@ function MyController(hand) {
     this.autoUnequipCounter = 0;
     this.grabPointIntersectsEntity = false;
 
+    this.shouldScale = false;
+
     // handPosition is where the avatar's hand appears to be, in-world.
     this.getHandPosition = function () {
         if (this.hand === RIGHT_HAND) {
@@ -771,6 +773,11 @@ function MyController(hand) {
 
         this.updateSmoothedTrigger();
 
+        //  If both grip buttons squeezed and nothing is held, rescale my avatar!
+        if (this.hand === RIGHT_HAND && this.state === STATE_OFF && this.getOtherHandController().state === STATE_OFF) {
+            this.maybeScaleMyAvatar();
+        }
+        
         if (this.ignoreInput()) {
             this.turnOffVisualizations();
             return;
@@ -2194,10 +2201,28 @@ function MyController(hand) {
             this.shouldScale = false;
         }
         if (this.shouldScale) {
-             var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
-             var currentRescale = scalingCurrentDistance / this.scalingStartDistance;
-             var newDimensions = Vec3.multiply(currentRescale, this.scalingStartDimensions);
-             Entities.editEntity(this.grabbedEntity, { dimensions: newDimensions })
+            var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+            var currentRescale = scalingCurrentDistance / this.scalingStartDistance;
+            var newDimensions = Vec3.multiply(currentRescale, this.scalingStartDimensions);
+            Entities.editEntity(this.grabbedEntity, { dimensions: newDimensions })
+        }
+    }
+
+    this.maybeScaleMyAvatar = function() {
+        if (!this.shouldScale) {
+            //  If both secondary triggers squeezed, start scaling
+            if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed()) {
+                this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+                this.scalingStartAvatarScale = MyAvatar.scale;
+                this.shouldScale = true;
+            }
+        } else if (!this.secondarySqueezed() || !this.getOtherHandController().secondarySqueezed()) {
+            this.shouldScale = false;
+        }
+        if (this.shouldScale) {
+            var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+            var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;
+            MyAvatar.scale = newAvatarScale;
         }
     }
 
