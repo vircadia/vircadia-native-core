@@ -40,13 +40,13 @@ function calcSpawnInfo() {
 
 // ctor
 WebTablet = function (url, width, dpi, location, clientOnly) {
+
     var _this = this;
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
     var HEIGHT = WIDTH * ASPECT;
     var DEPTH = 0.025;
     var DPI = dpi || DEFAULT_DPI;
-    var _this = this;
 
     var tabletProperties = {
         name: "WebTablet Tablet",
