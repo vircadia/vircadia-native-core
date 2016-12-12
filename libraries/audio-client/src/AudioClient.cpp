@@ -1063,7 +1063,9 @@ void AudioClient::handleAudioInput() {
             encodedBuffer = decodedBuffer;
         }
 
-        emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType, _selectedCodecName);
+        emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
+            audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
+            packetType, _selectedCodecName);
         _stats.sentPacket();
 
         int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * AudioConstants::SAMPLE_SIZE;
@@ -1085,7 +1087,9 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     }
 
     // FIXME check a flag to see if we should echo audio?
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho, _selectedCodecName);
+    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
+                    audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
+                    PacketType::MicrophoneAudioWithEcho, _selectedCodecName);
 }
 
 void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
@@ -1618,4 +1622,9 @@ void AudioClient::loadSettings() {
 void AudioClient::saveSettings() {
     dynamicJitterBufferEnabled.set(_receivedAudioStream.dynamicJitterBufferEnabled());
     staticJitterBufferFrames.set(_receivedAudioStream.getStaticJitterBufferFrames());
+}
+
+void AudioClient::setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale) {
+    avatarBoundingBoxCorner = corner;
+    avatarBoundingBoxScale = scale;
 }

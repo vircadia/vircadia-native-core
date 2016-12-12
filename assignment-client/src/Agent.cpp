@@ -351,7 +351,9 @@ void Agent::executeScript() {
         Transform audioTransform;
         audioTransform.setTranslation(scriptedAvatar->getPosition());
         audioTransform.setRotation(scriptedAvatar->getOrientation());
-        AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber, audioTransform, PacketType::MicrophoneAudioNoEcho);
+        AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber,
+            audioTransform, scriptedAvatar->getPosition(), glm::vec3(0),
+            PacketType::MicrophoneAudioNoEcho);
     });
 
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
@@ -424,8 +426,9 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
         },
             [&](const SharedNodePointer& node) {
             qDebug() << "sending KillAvatar message to Audio Mixers";
-            auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID, true);
+            auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
             packet->write(getSessionUUID().toRfc4122());
+            packet->writePrimitive(KillAvatarReason::NoReason);
             nodeList->sendPacket(std::move(packet), *node);
         });
 
@@ -475,8 +478,9 @@ void Agent::setIsAvatar(bool isAvatar) {
             },
                 [&](const SharedNodePointer& node) {
                 qDebug() << "sending KillAvatar message to Avatar and Audio Mixers";
-                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID, true);
+                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
                 packet->write(getSessionUUID().toRfc4122());
+                packet->writePrimitive(KillAvatarReason::NoReason);
                 nodeList->sendPacket(std::move(packet), *node);
             });
         }
@@ -580,6 +584,8 @@ void Agent::processAgentAvatarAudio() {
             audioPacket->writePrimitive(scriptedAvatar->getPosition());
             glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
             audioPacket->writePrimitive(headOrientation);
+            audioPacket->writePrimitive(scriptedAvatar->getPosition());
+            audioPacket->writePrimitive(glm::vec3(0));
         } else if (nextSoundOutput) {
             
             // write the codec
@@ -592,6 +598,8 @@ void Agent::processAgentAvatarAudio() {
             audioPacket->writePrimitive(scriptedAvatar->getPosition());
             glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
             audioPacket->writePrimitive(headOrientation);
+            audioPacket->writePrimitive(scriptedAvatar->getPosition());
+            audioPacket->writePrimitive(glm::vec3(0));
 
             QByteArray encodedBuffer;
             if (_flushEncoder) {

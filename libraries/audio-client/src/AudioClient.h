@@ -127,6 +127,8 @@ public:
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
+    Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
+
     QVector<AudioInjector*>& getActiveLocalAudioInjectors() { return _activeLocalAudioInjectors; }
 
     void checkDevices();
@@ -323,6 +325,9 @@ private:
 
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;
+
+    glm::vec3 avatarBoundingBoxCorner;
+    glm::vec3 avatarBoundingBoxScale;
 
     QVector<QString> _inputDevices;
     QVector<QString> _outputDevices;
