@@ -33,9 +33,9 @@ if (WIN32)
 
   find_library(
         KINECT_LIBRARY_RELEASE Kinect20 
-        PATH_SUFFIXES "Libs/${ARCH_DIR}" "lib" 
+        PATH_SUFFIXES "Lib/${ARCH_DIR}" "lib" 
         HINTS ${KINECT_SEARCH_DIRS}
-        PATH "C:/Program Files/Microsoft SDKs/Kinect/v2.0_1409")
+        PATH $ENV{KINECT_ROOT_DIR})
 
   set(KINECT_LIBRARIES ${KINECT_LIBRARY})
 
