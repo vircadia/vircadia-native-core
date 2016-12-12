@@ -73,7 +73,6 @@
                     if (paramKeyValue.length == 1) {
                         params[paramKeyValue[0]] = undefined;
                     } else if (paramKeyValue.length == 2) {
-                        console.log('found ' + paramKeyValue[0] + " " + paramKeyValue[1]);
                         params[paramKeyValue[0]] = paramKeyValue[1];
                     } else {
                         console.error("Error parsing param keyvalue: ", paramParts);
@@ -83,7 +82,6 @@
             }
 
             function load() {
-                console.log("In help.html: ", window.location.href);
                 var parts = window.location.href.split("?");
                 var params = {};
                 if (parts.length > 0) {
@@ -92,7 +90,6 @@
 
                 switch (params.handControllerName) {
                     case "oculus":
-                        console.log("Using oculus image");
                         handControllerImageURL = "img/controls-help-oculus.png";
                         break;
 
