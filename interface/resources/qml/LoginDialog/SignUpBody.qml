@@ -19,8 +19,8 @@ import "../styles-uit"
 Item {
     id: signupBody
     clip: true
-    width: root.pane.width
     height: root.pane.height
+    width: root.pane.width
 
     function signup() {
         mainTextContainer.visible = false
@@ -47,8 +47,8 @@ Item {
                                 4 * hifi.dimensions.contentSpacing.y + form.height +
                                 hifi.dimensions.contentSpacing.y + buttons.height;
 
-            width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
-            height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                 + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : 0);
         }
     }

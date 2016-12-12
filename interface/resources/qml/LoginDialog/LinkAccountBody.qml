@@ -19,9 +19,8 @@ import "../styles-uit"
 Item {
     id: linkAccountBody
     clip: true
-    width: root.pane.width
     height: root.pane.height
-
+    width: root.pane.width
     property bool failAfterSignUp: false
 
     function login() {
@@ -54,8 +53,8 @@ Item {
                 targetHeight += hifi.dimensions.contentSpacing.y + additionalInformation.height
             }
 
-            width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
-            height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }
     }
