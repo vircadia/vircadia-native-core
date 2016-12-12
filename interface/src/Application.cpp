@@ -3977,16 +3977,10 @@ void Application::update(float deltaTime) {
 
     controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
     controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
-
-    qDebug() << __FUNCTION__ << "...............leftHandPose:" << leftHandPose.translation;
-
     auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
     auto worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
-
-    qDebug() << __FUNCTION__ << "POST transform leftHandPose:" << leftHandPose.translation;
-
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
