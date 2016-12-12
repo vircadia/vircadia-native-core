@@ -105,7 +105,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     axis: { x: 1, y: 0, z: 0 },
                     maxAngle: 17,
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -128,7 +128,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     axis: { x: 1, y: 0.302933918, z: 0.302933918 },
                     maxTranslation: 0.003967,
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -152,7 +152,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     xHalfAngle: 20,
                     yHalfAngle: 20,
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -173,7 +173,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     axis: { x: 0, y: -1, z: 0 },
                     maxTranslation: 0.001,
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -194,7 +194,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     axis: { x: 0, y: -1, z: 0 },
                     maxTranslation: 0.001,
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -261,7 +261,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     axis: { x: 1, y: 0, z: 0 },
                     maxAngle: 17,
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -285,7 +285,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     maxTranslation: 0.003967,
 
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -309,7 +309,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     xHalfAngle: 20,
                     yHalfAngle: 20,
 
-                    textureName: "R_controller_DIF.jpg",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -330,7 +330,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     axis: { x: 0, y: -1, z: 0 },
                     maxTranslation: 0.001,
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
@@ -351,7 +351,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     axis: { x: 0, y: -1, z: 0 },
                     maxTranslation: 0.001,
 
-                    textureName: "psdFileTex2",
+                    textureName: "tex-highlight",
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
