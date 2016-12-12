@@ -14,8 +14,8 @@ var Y_AXIS = {x: 0, y: 1, z: 0};
 var DEFAULT_DPI = 32;
 var DEFAULT_WIDTH = 0.5;
 
-var TABLET_URL = "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx";
 
+var TABLET_URL =  "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx"
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -39,8 +39,8 @@ function calcSpawnInfo() {
 }
 
 // ctor
-WebTablet = function (url, width, dpi, location, clientOnly) {
-
+WebTablet = function (url, width, dpi, clientOnly) {
+    var _this = this;
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
     var HEIGHT = WIDTH * ASPECT;
@@ -71,8 +71,11 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
+   
+
     var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
     var WEB_ENTITY_Z_OFFSET = -0.01;
+    var HOME_BUTTON_Y_OFFSET = -0.32;
 
     this.createWebEntity = function(url) {
         if (_this.webEntityID) {
@@ -96,6 +99,28 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.createWebEntity(url);
 
+    var homeButtonPosition = Vec3.sum(spawnInfo.position, Vec3.multiply(HOME_BUTTON_Y_OFFSET, Quat.getUp(webEntityRotation)));
+    this.homeButtonEntity = Entities.addEntity({
+        name: "homeButton",
+        type: "Sphere",
+        position: homeButtonPosition,
+        dimensions: {x: 0.05, y: 0.05, z: 0.05},
+        parentID: this.tabletEntityID,
+        script: "https://people.ucsc.edu/~druiz4/scripts/homeButton.js"
+        }, clientOnly);
+
+    this.receive = function (channel, senderID, senderUUID, localOnly) {
+        if (_this.homeButtonEntity == senderID) {
+            if (_this.clicked) {
+              Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
+              _this.clicked = false;
+            } else {
+              Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
+              _this.clicked = true;
+            }
+        }
+    }
+
     this.state = "idle";
 
     this.getRoot = function() {
@@ -105,15 +130,29 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     this.getLocation = function() {
         return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
     };
+    this.clicked = false;
 };
 
 WebTablet.prototype.destroy = function () {
     Entities.deleteEntity(this.webEntityID);
     Entities.deleteEntity(this.tabletEntityID);
+    Entities.deleteEntity(this.homeButtonEntity);
 };
 WebTablet.prototype.pickle = function () {
     return JSON.stringify({webEntityID: this.webEntityID, tabletEntityID: this.tabletEntityID});
 };
+
+
+WebTablet.prototype.register = function() {
+    Messages.subscribe("home");
+    Messages.messageReceived.connect(this.receive);
+}
+
+WebTablet.prototype.unregister = function() {
+    Messages.unsubscribe("home");
+    Messages.messageReceived.disconnect(this.receive);
+}
+
 WebTablet.unpickle = function (string) {
     if (!string) {
         return;
