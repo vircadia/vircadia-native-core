@@ -25,14 +25,15 @@ void UserActivityLoggerScriptingInterface::toggledAway(bool isAway) {
 }
 
 void UserActivityLoggerScriptingInterface::tutorialProgress( QString stepName, int stepNumber, float secondsToComplete,
-        float tutorialElapsedTime, QString tutorialRunID, int tutorialVersion) {
+        float tutorialElapsedTime, QString tutorialRunID, int tutorialVersion, QString controllerType = "") {
     logAction("tutorial_progress", {
         { "tutorial_run_id", tutorialRunID },
         { "tutorial_version", tutorialVersion },
         { "step", stepName },
         { "step_number", stepNumber },
         { "seconds_to_complete", secondsToComplete },
-        { "tutorial_elapsed_seconds", tutorialElapsedTime }
+        { "tutorial_elapsed_seconds", tutorialElapsedTime },
+        { "controller_type", controllerType }
     });
 
 }

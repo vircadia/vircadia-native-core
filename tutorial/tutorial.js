@@ -1020,18 +1020,23 @@ TutorialManager = function() {
     var didFinishTutorial = false;
 
     var wentToEntryStepNum;
-    var VERSION = 1;
+    var VERSION = 2;
     var tutorialID;
 
     var self = this;
 
+    // The real controller name is the actual detected controller name, or 'unknown'
+    // if one is not found.
     if (HMD.isSubdeviceContainingNameAvailable("OculusTouch")) {
         this.controllerName = "touch";
+        this.realControllerName = "touch";
     } else if (HMD.isHandControllerAvailable("OpenVR")) {
         this.controllerName = "vive";
+        this.realControllerName = "vive";
     } else {
         info("ERROR, no known hand controller found, defaulting to Vive");
         this.controllerName = "vive";
+        this.realControllerName = "unknown";
     }
 
     this.startTutorial = function() {
@@ -1120,7 +1125,7 @@ TutorialManager = function() {
         var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
         UserActivityLogger.tutorialProgress(
                 name, stepNum, timeToFinishStep, tutorialTimeElapsed,
-                tutorialID, VERSION);
+                tutorialID, VERSION, this.realControllerName);
     }
 
     // This is a message sent from the "entry" portal in the courtyard,
