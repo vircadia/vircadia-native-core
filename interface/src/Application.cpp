@@ -5780,12 +5780,8 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
             _addAssetToWorldTimer.start();
         }
 
-        // Inform user.
-        QString successInfo = "Asset " + mapping.mid(1) + " added to world.";
-        qInfo(interfaceapp) << "Downloading asset completed: " + successInfo;
-        _addAssetToWorldMessageBox->setProperty("text", successInfo);
-        _addAssetToWorldMessageBox->setProperty("buttons", QMessageBox::Ok);
-        _addAssetToWorldMessageBox->setProperty("defaultButton", QMessageBox::Ok);
+        // Close progress message box.
+        _addAssetToWorldMessageBox->deleteLater();
     }
 }
 
