@@ -305,8 +305,8 @@ private:
     PointerEvent calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
-    unsigned int _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
-    unsigned int _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
+    unsigned int _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
+    unsigned int _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
 };
 
 #endif // hifi_Overlays_h

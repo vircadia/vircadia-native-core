@@ -346,11 +346,7 @@ glm::vec2 Web3DOverlay::getSize() {
 bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
     // FIXME - face and surfaceNormal not being returned
 
-    // Make sure position and rotation is updated.
-    // XXX this code runs too often for this...
-    //Transform transform = getTransform();
-    //applyTransformTo(transform, true);
-    //setTransform(transform);
+    // Don't call applyTransformTo() or setTransform() here because this code runs too frequently.
 
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
     return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), getSize(), distance);
