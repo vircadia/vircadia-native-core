@@ -1392,7 +1392,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         bool hasTutorialContent = contentVersion >= 1;
 
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
-        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && PluginUtils::isHandControllerAvailable();
+
+        // Only specific hand controllers are currently supported, so only send users to the tutorial
+        // if they one of those.
+        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable()
+            && (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable());
         Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
         bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
