@@ -68,7 +68,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     modelURL: BASE_URL + "Oculus-Labels-L.fbx",
                     naturalPosition: { x: -0.022335469722747803, y: 0.00022516027092933655, z: 0.020340695977211 },
 
-                    textureName: "Texture",
+                    textureName: "blank",
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
@@ -81,7 +81,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                             defaultTextureURL: BASE_URL + "Oculus-Labels-L.fbx/Oculus-Labels-L.fbm/Rotate.png"
                         },
                         grip: {
-                            defaultTextureURL: BASE_URL + "Oculus-Labels-L.fbx/Oculus-Labels-L.fbm/Grip.png"
+                            defaultTextureURL: BASE_URL + "Oculus-Labels-L.fbx/Oculus-Labels-L.fbm/Grip-oculus.png"
                         },
                         teleport: {
                             defaultTextureURL: BASE_URL + "Oculus-Labels-L.fbx/Oculus-Labels-L.fbm/Teleport.png"
@@ -237,7 +237,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                             defaultTextureURL: BASE_URL + "Oculus-Labels-R.fbx/Oculus-Labels-R.fbm/Rotate.png"
                         },
                         grip: {
-                            defaultTextureURL: BASE_URL + "Oculus-Labels-R.fbx/Oculus-Labels-R.fbm/Grip.png"
+                            defaultTextureURL: BASE_URL + "Oculus-Labels-R.fbx/Oculus-Labels-R.fbm/Grip-oculus.png"
                         },
                         teleport: {
                             defaultTextureURL: BASE_URL + "Oculus-Labels-R.fbx/Oculus-Labels-R.fbm/Teleport.png"
