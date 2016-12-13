@@ -2213,17 +2213,31 @@ void Application::aboutApp() {
 }
 
 void Application::showHelp() {
-    static const QString QUERY_STRING_XBOX = "xbox";
-    static const QString QUERY_STRING_VIVE = "vive";
+    static const QString HAND_CONTROLLER_NAME_VIVE = "vive";
+    static const QString HAND_CONTROLLER_NAME_OCULUS_TOUCH = "oculus";
 
-    QString queryString = "";
+    static const QString TAB_KEYBOARD_MOUSE = "kbm";
+    static const QString TAB_GAMEPAD = "gamepad";
+    static const QString TAB_HAND_CONTROLLERS = "handControllers";
+
+    QString handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    QString defaultTab = TAB_KEYBOARD_MOUSE;
+
     if (PluginUtils::isViveControllerAvailable()) {
-        queryString = QUERY_STRING_VIVE;
+        defaultTab = TAB_HAND_CONTROLLERS;
+        handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    } else if (PluginUtils::isOculusTouchControllerAvailable()) {
+        defaultTab = TAB_HAND_CONTROLLERS;
+        handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
     } else if (PluginUtils::isXboxControllerAvailable()) {
-        queryString = QUERY_STRING_XBOX;
+        defaultTab = TAB_GAMEPAD;
     }
 
-    InfoView::show(INFO_HELP_PATH, false, queryString);
+    QUrlQuery queryString;
+    queryString.addQueryItem("handControllerName", handControllerName);
+    queryString.addQueryItem("defaultTab", defaultTab);
+
+    InfoView::show(INFO_HELP_PATH, false, queryString.toString());
 }
 
 void Application::resizeEvent(QResizeEvent* event) {
