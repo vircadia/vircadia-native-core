@@ -62,11 +62,11 @@ var PICK_WITH_HAND_RAY = true;
 
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 
-var WEB_TOUCH_SPHERE_RADIUS = 0.025;
+var WEB_TOUCH_SPHERE_RADIUS = 0.017;
 var WEB_STYLUS_COLOR = { red: 0, green: 240, blue: 0 };
 var WEB_STYLUS_TIP_COLOR = { red: 0, green: 0, blue: 240 };
 var WEB_STYLUS_ALPHA = 1.0;
-var WEB_DISPLAY_STYLUS_DISTANCE = 0.3;
+var WEB_DISPLAY_STYLUS_DISTANCE = 1.0;
 var WEB_TOUCH_DISTANCE = 0.2;
 
 //
@@ -962,6 +962,7 @@ function MyController(hand) {
         if (!MyAvatar.sessionUUID) {
             return;
         }
+        print("SHOW");
         var stylusTipProperties = {
             localPosition: Vec3.sum({ x: 0, y: WEB_TOUCH_DISTANCE - (WEB_TOUCH_SPHERE_RADIUS / 2.0), z: 0 },
                                     getGrabPointSphereOffset(this.handToController())),
@@ -1003,6 +1004,7 @@ function MyController(hand) {
         if (!this.stylus) {
             return;
         }
+        print("HIDE");
         Overlays.deleteOverlay(this.stylus);
         this.stylus = null;
         Overlays.deleteOverlay(this.stylusTip);
@@ -1227,8 +1229,12 @@ function MyController(hand) {
         var rayPickInfo = this.calcRayPickInfo(this.hand);
         if (rayPickInfo.overlayID && rayPickInfo.distance < WEB_DISPLAY_STYLUS_DISTANCE) {
             this.showStylus();
+            this.hideStylusCounter = 0;
         } else {
-            this.hideStylus();
+            this.hideStylusCounter++;
+            if (this.hideStylusCounter > 10) {
+                this.hideStylus();
+            }
             return;
         }
 
