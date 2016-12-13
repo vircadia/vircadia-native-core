@@ -15,9 +15,8 @@ import "../styles-uit"
 
 
 Column {
-    visible: !isCheckBox;
-    property string displayName: styleData.value;
-    property string userName: model.userName;
+    property string displayName: "";
+    property string userName: "";
     property int displayTextHeight: 18;
     property int usernameTextHeight: 12;
 
@@ -28,7 +27,7 @@ Column {
         width: parent.width;
     }
     RalewayLight {
-        visible: styleData.value;
+        visible: parent.displayName;
         text: parent.userName;
         size: parent.usernameTextHeight;
         elide: Text.ElideRight;
