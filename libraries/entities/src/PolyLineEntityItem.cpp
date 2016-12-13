@@ -183,7 +183,7 @@ EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParam
 }
 
 void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                            EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                            EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
                                             EntityPropertyFlags& requestedProperties,
                                             EntityPropertyFlags& propertyFlags,
                                             EntityPropertyFlags& propertiesDidntFit,
