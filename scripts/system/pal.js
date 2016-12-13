@@ -11,33 +11,33 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// FIXME: (function() { // BEGIN LOCAL_SCOPE
+// FIXME when we make this a defaultScript: (function() { // BEGIN LOCAL_SCOPE
 
 // Overlays
 var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
 function ExtendedOverlay(key, type, properties) { // A wrapper around overlays to store the key it is associated with.
     overlays[key] = this;
     this.key = key;
-    this.unselectedOverlay = Overlays.addOverlay(type, properties);
+    this.selected = false; // not undefined
+    this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
 }
 // Instance methods:
 ExtendedOverlay.prototype.deleteOverlay = function () { // remove display and data of this overlay
-    Overlays.deleteOverlay(this.unselectedOverlay);
-    if (this.selected) {
-        Overlays.deleteOverlay(this.selectedOverlay);
-    }
+    Overlays.deleteOverlay(this.activeOverlay);
     delete overlays[this.key];
 };
+
 ExtendedOverlay.prototype.editOverlay = function (properties) { // change display of this overlay
-    Overlays.editOverlay(this.selected ? this.selectedOverlay : this.unselectedOverlay, properties);
+    Overlays.editOverlay(this.activeOverlay, properties);
 };
-ExtendedOverlay.prototype.select = function (selected, type, initialProperties) {
-    if (selected && !this.selectedOverlay) {
-        this.selectedOverlay = Overlays.addOverlay(type, initialProperties);
+var UNSELECTED_COLOR = {red: 20, green: 250, blue: 20};
+var SELECTED_COLOR = {red: 250, green: 20, blue: 20};
+ExtendedOverlay.prototype.select = function (selected) {
+    if (this.selected === selected) {
+        return;
     }
+    this.editOverlay({color: selected ? SELECTED_COLOR : UNSELECTED_COLOR});
     this.selected = selected;
-    Overlays.editOverlay(this.unselectedOverlay, {visible: !selected});
-    Overlays.editOverlay(this.selectedOverlay, {visible: selected});
 };
 // Class methods:
 ExtendedOverlay.get = function (key) { // answer the extended overlay data object associated with the given avatar identifier
@@ -57,7 +57,7 @@ ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the on
         return;
     }
     ExtendedOverlay.some(function (overlay) { // See if pickedOverlay is one of ours.
-        if ((overlay.selected ? overlay.selectedOverlay : overlay.unselectedOverlay) === pickedOverlay.overlayID) {
+        if ((overlay.activeOverlay) === pickedOverlay.overlayID) {
             cb(overlay);
             return true;
         }
@@ -67,20 +67,20 @@ ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the on
 
 var pal = new OverlayWindow({
     title: 'People Action List',
-    source: Script.resolvePath('../../qml/hifi/Pal.qml'),
+    source: 'hifi/Pal.qml',
     width: 480,
     height: 640,
     visible: false
+});
+pal.fromQml.connect(function (message) {
+    ExtendedOverlay.some(function (overlay) {
+        overlay.select(-1 !== message.indexOf(overlay.key));
+    });
 });
 
 var AVATAR_OVERLAY = Script.resolvePath("assets/images/grabsprite-3.png");
 function populateUserList() {
     var data = [];
-    /*data.push({ // Create an extra user for debugging.
-        displayName: "Dummy Debugging User",
-        userName: "foo.bar",
-        sessionId: 'XXX'
-    })*/
     var counter = 1;
     AvatarList.getAvatarIdentifiers().forEach(function (id) {
         var avatar = AvatarList.getAvatar(id);
@@ -90,26 +90,39 @@ function populateUserList() {
             sessionId: id
         });
         if (id) { // No overlay for us
-            new ExtendedOverlay(id, "image3d", { // 3d so we don't go cross-eyed looking at it, but on top of everything
-                imageURL: AVATAR_OVERLAY,
+            new ExtendedOverlay(id, "sphere", { // 3d so we don't go cross-eyed looking at it, but on top of everything
+                solid: true,
+                alpha: 0.8,
+                color: UNSELECTED_COLOR,
+                dimensions: 0.4,
                 drawInFront: true
             });
         }
     });
     pal.sendToQml(data);
 }
+var pingPong = true;
 function updateOverlays() {
-    //var eye = Camera.position;
+    var eye = Camera.position;
     AvatarList.getAvatarIdentifiers().forEach(function (id) {
         if (!id) {
             return; // don't update ourself
         }
         var avatar = AvatarList.getAvatar(id);
         var target = avatar.position;
-        //var distance = Vec3.distance(target, eye);
-        ExtendedOverlay.get(id).editOverlay({
-            position: target
+        var distance = Vec3.distance(target, eye);
+        var overlay = ExtendedOverlay.get(id);
+        overlay.ping = pingPong;
+        overlay.editOverlay({
+            position: target,
+            dimensions: 0.05 * distance // constant apparent size
         });
+    });
+    pingPong = !pingPong;
+    ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
+        if (overlay.ping === pingPong) {
+            overlay.deleteOverlay();
+        }
     });
 }
 function removeOverlays() {
@@ -121,7 +134,7 @@ var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var buttonName = "pal";
 var button = toolBar.addButton({
     objectName: buttonName,
-    imageURL: Script.resolvePath("assets/images/tools/ignore.svg"),
+    imageURL: Script.resolvePath("assets/images/tools/people.svg"),
     visible: true,
     hoverState: 2,
     defaultState: 1,
@@ -151,6 +164,7 @@ Script.scriptEnding.connect(function () {
     toolBar.removeButton(buttonName);
     pal.visibleChanged.disconnect(onVisibileChanged);
     button.clicked.disconnect(onClicked);
+    removeOverlays();
 });
 
 

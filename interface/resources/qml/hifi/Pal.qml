@@ -40,7 +40,7 @@ Rectangle {
     property int actionWidth: nameWidth / (table.columnCount - 1);
     property int rowHeight: 50;
     property var userData: [];
-    property var myData: null;
+    property var myData: ({displayName: "", userName: ""}); // valid dummy until set
     function fromScript(data) {
         var myIndex = 0;
         while ((myIndex < data.length) && data[myIndex].sessionId) myIndex++; // no findIndex in .qml
@@ -61,8 +61,8 @@ Rectangle {
         userData.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
             switch (true) {
-            case (aValue < bValue): console.log(aValue, bValue, before); return before;
-            case (aValue > bValue): console.log(aValue, bValue, after); return after;
+            case (aValue < bValue): console.log('fixme', aValue, bValue, before); return before;
+            case (aValue > bValue): console.log('fixme', aValue, bValue, after); return after;
             default: return 0;
             }
         });
@@ -79,6 +79,22 @@ Rectangle {
             userModel.append(datum);
         });
     }
+    signal sendToScript(var message);
+    function noticeSelection() {
+        console.log('selection changed');
+        var userIds = [];
+        table.selection.forEach(function (userIndex) {
+            userIds.push(userData[userIndex].sessionId);
+        });
+        console.log('fixme selected ' + JSON.stringify(userIds));
+        pal.sendToScript(userIds);
+        //pal.parent.sendToScript(userIds);
+    }
+    Connections {
+        target: table.selection
+        onSelectionChanged: pal.noticeSelection()
+    }
+
     Column {
         NameCard {
             id: myCard;
