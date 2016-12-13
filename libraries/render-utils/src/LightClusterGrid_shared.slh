@@ -58,7 +58,6 @@ float frustumGrid_eyeToVolumeDepth(float eposZ, float rangeNear, float rangeFar)
     return (-eposZ - rangeNear) / (rangeFar - rangeNear);
 }
 
-
 vec3 frustumGrid_eyeToVolume(vec3 epos, mat4 projection, float rangeNear, float rangeFar) {
     vec4 clipPos = vec4(epos.x * projection[0][0] + epos.z * projection[2][0],
         epos.y * projection[1][1] + epos.z * projection[2][1],
@@ -126,14 +125,15 @@ int frustumGrid_eyeDepthToClusterLayer(float eyeZ) {
 }
 
 ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
-    if ((eyePos.z > -frustumGrid.frustumNear) || (eyePos.z < -frustumGrid.frustumFar)) {
+ /*
+ if ((eyePos.z > -frustumGrid.frustumNear) || (eyePos.z < -frustumGrid.frustumFar)) {
         return ivec3(-2);
     }
     
     if (eyePos.z > -frustumGrid.rangeNear) {
         return ivec3(0,0,-1);
     }
-    
+ */   
     vec3 volumePos = frustumGrid_eyeToVolume(eyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
 
 
@@ -143,8 +143,38 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
         gridPos.z = frustumGrid.dims.z;
     }
 
+    ivec3 igridPos = ivec3(floor(gridPos));
 
-    return ivec3(floor(gridPos));
+    if ((eyePos.z > -frustumGrid.frustumNear) || (eyePos.z < -frustumGrid.frustumFar)) {
+        return ivec3(igridPos.x, igridPos.y, - 2);
+    }
+
+    if (eyePos.z > -frustumGrid.rangeNear) {
+        return ivec3(igridPos.x, igridPos.y, -1);
+    }
+
+    return igridPos;
+    //ivec3(floor(gridPos));
+}
+
+ivec3 frustumGrid_eyeToClusterPosSafe(vec3 eyePos) {
+    if (eyePos.z <= 0) {
+        return frustumGrid_eyeToClusterPos(eyePos);
+    } else {
+        // Flip the eyePos
+        vec3 volumePos = frustumGrid_eyeToVolume(vec3(eyePos.x, eyePos.y, -eyePos.z), frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
+
+
+        vec3 gridPos = frustumGrid_volumeToGrid(volumePos, frustumGrid.dims);
+
+        if (gridPos.z >= frustumGrid.dims.z) {
+            gridPos.z = frustumGrid.dims.z;
+        }
+
+        ivec3 clusterPos = ivec3(floor(gridPos));
+
+        return ivec3(clusterPos.x, clusterPos.y, -2);
+    }
 }
 
 int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
