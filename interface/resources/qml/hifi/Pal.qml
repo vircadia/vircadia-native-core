@@ -41,14 +41,41 @@ Rectangle {
     property int rowHeight: 50;
     property var userData: [];
     property var myData: ({displayName: "", userName: ""}); // valid dummy until set
-    function fromScript(data) {
-        var myIndex = 0;
-        while ((myIndex < data.length) && data[myIndex].sessionId) myIndex++; // no findIndex in .qml
-        myData = data[myIndex];
-        data.splice(myIndex, 1);
-        userData = data;
-        console.log('FIXME', JSON.stringify(myData), myIndex, JSON.stringify(userData));
-        sortModel();
+    function findSessionIndex(sessionId) { // no findIndex in .qml
+        for (var i = 0; i < userData.length; i++) {
+            if (userData[i].sessionId === sessionId) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    function fromScript(message) {
+        console.log('fixme got message from script', JSON.stringify(message));
+        switch (message.method) {
+        case 'users':
+            var data = message.params;
+            var myIndex = findSessionIndex('');
+            myData = data[myIndex];
+            data.splice(myIndex, 1);
+            userData = data;
+            console.log('FIXME', JSON.stringify(myData), myIndex, JSON.stringify(userData));
+            sortModel();
+            break;
+        case 'select':
+            var sessionId = message.params[0];
+            var selected = message.params[1];
+            var userIndex = findSessionIndex(sessionId);
+            console.log('fixme select', sessionId, selected, userIndex);
+            if (selected) {
+                table.selection.clear(); // for now, no multi-select
+                table.selection.select(userIndex);
+            } else {
+                table.selection.deselect(userIndex);
+            }
+            break;
+        default:
+            console.log('Unrecognized message:', JSON.stringify(message));
+        }
     }
     ListModel {
         id: userModel
@@ -87,8 +114,7 @@ Rectangle {
             userIds.push(userData[userIndex].sessionId);
         });
         console.log('fixme selected ' + JSON.stringify(userIds));
-        pal.sendToScript(userIds);
-        //pal.parent.sendToScript(userIds);
+        pal.sendToScript({method: 'selected', params: userIds});
     }
     Connections {
         target: table.selection
