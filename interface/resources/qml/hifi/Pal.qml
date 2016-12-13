@@ -28,7 +28,6 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import "../styles-uit" // fixme should end up removeable
 
 Rectangle {
     id: pal;
@@ -50,7 +49,6 @@ Rectangle {
         return -1;
     }
     function fromScript(message) {
-        console.log('fixme got message from script', JSON.stringify(message));
         switch (message.method) {
         case 'users':
             var data = message.params;
@@ -58,14 +56,12 @@ Rectangle {
             myData = data[myIndex];
             data.splice(myIndex, 1);
             userData = data;
-            console.log('FIXME', JSON.stringify(myData), myIndex, JSON.stringify(userData));
             sortModel();
             break;
         case 'select':
             var sessionId = message.params[0];
             var selected = message.params[1];
             var userIndex = findSessionIndex(sessionId);
-            console.log('fixme select', sessionId, selected, userIndex);
             if (selected) {
                 table.selection.clear(); // for now, no multi-select
                 table.selection.select(userIndex);
@@ -84,12 +80,11 @@ Rectangle {
         var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
         var before = (table.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
         var after = -1 * before;
-        console.log('fixme sort', table.sortIndicatorColumn, sortProperty, before, after);
         userData.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
             switch (true) {
-            case (aValue < bValue): console.log('fixme', aValue, bValue, before); return before;
-            case (aValue > bValue): console.log('fixme', aValue, bValue, after); return after;
+            case (aValue < bValue): return before;
+            case (aValue > bValue): return after;
             default: return 0;
             }
         });
@@ -113,7 +108,6 @@ Rectangle {
         table.selection.forEach(function (userIndex) {
             userIds.push(userData[userIndex].sessionId);
         });
-        console.log('fixme selected ' + JSON.stringify(userIds));
         pal.sendToScript({method: 'selected', params: userIds});
     }
     Connections {
