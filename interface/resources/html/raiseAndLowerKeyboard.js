@@ -19,7 +19,7 @@
     function shouldRaiseKeyboard() {
         var nodeName = document.activeElement.nodeName;
         var nodeType = document.activeElement.type;
-        if (nodeName === "INPUT" && (nodeType === "text" || nodeType === "number")
+        if (nodeName === "INPUT" && (nodeType === "text" || nodeType === "number" || nodeType === "password")
             || document.activeElement.nodeName === "TEXTAREA") {
             return true;
         } else {
