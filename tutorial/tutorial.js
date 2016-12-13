@@ -419,6 +419,7 @@ function reenableEverything() {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepStart = function() {
+    this.name = 'start';
 };
 stepStart.prototype = {
     start: function(onFinish) {
@@ -463,6 +464,7 @@ stepEnableControllers.prototype = {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepOrient = function(tutorialManager) {
+    this.name = 'orient';
     this.tags = ["orient", "orient-" + tutorialManager.controllerName];
 }
 stepOrient.prototype = {
@@ -516,6 +518,7 @@ stepOrient.prototype = {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepNearGrab = function() {
+    this.name = 'nearGrab';
     this.tag = "nearGrab";
     this.tempTag = "nearGrab-temporary";
     this.birdIDs = [];
@@ -589,6 +592,7 @@ stepNearGrab.prototype = {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepFarGrab = function() {
+    this.name = 'farGrab';
     this.tag = "farGrab";
     this.tempTag = "farGrab-temporary";
     this.finished = true;
@@ -693,6 +697,8 @@ PositionWatcher.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepEquip = function(tutorialManager) {
     const controllerName = tutorialManager.controllerName;
+
+    this.name = 'equip';
 
     this.tags = ["equip", "equip-" + controllerName];
     this.tagsPart1 = ["equip-part1", "equip-part1-" + controllerName];
@@ -834,6 +840,8 @@ stepEquip.prototype = {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepTurnAround = function(tutorialManager) {
+    this.name = 'turnAround';
+
     this.tags = ["turnAround", "turnAround-" + tutorialManager.controllerName];
     this.tempTag = "turnAround-temporary";
 
@@ -922,6 +930,8 @@ stepTurnAround.prototype = {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepTeleport = function(tutorialManager) {
+    this.name = 'teleport';
+
     this.tags = ["teleport", "teleport-" + tutorialManager.controllerName];
     this.tempTag = "teleport-temporary";
 }
@@ -984,6 +994,8 @@ stepTeleport.prototype = {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 var stepFinish = function() {
+    this.name = 'finish';
+
     this.tag = "finish";
     this.tempTag = "finish-temporary";
 }
@@ -999,6 +1011,8 @@ stepFinish.prototype = {
 };
 
 var stepCleanupFinish = function() {
+    this.name = 'cleanup';
+
     this.shouldLog = false;
 }
 stepCleanupFinish.prototype = {
@@ -1073,7 +1087,7 @@ TutorialManager = function() {
     this.onFinish = function() {
         debug("onFinish", currentStepNum);
         if (currentStep && currentStep.shouldLog !== false) {
-            self.trackStep(currentStep.tag, currentStepNum);
+            self.trackStep(currentStep.name, currentStepNum);
         }
 
         self.startNextStep();
