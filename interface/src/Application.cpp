@@ -5809,19 +5809,20 @@ void Application::addAssetToWorldCheckModelSize() {
         const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
         if (dimensions != DEFAULT_DIMENSIONS) {
             // Entity has been auto-resized; adjust dimensions if it seems too big.
-
+            EntityItemProperties properties;
             const float RESCALE_THRESHOLD = 10.0f;  // Resize entities larger than this as the FBX is likely in cm or mm.
             if (dimensions.x > RESCALE_THRESHOLD || dimensions.y > RESCALE_THRESHOLD || dimensions.z > RESCALE_THRESHOLD) {
                 auto dimensionsResized = dimensions * 0.01f;
-                EntityItemProperties properties;
                 properties.setDimensions(dimensionsResized);
-                properties.setVisible(true);
-                properties.setCollisionless(false);
-                properties.setLastEdited(usecTimestampNow());
-                entityScriptingInterface->editEntity(entityID, properties);
-                qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << dimensions << " to " 
+                qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << dimensions << " to "
                     << dimensionsResized;
+            } else {
+                qInfo(interfaceapp) << "Asset" << name << "does not need to be auto-resized";
             }
+            properties.setVisible(true);
+            properties.setCollisionless(false);
+            properties.setLastEdited(usecTimestampNow());
+            entityScriptingInterface->editEntity(entityID, properties);
 
             item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity.
 
@@ -5838,8 +5839,8 @@ void Application::addAssetToWorldCheckModelSize() {
                 properties.setCollisionless(false);
                 properties.setLastEdited(usecTimestampNow());
                 entityScriptingInterface->editEntity(entityID, properties);
-
                 qInfo(interfaceapp) << "Asset" << name << "auto-resize timed out";
+
                 item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity.
 
             } else {
