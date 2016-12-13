@@ -127,7 +127,8 @@ int frustumGrid_eyeDepthToClusterLayer(float eyeZ) {
 ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
 
     // make sure the frontEyePos is always in the front to eval the grid pos correctly
-    vec3 frontEyePos = vec3(eyePos.x, eyePos.y, -abs(eyePos.z));
+    vec3 frontEyePos = eyePos;
+    frontEyePos.z = (eyePos.z > 0.0f ? -eyePos.z : eyePos.z);
     vec3 volumePos = frustumGrid_eyeToVolume(frontEyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
 
 
