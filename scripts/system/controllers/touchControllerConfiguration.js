@@ -28,10 +28,11 @@ var rightBaseRotation = Quat.multiply(
     )
 );
 
-// keep these in sync with the values from plugins/openvr/src/OpenVrHelpers.cpp:303
+// keep these in sync with the values from SteamVRHelpers.cpp
 var CONTROLLER_LATERAL_OFFSET = 0.0381;
-var CONTROLLER_VERTICAL_OFFSET = 0.0495;
-var CONTROLLER_FORWARD_OFFSET = 0.1371;
+var CONTROLLER_VERTICAL_OFFSET = 0.0381;
+var CONTROLLER_FORWARD_OFFSET = 0.1524;
+
 var leftBasePosition = {
     x: CONTROLLER_VERTICAL_OFFSET,
     y: CONTROLLER_FORWARD_OFFSET,
