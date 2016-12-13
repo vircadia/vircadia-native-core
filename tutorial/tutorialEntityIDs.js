@@ -99,10 +99,17 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "equip-part1"
         }
     },
-    "equip-part2": {
+    "equip-part2-vive": {
         "{b5d17eda-90ab-40cf-b973-efcecb2e992e}": {
-            "tag": "equip-part2"
-        },
+            "tag": "equip-part2-vive"
+        }
+    },
+    "equip-part2-touch": {
+        "{69195139-e020-4739-bb2c-50faebc6860a}": {
+            "tag": "equip-part2-touch"
+        }
+    },
+    "equip-part2": {
         "{6307cd16-dd1d-4988-a339-578178436b45}": {
             "tag": "equip-part2"
         }
