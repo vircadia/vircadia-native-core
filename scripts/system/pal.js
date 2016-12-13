@@ -142,10 +142,8 @@ function removeOverlays() {
 
 // Clicks
 function handleClick(pickRay) {
-    print('fixme handleClick', JSON.stringify(pickRay));
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         var message = {method: 'select', params: [overlay.key, !overlay.selected]};
-        print('fixme sending to qml:', JSON.stringify(message));
         pal.sendToQml(message);
         return true;
     });
@@ -160,23 +158,15 @@ function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
 // But we dont' get mousePressEvents.
 var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 function controllerComputePickRay(hand) {
-    print('fixme controllerComputePickRay', hand);
     var controllerPose = getControllerWorldLocation(hand, true);
-    print('fixme pose', JSON.stringify(controllerPose), 'valid', controllerPose.valid);
     if (controllerPose.valid) {
-        print('fixme controllerComputePickRay', hand);
-        var xxfixme = { origin: controllerPose.position, direction: Quat.getUp(controllerPose.orientation) };
-        print('fixme result', JSON.stringify(xxfixme));
-        return xxfixme;
+        return { origin: controllerPose.position, direction: Quat.getUp(controllerPose.orientation) };
     }
-    print('fixme controllerComputePickRay failed', hand, JSON.stringify(controllerPose));
 }
 function makeClickHandler(hand) {
     return function(clicked) {
         if (clicked > 0.85) {
-            print('fixme click handler on', clicked, hand);
             var pickRay = controllerComputePickRay(hand);
-            print('fixme pickRay', JSON.stringify(pickRay));
             handleClick(pickRay);
         }
     };
