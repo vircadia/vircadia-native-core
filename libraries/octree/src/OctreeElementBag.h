@@ -40,6 +40,11 @@ private:
     Bag _bagElements;
 };
 
-using OctreeElementExtraEncodeData = QMap<const OctreeElement*, void*>;
+class OctreeElementExtraEncodeDataBase {
+public:
+    OctreeElementExtraEncodeDataBase() {}
+};
+using OctreeElementExtraEncodeDataBasePointer = std::shared_ptr<OctreeElementExtraEncodeDataBase>;
+using OctreeElementExtraEncodeData = QMap<const OctreeElement*, OctreeElementExtraEncodeDataBasePointer>;
 
 #endif // hifi_OctreeElementBag_h

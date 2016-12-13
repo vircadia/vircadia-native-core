@@ -71,12 +71,11 @@ public:
     
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
-    void ignoreNodesInRadius(float radiusToIgnore, bool enabled = true);
-    float getIgnoreRadius() const { return _ignoreRadius.get(); }
+    void ignoreNodesInRadius(bool enabled = true);
     bool getIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled.get(); }
-    void toggleIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), !getIgnoreRadiusEnabled()); }
-    void enableIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), true); }
-    void disableIgnoreRadius() { ignoreNodesInRadius(getIgnoreRadius(), false); }
+    void toggleIgnoreRadius() { ignoreNodesInRadius(!getIgnoreRadiusEnabled()); }
+    void enableIgnoreRadius() { ignoreNodesInRadius(true); }
+    void disableIgnoreRadius() { ignoreNodesInRadius(false); }
     void ignoreNodeBySessionID(const QUuid& nodeID);
     bool isIgnoringNode(const QUuid& nodeID) const;
 
@@ -156,7 +155,6 @@ private:
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
     Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };
-    Setting::Handle<float> _ignoreRadius { "IgnoreRadius", 1.0f };
 
 #if (PR_BUILD || DEV_BUILD)
     bool _shouldSendNewerVersion { false };

@@ -55,6 +55,7 @@ namespace AvatarDataPacket {
     PACKED_BEGIN struct Header {
         float position[3];                // skeletal model's position
         float globalPosition[3];          // avatar's position
+        float globalBoundingBoxCorner[3]; // global position of the lowest corner of the avatar's bounding box 
         uint16_t localOrientation[3];     // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
         uint16_t scale;                   // (compressed) 'ratio' encoding uses sign bit as flag.
         float lookAtPosition[3];          // world space position that eyes are focusing on.
@@ -64,7 +65,7 @@ namespace AvatarDataPacket {
         float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
         uint8_t flags;
     } PACKED_END;
-    const size_t HEADER_SIZE = 69;
+    const size_t HEADER_SIZE = 81;
 
     // only present if HAS_REFERENTIAL flag is set in header.flags
     PACKED_BEGIN struct ParentInfo {
@@ -205,6 +206,9 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     header->globalPosition[0] = _globalPosition.x;
     header->globalPosition[1] = _globalPosition.y;
     header->globalPosition[2] = _globalPosition.z;
+    header->globalBoundingBoxCorner[0] = getPosition().x - _globalBoundingBoxCorner.x;
+    header->globalBoundingBoxCorner[1] = getPosition().y - _globalBoundingBoxCorner.y;
+    header->globalBoundingBoxCorner[2] = getPosition().z - _globalBoundingBoxCorner.z;
 
     glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(getLocalOrientation()));
     packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 0), bodyEulerAngles.y);
@@ -481,6 +485,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     glm::vec3 position = glm::vec3(header->position[0], header->position[1], header->position[2]);
     _globalPosition = glm::vec3(header->globalPosition[0], header->globalPosition[1], header->globalPosition[2]);
+    _globalBoundingBoxCorner = glm::vec3(header->globalBoundingBoxCorner[0], header->globalBoundingBoxCorner[1], header->globalBoundingBoxCorner[2]);
     if (isNaN(position)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: position NaN, uuid " << getSessionUUID();

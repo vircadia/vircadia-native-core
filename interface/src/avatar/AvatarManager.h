@@ -79,7 +79,7 @@ public slots:
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private slots:
-    virtual void removeAvatar(const QUuid& sessionUUID) override;
+    virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
 private:
     explicit AvatarManager(QObject* parent = 0);
@@ -91,7 +91,7 @@ private:
     virtual AvatarSharedPointer newSharedAvatar() override;
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
 
-    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) override;
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarFades;
     std::shared_ptr<MyAvatar> _myAvatar;

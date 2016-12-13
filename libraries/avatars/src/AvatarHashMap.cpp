@@ -141,20 +141,23 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // read the node id
     QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-    removeAvatar(sessionUUID);
+
+    KillAvatarReason reason;
+    message->readPrimitive(&reason);
+    removeAvatar(sessionUUID, reason);
 }
 
-void AvatarHashMap::removeAvatar(const QUuid& sessionUUID) {
+void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
     QWriteLocker locker(&_hashLock);
 
     auto removedAvatar = _avatarHash.take(sessionUUID);
 
     if (removedAvatar) {
-        handleRemovedAvatar(removedAvatar);
+        handleRemovedAvatar(removedAvatar, removalReason);
     }
 }
 
-void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
+void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     qDebug() << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
         << "from AvatarHashMap";
     emit avatarRemovedEvent(removedAvatar->getSessionUUID());
