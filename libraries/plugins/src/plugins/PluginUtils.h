@@ -17,5 +17,6 @@ public:
     static bool isHMDAvailable(const QString& pluginName = "");
     static bool isHandControllerAvailable();
     static bool isViveControllerAvailable();
+    static bool isOculusTouchControllerAvailable();
     static bool isXboxControllerAvailable();
 };
