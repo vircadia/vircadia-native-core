@@ -47,11 +47,9 @@ Item {
                                 hifi.dimensions.contentSpacing.y + textField.height +
                                 hifi.dimensions.contentSpacing.y + buttons.height
 
-            root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
-            root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y)
-
-            height = root.height
         }
     }
 

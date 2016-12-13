@@ -76,7 +76,7 @@ OriginalDesktop.Desktop {
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
 
         [ // Allocate the standard buttons in the correct order. They will get images, etc., via scripts.
-            "hmdToggle", "mute", "mod", "help",
+            "hmdToggle", "mute", "mod", "bubble", "help",
             "hudToggle",
             "com.highfidelity.interface.system.editButton", "marketplace", "snapshot", "goto"
         ].forEach(function (name) {

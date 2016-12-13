@@ -19,6 +19,7 @@ AudioInjectorOptions::AudioInjectorOptions() :
     loop(false),
     orientation(glm::vec3(0.0f, 0.0f, 0.0f)),
     stereo(false),
+    ambisonic(false),
     ignorePenumbra(false),
     localOnly(false),
     secondOffset(0.0)

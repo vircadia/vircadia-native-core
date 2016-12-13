@@ -15,6 +15,7 @@ namespace hifi { namespace properties {
     extern const char* CRASHED;
     extern const char* STEAM;
     extern const char* LOGGER;
+    extern const char* TEST;
 
     namespace gl {
         extern const char* BACKEND;

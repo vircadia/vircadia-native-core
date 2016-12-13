@@ -52,14 +52,6 @@ void UsersScriptingInterface::disableIgnoreRadius() {
     DependencyManager::get<NodeList>()->disableIgnoreRadius();
 }
 
-void UsersScriptingInterface::setIgnoreRadius(float radius, bool enabled) {
-    DependencyManager::get<NodeList>()->ignoreNodesInRadius(radius, enabled);
-}
-
- float UsersScriptingInterface::getIgnoreRadius() {
-    return DependencyManager::get<NodeList>()->getIgnoreRadius();
-}
-
 bool UsersScriptingInterface::getIgnoreRadiusEnabled() {
     return DependencyManager::get<NodeList>()->getIgnoreRadiusEnabled();
 }

@@ -90,6 +90,8 @@ public:
     bool shouldMuteClient() { return _shouldMuteClient; }
     void setShouldMuteClient(bool shouldMuteClient) { _shouldMuteClient = shouldMuteClient; }
     glm::vec3 getPosition() { return getAvatarAudioStream() ? getAvatarAudioStream()->getPosition() : glm::vec3(0); }
+    glm::vec3 getAvatarBoundingBoxCorner() { return getAvatarAudioStream() ? getAvatarAudioStream()->getAvatarBoundingBoxCorner() : glm::vec3(0); }
+    glm::vec3 getAvatarBoundingBoxScale() { return getAvatarAudioStream() ? getAvatarAudioStream()->getAvatarBoundingBoxScale() : glm::vec3(0); }
 
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
