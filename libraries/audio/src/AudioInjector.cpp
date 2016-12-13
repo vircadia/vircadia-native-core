@@ -278,6 +278,12 @@ int64_t AudioInjector::injectNextFrame() {
             audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
                                            sizeof(_options.orientation));
 
+            audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
+                sizeof(_options.position));
+            glm::vec3 boxCorner = glm::vec3(0);
+            audioPacketStream.writeRawData(reinterpret_cast<const char*>(&boxCorner),
+                sizeof(glm::vec3));
+
             // pack zero for radius
             float radius = 0;
             audioPacketStream << radius;
