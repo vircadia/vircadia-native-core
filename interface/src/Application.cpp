@@ -5806,6 +5806,8 @@ void Application::addAssetToWorldCheckModelSize() {
         auto name = properties.getName();
         auto dimensions = properties.getDimensions();
 
+        const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
+
         const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
         if (dimensions != DEFAULT_DIMENSIONS) {
             // Entity has been auto-resized; adjust dimensions if it seems too big.
@@ -5821,6 +5823,8 @@ void Application::addAssetToWorldCheckModelSize() {
             }
             properties.setVisible(true);
             properties.setCollisionless(false);
+            properties.setDynamic(true);
+            properties.setUserData(GRABBABLE_USER_DATA);
             properties.setLastEdited(usecTimestampNow());
             entityScriptingInterface->editEntity(entityID, properties);
 
@@ -5837,6 +5841,8 @@ void Application::addAssetToWorldCheckModelSize() {
                 EntityItemProperties properties;
                 properties.setVisible(true);
                 properties.setCollisionless(false);
+                properties.setDynamic(true);
+                properties.setUserData(GRABBABLE_USER_DATA);
                 properties.setLastEdited(usecTimestampNow());
                 entityScriptingInterface->editEntity(entityID, properties);
                 qInfo(interfaceapp) << "Asset" << name << "auto-resize timed out";
