@@ -23,11 +23,13 @@
     var bubbleButtonFlashState = false;
     // Used for flashing the HUD button upon activation
     var bubbleButtonTimestamp;
+    // Affects bubble height
+    const BUBBLE_HEIGHT_SCALE = 0.15;
     // The bubble model itself
     var bubbleOverlay = Overlays.addOverlay("model", {
         url: Script.resolvePath("assets/models/bubble-v12.fbx"), // If you'd like to change the model, modify this line (and the dimensions below)
         dimensions: { x: 1.0, y: 0.75, z: 1.0 },
-        position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * 0.28, z: MyAvatar.position.z },
+        position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, z: MyAvatar.position.z },
         rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
         scale: { x: 2, y: MyAvatar.scale * 0.5 + 0.5, z: 2 },
         visible: false,
@@ -71,7 +73,7 @@
         }
 
         Overlays.editOverlay(bubbleOverlay, {
-            position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * 0.28, z: MyAvatar.position.z },
+            position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, z: MyAvatar.position.z },
             rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
             scale: { x: 2, y: MyAvatar.scale * 0.5 + 0.5, z: 2 },
             visible: true
@@ -112,7 +114,7 @@
                     // Quickly raise the bubble from the ground up
                     position: {
                         x: MyAvatar.position.x,
-                        y: (-((BUBBLE_RAISE_ANIMATION_DURATION_MS - delay) / BUBBLE_RAISE_ANIMATION_DURATION_MS)) * MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * 0.28,
+                        y: (-((BUBBLE_RAISE_ANIMATION_DURATION_MS - delay) / BUBBLE_RAISE_ANIMATION_DURATION_MS)) * MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE,
                         z: MyAvatar.position.z
                     },
                     rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
@@ -127,7 +129,7 @@
                 Overlays.editOverlay(bubbleOverlay, {
                     position: {
                         x: MyAvatar.position.x,
-                        y: MyAvatar.position.y + MyAvatar.scale * 0.28,
+                        y: MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE,
                         z: MyAvatar.position.z
                     },
                     rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
