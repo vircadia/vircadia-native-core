@@ -58,9 +58,6 @@ QStringList kinectJointNames = {
 
 const bool DEFAULT_ENABLED = false;
 
-// indices of joints of the Kinect standard skeleton.
-// This is 'almost' the same as the High Fidelity standard skeleton.
-// It is missing a thumb joint.
 enum KinectJointIndex {
     SpineBase = 0,
     SpineMid,
@@ -98,11 +95,8 @@ enum KinectJointIndex {
     Size
 };
 
-// -1 or 0???
 #define UNKNOWN_JOINT (controller::StandardPoseChannel)0 
 
-// Almost a direct mapping except for LEFT_HAND_THUMB1 and RIGHT_HAND_THUMB1,
-// which are not present in the Kinect standard skeleton.
 static controller::StandardPoseChannel KinectJointIndexToPoseIndexMap[KinectJointIndex::Size] = {
     controller::HIPS,
     controller::SPINE,
@@ -137,52 +131,6 @@ static controller::StandardPoseChannel KinectJointIndexToPoseIndexMap[KinectJoin
     controller::RIGHT_HAND_INDEX4,
     controller::RIGHT_HAND_THUMB4,
 
-
-    /**
-    controller::SPINE1,
-    controller::SPINE2,
-    controller::SPINE3,
-
-    controller::RIGHT_HAND_THUMB2,
-    controller::RIGHT_HAND_THUMB3,
-    controller::RIGHT_HAND_THUMB4,
-    controller::RIGHT_HAND_INDEX1,
-    controller::RIGHT_HAND_INDEX2,
-    controller::RIGHT_HAND_INDEX3,
-    controller::RIGHT_HAND_INDEX4,
-    controller::RIGHT_HAND_MIDDLE1,
-    controller::RIGHT_HAND_MIDDLE2,
-    controller::RIGHT_HAND_MIDDLE3,
-    controller::RIGHT_HAND_MIDDLE4,
-    controller::RIGHT_HAND_RING1,
-    controller::RIGHT_HAND_RING2,
-    controller::RIGHT_HAND_RING3,
-    controller::RIGHT_HAND_RING4,
-    controller::RIGHT_HAND_PINKY1,
-    controller::RIGHT_HAND_PINKY2,
-    controller::RIGHT_HAND_PINKY3,
-    controller::RIGHT_HAND_PINKY4,
-
-    controller::LEFT_HAND_THUMB2,
-    controller::LEFT_HAND_THUMB3,
-    controller::LEFT_HAND_THUMB4,
-    controller::LEFT_HAND_INDEX1,
-    controller::LEFT_HAND_INDEX2,
-    controller::LEFT_HAND_INDEX3,
-    controller::LEFT_HAND_INDEX4,
-    controller::LEFT_HAND_MIDDLE1,
-    controller::LEFT_HAND_MIDDLE2,
-    controller::LEFT_HAND_MIDDLE3,
-    controller::LEFT_HAND_MIDDLE4,
-    controller::LEFT_HAND_RING1,
-    controller::LEFT_HAND_RING2,
-    controller::LEFT_HAND_RING3,
-    controller::LEFT_HAND_RING4,
-    controller::LEFT_HAND_PINKY1,
-    controller::LEFT_HAND_PINKY2,
-    controller::LEFT_HAND_PINKY3,
-    controller::LEFT_HAND_PINKY4
-    **/
 };
 
 // in rig frame
@@ -269,19 +217,9 @@ static const char* getControllerJointName(controller::StandardPoseChannel i) {
     return "unknown";
 }
 
-// convert between YXZ Kinect euler angles in degrees to quaternion
-// this is the default setting in the Axis Kinect server.
-static quat eulerToQuat(const vec3& e) {
-    // euler.x and euler.y are swaped, WTF.
-    return (glm::angleAxis(e.x * RADIANS_PER_DEGREE, Vectors::UNIT_Y) *
-            glm::angleAxis(e.y * RADIANS_PER_DEGREE, Vectors::UNIT_X) *
-            glm::angleAxis(e.z * RADIANS_PER_DEGREE, Vectors::UNIT_Z));
-}
-
 //
 // KinectPlugin
 //
-
 void KinectPlugin::init() {
     loadSettings();
 
@@ -375,17 +313,17 @@ void KinectPlugin::updateBody() {
     if (SUCCEEDED(hr)) {
         INT64 nTime = 0;
         hr = pBodyFrame->get_RelativeTime(&nTime);
-        IBody* ppBodies[BODY_COUNT] = {0};
+        IBody* bodies[BODY_COUNT] = {0};
         if (SUCCEEDED(hr)) {
-            hr = pBodyFrame->GetAndRefreshBodyData(_countof(ppBodies), ppBodies);
+            hr = pBodyFrame->GetAndRefreshBodyData(_countof(bodies), bodies);
         }
 
         if (SUCCEEDED(hr)) {
-            ProcessBody(nTime, BODY_COUNT, ppBodies);
+            ProcessBody(nTime, BODY_COUNT, bodies);
         }
 
-        for (int i = 0; i < _countof(ppBodies); ++i) {
-            SafeRelease(ppBodies[i]);
+        for (int i = 0; i < _countof(bodies); ++i) {
+            SafeRelease(bodies[i]);
         }
     }
 
@@ -394,12 +332,6 @@ void KinectPlugin::updateBody() {
 }
 
 #ifdef HAVE_KINECT
-/// <summary>
-/// Handle new body data
-/// <param name="nTime">timestamp of frame</param>
-/// <param name="nBodyCount">body data count</param>
-/// <param name="ppBodies">body data in frame</param>
-/// </summary>
 void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
     bool foundOneBody = false;
     if (_coordinateMapper) {
@@ -443,6 +375,17 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
                             // Kinect Documentation is unclear on what these orientations are, are they absolute? 
                             // or are the relative to the parent bones. It appears as if it has changed between the
                             // older 1.x SDK and the 2.0 sdk
+                            //
+                            // https://social.msdn.microsoft.com/Forums/en-US/31c9aff6-7dab-433d-9af9-59942dfd3d69/kinect-v20-preview-sdk-jointorientation-vs-boneorientation?forum=kinectv2sdk
+                            // seems to suggest these are absolute...
+                            //    "These quaternions are absolute, so you can take a mesh in local space, transform it by the quaternion, 
+                            //    and it will match the exact orientation of the bone.  If you want relative orientation quaternion, you 
+                            //    can multiply the absolute quaternion by the inverse of the parent joint's quaternion."
+                            //
+                            //  - Bone direction(Y green) - always matches the skeleton.
+                            //  - Normal(Z blue) - joint roll, perpendicular to the bone
+                            //  - Binormal(X orange) - perpendicular to the bone and normal
+
                             glm::quat jointOrientation { jointOrientations[j].Orientation.x,
                                                          jointOrientations[j].Orientation.y,
                                                          jointOrientations[j].Orientation.z,
@@ -560,14 +503,13 @@ void KinectPlugin::InputDevice::update(float deltaTime, const controller::InputC
     if (joints.size() > JointType_SpineBase) {
         kinectHipPos = joints[JointType_SpineBase].position;
     }
-    auto hipOffset = -1.0f * kinectHipPos;
 
     for (size_t i = 0; i < joints.size(); i++) {
         int poseIndex = KinectJointIndexToPoseIndex((KinectJointIndex)i);
         glm::vec3 linearVel, angularVel;
 
         // Adjust the position to be hip (avatar) relative, and rotated to match the avatar rotation
-        const glm::vec3& pos = controllerToAvatarRotation * (joints[i].position + hipOffset);
+        const glm::vec3& pos = controllerToAvatarRotation * (joints[i].position - kinectHipPos);
 
         if (Vectors::ZERO == pos) {
             _poseStateMap[poseIndex] = controller::Pose();

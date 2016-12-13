@@ -41,9 +41,7 @@ template<class Interface> inline void SafeRelease(Interface *& pInterfaceToRelea
 class KinectPlugin : public InputPlugin {
     Q_OBJECT
 public:
-    //friend void FrameDataReceivedCallback(void* context, void* sender, _BvhDataHeaderEx* header, float* data);
-
-    bool isHandController() const override { return false; }
+    bool isHandController() const override { return true; }
 
     // Plugin functions
     virtual void init() override;
