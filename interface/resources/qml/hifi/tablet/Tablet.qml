@@ -81,7 +81,7 @@ Item {
                 id: muteIcon
                 width: 40
                 height: 40
-                source: "../../../icons/tablet-mute-icon.svg"
+                source: "icons/tablet-mute-icon.svg"
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
@@ -154,22 +154,33 @@ Item {
         }
 
         Component.onCompleted: {
-            console.log("AJT: Tablet.onCompleted!");
-            // AJT: test flow by adding buttons
+            console.log("Tablet.onCompleted!");
             var component = Qt.createComponent("TabletButton.qml");
             var buttons = [];
             for (var i = 0; i < 9; i++) {
                 buttons.push(component.createObject(flowMain));
             }
 
-            var green = "#1fc6a6";
-            var lightblue = "#1DB5EC";
+            // set button color
+            var green = "#1FC6A6";
+            var lightblue = "#00B4EF";
             buttons[3].color = lightblue;
             buttons[4].color = lightblue;
             buttons[5].color = lightblue;
             buttons[6].color = green;
             buttons[7].color = green;
             buttons[8].color = green;
+
+            // set button text
+            buttons[0].text = "GO TO";
+            buttons[1].text = "BUBBLE";
+            buttons[2].text = "MENU";
+            buttons[3].text = "MARKET";
+            buttons[4].text = "SWITCH";
+            buttons[5].text = "PAUSE";
+            buttons[6].text = "EDIT";
+            buttons[7].text = "SNAP";
+            buttons[8].text = "SCRIPTS";
         }
     }
     states: [
@@ -183,7 +194,7 @@ Item {
 
             PropertyChanges {
                 target: muteIcon
-                source: "../../../icons/tablet-unmute-icon.svg"
+                source: "icons/tablet-unmute-icon.svg"
             }
         }
     ]

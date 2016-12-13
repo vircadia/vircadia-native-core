@@ -1,27 +1,51 @@
 import QtQuick 2.0
+import QtGraphicalEffects 1.0
 
-Rectangle {
+Item {
     id: tabletButton
+    property string color: "#1080B8"
+    property string text: "EDIT"
+    property string icon: "icons/edit-icon.svg"
     width: 132
     height: 132
-    color: "#1d94c3"
+
+    Rectangle {
+        id: buttonBg
+        color: tabletButton.color
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 0
+        anchors.top: parent.top
+        anchors.topMargin: 0
+
+        layer.enabled: true
+        layer.effect: DropShadow {
+            horizontalOffset: 0
+            verticalOffset: 3
+            color: "#aa000000"
+            radius: 20
+            samples: 41
+        }
+    }
 
     Image {
         id: icon
         width: 60
         height: 60
-        fillMode: Image.Stretch
         anchors.bottom: text.top
-        anchors.bottomMargin: 3
-        anchors.horizontalCenterOffset: 0
+        anchors.bottomMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
-        source: "../../../icons/edit-icon.svg"
+        fillMode: Image.Stretch
+        source: tabletButton.icon
     }
 
     Text {
         id: text
         color: "#ffffff"
-        text: "EDIT"
+        text: tabletButton.text
         font.bold: true
         font.pixelSize: 18
         anchors.bottom: parent.bottom
@@ -30,3 +54,5 @@ Rectangle {
         horizontalAlignment: Text.AlignHCenter
     }
 }
+
+
