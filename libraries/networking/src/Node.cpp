@@ -104,11 +104,8 @@ void Node::addIgnoredNode(const QUuid& otherNodeID) {
 
 void Node::parseIgnoreRadiusRequestMessage(QSharedPointer<ReceivedMessage> message) {
     bool enabled;
-    float radius;
     message->readPrimitive(&enabled);
-    message->readPrimitive(&radius);
     _ignoreRadiusEnabled = enabled;
-    _ignoreRadius = radius;
 }
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {
