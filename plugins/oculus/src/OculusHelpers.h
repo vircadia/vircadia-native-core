@@ -20,6 +20,10 @@ bool oculusAvailable();
 ovrSession acquireOculusSession();
 void releaseOculusSession();
 
+void handleOVREvents();
+bool quitRequested();
+bool reorientRequested();
+
 // Convenience method for looping over each eye with a lambda
 template <typename Function>
 inline void ovr_for_each_eye(Function function) {

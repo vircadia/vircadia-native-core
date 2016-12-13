@@ -43,9 +43,10 @@ SoundScriptingInterface::SoundScriptingInterface(SharedSoundPointer sound) : _so
     QObject::connect(sound.data(), &Sound::ready, this, &SoundScriptingInterface::ready);
 }
 
-Sound::Sound(const QUrl& url, bool isStereo) :
+Sound::Sound(const QUrl& url, bool isStereo, bool isAmbisonic) :
     Resource(url),
     _isStereo(isStereo),
+    _isAmbisonic(isAmbisonic),
     _isReady(false)
 {
 
@@ -62,8 +63,10 @@ void Sound::downloadFinished(const QByteArray& data) {
 
         QByteArray outputAudioByteArray;
 
-        interpretAsWav(rawAudioByteArray, outputAudioByteArray);
-        downSample(outputAudioByteArray);
+        int sampleRate = interpretAsWav(rawAudioByteArray, outputAudioByteArray);
+        if (sampleRate != 0) {
+            downSample(outputAudioByteArray, sampleRate);
+        }
     } else if (fileName.endsWith(RAW_EXTENSION)) {
         // check if this was a stereo raw file
         // since it's raw the only way for us to know that is if the file was called .stereo.raw
@@ -72,8 +75,8 @@ void Sound::downloadFinished(const QByteArray& data) {
             qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << getURL() << "as stereo audio file.";
         }
 
-        // Process as RAW file
-        downSample(rawAudioByteArray);
+        // Process as 48khz RAW file
+        downSample(rawAudioByteArray, 48000);
     } else {
         qCDebug(audio) << "Unknown sound file type";
     }
@@ -84,29 +87,80 @@ void Sound::downloadFinished(const QByteArray& data) {
     emit ready();
 }
 
-void Sound::downSample(const QByteArray& rawAudioByteArray) {
-    // assume that this was a RAW file and is now an array of samples that are
-    // signed, 16-bit, 48Khz
+void Sound::downSample(const QByteArray& rawAudioByteArray, int sampleRate) {
 
     // we want to convert it to the format that the audio-mixer wants
     // which is signed, 16-bit, 24Khz
 
-    int numChannels = _isStereo ? 2 : 1;
-    AudioSRC resampler(48000, AudioConstants::SAMPLE_RATE, numChannels);
+    if (sampleRate == AudioConstants::SAMPLE_RATE) {
 
-    // resize to max possible output
-    int numSourceFrames = rawAudioByteArray.size() / (numChannels * sizeof(AudioConstants::AudioSample));
-    int maxDestinationFrames = resampler.getMaxOutput(numSourceFrames);
-    int maxDestinationBytes = maxDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-    _byteArray.resize(maxDestinationBytes);
+        // no resampling needed
+        _byteArray = rawAudioByteArray;
 
-    int numDestinationFrames = resampler.render((int16_t*)rawAudioByteArray.data(), 
-                                                (int16_t*)_byteArray.data(), 
-                                                numSourceFrames);
+    } else if (_isAmbisonic) {
 
-    // truncate to actual output
-    int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-    _byteArray.resize(numDestinationBytes);
+        // FIXME: add a proper Ambisonic resampler!
+        int numChannels = 4;
+        AudioSRC resampler[4] { {sampleRate, AudioConstants::SAMPLE_RATE, 1}, 
+                                {sampleRate, AudioConstants::SAMPLE_RATE, 1}, 
+                                {sampleRate, AudioConstants::SAMPLE_RATE, 1}, 
+                                {sampleRate, AudioConstants::SAMPLE_RATE, 1} };
+
+        // resize to max possible output
+        int numSourceFrames = rawAudioByteArray.size() / (numChannels * sizeof(AudioConstants::AudioSample));
+        int maxDestinationFrames = resampler[0].getMaxOutput(numSourceFrames);
+        int maxDestinationBytes = maxDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
+        _byteArray.resize(maxDestinationBytes);
+
+        int numDestinationFrames = 0;
+
+        // iterate over channels
+        int16_t* srcBuffer = new int16_t[numSourceFrames];
+        int16_t* dstBuffer = new int16_t[maxDestinationFrames];
+        for (int ch = 0; ch < 4; ch++) {
+
+            int16_t* src = (int16_t*)rawAudioByteArray.data();
+            int16_t* dst = (int16_t*)_byteArray.data();
+
+            // deinterleave samples
+            for (int i = 0; i < numSourceFrames; i++) {
+                srcBuffer[i] = src[4*i + ch];
+            }
+
+            // resample one channel
+            numDestinationFrames = resampler[ch].render(srcBuffer, dstBuffer, numSourceFrames);
+
+            // reinterleave samples
+            for (int i = 0; i < numDestinationFrames; i++) {
+                dst[4*i + ch] = dstBuffer[i];
+            }
+        }
+        delete[] srcBuffer;
+        delete[] dstBuffer;
+
+        // truncate to actual output
+        int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
+        _byteArray.resize(numDestinationBytes);
+
+    } else {
+
+        int numChannels = _isStereo ? 2 : 1;
+        AudioSRC resampler(sampleRate, AudioConstants::SAMPLE_RATE, numChannels);
+
+        // resize to max possible output
+        int numSourceFrames = rawAudioByteArray.size() / (numChannels * sizeof(AudioConstants::AudioSample));
+        int maxDestinationFrames = resampler.getMaxOutput(numSourceFrames);
+        int maxDestinationBytes = maxDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
+        _byteArray.resize(maxDestinationBytes);
+
+        int numDestinationFrames = resampler.render((int16_t*)rawAudioByteArray.data(), 
+                                                    (int16_t*)_byteArray.data(), 
+                                                    numSourceFrames);
+
+        // truncate to actual output
+        int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
+        _byteArray.resize(numDestinationBytes);
+    }
 }
 
 //
@@ -160,7 +214,8 @@ struct CombinedHeader {
     WAVEHeader  wave;
 };
 
-void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray) {
+// returns wavfile sample rate, used for resampling
+int Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray) {
 
     CombinedHeader fileHeader;
 
@@ -174,36 +229,35 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
             // descriptor.id == "RIFX" also signifies BigEndian file
             // waveStream.setByteOrder(QDataStream::BigEndian);
             qCDebug(audio) << "Currently not supporting big-endian audio files.";
-            return;
+            return 0;
         }
 
         if (strncmp(fileHeader.riff.type, "WAVE", 4) != 0
             || strncmp(fileHeader.wave.descriptor.id, "fmt", 3) != 0) {
             qCDebug(audio) << "Not a WAVE Audio file.";
-            return;
+            return 0;
         }
 
         // added the endianess check as an extra level of security
 
         if (qFromLittleEndian<quint16>(fileHeader.wave.audioFormat) != 1) {
             qCDebug(audio) << "Currently not supporting non PCM audio files.";
-            return;
+            return 0;
         }
         if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) == 2) {
             _isStereo = true;
-        } else if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) > 2) {
-            qCDebug(audio) << "Currently not support audio files with more than 2 channels.";
+        } else if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) == 4) {
+            _isAmbisonic = true;
+        } else if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) != 1) {
+            qCDebug(audio) << "Currently not support audio files with other than 1/2/4 channels.";
+            return 0;
         }
 
         if (qFromLittleEndian<quint16>(fileHeader.wave.bitsPerSample) != 16) {
             qCDebug(audio) << "Currently not supporting non 16bit audio files.";
-            return;
+            return 0;
         }
-        if (qFromLittleEndian<quint32>(fileHeader.wave.sampleRate) != 48000) {
-            qCDebug(audio) << "Currently not supporting non 48KHz audio files.";
-            return;
-        }
-
+        
         // Skip any extra data in the WAVE chunk
         waveStream.skipRawData(fileHeader.wave.descriptor.size - (sizeof(WAVEHeader) - sizeof(chunk)));
 
@@ -218,7 +272,7 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
                 waveStream.skipRawData(dataHeader.descriptor.size);
             } else {
                 qCDebug(audio) << "Could not read wav audio data header.";
-                return;
+                return 0;
             }
         }
 
@@ -227,12 +281,14 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
         outputAudioByteArray.resize(outputAudioByteArraySize);
         if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
             qCDebug(audio) << "Error reading WAV file";
+            return 0;
         }
 
         _duration = (float) (outputAudioByteArraySize / (fileHeader.wave.sampleRate * fileHeader.wave.numChannels * fileHeader.wave.bitsPerSample / 8.0f));
+        return fileHeader.wave.sampleRate;
 
     } else {
         qCDebug(audio) << "Could not read wav audio file header.";
-        return;
+        return 0;
     }
 }

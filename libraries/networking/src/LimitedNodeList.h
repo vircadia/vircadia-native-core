@@ -174,7 +174,26 @@ public:
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
     SharedNodePointer findNodeWithAddr(const HifiSockAddr& addr);
-    
+
+    using value_type = SharedNodePointer;
+    using const_iterator = std::vector<value_type>::const_iterator;
+
+    // Cede control of iteration under a single read lock (e.g. for use by thread pools)
+    // Use this for nested loops instead of taking nested read locks!
+    //   This allows multiple threads (i.e. a thread pool) to share a lock
+    //   without deadlocking when a dying node attempts to acquire a write lock
+    template<typename NestedNodeLambda>
+    void nestedEach(NestedNodeLambda functor) {
+        QReadLocker readLock(&_nodeMutex);
+
+        std::vector<SharedNodePointer> nodes(_nodeHash.size());
+        std::transform(_nodeHash.cbegin(), _nodeHash.cend(), nodes.begin(), [](const NodeHash::value_type& it) {
+            return it.second;
+        });
+
+        functor(nodes.cbegin(), nodes.cend());
+    }
+
     template<typename NodeLambda>
     void eachNode(NodeLambda functor) {
         QReadLocker readLock(&_nodeMutex);
@@ -280,7 +299,7 @@ signals:
 protected slots:
     void connectedForLocalSocketTest();
     void errorTestingLocalSocket();
-    
+
     void clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr);
 
 protected:
@@ -347,7 +366,7 @@ protected:
             functor(it);
         }
     }
-    
+
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
     void possiblyTimeoutSTUNAddressLookup();
