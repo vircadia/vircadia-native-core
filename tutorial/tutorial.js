@@ -1145,25 +1145,25 @@ TutorialManager = function() {
 
 // To run the tutorial:
 //
-var tutorialManager = new TutorialManager();
-tutorialManager.startTutorial();
-
-
-var keyReleaseHandler = function(event) {
-    if (event.isShifted && event.isAlt) {
-        print('here', event.text);
-        if (event.text == "F12") {
-            if (!tutorialManager.startNextStep()) {
-                tutorialManager.startTutorial();
-            }
-        } else if (event.text == "F11") {
-            tutorialManager.restartStep();
-        } else if (event.text == "F10") {
-            MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
-        } else if (event.text == "r") {
-            tutorialManager.stopTutorial();
-            tutorialManager.startTutorial();
-        }
-    }
-};
-Controller.keyReleaseEvent.connect(keyReleaseHandler);
+//var tutorialManager = new TutorialManager();
+//tutorialManager.startTutorial();
+//
+//
+//var keyReleaseHandler = function(event) {
+//    if (event.isShifted && event.isAlt) {
+//        print('here', event.text);
+//        if (event.text == "F12") {
+//            if (!tutorialManager.startNextStep()) {
+//                tutorialManager.startTutorial();
+//            }
+//        } else if (event.text == "F11") {
+//            tutorialManager.restartStep();
+//        } else if (event.text == "F10") {
+//            MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
+//        } else if (event.text == "r") {
+//            tutorialManager.stopTutorial();
+//            tutorialManager.startTutorial();
+//        }
+//    }
+//};
+//Controller.keyReleaseEvent.connect(keyReleaseHandler);
