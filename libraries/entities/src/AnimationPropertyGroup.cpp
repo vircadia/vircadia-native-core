@@ -348,7 +348,7 @@ EntityPropertyFlags AnimationPropertyGroup::getEntityProperties(EncodeBitstreamP
 }
 
 void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
+                                EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                 EntityPropertyFlags& requestedProperties,
                                 EntityPropertyFlags& propertyFlags,
                                 EntityPropertyFlags& propertiesDidntFit,

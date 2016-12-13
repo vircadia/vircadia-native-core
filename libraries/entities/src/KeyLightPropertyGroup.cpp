@@ -186,7 +186,7 @@ EntityPropertyFlags KeyLightPropertyGroup::getEntityProperties(EncodeBitstreamPa
 }
     
 void KeyLightPropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
+                                EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                 EntityPropertyFlags& requestedProperties,
                                 EntityPropertyFlags& propertyFlags,
                                 EntityPropertyFlags& propertiesDidntFit,

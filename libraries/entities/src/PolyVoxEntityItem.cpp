@@ -198,7 +198,7 @@ EntityPropertyFlags PolyVoxEntityItem::getEntityProperties(EncodeBitstreamParams
 }
 
 void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                           EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                           EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
                                            EntityPropertyFlags& requestedProperties,
                                            EntityPropertyFlags& propertyFlags,
                                            EntityPropertyFlags& propertiesDidntFit,
