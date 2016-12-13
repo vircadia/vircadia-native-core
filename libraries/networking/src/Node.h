@@ -80,7 +80,6 @@ public:
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
     bool isIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled; }
-    float getIgnoreRadius() { return _ignoreRadiusEnabled ? _ignoreRadius.load() : std::numeric_limits<float>::max(); }
 
 private:
     // privatize copy and assignment operator to disallow Node copying
@@ -100,7 +99,6 @@ private:
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
 
     std::atomic_bool _ignoreRadiusEnabled;
-    std::atomic<float> _ignoreRadius { 0.0f };
 };
 
 Q_DECLARE_METATYPE(Node*)
