@@ -139,11 +139,13 @@ Rectangle {
                 width: actionWidth
             }
             TableViewColumn {
+                visible: Users.canKick;
                 role: "mute";
                 title: "Mute";
                 width: actionWidth
             }
             TableViewColumn {
+                visible: Users.canKick;
                 role: "kick";
                 title: "Ban"
                 width: actionWidth
