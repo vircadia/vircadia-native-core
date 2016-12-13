@@ -23,6 +23,7 @@
                 '#marketplace-navigation .text { color: #fff; font-size: 18px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
                 '#marketplace-navigation input#back-button { position: absolute; left: 20px; margin-top: 12px; padding-left: 0; padding-right: 5px; }' +
                 '#marketplace-navigation input#all-markets { position: absolute; right: 20px; margin-top: 12px; padding-left: 15px; padding-right: 15px; }' +
+                '#marketplace-navigation .right { position: absolute; right: 20px; }' +
             '</style>'
         );
 
@@ -38,12 +39,13 @@
         );
 
         // Footer.
-        var isInitialDirectoryPage = location.href.match(/\/scripts\/system\/html\/marketplaces\.html$/);
+        var isInitialHiFiPage = location.href === "https://metaverse.highfidelity.com/marketplace?";
         $("body").append(
             '<div id="marketplace-navigation">' +
-                (isInitialDirectoryPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">Select a marketplace to explore.</span>' : '') +
-                (!isInitialDirectoryPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
+                (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
+                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">See also other marketplaces.</span>' : '') +
                 (!isDirectoryPage ? '<input id="all-markets" type="button" class="white" value="See All Markets" />' : '') +
+                (isDirectoryPage ? '<span class="right"><span class="glyph">&#x1f6c8;</span> <span class="text">Select a marketplace to explore.</span><span>' : '') +
             '</div>'
         );
 
