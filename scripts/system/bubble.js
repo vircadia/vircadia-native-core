@@ -27,7 +27,7 @@
     const BUBBLE_HEIGHT_SCALE = 0.15;
     // The bubble model itself
     var bubbleOverlay = Overlays.addOverlay("model", {
-        url: Script.resolvePath("assets/models/bubble-v12.fbx"), // If you'd like to change the model, modify this line (and the dimensions below)
+        url: Script.resolvePath("assets/models/bubble-v14.fbx"), // If you'd like to change the model, modify this line (and the dimensions below)
         dimensions: { x: 1.0, y: 0.75, z: 1.0 },
         position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, z: MyAvatar.position.z },
         rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
