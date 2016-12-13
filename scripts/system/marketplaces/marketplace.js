@@ -54,6 +54,7 @@ function showMarketplace(marketplaceID) {
                                                  null, // dpi
                                                  null, // location
                                                  true); // client-only
+           marketplaceWebTablet.register();
         }
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
     } else {
@@ -74,6 +75,7 @@ function hideTablet(tablet) {
         return;
     }
     updateButtonState(false);
+    tablet.unregister();
     tablet.destroy();
     marketplaceWebTablet = null;
     Settings.setValue(persistenceKey, "");

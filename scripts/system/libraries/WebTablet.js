@@ -41,12 +41,12 @@ function calcSpawnInfo() {
 // ctor
 WebTablet = function (url, width, dpi, location, clientOnly) {
 
+    var _this = this;
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
     var HEIGHT = WIDTH * ASPECT;
     var DEPTH = 0.025;
     var DPI = dpi || DEFAULT_DPI;
-    var _this = this;
 
     var tabletProperties = {
         name: "WebTablet Tablet",
@@ -73,6 +73,7 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
     var WEB_ENTITY_Z_OFFSET = -0.01;
+    var HOME_BUTTON_Y_OFFSET = -0.32;
 
     this.createWebEntity = function(url) {
         if (_this.webEntityID) {
@@ -96,6 +97,27 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.createWebEntity(url);
 
+    this.homeButtonEntity = Entities.addEntity({
+        name: "homeButton",
+        type: "Sphere",
+        localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: 0},
+        dimensions: {x: 0.05, y: 0.05, z: 0.05},
+        parentID: this.tabletEntityID,
+        script: "https://people.ucsc.edu/~druiz4/scripts/homeButton.js"
+        }, clientOnly);
+
+    this.receive = function (channel, senderID, senderUUID, localOnly) {
+        if (_this.homeButtonEntity == senderID) {
+            if (_this.clicked) {
+              Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
+              _this.clicked = false;
+            } else {
+              Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
+              _this.clicked = true;
+            }
+        }
+    }
+
     this.state = "idle";
 
     this.getRoot = function() {
@@ -105,15 +127,29 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     this.getLocation = function() {
         return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
     };
+    this.clicked = false;
 };
 
 WebTablet.prototype.destroy = function () {
     Entities.deleteEntity(this.webEntityID);
     Entities.deleteEntity(this.tabletEntityID);
+    Entities.deleteEntity(this.homeButtonEntity);
 };
 WebTablet.prototype.pickle = function () {
     return JSON.stringify({webEntityID: this.webEntityID, tabletEntityID: this.tabletEntityID});
 };
+
+
+WebTablet.prototype.register = function() {
+    Messages.subscribe("home");
+    Messages.messageReceived.connect(this.receive);
+}
+
+WebTablet.prototype.unregister = function() {
+    Messages.unsubscribe("home");
+    Messages.messageReceived.disconnect(this.receive);
+}
+
 WebTablet.unpickle = function (string) {
     if (!string) {
         return;
