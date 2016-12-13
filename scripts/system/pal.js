@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true, forin: true*/
-/*globals Script, AvatarList, Camera, Overlays, OverlayWindow, Toolbars, Vec3, Controller, print */
+/*globals Script, AvatarList, Camera, Overlays, OverlayWindow, Toolbars, Vec3, Quat, Controller, print */
 //
 // pal.js
 //
@@ -12,6 +12,8 @@
 //
 
 // FIXME when we make this a defaultScript: (function() { // BEGIN LOCAL_SCOPE
+
+Script.include("/~/system/libraries/controllers.js");
 
 // Overlays
 var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
@@ -73,9 +75,16 @@ var pal = new OverlayWindow({
     visible: false
 });
 pal.fromQml.connect(function (message) {
-    ExtendedOverlay.some(function (overlay) {
-        overlay.select(-1 !== message.indexOf(overlay.key));
-    });
+    switch (message.method) {
+    case 'selected':
+        var sessionIds = message.params;
+        ExtendedOverlay.some(function (overlay) {
+            overlay.select(-1 !== sessionIds.indexOf(overlay.key));
+        });
+        break;
+    default:
+        print('Unrecognized message from Pal.qml:', JSON.stringify(message));
+    }
 });
 
 var AVATAR_OVERLAY = Script.resolvePath("assets/images/grabsprite-3.png");
@@ -87,7 +96,7 @@ function populateUserList() {
         data.push({
             displayName: avatar.displayName || ('anonymous ' + counter++),
             userName: "fakeAcct" + (id || "Me"),
-            sessionId: id
+            sessionId: id || ''
         });
         if (id) { // No overlay for us
             new ExtendedOverlay(id, "sphere", { // 3d so we don't go cross-eyed looking at it, but on top of everything
@@ -99,7 +108,7 @@ function populateUserList() {
             });
         }
     });
-    pal.sendToQml(data);
+    pal.sendToQml({method: 'users', params: data});
 }
 var pingPong = true;
 function updateOverlays() {
@@ -108,15 +117,17 @@ function updateOverlays() {
         if (!id) {
             return; // don't update ourself
         }
-        var avatar = AvatarList.getAvatar(id);
-        var target = avatar.position;
-        var distance = Vec3.distance(target, eye);
         var overlay = ExtendedOverlay.get(id);
-        overlay.ping = pingPong;
-        overlay.editOverlay({
-            position: target,
-            dimensions: 0.05 * distance // constant apparent size
-        });
+        if (overlay) {
+            var avatar = AvatarList.getAvatar(id);
+            var target = avatar.position;
+            var distance = Vec3.distance(target, eye);
+            overlay.ping = pingPong;
+            overlay.editOverlay({
+                position: target,
+                dimensions: 0.05 * distance // constant apparent size
+            });
+        }
     });
     pingPong = !pingPong;
     ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
@@ -129,6 +140,50 @@ function removeOverlays() {
     ExtendedOverlay.some(function (overlay) { overlay.deleteOverlay(); });
 }
 
+// Clicks
+function handleClick(pickRay) {
+    print('fixme handleClick', JSON.stringify(pickRay));
+    ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+        var message = {method: 'select', params: [overlay.key, !overlay.selected]};
+        print('fixme sending to qml:', JSON.stringify(message));
+        pal.sendToQml(message);
+        return true;
+    });
+}
+function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
+    if (!mousePressEvent.isLeftButton) {
+        return;
+    }
+    handleClick(Camera.computePickRay(mousePressEvent.x, mousePressEvent.y));
+}
+// We get mouseMoveEvents from the handControllers, via handControllerPointer.
+// But we dont' get mousePressEvents.
+var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+function controllerComputePickRay(hand) {
+    print('fixme controllerComputePickRay', hand);
+    var controllerPose = getControllerWorldLocation(hand, true);
+    print('fixme pose', JSON.stringify(controllerPose), 'valid', controllerPose.valid);
+    if (controllerPose.valid) {
+        print('fixme controllerComputePickRay', hand);
+        var xxfixme = { origin: controllerPose.position, direction: Quat.getUp(controllerPose.orientation) };
+        print('fixme result', JSON.stringify(xxfixme));
+        return xxfixme;
+    }
+    print('fixme controllerComputePickRay failed', hand, JSON.stringify(controllerPose));
+}
+function makeClickHandler(hand) {
+    return function(clicked) {
+        if (clicked > 0.85) {
+            print('fixme click handler on', clicked, hand);
+            var pickRay = controllerComputePickRay(hand);
+            print('fixme pickRay', JSON.stringify(pickRay));
+            handleClick(pickRay);
+        }
+    };
+}
+triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
+triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
+        
 // Manage the connection between the button and the window.
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var buttonName = "pal";
@@ -141,17 +196,25 @@ var button = toolBar.addButton({
     buttonState: 1,
     alpha: 0.9
 });
+function off() {
+    Script.update.disconnect(updateOverlays);
+    Controller.mousePressEvent.disconnect(handleMouseEvent);
+    triggerMapping.disable();
+    removeOverlays();
+}
 function onClicked() {
     if (!pal.visible) {
         populateUserList();
         pal.raise();
         Script.update.connect(updateOverlays);
+        Controller.mousePressEvent.connect(handleMouseEvent);
+        triggerMapping.enable();
     } else {
-        Script.update.disconnect(updateOverlays);
-        removeOverlays();
+        off();
     }
     pal.setVisible(!pal.visible);
 }
+
 function onVisibileChanged() {
     button.writeProperty('buttonState', pal.visible ? 0 : 1);
     button.writeProperty('defaultState', pal.visible ? 0 : 1);
@@ -161,10 +224,10 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibileChanged);
 
 Script.scriptEnding.connect(function () {
+    button.clicked.disconnect(onClicked);
     toolBar.removeButton(buttonName);
     pal.visibleChanged.disconnect(onVisibileChanged);
-    button.clicked.disconnect(onClicked);
-    removeOverlays();
+    off();
 });
 
 
