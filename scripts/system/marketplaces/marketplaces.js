@@ -15,8 +15,9 @@ Script.include("../libraries/WebTablet.js");
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 
+var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
 var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
-var MARKETPLACES_URL_AMENDED = MARKETPLACES_URL + "?";  // Append "?" to signal injected script that it's not the initial page.
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 
 var marketplaceWindow = new OverlayWebWindow({
@@ -29,7 +30,7 @@ var marketplaceWindow = new OverlayWebWindow({
 marketplaceWindow.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
 marketplaceWindow.webEventReceived.connect(function (data) {
     if (data === "GOTO_DIRECTORY") {
-        marketplaceWindow.setURL(MARKETPLACES_URL_AMENDED);
+        marketplaceWindow.setURL(MARKETPLACES_URL);
     }
 });
 
@@ -50,24 +51,19 @@ function shouldShowWebTablet() {
     return HMD.active && (leftPose.valid || rightPose.valid || hasHydra);
 }
 
-function showMarketplace(marketplaceID) {
+function showMarketplace() {
     if (shouldShowWebTablet()) {
         updateButtonState(true);
-        marketplaceWebTablet = new WebTablet(MARKETPLACES_URL, null, null, true);
+        marketplaceWebTablet = new WebTablet(MARKETPLACE_URL_INITIAL, null, null, true);
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
         marketplaceWebTablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
         marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (data) {
             if (data === "GOTO_DIRECTORY") {
-                marketplaceWebTablet.setURL("");  // Force reload of URL to work around WetTablet bug.
-                marketplaceWebTablet.setURL(MARKETPLACES_URL_AMENDED);
+                marketplaceWebTablet.setURL(MARKETPLACES_URL);
             }
         });
     } else {
-        var url = MARKETPLACES_URL;
-        if (marketplaceID) {
-            url = url + "/items/" + marketplaceID;
-        }
-        marketplaceWindow.setURL(url);
+        marketplaceWindow.setURL(MARKETPLACE_URL_INITIAL);
         marketplaceWindow.setVisible(true);
     }
 
