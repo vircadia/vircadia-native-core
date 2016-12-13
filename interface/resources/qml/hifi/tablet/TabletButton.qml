@@ -1,28 +1,32 @@
 import QtQuick 2.0
-import "../../styles-uit/"
 
 Rectangle {
     id: tabletButton
-    width: 140
-    height: 140
-    color: "#1794c3"
+    width: 132
+    height: 132
+    color: "#1d94c3"
 
     Image {
         id: icon
-        x: 40
-        y: 30
         width: 60
         height: 60
+        fillMode: Image.Stretch
+        anchors.bottom: text.top
+        anchors.bottomMargin: 3
+        anchors.horizontalCenterOffset: 0
+        anchors.horizontalCenter: parent.horizontalCenter
         source: "../../../icons/edit-icon.svg"
     }
 
-    RalewaySemiBold {
+    Text {
         id: text
-        x: 50
-        y: 96
         color: "#ffffff"
-        text: qsTr("EDIT")
-        horizontalAlignment: Text.AlignHCenter
+        text: "EDIT"
+        font.bold: true
         font.pixelSize: 18
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 20
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalAlignment: Text.AlignHCenter
     }
 }
