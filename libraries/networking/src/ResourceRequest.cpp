@@ -34,7 +34,7 @@ QString ResourceRequest::getResultString() const {
         case Timeout: return "Timeout";
         case ServerUnavailable: return "Server Unavailable";
         case AccessDenied: return "Access Denied";
-        case InvalidURL: return "Ivalid URL";
+        case InvalidURL: return "Invalid URL";
         case NotFound: return "Not Found";
         default: return "Unspecified Error";
     }

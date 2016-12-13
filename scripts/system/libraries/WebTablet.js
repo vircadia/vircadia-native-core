@@ -47,6 +47,7 @@ WebTablet = function (url, width, dpi, clientOnly) {
     var HEIGHT = WIDTH * ASPECT * TABLET_HEIGHT_SCALE;
     var DEPTH = 0.025;
     var DPI = dpi || DEFAULT_DPI;
+    var SENSOR_TO_ROOM_MATRIX = -2;
 
     var spawnInfo = calcSpawnInfo();
     var tabletEntityPosition = spawnInfo.position;
@@ -63,7 +64,7 @@ WebTablet = function (url, width, dpi, clientOnly) {
         }),
         dimensions: {x: WIDTH, y: HEIGHT, z: DEPTH},
         parentID: MyAvatar.sessionUUID,
-        parentJointIndex: -1
+        parentJointIndex: SENSOR_TO_ROOM_MATRIX
     }, clientOnly);
 
     var WEB_OVERLAY_Z_OFFSET = -0.01;

@@ -2332,48 +2332,47 @@ bool Application::event(QEvent* event) {
     {
         if (!_keyboardFocusedEntity.get().isInvalidID()) {
             switch (event->type()) {
-            case QEvent::KeyPress:
-            case QEvent::KeyRelease: {
-                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
-                if (entity && entity->getEventHandler()) {
-                    event->setAccepted(false);
-                    QCoreApplication::sendEvent(entity->getEventHandler(), event);
-                    if (event->isAccepted()) {
-                        _lastAcceptedKeyPress = usecTimestampNow();
-                        return true;
+                case QEvent::KeyPress:
+                case QEvent::KeyRelease: {
+                    //auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+                    auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
+                    if (entity && entity->getEventHandler()) {
+                        event->setAccepted(false);
+                        QCoreApplication::sendEvent(entity->getEventHandler(), event);
+                        if (event->isAccepted()) {
+                            _lastAcceptedKeyPress = usecTimestampNow();
+                            return true;
+                        }
                     }
+                    break;
                 }
-                break;
-            }
-
-            default:
-                break;
-            }
+                default:
+                    break;
+                }
         }
     }
 
     {
         if (_keyboardFocusedOverlay.get() != UNKNOWN_OVERLAY_ID) {
             switch (event->type()) {
-            case QEvent::KeyPress:
-            case QEvent::KeyRelease: {
-                // Only Web overlays can have focus.
-                auto overlay =
-                    std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
-                if (overlay && overlay->getEventHandler()) {
-                    event->setAccepted(false);
-                    QCoreApplication::sendEvent(overlay->getEventHandler(), event);
-                    if (event->isAccepted()) {
-                        _lastAcceptedKeyPress = usecTimestampNow();
-                        return true;
+                case QEvent::KeyPress:
+                case QEvent::KeyRelease: {
+                    // Only Web overlays can have focus.
+                    auto overlay =
+                        std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
+                    if (overlay && overlay->getEventHandler()) {
+                        event->setAccepted(false);
+                        QCoreApplication::sendEvent(overlay->getEventHandler(), event);
+                        if (event->isAccepted()) {
+                            _lastAcceptedKeyPress = usecTimestampNow();
+                            return true;
+                        }
                     }
+                    break;
                 }
-                break;
-            }
-            default:
-                break;
-            }
+                default:
+                    break;
+                }
         }
     }
 
@@ -3874,6 +3873,8 @@ void Application::setKeyboardFocusEntity(QUuid id) {
     setKeyboardFocusEntity(entityItemID);
 }
 
+static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
+
 void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
     if (_keyboardFocusedEntity.get() != entityItemID) {
         _keyboardFocusedEntity.set(entityItemID);
@@ -3897,7 +3898,8 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                 }
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                setKeyboardFocusHighlight(entity->getPosition(), entity->getRotation(), entity->getDimensions() * 1.05f);
+                setKeyboardFocusHighlight(entity->getPosition(), entity->getRotation(), 
+                    entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
         }
     }
@@ -3930,7 +3932,7 @@ void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
             }
             _lastAcceptedKeyPress = usecTimestampNow();
 
-            auto size = overlay->getSize() * 1.05f;
+            auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
             const float OVERLAY_DEPTH = 0.0105f;
             setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
         }
@@ -5508,9 +5510,9 @@ void Application::addAssetToWorldFromURLRequestFinished() {
         temporaryDir.setAutoRemove(false);
         if (temporaryDir.isValid()) {
             QString temporaryDirPath = temporaryDir.path();
-            QString filename = url.section("filename=", 1, 1);
+            QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
             QString downloadPath = temporaryDirPath + "/" + filename;
-            qInfo() << "Download path:" << downloadPath;
+            qInfo(interfaceapp) << "Download path:" << downloadPath;
 
             QFile tempFile(downloadPath);
             if (tempFile.open(QIODevice::WriteOnly)) {
@@ -5684,7 +5686,7 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
 
         // Inform user.
         QString successInfo = "Asset " + mapping.mid(1) + " added to world.";
-        qInfo() << "Downloading asset completed: " + successInfo;
+        qInfo(interfaceapp) << "Downloading asset completed: " + successInfo;
         _addAssetToWorldMessageBox->setProperty("text", successInfo);
         _addAssetToWorldMessageBox->setProperty("buttons", QMessageBox::Ok);
         _addAssetToWorldMessageBox->setProperty("defaultButton", QMessageBox::Ok);
@@ -5716,7 +5718,7 @@ void Application::addAssetToWorldCheckModelSize() {
                 properties.setCollisionless(false);
                 properties.setLastEdited(usecTimestampNow());
                 entityScriptingInterface->editEntity(entityID, properties);
-                qInfo() << "Asset auto-resized";
+                qInfo(interfaceapp) << "Asset auto-resized";
             }
 
             item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity.

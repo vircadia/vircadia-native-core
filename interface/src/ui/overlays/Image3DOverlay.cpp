@@ -202,9 +202,8 @@ bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec
     if (_texture && _texture->isLoaded()) {
         // Make sure position and rotation is updated.
         Transform transform = getTransform();
-        // XXX this code runs too often for this...
-        // applyTransformTo(transform, true);
-        // setTransform(transform);
+        
+        // Don't call applyTransformTo() or setTransform() here because this code runs too frequently.
 
         // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
         bool isNull = _fromImage.isNull();

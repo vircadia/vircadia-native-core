@@ -309,7 +309,7 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
 
     var dpi = Overlays.getProperty(overlayID, "dpi");
     if (dpi) {
-        // Calculate physical dimensions for web3d overlay; "dimensions" property is used as a scale.
+        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
         var resolution = Overlays.getProperty(overlayID, "resolution");
         resolution.z = 1;  // Circumvent divide-by-zero.
         var scale = Overlays.getProperty(overlayID, "dimensions");
