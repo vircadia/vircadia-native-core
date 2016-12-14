@@ -200,7 +200,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sen
     unsigned char* startPosition = destinationBuffer;
 
     // Leading flags, to indicate how much data is actually included in the packet...
-    UINT8 packetStateFlags = 0;
+    uint8_t packetStateFlags = 0;
     if (sendMinimum) {
         setAtBit(packetStateFlags, AVATARDATA_FLAGS_MINIMUM);
     }
@@ -508,7 +508,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData = new HeadData(this);
     }
 
-    UINT8 packetStateFlags = buffer.at(0);
+    uint8_t packetStateFlags = buffer.at(0);
     bool minimumSent = oneAtBit(packetStateFlags, AVATARDATA_FLAGS_MINIMUM);
     bool packetIsCompressed = oneAtBit(packetStateFlags, AVATARDATA_FLAGS_COMPRESSED);
 
