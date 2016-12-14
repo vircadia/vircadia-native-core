@@ -206,7 +206,7 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
     }
 
     int numTrackedControllers = 0;
-    static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
+    static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked | ovrStatus_PositionTracked;
     auto tracking = ovr_GetTrackingState(_parent._session, 0, false);
     ovr_for_each_hand([&](ovrHandType hand) {
         ++numTrackedControllers;
