@@ -3225,6 +3225,8 @@ bool Application::shouldPaint(float nsecsElapsed) {
 }
 
 void Application::idle(float nsecsElapsed) {
+    PROFILE_RANGE(interfaceapp, __FUNCTION__);
+    PerformanceTimer perfTimer("idle");
 
     // Update the deadlock watchdog
     updateHeartbeat();
@@ -3238,8 +3240,6 @@ void Application::idle(float nsecsElapsed) {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
-
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->runCallbacks();
@@ -3260,8 +3260,6 @@ void Application::idle(float nsecsElapsed) {
     Stats::getInstance()->updateStats();
 
     _simCounter.increment();
-
-    PerformanceTimer perfTimer("idle");
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
@@ -4536,8 +4534,8 @@ QRect Application::getDesirableApplicationGeometry() const {
 //                 or the "myCamera".
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
-    PerformanceTimer perfTimer("loadViewFrustum");
     PROFILE_RANGE(interfaceapp, __FUNCTION__);
+    PerformanceTimer perfTimer("loadViewFrustum");
     // We will use these below, from either the camera or head vectors calculated above
     viewFrustum.setProjection(camera.getProjection());
 
