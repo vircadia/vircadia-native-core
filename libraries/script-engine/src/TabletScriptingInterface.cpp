@@ -27,6 +27,11 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
     }
 }
 
+void TabletScriptingInterface::setupTablet(QString tabletId, QQuickItem* qmlTablet) {
+    // AJT: TODO
+    qDebug() << "AJT: setupTablet objname = " << qmlTablet->objectName();
+}
+
 //
 // TabletProxy
 //

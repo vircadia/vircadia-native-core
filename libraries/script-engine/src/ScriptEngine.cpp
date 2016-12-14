@@ -62,6 +62,7 @@
 #include "WebSocketClass.h"
 #include "RecordingScriptingInterface.h"
 #include "ScriptEngines.h"
+#include "TabletScriptingInterface.h"
 
 #include "MIDIEvent.h"
 
@@ -541,6 +542,8 @@ void ScriptEngine::init() {
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     registerGlobalObject("Recording", recordingInterface.data());
+
+    registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
 
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());

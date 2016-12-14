@@ -14,6 +14,7 @@
 #include <QtCore/QObject>
 #include <QVariant>
 #include <QScriptValue>
+#include <QQuickItem>
 
 #include <DependencyManager.h>
 
@@ -34,6 +35,8 @@ public:
      * @return {TabletProxy} tablet instance
      */
     Q_INVOKABLE QObject* getTablet(const QString& tabletId);
+
+    void setupTablet(QString tabletId, QQuickItem* qmlTablet);
 protected:
     std::mutex _tabletProxiesMutex;
     std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;

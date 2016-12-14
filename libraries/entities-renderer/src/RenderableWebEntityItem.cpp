@@ -23,6 +23,7 @@
 #include <PathUtils.h>
 #include <TextureCache.h>
 #include <gpu/Context.h>
+#include <TabletScriptingInterface.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -255,7 +256,13 @@ void RenderableWebEntityItem::loadSourceURL() {
     } else {
         _contentType = qmlContent;
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
-        _webSurface->load(_sourceUrl, [&](QQmlContext* context, QObject* obj) { });
+        _webSurface->load(_sourceUrl, [&](QQmlContext* context, QObject* obj) {});
+
+        // TABLET_UI_HACK: move this to overlays as well!
+        if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tablet") {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            tabletScriptingInterface->setupTablet("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
+        }
     }
 }
 

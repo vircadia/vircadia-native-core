@@ -3,6 +3,7 @@ import QtGraphicalEffects 1.0
 
 Item {
     id: tablet
+    objectName: "tablet"
 
     property double miclevel: 0.8
 
