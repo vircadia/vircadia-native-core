@@ -20,6 +20,14 @@ var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal in
 var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 
+// Event bridge messages.
+var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
+var GOTO_DIRECTORY = "GOTO_DIRECTORY";
+var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
+var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
+var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
+var NO_PERMISSIONS_ERROR_MESSAGE = "Cannot download model because you can't write to \nthe domain's Asset Server.";
+
 var marketplaceWindow = new OverlayWebWindow({
     title: "Marketplace",
     source: "about:blank",
@@ -28,9 +36,15 @@ var marketplaceWindow = new OverlayWebWindow({
     visible: false
 });
 marketplaceWindow.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
-marketplaceWindow.webEventReceived.connect(function (data) {
-    if (data === "GOTO_DIRECTORY") {
+marketplaceWindow.webEventReceived.connect(function (message) {
+    if (message === GOTO_DIRECTORY) {
         marketplaceWindow.setURL(MARKETPLACES_URL);
+    }
+    if (message === QUERY_CAN_WRITE_ASSETS) {
+        marketplaceWindow.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
+    }
+    if (message === WARN_USER_NO_PERMISSIONS) {
+        Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
     }
 });
 
@@ -57,9 +71,15 @@ function showMarketplace() {
         marketplaceWebTablet = new WebTablet(MARKETPLACE_URL_INITIAL, null, null, true);
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
         marketplaceWebTablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
-        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (data) {
-            if (data === "GOTO_DIRECTORY") {
+        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (message) {
+            if (message === GOTO_DIRECTORY) {
                 marketplaceWebTablet.setURL(MARKETPLACES_URL);
+            }
+            if (message === QUERY_CAN_WRITE_ASSETS) {
+                marketplaceWebTablet.getOverlayObject().emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
+            }
+            if (message === WARN_USER_NO_PERMISSIONS) {
+                Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
             }
         });
     } else {
@@ -123,12 +143,23 @@ function onMarketplaceWindowVisibilityChanged() {
     marketplaceVisible = marketplaceWindow.visible;
 }
 
+function onCanWriteAssetsChanged() {
+    var message = CAN_WRITE_ASSETS + " " + Entities.canWriteAssets();
+    if (marketplaceWindow.visible) {
+        marketplaceWindow.emitScriptEvent(message);
+    }
+    if (marketplaceWebTablet) {
+        marketplaceWebTablet.getOverlayObject().emitScriptEvent(message);
+    }
+}
+
 function onClick() {
     toggleMarketplace();
 }
 
 browseExamplesButton.clicked.connect(onClick);
 marketplaceWindow.visibleChanged.connect(onMarketplaceWindowVisibilityChanged);
+Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
 clearOldTablet(); // Run once at startup, in case there's anything laying around from a crash.
 // We could also optionally do something like Window.domainChanged.connect(function () {Script.setTimeout(clearOldTablet, 2000)}),
@@ -138,6 +169,7 @@ Script.scriptEnding.connect(function () {
     toolBar.removeButton("marketplace");
     browseExamplesButton.clicked.disconnect(onClick);
     marketplaceWindow.visibleChanged.disconnect(onMarketplaceWindowVisibilityChanged);
+    Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
 });
 
 }()); // END LOCAL_SCOPE
