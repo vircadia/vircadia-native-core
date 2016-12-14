@@ -82,6 +82,7 @@ var pal = new OverlayWindow({
     visible: false
 });
 pal.fromQml.connect(function (message) { // messages are {method, params}, like json-rpc. See also sendToQml.
+    print('From PAL QML:', JSON.stringify(message));
     switch (message.method) {
     case 'selected':
         var sessionIds = message.params;
@@ -110,14 +111,16 @@ function populateUserList() {
     var counter = 1;
     AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
-        data.push({
+        var avatarPalDatum = {
             displayName: avatar.displayName || ('anonymous ' + counter++),
             userName: "fakeAcct" + (id || "Me"),
             sessionId: id || ''
-        });
+        };
+        data.push(avatarPalDatum);
         if (id) { // No overlay for ourself.
             addAvatarNode(id);
         }
+        print('PAL data:', JSON.stringify(avatarPalDatum));
     });
     pal.sendToQml({method: 'users', params: data});
 }
@@ -130,6 +133,7 @@ function updateOverlays() {
         }
         var overlay = ExtendedOverlay.get(id);
         if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
+            print('Adding non-PAL avatar node', id);
             overlay = addAvatarNode(id);
         }
         var avatar = AvatarList.getAvatar(id);
@@ -150,6 +154,7 @@ function updateOverlays() {
     // We could re-populateUserList if anything added or removed, but not for now.
 }
 function removeOverlays() {
+    selectedId = null;
     ExtendedOverlay.some(function (overlay) { overlay.deleteOverlay(); });
 }
 
@@ -203,22 +208,25 @@ var button = toolBar.addButton({
     buttonState: 1,
     alpha: 0.9
 });
+var isWired = false;
 function off() {
-    Script.update.disconnect(updateOverlays);
-    Controller.mousePressEvent.disconnect(handleMouseEvent);
-    triggerMapping.disable();
+    if (isWired) { // It is not ok to disconnect these twice, hence guard.
+        Script.update.disconnect(updateOverlays);
+        Controller.mousePressEvent.disconnect(handleMouseEvent);
+        isWired = false;
+    }
+    triggerMapping.disable(); // It's ok if we disable twice.
     removeOverlays();
 }
 function onClicked() {
     if (!pal.visible) {
         populateUserList();
         pal.raise();
+        isWired = true;
         Script.update.connect(updateOverlays);
         Controller.mousePressEvent.connect(handleMouseEvent);
         triggerMapping.enable();
-    } else {
-        off();
-    }
+    } // No need for off, as onVisibleChanged will handle it.
     pal.setVisible(!pal.visible);
 }
 
@@ -229,6 +237,9 @@ function onVisibileChanged() {
     button.writeProperty('buttonState', pal.visible ? 0 : 1);
     button.writeProperty('defaultState', pal.visible ? 0 : 1);
     button.writeProperty('hoverState', pal.visible ? 2 : 3);
+    if (!pal.visible) {
+        off();
+    }
 }
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibileChanged);
