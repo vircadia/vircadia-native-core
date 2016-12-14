@@ -12,6 +12,15 @@
 
 (function () {
 
+    // Event bridge messages.
+    var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
+    var GOTO_DIRECTORY = "GOTO_DIRECTORY";
+    var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
+    var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
+    var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
+
+    var canWriteAssets = false;
+
     function injectCommonCode(isDirectoryPage) {
 
         // Supporting styles from marketplaces.css.
@@ -54,7 +63,7 @@
             window.history.back();
         });
         $("#all-markets").on("click", function () {
-            EventBridge.emitWebEvent("GOTO_DIRECTORY");
+            EventBridge.emitWebEvent(GOTO_DIRECTORY);
         });
     }
 
@@ -118,7 +127,13 @@
 
                 // Automatic download to High Fidelity.
                 var downloadTimer;
-                function startAutoDownload() {
+                function startAutoDownload(event) {
+                    if (!canWriteAssets) {
+                        console.log("Clara.io FBX file download cancelled because no permissions to write to Asset Server");
+                        EventBridge.emitWebEvent(WARN_USER_NO_PERMISSIONS);
+                        event.stopPropagation();
+                    }
+
                     window.scrollTo(0, 0);  // Scroll to top ready for history.back().
                     if (!downloadTimer) {
                         downloadTimer = setInterval(autoDownload, 1000);
@@ -131,7 +146,7 @@
                             clearInterval(downloadTimer);
                             downloadTimer = null;
                             var href = downloadButton[0].href;
-                            EventBridge.emitWebEvent("CLARA.IO DOWNLOAD " + href);
+                            EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + href);
                             console.log("Clara.io FBX file download initiated for " + href);
                             $("a.btn.cancel").click();
                             history.back();  // Remove history item created by clicking "download".
@@ -170,9 +185,18 @@
             checkLocationInterval = undefined;
             currentLocation = "";
         });
+
+        EventBridge.emitWebEvent(QUERY_CAN_WRITE_ASSETS);
     }
 
     function onLoad() {
+
+        EventBridge.scriptEventReceived.connect(function (message) {
+            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
+                canWriteAssets = message.slice(-4) === "true";
+            }
+        });
+
         var DIRECTORY = 0;
         var HIFI = 1;
         var CLARA = 2;

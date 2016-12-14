@@ -5582,17 +5582,24 @@ void Application::showAssetServerWidget(QString filePath) {
 void Application::addAssetToWorldFromURL(QString url) {
     qInfo(interfaceapp) << "Download asset and add to world from" << url;
 
+    if (!_addAssetToWorldMessageBox) {
+        _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
+            "Downloading Asset", "Downloading asset file " + url.section("filename=", 1, 1),
+            QMessageBox::Cancel, QMessageBox::NoButton);
+        connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
+    }
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
+        QString errorInfo = "You do not have permissions to write to the Asset Server.";
+        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+        addAssetToWorldError(errorInfo);
+        return;
+    }
+
     QUrl urlURL = QUrl(url);
     auto request = ResourceManager::createResourceRequest(nullptr, urlURL);
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
-
-    if (!_addAssetToWorldMessageBox) {
-        _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
-            "Downloading Asset", "Downloading asset file " + url.section("filename=", 1, 1), 
-            QMessageBox::Cancel, QMessageBox::NoButton);
-    }
-    connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
 }
 
 void Application::addAssetToWorldFromURLRequestFinished() {
@@ -5650,8 +5657,9 @@ void Application::addAssetToWorld(QString filePath) {
         return;
     }
 
+    // Test repeated because possibly different code paths.
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
-        QString errorInfo = "Do not have permissions to write to asset server.";
+        QString errorInfo = "You do not have permissions to write to the Asset Server.";
         qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
         addAssetToWorldError(errorInfo);
         return;
@@ -5660,7 +5668,7 @@ void Application::addAssetToWorld(QString filePath) {
     QString path = QUrl(filePath).toLocalFile();
     QString mapping = path.right(path.length() - path.lastIndexOf("/"));
 
-    _addAssetToWorldMessageBox->setProperty("text", "Adding " + mapping.mid(1) + " to Asset Server.");
+    _addAssetToWorldMessageBox->setProperty("text", "Adding " + mapping.mid(1) + " to the Asset Server.");
 
     addAssetToWorldWithNewMapping(path, mapping, 0);
 }
@@ -5708,7 +5716,7 @@ void Application::addAssetToWorldUpload(QString path, QString mapping) {
     auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
-            QString errorInfo = "Could not upload asset to asset server.";
+            QString errorInfo = "Could not upload asset to the Asset Server.";
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
             addAssetToWorldError(errorInfo);
         } else {
