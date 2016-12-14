@@ -51,7 +51,11 @@ public:
 
     virtual Web3DOverlay* createClone() const override;
 
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+
 signals:
+    void scriptEventReceived(const QVariant& message);
     void webEventReceived(const QVariant& message);
 
 private:
@@ -72,6 +76,7 @@ private:
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
 
+    QMetaObject::Connection _emitScriptEventConnection;
     QMetaObject::Connection _webEventReceivedConnection;
 };
 

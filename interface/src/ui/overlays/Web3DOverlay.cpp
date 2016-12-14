@@ -69,6 +69,8 @@ Web3DOverlay::~Web3DOverlay() {
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
 
+        QObject::disconnect(_emitScriptEventConnection);
+        _emitScriptEventConnection = QMetaObject::Connection();
         QObject::disconnect(_webEventReceivedConnection);
         _webEventReceivedConnection = QMetaObject::Connection();
 
@@ -153,6 +155,7 @@ void Web3DOverlay::render(RenderArgs* args) {
             }
         });
 
+        _emitScriptEventConnection = connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
         _webEventReceivedConnection = connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
     }
 
@@ -354,4 +357,12 @@ bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
 
 Web3DOverlay* Web3DOverlay::createClone() const {
     return new Web3DOverlay(this);
+}
+
+void Web3DOverlay::emitScriptEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        emit scriptEventReceived(message);
+    }
 }
