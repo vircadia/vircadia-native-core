@@ -320,7 +320,6 @@ public slots:
     void addAssetToWorldUpload(QString path, QString mapping);
     void addAssetToWorldSetMapping(QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString mapping);
-    void addAssetToWorldCheckModelSize();
 
     void handleUnzip(QString filePath = "", bool autoAdd = false);
 
@@ -377,6 +376,8 @@ public slots:
     unsigned int getKeyboardFocusOverlay();
     void setKeyboardFocusOverlay(unsigned int overlayID);
 
+    void addAssetToWorldMessageClose();
+
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
@@ -413,7 +414,10 @@ private slots:
     void updateDisplayMode();
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
-    void onAssetToWorldMessageBoxClosed();
+    void addAssetToWorldCheckModelSize();
+
+    void addAssetToWorldInfoTimeout();
+    void addAssetToWorldErrorTimeout();
 
 private:
     static void initDisplay();
@@ -634,10 +638,19 @@ private:
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
-    QQuickItem* _addAssetToWorldMessageBox{ nullptr };
-    void addAssetToWorldError(QString errorText);
-    QTimer _addAssetToWorldTimer;
+    QTimer _addAssetToWorldResizeTimer;
     QHash<QUuid, int> _addAssetToWorldResizeList;
+
+    void addAssetToWorldInfo(QString modelName, QString infoText);
+    void addAssetToWorldInfoClear(QString modelName);
+    void addAssetToWorldInfoDone(QString modelName);
+    void addAssetToWorldError(QString modelName, QString errorText);
+
+    QQuickItem* _addAssetToWorldMessageBox{ nullptr };
+    QStringList _addAssetToWorldInfoKeys;  // Model name
+    QStringList _addAssetToWorldInfoMessages;  // Info message
+    QTimer _addAssetToWorldInfoTimer;
+    QTimer _addAssetToWorldErrorTimer;
 
     FileScriptingInterface* _fileDownload;
 };
