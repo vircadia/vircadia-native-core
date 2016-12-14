@@ -5804,7 +5804,7 @@ void Application::addAssetToWorldCheckModelSize() {
             // Increment count of checks done.
             _addAssetToWorldResizeList[entityID]++;
 
-            const int CHECK_MODEL_SIZE_MAX_CHECKS = 30;
+            const int CHECK_MODEL_SIZE_MAX_CHECKS = 300;
             if (_addAssetToWorldResizeList[entityID] > CHECK_MODEL_SIZE_MAX_CHECKS) {
                 // Have done enough checks; model was either the default size or something's gone wrong.
 
