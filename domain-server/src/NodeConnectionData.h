@@ -29,6 +29,7 @@ public:
     QList<NodeType_t> interestList;
     QString placeName;
     QString hardwareAddress;
+    QUuid machineFingerprint;
 
     QByteArray protocolVersion;
 };
