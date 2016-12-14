@@ -32,7 +32,8 @@
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
-const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 60;
+// FIXME - what we'd actually like to do is send to users at ~50% of their present rate down to 30hz. Assume 90 for now.
+const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
 AvatarMixer::AvatarMixer(ReceivedMessage& message) :

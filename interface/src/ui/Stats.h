@@ -62,6 +62,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, avatarMixerInPps, 0)
     STATS_PROPERTY(int, avatarMixerOutKbps, 0)
     STATS_PROPERTY(int, avatarMixerOutPps, 0)
+    STATS_PROPERTY(float, myAvatarSendRate, 0)
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
     STATS_PROPERTY(int, downloads, 0)
@@ -164,6 +165,7 @@ signals:
     void avatarMixerInPpsChanged();
     void avatarMixerOutKbpsChanged();
     void avatarMixerOutPpsChanged();
+    void myAvatarSendRateChanged();
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
     void downloadsChanged();
