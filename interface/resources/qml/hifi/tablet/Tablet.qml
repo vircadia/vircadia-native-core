@@ -1,7 +1,10 @@
 import QtQuick 2.0
+import QtGraphicalEffects 1.0
 
 Item {
     id: tablet
+
+    property double miclevel: 0.8
 
     width: 480
     height: 720
@@ -36,7 +39,8 @@ Item {
             anchors.left: parent.left
             anchors.rightMargin: 30
             anchors.right: parent.right
-            spacing: 10
+            spacing: 5
+
             Rectangle {
                 id: muteButton
                 width: 128
@@ -80,6 +84,7 @@ Item {
                     }
                 }
             }
+
             Image {
                 id: muteIcon
                 width: 40
@@ -87,34 +92,45 @@ Item {
                 source: "../../../icons/tablet-mute-icon.svg"
                 anchors.verticalCenter: parent.verticalCenter
             }
-            Rectangle {
-                id: audioBarBase
-                color: "#333333"
-                radius: 5
+
+            Item {
+                id: item1
                 width: 225
                 height: 10
                 anchors.verticalCenter: parent.verticalCenter
                 Rectangle {
-                    id: audioBarColor
+                    id: audioBarBase
+                    color: "#333333"
                     radius: 5
-                    anchors.verticalCenterOffset: 0
+                    anchors.fill: parent
+                }
+                Rectangle {
+                    id: audioBarMask
+                    width: parent.width * tablet.miclevel
+                    color: "#333333"
+                    radius: 5
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 0
+                    anchors.top: parent.top
+                    anchors.topMargin: 0
                     anchors.left: parent.left
-                    anchors.leftMargin: 85
-                    anchors.verticalCenter: parent.verticalCenter
-                    rotation: -90
+                    anchors.leftMargin: 0
+                }
+                LinearGradient {
+                    anchors.fill: audioBarMask
+                    source: audioBarMask
+                    start: Qt.point(0, 0)
+                    end: Qt.point(225, 0)
                     gradient: Gradient {
                         GradientStop {
                             position: 0
                             color: "#00b8ff"
                         }
-
                         GradientStop {
                             position: 1
                             color: "#ff2d73"
                         }
                     }
-                    width: parent.height
-                    height: parent.width*0.8
                 }
             }
         }
@@ -198,6 +214,11 @@ Item {
             PropertyChanges {
                 target: muteIcon
                 source: "../../../icons/tablet-unmute-icon.svg"
+            }
+
+            PropertyChanges {
+                target: tablet
+                miclevel: 0
             }
         }
     ]
