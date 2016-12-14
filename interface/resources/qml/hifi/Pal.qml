@@ -41,9 +41,10 @@ Rectangle {
     property var userData: [];
     property var myData: ({displayName: "", userName: ""}); // valid dummy until set
     property bool iAmAdmin: false;
-    function findSessionIndex(sessionId) { // no findIndex in .qml
-        for (var i = 0; i < userData.length; i++) {
-            if (userData[i].sessionId === sessionId) {
+    function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
+        var i, data = optionalData || userData, length = data.length;
+        for (var i = 0; i < length; i++) {
+            if (data[i].sessionId === sessionId) {
                 return i;
             }
         }
@@ -53,7 +54,7 @@ Rectangle {
         switch (message.method) {
         case 'users':
             var data = message.params;
-            var myIndex = findSessionIndex('');
+            var myIndex = findSessionIndex('', data);
             iAmAdmin = Users.canKick;
             myData = data[myIndex];
             data.splice(myIndex, 1);
@@ -105,7 +106,6 @@ Rectangle {
     }
     signal sendToScript(var message);
     function noticeSelection() {
-        console.log('selection changed');
         var userIds = [];
         table.selection.forEach(function (userIndex) {
             userIds.push(userData[userIndex].sessionId);

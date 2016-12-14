@@ -91,7 +91,7 @@ var AVATAR_OVERLAY = Script.resolvePath("assets/images/grabsprite-3.png");
 function populateUserList() {
     var data = [];
     var counter = 1;
-    AvatarList.getAvatarIdentifiers().forEach(function (id) {
+    AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
         data.push({
             displayName: avatar.displayName || ('anonymous ' + counter++),
