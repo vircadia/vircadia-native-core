@@ -90,6 +90,9 @@ Web3DOverlay::~Web3DOverlay() {
 }
 
 void Web3DOverlay::update(float deltatime) {
+    // FIXME: Transforms cause tablet overlay to detach from tablet entity.
+    // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
+    /*
     if (usecTimestampNow() > _transformExpiry) {
         Transform transform = getTransform();
         applyTransformTo(transform);
