@@ -106,6 +106,13 @@ const char LEFT_HAND_POINTING_FLAG = 1;
 const char RIGHT_HAND_POINTING_FLAG = 2;
 const char IS_FINGER_POINTING_FLAG = 4;
 
+// AvatarData state flags - we store the details about the packet encoding in the first byte, 
+// before the "header" structure
+const char AVATARDATA_FLAGS_MINIMUM = 0;
+const char AVATARDATA_FLAGS_COMPRESSED = 1;
+
+
+
 static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
 
@@ -201,7 +208,7 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    virtual QByteArray toByteArray(bool cullSmallChanges, bool sendAll);
+    virtual QByteArray toByteArray(bool cullSmallChanges, bool sendAll, bool sendMinimum = false, bool compressed = true);
     virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged
