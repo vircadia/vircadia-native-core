@@ -61,10 +61,13 @@ Item {
                     onEntered: {
                         console.log("Mute Botton Hovered!");
                         parent.color = "#2d2d2d";
+                        parent.border.width = 2;
+                        parent.border.color = "#ffffff";
                     }
                     onExited: {
                         console.log("Mute Botton Unhovered!");
                         parent.color = "#464646";
+                        parent.border.width = 0;
                     }
 
                     onClicked: {

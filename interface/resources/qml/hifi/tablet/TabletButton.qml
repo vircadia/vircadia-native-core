@@ -12,6 +12,8 @@ Item {
     Rectangle {
         id: buttonBg
         color: tabletButton.color
+        border.width: 0
+        border.color: "#00000000"
         anchors.right: parent.right
         anchors.rightMargin: 0
         anchors.left: parent.left
@@ -20,15 +22,6 @@ Item {
         anchors.bottomMargin: 0
         anchors.top: parent.top
         anchors.topMargin: 0
-
-        layer.enabled: true
-        layer.effect: DropShadow {
-            horizontalOffset: 0
-            verticalOffset: 3
-            color: "#aa000000"
-            radius: 20
-            samples: 41
-        }
     }
 
     Image {
@@ -53,6 +46,48 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: Text.AlignHCenter
     }
+
+    DropShadow {
+        id: dropshadow
+        anchors.fill: parent
+        horizontalOffset: 0
+        verticalOffset: 3
+        color: "#aa000000"
+        radius: 20
+        z: -1
+        samples: 41
+        source: buttonBg
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        onEntered: {
+            console.log("Tablet Button Hovered!");
+            tabletButton.state = "hover state";
+        }
+        onExited: {
+            console.log("Tablet Button Unhovered!");
+            tabletButton.state = "base state";
+        }
+    }
+
+    states: [
+        State {
+            name: "hover state"
+
+            PropertyChanges {
+                target: buttonBg
+                border.width: 2
+                border.color: "#ffffff"
+            }
+            PropertyChanges {
+                target: dropshadow
+                verticalOffset: 0
+                color: "#ffffff"
+            }
+        }
+    ]
 }
 
 
