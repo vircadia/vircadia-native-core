@@ -128,7 +128,7 @@ int main(int argc, const char* argv[]) {
     }
 
     QCommandLineParser parser;
-    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check machine has minimum specifications");
+    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
     parser.addOption(checkMinSpecOption);
