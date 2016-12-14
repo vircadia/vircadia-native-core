@@ -27,9 +27,16 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     using JobModel = Model<RenderForwardTask, Config>;
+};
 
-protected:
-    gpu::RangeTimerPointer _gpuTimer;
+class PrepareFramebuffer {
+public:
+    using JobModel = render::Job::ModelO<PrepareFramebuffer, gpu::FramebufferPointer>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer);
+
+private:
+    gpu::FramebufferPointer _framebuffer;
 };
 
 #endif // hifi_RenderForwardTask_h

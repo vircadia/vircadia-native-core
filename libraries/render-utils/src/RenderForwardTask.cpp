@@ -93,140 +93,10 @@ RenderForwardTask::RenderForwardTask(CullFunctor cullFunctor) {
     const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
     const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
-    // Prepare deferred, generate the shared Deferred Frame Transform
-    const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
-    const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
-
-
-    // GPU jobs: Start preparing the primary, deferred and lighting buffer
-    const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
-
-   // const auto fullFrameRangeTimer = addJob<BeginGPURangeTimer>("BeginRangeTimer");
-    const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
-
-    const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).hasVarying();
-    const auto prepareDeferredOutputs = addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
-    const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
-    const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
-
-    // Render opaque objects in DeferredBuffer
-    const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
-    addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
-
-    // Once opaque is all rendered create stencil background
-    addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
-
-    addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
-
-
-    // Opaque all rendered
-
-    // Linear Depth Pass
-    const auto linearDepthPassInputs = LinearDepthPass::Inputs(deferredFrameTransform, deferredFramebuffer).hasVarying();
-    const auto linearDepthPassOutputs = addJob<LinearDepthPass>("LinearDepth", linearDepthPassInputs);
-    const auto linearDepthTarget = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(0);
-    
-    // Curvature pass
-    const auto surfaceGeometryPassInputs = SurfaceGeometryPass::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
-    const auto surfaceGeometryPassOutputs = addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
-    const auto surfaceGeometryFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(0);
-    const auto curvatureFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(1);
-    const auto midCurvatureNormalFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(2);
-    const auto lowCurvatureNormalFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(3);
-
-    // Simply update the scattering resource
-    const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
-
-    // AO job
-    const auto ambientOcclusionInputs = AmbientOcclusionEffect::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
-    const auto ambientOcclusionOutputs = addJob<AmbientOcclusionEffect>("AmbientOcclusion", ambientOcclusionInputs);
-    const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
-    const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
-
-    
-    // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
-    addJob<DrawLight>("DrawLight", lights);
-
-    // Light Clustering
-    // Create the cluster grid of lights, cpu job for now
-    const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget).hasVarying();
-    const auto lightClusters = addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
-    
-    
-    // DeferredBuffer is complete, now let's shade it into the LightingBuffer
-    const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters).hasVarying();
-    
-    addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
-
-    // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
-    const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
-    addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
-   
-    
-    // Render transparent objects forward in LightingBuffer
-    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
-    addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
-
-    // LIght Cluster Grid Debuging job
-    {
-        const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).hasVarying();
-        addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
-    }
-    
-    const auto toneAndPostRangeTimer = addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
-
-    // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
-    addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
-
-    // Overlays
-    const auto overlayOpaquesInputs = DrawOverlay3D::Inputs(overlayOpaques, lightingModel).hasVarying();
-    const auto overlayTransparentsInputs = DrawOverlay3D::Inputs(overlayTransparents, lightingModel).hasVarying();
-    addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
-    addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
-
-    
-    // Debugging stages
-    {
-        // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
-        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
-
-        const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-            surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
-        addJob<DebugSubsurfaceScattering>("DebugScattering", debugSubsurfaceScatteringInputs);
-
-        const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
-        addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
-
-
-        // Scene Octree Debuging job
-        {
-            addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
-            addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
-        }
-
-        // Status icon rendering job
-        {
-            // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
-            auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
-            auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
-            addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
-        }
-    }
-
-
-    // AA job to be revisited
-    addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
-
-    addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
+    const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
     // Blit!
-    addJob<Blit>("Blit", primaryFramebuffer);
-
- //   addJob<EndGPURangeTimer>("RangeTimer", fullFrameRangeTimer);
-
+    addJob<Blit>("Blit", framebuffer);
 }
 
 void RenderForwardTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -247,4 +117,47 @@ void RenderForwardTask::run(const SceneContextPointer& sceneContext, const Rende
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
+}
+
+void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    auto framebufferSize = framebufferCache->getFrameBufferSize();
+    glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
+
+    // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
+    if (_framebuffer && _framebuffer->getSize() != frameSize) {
+        _framebuffer.reset();
+    }
+
+    if (!_framebuffer) {
+        _framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("forward"));
+
+        auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        auto colorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, defaultSampler));
+        _framebuffer->setRenderBuffer(0, colorTexture);
+
+        auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
+        auto depthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
+        _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
+    }
+
+    auto args = renderContext->args;
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        batch.setFramebuffer(_framebuffer);
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_COLOR0 |
+            gpu::Framebuffer::BUFFER_COLOR1 |
+            gpu::Framebuffer::BUFFER_COLOR2 |
+            gpu::Framebuffer::BUFFER_COLOR3 |
+            gpu::Framebuffer::BUFFER_DEPTH |
+            gpu::Framebuffer::BUFFER_STENCIL,
+            vec4(vec3(0), 0), 1.0, 0.0, true);
+    });
+
+    framebuffer = _framebuffer;
 }
