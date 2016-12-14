@@ -220,12 +220,6 @@
     }
 
     // Load / unload.
-    try {
-        // This appears more responsive to the user but $ is not necessarily loaded in time for each marketplace.
-        $(document).ready(function () { onLoad(); });
-    }
-    catch (e) {
-        window.addEventListener("load", onLoad);
-    }
+    window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
 
 }());
