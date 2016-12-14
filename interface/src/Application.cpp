@@ -5712,7 +5712,6 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
     properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
-    properties.setDynamic(false);
     properties.setPosition(getMyAvatar()->getPosition() + getMyAvatar()->getOrientation() * glm::vec3(0.0f, 0.0f, -2.0f));
     properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
     auto entityID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
@@ -5770,7 +5769,6 @@ void Application::addAssetToWorldCheckModelSize() {
             }
             properties.setVisible(true);
             properties.setCollisionless(false);
-            properties.setDynamic(true);
             properties.setUserData(GRABBABLE_USER_DATA);
             properties.setLastEdited(usecTimestampNow());
             entityScriptingInterface->editEntity(entityID, properties);
@@ -5788,7 +5786,6 @@ void Application::addAssetToWorldCheckModelSize() {
                 EntityItemProperties properties;
                 properties.setVisible(true);
                 properties.setCollisionless(false);
-                properties.setDynamic(true);
                 properties.setUserData(GRABBABLE_USER_DATA);
                 properties.setLastEdited(usecTimestampNow());
                 entityScriptingInterface->editEntity(entityID, properties);
