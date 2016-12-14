@@ -98,6 +98,7 @@ void Web3DOverlay::update(float deltatime) {
         applyTransformTo(transform);
         setTransform(transform);
     }
+    */
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
