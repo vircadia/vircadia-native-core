@@ -9,9 +9,17 @@
 #ifndef hifi_TabletScriptingInterface_h
 #define hifi_TabletScriptingInterface_h
 
+#include <mutex>
+
 #include <QtCore/QObject>
+#include <QVariant>
+#include <QScriptValue>
 
 #include <DependencyManager.h>
+
+
+class TabletProxy;
+class TabletButtonProxy;
 
 /**jsdoc
  * @namespace Tablet
@@ -20,12 +28,79 @@ class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
     /**jsdoc
-     * Creates a new button on the tablet ui and returns it.
+     * Creates or retruns a new TabletProxy and returns it.
      * @function Tablet.getTablet
      * @param name {String} tablet name
-     * @return {QmlWrapper} tablet instance
+     * @return {TabletProxy} tablet instance
      */
     Q_INVOKABLE QObject* getTablet(const QString& tabletId);
+protected:
+    std::mutex _tabletProxiesMutex;
+    std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
+};
+
+/**jsdoc
+ * @class TabletProxy
+ * @property name {string} name of this tablet
+ */
+class TabletProxy : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString name READ getName)
+public:
+    TabletProxy(QString name);
+
+    /**jsdoc
+     * @function TabletProxy#addButton
+     * Creates a new button, adds it to this and returns it.
+     * @param properties {Object} button properties AJT: TODO: enumerate these...
+     * @returns {TabletButtonProxy}
+     */
+    Q_INVOKABLE QObject* addButton(const QVariant& properties);
+
+    /**jsdoc
+     * @function TabletProxy#removeButton
+     * removes button from the tablet
+     * @param tabletButtonProxy {TabletButtonProxy} button to be removed
+     */
+    Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
+
+    QString getName() const { return _name; }
+protected:
+    QString _name;
+    std::mutex _tabletButtonProxiesMutex;
+    std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
+};
+
+/**jsdoc
+ * @class TabletButtonProxy
+ * @property imageUrl {string}
+ */
+class TabletButtonProxy : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString imageUrl READ getImageUrl WRITE setImageUrl)
+public:
+    TabletButtonProxy(const QVariantMap& properties);
+
+    /**jsdoc
+     * @function TabletButtonProxy#setInitRequestHandler
+     * @param handler {Function} A function used by the system to request the current button state from JavaScript.
+     */
+    Q_INVOKABLE void setInitRequestHandler(const QScriptValue& handler);
+
+    QString getImageUrl() const;
+    void setImageUrl(QString imageUrl);
+
+signals:
+    /**jsdoc
+     * Signaled when this button has been clicked on by the user.
+     * @function TabletButtonProxy#onClick
+     * @returns {Signal}
+     */
+    void onClick();
+protected:
+    mutable std::mutex _propertiesMutex;
+    QVariantMap _properties;
+    QScriptValue _initRequestHandler;
 };
 
 #endif // hifi_TabletScriptingInterface_h

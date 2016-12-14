@@ -10,24 +10,71 @@
 
 #include <QtCore/QThread>
 
-#include <OffscreenUi.h>
-#include "QmlWrapper.h"
-
-class TabletButtonProxy : public QmlWrapper {
-    Q_OBJECT
-
-public:
-    TabletButtonProxy(QObject* qmlObject, QObject* parent = nullptr) : QmlWrapper(qmlObject, parent) {
-        connect(qmlObject, SIGNAL(clicked()), this, SIGNAL(clicked()));
-    }
-
-signals:
-    void clicked();
-};
-
 QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
-    // AJT TODO: how the fuck do I get access to the toolbar qml?!? from here?
-    return nullptr;
+
+    std::lock_guard<std::mutex> guard(_tabletProxiesMutex);
+
+    // look up tabletId in the map.
+    auto iter = _tabletProxies.find(tabletId);
+    if (iter != _tabletProxies.end()) {
+        // tablet already exists, just return it.
+        return iter->second.data();
+    } else {
+        // allocate a new tablet, add it to the map then return it.
+        auto tabletProxy = QSharedPointer<TabletProxy>(new TabletProxy(tabletId));
+        _tabletProxies[tabletId] = tabletProxy;
+        return tabletProxy.data();
+    }
+}
+
+//
+// TabletProxy
+//
+
+TabletProxy::TabletProxy(QString name) : _name(name) {
+    ;
+}
+
+QObject* TabletProxy::addButton(const QVariant& properties) {
+    auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
+    std::lock_guard<std::mutex> guard(_tabletButtonProxiesMutex);
+    _tabletButtonProxies.push_back(tabletButtonProxy);
+    return tabletButtonProxy.data();
+}
+
+void TabletProxy::removeButton(QObject* tabletButtonProxy) {
+    std::lock_guard<std::mutex> guard(_tabletButtonProxiesMutex);
+    auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
+    if (iter != _tabletButtonProxies.end()) {
+        _tabletButtonProxies.erase(iter);
+    } else {
+        qWarning() << "TabletProxy::removeButton() could not find button " << tabletButtonProxy;
+    }
+}
+
+//
+// TabletButtonProxy
+//
+
+TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) : _properties(properties) {
+    ;
+}
+
+void TabletButtonProxy::setInitRequestHandler(const QScriptValue& handler) {
+    _initRequestHandler = handler;
+}
+
+static QString IMAGE_URL_KEY = "imageUrl";
+static QString IMAGE_URL_DEFAULT = "";
+
+QString TabletButtonProxy::getImageUrl() const {
+    std::lock_guard<std::mutex> guard(_propertiesMutex);
+    return _properties.value(IMAGE_URL_KEY, IMAGE_URL_DEFAULT).toString();
+}
+
+void TabletButtonProxy::setImageUrl(QString imageUrl) {
+    std::lock_guard<std::mutex> guard(_propertiesMutex);
+    _properties[IMAGE_URL_KEY] = imageUrl;
 }
 
 #include "TabletScriptingInterface.moc"
