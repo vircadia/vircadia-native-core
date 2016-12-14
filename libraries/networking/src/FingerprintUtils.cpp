@@ -45,6 +45,13 @@ QString FingerprintUtils::getMachineFingerprintString() {
     IWbemLocator *pLoc = NULL;
 
     // initialize com
+    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    if (FAILED(hres)) {
+        qDebug() << "Failed to initialize COM library!";
+        return uuidString;
+    }
+    
+    // initialize WbemLocator
     hres = CoCreateInstance(
             CLSID_WbemLocator,             
             0, 
