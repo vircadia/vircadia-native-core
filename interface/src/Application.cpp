@@ -5603,7 +5603,7 @@ void Application::addAssetToWorldFromURL(QString url) {
         return;
     }
 
-    addAssetToWorldInfo(filename, "Downloading asset file " + filename);
+    addAssetToWorldInfo(filename, "Downloading asset file " + filename + ".");
 
     auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
@@ -5715,6 +5715,7 @@ void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, i
 }
 
 void Application::addAssetToWorldUpload(QString path, QString mapping) {
+    qInfo(interfaceapp) << "Uploading" << path << "to Asset Server as" << mapping;
     auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
