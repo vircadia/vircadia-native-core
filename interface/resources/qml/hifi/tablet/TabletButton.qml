@@ -1,28 +1,93 @@
 import QtQuick 2.0
-import "../../styles-uit/"
+import QtGraphicalEffects 1.0
 
-Rectangle {
+Item {
     id: tabletButton
-    width: 140
-    height: 140
-    color: "#1794c3"
+    property string color: "#1080B8"
+    property string text: "EDIT"
+    property string icon: "icons/edit-icon.svg"
+    width: 132
+    height: 132
+
+    Rectangle {
+        id: buttonBg
+        color: tabletButton.color
+        border.width: 0
+        border.color: "#00000000"
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 0
+        anchors.top: parent.top
+        anchors.topMargin: 0
+    }
 
     Image {
         id: icon
-        x: 40
-        y: 30
         width: 60
         height: 60
-        source: "../../../icons/edit-icon.svg"
+        anchors.bottom: text.top
+        anchors.bottomMargin: 5
+        anchors.horizontalCenter: parent.horizontalCenter
+        fillMode: Image.Stretch
+        source: "../../../" + tabletButton.icon
     }
 
-    RalewaySemiBold {
+    Text {
         id: text
-        x: 50
-        y: 96
         color: "#ffffff"
-        text: qsTr("EDIT")
-        horizontalAlignment: Text.AlignHCenter
+        text: tabletButton.text
+        font.bold: true
         font.pixelSize: 18
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 20
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalAlignment: Text.AlignHCenter
     }
+
+    DropShadow {
+        id: dropshadow
+        anchors.fill: parent
+        horizontalOffset: 0
+        verticalOffset: 3
+        color: "#aa000000"
+        radius: 20
+        z: -1
+        samples: 41
+        source: buttonBg
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        onEntered: {
+            console.log("Tablet Button Hovered!");
+            tabletButton.state = "hover state";
+        }
+        onExited: {
+            console.log("Tablet Button Unhovered!");
+            tabletButton.state = "base state";
+        }
+    }
+
+    states: [
+        State {
+            name: "hover state"
+
+            PropertyChanges {
+                target: buttonBg
+                border.width: 2
+                border.color: "#ffffff"
+            }
+            PropertyChanges {
+                target: dropshadow
+                verticalOffset: 0
+                color: "#ffffff"
+            }
+        }
+    ]
 }
+
+
