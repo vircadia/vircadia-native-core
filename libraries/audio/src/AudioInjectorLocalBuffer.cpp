@@ -16,7 +16,7 @@ AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(const QByteArray& rawAudioArr
     _rawAudioArray(rawAudioArray),
     _shouldLoop(false),
     _isStopped(false),
-    _currentOffset(0),
+    _currentOffset(0)
 {
     
 }
