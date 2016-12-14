@@ -175,10 +175,6 @@ if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
-if (NOT ANDROID)
-  set(NON_ANDROID_LIBRARIES steamworks-wrapper)
-endif ()
-
 # link required hifi libraries
 link_hifi_libraries(
   shared octree gpu gl gpu-gl procedural model render

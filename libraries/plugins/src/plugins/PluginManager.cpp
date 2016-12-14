@@ -147,6 +147,22 @@ const CodecPluginList& PluginManager::getCodecPlugins() {
     return codecPlugins;
 }
 
+const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
+    static SteamClientPluginPointer steamClientPlugin;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        // Now grab the dynamic plugins
+        for (auto loader : getLoadedPlugins()) {
+            SteamClientProvider* steamClientProvider = qobject_cast<SteamClientProvider*>(loader->instance());
+            if (steamClientProvider) {
+                steamClientPlugin = steamClientProvider->getSteamClientPlugin();
+                break;
+            }
+        }
+    });
+    return steamClientPlugin;
+}
+
 #ifndef Q_OS_ANDROID
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class

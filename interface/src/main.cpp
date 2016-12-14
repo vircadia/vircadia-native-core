@@ -22,7 +22,6 @@
 #include <gl/OpenGLVersionChecker.h>
 #include <SharedUtil.h>
 
-#include <steamworks-wrapper/SteamClient.h>
 
 #include "AddressManager.h"
 #include "Application.h"
@@ -129,8 +128,10 @@ int main(int argc, const char* argv[]) {
     }
 
     QCommandLineParser parser;
+    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check machine has minimum specifications");
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
+    parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
     parser.parse(arguments);
@@ -157,11 +158,9 @@ int main(int argc, const char* argv[]) {
     // or in the main window ctor, before GL startup.
     Application::initPlugins(arguments);
 
-    SteamClient::init();
-
 #ifdef Q_OS_WIN
     // If we're running in steam mode, we need to do an explicit check to ensure we're up to the required min spec
-    if (SteamClient::isRunning()) {
+    if (parser.isSet(checkMinSpecOption)) {
         QString appPath;
         {
             char filename[MAX_PATH];
@@ -244,8 +243,6 @@ int main(int argc, const char* argv[]) {
     }
 
     Application::shutdownPlugins();
-
-    SteamClient::shutdown();
 
     qCDebug(interfaceapp, "Normal exit.");
 #if !defined(DEBUG) && !defined(Q_OS_LINUX)
