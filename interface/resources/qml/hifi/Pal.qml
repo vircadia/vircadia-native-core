@@ -91,6 +91,7 @@ Rectangle {
             default: return 0;
             }
         });
+        table.selection.clear();
         userModel.clear();
         var userIndex = 0;
         userData.forEach(function (datum) {
