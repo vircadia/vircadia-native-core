@@ -96,7 +96,7 @@ Rectangle {
                     datum[property] = false;
                 }
             }
-            ['mute', 'spacer', 'ignore', 'ban'].forEach(init);
+            ['ignore', 'spacer', 'mute', 'kick'].forEach(init);
             datum.userIndex = userIndex++;
             userModel.append(datum);
         });
