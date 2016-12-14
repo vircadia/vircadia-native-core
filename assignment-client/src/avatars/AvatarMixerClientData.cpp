@@ -60,9 +60,16 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
     _currentViewFrustumIsValid = true;
     _currentViewFrustum.fromByteArray(message);
-    qDebug() << __FUNCTION__;
-    _currentViewFrustum.printDebugDetails();
 }
+
+bool AvatarMixerClientData::otherAvatarInView(const glm::vec3& otherAvatar) {
+    return !_currentViewFrustumIsValid || _currentViewFrustum.pointIntersectsFrustum(otherAvatar);
+}
+
+bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
+    return !_currentViewFrustumIsValid || _currentViewFrustum.boxIntersectsKeyhole(otherAvatarBox);
+}
+
 
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["display_name"] = _avatar->getDisplayName();

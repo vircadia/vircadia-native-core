@@ -173,6 +173,8 @@ void ViewFrustum::fromByteArray(const QByteArray& input) {
             cameraAspectRatio,
             cameraNearClip,
             cameraFarClip));
+
+        calculate();
     }
 }
 

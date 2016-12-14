@@ -90,9 +90,8 @@ public:
 
     void readViewFrustumPacket(const QByteArray& message);
 
-    bool otherAvatarInView(const AABox& otherAvatarBox) {
-        return !_currentViewFrustumIsValid || _currentViewFrustum.boxIntersectsKeyhole(otherAvatarBox);
-    }
+    bool otherAvatarInView(const AABox& otherAvatarBox);
+    bool otherAvatarInView(const glm::vec3& otherAvatar);
 
 private:
     AvatarSharedPointer _avatar { new AvatarData() };

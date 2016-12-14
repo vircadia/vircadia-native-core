@@ -281,9 +281,12 @@ void AvatarMixer::broadcastAvatarData() {
                         // Also check to see if the other node is in our view
                         glm::vec3 otherNodeBoxScale = (otherData->getPosition() - otherData->getGlobalBoundingBoxCorner()) * 2.0f;
                         AABox otherNodeBox(otherData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+
                         if (!nodeData->otherAvatarInView(otherNodeBox)) {
-                            qDebug() << "Avatar out of view!";
+                            //qDebug() << "Avatar out of view!";
                             return false;
+                        } else {
+                            //qDebug() << "Avatar in view!";
                         }
 
                         return true;
