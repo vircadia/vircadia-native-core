@@ -773,8 +773,8 @@ function MyController(hand) {
 
         this.updateSmoothedTrigger();
 
-        //  If both grip buttons squeezed and nothing is held, rescale my avatar!
-        if (this.hand === RIGHT_HAND && this.state === STATE_OFF && this.getOtherHandController().state === STATE_OFF) {
+        //  If both trigger and grip buttons squeezed and nothing is held, rescale my avatar!
+        if (this.hand === RIGHT_HAND && this.state === STATE_SEARCHING && this.getOtherHandController().state === STATE_SEARCHING) {
             this.maybeScaleMyAvatar();
         }
         
@@ -2191,8 +2191,8 @@ function MyController(hand) {
 
     this.maybeScale = function(props) {
         if (!this.shouldScale) {
-            //  If both secondary triggers squeezed, start scaling
-            if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed()) {
+            //  If both secondary triggers squeezed, and the non-holding hand is empty, start scaling
+            if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed() && this.getOtherHandController().state === STATE_OFF) {
                 this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
                 this.scalingStartDimensions = props.dimensions;
                 this.shouldScale = true;
