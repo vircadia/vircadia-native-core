@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true, forin: true*/
-/*globals Script, AvatarList, Camera, Overlays, OverlayWindow, Toolbars, Vec3, Quat, Controller, print */
+/*globals Script, AvatarList, Camera, Overlays, OverlayWindow, Toolbars, Vec3, Quat, Controller, print, getControllerWorldLocation */
 //
 // pal.js
 //
@@ -15,7 +15,9 @@
 
 Script.include("/~/system/libraries/controllers.js");
 
-// Overlays
+//
+// Overlays.
+//
 var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
 function ExtendedOverlay(key, type, properties) { // A wrapper around overlays to store the key it is associated with.
     overlays[key] = this;
@@ -34,12 +36,15 @@ ExtendedOverlay.prototype.editOverlay = function (properties) { // change displa
 };
 var UNSELECTED_COLOR = {red: 20, green: 250, blue: 20};
 var SELECTED_COLOR = {red: 250, green: 20, blue: 20};
+function color(selected) { return selected ? SELECTED_COLOR : UNSELECTED_COLOR; }
+var selectedId = null; // assumes only zero or one at a time!
 ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
-    this.editOverlay({color: selected ? SELECTED_COLOR : UNSELECTED_COLOR});
+    this.editOverlay({color: color(selected)});
     this.selected = selected;
+    selectedId = selected && this.key;
 };
 // Class methods:
 ExtendedOverlay.get = function (key) { // answer the extended overlay data object associated with the given avatar identifier
@@ -66,7 +71,9 @@ ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the on
     });
 };
 
-
+//
+// The qml window and communications.
+//
 var pal = new OverlayWindow({
     title: 'People Action List',
     source: 'hifi/Pal.qml',
@@ -74,7 +81,7 @@ var pal = new OverlayWindow({
     height: 640,
     visible: false
 });
-pal.fromQml.connect(function (message) {
+pal.fromQml.connect(function (message) { // messages are {method, params}, like json-rpc. See also sendToQml.
     switch (message.method) {
     case 'selected':
         var sessionIds = message.params;
@@ -87,7 +94,17 @@ pal.fromQml.connect(function (message) {
     }
 });
 
-var AVATAR_OVERLAY = Script.resolvePath("assets/images/grabsprite-3.png");
+//
+// Main operations.
+//
+function addAvatarNode(id) {
+    return new ExtendedOverlay(id, "sphere", { // 3d so we don't go cross-eyed looking at it, but on top of everything
+        solid: true,
+        alpha: 0.8,
+        color: color(id === selectedId),
+        drawInFront: true
+    });
+}
 function populateUserList() {
     var data = [];
     var counter = 1;
@@ -98,14 +115,8 @@ function populateUserList() {
             userName: "fakeAcct" + (id || "Me"),
             sessionId: id || ''
         });
-        if (id) { // No overlay for us
-            new ExtendedOverlay(id, "sphere", { // 3d so we don't go cross-eyed looking at it, but on top of everything
-                solid: true,
-                alpha: 0.8,
-                color: UNSELECTED_COLOR,
-                dimensions: 0.4,
-                drawInFront: true
-            });
+        if (id) { // No overlay for ourself.
+            addAvatarNode(id);
         }
     });
     pal.sendToQml({method: 'users', params: data});
@@ -118,16 +129,17 @@ function updateOverlays() {
             return; // don't update ourself
         }
         var overlay = ExtendedOverlay.get(id);
-        if (overlay) {
-            var avatar = AvatarList.getAvatar(id);
-            var target = avatar.position;
-            var distance = Vec3.distance(target, eye);
-            overlay.ping = pingPong;
-            overlay.editOverlay({
-                position: target,
-                dimensions: 0.05 * distance // constant apparent size
-            });
+        if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
+            overlay = addAvatarNode(id);
         }
+        var avatar = AvatarList.getAvatar(id);
+        var target = avatar.position;
+        var distance = Vec3.distance(target, eye);
+        overlay.ping = pingPong;
+        overlay.editOverlay({
+            position: target,
+            dimensions: 0.05 * distance // constant apparent size
+        });
     });
     pingPong = !pingPong;
     ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
@@ -135,12 +147,15 @@ function updateOverlays() {
             overlay.deleteOverlay();
         }
     });
+    // We could re-populateUserList if anything added or removed, but not for now.
 }
 function removeOverlays() {
     ExtendedOverlay.some(function (overlay) { overlay.deleteOverlay(); });
 }
 
-// Clicks
+//
+// Clicks.
+//
 function handleClick(pickRay) {
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         var message = {method: 'select', params: [overlay.key, !overlay.selected]};
@@ -155,7 +170,7 @@ function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
     handleClick(Camera.computePickRay(mousePressEvent.x, mousePressEvent.y));
 }
 // We get mouseMoveEvents from the handControllers, via handControllerPointer.
-// But we dont' get mousePressEvents.
+// But we don't get mousePressEvents.
 var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 function controllerComputePickRay(hand) {
     var controllerPose = getControllerWorldLocation(hand, true);
@@ -164,7 +179,7 @@ function controllerComputePickRay(hand) {
     }
 }
 function makeClickHandler(hand) {
-    return function(clicked) {
+    return function (clicked) {
         if (clicked > 0.85) {
             var pickRay = controllerComputePickRay(hand);
             handleClick(pickRay);
@@ -173,8 +188,10 @@ function makeClickHandler(hand) {
 }
 triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
 triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
-        
+
+//
 // Manage the connection between the button and the window.
+//
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var buttonName = "pal";
 var button = toolBar.addButton({
@@ -205,6 +222,9 @@ function onClicked() {
     pal.setVisible(!pal.visible);
 }
 
+//
+// Button state.
+//
 function onVisibileChanged() {
     button.writeProperty('buttonState', pal.visible ? 0 : 1);
     button.writeProperty('defaultState', pal.visible ? 0 : 1);
@@ -213,6 +233,9 @@ function onVisibileChanged() {
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibileChanged);
 
+//
+// Cleanup.
+//
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     toolBar.removeButton(buttonName);
