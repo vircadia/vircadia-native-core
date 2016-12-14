@@ -5815,13 +5815,31 @@ void Application::addAssetToWorldCheckModelSize() {
         const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
         if (dimensions != DEFAULT_DIMENSIONS) {
             // Entity has been auto-resized; adjust dimensions if it seems too big.
-            EntityItemProperties properties;
-            const float RESCALE_THRESHOLD = 10.0f;  // Resize entities larger than this as the FBX is likely in cm or mm.
+            auto isResized = false;
+
+            // Entities with a dimension large than 10m are likely modelled in cm so scale to 1%.
+            const float RESCALE_THRESHOLD = 10.0f;
             if (dimensions.x > RESCALE_THRESHOLD || dimensions.y > RESCALE_THRESHOLD || dimensions.z > RESCALE_THRESHOLD) {
-                auto dimensionsResized = dimensions * 0.01f;
-                properties.setDimensions(dimensionsResized);
-                qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << dimensions << " to "
-                    << dimensionsResized;
+                auto previousDimensions = dimensions;
+                dimensions *= 0.01f;
+                qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
+                isResized = true;
+            }
+
+            // Scale model to have a maximum dimension of 1m
+            const float MAXIMUM_DIMENSION = 1.0f;
+            if (dimensions.x > MAXIMUM_DIMENSION || dimensions.y > MAXIMUM_DIMENSION || dimensions.z > MAXIMUM_DIMENSION) {
+                auto previousDimensions = dimensions;
+                auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y, 
+                    MAXIMUM_DIMENSION / dimensions.z));
+                dimensions *= scale;
+                qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
+                isResized = true;
+            }
+
+            EntityItemProperties properties;
+            if (isResized) {
+                properties.setDimensions(dimensions);
             } else {
                 qInfo(interfaceapp) << "Asset" << name << "does not need to be auto-resized";
             }
