@@ -1471,13 +1471,25 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
 
         _connectionMonitor.init();
-
     }
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
-    _addAssetToWorldTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS);
-    connect(&_addAssetToWorldTimer, &QTimer::timeout, this, &Application::addAssetToWorldCheckModelSize);
+    _addAssetToWorldResizeTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS);
+    connect(&_addAssetToWorldResizeTimer, &QTimer::timeout, this, &Application::addAssetToWorldCheckModelSize);
+
+    // Auto-update and close adding asset to world info message box.
+    static const int ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS = 5000;
+    _addAssetToWorldInfoTimer.setInterval(ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS);
+    _addAssetToWorldInfoTimer.setSingleShot(true);
+    connect(&_addAssetToWorldInfoTimer, &QTimer::timeout, this, &Application::addAssetToWorldInfoTimeout);
+    static const int ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS = 8000;
+    _addAssetToWorldErrorTimer.setInterval(ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS);
+    _addAssetToWorldErrorTimer.setSingleShot(true);
+    connect(&_addAssetToWorldErrorTimer, &QTimer::timeout, this, &Application::addAssetToWorldErrorTimeout);
+
+    connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
+    connect(&domainHandler, &DomainHandler::hostnameChanged, this, &Application::addAssetToWorldMessageClose);
 
     // After all of the constructor is completed, then set firstRun to false.
     firstRun.set(false);
@@ -5582,22 +5594,18 @@ void Application::showAssetServerWidget(QString filePath) {
 void Application::addAssetToWorldFromURL(QString url) {
     qInfo(interfaceapp) << "Download asset and add to world from" << url;
 
-    if (!_addAssetToWorldMessageBox) {
-        _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
-            "Downloading Asset", "Downloading asset file " + url.section("filename=", 1, 1),
-            QMessageBox::Cancel, QMessageBox::NoButton);
-        connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
-    }
+    QString filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
         qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-        addAssetToWorldError(errorInfo);
+        addAssetToWorldError(filename, errorInfo);
         return;
     }
 
-    QUrl urlURL = QUrl(url);
-    auto request = ResourceManager::createResourceRequest(nullptr, urlURL);
+    addAssetToWorldInfo(filename, "Downloading asset file " + filename);
+
+    auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }
@@ -5607,78 +5615,76 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     auto url = request->getUrl().toString();
     auto result = request->getResult();
 
+    QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
+
     if (result == ResourceRequest::Success) {
         qInfo(interfaceapp) << "Downloaded asset from" << url;
         QTemporaryDir temporaryDir;
         temporaryDir.setAutoRemove(false);
         if (temporaryDir.isValid()) {
             QString temporaryDirPath = temporaryDir.path();
-            QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
             QString downloadPath = temporaryDirPath + "/" + filename;
             qInfo(interfaceapp) << "Download path:" << downloadPath;
 
             QFile tempFile(downloadPath);
             if (tempFile.open(QIODevice::WriteOnly)) {
                 tempFile.write(request->getData());
+                addAssetToWorldInfoClear(filename);  // Remove message from list; next one added will have a different key.
                 qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true);
             } else {
                 QString errorInfo = "Couldn't open temporary file for download";
                 qWarning(interfaceapp) << errorInfo;
-                addAssetToWorldError(errorInfo);
+                addAssetToWorldError(filename, errorInfo);
             }
         } else {
             QString errorInfo = "Couldn't create temporary directory for download";
             qWarning(interfaceapp) << errorInfo;
-            addAssetToWorldError(errorInfo);
+            addAssetToWorldError(filename, errorInfo);
         }
     } else {
         qWarning(interfaceapp) << "Error downloading" << url << ":" << request->getResultString();
-        addAssetToWorldError("Error downloading " + url.section("filename=", 1, 1) + " : " + request->getResultString());
+        addAssetToWorldError(filename, "Error downloading " + filename + " : " + request->getResultString());
     }
 
     request->deleteLater();
 }
 
-void Application::onAssetToWorldMessageBoxClosed() {
-    disconnect(_addAssetToWorldMessageBox);
-    _addAssetToWorldMessageBox = nullptr;
-}
-
-void Application::addAssetToWorldError(QString errorText) {
-    _addAssetToWorldMessageBox->setProperty("title", "Error Downloading Asset");
-    _addAssetToWorldMessageBox->setProperty("icon", OffscreenUi::ICON_CRITICAL);
-    _addAssetToWorldMessageBox->setProperty("text", errorText);
-}
-
 void Application::addAssetToWorld(QString filePath) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
-
-    if (!_addAssetToWorldMessageBox) {
-        return;
-    }
-
-    // Test repeated because possibly different code paths.
-    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
-        QString errorInfo = "You do not have permissions to write to the Asset Server.";
-        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-        addAssetToWorldError(errorInfo);
-        return;
-    }
 
     QString path = QUrl(filePath).toLocalFile();
     QString mapping = path.right(path.length() - path.lastIndexOf("/"));
 
-    _addAssetToWorldMessageBox->setProperty("text", "Adding " + mapping.mid(1) + " to the Asset Server.");
+    QString filename = mapping.right(mapping.length() - 1);
+
+    // Test repeated because possibly different code paths.
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
+        QString filename = mapping.right(mapping.length() - 1);  // Remove leading "/".
+        QString errorInfo = "You do not have permissions to write to the Asset Server.";
+        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+        addAssetToWorldError(filename, errorInfo);
+        return;
+    }
+
+    addAssetToWorldInfo(filename, "Adding " + mapping.mid(1) + " to the Asset Server.");
 
     addAssetToWorldWithNewMapping(path, mapping, 0);
 }
 
-void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, int copy) {
-    if (!_addAssetToWorldMessageBox) {
-        return;
+QString filenameFromMapping(const QString mapping) {
+    QString result = mapping;
+    auto lastDash = result.lastIndexOf("-");
+    auto lastPeriod = result.lastIndexOf(".");
+    if (lastDash > 0 && lastPeriod > 0) {
+        result.remove(lastDash, lastPeriod - lastDash);
     }
+    result.remove(0, 1);  // Leading "/".
+    return result;
+}
 
+void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, int copy) {
     auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
+
     QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
         const int MAX_COPY_COUNT = 100;  // Limit number of duplicate assets; recursion guard.
         auto result = request->getError();
@@ -5688,7 +5694,7 @@ void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, i
             QString errorInfo = "Could not map asset name: "
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-            addAssetToWorldError(errorInfo);
+            addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
         } else if (copy < MAX_COPY_COUNT - 1) {
             if (copy > 0) {
                 mapping = mapping.remove(mapping.lastIndexOf("-"), QString::number(copy).length() + 1);
@@ -5700,7 +5706,7 @@ void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, i
             QString errorInfo = "Too many copies of asset name: " 
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-            addAssetToWorldError(errorInfo);
+            addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
         }
         request->deleteLater();
     });
@@ -5709,16 +5715,12 @@ void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, i
 }
 
 void Application::addAssetToWorldUpload(QString path, QString mapping) {
-    if (!_addAssetToWorldMessageBox) {
-        return;
-    }
-
     auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
             QString errorInfo = "Could not upload asset to the Asset Server.";
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-            addAssetToWorldError(errorInfo);
+            addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
         } else {
             addAssetToWorldSetMapping(mapping, hash);
         }
@@ -5738,16 +5740,12 @@ void Application::addAssetToWorldUpload(QString path, QString mapping) {
 }
 
 void Application::addAssetToWorldSetMapping(QString mapping, QString hash) {
-    if (!_addAssetToWorldMessageBox) {
-        return;
-    }
-
     auto request = DependencyManager::get<AssetClient>()->createSetMappingRequest(mapping, hash);
     connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
         if (request->getError() != SetMappingRequest::NoError) {
             QString errorInfo = "Could not set asset mapping.";
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-            addAssetToWorldError(errorInfo);
+            addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
         } else {
             addAssetToWorldAddEntity(mapping);
         }
@@ -5758,10 +5756,6 @@ void Application::addAssetToWorldSetMapping(QString mapping, QString hash) {
 }
 
 void Application::addAssetToWorldAddEntity(QString mapping) {
-    if (!_addAssetToWorldMessageBox) {
-        return;
-    }
-
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
@@ -5780,16 +5774,16 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
     if (entityID == QUuid()) {
         QString errorInfo = "Could not add asset " + mapping + " to world.";
         qWarning(interfaceapp) << "Could not add asset to world: " + errorInfo;
-        addAssetToWorldError(errorInfo);
+        addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
     } else {
         // Monitor when asset is rendered in world so that can resize if necessary.
         _addAssetToWorldResizeList.insert(entityID, 0);  // List value is count of checks performed.
-        if (!_addAssetToWorldTimer.isActive()) {
-            _addAssetToWorldTimer.start();
+        if (!_addAssetToWorldResizeTimer.isActive()) {
+            _addAssetToWorldResizeTimer.start();
         }
 
         // Close progress message box.
-        _addAssetToWorldMessageBox->deleteLater();
+        addAssetToWorldInfoDone(filenameFromMapping(mapping));
     }
 }
 
@@ -5862,9 +5856,171 @@ void Application::addAssetToWorldCheckModelSize() {
 
     // Stop timer if nothing in list to check.
     if (_addAssetToWorldResizeList.size() == 0) {
-        _addAssetToWorldTimer.stop();
+        _addAssetToWorldResizeTimer.stop();
     }
 }
+
+
+void Application::addAssetToWorldInfo(QString modelName, QString infoText) {
+    // Displays the most recent info message, subject to being overridden by error messages.
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    Cancel info timer if running.
+    If list has an entry for modelName, delete it (just one).
+    Append modelName, infoText to list.
+    Display infoText in message box unless an error is being displayed (i.e., error timer is running).
+    Show message box if not already visible.
+    */
+
+    _addAssetToWorldInfoTimer.stop();
+
+    addAssetToWorldInfoClear(modelName);
+
+    _addAssetToWorldInfoKeys.append(modelName);
+    _addAssetToWorldInfoMessages.append(infoText);
+
+    if (!_addAssetToWorldErrorTimer.isActive()) {
+        if (!_addAssetToWorldMessageBox) {
+            _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
+                "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+        }
+
+        _addAssetToWorldMessageBox->setProperty("text", "\n" + infoText);
+        _addAssetToWorldMessageBox->setVisible(true);
+    }
+}
+
+void Application::addAssetToWorldInfoClear(QString modelName) {
+    // Clears modelName entry from message list without affecting message currently displayed.
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    Delete entry for modelName from list.
+    */
+
+    auto index = _addAssetToWorldInfoKeys.indexOf(modelName);
+    if (index > -1) {
+        _addAssetToWorldInfoKeys.removeAt(index);
+        _addAssetToWorldInfoMessages.removeAt(index);
+    }
+}
+
+void Application::addAssetToWorldInfoDone(QString modelName) {
+    // Continues to display this message if the latest for a few seconds, then deletes it and displays the next latest.
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    Delete entry for modelName from list.
+    (Re)start the info timer to update message box. ... onAddAssetToWorldInfoTimeout()
+    */
+
+    addAssetToWorldInfoClear(modelName);
+    _addAssetToWorldInfoTimer.start();
+}
+
+void Application::addAssetToWorldInfoTimeout() {
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    If list not empty, display last message in list (may already be displayed ) unless an error is being displayed.
+    If list empty, close the message box unless an error is being displayed.
+    */
+
+    if (!_addAssetToWorldErrorTimer.isActive()) {
+        if (_addAssetToWorldInfoKeys.length() > 0) {
+            _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
+        } else {
+            _addAssetToWorldMessageBox->setVisible(false);
+            _addAssetToWorldMessageBox->deleteLater();
+            _addAssetToWorldMessageBox = nullptr;
+        }
+    }
+}
+
+
+void Application::addAssetToWorldError(QString modelName, QString errorText) {
+    // Displays the most recent error message for a few seconds.
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    If list has an entry for modelName, delete it.
+    Display errorText in message box.
+    Show message box if not already visible.
+    (Re)start error timer. ... onAddAssetToWorldErrorTimeout()
+    */
+
+    addAssetToWorldInfoClear(modelName);
+
+    if (!_addAssetToWorldMessageBox) {
+        _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
+            "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+    }
+
+    _addAssetToWorldMessageBox->setProperty("text", "\n" + errorText);
+    _addAssetToWorldMessageBox->setVisible(true);
+
+    _addAssetToWorldErrorTimer.start();
+}
+
+void Application::addAssetToWorldErrorTimeout() {
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    If list is not empty, display message from last entry.
+    If list is empty, close the message box.
+    */
+    if (_addAssetToWorldInfoKeys.length() > 0) {
+        _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
+    } else {
+        _addAssetToWorldMessageBox->setVisible(false);
+        _addAssetToWorldMessageBox->deleteLater();
+        _addAssetToWorldMessageBox = nullptr;
+    }
+}
+
+
+void Application::addAssetToWorldMessageClose() {
+    // Clear messages, e.g., if Interface is being closed or domain changes.
+
+    /*
+    Call if application is shutting down.
+    Call if domain changes.
+
+    Stop timers.
+    Close the message box if open.
+    Clear lists.
+    */
+
+    _addAssetToWorldInfoTimer.stop();
+    _addAssetToWorldErrorTimer.stop();
+
+    if (_addAssetToWorldMessageBox) {
+        _addAssetToWorldMessageBox->setVisible(false);
+        _addAssetToWorldMessageBox->deleteLater();
+        _addAssetToWorldMessageBox = nullptr;
+    }
+
+    _addAssetToWorldInfoKeys.clear();
+    _addAssetToWorldInfoMessages.clear();
+}
+
 
 void Application::handleUnzip(QString filePath, bool autoAdd) {
     if (autoAdd && !filePath.isEmpty()) {
