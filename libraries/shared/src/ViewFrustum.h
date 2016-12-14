@@ -139,6 +139,10 @@ public:
     const ::Plane* getPlanes() const { return _planes; }
 
     void invalidate(); // causes all reasonable intersection tests to fail
+
+    QByteArray toByteArray();
+    void fromByteArray(const QByteArray& input);
+
 private:
     glm::mat4 _view;
     glm::mat4 _projection;

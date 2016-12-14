@@ -44,6 +44,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
     packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
@@ -275,6 +276,16 @@ void AvatarMixer::broadcastAvatarData() {
                         }
                         // Not close enough to ignore
                         nodeData->removeFromRadiusIgnoringSet(otherNode->getUUID());
+
+
+                        // Also check to see if the other node is in our view
+                        glm::vec3 otherNodeBoxScale = (otherData->getPosition() - otherData->getGlobalBoundingBoxCorner()) * 2.0f;
+                        AABox otherNodeBox(otherData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+                        if (!nodeData->otherAvatarInView(otherNodeBox)) {
+                            qDebug() << "Avatar out of view!";
+                            return false;
+                        }
+
                         return true;
                     }
                 },
@@ -445,6 +456,18 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
                                           Q_ARG(const QUuid&, QUuid(killedNode->getUUID())));
             }
         );
+    }
+}
+
+void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->getOrCreateLinkedData(senderNode);
+
+    if (senderNode->getLinkedData()) {
+        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            nodeData->readViewFrustumPacket(message->getMessage());
+        }
     }
 }
 

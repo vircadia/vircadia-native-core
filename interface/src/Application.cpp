@@ -4176,6 +4176,7 @@ void Application::update(float deltaTime) {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
             }
+            sendAvatarViewFrustum();
             _lastQueriedViewFrustum = _viewFrustum;
         }
     }
@@ -4213,6 +4214,14 @@ void Application::update(float deltaTime) {
     }
 
     AnimDebugDraw::getInstance().update();
+}
+
+void Application::sendAvatarViewFrustum() {
+    QByteArray viewFrustumByteArray = _viewFrustum.toByteArray();
+    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size());
+    avatarPacket->write(viewFrustumByteArray);
+
+    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
 

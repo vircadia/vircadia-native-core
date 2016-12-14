@@ -34,6 +34,7 @@ public slots:
     void sendStatsPacket() override;
 
 private slots:
+    void handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);

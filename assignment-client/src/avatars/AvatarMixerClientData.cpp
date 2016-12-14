@@ -57,6 +57,13 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
     }
 }
 
+void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
+    _currentViewFrustumIsValid = true;
+    _currentViewFrustum.fromByteArray(message);
+    qDebug() << __FUNCTION__;
+    _currentViewFrustum.printDebugDetails();
+}
+
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["display_name"] = _avatar->getDisplayName();
     jsonObject["full_rate_distance"] = _fullRateDistance;

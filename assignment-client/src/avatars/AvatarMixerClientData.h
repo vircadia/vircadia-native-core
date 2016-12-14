@@ -27,6 +27,7 @@
 #include <PortableHighResolutionClock.h>
 #include <SimpleMovingAverage.h>
 #include <UUIDHasher.h>
+#include <ViewFrustum.h>
 
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
 const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
@@ -87,6 +88,12 @@ public:
     void removeFromRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.erase(other); }
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
 
+    void readViewFrustumPacket(const QByteArray& message);
+
+    bool otherAvatarInView(const AABox& otherAvatarBox) {
+        return !_currentViewFrustumIsValid || _currentViewFrustum.boxIntersectsKeyhole(otherAvatarBox);
+    }
+
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
@@ -108,6 +115,8 @@ private:
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
     std::unordered_set<QUuid> _radiusIgnoredOthers;
+    ViewFrustum _currentViewFrustum;
+    bool _currentViewFrustumIsValid { false };
 };
 
 #endif // hifi_AvatarMixerClientData_h
