@@ -208,7 +208,7 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    virtual QByteArray toByteArray(bool cullSmallChanges, bool sendAll, bool sendMinimum = false, bool compressed = true);
+    virtual QByteArray toByteArray(bool cullSmallChanges, bool sendAll, bool sendMinimum = false, bool compressed = false);
     virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged
