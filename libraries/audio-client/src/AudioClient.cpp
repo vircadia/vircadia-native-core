@@ -1135,8 +1135,9 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                 } else if (injector->isStereo()) {
 
                     // stereo gets directly mixed into mixBuffer
+                    float gain = injector->getVolume();
                     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-                        mixBuffer[i] += (float)_scratchBuffer[i] * (1/32768.0f) * injector->getVolume();
+                        mixBuffer[i] += (float)_scratchBuffer[i] * (1/32768.0f) * gain;
                     }
                     
                 } else {
