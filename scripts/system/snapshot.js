@@ -166,6 +166,9 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
         if (resetOverlays) {
             Menu.setIsOptionChecked("Overlays", true);
         }
+    } else {
+        // Allow the user to click the snapshot HUD button again
+        button.clicked.connect(onClicked);
     }
     // update button states
     button.writeProperty("buttonState", 1);
@@ -177,14 +180,16 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     // during which time the user may have moved. So stash that info in the dialog so that
     // it records the correct href. (We can also stash in .jpegs, but not .gifs.)
     // last element in data array tells dialog whether we can share or not
-    confirmShare([ 
-        { localPath: pathAnimatedSnapshot, href: href },
+    var confirmShareContents = [
         { localPath: pathStillSnapshot, href: href },
         {
             canShare: !!isDomainOpen(domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
-        }
-    ]);
+        }];
+    if (pathAnimatedSnapshot !== "") {
+        confirmShareContents.unshift({ localPath: pathAnimatedSnapshot, href: href });
+    }
+    confirmShare(confirmShareContents);
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
@@ -196,9 +201,11 @@ function processingGif() {
     Reticle.visible = reticleVisible;
 
     // update button states
-    button.writeProperty("buttonState", 1);
-    button.writeProperty("defaultState", 1);
-    button.writeProperty("hoverState", 3);
+    button.writeProperty("buttonState", 0);
+    button.writeProperty("defaultState", 0);
+    button.writeProperty("hoverState", 2);
+    // Don't allow the user to click the snapshot button yet
+    button.clicked.disconnect(onClicked);
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);

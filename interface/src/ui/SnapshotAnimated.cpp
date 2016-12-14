@@ -55,10 +55,6 @@ void SnapshotAnimated::saveSnapshotAnimated(QString pathStill, float aspectRatio
         // Start the snapshotAnimatedTimer QTimer - argument for this is in milliseconds
         SnapshotAnimated::snapshotAnimatedTimerRunning = true;
         SnapshotAnimated::snapshotAnimatedTimer->start(SNAPSNOT_ANIMATED_FRAME_DELAY_MSEC);
-    // If we're already in the middle of capturing an animated snapshot...
-    } else {
-        // Just tell the dependency manager that the capture of the still snapshot has taken place.
-        emit dm->snapshotTaken(pathStill, "", false);
     }
 }
 
@@ -88,9 +84,6 @@ void SnapshotAnimated::captureFrames() {
             // If that was the last frame...
             if ((SnapshotAnimated::snapshotAnimatedTimestamp - SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp) >= (SnapshotAnimated::snapshotAnimatedDuration.get() * MSECS_PER_SECOND)) {
                 SnapshotAnimated::snapshotAnimatedTimerRunning = false;
-                // Reset the current frame timestamp
-                SnapshotAnimated::snapshotAnimatedTimestamp = 0;
-                SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = 0;
 
                 // Notify the user that we're processing the snapshot
                 emit SnapshotAnimated::snapshotAnimatedDM->processingGif();
@@ -136,7 +129,10 @@ void SnapshotAnimated::processFrames() {
     SnapshotAnimated::snapshotAnimatedFrameVector.squeeze();
     SnapshotAnimated::snapshotAnimatedFrameDelayVector.clear();
     SnapshotAnimated::snapshotAnimatedFrameDelayVector.squeeze();
+    // Reset the current frame timestamp
+    SnapshotAnimated::snapshotAnimatedTimestamp = 0;
+    SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = 0;
 
-    // Let the dependency manager know that the snapshots have been taken.
+    // Let the window scripting interface know that the snapshots have been taken.
     emit SnapshotAnimated::snapshotAnimatedDM->snapshotTaken(SnapshotAnimated::snapshotStillPath, SnapshotAnimated::snapshotAnimatedPath, false);
 }
