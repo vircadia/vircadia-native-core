@@ -40,6 +40,7 @@ Rectangle {
     property int rowHeight: 50;
     property var userData: [];
     property var myData: ({displayName: "", userName: ""}); // valid dummy until set
+    property bool iAmAdmin: false;
     function findSessionIndex(sessionId) { // no findIndex in .qml
         for (var i = 0; i < userData.length; i++) {
             if (userData[i].sessionId === sessionId) {
@@ -53,6 +54,7 @@ Rectangle {
         case 'users':
             var data = message.params;
             var myIndex = findSessionIndex('');
+            iAmAdmin = Users.canKick;
             myData = data[myIndex];
             data.splice(myIndex, 1);
             userData = data;
@@ -139,13 +141,13 @@ Rectangle {
                 width: actionWidth
             }
             TableViewColumn {
-                visible: Users.canKick;
+                visible: iAmAdmin;
                 role: "mute";
                 title: "Mute";
                 width: actionWidth
             }
             TableViewColumn {
-                visible: Users.canKick;
+                visible: iAmAdmin;
                 role: "kick";
                 title: "Ban"
                 width: actionWidth
