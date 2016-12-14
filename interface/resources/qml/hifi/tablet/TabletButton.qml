@@ -32,7 +32,7 @@ Item {
         anchors.bottomMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         fillMode: Image.Stretch
-        source: tabletButton.icon
+        source: "../../../" + tabletButton.icon
     }
 
     Text {

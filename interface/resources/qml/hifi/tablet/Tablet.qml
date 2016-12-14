@@ -84,7 +84,7 @@ Item {
                 id: muteIcon
                 width: 40
                 height: 40
-                source: "icons/tablet-mute-icon.svg"
+                source: "../../../icons/tablet-mute-icon.svg"
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
@@ -197,7 +197,7 @@ Item {
 
             PropertyChanges {
                 target: muteIcon
-                source: "icons/tablet-unmute-icon.svg"
+                source: "../../../icons/tablet-unmute-icon.svg"
             }
         }
     ]
