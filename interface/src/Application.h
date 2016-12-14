@@ -316,12 +316,13 @@ public slots:
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
     void addAssetToWorld(QString filePath);
+    void addAssetToWorldUnzipFailure(QString filePath);
     void addAssetToWorldWithNewMapping(QString path, QString mapping, int copy);
     void addAssetToWorldUpload(QString path, QString mapping);
     void addAssetToWorldSetMapping(QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString mapping);
 
-    void handleUnzip(QString filePath = "", bool autoAdd = false);
+    void handleUnzip(QString sourceFile, QString destinationFile, bool autoAdd);
 
     FileScriptingInterface* getFileDownloadInterface() { return _fileDownload; }
 

@@ -1891,7 +1891,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     _fileDownload = new FileScriptingInterface(engine);
     rootContext->setContextProperty("File", _fileDownload);
-    connect(_fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::handleUnzip);
+    connect(_fileDownload, &FileScriptingInterface::unzipResult, this, &Application::handleUnzip);
     rootContext->setContextProperty("MyAvatar", getMyAvatar().get());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -5649,6 +5649,12 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     request->deleteLater();
 }
 
+void Application::addAssetToWorldUnzipFailure(QString filePath) {
+    QString filename = filePath.right(filePath.length() - filePath.lastIndexOf("/") - 1);
+    qWarning(interfaceapp) << "Couldn't unzip file" << filePath;
+    addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
+}
+
 void Application::addAssetToWorld(QString filePath) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
 
@@ -6020,11 +6026,15 @@ void Application::addAssetToWorldMessageClose() {
 }
 
 
-void Application::handleUnzip(QString filePath, bool autoAdd) {
-    if (autoAdd && !filePath.isEmpty()) {
-        addAssetToWorld(filePath);
+void Application::handleUnzip(QString zipFile, QString unzipFile, bool autoAdd) {
+    if (autoAdd) {
+        if (!unzipFile.isEmpty()) {
+            addAssetToWorld(unzipFile);
+        } else {
+            addAssetToWorldUnzipFailure(zipFile);
+        }
     } else {
-        showAssetServerWidget(filePath);
+        showAssetServerWidget(unzipFile);
     }
 }
 
