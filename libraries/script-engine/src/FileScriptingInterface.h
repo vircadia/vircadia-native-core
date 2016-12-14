@@ -28,7 +28,7 @@ public slots:
     QString getTempDir();
 
 signals:
-    void unzipSuccess(QString url, bool autoAdd);
+    void unzipResult(QString zipFile, QString unzipFile, bool autoAdd);
 
 private:
     bool isTempDir(QString tempDir);

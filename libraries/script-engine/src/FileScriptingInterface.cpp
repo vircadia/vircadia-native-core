@@ -44,13 +44,13 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd) {
     }
 
     QString file = unzipFile(path, tempDir);
+    QString filename = QUrl::fromLocalFile(file).toString();
     if (file != "") {
-        qDebug() << "Object file to upload: " + file;
-        QUrl url = QUrl::fromLocalFile(file);
-        emit unzipSuccess(url.toString(), autoAdd);
+        qDebug() << "File to upload: " + filename;
     } else {
-        qDebug() << "unzip failed";
+        qDebug() << "Unzip failed";
     }
+    emit unzipResult(path, filename, autoAdd);
 }
 
 // fix to check that we are only referring to a temporary directory
