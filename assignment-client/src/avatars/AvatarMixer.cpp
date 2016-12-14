@@ -593,7 +593,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";
     const QString NODE_SEND_BANDWIDTH_KEY = "max_node_send_bandwidth";
 
-    const float DEFAULT_NODE_SEND_BANDWIDTH = 1.0f;
+    const float DEFAULT_NODE_SEND_BANDWIDTH = 5.0f;
     QJsonValue nodeBandwidthValue = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
     if (!nodeBandwidthValue.isDouble()) {
         qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
