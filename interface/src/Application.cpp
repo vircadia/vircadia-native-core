@@ -1849,6 +1849,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Assets", new AssetMappingsScriptingInterface());
 
     rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+    rootContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
     rootContext->setContextProperty("Camera", &_myCamera);
 
