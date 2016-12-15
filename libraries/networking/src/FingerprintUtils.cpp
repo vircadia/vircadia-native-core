@@ -10,8 +10,13 @@
 //
 
 #include "FingerprintUtils.h"
+
 #include <QDebug>
+
 #include <SettingHandle.h>
+#include <SettingManager.h>
+#include <DependencyManager.h>
+
 #ifdef Q_OS_WIN
 #include <comdef.h>
 #include <Wbemidl.h>
@@ -171,6 +176,11 @@ QUuid FingerprintUtils::getMachineFingerprint() {
     // any errors in getting the string
     QUuid uuid(uuidString);
     if (uuid == QUuid()) {
+        // if you cannot read a fallback key cuz we aren't saving them, just generate one for
+        // this session and move on
+        if (DependencyManager::get<Setting::Manager>().isNull()) {
+            return QUuid::createUuid();
+        }
         // read fallback key (if any)
         Settings settings;
         uuid = QUuid(settings.value(FALLBACK_FINGERPRINT_KEY).toString());
