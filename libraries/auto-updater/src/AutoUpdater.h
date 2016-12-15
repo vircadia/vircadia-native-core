@@ -12,8 +12,6 @@
 #ifndef hifi_AutoUpdater_h
 #define hifi_AutoUpdater_h
 
-
-#include <QtCore/QSettings>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 #include <QtCore/QMap>

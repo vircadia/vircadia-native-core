@@ -32,7 +32,8 @@
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
-const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 60;
+// FIXME - what we'd actually like to do is send to users at ~50% of their present rate down to 30hz. Assume 90 for now.
+const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
 AvatarMixer::AvatarMixer(ReceivedMessage& message) :
@@ -592,7 +593,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";
     const QString NODE_SEND_BANDWIDTH_KEY = "max_node_send_bandwidth";
 
-    const float DEFAULT_NODE_SEND_BANDWIDTH = 1.0f;
+    const float DEFAULT_NODE_SEND_BANDWIDTH = 5.0f;
     QJsonValue nodeBandwidthValue = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
     if (!nodeBandwidthValue.isDouble()) {
         qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";

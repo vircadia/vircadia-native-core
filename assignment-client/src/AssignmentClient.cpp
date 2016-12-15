@@ -12,7 +12,6 @@
 #include <assert.h>
 
 #include <QProcess>
-#include <QSettings>
 #include <QSharedMemory>
 #include <QThread>
 #include <QTimer>
@@ -48,8 +47,6 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
     LogUtils::init();
-
-    QSettings::setDefaultFormat(QSettings::IniFormat);
 
     DependencyManager::set<AccountManager>();
 

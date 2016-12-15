@@ -51,6 +51,10 @@ bool PluginUtils::isViveControllerAvailable() {
     return isSubdeviceContainingNameAvailable("OpenVR");
 };
 
+bool PluginUtils::isOculusTouchControllerAvailable() {
+    return isSubdeviceContainingNameAvailable("OculusTouch");
+};
+
 bool PluginUtils::isXboxControllerAvailable() {
     return isSubdeviceContainingNameAvailable("X360 Controller");
 };

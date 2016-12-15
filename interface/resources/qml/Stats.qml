@@ -154,7 +154,8 @@ Item {
                     StatText {
                         visible: root.expanded;
                         text: "Avatar Mixer Out: " + root.avatarMixerOutKbps + " kbps, " +
-                            root.avatarMixerOutPps + "pps";
+                            root.avatarMixerOutPps + "pps, " +
+                            root.myAvatarSendRate.toFixed(2) + "hz";
                     }
                     StatText {
                         visible: root.expanded;
