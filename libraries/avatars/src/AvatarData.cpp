@@ -209,10 +209,13 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sen
     if (compressed) {
         setAtBit(packetStateFlags, AVATARDATA_FLAGS_COMPRESSED);
     }
+
     memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
     destinationBuffer += sizeof(packetStateFlags);
 
     if (!sendMinimum) {
+        //qDebug() << __FUNCTION__ << "not minimum... sending actual content!!";
+
         auto header = reinterpret_cast<AvatarDataPacket::Header*>(destinationBuffer);
         header->position[0] = getLocalPosition().x;
         header->position[1] = getLocalPosition().y;
@@ -514,15 +517,18 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     // if this is the minimum, then it only includes the flags
     if (minimumSent) {
+        //qDebug() << __FUNCTION__ << "minimum... not expecting actual content!!";
+
         int numBytesRead = sizeof(packetStateFlags);
         _averageBytesReceived.updateAverage(numBytesRead);
         return numBytesRead;
     }
+    //qDebug() << __FUNCTION__ << "NOT minimum... expecting actual content!!";
 
     QByteArray uncompressBuffer;
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(buffer.data());
     const unsigned char* endPosition = startPosition + buffer.size();
-    const unsigned char* sourceBuffer = startPosition;
+    const unsigned char* sourceBuffer = startPosition + sizeof(packetStateFlags); // skip the flags!!
 
     if (packetIsCompressed) {
         uncompressBuffer = qUncompress(buffer.right(buffer.size() - sizeof(packetStateFlags)));
