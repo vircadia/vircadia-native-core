@@ -1274,14 +1274,13 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._overrideFlags.size()) {
 
         // transform all the default poses into rig space.
-        const AnimPose geometryToRigPose(_geometryToRigTransform);
         std::vector<bool> overrideFlags(_internalPoseSet._overridePoses.size(), false);
 
         // start with the default rotations in absolute rig frame
         std::vector<glm::quat> rotations;
         rotations.reserve(_animSkeleton->getAbsoluteDefaultPoses().size());
         for (auto& pose : _animSkeleton->getAbsoluteDefaultPoses()) {
-            rotations.push_back(geometryToRigPose.rot * pose.rot);
+            rotations.push_back(pose.rot);
         }
 
         // start translations in relative frame but scaled to meters.
@@ -1294,12 +1293,14 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         ASSERT(overrideFlags.size() == rotations.size());
 
         // copy over rotations from the jointDataVec, which is also in absolute rig frame
+        const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
         for (int i = 0; i < jointDataVec.size(); i++) {
             if (isIndexValid(i)) {
                 const JointData& data = jointDataVec.at(i);
                 if (data.rotationSet) {
                     overrideFlags[i] = true;
-                    rotations[i] = data.rotation;
+                    // JointData rotations are in rig frame
+                    rotations[i] = rigToGeometryRot * data.rotation;
                 }
                 if (data.translationSet) {
                     overrideFlags[i] = true;
@@ -1309,12 +1310,6 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         }
 
         ASSERT(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
-
-        // convert resulting rotations into geometry space.
-        const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
-        for (auto& rot : rotations) {
-            rot = rigToGeometryRot * rot;
-        }
 
         // convert all rotations from absolute to parent relative.
         _animSkeleton->convertAbsoluteRotationsToRelative(rotations);
