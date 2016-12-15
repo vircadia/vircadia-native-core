@@ -5803,46 +5803,21 @@ void Application::addAssetToWorldCheckModelSize() {
         auto dimensions = properties.getDimensions();
 
         const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
+        bool doResize = false;
 
         const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
         if (dimensions != DEFAULT_DIMENSIONS) {
-            // Entity has been auto-resized; adjust dimensions if it seems too big.
-            auto isResized = false;
 
-            // Entities with a dimension large than 10m are likely modelled in cm so scale to 1%.
-            const float RESCALE_THRESHOLD = 10.0f;
-            if (dimensions.x > RESCALE_THRESHOLD || dimensions.y > RESCALE_THRESHOLD || dimensions.z > RESCALE_THRESHOLD) {
-                auto previousDimensions = dimensions;
-                dimensions *= 0.01f;
-                qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
-                isResized = true;
-            }
-
-            // Scale model to have a maximum dimension of 1m
+            // Scale model so that its maximum is exactly specific size.
             const float MAXIMUM_DIMENSION = 1.0f;
-            if (dimensions.x > MAXIMUM_DIMENSION || dimensions.y > MAXIMUM_DIMENSION || dimensions.z > MAXIMUM_DIMENSION) {
-                auto previousDimensions = dimensions;
-                auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y, 
-                    MAXIMUM_DIMENSION / dimensions.z));
-                dimensions *= scale;
-                qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
-                isResized = true;
-            }
+            auto previousDimensions = dimensions;
+            auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y,
+                MAXIMUM_DIMENSION / dimensions.z));
+            dimensions *= scale;
+            qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
+            doResize = true;
 
-            EntityItemProperties properties;
-            if (isResized) {
-                properties.setDimensions(dimensions);
-            } else {
-                qInfo(interfaceapp) << "Asset" << name << "does not need to be auto-resized";
-            }
-            properties.setVisible(true);
-            properties.setCollisionless(false);
-            properties.setUserData(GRABBABLE_USER_DATA);
-            properties.setLastEdited(usecTimestampNow());
-            entityScriptingInterface->editEntity(entityID, properties);
-
-            item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity.
-
+            item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity; advance to next.
         } else {
             // Increment count of checks done.
             _addAssetToWorldResizeList[entityID]++;
@@ -5851,20 +5826,27 @@ void Application::addAssetToWorldCheckModelSize() {
             if (_addAssetToWorldResizeList[entityID] > CHECK_MODEL_SIZE_MAX_CHECKS) {
                 // Have done enough checks; model was either the default size or something's gone wrong.
 
-                EntityItemProperties properties;
-                properties.setVisible(true);
-                properties.setCollisionless(false);
-                properties.setUserData(GRABBABLE_USER_DATA);
-                properties.setLastEdited(usecTimestampNow());
-                entityScriptingInterface->editEntity(entityID, properties);
-                qInfo(interfaceapp) << "Asset" << name << "auto-resize timed out";
+                // Rescale all dimensions.
+                const glm::vec3 UNIT_DIMENSIONS = glm::vec3(1.0f, 1.0f, 1.0f);
+                dimensions = UNIT_DIMENSIONS;
+                qInfo(interfaceapp) << "Asset" << name << "auto-resize timed out; resized to " << dimensions;
+                doResize = true;
 
-                item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity.
-
+                item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity; advance to next.
             } else {
                 // No action on this entity; advance to next.
                 ++item;
             }
+        }
+
+        if (doResize) {
+            EntityItemProperties properties;
+            properties.setDimensions(dimensions);
+            properties.setVisible(true);
+            properties.setCollisionless(false);
+            properties.setUserData(GRABBABLE_USER_DATA);
+            properties.setLastEdited(usecTimestampNow());
+            entityScriptingInterface->editEntity(entityID, properties);
         }
     }
 
