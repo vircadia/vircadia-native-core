@@ -5884,7 +5884,7 @@ void Application::addAssetToWorldInfoTimeout() {
     If list empty, close the message box unless an error is being displayed.
     */
 
-    if (!_addAssetToWorldErrorTimer.isActive()) {
+    if (!_addAssetToWorldErrorTimer.isActive() && _addAssetToWorldMessageBox) {
         if (_addAssetToWorldInfoKeys.length() > 0) {
             _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
         } else {
@@ -5935,13 +5935,15 @@ void Application::addAssetToWorldErrorTimeout() {
     If list is empty, close the message box.
     */
 
-    if (_addAssetToWorldInfoKeys.length() > 0) {
-        _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
-    } else {
-        disconnect(_addAssetToWorldMessageBox);
-        _addAssetToWorldMessageBox->setVisible(false);
-        _addAssetToWorldMessageBox->deleteLater();
-        _addAssetToWorldMessageBox = nullptr;
+    if (_addAssetToWorldMessageBox) {
+        if (_addAssetToWorldInfoKeys.length() > 0) {
+            _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
+        } else {
+            disconnect(_addAssetToWorldMessageBox);
+            _addAssetToWorldMessageBox->setVisible(false);
+            _addAssetToWorldMessageBox->deleteLater();
+            _addAssetToWorldMessageBox = nullptr;
+        }
     }
 }
 
