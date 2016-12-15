@@ -5858,6 +5858,7 @@ void Application::addAssetToWorldInfo(QString modelName, QString infoText) {
         if (!_addAssetToWorldMessageBox) {
             _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
                 "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+            connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
         }
 
         _addAssetToWorldMessageBox->setProperty("text", "\n" + infoText);
@@ -5913,6 +5914,7 @@ void Application::addAssetToWorldInfoTimeout() {
         if (_addAssetToWorldInfoKeys.length() > 0) {
             _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
         } else {
+            disconnect(_addAssetToWorldMessageBox);
             _addAssetToWorldMessageBox->setVisible(false);
             _addAssetToWorldMessageBox->deleteLater();
             _addAssetToWorldMessageBox = nullptr;
@@ -5940,6 +5942,7 @@ void Application::addAssetToWorldError(QString modelName, QString errorText) {
     if (!_addAssetToWorldMessageBox) {
         _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
             "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+        connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
     }
 
     _addAssetToWorldMessageBox->setProperty("text", "\n" + errorText);
@@ -5957,9 +5960,11 @@ void Application::addAssetToWorldErrorTimeout() {
     If list is not empty, display message from last entry.
     If list is empty, close the message box.
     */
+
     if (_addAssetToWorldInfoKeys.length() > 0) {
         _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
     } else {
+        disconnect(_addAssetToWorldMessageBox);
         _addAssetToWorldMessageBox->setVisible(false);
         _addAssetToWorldMessageBox->deleteLater();
         _addAssetToWorldMessageBox = nullptr;
@@ -5971,8 +5976,9 @@ void Application::addAssetToWorldMessageClose() {
     // Clear messages, e.g., if Interface is being closed or domain changes.
 
     /*
-    Call if application is shutting down.
+    Call if user manually closes message box.
     Call if domain changes.
+    Call if application is shutting down.
 
     Stop timers.
     Close the message box if open.
@@ -5983,6 +5989,7 @@ void Application::addAssetToWorldMessageClose() {
     _addAssetToWorldErrorTimer.stop();
 
     if (_addAssetToWorldMessageBox) {
+        disconnect(_addAssetToWorldMessageBox);
         _addAssetToWorldMessageBox->setVisible(false);
         _addAssetToWorldMessageBox->deleteLater();
         _addAssetToWorldMessageBox = nullptr;
@@ -5990,6 +5997,15 @@ void Application::addAssetToWorldMessageClose() {
 
     _addAssetToWorldInfoKeys.clear();
     _addAssetToWorldInfoMessages.clear();
+}
+
+void Application::onAssetToWorldMessageBoxClosed() {
+    // User manually closed message box.
+
+    qInfo(interfaceapp) << "User manually closed download status message box";
+    disconnect(_addAssetToWorldMessageBox);
+    _addAssetToWorldMessageBox = nullptr;
+    addAssetToWorldMessageClose();
 }
 
 
