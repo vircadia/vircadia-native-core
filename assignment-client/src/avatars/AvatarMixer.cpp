@@ -276,19 +276,6 @@ void AvatarMixer::broadcastAvatarData() {
                         }
                         // Not close enough to ignore
                         nodeData->removeFromRadiusIgnoringSet(otherNode->getUUID());
-
-
-                        // Also check to see if the other node is in our view
-                        glm::vec3 otherNodeBoxScale = (otherData->getPosition() - otherData->getGlobalBoundingBoxCorner()) * 2.0f;
-                        AABox otherNodeBox(otherData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-
-                        if (!nodeData->otherAvatarInView(otherNodeBox)) {
-                            //qDebug() << "Avatar out of view!";
-                            return false;
-                        } else {
-                            //qDebug() << "Avatar in view!";
-                        }
-
                         return true;
                     }
                 },
@@ -368,9 +355,15 @@ void AvatarMixer::broadcastAvatarData() {
                     // start a new segment in the PacketList for this avatar
                     avatarPacketList->startSegment();
 
+                    // determine if avatar is in view, to determine how much data to include...
+                    glm::vec3 otherNodeBoxScale = (otherNodeData->getPosition() - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+                    AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+
+                    bool sendMinimumForOutOfView = !nodeData->otherAvatarInView(otherNodeBox);
+
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                     numAvatarDataBytes +=
-                        avatarPacketList->write(otherAvatar.toByteArray(false, distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO));
+                        avatarPacketList->write(otherAvatar.toByteArray(false, distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO), sendMinimumForOutOfView);
 
                     avatarPacketList->endSegment();
             });

@@ -213,7 +213,12 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sen
     memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
     destinationBuffer += sizeof(packetStateFlags);
 
-    if (!sendMinimum) {
+    if (sendMinimum) {
+        memcpy(destinationBuffer, &_globalPosition, sizeof(_globalPosition));
+        destinationBuffer += sizeof(_globalPosition);
+        qDebug() << __FUNCTION__ << "minimum... included global position!!";
+    }
+    else {
         //qDebug() << __FUNCTION__ << "not minimum... sending actual content!!";
 
         auto header = reinterpret_cast<AvatarDataPacket::Header*>(destinationBuffer);
@@ -515,14 +520,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     bool minimumSent = oneAtBit(packetStateFlags, AVATARDATA_FLAGS_MINIMUM);
     bool packetIsCompressed = oneAtBit(packetStateFlags, AVATARDATA_FLAGS_COMPRESSED);
 
-    // if this is the minimum, then it only includes the flags
-    if (minimumSent) {
-        //qDebug() << __FUNCTION__ << "minimum... not expecting actual content!!";
-
-        int numBytesRead = sizeof(packetStateFlags);
-        _averageBytesReceived.updateAverage(numBytesRead);
-        return numBytesRead;
-    }
     //qDebug() << __FUNCTION__ << "NOT minimum... expecting actual content!!";
 
     QByteArray uncompressBuffer;
@@ -536,6 +533,20 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         endPosition = startPosition + uncompressBuffer.size();
         sourceBuffer = startPosition;
         //qDebug() << __FUNCTION__ << "uncompressing compressed data was:" << buffer.size() << "now:" << uncompressBuffer.size();
+    }
+
+    // if this is the minimum, then it only includes the flags
+    if (minimumSent) {
+        //qDebug() << __FUNCTION__ << "minimum... not expecting actual content!!";
+
+        memcpy(&_globalPosition, sourceBuffer, sizeof(_globalPosition));
+        sourceBuffer += sizeof(_globalPosition);
+        int numBytesRead = (sourceBuffer - startPosition) + sizeof(packetStateFlags);
+        _averageBytesReceived.updateAverage(numBytesRead);
+
+        qDebug() << __FUNCTION__ << "minimum... included global position!! numBytesRead:" << numBytesRead;
+
+        return numBytesRead;
     }
 
     quint64 now = usecTimestampNow();
@@ -750,6 +761,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerRightHandMatrixCache);
 
     int numBytesRead = sourceBuffer - startPosition;
+    if (packetIsCompressed) {
+        numBytesRead += sizeof(packetStateFlags);
+    }
     _averageBytesReceived.updateAverage(numBytesRead);
     return numBytesRead;
 }
