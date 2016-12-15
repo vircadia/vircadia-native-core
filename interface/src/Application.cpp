@@ -5598,8 +5598,13 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     request->deleteLater();
 }
 
+
+QString filenameFromPath(QString filePath) {
+    return filePath.right(filePath.length() - filePath.lastIndexOf("/") - 1);
+}
+
 void Application::addAssetToWorldUnzipFailure(QString filePath) {
-    QString filename = filePath.right(filePath.length() - filePath.lastIndexOf("/") - 1);
+    QString filename = filenameFromPath(QUrl(filePath).toLocalFile());
     qWarning(interfaceapp) << "Couldn't unzip file" << filePath;
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
@@ -5608,13 +5613,11 @@ void Application::addAssetToWorld(QString filePath) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
 
     QString path = QUrl(filePath).toLocalFile();
-    QString mapping = path.right(path.length() - path.lastIndexOf("/"));
-
-    QString filename = mapping.right(mapping.length() - 1);
+    QString filename = filenameFromPath(path);
+    QString mapping = "/" + filename;
 
     // Test repeated because possibly different code paths.
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
-        QString filename = mapping.right(mapping.length() - 1);  // Remove leading "/".
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
         qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
         addAssetToWorldError(filename, errorInfo);
@@ -5626,42 +5629,31 @@ void Application::addAssetToWorld(QString filePath) {
     addAssetToWorldWithNewMapping(path, mapping, 0);
 }
 
-QString filenameFromMapping(const QString mapping) {
-    QString result = mapping;
-    auto lastDash = result.lastIndexOf("-");
-    auto lastPeriod = result.lastIndexOf(".");
-    if (lastDash > 0 && lastPeriod > 0) {
-        result.remove(lastDash, lastPeriod - lastDash);
-    }
-    result.remove(0, 1);  // Leading "/".
-    return result;
-}
-
-void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, int copy) {
+void Application::addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy) {
     auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
 
     QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
         const int MAX_COPY_COUNT = 100;  // Limit number of duplicate assets; recursion guard.
         auto result = request->getError();
         if (result == GetMappingRequest::NotFound) {
-            addAssetToWorldUpload(path, mapping);
+            addAssetToWorldUpload(filePath, mapping);
         } else if (result != GetMappingRequest::NoError) {
             QString errorInfo = "Could not map asset name: "
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-            addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
+            addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else if (copy < MAX_COPY_COUNT - 1) {
             if (copy > 0) {
                 mapping = mapping.remove(mapping.lastIndexOf("-"), QString::number(copy).length() + 1);
             }
             copy++;
             mapping = mapping.insert(mapping.lastIndexOf("."), "-" + QString::number(copy));
-            addAssetToWorldWithNewMapping(path, mapping, copy);
+            addAssetToWorldWithNewMapping(filePath, mapping, copy);
         } else {
             QString errorInfo = "Too many copies of asset name: " 
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-            addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
+            addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         }
         request->deleteLater();
     });
@@ -5669,22 +5661,22 @@ void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, i
     request->start();
 }
 
-void Application::addAssetToWorldUpload(QString path, QString mapping) {
-    qInfo(interfaceapp) << "Uploading" << path << "to Asset Server as" << mapping;
-    auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
+void Application::addAssetToWorldUpload(QString filePath, QString mapping) {
+    qInfo(interfaceapp) << "Uploading" << filePath << "to Asset Server as" << mapping;
+    auto upload = DependencyManager::get<AssetClient>()->createUpload(filePath);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
             QString errorInfo = "Could not upload asset to the Asset Server.";
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-            addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
+            addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
-            addAssetToWorldSetMapping(mapping, hash);
+            addAssetToWorldSetMapping(filePath, mapping, hash);
         }
 
         // Remove temporary directory created by Clara.io market place download.
-        int index = path.lastIndexOf("/model_repo/");
+        int index = filePath.lastIndexOf("/model_repo/");
         if (index > 0) {
-            QString tempDir = path.left(index);
+            QString tempDir = filePath.left(index);
             qCDebug(interfaceapp) << "Removing temporary directory at: " + tempDir;
             QDir(tempDir).removeRecursively();
         }
@@ -5695,15 +5687,15 @@ void Application::addAssetToWorldUpload(QString path, QString mapping) {
     upload->start();
 }
 
-void Application::addAssetToWorldSetMapping(QString mapping, QString hash) {
+void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash) {
     auto request = DependencyManager::get<AssetClient>()->createSetMappingRequest(mapping, hash);
     connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
         if (request->getError() != SetMappingRequest::NoError) {
             QString errorInfo = "Could not set asset mapping.";
             qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
-            addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
+            addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
-            addAssetToWorldAddEntity(mapping);
+            addAssetToWorldAddEntity(filePath, mapping);
         }
         request->deleteLater();
     });
@@ -5711,7 +5703,7 @@ void Application::addAssetToWorldSetMapping(QString mapping, QString hash) {
     request->start();
 }
 
-void Application::addAssetToWorldAddEntity(QString mapping) {
+void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
@@ -5729,7 +5721,7 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
     if (entityID == QUuid()) {
         QString errorInfo = "Could not add asset " + mapping + " to world.";
         qWarning(interfaceapp) << "Could not add asset to world: " + errorInfo;
-        addAssetToWorldError(filenameFromMapping(mapping), errorInfo);
+        addAssetToWorldError(filenameFromPath(filePath), errorInfo);
     } else {
         // Monitor when asset is rendered in world so that can resize if necessary.
         _addAssetToWorldResizeList.insert(entityID, 0);  // List value is count of checks performed.
@@ -5738,7 +5730,7 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
         }
 
         // Close progress message box.
-        addAssetToWorldInfoDone(filenameFromMapping(mapping));
+        addAssetToWorldInfoDone(filenameFromPath(filePath));
     }
 }
 
