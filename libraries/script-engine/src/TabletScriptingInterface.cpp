@@ -27,10 +27,15 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
     }
 }
 
-void TabletScriptingInterface::setupTablet(QString tabletId, QQuickItem* qmlTablet) {
-    // AJT: TODO
-    qDebug() << "AJT: setupTablet objname = " << qmlTablet->objectName();
+void TabletScriptingInterface::setQmlTablet(QString tabletId, QQuickItem* qmlTablet) {
+    TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet(tabletId));
+    if (tablet) {
+        tablet->setQmlTablet(qmlTablet);
+    } else {
+        qWarning() << "TabletScriptingInterface::setupTablet() bad tablet object";
+    }
 }
+
 
 //
 // TabletProxy
@@ -40,10 +45,47 @@ TabletProxy::TabletProxy(QString name) : _name(name) {
     ;
 }
 
+static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
+    QVariant resultVar;
+    Qt::ConnectionType connectionType = Qt::AutoConnection;
+    if (QThread::currentThread() != qmlTablet->thread()) {
+        connectionType = Qt::BlockingQueuedConnection;
+    }
+    bool hasResult = QMetaObject::invokeMethod(qmlTablet, "addButtonProxy", connectionType,
+                                               Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, buttonProxy->getProperties()));
+    if (!hasResult) {
+        qWarning() << "TabletScriptingInterface addButtonProxyToQmlTablet has no result";
+        return;
+    }
+
+    QObject* qmlButton = qvariant_cast<QObject *>(resultVar);
+    if (!qmlButton) {
+        qWarning() << "TabletScriptingInterface addButtonProxyToQmlTablet result not a QObject";
+        return;
+    }
+    QObject::connect(qmlButton, SIGNAL(clicked()), buttonProxy, SLOT(clickedSlot()));
+}
+
+void TabletProxy::setQmlTablet(QQuickItem* qmlTablet) {
+    if (qmlTablet) {
+        _qmlTablet = qmlTablet;
+        std::lock_guard<std::mutex> guard(_tabletButtonProxiesMutex);
+        for (auto& buttonProxy : _tabletButtonProxies) {
+            addButtonProxyToQmlTablet(_qmlTablet, buttonProxy.data());
+        }
+    } else {
+        _qmlTablet = nullptr;
+    }
+
+}
+
 QObject* TabletProxy::addButton(const QVariant& properties) {
     auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
     std::lock_guard<std::mutex> guard(_tabletButtonProxiesMutex);
     _tabletButtonProxies.push_back(tabletButtonProxy);
+    if (_qmlTablet) {
+        addButtonProxyToQmlTablet(_qmlTablet, tabletButtonProxy.data());
+    }
     return tabletButtonProxy.data();
 }
 
@@ -51,6 +93,9 @@ void TabletProxy::removeButton(QObject* tabletButtonProxy) {
     std::lock_guard<std::mutex> guard(_tabletButtonProxiesMutex);
     auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
     if (iter != _tabletButtonProxies.end()) {
+        if (_qmlTablet) {
+            QMetaObject::invokeMethod(_qmlTablet, "removeButton", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
+        }
         _tabletButtonProxies.erase(iter);
     } else {
         qWarning() << "TabletProxy::removeButton() could not find button " << tabletButtonProxy;
@@ -69,6 +114,8 @@ void TabletButtonProxy::setInitRequestHandler(const QScriptValue& handler) {
     _initRequestHandler = handler;
 }
 
+// TABLET_UI_HACK remove
+/*
 static QString IMAGE_URL_KEY = "imageUrl";
 static QString IMAGE_URL_DEFAULT = "";
 
@@ -81,5 +128,6 @@ void TabletButtonProxy::setImageUrl(QString imageUrl) {
     std::lock_guard<std::mutex> guard(_propertiesMutex);
     _properties[IMAGE_URL_KEY] = imageUrl;
 }
+*/
 
 #include "TabletScriptingInterface.moc"

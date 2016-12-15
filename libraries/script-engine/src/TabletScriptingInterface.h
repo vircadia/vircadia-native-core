@@ -36,7 +36,8 @@ public:
      */
     Q_INVOKABLE QObject* getTablet(const QString& tabletId);
 
-    void setupTablet(QString tabletId, QQuickItem* qmlTablet);
+    void setQmlTablet(QString tabletId, QQuickItem* qmlTablet);
+
 protected:
     std::mutex _tabletProxiesMutex;
     std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
@@ -52,10 +53,12 @@ class TabletProxy : public QObject {
 public:
     TabletProxy(QString name);
 
+    void setQmlTablet(QQuickItem* qmlTablet);
+
     /**jsdoc
      * @function TabletProxy#addButton
      * Creates a new button, adds it to this and returns it.
-     * @param properties {Object} button properties AJT: TODO: enumerate these...
+     * @param properties {Object} button properties UI_TABLET_HACK: enumerate these when we figure out what they should be!
      * @returns {TabletButtonProxy}
      */
     Q_INVOKABLE QObject* addButton(const QVariant& properties);
@@ -72,6 +75,7 @@ protected:
     QString _name;
     std::mutex _tabletButtonProxiesMutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
+    QQuickItem* _qmlTablet { nullptr };
 };
 
 /**jsdoc
@@ -80,7 +84,6 @@ protected:
  */
 class TabletButtonProxy : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString imageUrl READ getImageUrl WRITE setImageUrl)
 public:
     TabletButtonProxy(const QVariantMap& properties);
 
@@ -90,16 +93,19 @@ public:
      */
     Q_INVOKABLE void setInitRequestHandler(const QScriptValue& handler);
 
-    QString getImageUrl() const;
-    void setImageUrl(QString imageUrl);
+    const QVariantMap& getProperties() const { return _properties; }
+
+public slots:
+    void clickedSlot() { emit clicked(); }
 
 signals:
     /**jsdoc
      * Signaled when this button has been clicked on by the user.
-     * @function TabletButtonProxy#onClick
+     * @function TabletButtonProxy#clicked
      * @returns {Signal}
      */
-    void onClick();
+    void clicked();
+
 protected:
     mutable std::mutex _propertiesMutex;
     QVariantMap _properties;

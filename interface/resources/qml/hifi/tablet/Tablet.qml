@@ -10,6 +10,27 @@ Item {
     width: 480
     height: 720
 
+    // called by C++ code when a button should be added to the tablet
+    function addButtonProxy(properties) {
+        var component = Qt.createComponent("TabletButton.qml");
+        var button = component.createObject(flowMain);
+        if (properties.icon) {
+            button.icon = properties.icon;
+        }
+        if (properties.color) {
+            button.color = properties.color;
+        }
+        if (properties.text) {
+            button.text = properties.text;
+        }
+        return button;
+    }
+
+    // called by C++ code when a button should be removed from the tablet
+    function removeButtonProxy(properties) {
+        console.log("TABLET_UI_HACK: removeButtonProxy, NOT IMPLEMENTED!, properties = " + JSON.stringify(properties));
+    }
+
     Rectangle {
         id: bgAudio
         height: 90

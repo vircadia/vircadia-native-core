@@ -13,20 +13,14 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-    var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-    var buttonName = "help"; // matching location reserved in Desktop.qml
-    var button = toolBar.addButton({
-        objectName: buttonName,
-        imageURL: Script.resolvePath("assets/images/tools/help.svg"),
-        visible: true,
-        hoverState: 2,
-        defaultState: 1,
-        buttonState: 1,
-        alpha: 0.9
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var button = tablet.addButton({
+        //icon: "help.svg",
+        color: "#ff6f6f",
+        text: "HELP"
     });
 
     // TODO: make button state reflect whether the window is opened or closed (independently from us).
-    
     function onClicked(){
         Menu.triggerOption('Help...')
     }
@@ -34,7 +28,7 @@
     button.clicked.connect(onClicked);
 
     Script.scriptEnding.connect(function () {
-        toolBar.removeButton(buttonName);
+        tablet.removeButton(buttonName);
         button.clicked.disconnect(onClicked);
     });
 

@@ -261,7 +261,7 @@ void RenderableWebEntityItem::loadSourceURL() {
         // TABLET_UI_HACK: move this to overlays as well!
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tablet") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setupTablet("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
+            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
         }
     }
 }
