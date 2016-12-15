@@ -9,6 +9,8 @@ Item {
     width: 132
     height: 132
 
+    signal clicked()
+
     Rectangle {
         id: buttonBg
         color: tabletButton.color
@@ -62,6 +64,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
+        onClicked: tabletButton.clicked();
         onEntered: {
             console.log("Tablet Button Hovered!");
             tabletButton.state = "hover state";

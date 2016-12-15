@@ -104,6 +104,7 @@
 #include <ScriptCache.h>
 #include <SoundCache.h>
 #include <steamworks-wrapper/SteamClient.h>
+#include <TabletScriptingInterface.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -478,6 +479,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
+    DependencyManager::set<TabletScriptingInterface>();
     DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
