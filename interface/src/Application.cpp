@@ -5974,12 +5974,13 @@ void Application::addAssetToWorldMessageClose() {
 }
 
 void Application::onAssetToWorldMessageBoxClosed() {
-    // User manually closed message box.
-
-    qInfo(interfaceapp) << "User manually closed download status message box";
-    disconnect(_addAssetToWorldMessageBox);
-    _addAssetToWorldMessageBox = nullptr;
-    addAssetToWorldMessageClose();
+    if (_addAssetToWorldMessageBox) {
+        // User manually closed message box; perhaps because it has become stuck, so reset all messages.
+        qInfo(interfaceapp) << "User manually closed download status message box";
+        disconnect(_addAssetToWorldMessageBox);
+        _addAssetToWorldMessageBox = nullptr;
+        addAssetToWorldMessageClose();
+    }
 }
 
 
