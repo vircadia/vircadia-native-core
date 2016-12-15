@@ -363,7 +363,7 @@ void AvatarMixer::broadcastAvatarData() {
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                     numAvatarDataBytes +=
-                        avatarPacketList->write(otherAvatar.toByteArray(false, distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO), sendMinimumForOutOfView);
+                        avatarPacketList->write(otherAvatar.toByteArray(false, distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO, sendMinimumForOutOfView));
 
                     avatarPacketList->endSegment();
             });

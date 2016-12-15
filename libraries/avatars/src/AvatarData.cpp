@@ -217,8 +217,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sen
         memcpy(destinationBuffer, &_globalPosition, sizeof(_globalPosition));
         destinationBuffer += sizeof(_globalPosition);
         qDebug() << __FUNCTION__ << "minimum... included global position!!";
-    }
-    else {
+    } else {
         //qDebug() << __FUNCTION__ << "not minimum... sending actual content!!";
 
         auto header = reinterpret_cast<AvatarDataPacket::Header*>(destinationBuffer);
@@ -541,10 +540,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         memcpy(&_globalPosition, sourceBuffer, sizeof(_globalPosition));
         sourceBuffer += sizeof(_globalPosition);
-        int numBytesRead = (sourceBuffer - startPosition) + sizeof(packetStateFlags);
+        int numBytesRead = (sourceBuffer - startPosition);
         _averageBytesReceived.updateAverage(numBytesRead);
 
-        qDebug() << __FUNCTION__ << "minimum... included global position!! numBytesRead:" << numBytesRead;
+        //qDebug() << __FUNCTION__ << "minimum... included global position!! numBytesRead:" << numBytesRead;
 
         return numBytesRead;
     }
