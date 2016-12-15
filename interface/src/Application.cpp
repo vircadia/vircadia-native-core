@@ -416,10 +416,7 @@ bool setupEssentials(int& argc, char** argv) {
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
-    // Set build version
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
-
-    Setting::preInit();
+    Setting::init();
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->init();
@@ -444,8 +441,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
     DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
-
-    Setting::init();
 
     // Set dependencies
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));

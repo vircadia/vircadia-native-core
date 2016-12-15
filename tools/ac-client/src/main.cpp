@@ -13,11 +13,19 @@
 #include <string>
 #include <vector>
 
+#include <BuildInfo.h>
+
 #include "ACClientApp.h"
 
 using namespace std;
 
 int main(int argc, char * argv[]) {
+    QCoreApplication::setApplicationName(BuildInfo::AC_CLIENT_SERVER_NAME);
+    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+
     ACClientApp app(argc, argv);
+
     return app.exec();
 }
