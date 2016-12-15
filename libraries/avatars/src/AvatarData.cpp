@@ -181,7 +181,7 @@ void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     _handPosition = glm::inverse(getOrientation()) * (handPosition - getPosition());
 }
 
-QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sendMinimum, bool compressed) {
+QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sendMinimum) {
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
@@ -203,11 +203,6 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sen
     uint8_t packetStateFlags = 0;
     if (sendMinimum) {
         setAtBit(packetStateFlags, AVATARDATA_FLAGS_MINIMUM);
-    }
-
-    // do we need this, or do we just always compress it?
-    if (compressed) {
-        setAtBit(packetStateFlags, AVATARDATA_FLAGS_COMPRESSED);
     }
 
     memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
@@ -423,25 +418,6 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sen
         #endif
     }
 
-    // NOTE: first byte of array should always be uncompressed
-
-    if (compressed) {
-        static const int SKIP_PACKET_FLAGS = 1;
-        static const int COMPRESSION_LEVEL = 9;
-        QByteArray uncompressedPortion = avatarDataByteArray.mid(SKIP_PACKET_FLAGS,
-                                                (destinationBuffer - startPosition) - SKIP_PACKET_FLAGS);
-
-        QByteArray compressedPortion = qCompress(uncompressedPortion, COMPRESSION_LEVEL);
-        QByteArray flagsAndCompressed;
-        flagsAndCompressed.append(packetStateFlags);
-        flagsAndCompressed.append(compressedPortion);
-
-        //qDebug() << __FUNCTION__ << "compressing data was:" << (uncompressedPortion.size() + SKIP_PACKET_FLAGS) << "now:" << flagsAndCompressed.size();
-
-        return flagsAndCompressed;
-    }
-
-    // entire buffer is uncompressed
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
@@ -517,34 +493,17 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     uint8_t packetStateFlags = buffer.at(0);
     bool minimumSent = oneAtBit(packetStateFlags, AVATARDATA_FLAGS_MINIMUM);
-    bool packetIsCompressed = oneAtBit(packetStateFlags, AVATARDATA_FLAGS_COMPRESSED);
 
-    //qDebug() << __FUNCTION__ << "NOT minimum... expecting actual content!!";
-
-    QByteArray uncompressBuffer;
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(buffer.data());
     const unsigned char* endPosition = startPosition + buffer.size();
     const unsigned char* sourceBuffer = startPosition + sizeof(packetStateFlags); // skip the flags!!
 
-    if (packetIsCompressed) {
-        uncompressBuffer = qUncompress(buffer.right(buffer.size() - sizeof(packetStateFlags)));
-        startPosition = reinterpret_cast<const unsigned char*>(uncompressBuffer.data());
-        endPosition = startPosition + uncompressBuffer.size();
-        sourceBuffer = startPosition;
-        //qDebug() << __FUNCTION__ << "uncompressing compressed data was:" << buffer.size() << "now:" << uncompressBuffer.size();
-    }
-
     // if this is the minimum, then it only includes the flags
     if (minimumSent) {
-        //qDebug() << __FUNCTION__ << "minimum... not expecting actual content!!";
-
         memcpy(&_globalPosition, sourceBuffer, sizeof(_globalPosition));
         sourceBuffer += sizeof(_globalPosition);
         int numBytesRead = (sourceBuffer - startPosition);
         _averageBytesReceived.updateAverage(numBytesRead);
-
-        //qDebug() << __FUNCTION__ << "minimum... included global position!! numBytesRead:" << numBytesRead;
-
         return numBytesRead;
     }
 
@@ -760,9 +719,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerRightHandMatrixCache);
 
     int numBytesRead = sourceBuffer - startPosition;
-    if (packetIsCompressed) {
-        numBytesRead += sizeof(packetStateFlags);
-    }
     _averageBytesReceived.updateAverage(numBytesRead);
     return numBytesRead;
 }

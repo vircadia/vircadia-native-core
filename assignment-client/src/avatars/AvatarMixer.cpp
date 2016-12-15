@@ -358,7 +358,6 @@ void AvatarMixer::broadcastAvatarData() {
                     // determine if avatar is in view, to determine how much data to include...
                     glm::vec3 otherNodeBoxScale = (otherNodeData->getPosition() - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
                     AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-
                     bool sendMinimumForOutOfView = !nodeData->otherAvatarInView(otherNodeBox);
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
