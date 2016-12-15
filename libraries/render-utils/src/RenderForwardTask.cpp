@@ -171,7 +171,6 @@ const gpu::PipelinePointer DrawBounds::getPipeline() {
 
 void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
     RenderArgs* args = renderContext->args;
-    auto& scene = sceneContext->_scene;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         // Setup projection
