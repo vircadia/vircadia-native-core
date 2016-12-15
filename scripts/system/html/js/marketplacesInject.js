@@ -149,7 +149,8 @@
                         $("a.btn.cancel").click();
                         history.back();  // Remove history item created by clicking "download".
                     };
-                } else {
+                } else if ($("div#view-signup_login_dialog").length === 0) {
+                    // Don't stop checking for button if user is asked to log in.
                     clearInterval(downloadTimer);
                     downloadTimer = null;
                 }
