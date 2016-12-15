@@ -45,3 +45,11 @@ public:
 #define CodecProvider_iid "com.highfidelity.plugins.codec"
 Q_DECLARE_INTERFACE(CodecProvider, CodecProvider_iid)
 
+class SteamClientProvider {
+public:
+    virtual ~SteamClientProvider() {}
+    virtual SteamClientPluginPointer getSteamClientPlugin() = 0;
+};
+
+#define SteamClientProvider_iid "com.highfidelity.plugins.steamclient"
+Q_DECLARE_INTERFACE(SteamClientProvider, SteamClientProvider_iid)
