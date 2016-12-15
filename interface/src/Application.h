@@ -317,10 +317,10 @@ public slots:
     void addAssetToWorldFromURLRequestFinished();
     void addAssetToWorld(QString filePath);
     void addAssetToWorldUnzipFailure(QString filePath);
-    void addAssetToWorldWithNewMapping(QString path, QString mapping, int copy);
-    void addAssetToWorldUpload(QString path, QString mapping);
-    void addAssetToWorldSetMapping(QString mapping, QString hash);
-    void addAssetToWorldAddEntity(QString mapping);
+    void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
+    void addAssetToWorldUpload(QString filePath, QString mapping);
+    void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
+    void addAssetToWorldAddEntity(QString filePath, QString mapping);
 
     void handleUnzip(QString sourceFile, QString destinationFile, bool autoAdd);
 
