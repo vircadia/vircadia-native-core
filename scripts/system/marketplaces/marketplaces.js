@@ -113,6 +113,9 @@ function hideMarketplace() {
     }
     marketplaceVisible = false;
 }
+marketplaceWindow.closed.connect(function () {
+    marketplaceWindow.setURL("about:blank");
+});
 
 function toggleMarketplace() {
     if (marketplaceVisible) {
