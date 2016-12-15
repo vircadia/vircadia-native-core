@@ -417,6 +417,7 @@ private slots:
 
     void addAssetToWorldCheckModelSize();
 
+    void onAssetToWorldMessageBoxClosed();
     void addAssetToWorldInfoTimeout();
     void addAssetToWorldErrorTimeout();
 
