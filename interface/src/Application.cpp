@@ -2572,6 +2572,7 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
 }
 
 static bool _altPressed{ false };
+static bool dumpAllTimerRecords { false }; // adebug hack
 
 void Application::keyPressEvent(QKeyEvent* event) {
     _altPressed = event->key() == Qt::Key_Alt;
@@ -2662,7 +2663,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_F: {
-                _physicsEngine->dumpNextStats();
+                //_physicsEngine->dumpNextStats();
+                dumpAllTimerRecords = true; // adebug hack
                 break;
             }
 
@@ -3408,6 +3410,11 @@ void Application::idle(float nsecsElapsed) {
     }
 
     _overlayConductor.update(secondsSinceLastUpdate);
+    // adebug hack
+    if (dumpAllTimerRecords) {
+        PerformanceTimer::dumpAllTimerRecords();
+        dumpAllTimerRecords = false;
+    }
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -4307,7 +4314,7 @@ void Application::update(float deltaTime) {
 
     // AvatarManager update
     {
-        PerformanceTimer perfTimer("AvatarManger");
+        PerformanceTimer perfTimer("AvatarManager");
         _avatarSimCounter.increment();
 
         {
