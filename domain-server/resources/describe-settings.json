@@ -1398,8 +1398,8 @@
           "type": "double",
           "label": "Per-Node Bandwidth",
           "help": "Desired maximum send bandwidth (in Megabits per second) to each node",
-          "placeholder": 1.0,
-          "default": 1.0,
+          "placeholder": 5.0,
+          "default": 5.0,
           "advanced": true
         }
       ]
