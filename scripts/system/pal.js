@@ -19,10 +19,10 @@ Script.include("/~/system/libraries/controllers.js");
 // Overlays.
 //
 var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
-function ExtendedOverlay(key, type, properties) { // A wrapper around overlays to store the key it is associated with.
+function ExtendedOverlay(key, type, properties, selected) { // A wrapper around overlays to store the key it is associated with.
     overlays[key] = this;
     this.key = key;
-    this.selected = false; // not undefined
+    this.selected = selected || false; // not undefined
     this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
 }
 // Instance methods:
@@ -34,19 +34,21 @@ ExtendedOverlay.prototype.deleteOverlay = function () { // remove display and da
 ExtendedOverlay.prototype.editOverlay = function (properties) { // change display of this overlay
     Overlays.editOverlay(this.activeOverlay, properties);
 };
-var UNSELECTED_COLOR = {red: 20, green: 250, blue: 20};
-var SELECTED_COLOR = {red: 250, green: 20, blue: 20};
+const UNSELECTED_COLOR = {red: 20, green: 250, blue: 20};
+const SELECTED_COLOR = {red: 250, green: 20, blue: 20};
 function color(selected) { return selected ? SELECTED_COLOR : UNSELECTED_COLOR; }
-var selectedId = null; // assumes only zero or one at a time!
 ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
     this.editOverlay({color: color(selected)});
     this.selected = selected;
-    selectedId = selected && this.key;
 };
 // Class methods:
+var selectedIds = [];
+ExtendedOverlay.isSelected = function (id) {
+    return -1 !== selectedIds.indexOf(id);
+}
 ExtendedOverlay.get = function (key) { // answer the extended overlay data object associated with the given avatar identifier
     return overlays[key];
 };
@@ -85,9 +87,11 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
     print('From PAL QML:', JSON.stringify(message));
     switch (message.method) {
     case 'selected':
-        var sessionIds = message.params;
+        selectedIds = message.params;
         ExtendedOverlay.some(function (overlay) {
-            overlay.select(-1 !== sessionIds.indexOf(overlay.key));
+            var id = overlay.key;
+            var selected = ExtendedOverlay.isSelected(id);
+            overlay.select(selected);
         });
         break;
     default:
@@ -99,12 +103,13 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
 // Main operations.
 //
 function addAvatarNode(id) {
+    var selected = ExtendedOverlay.isSelected(id);
     return new ExtendedOverlay(id, "sphere", { // 3d so we don't go cross-eyed looking at it, but on top of everything
         solid: true,
         alpha: 0.8,
-        color: color(id === selectedId),
+        color: color(selected),
         drawInFront: true
-    });
+    }, selected);
 }
 function populateUserList() {
     var data = [];
@@ -154,7 +159,7 @@ function updateOverlays() {
     // We could re-populateUserList if anything added or removed, but not for now.
 }
 function removeOverlays() {
-    selectedId = null;
+    selectedIds = [];
     ExtendedOverlay.some(function (overlay) { overlay.deleteOverlay(); });
 }
 
@@ -163,6 +168,7 @@ function removeOverlays() {
 //
 function handleClick(pickRay) {
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+        // Don't select directly. Tell qml, who will give us back a list of ids.
         var message = {method: 'select', params: [overlay.key, !overlay.selected]};
         pal.sendToQml(message);
         return true;
@@ -226,7 +232,9 @@ function onClicked() {
         Script.update.connect(updateOverlays);
         Controller.mousePressEvent.connect(handleMouseEvent);
         triggerMapping.enable();
-    } // No need for off, as onVisibleChanged will handle it.
+    } else {
+        off();
+    }
     pal.setVisible(!pal.visible);
 }
 
@@ -237,12 +245,10 @@ function onVisibileChanged() {
     button.writeProperty('buttonState', pal.visible ? 0 : 1);
     button.writeProperty('defaultState', pal.visible ? 0 : 1);
     button.writeProperty('hoverState', pal.visible ? 2 : 3);
-    if (!pal.visible) {
-        off();
-    }
 }
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibileChanged);
+pal.closed.connect(off);
 
 //
 // Cleanup.
@@ -251,6 +257,7 @@ Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     toolBar.removeButton(buttonName);
     pal.visibleChanged.disconnect(onVisibileChanged);
+    pal.closed.disconnect(off);
     off();
 });
 
