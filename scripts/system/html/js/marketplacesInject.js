@@ -172,6 +172,14 @@
             '</style>'
         );
 
+        // Condense space.
+        $("head").append(
+            '<style>' +
+                'div.page-title { line-height: 1.2; font-size: 13px; }' +
+                'div.page-title-row { padding-bottom: 0; }' +
+            '</style>'
+        );
+
         // Update code injected per page displayed.
         var currentLocation = "";
         var checkLocationInterval = undefined;
