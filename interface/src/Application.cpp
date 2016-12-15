@@ -1740,7 +1740,7 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    static const QString RENDER_FORWARD = "RENDER_FORWARD";
+    static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
     if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
         _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", cullFunctor);
     } else {
