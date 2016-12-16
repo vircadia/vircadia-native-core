@@ -33,9 +33,6 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
     _destination(destination),
     _congestionControl(move(congestionControl))
 {
-    //trace::ASYNC_BEGIN("Connection", "Connection", _destination.toString());
-    //trace::ASYNC_BEGIN("DownHandshake", "Connection", _destination.toString());
-
     Q_ASSERT_X(parentSocket, "Connection::Connection", "Must be called with a valid Socket*");
     
     Q_ASSERT_X(_congestionControl, "Connection::Connection", "Must be called with a valid CongestionControl object");
@@ -72,7 +69,6 @@ Connection::~Connection() {
     for (auto& pendingMessage : _pendingReceivedMessages) {
         _parentSocket->messageFailed(this, pendingMessage.first);
     }
-    //trace::ASYNC_END("Connection", "Connection", _destination.toString());
 }
 
 void Connection::stopSendQueue() {
@@ -817,7 +813,6 @@ void Connection::processHandshake(ControlPacketPointer controlPacket) {
     _parentSocket->writeBasePacket(*_handshakeACK, _destination);
     
     // indicate that handshake has been received
-    //trace::ASYNC_END("DownHandshake", "Connection", _destination.toString());
     _hasReceivedHandshake = true;
 
     if (_didRequestHandshake) {

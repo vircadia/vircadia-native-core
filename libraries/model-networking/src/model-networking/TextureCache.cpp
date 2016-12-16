@@ -349,7 +349,6 @@ void ImageReader::run() {
 
     CounterStat counter("Processing");
 
-    //trace::DURATION_BEGIN("ImageReader::threadSetup", trace::cResource, { { "url", _url.toString() } });
     PROFILE_RANGE_EX(modelnetworking, __FUNCTION__, 0xffff0000, 0, { { "url", _url.toString() } });
     auto originalPriority = QThread::currentThread()->priority();
     if (originalPriority == QThread::InheritPriority) {
