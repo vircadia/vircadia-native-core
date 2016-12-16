@@ -39,4 +39,18 @@ private:
     gpu::FramebufferPointer _framebuffer;
 };
 
+class DrawBounds {
+public:
+    using Inputs = render::ItemBounds;
+    using JobModel = render::Job::ModelI<DrawBounds, Inputs>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& items);
+
+private:
+    const gpu::PipelinePointer getPipeline();
+    gpu::PipelinePointer _boundsPipeline;
+    int _cornerLocation { -1 };
+    int _scaleLocation { -1 };
+};
+
 #endif // hifi_RenderForwardTask_h
