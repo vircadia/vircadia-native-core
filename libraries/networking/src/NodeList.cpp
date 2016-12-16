@@ -128,7 +128,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
     packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
-    packetReceiver.registerListener(PacketType::UsernameFromIDRequest, this, "processUsernameFromIDRequestPacket");
+    packetReceiver.registerListener(PacketType::UsernameFromIDReply, this, "processUsernameFromIDReply");
 }
 
 qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
@@ -922,12 +922,13 @@ void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
     }
 }
 
-void NodeList::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message) {
+void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message) {
     // read the UUID from the packet
-    // read the UUID from the packet, remove it if it exists
     QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     // read the username from the packet
     QString username = message->readString();
+
+    qDebug() << "Got username" << username << "for node" << uuidStringWithoutCurlyBraces(nodeUUID);
 
     emit usernameFromID(nodeUUID, username);
 }
