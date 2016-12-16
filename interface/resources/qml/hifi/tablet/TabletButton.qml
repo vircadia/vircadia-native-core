@@ -17,8 +17,8 @@ Item {
 
     Rectangle {
         id: buttonBg
-        color: "#2b2b2b"
-        opacity: 0.2
+        color: "#000000"
+        opacity: 0.1
         radius: 8
         anchors.right: parent.right
         anchors.rightMargin: 0
@@ -48,11 +48,36 @@ Item {
         anchors.topMargin: 0
     }
 
+//    DropShadow {
+//            id: dropshadow
+//            anchors.fill: parent
+//            horizontalOffset: 0
+//            verticalOffset: 3
+//            color: "#aa000000"
+//            radius: 20
+//            z: -1
+//            samples: 41
+//            source: buttonBg
+//    }
+
+    DropShadow {
+            id: glow
+            visible: false
+            anchors.fill: parent
+            horizontalOffset: 0
+            verticalOffset: 0
+            color: "#ffffff"
+            radius: 20
+            z: -1
+            samples: 41
+            source: buttonOutline
+    }
+
 
     Image {
         id: icon
-        width: 60
-        height: 60
+        width: 50
+        height: 50
         visible: false
         anchors.bottom: text.top
         anchors.bottomMargin: 5
@@ -96,7 +121,11 @@ Item {
         }
         onEntered: {
             console.log("Tablet Button Hovered!");
-            tabletButton.state = "hover state";
+            if (tabletButton.isActive) {
+                tabletButton.state = "hover active state";
+            } else {
+                tabletButton.state = "hover state";
+            }
         }
         onExited: {
             console.log("Tablet Button Unhovered!");
@@ -116,6 +145,11 @@ Item {
                 target: buttonOutline
                 border.color: "#1fc6a6"
                 opacity: 1
+            }
+
+            PropertyChanges {
+                target: glow
+                visible: true
             }
         },
         State {
@@ -142,6 +176,37 @@ Item {
                 target: iconColorOverlay
                 color: "#333333"
             }
+        },
+        State {
+            name: "hover active state"
+
+            PropertyChanges {
+                target: glow
+                visible: true
+            }
+
+            PropertyChanges {
+                target: buttonOutline
+                border.color: "#ffffff"
+                opacity: 1
+            }
+
+            PropertyChanges {
+                target: buttonBg
+                color: "#1fc6a6"
+                opacity: 1
+            }
+
+            PropertyChanges {
+                target: text
+                color: "#333333"
+            }
+
+            PropertyChanges {
+                target: iconColorOverlay
+                color: "#333333"
+            }
+
         }
     ]
 }
