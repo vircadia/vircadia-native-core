@@ -90,7 +90,19 @@ public:
 
     void setQmlButton(QQuickItem* qmlButton);
 
-    const QVariantMap& getProperties() const { return _properties; }
+    /**jsdoc
+     * Returns the current value of this button's properties
+     * @function TabletButtonProxy#getProperties
+     * @returns {object}
+     */
+    Q_INVOKABLE QVariantMap getProperties() const;
+
+    /**jsdoc
+     * Replace the values of some of this button's properties
+     * @function TabletButtonProxy#editProperties
+     * @param properties {object} set of properties to change
+     */
+    Q_INVOKABLE void editProperties(QVariantMap properties);
 
 public slots:
     void clickedSlot() { emit clicked(); }

@@ -12,6 +12,10 @@ Item {
 
     signal clicked()
 
+    function changeProperty(key, value) {
+        tabletButton[key] = value;
+    }
+
     Rectangle {
         id: buttonBg
         color: tabletButton.color

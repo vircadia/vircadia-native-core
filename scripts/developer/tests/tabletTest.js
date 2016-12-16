@@ -17,6 +17,18 @@ var button = tablet.addButton({
     text: "BAM!!!"
 });
 
+// change the color and name every second...
+var colors = ["#ff6f6f", "#6fff6f", "#6f6fff"];
+var names = ["BAM!", "BAM!!", "BAM!!!"];
+var colorIndex = 0;
+Script.setInterval(function () {
+    colorIndex = (colorIndex + 1) % colors.length;
+    button.editProperties({
+        color: colors[colorIndex],
+        text: names[colorIndex]
+    });
+}, 1000);
+
 button.clicked.connect(function () {
     print("AJT: BAMM!!! CLICK from JS!");
 });

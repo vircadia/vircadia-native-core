@@ -121,6 +121,21 @@ void TabletButtonProxy::setQmlButton(QQuickItem* qmlButton) {
     _qmlButton = qmlButton;
 }
 
-// TABLET_UI_HACK TODO: add property accessors, and forward property changes to the _qmlButton if present.
+QVariantMap TabletButtonProxy::getProperties() const {
+    std::lock_guard<std::mutex> guard(_mutex);
+    return _properties;
+}
+
+void TabletButtonProxy::editProperties(QVariantMap properties) {
+    std::lock_guard<std::mutex> guard(_mutex);
+    QVariantMap::const_iterator iter = properties.constBegin();
+    while (iter != properties.constEnd()) {
+        _properties[iter.key()] = iter.value();
+        if (_qmlButton) {
+            QMetaObject::invokeMethod(_qmlButton, "changeProperty", Qt::AutoConnection, Q_ARG(QVariant, QVariant(iter.key())), Q_ARG(QVariant, iter.value()));
+        }
+        ++iter;
+    }
+}
 
 #include "TabletScriptingInterface.moc"
