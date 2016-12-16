@@ -33,6 +33,8 @@
 #include <PathUtils.h>
 
 #include "ModelNetworkingLogging.h"
+#include <Trace.h>
+#include <StatTracker.h>
 
 TextureCache::TextureCache() {
     setUnusedResourceCacheSize(0);
@@ -331,6 +333,7 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QByteArra
         outFile.close();
     }
 #endif
+    DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
 }
 
 void ImageReader::listSupportedImageFormats() {
@@ -342,7 +345,11 @@ void ImageReader::listSupportedImageFormats() {
 }
 
 void ImageReader::run() {
-    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, nullptr);
+    DependencyManager::get<StatTracker>()->decrementStat("PendingProcessing");
+
+    CounterStat counter("Processing");
+
+    PROFILE_RANGE_EX(modelnetworking, __FUNCTION__, 0xffff0000, 0, { { "url", _url.toString() } });
     auto originalPriority = QThread::currentThread()->priority();
     if (originalPriority == QThread::InheritPriority) {
         originalPriority = QThread::NormalPriority;
@@ -356,7 +363,6 @@ void ImageReader::run() {
         qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
         return;
     }
-
     listSupportedImageFormats();
 
     // Help the QImage loader by extracting the image file format from the url filename ext.
@@ -378,7 +384,6 @@ void ImageReader::run() {
         }
         return;
     }
-
     gpu::TexturePointer texture = nullptr;
     {
         // Double-check the resource still exists between long operations.
@@ -390,7 +395,7 @@ void ImageReader::run() {
 
         auto url = _url.toString().toStdString();
 
-        PROFILE_RANGE_EX(__FUNCTION__"::textureLoader", 0xffffff00, nullptr);
+        PROFILE_RANGE_EX(modelnetworking, __FUNCTION__, 0xffffff00, 0);
         texture.reset(resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url));
     }
 

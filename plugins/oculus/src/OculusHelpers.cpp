@@ -11,7 +11,6 @@
 #include <atomic>
 
 #include <Windows.h>
-#include <QtCore/QLoggingCategory>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtCore/QProcessEnvironment>
@@ -20,8 +19,8 @@
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
 
-Q_DECLARE_LOGGING_CATEGORY(oculus)
-Q_LOGGING_CATEGORY(oculus, "hifi.plugins.oculus")
+Q_LOGGING_CATEGORY(displayplugins, "hifi.plugins.display")
+Q_LOGGING_CATEGORY(oculus, "hifi.plugins.display.oculus")
 
 static std::atomic<uint32_t> refCount { 0 };
 static ovrSession session { nullptr };

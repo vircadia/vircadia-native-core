@@ -14,6 +14,8 @@
 #include <QPainter>
 #include <QDebug>
 
+#include <Profile.h>
+
 #include "ModelLogging.h"
 
 using namespace model;
@@ -744,6 +746,8 @@ const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
 const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
 gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance) {
+    PROFILE_RANGE(modelLog, "processCubeTextureColorFromImage");
+
     gpu::Texture* theTexture = nullptr;
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
         QImage image = processSourceImage(srcImage, true);
@@ -801,11 +805,13 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
             }
 
             if (generateMips) {
+                PROFILE_RANGE(modelLog, "generateMips");
                 theTexture->autoGenerateMips(-1);
             }
 
             // Generate irradiance while we are at it
             if (generateIrradiance) {
+                PROFILE_RANGE(modelLog, "generateIrradiance");
                 theTexture->generateIrradiance();
             }
         }

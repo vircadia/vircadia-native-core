@@ -17,6 +17,7 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
+#include <Trace.h>
 
 #include <NumericalConstants.h>
 
@@ -757,6 +758,9 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     if(width != cubeTexture.getHeight()) {
         return false;
     }
+
+    PROFILE_RANGE(gpulogging, "sphericalHarmonicsFromTexture");
+
     const uint sqOrder = order*order;
 
     // allocate memory for calculations
@@ -788,6 +792,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
 
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
+        PROFILE_RANGE(gpulogging, "ProcessFace");
 
         auto numComponents = cubeTexture.accessStoredMipFace(0,face)->getFormat().getScalarCount();
         auto data = cubeTexture.accessStoredMipFace(0,face)->readData();
