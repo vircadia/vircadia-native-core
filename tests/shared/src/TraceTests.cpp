@@ -9,33 +9,35 @@
 #include "TraceTests.h"
 
 #include <QtTest/QtTest>
-#include <Trace.h>
+#include <QtGui/QDesktopServices>
 
-#include <SharedUtil.h>
+#include <Profile.h>
+
 #include <NumericalConstants.h>
 #include <../QTestExtensions.h>
 
 QTEST_MAIN(TraceTests)
-Q_LOGGING_CATEGORY(tracertestlogging, "hifi.tracer.test")
+Q_LOGGING_CATEGORY(trace_test, "trace.test")
+
+const QString OUTPUT_FILE = "traces/testTrace.json.gz";
 
 void TraceTests::testTraceSerialization() {
     auto tracer = DependencyManager::set<tracing::Tracer>();
     tracer->startTracing();
-    tracer->traceEvent(tracertestlogging(), "TestEvent", tracing::DurationBegin);
     {
         auto start = usecTimestampNow();
+        PROFILE_RANGE(test, "TestEvent")
         for (size_t i = 0; i < 10000; ++i) {
-            tracer->traceEvent(tracertestlogging(), "TestCounter", tracing::Counter, "", { { "i", i } });
+            SAMPLE_PROFILE_COUNTER(0.1f, test, "TestCounter", { { "i", i } })
         }
         auto duration = usecTimestampNow() - start;
         duration /= USECS_PER_MSEC;
         qDebug() << "Recording took " << duration << "ms";
     }
-    tracer->traceEvent(tracertestlogging(), "TestEvent", tracing::DurationEnd);
     tracer->stopTracing();
     {
         auto start = usecTimestampNow();
-        tracer->serialize("testTrace.json.gz");
+        tracer->serialize(OUTPUT_FILE);
         auto duration = usecTimestampNow() - start;
         duration /= USECS_PER_MSEC;
         qDebug() << "Serialization took " << duration << "ms";

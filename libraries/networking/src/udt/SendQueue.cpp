@@ -86,7 +86,7 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _socket(socket),
     _destination(dest)
 {
-    PROFILE_ASYNC_BEGIN(networking, "SendQueue", _destination.toString());
+    PROFILE_ASYNC_BEGIN(network, "SendQueue", _destination.toString());
 
     // setup psuedo-random number generation for all instances of SendQueue
     static std::random_device rd;
@@ -106,7 +106,7 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
 }
 
 SendQueue::~SendQueue() {
-    PROFILE_ASYNC_END(networking, "SendQueue", _destination.toString());
+    PROFILE_ASYNC_END(network, "SendQueue", _destination.toString());
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -227,7 +227,7 @@ void SendQueue::sendHandshake() {
     if (!_hasReceivedHandshakeACK) {
         // we haven't received a handshake ACK from the client, send another now
         auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, sizeof(SequenceNumber));
-        PROFILE_ASYNC_BEGIN(networking, "SendQueue:Handshake", _destination.toString());
+        PROFILE_ASYNC_BEGIN(network, "SendQueue:Handshake", _destination.toString());
 
         handshakePacket->writePrimitive(_initialSequenceNumber);
         _socket->writeBasePacket(*handshakePacket, _destination);
@@ -244,7 +244,7 @@ void SendQueue::handshakeACK(SequenceNumber initialSequenceNumber) {
             std::lock_guard<std::mutex> locker { _handshakeMutex };
             _hasReceivedHandshakeACK = true;
         }
-        PROFILE_ASYNC_END(networking, "SendQueue:Handshake", _destination.toString());
+        PROFILE_ASYNC_END(network, "SendQueue:Handshake", _destination.toString());
 
         // Notify on the handshake ACK condition
         _handshakeACKCondition.notify_one();

@@ -21,8 +21,6 @@
 
 #include "DependencyManager.h"
 
-#define TRACE_ENABLED
-
 namespace tracing {
 
 bool enabled();

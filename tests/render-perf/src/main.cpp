@@ -900,7 +900,7 @@ private:
         gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
-        PROFILE_RANGE(renderperflogging, __FUNCTION__);
+        PROFILE_RANGE(render, __FUNCTION__);
         PerformanceTimer perfTimer("draw");
         // The pending changes collecting the changes here
         render::PendingChanges pendingChanges;

@@ -24,6 +24,8 @@
 #include <Trace.h>
 #include <StatTracker.h>
 
+Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
+
 class GeometryReader;
 
 class GeometryExtra {
@@ -54,7 +56,7 @@ private:
 };
 
 void GeometryMappingResource::downloadFinished(const QByteArray& data) {
-    PROFILE_ASYNC_BEGIN(modelnetworking, "GeometryMappingResource::downloadFinished", _url.toString(),
+    PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString(),
                          { { "url", _url.toString() } });
 
     auto mapping = FSTReader::readMapping(data);
@@ -120,7 +122,7 @@ void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
         disconnect(_connection); // FIXME Should not have to do this
     }
 
-    PROFILE_ASYNC_END(modelnetworking, "GeometryMappingResource::downloadFinished", _url.toString());
+    PROFILE_ASYNC_END(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString());
     finishedLoading(success);
 }
 
@@ -145,7 +147,7 @@ private:
 void GeometryReader::run() {
     DependencyManager::get<StatTracker>()->decrementStat("PendingProcessing");
     CounterStat counter("Processing");
-    PROFILE_RANGE_EX(modelnetworking, "GeometryReader::run", 0xFF00FF00, 0, { { "url", _url.toString() } });
+    PROFILE_RANGE_EX(resource_parse_geometry, "GeometryReader::run", 0xFF00FF00, 0, { { "url", _url.toString() } });
     auto originalPriority = QThread::currentThread()->priority();
     if (originalPriority == QThread::InheritPriority) {
         originalPriority = QThread::NormalPriority;
