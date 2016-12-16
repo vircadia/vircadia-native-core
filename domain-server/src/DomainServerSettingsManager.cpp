@@ -769,19 +769,24 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
 
                 bool newPermissions = false;
 
+                QByteArray printableVerifiedUsername;
+
                 if (!verifiedUsername.isEmpty()) {
-                    QByteArray printableVerifiedUsername = qPrintable(verifiedUsername);
-                    // setup the packet
-                    auto usernameFromIDRequestPacket = NLPacket::create(PacketType::UsernameFromIDRequest, NUM_BYTES_RFC4122_UUID + printableVerifiedUsername.length(), true);
-
-                    // write the node ID to the packet
-                    usernameFromIDRequestPacket->write(nodeUUID.toRfc4122());
-                    // write the username to the packet
-                    usernameFromIDRequestPacket->write(printableVerifiedUsername);
-
-                    auto nodeList = DependencyManager::get<LimitedNodeList>();
-                    nodeList->sendPacket(std::move(usernameFromIDRequestPacket), message->getSenderSockAddr());
+                    printableVerifiedUsername = qPrintable(verifiedUsername);
+                } else {
+                    printableVerifiedUsername = qPrintable("");
                 }
+                // setup the packet
+                auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply, NUM_BYTES_RFC4122_UUID + printableVerifiedUsername.length(), true);
+
+                // write the node ID to the packet
+                usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
+                // write the username to the packet
+                usernameFromIDReplyPacket->write(printableVerifiedUsername);
+
+                auto nodeList = DependencyManager::get<LimitedNodeList>();
+                nodeList->sendPacket(std::move(usernameFromIDReplyPacket), message->getSenderSockAddr());
+                qDebug() << "SENDING PACKET.";
             }
             else {
                 qWarning() << "Node username request received for unknown node. Refusing to process.";

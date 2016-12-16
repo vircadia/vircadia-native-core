@@ -82,7 +82,7 @@ public:
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
-    void processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message);
+    void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
 
 public slots:
     void reset();

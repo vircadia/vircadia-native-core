@@ -118,11 +118,11 @@ function populateUserList() {
         var avatar = AvatarList.getAvatar(id);
         var avatarPalDatum = {
             displayName: avatar.displayName || ('anonymous ' + counter++),
-            userName: Users.canKick ? 'Obtaining username...' : '',
+            userName: (Users.canKick && id) ? 'Obtaining username...' : '',
             sessionId: id || ''
         };
-        if (Users.canKick) {
-            Users.getUsernameFromID(id);
+        if (Users.canKick && id) {
+            Users.requestUsernameFromID(id);
         }
         data.push(avatarPalDatum);
         if (id) { // No overlay for ourself.
@@ -134,7 +134,7 @@ function populateUserList() {
 }
 
 function usernameFromID(id, username) {
-    var data = { id: id, username: username };
+    var data = { id: id, username: username + '\\' + id };
     print('Username Data:', JSON.stringify(data));
     pal.sendToQml({ method: 'updateUsername', params: data });
 }
