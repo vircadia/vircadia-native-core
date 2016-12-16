@@ -123,6 +123,18 @@
                 buttons.children(":nth-child(2), .btn-group , .embed-button").each(function () { this.remove(); });
             }
 
+            // Move the "Download to High Fidelity" button to be more visible on tablet.
+            if ($("#hifi-download-container").length === 0 && window.innerWidth < 700) {
+                // Moving the button stops the Clara.io download from starting so instead, make a visual copy in the right place
+                // and wire its click event to click the original button.
+                var downloadContainer = $('<div id="hifi-download-container"></div>');
+                $(".top-title .col-sm-4").append(downloadContainer);
+                var downloadButton = $("a[data-extension=\'fbx\']").clone();
+                downloadButton[0].addEventListener("click", function () { downloadFBX.click(); });
+                downloadContainer.append(downloadButton);
+                downloadFBX.style.visibility = "hidden";
+            }
+
             // Automatic download to High Fidelity.
             var downloadTimer;
             function startAutoDownload(event) {
@@ -173,6 +185,13 @@
             '<style>' +
                 'div.page-title { line-height: 1.2; font-size: 13px; }' +
                 'div.page-title-row { padding-bottom: 0; }' +
+            '</style>'
+        );
+
+        // Move "Download to High Fidelity" button.
+        $("head").append(
+            '<style>' +
+                '#hifi-download-container { position: absolute; top: 6px; right: 16px; }' +
             '</style>'
         );
 
