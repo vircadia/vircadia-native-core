@@ -195,8 +195,10 @@ struct RIFFHeader {
     char        type[4];        // "WAVE"
 };
 
-struct WAVEHeader {
-    chunk       descriptor;
+static const int WAVEFORMAT_PCM = 1;
+static const int WAVEFORMAT_EXTENSIBLE = 0xfffe;
+
+struct WAVEFormat {
     quint16     audioFormat;    // Format type: 1=PCM, 257=Mu-Law, 258=A-Law, 259=ADPCM
     quint16     numChannels;    // Number of channels: 1=mono, 2=stereo
     quint32     sampleRate;
@@ -205,90 +207,94 @@ struct WAVEHeader {
     quint16     bitsPerSample;
 };
 
-struct DATAHeader {
-    chunk       descriptor;
-};
-
-struct CombinedHeader {
-    RIFFHeader  riff;
-    WAVEHeader  wave;
-};
-
 // returns wavfile sample rate, used for resampling
 int Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray) {
 
-    CombinedHeader fileHeader;
-
     // Create a data stream to analyze the data
     QDataStream waveStream(const_cast<QByteArray *>(&inputAudioByteArray), QIODevice::ReadOnly);
-    if (waveStream.readRawData(reinterpret_cast<char *>(&fileHeader), sizeof(CombinedHeader)) == sizeof(CombinedHeader)) {
 
-        if (strncmp(fileHeader.riff.descriptor.id, "RIFF", 4) == 0) {
-            waveStream.setByteOrder(QDataStream::LittleEndian);
-        } else {
-            // descriptor.id == "RIFX" also signifies BigEndian file
-            // waveStream.setByteOrder(QDataStream::BigEndian);
-            qCDebug(audio) << "Currently not supporting big-endian audio files.";
-            return 0;
-        }
-
-        if (strncmp(fileHeader.riff.type, "WAVE", 4) != 0
-            || strncmp(fileHeader.wave.descriptor.id, "fmt", 3) != 0) {
-            qCDebug(audio) << "Not a WAVE Audio file.";
-            return 0;
-        }
-
-        // added the endianess check as an extra level of security
-
-        if (qFromLittleEndian<quint16>(fileHeader.wave.audioFormat) != 1) {
-            qCDebug(audio) << "Currently not supporting non PCM audio files.";
-            return 0;
-        }
-        if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) == 2) {
-            _isStereo = true;
-        } else if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) == 4) {
-            _isAmbisonic = true;
-        } else if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) != 1) {
-            qCDebug(audio) << "Currently not support audio files with other than 1/2/4 channels.";
-            return 0;
-        }
-
-        if (qFromLittleEndian<quint16>(fileHeader.wave.bitsPerSample) != 16) {
-            qCDebug(audio) << "Currently not supporting non 16bit audio files.";
-            return 0;
-        }
-        
-        // Skip any extra data in the WAVE chunk
-        waveStream.skipRawData(fileHeader.wave.descriptor.size - (sizeof(WAVEHeader) - sizeof(chunk)));
-
-        // Read off remaining header information
-        DATAHeader dataHeader;
-        while (true) {
-            // Read chunks until the "data" chunk is found
-            if (waveStream.readRawData(reinterpret_cast<char *>(&dataHeader), sizeof(DATAHeader)) == sizeof(DATAHeader)) {
-                if (strncmp(dataHeader.descriptor.id, "data", 4) == 0) {
-                    break;
-                }
-                waveStream.skipRawData(dataHeader.descriptor.size);
-            } else {
-                qCDebug(audio) << "Could not read wav audio data header.";
-                return 0;
-            }
-        }
-
-        // Now pull out the data
-        quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(dataHeader.descriptor.size);
-        outputAudioByteArray.resize(outputAudioByteArraySize);
-        if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
-            qCDebug(audio) << "Error reading WAV file";
-            return 0;
-        }
-
-        _duration = (float) (outputAudioByteArraySize / (fileHeader.wave.sampleRate * fileHeader.wave.numChannels * fileHeader.wave.bitsPerSample / 8.0f));
-        return fileHeader.wave.sampleRate;
-
-    } else {
-        qCDebug(audio) << "Could not read wav audio file header.";
+    // Read the "RIFF" chunk
+    RIFFHeader riff;
+    if (waveStream.readRawData((char*)&riff, sizeof(RIFFHeader)) != sizeof(RIFFHeader)) {
+        qCDebug(audio) << "Not a valid WAVE file.";
         return 0;
     }
+
+    // Parse the "RIFF" chunk
+    if (strncmp(riff.descriptor.id, "RIFF", 4) == 0) {
+        waveStream.setByteOrder(QDataStream::LittleEndian);
+    } else {
+        qCDebug(audio) << "Currently not supporting big-endian audio files.";
+        return 0;
+    }
+    if (strncmp(riff.type, "WAVE", 4) != 0) {
+        qCDebug(audio) << "Not a valid WAVE file.";
+        return 0;
+    }
+
+    // Read chunks until the "fmt " chunk is found
+    chunk fmt;
+    while (true) {
+        if (waveStream.readRawData((char*)&fmt, sizeof(chunk)) != sizeof(chunk)) {
+            qCDebug(audio) << "Not a valid WAVE file.";
+            return 0;
+        }
+        if (strncmp(fmt.id, "fmt ", 4) == 0) {
+            break;
+        }
+        waveStream.skipRawData(qFromLittleEndian<quint32>(fmt.size));   // next chunk
+    }
+
+    // Read the "fmt " chunk
+    WAVEFormat wave;
+    if (waveStream.readRawData((char*)&wave, sizeof(WAVEFormat)) != sizeof(WAVEFormat)) {
+        qCDebug(audio) << "Not a valid WAVE file.";
+        return 0;
+    }
+
+    // Parse the "fmt " chunk
+    if (qFromLittleEndian<quint16>(wave.audioFormat) != WAVEFORMAT_PCM &&
+        qFromLittleEndian<quint16>(wave.audioFormat) != WAVEFORMAT_EXTENSIBLE) {
+        qCDebug(audio) << "Currently not supporting non PCM audio files.";
+        return 0;
+    }
+    if (qFromLittleEndian<quint16>(wave.numChannels) == 2) {
+        _isStereo = true;
+    } else if (qFromLittleEndian<quint16>(wave.numChannels) == 4) {
+        _isAmbisonic = true;
+    } else if (qFromLittleEndian<quint16>(wave.numChannels) != 1) {
+        qCDebug(audio) << "Currently not supporting audio files with other than 1/2/4 channels.";
+        return 0;
+    }
+    if (qFromLittleEndian<quint16>(wave.bitsPerSample) != 16) {
+        qCDebug(audio) << "Currently not supporting non 16bit audio files.";
+        return 0;
+    }
+
+    // Skip any extra data in the "fmt " chunk
+    waveStream.skipRawData(qFromLittleEndian<quint32>(fmt.size) - sizeof(WAVEFormat));
+
+    // Read chunks until the "data" chunk is found
+    chunk data;
+    while (true) {
+        if (waveStream.readRawData((char*)&data, sizeof(chunk)) != sizeof(chunk)) {
+            qCDebug(audio) << "Not a valid WAVE file.";
+            return 0;
+        }
+        if (strncmp(data.id, "data", 4) == 0) {
+            break;
+        }
+        waveStream.skipRawData(qFromLittleEndian<quint32>(data.size));  // next chunk
+    }
+
+    // Read the "data" chunk
+    quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(data.size);
+    outputAudioByteArray.resize(outputAudioByteArraySize);
+    if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
+        qCDebug(audio) << "Error reading WAV file";
+        return 0;
+    }
+
+    _duration = (float)(outputAudioByteArraySize / (wave.sampleRate * wave.numChannels * wave.bitsPerSample / 8.0f));
+    return wave.sampleRate;
 }

@@ -20,6 +20,7 @@
 #include <PhysicsEngine.h>
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
+#include <shared/RateCounter.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
@@ -74,6 +75,8 @@ public:
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());
 
+    float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
+
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
@@ -106,6 +109,9 @@ private:
     SetOfAvatarMotionStates _motionStatesThatMightUpdate;
     SetOfMotionStates _motionStatesToAddToPhysics;
     VectorOfMotionStates _motionStatesToRemoveFromPhysics;
+
+    RateCounter<> _myAvatarSendRate;
+
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

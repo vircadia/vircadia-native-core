@@ -76,14 +76,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     LogUtils::init();
     Setting::init();
 
-    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    setOrganizationDomain("highfidelity.io");
-    setApplicationName("domain-server");
-    setApplicationVersion(BuildInfo::VERSION);
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-
     qDebug() << "Setting up domain-server";
-
     qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qDebug() << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;

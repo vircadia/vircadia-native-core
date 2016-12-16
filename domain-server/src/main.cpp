@@ -17,11 +17,17 @@
 
 #include <LogHandler.h>
 #include <SharedUtil.h>
+#include <BuildInfo.h>
 
 #include "DomainServer.h"
 
 int main(int argc, char* argv[]) {
     disableQtBearerPoll(); // Fixes wifi ping spikes
+
+    QCoreApplication::setApplicationName(BuildInfo::DOMAIN_SERVER_NAME);
+    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);

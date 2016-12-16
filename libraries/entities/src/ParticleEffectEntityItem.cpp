@@ -508,7 +508,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
 }
 
 void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                  EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
+                                                  EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                                   EntityPropertyFlags& requestedProperties,
                                                   EntityPropertyFlags& propertyFlags,
                                                   EntityPropertyFlags& propertiesDidntFit,
