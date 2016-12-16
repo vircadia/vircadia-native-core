@@ -38,6 +38,9 @@
 #include "GLLogging.h"
 #include "Context.h"
 
+Q_LOGGING_CATEGORY(trace_render_qml, "trace.render.qml")
+Q_LOGGING_CATEGORY(trace_render_qml_gl, "trace.render.qml.gl")
+
 struct TextureSet {
     // The number of surfaces with this size
     size_t count { 0 };
@@ -276,6 +279,7 @@ void OffscreenQmlSurface::render() {
         return;
     }
 
+    PROFILE_RANGE(render_qml_gl, __FUNCTION__)
     _canvas->makeCurrent();
 
     _renderControl->sync();
@@ -284,7 +288,6 @@ void OffscreenQmlSurface::render() {
     GLuint texture = offscreenTextures.getNextTexture(_size);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
     glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
-    PROFILE_RANGE(glLogging, "qml_render->rendercontrol")
     _renderControl->render();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -617,12 +620,12 @@ void OffscreenQmlSurface::updateQuick() {
     }
 
     if (_polish) {
+        PROFILE_RANGE(render_qml, "OffscreenQML polish")
         _renderControl->polishItems();
         _polish = false;
     }
 
     if (_render) {
-        PROFILE_RANGE(glLogging, __FUNCTION__);
         render();
         _render = false;
     }

@@ -13,6 +13,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
+#include <QtCore/QFileInfo>
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
 
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
@@ -100,7 +103,24 @@ void TraceEvent::writeJson(QTextStream& out) const {
 #endif
 }
 
-void Tracer::serialize(const QString& path) {
+void Tracer::serialize(const QString& originalPath) {
+
+    QString path = originalPath;
+
+    // If the filename is relative, turn it into an absolute path relative to the document directory.
+    QFileInfo originalFileInfo(path);
+    if (originalFileInfo.isRelative()) {
+        QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        path = docsLocation + "/" + path;
+        QFileInfo info(path);
+        if (!info.absoluteDir().exists()) {
+            QString originalRelativePath = originalFileInfo.path();
+            QDir(docsLocation).mkpath(originalRelativePath);
+        }
+    }
+
+
+
     std::list<TraceEvent> currentEvents;
     {
         std::lock_guard<std::mutex> guard(_eventsMutex);
