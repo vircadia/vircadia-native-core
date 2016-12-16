@@ -93,14 +93,13 @@ ovrSession acquireOculusSession() {
         }
            
 #ifdef OCULUS_APP_ID
-        if (true) {
-            if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
-                 // we were unable to initialize the platform for entitlement check - fail the check
-                _quitRequested = true;
-            } else {
-                qCDebug(oculus) << "Performing Oculus Platform entitlement check";
-                ovr_Entitlement_GetIsViewerEntitled();
-            }
+        if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
+            // we were unable to initialize the platform for entitlement check - fail the check
+            _quitRequested = true;
+        }
+        else {
+            qCDebug(oculus) << "Performing Oculus Platform entitlement check";
+            ovr_Entitlement_GetIsViewerEntitled();
         }
 #endif
 
