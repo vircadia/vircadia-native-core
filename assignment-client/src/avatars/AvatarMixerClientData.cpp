@@ -84,4 +84,6 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
 
     jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
+    jsonObject["recent_other_av_in_view"] = _recentOtherAvatarsInView;
+    jsonObject["recent_other_av_out_of_view"] = _recentOtherAvatarsOutOfView;
 }

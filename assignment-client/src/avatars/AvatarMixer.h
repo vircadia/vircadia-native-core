@@ -15,6 +15,7 @@
 #ifndef hifi_AvatarMixer_h
 #define hifi_AvatarMixer_h
 
+#include <shared/RateCounter.h>
 #include <PortableHighResolutionClock.h>
 
 #include <ThreadedAssignment.h>
@@ -65,6 +66,11 @@ private:
     float _domainMaximumScale { MAX_AVATAR_SCALE };
 
     QTimer* _broadcastTimer = nullptr;
+
+    RateCounter<> _broadcastRate;
+    p_high_resolution_clock::time_point _lastDebugMessage;
+
+
 };
 
 #endif // hifi_AvatarMixer_h

@@ -211,10 +211,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sen
     if (sendMinimum) {
         memcpy(destinationBuffer, &_globalPosition, sizeof(_globalPosition));
         destinationBuffer += sizeof(_globalPosition);
-        qDebug() << __FUNCTION__ << "minimum... included global position!!";
     } else {
-        //qDebug() << __FUNCTION__ << "not minimum... sending actual content!!";
-
         auto header = reinterpret_cast<AvatarDataPacket::Header*>(destinationBuffer);
         header->position[0] = getLocalPosition().x;
         header->position[1] = getLocalPosition().y;

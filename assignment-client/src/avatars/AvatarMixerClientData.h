@@ -93,6 +93,10 @@ public:
     bool otherAvatarInView(const AABox& otherAvatarBox);
     bool otherAvatarInView(const glm::vec3& otherAvatar);
 
+    void resetInViewStats() { _recentOtherAvatarsInView = _recentOtherAvatarsOutOfView = 0; }
+    void incrementAvatarInView() { _recentOtherAvatarsInView++; }
+    void incrementAvatarOutOfView() { _recentOtherAvatarsOutOfView++; }
+
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
@@ -116,6 +120,9 @@ private:
     std::unordered_set<QUuid> _radiusIgnoredOthers;
     ViewFrustum _currentViewFrustum;
     bool _currentViewFrustumIsValid { false };
+
+    int _recentOtherAvatarsInView { 0 };
+    int _recentOtherAvatarsOutOfView { 0 };
 };
 
 #endif // hifi_AvatarMixerClientData_h
