@@ -12,21 +12,21 @@
     _this = this;
 
     this.preload = function(entityID) {
-      print(entityID);
-      this.entityID = entityID;
+        print(entityID);
+        this.entityID = entityID;
     }
 
     this.clickDownOnEntity = function(entityID, mouseEvent) {
-      Messages.sendLocalMessage("home", _this.entityID);
+        Messages.sendLocalMessage("home", _this.entityID);
     }
 
     this.startNearTrigger = function() {
-      Messages.sendLocalMessage("home", _this.entityID);
+        Messages.sendLocalMessage("home", _this.entityID);
     }
 
 
     this.startFarTrigger = function() {
-      Messages.sendLocalMessage("home", _this.entityID);
+        Messages.sendLocalMessage("home", _this.entityID);
     }
 
 });
