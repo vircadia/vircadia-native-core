@@ -115,7 +115,6 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonEntity == senderID) {
-			//var homePosition = Entities.getEntityProperties(_this.homeButtonEntity, ["position"]);
             if (_this.clicked) {
 				Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
               _this.clicked = false;
