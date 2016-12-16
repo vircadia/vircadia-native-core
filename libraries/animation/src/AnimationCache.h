@@ -65,6 +65,8 @@ public:
 
     explicit Animation(const QUrl& url);
 
+    QString getType() const override { return "Animation"; }
+
     const FBXGeometry& getGeometry() const { return *_geometry; }
 
     virtual bool isLoaded() const override;

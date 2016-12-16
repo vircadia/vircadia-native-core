@@ -38,6 +38,17 @@ public slots:
     */
     void waitIdle();
 
+    /**jsdoc
+    * Start recording Chrome compatible tracing events
+    * logRules can be used to specify a set of logging category rules to limit what gets captured
+    */
+    bool startTracing(QString logrules = "");
+
+    /**jsdoc
+    * Stop recording Chrome compatible tracing events and serialize recorded events to a file
+    * Using a filename with a .gz extension will automatically compress the output file
+    */
+    bool stopTracing(QString filename);
 };
 
 #endif // hifi_TestScriptingInterface_h

@@ -20,6 +20,7 @@
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
+#include <PerfStat.h>
 #include <ScriptValueUtils.h>
 #include <shared/NsightHelpers.h>
 
@@ -882,7 +883,7 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
-    PROFILE_RANGE_EX(__FUNCTION__, 0xffff00ff, 0);
+    PROFILE_RANGE_EX(animation, __FUNCTION__, 0xffff00ff, 0);
 
     setModelOffset(rootTransform);
 
@@ -1249,6 +1250,7 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 }
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
+    PerformanceTimer perfTimer("copyJoints");
     if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._overrideFlags.size()) {
 
         // transform all the default poses into rig space.

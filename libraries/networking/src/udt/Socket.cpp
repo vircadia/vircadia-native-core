@@ -26,6 +26,7 @@
 #include "../NLPacket.h"
 #include "../NLPacketList.h"
 #include "PacketList.h"
+#include <Trace.h>
 
 using namespace udt;
 

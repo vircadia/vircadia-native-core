@@ -31,6 +31,7 @@
 #include "NetworkLogging.h"
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
+#include <Trace.h>
 
 const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 

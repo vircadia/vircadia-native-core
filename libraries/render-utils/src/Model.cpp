@@ -27,6 +27,7 @@
 #include "Model.h"
 
 #include "RenderUtilsLogging.h"
+#include <Trace.h>
 
 using namespace std;
 
@@ -280,7 +281,8 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(renderutils, __FUNCTION__);
+    PerformanceTimer perfTimer("Model::updateGeometry");
     bool needFullUpdate = false;
 
     if (!isLoaded()) {
@@ -474,7 +476,7 @@ bool Model::convexHullContains(glm::vec3 point) {
 // entity-scripts to call.  I think it would be best to do the picking once-per-frame (in cpu, or gpu if possible)
 // and then the calls use the most recent such result.
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(renderutils, __FUNCTION__);
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
@@ -967,7 +969,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 void Blender::run() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE_EX(renderutils, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     QVector<glm::vec3> vertices, normals;
     if (_model) {
         int offset = 0;
@@ -1088,7 +1090,8 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(renderutils, __FUNCTION__);
+    PerformanceTimer perfTimer("Model::simulate");
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 

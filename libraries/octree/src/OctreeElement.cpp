@@ -16,6 +16,8 @@
 
 #include <QtCore/QDebug>
 
+#include <Profile.h>
+
 #include <LogHandler.h>
 #include <NodeList.h>
 #include <PerfStat.h>
@@ -28,6 +30,7 @@
 #include "OctreeLogging.h"
 #include "OctreeUtils.h"
 #include "SharedUtil.h"
+#include <Trace.h>
 
 AtomicUIntStat OctreeElement::_octreeMemoryUsage { 0 };
 AtomicUIntStat OctreeElement::_octcodeMemoryUsage { 0 };
@@ -389,6 +392,7 @@ OctreeElementPointer OctreeElement::addChildAtIndex(int childIndex) {
 
         _isDirty = true;
         markWithChangedTime();
+        PROFILE_INSTANT(octree, "EntityAdd", "g");
     }
     return childAt;
 }

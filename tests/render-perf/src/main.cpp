@@ -70,6 +70,8 @@
 
 #include "Camera.hpp"
 
+Q_DECLARE_LOGGING_CATEGORY(renderperflogging)
+Q_LOGGING_CATEGORY(renderperflogging, "hifi.render_perf")
 
 static const QString LAST_SCENE_KEY = "lastSceneFile";
 static const QString LAST_LOCATION_KEY = "lastLocation";
@@ -856,7 +858,6 @@ private:
         EntityUpdateOperator updateOperator(now);
         //getEntities()->getTree()->recurseTreeWithOperator(&updateOperator);
         {
-            PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
             for (auto& iter : _postUpdateLambdas) {
                 iter.second();
             }
@@ -899,7 +900,7 @@ private:
         gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
-        PROFILE_RANGE(__FUNCTION__);
+        PROFILE_RANGE(renderperflogging, __FUNCTION__);
         PerformanceTimer perfTimer("draw");
         // The pending changes collecting the changes here
         render::PendingChanges pendingChanges;

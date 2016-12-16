@@ -17,6 +17,8 @@
 #include "AssetUtils.h"
 #include "MappingRequest.h"
 #include "NetworkLogging.h"
+#include <Trace.h>
+#include <Profile.h>
 
 static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
 
@@ -27,12 +29,14 @@ AssetResourceRequest::AssetResourceRequest(const QUrl& url) :
 }
 
 AssetResourceRequest::~AssetResourceRequest() {
-    if (_assetMappingRequest) {
-        _assetMappingRequest->deleteLater();
-    }
-    
-    if (_assetRequest) {
-        _assetRequest->deleteLater();
+    if (_assetRequest || _assetMappingRequest) {
+        if (_assetMappingRequest) {
+            _assetMappingRequest->deleteLater();
+        }
+        
+        if (_assetRequest) {
+            _assetRequest->deleteLater();
+        }
     }
 }
 
@@ -108,7 +112,6 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
 }
 
 void AssetResourceRequest::requestHash(const AssetHash& hash) {
-
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetRequest = assetClient->createRequest(hash);
@@ -118,7 +121,7 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(req == _assetRequest);
         Q_ASSERT(req->getState() == AssetRequest::Finished);
-        
+
         switch (req->getError()) {
             case AssetRequest::Error::NoError:
                 _data = req->getData();
