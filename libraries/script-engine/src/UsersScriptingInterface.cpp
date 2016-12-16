@@ -18,7 +18,7 @@ UsersScriptingInterface::UsersScriptingInterface() {
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &LimitedNodeList::canKickChanged, this, &UsersScriptingInterface::canKickChanged);
     connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &UsersScriptingInterface::ignoreRadiusEnabledChanged);
-    connect(nodeList.data(), &NodeList::usernameFromID, this, &UsersScriptingInterface::usernameFromID);
+    connect(nodeList.data(), &NodeList::usernameFromIDReply, this, &UsersScriptingInterface::usernameFromIDReply);
 }
 
 void UsersScriptingInterface::ignore(const QUuid& nodeID) {

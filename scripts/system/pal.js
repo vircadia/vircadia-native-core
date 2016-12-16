@@ -121,7 +121,10 @@ function populateUserList() {
             userName: '',
             sessionId: id || ''
         };
-        if (Users.canKick) {
+        // If the current user is an admin OR
+        // they're requesting their own username ("id" is blank)...
+        if (Users.canKick || !id) {
+            // Request the username from the given UUID
             Users.requestUsernameFromID(id);
         }
         data.push(avatarPalDatum);
@@ -133,14 +136,19 @@ function populateUserList() {
     pal.sendToQml({method: 'users', params: data});
 }
 
-function usernameFromID(id, username) {
+// The function that handles the reply from the server
+function usernameFromIDReply(id, username) {
     var data;
+    // If the ID we've received is our ID...
     if (AvatarList.getAvatar('').sessionUUID === id) {
+        // Set the data to contain specific strings.
         data = ['', username + ' (hidden)']
     } else {
+        // Set the data to contain the ID and the username+ID concat string.
         data = [id, username + '/' + id];
     }
     print('Username Data:', JSON.stringify(data));
+    // Ship the data off to QML
     pal.sendToQml({ method: 'updateUsername', params: data });
 }
 
@@ -264,7 +272,7 @@ function onVisibileChanged() {
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibileChanged);
 pal.closed.connect(off);
-Users.usernameFromID.connect(usernameFromID);
+Users.usernameFromIDReply.connect(usernameFromIDReply);
 
 //
 // Cleanup.
@@ -274,7 +282,7 @@ Script.scriptEnding.connect(function () {
     toolBar.removeButton(buttonName);
     pal.visibleChanged.disconnect(onVisibileChanged);
     pal.closed.disconnect(off);
-    Users.usernameFromID.disconnect(usernameFromID);
+    Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     off();
 });
 

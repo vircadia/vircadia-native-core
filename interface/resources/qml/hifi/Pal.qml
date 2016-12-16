@@ -72,17 +72,20 @@ Rectangle {
                 table.selection.deselect(userIndex);
             }
             break;
+        // Received an "updateUsername()" request from the JS
         case 'updateUsername':
+            // The User ID (UUID) is the first parameter in the message.
             var userId = message.params[0];
+            // The Username String (name + UUID) is the second parameter in the message.
             var userName = message.params[1];
-            console.log('passed userId:', userId);
-            console.log('passed userName:', userName);
+            // If the userId is empty, we're updating "myData".
             if (!userId) {
                 myData.userName = userName;
                 myCard.userName = userName;
             } else {
+                // Get the index in userModel and userData associated with the passed UUID
                 var userIndex = findSessionIndex(userId);
-                console.log('computed userIndex:', userIndex);
+                // Set the userName appropriately
                 userModel.get(userIndex).userName = userName;
                 userData[userIndex].userName = userName;
             }

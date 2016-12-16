@@ -111,7 +111,7 @@ signals:
     void receivedDomainServerList();
     void ignoredNode(const QUuid& nodeID);
     void ignoreRadiusEnabledChanged(bool isIgnored);
-    void usernameFromID(const QString& nodeID, const QString& username);
+    void usernameFromIDReply(const QString& nodeID, const QString& username);
 
 private slots:
     void stopKeepalivePingTimer();
