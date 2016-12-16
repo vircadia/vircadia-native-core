@@ -44,6 +44,7 @@
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
 #include <Trace.h>
+#include <StatTracker.h>
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -75,6 +76,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     parseCommandLine();
 
     DependencyManager::set<tracing::Tracer>();
+    DependencyManager::set<StatTracker>();
 
     LogUtils::init();
     Setting::init();
