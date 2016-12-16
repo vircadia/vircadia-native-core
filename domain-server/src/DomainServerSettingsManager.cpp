@@ -748,26 +748,30 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
     }
 }
 
+// This function processes the "Get Username from ID" request.
 void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    // before we do any processing on this packet make sure it comes from a node that is allowed to kick
+    // Before we do any processing on this packet, make sure it comes from a node that is allowed to kick (is an admin)
     if (sendingNode->getCanKick()) {
         // From the packet, pull the UUID we're identifying
         QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
+        // If the UUID isn't NULL...
         if (!nodeUUID.isNull()) {
-            // make sure we actually have a node with this UUID
+            // First, make sure we actually have a node with this UUID
             auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-
             auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
 
+            // If we do have a matching node...
             if (matchingNode) {
-                // we have a matching node, time to figure out the username
+                // It's time to figure out the username
                 QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
 
+                // If the verified username is Empty...
                 if (verifiedUsername.isEmpty()) {
+                    // Make sure we're using an empty string as the Verified Username
                     verifiedUsername = "";
                 }
-                // setup the packet
+                // Setup the packet
                 auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply, NUM_BYTES_RFC4122_UUID + sizeof(verifiedUsername), true);
 
                 // write the node ID to the packet
@@ -775,6 +779,7 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
                 // write the username to the packet
                 usernameFromIDReplyPacket->writeString(verifiedUsername);
 
+                // Ship it!
                 limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);
             }
             else {
@@ -782,7 +787,7 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
             }
         }
         else {
-            // this isn't a UUID we can use
+            // This isn't a UUID we can use
             qWarning() << "Node username request received for invalid node ID. Refusing to process.";
         }
 

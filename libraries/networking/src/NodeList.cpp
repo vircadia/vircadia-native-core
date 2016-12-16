@@ -893,7 +893,7 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
 
 void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
     // send a request to domain-server to get the username associated with the given session ID
-    if (getThisNodeCanKick()) {
+    if (getThisNodeCanKick() || nodeID.isNull()) {
         // setup the packet
         auto usernameFromIDRequestPacket = NLPacket::create(PacketType::UsernameFromIDRequest, NUM_BYTES_RFC4122_UUID, true);
 
@@ -903,7 +903,6 @@ void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
         } else {
             usernameFromIDRequestPacket->write(nodeID.toRfc4122());
         }
-
 
         qDebug() << "Sending packet to get username of node" << uuidStringWithoutCurlyBraces(nodeID);
 
@@ -923,5 +922,5 @@ void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> messag
 
     qDebug() << "Got username" << username << "for node" << nodeUUIDString;
 
-    emit usernameFromID(nodeUUIDString, username);
+    emit usernameFromIDReply(nodeUUIDString, username);
 }
