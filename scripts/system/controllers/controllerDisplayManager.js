@@ -13,11 +13,13 @@
 
 (function () {
 
-Script.include("controllerDisplay.js?");
+Script.include("controllerDisplay.js");
 Script.include("viveControllerConfiguration.js");
-Script.include("touchControllerConfiguration.js?");
+Script.include("touchControllerConfiguration.js?" + Date.now());
 
 var HIDE_CONTROLLERS_ON_EQUIP = false;
+
+HMD.requestShowHandControllers();
 
 //
 // Management of controller display

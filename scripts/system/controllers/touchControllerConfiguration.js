@@ -21,7 +21,7 @@ var leftBaseRotation = Quat.multiply(
 //var leftBaseRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 
 var rightBaseRotation = Quat.multiply(
-    Quat.fromPitchYawRollDegrees(0, 0, -45),
+    Quat.fromPitchYawRollDegrees(0, 0, 0),
     Quat.multiply(
         Quat.fromPitchYawRollDegrees(-90, 0, 0),
         Quat.fromPitchYawRollDegrees(0, 0, -90)
@@ -29,6 +29,7 @@ var rightBaseRotation = Quat.multiply(
 );
 
 // keep these in sync with the values from SteamVRHelpers.cpp
+var CONTROLLER_LENGTH_OFFSET = 0.0762;
 var CONTROLLER_LATERAL_OFFSET = 0.0381;
 var CONTROLLER_VERTICAL_OFFSET = 0.0381;
 var CONTROLLER_FORWARD_OFFSET = 0.1524;
@@ -38,18 +39,17 @@ var leftBasePosition = {
     y: CONTROLLER_FORWARD_OFFSET,
     z: CONTROLLER_LATERAL_OFFSET
 };
-var rightBasePosition = {
-    x: -CONTROLLER_VERTICAL_OFFSET,
-    y: -CONTROLLER_FORWARD_OFFSET,
-    z: CONTROLLER_LATERAL_OFFSET
-};
-rightBasePosition = {
-    x: CONTROLLER_FORWARD_OFFSET,
-    y: CONTROLLER_VERTICAL_OFFSET,
-    z: CONTROLLER_LATERAL_OFFSET
-};
+leftBasePosition = Vec3.multiplyQbyV(rightBaseRotation, {
+    x: CONTROLLER_LENGTH_OFFSET / 2.0,
+    y: CONTROLLER_LENGTH_OFFSET / 2.0,
+    z: CONTROLLER_LENGTH_OFFSET * 1.5
+});
+var rightBasePosition = Vec3.multiplyQbyV(rightBaseRotation, {
+    x: CONTROLLER_LENGTH_OFFSET / 2.0,
+    y: CONTROLLER_LENGTH_OFFSET / 2.0,
+    z: CONTROLLER_LENGTH_OFFSET * 1.5
+});
 
-//var BASE_URL = "file:///C:/Users/Ryan/dev/hifi/interface/resources/meshes/controller/touch/";
 var BASE_URL = Script.resourcesPath() + "meshes/controller/touch/";
 
 TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
@@ -217,7 +217,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
             naturalPosition: { x: -0.016486231237649918, y: -0.03551865369081497, z: -0.018527653068304062 },
             dimensions: { x: 0.11053784191608429, y: 0.09957750141620636, z: 0.10139875113964081 },
             rotation: rightBaseRotation,
-            position: Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 0, 45), rightBasePosition),
+            position: rightBasePosition,
 
             parts: {
                 tips: {
