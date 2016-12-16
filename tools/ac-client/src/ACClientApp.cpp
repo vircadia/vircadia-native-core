@@ -81,9 +81,8 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
         listenPort = parser.value(listenPortOption).toInt();
     }
 
-    Setting::preInit();
-    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     Setting::init();
+    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     DependencyManager::set<AccountManager>([&]{ return QString("Mozilla/5.0 (HighFidelityACClient)"); });
     DependencyManager::set<AddressManager>();

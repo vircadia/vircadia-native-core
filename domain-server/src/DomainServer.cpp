@@ -43,6 +43,7 @@
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
+#include <Trace.h>
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -73,17 +74,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 {
     parseCommandLine();
 
+    DependencyManager::set<tracing::Tracer>();
+
     LogUtils::init();
     Setting::init();
 
-    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    setOrganizationDomain("highfidelity.io");
-    setApplicationName("domain-server");
-    setApplicationVersion(BuildInfo::VERSION);
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-
     qDebug() << "Setting up domain-server";
-
     qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qDebug() << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;

@@ -110,7 +110,7 @@ void OculusDisplayPlugin::hmdPresent() {
         return;
     }
 
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
+    PROFILE_RANGE_EX(displayplugins, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
     int curIndex;
     ovr_GetTextureSwapChainCurrentIndex(_session, _textureSwapChain, &curIndex);

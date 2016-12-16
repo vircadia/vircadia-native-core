@@ -15,7 +15,8 @@
 #include <AddressManager.h>
 #include <DomainHandler.h>
 #include <NodeList.h>
-#include <steamworks-wrapper/SteamClient.h>
+#include <plugins/PluginManager.h>
+#include <plugins/SteamClientPlugin.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -111,7 +112,9 @@ void DiscoverabilityManager::updateLocation() {
     }
 
     // Update Steam
-    SteamClient::updateLocation(domainHandler.getHostname(), addressManager->currentFacingShareableAddress());
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->updateLocation(domainHandler.getHostname(), addressManager->currentFacingShareableAddress());
+    }
 }
 
 void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {

@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-static const int SRC_MAX_CHANNELS = 2;
+static const int SRC_MAX_CHANNELS = 4;
 
 // polyphase filter
 static const int SRC_PHASEBITS = 8;
@@ -48,8 +48,6 @@ public:
     int getMinInput(int outputFrames);
     int getMaxInput(int outputFrames);
 
-    int getExactInput(int outputFrames);
-
 private:
     float* _polyphaseFilter;
     int* _stepTable;
@@ -77,12 +75,18 @@ private:
 
     int multirateFilter1(const float* input0, float* output0, int inputFrames);
     int multirateFilter2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+    int multirateFilter4(const float* input0, const float* input1, const float* input2, const float* input3, 
+                         float* output0, float* output1, float* output2, float* output3, int inputFrames);
 
-    int multirateFilter1_SSE(const float* input0, float* output0, int inputFrames);
-    int multirateFilter2_SSE(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+    int multirateFilter1_ref(const float* input0, float* output0, int inputFrames);
+    int multirateFilter2_ref(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+    int multirateFilter4_ref(const float* input0, const float* input1, const float* input2, const float* input3, 
+                             float* output0, float* output1, float* output2, float* output3, int inputFrames);
 
     int multirateFilter1_AVX2(const float* input0, float* output0, int inputFrames);
     int multirateFilter2_AVX2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+    int multirateFilter4_AVX2(const float* input0, const float* input1, const float* input2, const float* input3, 
+                              float* output0, float* output1, float* output2, float* output3, int inputFrames);
 
     void convertInput(const int16_t* input, float** outputs, int numFrames);
     void convertOutput(float** inputs, int16_t* output, int numFrames);

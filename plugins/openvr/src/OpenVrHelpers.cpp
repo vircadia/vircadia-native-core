@@ -370,7 +370,7 @@ void showMinSpecWarning() {
         auto headPose = toGlm(vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
         auto overlayPose = toOpenVr(headPose * glm::translate(glm::mat4(), vec3(0, 0, -1)));
         vrOverlay->SetOverlayTransformAbsolute(minSpecFailedOverlay, vr::TrackingUniverseSeated, &overlayPose);
-        
+
         vr::VREvent_t event;
         while (vrSystem->PollNextEvent(&event, sizeof(event))) {
             switch (event.eventType) {
@@ -405,7 +405,7 @@ bool checkMinSpecImpl() {
         return true;
     }
 
-    // If we have at least 5 cores, pass
+    // If we have at least MIN_CORES_SPEC cores, pass
     auto coreCount = QThread::idealThreadCount();
     if (coreCount >= MIN_CORES_SPEC) {
         return true;

@@ -12,7 +12,6 @@
 #include <assert.h>
 
 #include <QProcess>
-#include <QSettings>
 #include <QSharedMemory>
 #include <QThread>
 #include <QTimer>
@@ -38,6 +37,7 @@
 #include "AssignmentClient.h"
 #include "AssignmentClientLogging.h"
 #include "avatars/ScriptableAvatar.h"
+#include <Trace.h>
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
@@ -49,8 +49,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 {
     LogUtils::init();
 
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-
+    DependencyManager::set<tracing::Tracer>();
     DependencyManager::set<AccountManager>();
 
     auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();
