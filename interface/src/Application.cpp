@@ -1389,20 +1389,31 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         qCDebug(interfaceapp) << "Server content version: " << contentVersion;
 
-        bool hasTutorialContent = contentVersion >= 1;
+        static const int MIN_VIVE_CONTENT_VERSION = 1;
+        static const int MIN_OCULUS_TOUCH_CONTENT_VERSION = 27;
+
+        bool hasSufficientTutorialContent = false;
+        bool hasHandControllers = false;
+
+        // Only specific hand controllers are currently supported, so only send users to the tutorial
+        // if they have one of those hand controllers.
+        if (PluginUtils::isViveControllerAvailable()) {
+            hasHandControllers = true;
+            hasSufficientTutorialContent = contentVersion >= MIN_VIVE_CONTENT_VERSION;
+        } else if (PluginUtils::isOculusTouchControllerAvailable()) {
+            hasHandControllers = true;
+            hasSufficientTutorialContent = contentVersion >= MIN_OCULUS_TOUCH_CONTENT_VERSION;
+        }
 
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-        // Only specific hand controllers are currently supported, so only send users to the tutorial
-        // if they one of those.
-        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable()
-            && (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable());
+        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && hasHandControllers;
         Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
-        bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
+        bool shouldGoToTutorial = hasHMDAndHandControllers && hasSufficientTutorialContent && !tutorialComplete.get();
 
         qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-        qCDebug(interfaceapp) << "Has tutorial content: " << hasTutorialContent;
+        qCDebug(interfaceapp) << "Has sufficient tutorial content (" << contentVersion << ") : " << hasSufficientTutorialContent;
         qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
         qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
 
