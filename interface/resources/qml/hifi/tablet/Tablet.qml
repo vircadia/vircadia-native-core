@@ -43,8 +43,9 @@ Item {
         var index = findButtonIndex(properties.uuid);
         if (index < 0) {
             console.log("Warning: Tablet.qml could not find button with uuid = " + properties.uuid);
+        } else {
+            flowMain.children[index].destroy();
         }
-        flowMain.children[index].destroy();
     }
 
     Rectangle {
