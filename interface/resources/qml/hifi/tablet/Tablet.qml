@@ -49,17 +49,17 @@ Item {
     }
 
     Rectangle {
-        id: bgAudio
+        id: bgTopBar
         height: 90
         gradient: Gradient {
             GradientStop {
                 position: 0
-                color: "#6b6b6b"
+                color: "#2b2b2b"
             }
 
             GradientStop {
                 position: 1
-                color: "#595959"
+                color: "#1e1e1e"
             }
         }
         anchors.right: parent.right
@@ -80,49 +80,49 @@ Item {
             anchors.right: parent.right
             spacing: 5
 
-            Rectangle {
-                id: muteButton
-                width: 128
-                height: 40
-                color: "#464646"
-                anchors.verticalCenter: parent.verticalCenter
-                Text {
-                    id: muteText
-                    color: "#ffffff"
-                    text: "MUTE"
-                    z: 1
-                    verticalAlignment: Text.AlignVCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: 16
-                    anchors.verticalCenter: parent.verticalCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    font.bold: true
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onEntered: {
-                        console.log("Mute Botton Hovered!");
-                        parent.color = "#2d2d2d";
-                        parent.border.width = 2;
-                        parent.border.color = "#ffffff";
-                    }
-                    onExited: {
-                        console.log("Mute Botton Unhovered!");
-                        parent.color = "#464646";
-                        parent.border.width = 0;
-                    }
+//            Rectangle {
+//                id: muteButton
+//                width: 128
+//                height: 40
+//                color: "#464646"
+//                anchors.verticalCenter: parent.verticalCenter
+//                Text {
+//                    id: muteText
+//                    color: "#ffffff"
+//                    text: "MUTE"
+//                    z: 1
+//                    verticalAlignment: Text.AlignVCenter
+//                    anchors.horizontalCenter: parent.horizontalCenter
+//                    font.pixelSize: 16
+//                    anchors.verticalCenter: parent.verticalCenter
+//                    horizontalAlignment: Text.AlignHCenter
+//                    font.bold: true
+//                }
+//                MouseArea {
+//                    anchors.fill: parent
+//                    hoverEnabled: true
+//                    onEntered: {
+//                        console.log("Mute Botton Hovered!");
+//                        parent.color = "#2d2d2d";
+//                        parent.border.width = 2;
+//                        parent.border.color = "#ffffff";
+//                    }
+//                    onExited: {
+//                        console.log("Mute Botton Unhovered!");
+//                        parent.color = "#464646";
+//                        parent.border.width = 0;
+//                    }
 
-                    onClicked: {
-                        console.log("Mute Button Clicked! current tablet state: " + tablet.state );
-                        if (tablet.state === "muted state") {
-                            tablet.state = "base state";
-                        } else {
-                            tablet.state = "muted state";
-                        }
-                    }
-                }
-            }
+//                    onClicked: {
+//                        console.log("Mute Button Clicked! current tablet state: " + tablet.state );
+//                        if (tablet.state === "muted state") {
+//                            tablet.state = "base state";
+//                        } else {
+//                            tablet.state = "muted state";
+//                        }
+//                    }
+//                }
+//            }
 
             Image {
                 id: muteIcon
@@ -180,13 +180,13 @@ Item {
         gradient: Gradient {
             GradientStop {
                 position: 0
-                color: "#787878"
+                color: "#2b2b2b"
 
             }
 
             GradientStop {
                 position: 1
-                color: "#000000"
+                color: "#0f212e"
             }
         }
         anchors.bottom: parent.bottom
@@ -195,12 +195,12 @@ Item {
         anchors.rightMargin: 0
         anchors.left: parent.left
         anchors.leftMargin: 0
-        anchors.top: bgAudio.bottom
+        anchors.top: bgTopBar.bottom
         anchors.topMargin: 0
 
         Flow {
             id: flowMain
-            spacing: 12
+            spacing: 16
             anchors.right: parent.right
             anchors.rightMargin: 30
             anchors.left: parent.left
@@ -215,30 +215,25 @@ Item {
             console.log("Tablet.onCompleted!");
             var component = Qt.createComponent("TabletButton.qml");
             var buttons = [];
-            for (var i = 0; i < 9; i++) {
+            for (var i = 0; i < 11; i++) {
                 buttons.push(component.createObject(flowMain));
             }
 
-            // set button color
-            var green = "#1FC6A6";
-            var lightblue = "#00B4EF";
-            buttons[3].color = lightblue;
-            buttons[4].color = lightblue;
-            buttons[5].color = lightblue;
-            buttons[6].color = green;
-            buttons[7].color = green;
-            buttons[8].color = green;
-
             // set button text
-            buttons[0].text = "GO TO";
-            buttons[1].text = "BUBBLE";
+            buttons[0].text = "MUTE";
+            buttons[1].text = "VR";
             buttons[2].text = "MENU";
-            buttons[3].text = "MARKET";
-            buttons[4].text = "SWITCH";
-            buttons[5].text = "PAUSE";
-            buttons[6].text = "EDIT";
-            buttons[7].text = "SNAP";
-            buttons[8].text = "SCRIPTS";
+            buttons[3].text = "BUBBLE";
+            buttons[4].text = "SNAP";
+            buttons[5].text = "HELP";
+            buttons[6].text = "PEOPLE";
+            buttons[7].text = "GOTO";
+            buttons[8].text = "MARKET";
+            buttons[9].text = "EDIT";
+            buttons[10].text = "SCRIPTS";
+
+            // set button icon
+            buttons[0].icon = "icons/tablet-mute-icon.svg"
         }
     }
     states: [
