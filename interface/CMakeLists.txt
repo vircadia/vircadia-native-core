@@ -166,6 +166,7 @@ if (WIN32)
   add_dependency_external_projects(OpenVR)
   add_dependency_external_projects(neuron)
   add_dependency_external_projects(wasapi)
+  add_dependency_external_projects(steamworks)
 endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
@@ -174,10 +175,6 @@ endif()
 if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
-
-if (NOT ANDROID)
-  set(NON_ANDROID_LIBRARIES steamworks-wrapper)
-endif ()
 
 # link required hifi libraries
 link_hifi_libraries(

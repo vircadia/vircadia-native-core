@@ -703,6 +703,8 @@ function MyController(hand) {
     this.autoUnequipCounter = 0;
     this.grabPointIntersectsEntity = false;
 
+    this.shouldScale = false;
+
     // handPosition is where the avatar's hand appears to be, in-world.
     this.getHandPosition = function () {
         if (this.hand === RIGHT_HAND) {
@@ -771,6 +773,11 @@ function MyController(hand) {
 
         this.updateSmoothedTrigger();
 
+        //  If both trigger and grip buttons squeezed and nothing is held, rescale my avatar!
+        if (this.hand === RIGHT_HAND && this.state === STATE_SEARCHING && this.getOtherHandController().state === STATE_SEARCHING) {
+            this.maybeScaleMyAvatar();
+        }
+        
         if (this.ignoreInput()) {
             this.turnOffVisualizations();
             return;
@@ -1614,6 +1621,8 @@ function MyController(hand) {
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
+         this.shouldScale = false;
+
         var worldControllerPosition = getControllerWorldLocation(this.handToController(), true).position;
 
         // transform the position into room space
@@ -1773,6 +1782,7 @@ function MyController(hand) {
             }
         }
 
+        this.maybeScale(grabbedProperties);
         // visualizations
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
@@ -1881,6 +1891,8 @@ function MyController(hand) {
 
         this.dropGestureReset();
         this.clearEquipHaptics();
+
+        this.shouldScale = false;
 
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
@@ -2151,6 +2163,10 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("continueNearGrab");
         }
 
+        if (this.state == STATE_NEAR_GRABBING) {
+            this.maybeScale(props);
+        }
+
         if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSECS_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl
             var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
@@ -2172,6 +2188,43 @@ function MyController(hand) {
             }
         }
     };
+
+    this.maybeScale = function(props) {
+        if (!this.shouldScale) {
+            //  If both secondary triggers squeezed, and the non-holding hand is empty, start scaling
+            if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed() && this.getOtherHandController().state === STATE_OFF) {
+                this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+                this.scalingStartDimensions = props.dimensions;
+                this.shouldScale = true;
+            }
+        } else if (!this.secondarySqueezed() || !this.getOtherHandController().secondarySqueezed()) {
+            this.shouldScale = false;
+        }
+        if (this.shouldScale) {
+            var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+            var currentRescale = scalingCurrentDistance / this.scalingStartDistance;
+            var newDimensions = Vec3.multiply(currentRescale, this.scalingStartDimensions);
+            Entities.editEntity(this.grabbedEntity, { dimensions: newDimensions })
+        }
+    }
+
+    this.maybeScaleMyAvatar = function() {
+        if (!this.shouldScale) {
+            //  If both secondary triggers squeezed, start scaling
+            if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed()) {
+                this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+                this.scalingStartAvatarScale = MyAvatar.scale;
+                this.shouldScale = true;
+            }
+        } else if (!this.secondarySqueezed() || !this.getOtherHandController().secondarySqueezed()) {
+            this.shouldScale = false;
+        }
+        if (this.shouldScale) {
+            var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+            var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;
+            MyAvatar.scale = newAvatarScale;
+        }
+    }
 
     this.nearTriggerEnter = function() {
         this.clearEquipHaptics();

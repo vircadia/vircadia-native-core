@@ -17,7 +17,8 @@
 #include <QtNetwork/QNetworkReply>
 
 #include <NetworkingConstants.h>
-#include <steamworks-wrapper/SteamClient.h>
+#include <plugins/PluginManager.h>
+#include <plugins/SteamClientPlugin.h>
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
@@ -56,7 +57,8 @@ void LoginDialog::toggleAction() {
 }
 
 bool LoginDialog::isSteamRunning() const {
-    return SteamClient::isRunning();
+    auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
+    return steamClient && steamClient->isRunning();
 }
 
 void LoginDialog::login(const QString& username, const QString& password) const {
@@ -66,69 +68,75 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 
 void LoginDialog::loginThroughSteam() {
     qDebug() << "Attempting to login through Steam";
-    SteamClient::requestTicket([this](Ticket ticket) {
-        if (ticket.isNull()) {
-            emit handleLoginFailed();
-            return;
-        }
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->requestTicket([this](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
 
-        DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
-    });
+            DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
+        });
+    }
 }
 
 void LoginDialog::linkSteam() {
     qDebug() << "Attempting to link Steam account";
-    SteamClient::requestTicket([this](Ticket ticket) {
-        if (ticket.isNull()) {
-            emit handleLoginFailed();
-            return;
-        }
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->requestTicket([this](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
 
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "linkCompleted";
-        callbackParams.errorCallbackReceiver = this;
-        callbackParams.errorCallbackMethod = "linkFailed";
+            JSONCallbackParameters callbackParams;
+            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.jsonCallbackMethod = "linkCompleted";
+            callbackParams.errorCallbackReceiver = this;
+            callbackParams.errorCallbackMethod = "linkFailed";
 
-        const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
+            const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
 
-        QJsonObject payload;
-        payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
+            QJsonObject payload;
+            payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
 
-        auto accountManager = DependencyManager::get<AccountManager>();
-        accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
-                                    QNetworkAccessManager::PostOperation, callbackParams,
-                                    QJsonDocument(payload).toJson());
-    });
+            auto accountManager = DependencyManager::get<AccountManager>();
+            accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
+                                        QNetworkAccessManager::PostOperation, callbackParams,
+                                        QJsonDocument(payload).toJson());
+        });
+    }
 }
 
 void LoginDialog::createAccountFromStream(QString username) {
     qDebug() << "Attempting to create account from Steam info";
-    SteamClient::requestTicket([this, username](Ticket ticket) {
-        if (ticket.isNull()) {
-            emit handleLoginFailed();
-            return;
-        }
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->requestTicket([this, username](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
 
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "createCompleted";
-        callbackParams.errorCallbackReceiver = this;
-        callbackParams.errorCallbackMethod = "createFailed";
+            JSONCallbackParameters callbackParams;
+            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.jsonCallbackMethod = "createCompleted";
+            callbackParams.errorCallbackReceiver = this;
+            callbackParams.errorCallbackMethod = "createFailed";
 
-        const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
+            const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
 
-        QJsonObject payload;
-        payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
-        if (!username.isEmpty()) {
-            payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
-        }
+            QJsonObject payload;
+            payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
+            if (!username.isEmpty()) {
+                payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
+            }
 
-        auto accountManager = DependencyManager::get<AccountManager>();
-        accountManager->sendRequest(CREATE_ACCOUNT_FROM_STEAM_PATH, AccountManagerAuth::None,
-                                    QNetworkAccessManager::PostOperation, callbackParams,
-                                    QJsonDocument(payload).toJson());
-    });
+            auto accountManager = DependencyManager::get<AccountManager>();
+            accountManager->sendRequest(CREATE_ACCOUNT_FROM_STEAM_PATH, AccountManagerAuth::None,
+                                        QNetworkAccessManager::PostOperation, callbackParams,
+                                        QJsonDocument(payload).toJson());
+        });
+    }
 
 }
 

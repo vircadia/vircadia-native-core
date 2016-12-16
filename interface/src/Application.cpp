@@ -90,20 +90,21 @@
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
+#include <plugins/CodecPlugin.h>
 #include <plugins/PluginManager.h>
 #include <plugins/PluginUtils.h>
-#include <plugins/CodecPlugin.h>
+#include <plugins/SteamClientPlugin.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
+#include <RenderForwardTask.h>
 #include <ResourceCache.h>
 #include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
-#include <steamworks-wrapper/SteamClient.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -416,10 +417,11 @@ bool setupEssentials(int& argc, char** argv) {
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
-    // Set build version
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+    Setting::init();
 
-    Setting::preInit();
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->init();
+    }
 
 #if defined(Q_OS_WIN)
     // Select appropriate audio DLL
@@ -440,8 +442,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
     DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
-
-    Setting::init();
 
     // Set dependencies
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
@@ -551,7 +551,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
-    setProperty(hifi::properties::STEAM, SteamClient::isRunning());
+    auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
+    setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
     {
@@ -606,7 +607,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _deadlockWatchdogThread = new DeadlockWatchdogThread();
     _deadlockWatchdogThread->start();
 
-    qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << SteamClient::getSteamVRBuildID();
+    if (steamClient) {
+        qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
+    }
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
@@ -1695,6 +1698,10 @@ Application::~Application() {
 
     Leapmotion::destroy();
 
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->shutdown();
+    }
+
 #if 0
     ConnexionClient::getInstance().destroy();
 #endif
@@ -1739,10 +1746,14 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
+    static const QString RENDER_FORWARD = "RENDER_FORWARD";
+    if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
+        _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", cullFunctor);
+    } else {
+        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
+    }
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
-    // TODO: Load a cached config file
 
     // The UI can't be created until the primary OpenGL
     // context is created, because it needs to share
@@ -1838,6 +1849,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Assets", new AssetMappingsScriptingInterface());
 
     rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+    rootContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
     rootContext->setContextProperty("Camera", &_myCamera);
 
@@ -1874,8 +1886,10 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
-    rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine));
-    
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
+    }
+
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -3201,7 +3215,9 @@ void Application::idle(float nsecsElapsed) {
 
     PROFILE_RANGE(__FUNCTION__);
 
-    SteamClient::runCallbacks();
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->runCallbacks();
+    }
 
     float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
 
@@ -3533,12 +3549,16 @@ void Application::init() {
 
     _timerStart.start();
     _lastTimeUpdated.start();
-    // when +connect_lobby in command line, join steam lobby
-    const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
-    int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
-    if (lobbyIndex != -1) {
-        QString lobbyId = arguments().value(lobbyIndex + 1);
-        SteamClient::joinLobby(lobbyId);
+
+
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        // when +connect_lobby in command line, join steam lobby
+        const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
+        int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
+        if (lobbyIndex != -1) {
+            QString lobbyId = arguments().value(lobbyIndex + 1);
+            steamClient->joinLobby(lobbyId);
+        }
     }
 
 
@@ -5202,8 +5222,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-    scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine));
-
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine, steamClient.get()));
+    }
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(scriptEngine);
