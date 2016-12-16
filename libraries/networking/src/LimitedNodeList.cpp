@@ -585,7 +585,6 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
         return matchingNode;
     } else {
-        //trace::ASYNC_BEGIN("Node:" + NodeType::getNodeTypeName(nodeType), "NodeConnection", NodeType::getNodeTypeName(nodeType), { { "type", NodeType::getNodeTypeName(nodeType) } });
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, connectionSecret, this);
 
@@ -630,7 +629,6 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
             emit nodeActivated(newNodePointer);
         } else {
             connect(newNodePointer.data(), &NetworkPeer::socketActivated, this, [=] {
-                //trace::ASYNC_END("Add" + NodeType::getNodeTypeName(nodeType), "NodeConnection", NodeType::getNodeTypeName(nodeType), { { "type", NodeType::getNodeTypeName(nodeType) } });
                 emit nodeActivated(newNodePointer);
                 disconnect(newNodePointer.data(), &NetworkPeer::socketActivated, this, 0);
             });

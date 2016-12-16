@@ -131,11 +131,6 @@ public:
         _resource(resource), _url(url), _mapping(mapping), _data(data) {
 
         DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
-        //trace::FLOW_BEGIN("GeometryReader", trace::cResource, _url.toString(), { { "url", _url.toString() } });
-        
-    }
-    virtual ~GeometryReader() {
-        //trace::FLOW_END("GeometryReader", trace::cResource, _url.toString(), { { "url", _url.toString() } });
     }
 
     virtual void run() override;
@@ -149,7 +144,6 @@ private:
 
 void GeometryReader::run() {
     DependencyManager::get<StatTracker>()->decrementStat("PendingProcessing");
-    //trace::ASYNC_BEGIN("GeometryReader::run", trace::cResource, _url.toString(), { { "url", _url.toString() } });
     CounterStat counter("Processing");
     PROFILE_RANGE_EX(modelnetworking, "GeometryReader::run", 0xFF00FF00, 0, { { "url", _url.toString() } });
     auto originalPriority = QThread::currentThread()->priority();
@@ -208,7 +202,6 @@ void GeometryReader::run() {
                 Q_ARG(bool, false));
         }
     }
-    //trace::ASYNC_END("GeometryReader::run", trace::cResource, _url.toString());
 }
 
 class GeometryDefinitionResource : public GeometryResource {

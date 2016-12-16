@@ -32,16 +32,10 @@ AssetRequest::AssetRequest(const QString& hash) :
 AssetRequest::~AssetRequest() {
     auto assetClient = DependencyManager::get<AssetClient>();
     if (_assetRequestID) {
-        //trace::ASYNC_END("assetRequest", trace::nameAssetData, _requestID);
         assetClient->cancelGetAssetRequest(_assetRequestID);
     }
     if (_assetInfoRequestID) {
-        //trace::ASYNC_END("assetRequest", trace::nameAssetInfo, _requestID);
         assetClient->cancelGetAssetInfoRequest(_assetInfoRequestID);
-    }
-    if (_assetRequestID || _assetInfoRequestID) {
-        //trace::ASYNC_END(trace::nameAssetEndedEarly, "assetRequest", _requestID);
-        //trace::ASYNC_END(trace::nameAssetRequest, "assetRequest", _requestID);
     }
 }
 
@@ -56,14 +50,11 @@ void AssetRequest::start() {
         return;
     }
 
-    //trace::ASYNC_BEGIN(trace::nameAssetRequest, "assetRequest", _requestID);
-
     // in case we haven't parsed a valid hash, return an error now
     if (!isValidHash(_hash)) {
         _error = InvalidHash;
         _state = Finished;
 
-        //trace::ASYNC_END(trace::nameAssetRequest, "assetRequest", _requestID);
         emit finished(this);
         return;
     }
@@ -76,20 +67,15 @@ void AssetRequest::start() {
         _error = NoError;
         
         _state = Finished;
-        //trace::ASYNC_END(trace::nameAssetRequest, "assetRequest", _requestID);
         emit finished(this);
         return;
     }
     
     _state = WaitingForInfo;
     
-    //trace::ASYNC_BEGIN(trace::nameAssetInfo, "assetRequest", _requestID);
-
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetInfoRequestID = assetClient->getAssetInfo(_hash,
             [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
-
-        //trace::ASYNC_END(trace::nameAssetInfo, "assetRequest", _requestID);
 
         _assetInfoRequestID = AssetClient::INVALID_MESSAGE_ID;
 
@@ -111,7 +97,6 @@ void AssetRequest::start() {
         if (_error != NoError) {
             qCWarning(asset_client) << "Got error retrieving asset info for" << _hash;
             _state = Finished;
-            //trace::ASYNC_END(trace::nameAssetRequest, "assetRequest", _requestID);
             emit finished(this);
             
             return;
@@ -172,7 +157,6 @@ void AssetRequest::start() {
             }
             
             _state = Finished;
-            //trace::ASYNC_END(trace::nameAssetRequest, "assetRequest", _requestID);
             emit finished(this);
         }, [this, that](qint64 totalReceived, qint64 total) {
             if (!that) {

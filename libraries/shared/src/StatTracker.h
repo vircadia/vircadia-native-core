@@ -33,9 +33,6 @@ class CounterStat {
 public:
     CounterStat(QString name) : _name(name) {
         DependencyManager::get<StatTracker>()->incrementStat(_name);
-        //trace::COUNTER("processing", "stats", {
-            //{ "active", DependencyManager::get<StatTracker>()->getStat("ResourceProcessing").toInt() }
-        //});
     }    
     ~CounterStat() {
         DependencyManager::get<StatTracker>()->decrementStat(_name);
