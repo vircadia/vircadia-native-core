@@ -134,7 +134,12 @@ function populateUserList() {
 }
 
 function usernameFromID(id, username) {
-    var data = [id, username + '/' + id ];
+    var data;
+    if (AvatarList.getAvatar('').sessionUUID === id) {
+        data = ['', username + ' (hidden)']
+    } else {
+        data = [id, username + '/' + id];
+    }
     print('Username Data:', JSON.stringify(data));
     pal.sendToQml({ method: 'updateUsername', params: data });
 }

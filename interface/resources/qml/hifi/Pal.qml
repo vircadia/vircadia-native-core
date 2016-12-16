@@ -75,10 +75,17 @@ Rectangle {
         case 'updateUsername':
             var userId = message.params[0];
             var userName = message.params[1];
-            var userIndex = findSessionIndex(userId);
-            console.log('computed userIndex:', userIndex);
-            userModel.get(userIndex).userName = userName;
-            userData[userIndex].userName = userName;
+            console.log('passed userId:', userId);
+            console.log('passed userName:', userName);
+            if (!userId) {
+                myData.userName = userName;
+                myCard.userName = userName;
+            } else {
+                var userIndex = findSessionIndex(userId);
+                console.log('computed userIndex:', userIndex);
+                userModel.get(userIndex).userName = userName;
+                userData[userIndex].userName = userName;
+            }
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
