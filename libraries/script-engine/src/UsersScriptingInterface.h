@@ -104,7 +104,7 @@ signals:
     * Notifies scripts of the username associated with a UUID.
     * @function Users.enteredIgnoreRadius
     */
-    void usernameFromID(QUuid& nodeID, QString& username);
+    void usernameFromID(const QString& nodeID, const QString& username);
 };
 
 

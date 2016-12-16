@@ -781,42 +781,31 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // before we do any processing on this packet make sure it comes from a node that is allowed to kick
     if (sendingNode->getCanKick()) {
-        // pull the UUID being kicked from the packet
+        // From the packet, pull the UUID we're identifying
         QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-        if (!nodeUUID.isNull() && nodeUUID != sendingNode->getUUID()) {
+        if (!nodeUUID.isNull()) {
             // make sure we actually have a node with this UUID
             auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
             auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
 
             if (matchingNode) {
-                // we have a matching node, time to decide how to store updated permissions for this node
-
-                NodePermissionsPointer destinationPermissions;
-
+                // we have a matching node, time to figure out the username
                 QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
 
-                bool newPermissions = false;
-
-                QByteArray printableVerifiedUsername;
-
-                if (!verifiedUsername.isEmpty()) {
-                    printableVerifiedUsername = qPrintable(verifiedUsername);
-                } else {
-                    printableVerifiedUsername = qPrintable("");
+                if (verifiedUsername.isEmpty()) {
+                    verifiedUsername = "";
                 }
                 // setup the packet
-                auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply, NUM_BYTES_RFC4122_UUID + printableVerifiedUsername.length(), true);
+                auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply, NUM_BYTES_RFC4122_UUID + sizeof(verifiedUsername), true);
 
                 // write the node ID to the packet
                 usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
                 // write the username to the packet
-                usernameFromIDReplyPacket->write(printableVerifiedUsername);
+                usernameFromIDReplyPacket->writeString(verifiedUsername);
 
-                auto nodeList = DependencyManager::get<LimitedNodeList>();
-                nodeList->sendPacket(std::move(usernameFromIDReplyPacket), message->getSenderSockAddr());
-                qDebug() << "SENDING PACKET.";
+                limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);
             }
             else {
                 qWarning() << "Node username request received for unknown node. Refusing to process.";
