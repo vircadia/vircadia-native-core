@@ -115,11 +115,11 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonEntity == senderID) {
             if (_this.clicked) {
-                Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
-                _this.clicked = false;
+              Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
+              _this.clicked = false;
             } else {
-                Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
-                _this.clicked = true;
+              Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
+              _this.clicked = true;
             }
         }
     }
