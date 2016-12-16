@@ -12,7 +12,7 @@
 
 QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
 
-    std::lock_guard<std::mutex> guard(_tabletProxiesMutex);
+    std::lock_guard<std::mutex> guard(_mutex);
 
     // look up tabletId in the map.
     auto iter = _tabletProxies.find(tabletId);
@@ -35,7 +35,6 @@ void TabletScriptingInterface::setQmlTablet(QString tabletId, QQuickItem* qmlTab
         qWarning() << "TabletScriptingInterface::setupTablet() bad tablet object";
     }
 }
-
 
 //
 // TabletProxy
@@ -64,24 +63,27 @@ static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* 
         return;
     }
     QObject::connect(qmlButton, SIGNAL(clicked()), buttonProxy, SLOT(clickedSlot()));
+    buttonProxy->setQmlButton(qobject_cast<QQuickItem*>(qmlButton));
 }
 
 void TabletProxy::setQmlTablet(QQuickItem* qmlTablet) {
+    std::lock_guard<std::mutex> guard(_mutex);
     if (qmlTablet) {
         _qmlTablet = qmlTablet;
-        std::lock_guard<std::mutex> guard(_tabletButtonProxiesMutex);
         for (auto& buttonProxy : _tabletButtonProxies) {
             addButtonProxyToQmlTablet(_qmlTablet, buttonProxy.data());
         }
     } else {
+        for (auto& buttonProxy : _tabletButtonProxies) {
+            buttonProxy->setQmlButton(nullptr);
+        }
         _qmlTablet = nullptr;
     }
-
 }
 
 QObject* TabletProxy::addButton(const QVariant& properties) {
     auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
-    std::lock_guard<std::mutex> guard(_tabletButtonProxiesMutex);
+    std::lock_guard<std::mutex> guard(_mutex);
     _tabletButtonProxies.push_back(tabletButtonProxy);
     if (_qmlTablet) {
         addButtonProxyToQmlTablet(_qmlTablet, tabletButtonProxy.data());
@@ -90,11 +92,12 @@ QObject* TabletProxy::addButton(const QVariant& properties) {
 }
 
 void TabletProxy::removeButton(QObject* tabletButtonProxy) {
-    std::lock_guard<std::mutex> guard(_tabletButtonProxiesMutex);
+    std::lock_guard<std::mutex> guard(_mutex);
     auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
     if (iter != _tabletButtonProxies.end()) {
         if (_qmlTablet) {
-            QMetaObject::invokeMethod(_qmlTablet, "removeButton", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
+            (*iter)->setQmlButton(nullptr);
+            QMetaObject::invokeMethod(_qmlTablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
         }
         _tabletButtonProxies.erase(iter);
     } else {
@@ -106,28 +109,33 @@ void TabletProxy::removeButton(QObject* tabletButtonProxy) {
 // TabletButtonProxy
 //
 
-TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) : _properties(properties) {
-    ;
+const QString UUID_KEY = "uuid";
+
+TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) : _uuid(QUuid::createUuid()), _properties(properties) {
+    // this is used to uniquely identify this button.
+    _properties[UUID_KEY] = _uuid;
 }
 
-void TabletButtonProxy::setInitRequestHandler(const QScriptValue& handler) {
-    _initRequestHandler = handler;
+void TabletButtonProxy::setQmlButton(QQuickItem* qmlButton) {
+    std::lock_guard<std::mutex> guard(_mutex);
+    _qmlButton = qmlButton;
 }
 
-// TABLET_UI_HACK remove
-/*
-static QString IMAGE_URL_KEY = "imageUrl";
-static QString IMAGE_URL_DEFAULT = "";
-
-QString TabletButtonProxy::getImageUrl() const {
-    std::lock_guard<std::mutex> guard(_propertiesMutex);
-    return _properties.value(IMAGE_URL_KEY, IMAGE_URL_DEFAULT).toString();
+QVariantMap TabletButtonProxy::getProperties() const {
+    std::lock_guard<std::mutex> guard(_mutex);
+    return _properties;
 }
 
-void TabletButtonProxy::setImageUrl(QString imageUrl) {
-    std::lock_guard<std::mutex> guard(_propertiesMutex);
-    _properties[IMAGE_URL_KEY] = imageUrl;
+void TabletButtonProxy::editProperties(QVariantMap properties) {
+    std::lock_guard<std::mutex> guard(_mutex);
+    QVariantMap::const_iterator iter = properties.constBegin();
+    while (iter != properties.constEnd()) {
+        _properties[iter.key()] = iter.value();
+        if (_qmlButton) {
+            QMetaObject::invokeMethod(_qmlButton, "changeProperty", Qt::AutoConnection, Q_ARG(QVariant, QVariant(iter.key())), Q_ARG(QVariant, iter.value()));
+        }
+        ++iter;
+    }
 }
-*/
 
 #include "TabletScriptingInterface.moc"

@@ -10,25 +10,42 @@ Item {
     width: 480
     height: 720
 
+    // used to look up a button by its uuid
+    function findButtonIndex(uuid) {
+        if (!uuid) {
+            return -1;
+        }
+
+        for (var i in flowMain.children) {
+            var child = flowMain.children[i];
+            if (child.uuid === uuid) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     // called by C++ code when a button should be added to the tablet
     function addButtonProxy(properties) {
         var component = Qt.createComponent("TabletButton.qml");
         var button = component.createObject(flowMain);
-        if (properties.icon) {
-            button.icon = properties.icon;
-        }
-        if (properties.color) {
-            button.color = properties.color;
-        }
-        if (properties.text) {
-            button.text = properties.text;
-        }
+
+        // copy all properites to button
+        var keys = Object.keys(properties).forEach(function (key) {
+            button[key] = properties[key];
+        });
+
         return button;
     }
 
     // called by C++ code when a button should be removed from the tablet
     function removeButtonProxy(properties) {
-        console.log("TABLET_UI_HACK: removeButtonProxy, NOT IMPLEMENTED!, properties = " + JSON.stringify(properties));
+        var index = findButtonIndex(properties.uuid);
+        if (index < 0) {
+            console.log("Warning: Tablet.qml could not find button with uuid = " + properties.uuid);
+        } else {
+            flowMain.children[index].destroy();
+        }
     }
 
     Rectangle {

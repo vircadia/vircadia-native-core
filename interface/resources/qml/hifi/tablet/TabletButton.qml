@@ -6,10 +6,15 @@ Item {
     property string color: "#1080B8"
     property string text: "EDIT"
     property string icon: "icons/edit-icon.svg"
+    property var uuid;
     width: 132
     height: 132
 
     signal clicked()
+
+    function changeProperty(key, value) {
+        tabletButton[key] = value;
+    }
 
     Rectangle {
         id: buttonBg

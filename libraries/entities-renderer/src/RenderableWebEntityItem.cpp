@@ -361,6 +361,13 @@ void RenderableWebEntityItem::destroyWebSurface() {
         --_currentWebCount;
 
         QQuickItem* rootItem = _webSurface->getRootItem();
+
+        // TABLET_UI_HACK: move this to overlays as well!
+        if (rootItem && rootItem->objectName() == "tablet") {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", nullptr);
+        }
+
         if (rootItem) {
             QObject* obj = rootItem->findChild<QObject*>("webEngineView");
             if (obj) {

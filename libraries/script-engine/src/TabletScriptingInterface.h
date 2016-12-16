@@ -11,10 +11,11 @@
 
 #include <mutex>
 
-#include <QtCore/QObject>
+#include <QObject>
 #include <QVariant>
 #include <QScriptValue>
 #include <QQuickItem>
+#include <QUuid>
 
 #include <DependencyManager.h>
 
@@ -39,7 +40,7 @@ public:
     void setQmlTablet(QString tabletId, QQuickItem* qmlTablet);
 
 protected:
-    std::mutex _tabletProxiesMutex;
+    std::mutex _mutex;
     std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
 };
 
@@ -73,7 +74,7 @@ public:
     QString getName() const { return _name; }
 protected:
     QString _name;
-    std::mutex _tabletButtonProxiesMutex;
+    std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTablet { nullptr };
 };
@@ -87,13 +88,21 @@ class TabletButtonProxy : public QObject {
 public:
     TabletButtonProxy(const QVariantMap& properties);
 
-    /**jsdoc
-     * @function TabletButtonProxy#setInitRequestHandler
-     * @param handler {Function} A function used by the system to request the current button state from JavaScript.
-     */
-    Q_INVOKABLE void setInitRequestHandler(const QScriptValue& handler);
+    void setQmlButton(QQuickItem* qmlButton);
 
-    const QVariantMap& getProperties() const { return _properties; }
+    /**jsdoc
+     * Returns the current value of this button's properties
+     * @function TabletButtonProxy#getProperties
+     * @returns {object}
+     */
+    Q_INVOKABLE QVariantMap getProperties() const;
+
+    /**jsdoc
+     * Replace the values of some of this button's properties
+     * @function TabletButtonProxy#editProperties
+     * @param properties {object} set of properties to change
+     */
+    Q_INVOKABLE void editProperties(QVariantMap properties);
 
 public slots:
     void clickedSlot() { emit clicked(); }
@@ -107,9 +116,10 @@ signals:
     void clicked();
 
 protected:
-    mutable std::mutex _propertiesMutex;
+    QUuid _uuid;
+    mutable std::mutex _mutex;
+    QQuickItem* _qmlButton { nullptr };
     QVariantMap _properties;
-    QScriptValue _initRequestHandler;
 };
 
 #endif // hifi_TabletScriptingInterface_h
