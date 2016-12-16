@@ -118,10 +118,10 @@ function populateUserList() {
         var avatar = AvatarList.getAvatar(id);
         var avatarPalDatum = {
             displayName: avatar.displayName || ('anonymous ' + counter++),
-            userName: (Users.canKick && id) ? 'Obtaining username...' : '',
+            userName: '',
             sessionId: id || ''
         };
-        if (Users.canKick && id) {
+        if (Users.canKick) {
             Users.requestUsernameFromID(id);
         }
         data.push(avatarPalDatum);
@@ -134,7 +134,7 @@ function populateUserList() {
 }
 
 function usernameFromID(id, username) {
-    var data = { id: id, username: username + '\\' + id };
+    var data = [id, username + '/' + id ];
     print('Username Data:', JSON.stringify(data));
     pal.sendToQml({ method: 'updateUsername', params: data });
 }
@@ -259,6 +259,7 @@ function onVisibileChanged() {
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibileChanged);
 pal.closed.connect(off);
+Users.usernameFromID.connect(usernameFromID);
 
 //
 // Cleanup.
@@ -268,6 +269,7 @@ Script.scriptEnding.connect(function () {
     toolBar.removeButton(buttonName);
     pal.visibleChanged.disconnect(onVisibileChanged);
     pal.closed.disconnect(off);
+    Users.usernameFromID.disconnect(usernameFromID);
     off();
 });
 

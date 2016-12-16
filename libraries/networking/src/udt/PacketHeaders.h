@@ -103,8 +103,7 @@ public:
         RadiusIgnoreRequest,
         UsernameFromIDRequest,
         UsernameFromIDReply,
-        LAST_PACKET_TYPE = RadiusIgnoreRequest
-        //LAST_PACKET_TYPE = UsernameFromIDRequest
+        LAST_PACKET_TYPE = UsernameFromIDReply
     };
 };
 

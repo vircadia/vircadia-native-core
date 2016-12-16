@@ -76,7 +76,10 @@ Rectangle {
             var userId = message.params[0];
             var userName = message.params[1];
             var userIndex = findSessionIndex(userId);
-            table.get(userIndex).itemCell.nameCard.userName = userName;
+            console.log('computed userIndex:', userIndex);
+            userModel.get(userIndex).userName = userName;
+            userData[userIndex].userName = userName;
+            break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }
