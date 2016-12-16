@@ -1169,6 +1169,7 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
 
 
 void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
+    PerformanceTimer pertTimer("locationChanged");
     EntityItem::locationChanged(tellPhysics);
     if (_model && _model->isActive()) {
         _model->setRotation(getRotation());

@@ -184,6 +184,7 @@ void Avatar::animateScaleChanges(float deltaTime) {
 }
 
 void Avatar::updateAvatarEntities() {
+    PerformanceTimer perfTimer("attachments");
     // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
     // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
     // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
@@ -285,28 +286,38 @@ void Avatar::simulate(float deltaTime) {
     }
     animateScaleChanges(deltaTime);
 
-    // update the shouldAnimate flag to match whether or not we will render the avatar.
-    const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
-    const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
-    ViewFrustum viewFrustum;
-    qApp->copyViewFrustum(viewFrustum);
-    float visibility = calculateRenderAccuracy(viewFrustum.getPosition(),
-            getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
-    if (!_shouldAnimate) {
-        if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
-            _shouldAnimate = true;
-            qCDebug(interfaceapp) << "Restoring" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
+    bool avatarPositionInView = false;
+    bool avatarMeshInView = false;
+    { // update the shouldAnimate flag to match whether or not we will render the avatar.
+        PerformanceTimer perfTimer("cull");
+        ViewFrustum viewFrustum;
+        {
+            PerformanceTimer perfTimer("LOD");
+            const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
+            const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
+            qApp->copyViewFrustum(viewFrustum);
+            float visibility = calculateRenderAccuracy(viewFrustum.getPosition(),
+                    getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
+            if (!_shouldAnimate) {
+                if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
+                    _shouldAnimate = true;
+                    qCDebug(interfaceapp) << "Restoring" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
+                }
+            } else if (visibility < MAXIMUM_VISIBILITY_FOR_OFF) {
+                _shouldAnimate = false;
+                qCDebug(interfaceapp) << "Optimizing" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
+            }
         }
-    } else if (visibility < MAXIMUM_VISIBILITY_FOR_OFF) {
-        _shouldAnimate = false;
-        qCDebug(interfaceapp) << "Optimizing" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
-    }
 
-    // simple frustum check
-    float boundingRadius = getBoundingRadius();
-    qApp->copyDisplayViewFrustum(viewFrustum);
-    bool avatarPositionInView = viewFrustum.sphereIntersectsFrustum(getPosition(), boundingRadius);
-    bool avatarMeshInView = viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
+        {
+            PerformanceTimer perfTimer("inView");
+            // simple frustum check
+            float boundingRadius = getBoundingRadius();
+            qApp->copyDisplayViewFrustum(viewFrustum);
+            avatarPositionInView = viewFrustum.sphereIntersectsFrustum(getPosition(), boundingRadius);
+            avatarMeshInView = viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
+        }
+    }
 
     if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
         {
@@ -331,6 +342,7 @@ void Avatar::simulate(float deltaTime) {
     } else {
         // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
         getHead()->setPosition(getPosition());
+        PerformanceTimer perfTimer("skeleton");
         _skeletonModel->simulate(deltaTime, false);
     }
 
@@ -379,6 +391,7 @@ void Avatar::applyPositionDelta(const glm::vec3& delta) {
 }
 
 void Avatar::measureMotionDerivatives(float deltaTime) {
+    PerformanceTimer perfTimer("derivatives");
     // linear
     float invDeltaTime = 1.0f / deltaTime;
     // Floating point error prevents us from computing velocity in a naive way
@@ -645,6 +658,7 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 // virtual
 void Avatar::simulateAttachments(float deltaTime) {
+    PerformanceTimer perfTimer("attachments");
     for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         auto& model = _attachmentModels.at(i);
@@ -1039,6 +1053,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
+    PerformanceTimer perfTimer("unpack");
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1258,6 +1273,7 @@ void Avatar::setOrientation(const glm::quat& orientation) {
 }
 
 void Avatar::updatePalms() {
+    PerformanceTimer perfTimer("palms");
     // update thread-safe caches
     _leftPalmRotationCache.set(getUncachedLeftPalmRotation());
     _rightPalmRotationCache.set(getUncachedRightPalmRotation());
