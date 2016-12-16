@@ -15,11 +15,9 @@
 
 Script.include("controllerDisplay.js");
 Script.include("viveControllerConfiguration.js");
-Script.include("touchControllerConfiguration.js?" + Date.now());
+Script.include("touchControllerConfiguration.js");
 
 var HIDE_CONTROLLERS_ON_EQUIP = false;
-
-HMD.requestShowHandControllers();
 
 //
 // Management of controller display

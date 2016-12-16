@@ -12,7 +12,7 @@
 /* eslint camelcase: ["error", { "properties": "never" }] */
 
 var leftBaseRotation = Quat.multiply(
-    Quat.fromPitchYawRollDegrees(0, 0, 45),
+    Quat.fromPitchYawRollDegrees(0, 0, 0),
     Quat.multiply(
         Quat.fromPitchYawRollDegrees(-90, 0, 0),
         Quat.fromPitchYawRollDegrees(0, 0, 90)
@@ -34,13 +34,8 @@ var CONTROLLER_LATERAL_OFFSET = 0.0381;
 var CONTROLLER_VERTICAL_OFFSET = 0.0381;
 var CONTROLLER_FORWARD_OFFSET = 0.1524;
 
-var leftBasePosition = {
-    x: CONTROLLER_VERTICAL_OFFSET,
-    y: CONTROLLER_FORWARD_OFFSET,
-    z: CONTROLLER_LATERAL_OFFSET
-};
-leftBasePosition = Vec3.multiplyQbyV(rightBaseRotation, {
-    x: CONTROLLER_LENGTH_OFFSET / 2.0,
+var leftBasePosition = Vec3.multiplyQbyV(leftBaseRotation, {
+    x: -CONTROLLER_LENGTH_OFFSET / 2.0,
     y: CONTROLLER_LENGTH_OFFSET / 2.0,
     z: CONTROLLER_LENGTH_OFFSET * 1.5
 });
@@ -61,7 +56,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
             naturalPosition: { x: 0.01648625358939171, y: -0.03551870584487915, z: -0.018527675420045853 },
             dimensions: { x: 0.11053799837827682, y: 0.0995776429772377, z: 0.10139888525009155 },
             rotation: leftBaseRotation,
-            position: Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 0, 45), leftBasePosition),
+            position: leftBasePosition,
 
             parts: {
                 tips: {
