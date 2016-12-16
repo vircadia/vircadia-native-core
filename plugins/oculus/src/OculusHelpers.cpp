@@ -15,6 +15,9 @@
 #include <QtCore/QDir>
 #include <QtCore/QProcessEnvironment>
 
+#define OVRPL_DISABLED
+#include <OVR_Platform.h>
+
 #include <controllers/Input.h>
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
@@ -27,6 +30,7 @@ static ovrSession session { nullptr };
 
 static bool _quitRequested { false };
 static bool _reorientRequested { false };
+static bool _entitlementCheckFailed { false };
 
 inline ovrErrorInfo getError() {
     ovrErrorInfo error;
@@ -123,6 +127,20 @@ void handleOVREvents() {
     ovrSessionStatus status;
     if (!OVR_SUCCESS(ovr_GetSessionStatus(session, &status))) {
         return;
+    }
+
+    // pop messages to see if we got a return for an entitlement check
+    while ((message = ovr_PopMessage()) != nullptr) {
+        switch (ovr_Message_GetType(message)) {
+            case ovrMessage_Entitlement_GetIsViewerEntitled: {
+                if (!ovr_Message_IsError(message)) {
+                    // this viewer is entitled, no need to flag anything
+                } else {
+                    // we failed the entitlement check, set our flag so the app can stop
+                    _entitlementCheckFailed = true;
+                }
+            }
+        }
     }
 
     _quitRequested = status.ShouldQuit;
