@@ -30,7 +30,6 @@ static ovrSession session { nullptr };
 
 static bool _quitRequested { false };
 static bool _reorientRequested { false };
-static bool _entitlementCheckFailed { false };
 
 inline ovrErrorInfo getError() {
     ovrErrorInfo error;
@@ -92,6 +91,18 @@ ovrSession acquireOculusSession() {
             logWarning("Failed to initialize Oculus SDK");
             return session;
         }
+           
+#ifdef OCULUS_APP_ID
+        if (true) {
+            if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
+                 // we were unable to initialize the platform for entitlement check - fail the check
+                _quitRequested = true;
+            } else {
+                qCDebug(oculus) << "Performing Oculus Platform entitlement check";
+                ovr_Entitlement_GetIsViewerEntitled();
+            }
+        }
+#endif
 
         Q_ASSERT(0 == refCount);
         ovrGraphicsLuid luid;
@@ -129,22 +140,34 @@ void handleOVREvents() {
         return;
     }
 
+    _quitRequested = status.ShouldQuit;
+    _reorientRequested = status.ShouldRecenter;
+
+ #ifdef OCULUS_APP_ID
     // pop messages to see if we got a return for an entitlement check
-    while ((message = ovr_PopMessage()) != nullptr) {
+    ovrMessageHandle message = ovr_PopMessage();
+
+    while (message) {
         switch (ovr_Message_GetType(message)) {
             case ovrMessage_Entitlement_GetIsViewerEntitled: {
                 if (!ovr_Message_IsError(message)) {
                     // this viewer is entitled, no need to flag anything
+                    qCDebug(oculus) << "Oculus Platform entitlement check succeeded, proceeding normally";
                 } else {
                     // we failed the entitlement check, set our flag so the app can stop
-                    _entitlementCheckFailed = true;
+                    qCDebug(oculus) << "Oculus Platform entitlement check failed, app will now quit" << OCULUS_APP_ID;
+                    _quitRequested = true;
                 }
             }
         }
-    }
 
-    _quitRequested = status.ShouldQuit;
-    _reorientRequested = status.ShouldRecenter;
+        // free the message handle to cleanup and not leak
+        ovr_FreeMessage(message);
+
+        // pop the next message to check, if there is one
+        message = ovr_PopMessage();
+    }
+#endif
 }
 
 bool quitRequested() {

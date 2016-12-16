@@ -11,6 +11,11 @@ if (WIN32)
   # we're using static GLEW, so define GLEW_STATIC
   add_definitions(-DGLEW_STATIC)
 
+  # if we were passed an Oculus App ID for entitlement checks, send that along
+  if (DEFINED ENV{OCULUS_APP_ID})
+    add_definitions(-DOCULUS_APP_ID="\\"$ENV{OCULUS_APP_ID}\\"")
+  endif ()
+
   set(TARGET_NAME oculus)
   setup_hifi_plugin(Multimedia)
   link_hifi_libraries(
@@ -18,7 +23,6 @@ if (WIN32)
     plugins ui-plugins display-plugins input-plugins
     audio-client networking render-utils
   )
-
   include_hifi_library_headers(octree)
 
   add_dependency_external_projects(LibOVR)
