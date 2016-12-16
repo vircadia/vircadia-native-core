@@ -929,11 +929,8 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
     buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
 
     // copy internal poses to external poses
-    {
-        PerformanceTimer perfTimer("copy");
-        QWriteLocker writeLock(&_externalPoseSetLock);
-        _externalPoseSet = _internalPoseSet;
-    }
+    QWriteLocker writeLock(&_externalPoseSetLock);
+    _externalPoseSet = _internalPoseSet;
 }
 
 void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,

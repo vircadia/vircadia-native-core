@@ -645,8 +645,6 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::fixupModelsInScene() {
-#define ADEBUG
-#ifdef ADEBUG
     _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
@@ -670,7 +668,6 @@ void Avatar::fixupModelsInScene() {
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
     _attachmentsToRemove.clear();
     scene->enqueuePendingChanges(pendingChanges);
-#endif // ADEBUG
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
