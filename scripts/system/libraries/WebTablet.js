@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+Script.include(Script.resolvePath("../libraries/utils.js"));
 var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
@@ -15,7 +17,6 @@ var DEFAULT_DPI = 32;
 var DEFAULT_WIDTH = 0.5;
 
 var TABLET_URL = "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx";
-
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -97,23 +98,26 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.createWebEntity(url);
 
+
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
         type: "Sphere",
         localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: 0},
         dimensions: {x: 0.05, y: 0.05, z: 0.05},
         parentID: this.tabletEntityID,
-        script: "https://people.ucsc.edu/~druiz4/scripts/homeButton.js"
+        script: Script.resolvePath("../tablet-ui/HomeButton.js")
         }, clientOnly);
+
+    setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonEntity == senderID) {
             if (_this.clicked) {
-              Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
-              _this.clicked = false;
+               Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
+               _this.clicked = false;
             } else {
-              Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
-              _this.clicked = true;
+               Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
+               _this.clicked = true;
             }
         }
     }
