@@ -1271,56 +1271,36 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     PerformanceTimer perfTimer("copyJoints");
-    if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._overrideFlags.size()) {
-
-        // transform all the default poses into rig space.
-        std::vector<bool> overrideFlags(_internalPoseSet._overridePoses.size(), false);
-
-        // start with the default rotations in absolute rig frame
+    if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._relativePoses.size()) {
+        // make a vector of rotations in absolute-geometry-frame
+        const AnimPoseVec& absoluteDefaultPoses = _animSkeleton->getAbsoluteDefaultPoses();
         std::vector<glm::quat> rotations;
         rotations.reserve(_animSkeleton->getAbsoluteDefaultPoses().size());
-        for (auto& pose : _animSkeleton->getAbsoluteDefaultPoses()) {
-            rotations.push_back(pose.rot);
-        }
-
-        // start translations in relative frame but scaled to meters.
-        std::vector<glm::vec3> translations;
-        translations.reserve(_animSkeleton->getRelativeDefaultPoses().size());
-        for (auto& pose : _animSkeleton->getRelativeDefaultPoses()) {
-            translations.push_back(_geometryOffset.scale * pose.trans);
-        }
-
-        ASSERT(overrideFlags.size() == rotations.size());
-
-        // copy over rotations from the jointDataVec, which is also in absolute rig frame
         const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
         for (int i = 0; i < jointDataVec.size(); i++) {
-            if (isIndexValid(i)) {
-                const JointData& data = jointDataVec.at(i);
-                if (data.rotationSet) {
-                    overrideFlags[i] = true;
-                    // JointData rotations are in rig frame
-                    rotations[i] = rigToGeometryRot * data.rotation;
-                }
-                if (data.translationSet) {
-                    overrideFlags[i] = true;
-                    translations[i] = data.translation;
-                }
+            const JointData& data = jointDataVec.at(i);
+            if (data.rotationSet) {
+                // JointData rotations are in absolute rig-frame so we rotate them to absolute geometry-frame
+                rotations.push_back(rigToGeometryRot * data.rotation);
+            } else {
+                rotations.push_back(absoluteDefaultPoses[i].rot);
             }
         }
 
-        ASSERT(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
-
-        // convert all rotations from absolute to parent relative.
+        // convert rotations from absolute to parent relative.
         _animSkeleton->convertAbsoluteRotationsToRelative(rotations);
 
-        // copy the geometry space parent relative poses into _overridePoses
+        // store new relative poses
+        const AnimPoseVec& relativeDefaultPoses = _animSkeleton->getRelativeDefaultPoses();
         for (int i = 0; i < jointDataVec.size(); i++) {
-            if (overrideFlags[i]) {
-                _internalPoseSet._relativePoses[i].scale = Vectors::ONE;
-                _internalPoseSet._relativePoses[i].rot = rotations[i];
-                // scale translations from meters back into geometry units.
-                _internalPoseSet._relativePoses[i].trans = _invGeometryOffset.scale * translations[i];
+            const JointData& data = jointDataVec.at(i);
+            _internalPoseSet._relativePoses[i].scale = Vectors::ONE;
+            _internalPoseSet._relativePoses[i].rot = rotations[i];
+            if (data.translationSet) {
+                // JointData translations are in scaled relative-frame so we scale back to regular relative-frame
+                _internalPoseSet._relativePoses[i].trans = _invGeometryOffset.scale * data.translation;
+            } else {
+                _internalPoseSet._relativePoses[i].trans = relativeDefaultPoses[i].trans;
             }
         }
     }
