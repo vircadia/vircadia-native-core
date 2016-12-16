@@ -9,7 +9,7 @@
 #
 #  LIBOVRPLATFORM_FOUND - system found Oculus Platform SDK
 #  LIBOVRPLATFORM_INCLUDE_DIRS - the Oculus Platform include directory
-#  LIBOVRPLATFORM_LIBRARY - Link this to use Oculus Platform
+#  LIBOVRPLATFORM_LIBRARIES - Link this to use Oculus Platform
 #
 #  Created on December 16, 2016 by Stephen Birarda
 #  Copyright 2016 High Fidelity, Inc.
@@ -34,8 +34,11 @@ if (WIN32)
 
   find_library(LIBOVRPLATFORM_LIBRARY_RELEASE NAMES ${_LIB_NAME} PATH_SUFFIXES Windows HINTS ${LIBOVRPLATFORM_SEARCH_DIRS})
 
-  include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(LIBOVRPLATFORM DEFAULT_MSG LIBOVRPLATFORM_INCLUDE_DIRS LIBOVRPLATFORM_LIBRARY)
+  include(SelectLibraryConfigurations)
+  select_library_configurations(LIBOVRPLATFORM)
 
-  mark_as_advanced(LIBOVRPLATFORM_INCLUDE_DIRS LIBOVRPLATFORM_LIBRARY LIBOVRPLATFORM_SEARCH_DIRS)
+  include(FindPackageHandleStandardArgs)
+  find_package_handle_standard_args(LIBOVRPLATFORM DEFAULT_MSG LIBOVRPLATFORM_INCLUDE_DIRS LIBOVRPLATFORM_LIBRARIES)
+
+  mark_as_advanced(LIBOVRPLATFORM_INCLUDE_DIRS LIBOVRPLATFORM_LIBRARIES LIBOVRPLATFORM_SEARCH_DIRS)
 endif ()
