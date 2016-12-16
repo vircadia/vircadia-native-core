@@ -575,6 +575,7 @@ stepNearGrab.prototype = {
         setControllerPartLayer('tips', 'blank');
         setControllerPartLayer('trigger', 'normal');
         hideEntitiesWithTag(this.tag, { visible: false});
+        hideEntitiesWithTag('bothGrab', { visible: false});
         deleteEntitiesWithTag(this.tempTag);
         if (this.positionWatcher) {
             this.positionWatcher.destroy();
@@ -654,7 +655,6 @@ stepFarGrab.prototype = {
         setControllerPartLayer('tips', 'blank');
         setControllerPartLayer('trigger', 'normal');
         hideEntitiesWithTag(this.tag, { visible: false});
-        hideEntitiesWithTag('bothGrab', { visible: false});
         deleteEntitiesWithTag(this.tempTag);
         if (this.positionWatcher) {
             this.positionWatcher.destroy();
@@ -1068,8 +1068,8 @@ TutorialManager = function() {
         STEPS = [
             new stepStart(this),
             new stepOrient(this),
-            new stepNearGrab(this),
             new stepFarGrab(this),
+            new stepNearGrab(this),
             new stepEquip(this),
             new stepTurnAround(this),
             new stepTeleport(this),
