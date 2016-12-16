@@ -98,28 +98,26 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.createWebEntity(url);
 
+
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
         type: "Sphere",
         localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: 0},
         dimensions: {x: 0.05, y: 0.05, z: 0.05},
         parentID: this.tabletEntityID,
-        script: "https://people.ucsc.edu/~druiz4/scripts/homeButton.js"
+        script: Script.resolvePath("../tablet-ui/HomeButton.js")
         }, clientOnly);
 
-
-	setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
-
-	
+    setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonEntity == senderID) {
             if (_this.clicked) {
-              Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
-              _this.clicked = false;
+               Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
+               _this.clicked = false;
             } else {
-              Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
-              _this.clicked = true;
+               Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
+               _this.clicked = true;
             }
         }
     }
