@@ -17,6 +17,7 @@ find_package(TBB REQUIRED)
 
 if (APPLE)
     find_library(FRAMEWORK_IOKIT IOKit)
+    find_library(CORE_FOUNDATION CoreFoundation)
 endif ()
 
 if (APPLE AND ${OPENSSL_INCLUDE_DIR} STREQUAL "/usr/include")
@@ -32,7 +33,7 @@ target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES} ${TBB_LIBRARIES})
 
 # IOKit is needed for getting machine fingerprint
 if (APPLE)
-    target_link_libraries(${TARGET_NAME} ${FRAMEWORK_IOKIT})
+    target_link_libraries(${TARGET_NAME} ${FRAMEWORK_IOKIT} ${CORE_FOUNDATION})
 endif (APPLE)
 
 # libcrypto uses dlopen in libdl
