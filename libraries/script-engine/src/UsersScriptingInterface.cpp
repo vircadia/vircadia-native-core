@@ -18,6 +18,7 @@ UsersScriptingInterface::UsersScriptingInterface() {
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &LimitedNodeList::canKickChanged, this, &UsersScriptingInterface::canKickChanged);
     connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &UsersScriptingInterface::ignoreRadiusEnabledChanged);
+    connect(nodeList.data(), &NodeList::usernameFromID, this, &UsersScriptingInterface::usernameFromID);
 }
 
 void UsersScriptingInterface::ignore(const QUuid& nodeID) {
@@ -33,6 +34,11 @@ void UsersScriptingInterface::kick(const QUuid& nodeID) {
 void UsersScriptingInterface::mute(const QUuid& nodeID) {
     // ask the NodeList to mute the user with the given session ID
     DependencyManager::get<NodeList>()->muteNodeBySessionID(nodeID);
+}
+
+void UsersScriptingInterface::requestUsernameFromID(const QUuid& nodeID) {
+    // ask the Domain Server via the NodeList for the username associated with the given session ID
+    DependencyManager::get<NodeList>()->requestUsernameFromSessionID(nodeID);
 }
 
 bool UsersScriptingInterface::getCanKick() {

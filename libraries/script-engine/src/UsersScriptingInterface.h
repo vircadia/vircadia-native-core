@@ -52,6 +52,13 @@ public slots:
     void mute(const QUuid& nodeID);
 
     /**jsdoc
+    * Returns a string containing the username associated with the given Avatar UUID
+    * @function Users.getUsernameFromID
+    * @param {nodeID} nodeID The node or session ID of the user whose username you want.
+    */
+    void requestUsernameFromID(const QUuid& nodeID);
+
+    /**jsdoc
     * Returns `true` if the DomainServer will allow this Node/Avatar to make kick
     * @function Users.getCanKick
     * @return {bool} `true` if the client can kick other users, `false` if not.
@@ -92,6 +99,12 @@ signals:
     * @function Users.enteredIgnoreRadius
     */
     void enteredIgnoreRadius();
+
+    /**jsdoc
+    * Notifies scripts of the username associated with a UUID.
+    * @function Users.enteredIgnoreRadius
+    */
+    void usernameFromID(QUuid& nodeID, QString& username);
 };
 
 

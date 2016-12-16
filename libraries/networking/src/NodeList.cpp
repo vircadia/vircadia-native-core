@@ -127,6 +127,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
     packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
+    packetReceiver.registerListener(PacketType::UsernameFromIDRequest, this, "processUsernameFromIDRequestPacket");
 }
 
 qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
@@ -888,4 +889,40 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
         qWarning() << "NodeList::muteNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
 
     }
+}
+
+void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
+    // send a request to domain-server to get the username associated with the given session ID
+
+    if (!nodeID.isNull()) {
+        if (getThisNodeCanKick()) {
+            // setup the packet
+            auto usernameFromIDRequestPacket = NLPacket::create(PacketType::UsernameFromIDRequest, NUM_BYTES_RFC4122_UUID, true);
+
+            // write the node ID to the packet
+            usernameFromIDRequestPacket->write(nodeID.toRfc4122());
+
+            qDebug() << "Sending packet to get username of node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            sendPacket(std::move(usernameFromIDRequestPacket), _domainHandler.getSockAddr());
+        }
+        else {
+            qWarning() << "You do not have permissions to kick in this domain."
+                << "Request to get the username of node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+        }
+    }
+    else {
+        qWarning() << "NodeList::requestUsernameFromSessionID called with an invalid ID.";
+
+    }
+}
+
+void NodeList::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message) {
+    // read the UUID from the packet
+    // read the UUID from the packet, remove it if it exists
+    QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    // read the username from the packet
+    QString username = message->readString();
+
+    emit usernameFromID(nodeUUID, username);
 }

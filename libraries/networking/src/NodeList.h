@@ -81,6 +81,8 @@ public:
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
+    void requestUsernameFromSessionID(const QUuid& nodeID);
+    void processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message);
 
 public slots:
     void reset();
@@ -108,6 +110,7 @@ signals:
     void receivedDomainServerList();
     void ignoredNode(const QUuid& nodeID);
     void ignoreRadiusEnabledChanged(bool isIgnored);
+    void usernameFromID(QUuid& nodeID, QString& username);
 
 private slots:
     void stopKeepalivePingTimer();

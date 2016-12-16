@@ -118,9 +118,12 @@ function populateUserList() {
         var avatar = AvatarList.getAvatar(id);
         var avatarPalDatum = {
             displayName: avatar.displayName || ('anonymous ' + counter++),
-            userName: "fakeAcct" + (id || "Me"),
+            userName: Users.canKick ? 'Obtaining username...' : '',
             sessionId: id || ''
         };
+        if (Users.canKick) {
+            Users.getUsernameFromID(id);
+        }
         data.push(avatarPalDatum);
         if (id) { // No overlay for ourself.
             addAvatarNode(id);
@@ -129,6 +132,13 @@ function populateUserList() {
     });
     pal.sendToQml({method: 'users', params: data});
 }
+
+function usernameFromID(id, username) {
+    var data = { id: id, username: username };
+    print('Username Data:', JSON.stringify(data));
+    pal.sendToQml({ method: 'updateUsername', params: data });
+}
+
 var pingPong = true;
 function updateOverlays() {
     var eye = Camera.position;

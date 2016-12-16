@@ -72,6 +72,11 @@ Rectangle {
                 table.selection.deselect(userIndex);
             }
             break;
+        case 'updateUsername':
+            var userId = message.params[0];
+            var userName = message.params[1];
+            var userIndex = findSessionIndex(userId);
+            table.get(userIndex).itemCell.nameCard.userName = userName;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }
