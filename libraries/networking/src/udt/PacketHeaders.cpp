@@ -26,8 +26,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
     << PacketType::OctreeDataNack << PacketType::EntityEditNack
     << PacketType::DomainListRequest << PacketType::StopNode
-    << PacketType::DomainDisconnectRequest << PacketType::NodeKickRequest
-    << PacketType::NodeMuteRequest;
+    << PacketType::DomainDisconnectRequest << PacketType::UsernameFromIDRequest
+    << PacketType::NodeKickRequest << PacketType::NodeMuteRequest;
 
 const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment

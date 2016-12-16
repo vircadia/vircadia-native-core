@@ -101,7 +101,8 @@ public:
         NodeKickRequest,
         NodeMuteRequest,
         RadiusIgnoreRequest,
-        LAST_PACKET_TYPE = RadiusIgnoreRequest
+        UsernameFromIDRequest,
+        LAST_PACKET_TYPE = UsernameFromIDRequest
     };
 };
 
