@@ -96,8 +96,7 @@ ovrSession acquireOculusSession() {
         if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
             // we were unable to initialize the platform for entitlement check - fail the check
             _quitRequested = true;
-        }
-        else {
+        } else {
             qCDebug(oculus) << "Performing Oculus Platform entitlement check";
             ovr_Entitlement_GetIsViewerEntitled();
         }
