@@ -3217,7 +3217,6 @@ bool Application::shouldPaint(float nsecsElapsed) {
 }
 
 void Application::idle(float nsecsElapsed) {
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
     PerformanceTimer perfTimer("idle");
 
     // Update the deadlock watchdog
@@ -4538,11 +4537,6 @@ QRect Application::getDesirableApplicationGeometry() const {
 //                 or the "myCamera".
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
-<<<<<<< HEAD
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
-    PerformanceTimer perfTimer("loadViewFrustum");
-=======
->>>>>>> tracing polish
     // We will use these below, from either the camera or head vectors calculated above
     viewFrustum.setProjection(camera.getProjection());
 

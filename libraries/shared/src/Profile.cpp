@@ -20,10 +20,6 @@ Q_LOGGING_CATEGORY(trace_simulation, "trace.simulation")
 Q_LOGGING_CATEGORY(trace_simulation_animation, "trace.simulation.animation")
 Q_LOGGING_CATEGORY(trace_simulation_physics, "trace.simulation.physics")
 
-void foo() {
-    randFloat();
-}
-
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 #define NSIGHT_TRACING
