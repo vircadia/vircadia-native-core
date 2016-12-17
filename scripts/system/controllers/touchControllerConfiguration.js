@@ -12,23 +12,15 @@
 /* eslint camelcase: ["error", { "properties": "never" }] */
 
 var leftBaseRotation = Quat.multiply(
-    Quat.fromPitchYawRollDegrees(0, 0, 0),
-    Quat.multiply(
-        Quat.fromPitchYawRollDegrees(-90, 0, 0),
-        Quat.fromPitchYawRollDegrees(0, 0, 90)
-    )
+    Quat.fromPitchYawRollDegrees(-90, 0, 0),
+    Quat.fromPitchYawRollDegrees(0, 0, 90)
 );
-//var leftBaseRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-
 var rightBaseRotation = Quat.multiply(
-    Quat.fromPitchYawRollDegrees(0, 0, 0),
-    Quat.multiply(
-        Quat.fromPitchYawRollDegrees(-90, 0, 0),
-        Quat.fromPitchYawRollDegrees(0, 0, -90)
-    )
+    Quat.fromPitchYawRollDegrees(-90, 0, 0),
+    Quat.fromPitchYawRollDegrees(0, 0, -90)
 );
 
-// keep these in sync with the values from SteamVRHelpers.cpp
+// keep these in sync with the values from OculusHelpers.cpp
 var CONTROLLER_LENGTH_OFFSET = 0.0762;
 var CONTROLLER_LATERAL_OFFSET = 0.0381;
 var CONTROLLER_VERTICAL_OFFSET = 0.0381;
