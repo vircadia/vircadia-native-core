@@ -3,6 +3,7 @@ import QtGraphicalEffects 1.0
 
 Item {
     id: tabletButton
+    property var uuid;
     property string text: "EDIT"
     property string icon: "icons/edit-icon.svg"
     property bool isActive: false
@@ -47,18 +48,6 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: 0
     }
-
-//    DropShadow {
-//            id: dropshadow
-//            anchors.fill: parent
-//            horizontalOffset: 0
-//            verticalOffset: 3
-//            color: "#aa000000"
-//            radius: 20
-//            z: -1
-//            samples: 41
-//            source: buttonBg
-//    }
 
     DropShadow {
             id: glow

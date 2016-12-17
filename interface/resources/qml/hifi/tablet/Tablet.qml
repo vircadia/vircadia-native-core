@@ -80,50 +80,6 @@ Item {
             anchors.right: parent.right
             spacing: 5
 
-//            Rectangle {
-//                id: muteButton
-//                width: 128
-//                height: 40
-//                color: "#464646"
-//                anchors.verticalCenter: parent.verticalCenter
-//                Text {
-//                    id: muteText
-//                    color: "#ffffff"
-//                    text: "MUTE"
-//                    z: 1
-//                    verticalAlignment: Text.AlignVCenter
-//                    anchors.horizontalCenter: parent.horizontalCenter
-//                    font.pixelSize: 16
-//                    anchors.verticalCenter: parent.verticalCenter
-//                    horizontalAlignment: Text.AlignHCenter
-//                    font.bold: true
-//                }
-//                MouseArea {
-//                    anchors.fill: parent
-//                    hoverEnabled: true
-//                    onEntered: {
-//                        console.log("Mute Botton Hovered!");
-//                        parent.color = "#2d2d2d";
-//                        parent.border.width = 2;
-//                        parent.border.color = "#ffffff";
-//                    }
-//                    onExited: {
-//                        console.log("Mute Botton Unhovered!");
-//                        parent.color = "#464646";
-//                        parent.border.width = 0;
-//                    }
-
-//                    onClicked: {
-//                        console.log("Mute Button Clicked! current tablet state: " + tablet.state );
-//                        if (tablet.state === "muted state") {
-//                            tablet.state = "base state";
-//                        } else {
-//                            tablet.state = "muted state";
-//                        }
-//                    }
-//                }
-//            }
-
             Image {
                 id: muteIcon
                 width: 40
