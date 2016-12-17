@@ -850,6 +850,12 @@ void Model::setTextures(const QVariantMap& textures) {
         _needsUpdateTextures = true;
         _needsFixupInScene = true;
         _renderGeometry->setTextures(textures);
+    } else {
+        // FIXME(Huffman): Disconnect previously connected lambdas so we don't set textures multiple
+        // after the geometry has finished loading.
+        connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, [this, textures]() {
+            _renderGeometry->setTextures(textures);
+        });
     }
 }
 

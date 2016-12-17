@@ -49,12 +49,17 @@ glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) 
     return qApp->getApplicationCompositor().overlayToSpherical(position);
 }
 
-bool HMDScriptingInterface::isHMDAvailable() {
-    return PluginUtils::isHMDAvailable();
+bool HMDScriptingInterface::isHMDAvailable(const QString& name) {
+    return PluginUtils::isHMDAvailable(name);
 }
 
-bool HMDScriptingInterface::isHandControllerAvailable() {
-    return PluginUtils::isHandControllerAvailable();
+bool HMDScriptingInterface::isHandControllerAvailable(const QString& name) {
+    return PluginUtils::isHandControllerAvailable(name);
+}
+
+
+bool HMDScriptingInterface::isSubdeviceContainingNameAvailable(const QString& name) {
+    return PluginUtils::isSubdeviceContainingNameAvailable(name);
 }
 
 void HMDScriptingInterface::requestShowHandControllers() {
