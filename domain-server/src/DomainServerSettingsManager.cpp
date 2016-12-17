@@ -800,9 +800,11 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
                     verifiedUsername = "";
                 }
                 // Setup the packet
-                auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply, NUM_BYTES_RFC4122_UUID + sizeof(verifiedUsername), true);
+                auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply);
                 usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
                 usernameFromIDReplyPacket->writeString(verifiedUsername);
+
+                qDebug() << "Sending username" << verifiedUsername << "associated with node" << nodeUUID;
 
                 // Ship it!
                 limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);
