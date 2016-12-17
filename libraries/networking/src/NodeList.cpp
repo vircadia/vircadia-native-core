@@ -907,8 +907,7 @@ void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
         qDebug() << "Sending packet to get username of node" << uuidStringWithoutCurlyBraces(nodeID);
 
         sendPacket(std::move(usernameFromIDRequestPacket), _domainHandler.getSockAddr());
-    }
-    else {
+    } else {
         qWarning() << "You do not have permissions to kick in this domain."
             << "Request to get the username of node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
     }

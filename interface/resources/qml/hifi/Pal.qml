@@ -76,18 +76,18 @@ Rectangle {
         case 'updateUsername':
             // The User ID (UUID) is the first parameter in the message.
             var userId = message.params[0];
-            // The Username String (name + UUID) is the second parameter in the message.
+            // The text that goes in the userName field is the second parameter in the message.
             var userName = message.params[1];
             // If the userId is empty, we're updating "myData".
             if (!userId) {
                 myData.userName = userName;
-                myCard.userName = userName;
+                myCard.userName = userName; // Defensive programming
             } else {
                 // Get the index in userModel and userData associated with the passed UUID
                 var userIndex = findSessionIndex(userId);
                 // Set the userName appropriately
                 userModel.get(userIndex).userName = userName;
-                userData[userIndex].userName = userName;
+                userData[userIndex].userName = userName; // Defensive programming
             }
             break;
         default:
