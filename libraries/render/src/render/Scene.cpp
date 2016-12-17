@@ -78,13 +78,16 @@ void consolidateChangeQueue(PendingChangesQueue& queue, PendingChanges& singleBa
 }
  
 void Scene::processPendingChangesQueue() {
-    PROFILE_RANGE(renderlogging, __FUNCTION__);
-    _changeQueueMutex.lock();
+    PROFILE_RANGE(render, __FUNCTION__);
     PendingChanges consolidatedPendingChanges;
-    consolidateChangeQueue(_changeQueue, consolidatedPendingChanges);
-    _changeQueueMutex.unlock();
+
+    {
+        std::unique_lock<std::mutex> lock(_changeQueueMutex);
+        consolidateChangeQueue(_changeQueue, consolidatedPendingChanges);
+    }
     
-    _itemsMutex.lock();
+    {
+        std::unique_lock<std::mutex> lock(_itemsMutex);
         // Here we should be able to check the value of last ItemID allocated 
         // and allocate new items accordingly
         ItemID maxID = _IDAllocator.load();
@@ -108,9 +111,7 @@ void Scene::processPendingChangesQueue() {
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
-
-     // ready to go back to rendering activities
-    _itemsMutex.unlock();
+    }
 }
 
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {

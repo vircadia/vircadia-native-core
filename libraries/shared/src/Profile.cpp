@@ -8,6 +8,17 @@
 
 #include "Profile.h"
 
+Q_LOGGING_CATEGORY(trace_app, "trace.app")
+Q_LOGGING_CATEGORY(trace_network, "trace.network")
+Q_LOGGING_CATEGORY(trace_parse, "trace.parse")
+Q_LOGGING_CATEGORY(trace_render, "trace.render")
+Q_LOGGING_CATEGORY(trace_render_gpu, "trace.render.gpu")
+Q_LOGGING_CATEGORY(trace_resource, "trace.resource")
+Q_LOGGING_CATEGORY(trace_resource_network, "trace.resource.network")
+Q_LOGGING_CATEGORY(trace_resource_parse, "trace.resource.parse")
+Q_LOGGING_CATEGORY(trace_simulation, "trace.simulation")
+Q_LOGGING_CATEGORY(trace_simulation_animation, "trace.simulation.animation")
+Q_LOGGING_CATEGORY(trace_simulation_physics, "trace.simulation.physics")
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"

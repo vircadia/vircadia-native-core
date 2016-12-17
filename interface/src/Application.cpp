@@ -179,6 +179,8 @@ extern "C" {
 }
 #endif
 
+Q_LOGGING_CATEGORY(trace_app_input_mouse, "trace.app.input.mouse")
+
 using namespace std;
 
 static QTimer locationUpdateTimer;
@@ -1960,16 +1962,6 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
-    PROFILE_COUNTER(interfaceapp, "fps", { { "fps", _frameCounter.rate() } });
-    PROFILE_COUNTER(interfaceapp, "downloads", {
-        { "current", ResourceCache::getLoadingRequests().length() },
-        { "pending", ResourceCache::getPendingRequestCount() }
-    });
-    PROFILE_COUNTER(interfaceapp, "processing", {
-        { "current", DependencyManager::get<StatTracker>()->getStat("Processing") },
-        { "pending", DependencyManager::get<StatTracker>()->getStat("PendingProcessing") }
-    });
-
     // Some plugins process message events, allowing paintGL to be called reentrantly.
     if (_inPaint || _aboutToQuit) {
         return;
@@ -1981,7 +1973,7 @@ void Application::paintGL() {
     _frameCount++;
 
     auto lastPaintBegin = usecTimestampNow();
-    PROFILE_RANGE_EX(interfaceapp, __FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
 
     if (nullptr == _displayPlugin) {
@@ -2158,7 +2150,7 @@ void Application::paintGL() {
     auto finalFramebuffer = framebufferCache->getFramebuffer();
 
     {
-        PROFILE_RANGE(interfaceapp, "/mainRender");
+        PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
         renderArgs._boomOffset = boomOffset;
         // Viewport is assigned to the size of the framebuffer
@@ -2213,7 +2205,7 @@ void Application::paintGL() {
     frame->overlay = _applicationOverlay.getOverlayTexture();
     // deliver final scene rendering commands to the display plugin
     {
-        PROFILE_RANGE(interfaceapp, "/pluginOutput");
+        PROFILE_RANGE(render, "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
         _frameCounter.increment();
         displayPlugin->submitFrame(frame);
@@ -2301,7 +2293,7 @@ void Application::resizeEvent(QResizeEvent* event) {
 }
 
 void Application::resizeGL() {
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
+    PROFILE_RANGE(render, __FUNCTION__);
     if (nullptr == _displayPlugin) {
         return;
     }
@@ -2946,7 +2938,7 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) const {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
+    PROFILE_RANGE(app_input_mouse, __FUNCTION__);
 
     if (_aboutToQuit) {
         return;
@@ -3240,7 +3232,6 @@ bool Application::shouldPaint(float nsecsElapsed) {
 }
 
 void Application::idle(float nsecsElapsed) {
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
     PerformanceTimer perfTimer("idle");
 
     // Update the deadlock watchdog
@@ -3255,6 +3246,18 @@ void Application::idle(float nsecsElapsed) {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
+
+    PROFILE_COUNTER(app, "fps", { { "fps", _frameCounter.rate() } });
+    PROFILE_COUNTER(app, "downloads", {
+        { "current", ResourceCache::getLoadingRequests().length() },
+        { "pending", ResourceCache::getPendingRequestCount() }
+    });
+    PROFILE_COUNTER(app, "processing", {
+        { "current", DependencyManager::get<StatTracker>()->getStat("Processing") },
+        { "pending", DependencyManager::get<StatTracker>()->getStat("PendingProcessing") }
+    });
+
+    PROFILE_RANGE(app, __FUNCTION__);
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->runCallbacks();
@@ -3973,7 +3976,7 @@ static bool domainLoadingInProgress = false;
 
 void Application::update(float deltaTime) {
 
-    PROFILE_RANGE_EX(interfaceapp, __FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
+    PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
@@ -3982,7 +3985,7 @@ void Application::update(float deltaTime) {
 
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
-            PROFILE_ASYNC_BEGIN(interfaceapp, "Scene Loading", "");
+            PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
             domainLoadingInProgress = true;
         }
 
@@ -4017,7 +4020,7 @@ void Application::update(float deltaTime) {
         }
     } else if (domainLoadingInProgress) {
         domainLoadingInProgress = false;
-        PROFILE_ASYNC_END(interfaceapp, "Scene Loading", "");
+        PROFILE_ASYNC_END(app, "Scene Loading", "");
     }
 
     {
@@ -4111,12 +4114,12 @@ void Application::update(float deltaTime) {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     if (_physicsEnabled) {
-        PROFILE_RANGE_EX(interfaceapp, "Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        PROFILE_RANGE_EX(simulation_physics, "Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
 
         PerformanceTimer perfTimer("physics");
 
         {
-            PROFILE_RANGE_EX(interfaceapp, "UpdateStats", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation_physics, "UpdateStats", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
 
             PerformanceTimer perfTimer("updateStates)");
             static VectorOfMotionStates motionStates;
@@ -4150,14 +4153,14 @@ void Application::update(float deltaTime) {
             });
         }
         {
-            PROFILE_RANGE_EX(interfaceapp, "StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation_physics, "StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("stepSimulation");
             getEntities()->getTree()->withWriteLock([&] {
                 _physicsEngine->stepSimulation();
             });
         }
         {
-            PROFILE_RANGE_EX(interfaceapp, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation_physics, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("harvestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
@@ -4199,20 +4202,20 @@ void Application::update(float deltaTime) {
         _avatarSimCounter.increment();
 
         {
-            PROFILE_RANGE_EX(interfaceapp, "OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation, "OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
 
         qApp->updateMyAvatarLookAtPosition();
 
         {
-            PROFILE_RANGE_EX(interfaceapp, "MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation, "MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateMyAvatar(deltaTime);
         }
     }
 
     {
-        PROFILE_RANGE_EX(interfaceapp, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
@@ -4232,7 +4235,7 @@ void Application::update(float deltaTime) {
 
     // Update my voxel servers with my current voxel query...
     {
-        PROFILE_RANGE_EX(interfaceapp, "QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        PROFILE_RANGE_EX(app, "QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         QMutexLocker viewLocker(&_viewMutex);
         PerformanceTimer perfTimer("queryOctree");
         quint64 sinceLastQuery = now - _lastQueriedTime;
@@ -4272,7 +4275,7 @@ void Application::update(float deltaTime) {
     avatarManager->postUpdate(deltaTime);
 
     {
-        PROFILE_RANGE_EX(interfaceapp, "PreRenderLambdas", 0xffff0000, (uint64_t)0);
+        PROFILE_RANGE_EX(app, "PreRenderLambdas", 0xffff0000, (uint64_t)0);
 
         std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
         for (auto& iter : _postUpdateLambdas) {
@@ -4549,8 +4552,6 @@ QRect Application::getDesirableApplicationGeometry() const {
 //                 or the "myCamera".
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
-    PerformanceTimer perfTimer("loadViewFrustum");
     // We will use these below, from either the camera or head vectors calculated above
     viewFrustum.setProjection(camera.getProjection());
 
@@ -4726,7 +4727,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     myAvatar->preDisplaySide(renderArgs);
 
     activeRenderingThread = QThread::currentThread();
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
+    PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
 

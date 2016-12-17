@@ -11,6 +11,18 @@
 #define HIFI_PROFILE_
 
 #include "Trace.h"
+#include "SharedUtil.h"
+
+Q_DECLARE_LOGGING_CATEGORY(trace_app)
+Q_DECLARE_LOGGING_CATEGORY(trace_network)
+Q_DECLARE_LOGGING_CATEGORY(trace_render)
+Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu)
+Q_DECLARE_LOGGING_CATEGORY(trace_resource)
+Q_DECLARE_LOGGING_CATEGORY(trace_resource_parse)
+Q_DECLARE_LOGGING_CATEGORY(trace_resource_network)
+Q_DECLARE_LOGGING_CATEGORY(trace_simulation)
+Q_DECLARE_LOGGING_CATEGORY(trace_simulation_animation)
+Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics)
 
 class Duration {
 public:
@@ -51,13 +63,18 @@ inline void counter(const QLoggingCategory& category, const QString& name, const
     }
 }
 
-#define PROFILE_RANGE(category, name) Duration profileRangeThis(category(), name);
-#define PROFILE_RANGE_EX(category, name, argbColor, payload, ...) Duration profileRangeThis(category(), name, argbColor, (uint64_t)payload, ##__VA_ARGS__);
-#define PROFILE_RANGE_BEGIN(category, rangeId, name, argbColor) rangeId = Duration::beginRange(category(), name, argbColor)
-#define PROFILE_RANGE_END(category, rangeId) Duration::endRange(category(), rangeId)
-#define PROFILE_ASYNC_BEGIN(category, name, id, ...) asyncBegin(category(), name, id, ##__VA_ARGS__);
-#define PROFILE_ASYNC_END(category, name, id, ...) asyncEnd(category(), name, id, ##__VA_ARGS__);
-#define PROFILE_COUNTER(category, name, ...) counter(category(), name, ##__VA_ARGS__);
-#define PROFILE_INSTANT(category, name, ...) instant(category(), name, ##__VA_ARGS__);
+#define PROFILE_RANGE(category, name) Duration profileRangeThis(trace_##category(), name);
+#define PROFILE_RANGE_EX(category, name, argbColor, payload, ...) Duration profileRangeThis(trace_##category(), name, argbColor, (uint64_t)payload, ##__VA_ARGS__);
+#define PROFILE_RANGE_BEGIN(category, rangeId, name, argbColor) rangeId = Duration::beginRange(trace_##category(), name, argbColor)
+#define PROFILE_RANGE_END(category, rangeId) Duration::endRange(trace_##category(), rangeId)
+#define PROFILE_ASYNC_BEGIN(category, name, id, ...) asyncBegin(trace_##category(), name, id, ##__VA_ARGS__);
+#define PROFILE_ASYNC_END(category, name, id, ...) asyncEnd(trace_##category(), name, id, ##__VA_ARGS__);
+#define PROFILE_COUNTER(category, name, ...) counter(trace_##category(), name, ##__VA_ARGS__);
+#define PROFILE_INSTANT(category, name, ...) instant(trace_##category(), name, ##__VA_ARGS__);
+
+#define SAMPLE_PROFILE_RANGE(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_RANGE(category, name); }
+#define SAMPLE_PROFILE_RANGE_EX(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_RANGE_EX(category, name, argbColor, payload, ##__VA_ARGS__); }
+#define SAMPLE_PROFILE_COUNTER(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_COUNTER(category, name, ##__VA_ARGS__); }
+#define SAMPLE_PROFILE_INSTANT(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_INSTANT(category, name, ##__VA_ARGS__); }
 
 #endif
