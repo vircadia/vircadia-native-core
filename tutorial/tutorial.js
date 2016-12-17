@@ -126,10 +126,11 @@ function setControllerPartLayer(part, layer) {
 }
 
 /**
- * @param {object[]} entityPropertiesList A list of properties to 
+ * Spawn entities and return the newly created entity's ids.
+ * @param {object[]} entityPropertiesList A list of properties of the entities
+ * to spawn.
  */
 function spawn(entityPropertiesList, transform, modifyFn) {
-    debug("Creating: ", entityPropertiesList);
     if (!transform) {
         transform = {
             position: { x: 0, y: 0, z: 0 },
@@ -139,7 +140,6 @@ function spawn(entityPropertiesList, transform, modifyFn) {
     var ids = [];
     for (var i = 0; i < entityPropertiesList.length; ++i) {
         var data = entityPropertiesList[i];
-        debug("Creating: ", data.name);
         data.position = Vec3.sum(transform.position, data.position);
         data.rotation = Quat.multiply(data.rotation, transform.rotation);
         if (modifyFn) {
@@ -147,7 +147,6 @@ function spawn(entityPropertiesList, transform, modifyFn) {
         }
         var id = Entities.addEntity(data);
         ids.push(id);
-        debug(id, "data:", JSON.stringify(data));
     }
     return ids;
 }
@@ -258,25 +257,25 @@ function showEntitiesWithTag(tag) {
         debug("ERROR | No entities for tag: ", tag);
     }
 
-    // Dynamic method, suppressed for now
     return;
-    editEntitiesWithTag(tag, function(entityID) {
-        var userData = Entities.getEntityProperties(entityID, "userData").userData;
-        var data = parseJSON(userData);
-        var collisionless = data.visible === false ? true : false;
-        if (data.collidable !== undefined) {
-            collisionless = data.collidable === true ? false : true;
-        }
-        if (data.soundKey) {
-            data.soundKey.playing = true;
-        }
-        var newProperties = {
-            visible: data.visible == false ? false : true,
-            collisionless: collisionless,
-            userData: JSON.stringify(data),
-        };
-        Entities.editEntity(entityID, newProperties);
-    });
+    // Dynamic method, suppressed for now
+    //editEntitiesWithTag(tag, function(entityID) {
+    //    var userData = Entities.getEntityProperties(entityID, "userData").userData;
+    //    var data = parseJSON(userData);
+    //    var collisionless = data.visible === false ? true : false;
+    //    if (data.collidable !== undefined) {
+    //        collisionless = data.collidable === true ? false : true;
+    //    }
+    //    if (data.soundKey) {
+    //        data.soundKey.playing = true;
+    //    }
+    //    var newProperties = {
+    //        visible: data.visible == false ? false : true,
+    //        collisionless: collisionless,
+    //        userData: JSON.stringify(data),
+    //    };
+    //    Entities.editEntity(entityID, newProperties);
+    //});
 }
 
 function hideEntitiesWithTags(tags) {
@@ -306,22 +305,22 @@ function hideEntitiesWithTag(tag) {
         }
     }
 
-    // Dynamic method, suppressed for now
     return;
-    editEntitiesWithTag(tag, function(entityID) {
-        var userData = Entities.getEntityProperties(entityID, "userData").userData;
-        var data = parseJSON(userData);
-        if (data.soundKey) {
-            data.soundKey.playing = false;
-        }
-        var newProperties = {
-            visible: false,
-            collisionless: 1,
-            ignoreForCollisions: 1,
-            userData: JSON.stringify(data),
-        };
-        Entities.editEntity(entityID, newProperties);
-    });
+    // Dynamic method, suppressed for now
+    //editEntitiesWithTag(tag, function(entityID) {
+    //    var userData = Entities.getEntityProperties(entityID, "userData").userData;
+    //    var data = parseJSON(userData);
+    //    if (data.soundKey) {
+    //        data.soundKey.playing = false;
+    //    }
+    //    var newProperties = {
+    //        visible: false,
+    //        collisionless: 1,
+    //        ignoreForCollisions: 1,
+    //        userData: JSON.stringify(data),
+    //    };
+    //    Entities.editEntity(entityID, newProperties);
+    //});
 }
 
 /** 

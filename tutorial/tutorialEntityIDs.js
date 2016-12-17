@@ -114,11 +114,6 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "equip-part2"
         }
     },
-    //"turnAround": {
-    //    "{ce74b3ca-d1c7-4980-bd98-2d488095a39e}": {
-    //        "tag": "turnAround"
-    //    }
-    //},
     "bothGrab": {
         "{14792a6e-dc6f-4e7a-843f-4b109b06b5a4}": {
             "visible": false,
