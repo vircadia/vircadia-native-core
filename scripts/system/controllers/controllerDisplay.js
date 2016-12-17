@@ -162,22 +162,22 @@ createControllerDisplay = function(config) {
                     }(controller, overlayID, part));
                 } else if (part.type === "touchpad") {
                     var visibleInput = resolveHardware(part.visibleInput);
-                    var xinput = resolveHardware(part.xInput);
-                    var yinput = resolveHardware(part.yInput);
+                    var xInput = resolveHardware(part.xInput);
+                    var yInput = resolveHardware(part.yInput);
 
                     // TODO: Touchpad inputs are currently only working for half
                     // of the touchpad. When that is fixed, it would be useful
                     // to update these to display the current finger position.
                     mapping.from([visibleInput]).peek().to(function(value) {
                     });
-                    mapping.from([xinput]).peek().to(function(value) {
+                    mapping.from([xInput]).peek().to(function(value) {
                     });
-                    mapping.from([yinput]).peek().invert().to(function(value) {
+                    mapping.from([yInput]).peek().invert().to(function(value) {
                     });
                 } else if (part.type === "joystick") {
                     (function(controller, overlayID, part) {
-                        const xinput = resolveHardware(part.xInput);
-                        const yinput = resolveHardware(part.yInput);
+                        const xInput = resolveHardware(part.xInput);
+                        const yInput = resolveHardware(part.yInput);
 
                         var xvalue = 0;
                         var yvalue = 0;
@@ -202,7 +202,7 @@ createControllerDisplay = function(config) {
                             }
                         }
 
-                        mapping.from([xinput]).peek().to(function(value) {
+                        mapping.from([xInput]).peek().to(function(value) {
                             xvalue = value;
                             //print(overlayID, xvalue.toFixed(3), yvalue.toFixed(3));
                             var posRot = calculatePositionAndRotation(xvalue, yvalue);
@@ -212,7 +212,7 @@ createControllerDisplay = function(config) {
                             });
                         });
 
-                        mapping.from([yinput]).peek().to(function(value) {
+                        mapping.from([yInput]).peek().to(function(value) {
                             yvalue = value;
                             var posRot = calculatePositionAndRotation(xvalue, yvalue);
                             Overlays.editOverlay(overlayID, {
