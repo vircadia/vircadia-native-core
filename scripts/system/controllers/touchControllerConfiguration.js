@@ -1,6 +1,6 @@
 
 //
-//  viveControllerConfiguration.js
+//  touchControllerConfiguration.js
 //
 //  Created by Ryan Huffman on 12/06/16
 //
