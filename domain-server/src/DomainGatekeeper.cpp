@@ -121,7 +121,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
         qDebug() << "Allowed connection from node" << uuidStringWithoutCurlyBraces(node->getUUID())
             << "on" << message->getSenderSockAddr() << "with MAC" << nodeConnection.hardwareAddress
-            << " and machine fingerprint " << nodeConnection.machineFingerprint;
+            << "and machine fingerprint" << nodeConnection.machineFingerprint;
 
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
@@ -129,7 +129,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     } else {
         qDebug() << "Refusing connection from node at" << message->getSenderSockAddr()
             << "with hardware address" << nodeConnection.hardwareAddress 
-            << " and machine fingerprint " << nodeConnection.machineFingerprint;
+            << "and machine fingerprint" << nodeConnection.machineFingerprint;
     }
 }
 
