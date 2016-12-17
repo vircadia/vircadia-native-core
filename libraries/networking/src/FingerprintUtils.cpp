@@ -49,7 +49,8 @@ QString FingerprintUtils::getMachineFingerprintString() {
     HRESULT hres;
     IWbemLocator *pLoc = NULL;
 
-    // initialize com
+    // initialize com.  Interface already does, but other
+    // users of this lib don't necessarily do so.
     hres = CoInitializeEx(0, COINIT_MULTITHREADED);
     if (FAILED(hres)) {
         qDebug() << "Failed to initialize COM library!";
