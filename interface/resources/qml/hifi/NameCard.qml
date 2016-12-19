@@ -15,11 +15,11 @@ import "../styles-uit"
 
 
 Column {
+    // Properties
     property string displayName: "";
     property string userName: "";
     property int displayTextHeight: 18;
-    property int usernameTextHeight: 12;
-
+    property int usernameTextHeight: 12
 
     RalewaySemiBold {
         // Properties

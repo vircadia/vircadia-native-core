@@ -41,7 +41,15 @@ Rectangle {
     property int separatorColWidth: 30;
     property int actionWidth: (width - nameCardWidth - separatorColWidth) / (table.columnCount - 2); // "-2" for Name and Separator cols
 
-    Column {
+    // This contains the current user's NameCard and will contain other information in the future
+    Item {
+        id: myInfo;
+        // Size
+        width: pal.width;
+        height: myCardHeight;
+        // Positioning
+        anchors.top: pal.top;
+        anchors.left: pal.left;
         // This NameCard refers to the current user's NameCard (the one above the table)
         NameCard {
             id: myCard;
@@ -49,109 +57,108 @@ Rectangle {
             displayName: myData.displayName;
             userName: myData.userName;
             // Size
-            width: nameCardWidth;
-            height: myCardHeight;
+            width: nameCardWidth - anchors.leftMargin;
             // Positioning
-            anchors.top: pal.top;
             anchors.left: parent.left;
+            anchors.verticalCenter: parent.verticalCenter;
             // Margins
             anchors.leftMargin: 10;
         }
-        // This TableView refers to the table (below the current user's NameCard)
-        TableView {
-            id: table;
-            // Size
-            height: pal.height - myCard.height;
-            width: pal.width;
-            // Positioning
-            anchors.top: myCard.bottom;
-            // Properties
-            frameVisible: false;
-            sortIndicatorVisible: true;
-            onSortIndicatorColumnChanged: sortModel();
-            onSortIndicatorOrderChanged: sortModel();
+    }
+    // This TableView refers to the table (below the current user's NameCard)
+    TableView {
+        id: table;
+        // Size
+        height: pal.height - myInfo.height;
+        width: pal.width;
+        // Positioning
+        anchors.top: myInfo.bottom;
+        // Properties
+        frameVisible: false;
+        sortIndicatorVisible: true;
+        onSortIndicatorColumnChanged: sortModel();
+        onSortIndicatorOrderChanged: sortModel();
 
-            TableViewColumn {
-                role: "displayName";
-                title: "Name";
-                width: nameCardWidth
-            }
-            TableViewColumn {
-                role: "ignore";
-                title: "Ignore"
-                width: actionWidth
-            }
-            TableViewColumn {
-                title: "";
-                width: separatorColWidth
-            }
-            TableViewColumn {
-                visible: iAmAdmin;
-                role: "mute";
-                title: "Mute";
-                width: actionWidth
-            }
-            TableViewColumn {
-                visible: iAmAdmin;
-                role: "kick";
-                title: "Ban"
-                width: actionWidth
-            }
-            model: userModel;
+        TableViewColumn {
+            role: "displayName";
+            title: "Name";
+            width: nameCardWidth
+        }
+        TableViewColumn {
+            role: "ignore";
+            title: "Ignore"
+            width: actionWidth
+        }
+        TableViewColumn {
+            title: "";
+            width: separatorColWidth
+        }
+        TableViewColumn {
+            visible: iAmAdmin;
+            role: "mute";
+            title: "Mute";
+            width: actionWidth
+        }
+        TableViewColumn {
+            visible: iAmAdmin;
+            role: "kick";
+            title: "Ban"
+            width: actionWidth
+        }
+        model: userModel;
 
-            // This Rectangle refers to each Row in the table.
-            rowDelegate: Rectangle { // The only way I know to specify a row height.
-                height: rowHeight;
-                // The rest of this is cargo-culted to restore the default styling
-                SystemPalette {
-                    id: myPalette;
-                    colorGroup: SystemPalette.Active
-                }
-                color: {
-                    var baseColor = styleData.alternate?myPalette.alternateBase:myPalette.base
-                    return styleData.selected?myPalette.highlight:baseColor
-                }
+        // This Rectangle refers to each Row in the table.
+        rowDelegate: Rectangle { // The only way I know to specify a row height.
+            height: rowHeight;
+            // The rest of this is cargo-culted to restore the default styling
+            SystemPalette {
+                id: myPalette;
+                colorGroup: SystemPalette.Active
             }
+            color: {
+                var baseColor = styleData.alternate?myPalette.alternateBase:myPalette.base
+                return styleData.selected?myPalette.highlight:baseColor
+            }
+        }
 
-            // This Item refers to the contents of each Cell
-            itemDelegate: Item {
-                id: itemCell;
-                property bool isCheckBox: typeof(styleData.value) === 'boolean';
-                // This NameCard refers to the cell that contains an avatar's
-                // DisplayName and UserName
-                NameCard {
-                    id: nameCard;
-                    // Properties
-                    displayName: styleData.value;
-                    userName: model.userName;
-                    visible: !isCheckBox;
-                    // Size
-                    width: nameCardWidth;
-                    // Positioning
-                    anchors.left: parent.left;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    // Margins
-                    anchors.leftMargin: 10;
-                }
-                // This Rectangle refers to the cells that contain the action buttons
-                Rectangle {
-                    radius: itemCell.height / 4;
-                    visible: isCheckBox;
-                    color: styleData.value ? "green" : "red";
+        // This Item refers to the contents of each Cell
+        itemDelegate: Item {
+            id: itemCell;
+            property bool isCheckBox: typeof(styleData.value) === 'boolean';
+            // This NameCard refers to the cell that contains an avatar's
+            // DisplayName and UserName
+            NameCard {
+                id: nameCard;
+                // Properties
+                displayName: styleData.value;
+                userName: model.userName;
+                visible: !isCheckBox;
+                // Size
+                width: nameCardWidth - anchors.leftMargin;
+                // Positioning
+                anchors.left: parent.left;
+                anchors.verticalCenter: parent.verticalCenter;
+                // Margins
+                anchors.leftMargin: 10;
+            }
+            // This Rectangle refers to the cells that contain the action buttons
+            Rectangle {
+                radius: itemCell.height / 4;
+                visible: isCheckBox;
+                color: styleData.value ? "green" : "red";
+                anchors.fill: parent;
+                MouseArea {
                     anchors.fill: parent;
-                    MouseArea {
-                        anchors.fill: parent;
-                        acceptedButtons: Qt.LeftButton;
-                        hoverEnabled: true;
-                        onClicked: {
-                            var newValue = !model[styleData.role];
-                            var datum = userData[model.userIndex];
-                            datum[styleData.role] = model[styleData.role] = newValue;
-                            Users[styleData.role](model.sessionId);
-                            // Just for now, while we cannot undo things:
-                            userData.splice(model.userIndex, 1);
-                            sortModel();
-                        }
+                    acceptedButtons: Qt.LeftButton;
+                    hoverEnabled: true;
+                    onClicked: {
+                        var newValue = !model[styleData.role];
+                        var datum = userData[model.userIndex];
+                        datum[styleData.role] = model[styleData.role] = newValue;
+                        Users[styleData.role](model.sessionId);
+                        // Just for now, while we cannot undo things:
+                        userData.splice(model.userIndex, 1);
+                        sortModel();
                     }
                 }
             }
