@@ -15,8 +15,6 @@
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
-        //icon: "help.svg",
-        color: "#ff6f6f",
         text: "HELP"
     });
 
@@ -28,7 +26,7 @@
     button.clicked.connect(onClicked);
 
     Script.scriptEnding.connect(function () {
-        tablet.removeButton(buttonName);
+        tablet.removeButton(button);
         button.clicked.disconnect(onClicked);
     });
 

@@ -7,7 +7,8 @@ Item {
     property string text: "EDIT"
     property string icon: "icons/edit-icon.svg"
     property bool isActive: false
-    property bool inDebugMode: true
+    property bool inDebugMode: false
+    property bool isEntered: false
     width: 129
     height: 129
 
@@ -15,6 +16,14 @@ Item {
 
     function changeProperty(key, value) {
         tabletButton[key] = value;
+    }
+
+    onIsActiveChanged: {
+        if (tabletButton.isEntered) {
+            tabletButton.state = (tabletButton.isActive) ? "hover active state" : "hover sate";
+        } else {
+            tabletButton.state = (tabletButton.isActive) ? "active state" : "base sate";
+        }
     }
 
     Rectangle {
@@ -51,18 +60,17 @@ Item {
     }
 
     DropShadow {
-            id: glow
-            visible: false
-            anchors.fill: parent
-            horizontalOffset: 0
-            verticalOffset: 0
-            color: "#ffffff"
-            radius: 20
-            z: -1
-            samples: 41
-            source: buttonOutline
+        id: glow
+        visible: false
+        anchors.fill: parent
+        horizontalOffset: 0
+        verticalOffset: 0
+        color: "#ffffff"
+        radius: 20
+        z: -1
+        samples: 41
+        source: buttonOutline
     }
-
 
     Image {
         id: icon
@@ -102,10 +110,8 @@ Item {
             console.log("Tablet Button Clicked!");
             if (tabletButton.inDebugMode) {
                 if (tabletButton.isActive) {
-                    tabletButton.state = "base state";
                     tabletButton.isActive = false;
                 } else {
-                    tabletButton.state = "active state";
                     tabletButton.isActive = true;
                 }
             }
@@ -113,6 +119,7 @@ Item {
         }
         onEntered: {
             console.log("Tablet Button Hovered!");
+            tabletButton.isEntered = true;
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";
             } else {
@@ -121,6 +128,7 @@ Item {
         }
         onExited: {
             console.log("Tablet Button Unhovered!");
+            tabletButton.isEntered = false;
             if (tabletButton.isActive) {
                 tabletButton.state = "active state";
             } else {
