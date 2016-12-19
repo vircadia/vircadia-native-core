@@ -36,6 +36,8 @@
 #include <Trace.h>
 #include <StatTracker.h>
 
+Q_LOGGING_CATEGORY(trace_resource_parse_image, "trace.resource.parse.image")
+
 TextureCache::TextureCache() {
     setUnusedResourceCacheSize(0);
     setObjectName("TextureCache");
@@ -349,7 +351,7 @@ void ImageReader::run() {
 
     CounterStat counter("Processing");
 
-    PROFILE_RANGE_EX(modelnetworking, __FUNCTION__, 0xffff0000, 0, { { "url", _url.toString() } });
+    PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffff0000, 0, { { "url", _url.toString() } });
     auto originalPriority = QThread::currentThread()->priority();
     if (originalPriority == QThread::InheritPriority) {
         originalPriority = QThread::NormalPriority;
@@ -395,7 +397,7 @@ void ImageReader::run() {
 
         auto url = _url.toString().toStdString();
 
-        PROFILE_RANGE_EX(modelnetworking, __FUNCTION__, 0xffffff00, 0);
+        PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffffff00, 0);
         texture.reset(resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url));
     }
 

@@ -83,7 +83,6 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     naturalPosition: {"x":-0.004377640783786774,"y":-0.034371938556432724,"z":0.06769277155399323},
 
                     textureName: "Tex.Blank",
-
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {

@@ -37,6 +37,7 @@
 #include "Web3DOverlay.h"
 #include <QtQuick/QQuickWindow>
 
+Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
 Overlays::Overlays() :
     _nextOverlayID(1) {}
@@ -102,7 +103,7 @@ void Overlays::cleanupOverlaysToDelete() {
 }
 
 void Overlays::renderHUD(RenderArgs* renderArgs) {
-    PROFILE_RANGE(interfaceapp, __FUNCTION__);
+    PROFILE_RANGE(render_overlays, __FUNCTION__);
     QReadLocker lock(&_lock);
     gpu::Batch& batch = *renderArgs->_batch;
 

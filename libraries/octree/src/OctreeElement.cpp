@@ -392,7 +392,6 @@ OctreeElementPointer OctreeElement::addChildAtIndex(int childIndex) {
 
         _isDirty = true;
         markWithChangedTime();
-        PROFILE_INSTANT(octree, "EntityAdd", "g");
     }
     return childAt;
 }

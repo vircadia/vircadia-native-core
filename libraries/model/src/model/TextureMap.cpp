@@ -746,7 +746,7 @@ const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
 const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
 gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance) {
-    PROFILE_RANGE(modelLog, "processCubeTextureColorFromImage");
+    PROFILE_RANGE(resource_parse, "processCubeTextureColorFromImage");
 
     gpu::Texture* theTexture = nullptr;
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
@@ -805,13 +805,13 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
             }
 
             if (generateMips) {
-                PROFILE_RANGE(modelLog, "generateMips");
+                PROFILE_RANGE(resource_parse, "generateMips");
                 theTexture->autoGenerateMips(-1);
             }
 
             // Generate irradiance while we are at it
             if (generateIrradiance) {
-                PROFILE_RANGE(modelLog, "generateIrradiance");
+                PROFILE_RANGE(resource_parse, "generateIrradiance");
                 theTexture->generateIrradiance();
             }
         }

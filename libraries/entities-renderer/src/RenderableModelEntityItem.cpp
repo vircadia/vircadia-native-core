@@ -211,7 +211,7 @@ namespace render {
     template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
         if (args) {
             if (payload && payload->entity) {
-                PROFILE_RANGE(renderlogging, "MetaModelRender");
+                PROFILE_RANGE(render, "MetaModelRender");
                 payload->entity->render(args);
             }
         }

@@ -63,7 +63,7 @@ public:
     AudioFOA& getLocalFOA() { return _localFOA; }
 
     bool isLocalOnly() const { return _options.localOnly; }
-    float getVolume() const { return _options.volume; }
+    float getVolume() const { return glm::clamp(_options.volume, 0.0f, 1.0f); }
     glm::vec3 getPosition() const { return _options.position; }
     glm::quat getOrientation() const { return _options.orientation; }
     bool isStereo() const { return _options.stereo; }
