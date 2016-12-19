@@ -13,10 +13,12 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-
-var button = toolBar.addButton({
+var button = tablet.addButton({
+    color: "63d0ff",
+    text:"GOTO"})
+/*var button = toolBar.addButton({
     objectName: "goto",
     imageURL: Script.resolvePath("assets/images/tools/directory.svg"),
     visible: true,
@@ -24,12 +26,12 @@ var button = toolBar.addButton({
     defaultState: 1,
     hoverState: 3,
     alpha: 0.9,
-});
+});*/
 
 function onAddressBarShown(visible) {
-    button.writeProperty('buttonState', visible ? 0 : 1);
-    button.writeProperty('defaultState', visible ? 0 : 1);
-    button.writeProperty('hoverState', visible ? 2 : 3);
+    //button.writeProperty('buttonState', visible ? 0 : 1);
+    //button.writeProperty('defaultState', visible ? 0 : 1);
+    //button.writeProperty('hoverState', visible ? 2 : 3);
 }
 function onClicked(){
     DialogsManager.toggleAddressBar();

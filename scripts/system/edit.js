@@ -14,11 +14,11 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
-
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
 var SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 var EDIT_TOOLBAR = "com.highfidelity.interface.toolbar.edit";
+    
 
 Script.include([
     "libraries/stringHelpers.js",
@@ -171,7 +171,8 @@ var toolBar = (function () {
     var that = {},
         toolBar,
         systemToolbar,
-        activeButton;
+        activeButton,
+        tablet;
 
     function createNewEntity(properties) {
         Settings.setValue(EDIT_SETTING, false);
@@ -231,7 +232,12 @@ var toolBar = (function () {
         });
 
         systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
-        activeButton = systemToolbar.addButton({
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        activeButton = tablet.addButton({
+            color: "#63d0ff",
+            text: "EDIT"
+            });
+        /*activeButton = systemToolbar.addButton({
             objectName: EDIT_TOGGLE_BUTTON,
             imageURL: TOOLS_PATH + "edit.svg",
             visible: true,
@@ -239,7 +245,7 @@ var toolBar = (function () {
             buttonState: 1,
             hoverState: 3,
             defaultState: 1
-        });
+        });*/
         activeButton.clicked.connect(function() {
             that.toggle();
         });
@@ -706,6 +712,7 @@ function mouseClickEvent(event) {
         var foundEntity = result.entityID;
 
         properties = Entities.getEntityProperties(foundEntity);
+
         if (isLocked(properties)) {
             if (wantDebug) {
                 print("Model locked " + properties.id);

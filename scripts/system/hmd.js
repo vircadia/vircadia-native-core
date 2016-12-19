@@ -35,15 +35,15 @@ function updateControllerDisplay() {
     }
 }
 
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button;
 // Independent and Entity mode make people sick. Third Person and Mirror have traps that we need to work through.
 // Disable them in hmd.
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
-    button.writeProperty('buttonState', isHmd ? 0 : 1);
-    button.writeProperty('defaultState', isHmd ? 0 : 1);
-    button.writeProperty('hoverState', isHmd ? 2 : 3);
+    //button.writeProperty('buttonState', isHmd ? 0 : 1);
+    //button.writeProperty('defaultState', isHmd ? 0 : 1);
+    //button.writeProperty('hoverState', isHmd ? 2 : 3);
     desktopOnlyViews.forEach(function (view) {
         Menu.setMenuEnabled("View>" + view, !isHmd);
     });
@@ -54,14 +54,17 @@ function onClicked(){
     Menu.setIsOptionChecked(isDesktop ? headset : desktopMenuItemName, true);
 }
 if (headset) {
-    button = toolBar.addButton({
+    /*button = toolBar.addButton({
         objectName: "hmdToggle",
         imageURL: Script.resolvePath("assets/images/tools/switch.svg"),
         visible: true,
         hoverState: 2,
         defaultState: 0,
         alpha: 0.9
-    });
+    });*/
+    button = tablet.addButton({
+        color: "#63d0ff",
+        text: "SWITCH"});
     onHmdChanged(HMD.active);
 
     button.clicked.connect(onClicked);
@@ -69,8 +72,8 @@ if (headset) {
     Camera.modeUpdated.connect(updateControllerDisplay);
 
     Script.scriptEnding.connect(function () {
-        toolBar.removeButton("hmdToggle");
         button.clicked.disconnect(onClicked);
+        tablet.removeButton(button);
         HMD.displayModeChanged.disconnect(onHmdChanged);
         Camera.modeUpdated.disconnect(updateControllerDisplay);
     });
