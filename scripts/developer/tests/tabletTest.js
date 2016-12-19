@@ -12,25 +12,22 @@
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
-    icon: "https://s3.amazonaws.com/hifi-public/tony/icons/hat-up.svg",
-    color: "#ff6f6f",
     text: "BAM!!!"
 });
 
-// change the color and name every second...
-var colors = ["#ff6f6f", "#6fff6f", "#6f6fff"];
-var names = ["BAM!", "BAM!!", "BAM!!!"];
-var colorIndex = 0;
+// change the name and isActive state every second...
+var names = ["BAM!", "BAM!!", "BAM!!!", "BAM!!!!"];
+var nameIndex = 0;
 Script.setInterval(function () {
-    colorIndex = (colorIndex + 1) % colors.length;
+    nameIndex = (nameIndex + 1) % names.length;
     button.editProperties({
-        color: colors[colorIndex],
-        text: names[colorIndex]
+        isActive: (nameIndex & 0x1) == 0,
+        text: names[nameIndex]
     });
 }, 1000);
 
 button.clicked.connect(function () {
-    print("AJT: BAMM!!! CLICK from JS!");
+    print("AJT: BAM!!! CLICK from JS!");
 });
 
 Script.scriptEnding.connect(function () {

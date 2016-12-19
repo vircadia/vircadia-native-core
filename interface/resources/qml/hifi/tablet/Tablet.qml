@@ -172,7 +172,9 @@ Item {
             var component = Qt.createComponent("TabletButton.qml");
             var buttons = [];
             for (var i = 0; i < 5; i++) {
-                buttons.push(component.createObject(flowMain));
+                var button = component.createObject(flowMain);
+                button.inDebugMode = true;
+                buttons.push(button);
             }
 
             // set button text
