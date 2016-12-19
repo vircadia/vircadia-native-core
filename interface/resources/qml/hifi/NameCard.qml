@@ -18,9 +18,9 @@ Row {
     // Spacing
     spacing: 10;
     // Anchors
-    //anchors.topMargin: 10;
+    anchors.topMargin: 10;
     anchors.leftMargin: 10;
-    //anchors.verticalCenter: parent.verticalCenter
+    anchors.verticalCenter: parent.verticalCenter;
 
     // Properties
     property string displayName: "";

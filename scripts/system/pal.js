@@ -145,7 +145,7 @@ function usernameFromIDReply(id, username, machineFingerprint) {
         data = ['', username]
     } else {
         // Set the data to contain the ID and the username+ID concat string.
-        data = [id, username + '/' + machineFingerprint];
+        data = [id, username || machineFingerprint];
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML

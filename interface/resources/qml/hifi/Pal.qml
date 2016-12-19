@@ -109,6 +109,7 @@ Rectangle {
 
         // This Rectangle refers to each Row in the table.
         rowDelegate: Rectangle { // The only way I know to specify a row height.
+            // Size
             height: rowHeight;
             // The rest of this is cargo-culted to restore the default styling
             SystemPalette {
@@ -126,6 +127,9 @@ Rectangle {
             id: itemCell;
             property bool isCheckBox: typeof(styleData.value) === 'boolean';
             property bool isSeparator: styleData.value === '';
+            // Anchors
+            anchors.topMargin: 10;
+            anchors.bottomMargin: anchors.topMargin;
             // This NameCard refers to the cell that contains an avatar's
             // DisplayName and UserName
             NameCard {
