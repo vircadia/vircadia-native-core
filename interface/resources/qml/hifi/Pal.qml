@@ -58,11 +58,10 @@ Rectangle {
             userName: myData.userName;
             // Size
             width: nameCardWidth - anchors.leftMargin;
+            height: myCardHeight;
             // Positioning
             anchors.left: parent.left;
             anchors.verticalCenter: parent.verticalCenter;
-            // Margins
-            anchors.leftMargin: 10;
         }
     }
     // This TableView refers to the table (below the current user's NameCard)
@@ -125,6 +124,7 @@ Rectangle {
         itemDelegate: Item {
             id: itemCell;
             property bool isCheckBox: typeof(styleData.value) === 'boolean';
+            property bool isSeparator: styleData.value === '';
             // This NameCard refers to the cell that contains an avatar's
             // DisplayName and UserName
             NameCard {
@@ -132,19 +132,17 @@ Rectangle {
                 // Properties
                 displayName: styleData.value;
                 userName: model.userName;
-                visible: !isCheckBox;
+                visible: !isCheckBox && !isSeparator;
                 // Size
                 width: nameCardWidth - anchors.leftMargin;
                 // Positioning
                 anchors.left: parent.left;
                 anchors.verticalCenter: parent.verticalCenter;
-                // Margins
-                anchors.leftMargin: 10;
             }
             // This Rectangle refers to the cells that contain the action buttons
             Rectangle {
                 radius: itemCell.height / 4;
-                visible: isCheckBox;
+                visible: isCheckBox && !isSeparator;
                 color: styleData.value ? "green" : "red";
                 anchors.fill: parent;
                 MouseArea {

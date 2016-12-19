@@ -13,34 +13,59 @@ import Hifi 1.0
 import QtQuick 2.5
 import "../styles-uit"
 
+Row {
+    id: thisNameCard;
+    // Spacing
+    spacing: 5;
+    // Margins
+    anchors.leftMargin: 5;
 
-Column {
     // Properties
     property string displayName: "";
     property string userName: "";
     property int displayTextHeight: 18;
-    property int usernameTextHeight: 12
+    property int usernameTextHeight: 12;
 
-    RalewaySemiBold {
-        // Properties
-        text: parent.displayName;
-        elide: Text.ElideRight;
+    Column {
+        id: avatarImage;
         // Size
-        width: parent.width;
-        // Text Size
-        size: parent.displayTextHeight;
-        // Text Positioning
-        verticalAlignment: Text.AlignVCenter;
+        width: parent.height - 2;
+        height: width;
+        Rectangle {
+            anchors.fill: parent;
+            radius: parent.width*0.5;
+            color: "#AAA5AD";
+        }
     }
-    RalewayLight {
-        // Properties
-        text: parent.userName;
-        elide: Text.ElideRight;
-        visible: parent.displayName;
+    Column {
+        id: textContainer;
         // Size
-        size: parent.usernameTextHeight;
-        width: parent.width;
-        // Text Positioning
-        verticalAlignment: Text.AlignVCenter;
+        width: parent.width - avatarImage.width;
+
+        RalewaySemiBold {
+            id: displayNameText;
+            // Properties
+            text: thisNameCard.displayName;
+            elide: Text.ElideRight;
+            // Size
+            width: parent.width;
+            // Text Size
+            size: thisNameCard.displayTextHeight;
+            // Text Positioning
+            verticalAlignment: Text.AlignVCenter;
+        }
+        RalewayLight {
+            id: userNameText;
+            // Properties
+            text: thisNameCard.userName;
+            elide: Text.ElideRight;
+            visible: thisNameCard.displayName;
+            // Size
+            width: parent.width;
+            // Text Size
+            size: thisNameCard.usernameTextHeight;
+            // Text Positioning
+            verticalAlignment: Text.AlignVCenter;
+        }
     }
 }
