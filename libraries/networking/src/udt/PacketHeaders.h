@@ -101,7 +101,9 @@ public:
         NodeKickRequest,
         NodeMuteRequest,
         RadiusIgnoreRequest,
-        LAST_PACKET_TYPE = RadiusIgnoreRequest
+        UsernameFromIDRequest,
+        UsernameFromIDReply,
+        LAST_PACKET_TYPE = UsernameFromIDReply
     };
 };
 
@@ -226,7 +228,8 @@ enum class DomainServerAddedNodeVersion : PacketVersion {
 
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
-    PermissionsGrid
+    PermissionsGrid,
+    GetUsernameFromUUIDSupport
 };
 
 enum class AudioVersion : PacketVersion {

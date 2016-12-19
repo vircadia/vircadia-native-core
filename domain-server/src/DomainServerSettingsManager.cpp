@@ -748,6 +748,45 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
     }
 }
 
+// This function processes the "Get Username from ID" request.
+void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    // Before we do any processing on this packet, make sure it comes from a node that is allowed to kick (is an admin)
+    if (sendingNode->getCanKick()) {
+        // From the packet, pull the UUID we're identifying
+        QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        if (!nodeUUID.isNull()) {
+            // First, make sure we actually have a node with this UUID
+            auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+            auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
+
+            // If we do have a matching node...
+            if (matchingNode) {
+                // It's time to figure out the username
+                QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
+
+                // Setup the packet
+                auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply);
+                usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
+                usernameFromIDReplyPacket->writeString(verifiedUsername);
+
+                qDebug() << "Sending username" << verifiedUsername << "associated with node" << nodeUUID;
+
+                // Ship it!
+                limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);
+            } else {
+                qWarning() << "Node username request received for unknown node. Refusing to process.";
+            }
+        } else {
+            qWarning() << "Node username request received for invalid node ID. Refusing to process.";
+        }
+
+    } else {
+        qWarning() << "Refusing to process a username request packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
+            << "that does not have kick permissions.";
+    }
+}
+
 QStringList DomainServerSettingsManager::getAllNames() const {
     QStringList result;
     foreach (auto key, _agentPermissions.keys()) {
