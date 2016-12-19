@@ -137,7 +137,7 @@ function populateUserList() {
 }
 
 // The function that handles the reply from the server
-function usernameFromIDReply(id, username) {
+function usernameFromIDReply(id, username, machineFingerprint) {
     var data;
     // If the ID we've received is our ID...
     if (AvatarList.getAvatar('').sessionUUID === id) {
@@ -145,7 +145,7 @@ function usernameFromIDReply(id, username) {
         data = ['', username + ' (hidden)']
     } else {
         // Set the data to contain the ID and the username+ID concat string.
-        data = [id, username + '/' + id];
+        data = [id, username + '/' + machineFingerprint];
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
