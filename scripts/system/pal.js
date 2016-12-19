@@ -142,7 +142,7 @@ function usernameFromIDReply(id, username, machineFingerprint) {
     // If the ID we've received is our ID...
     if (AvatarList.getAvatar('').sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username + ' (hidden)']
+        data = ['', username]
     } else {
         // Set the data to contain the ID and the username+ID concat string.
         data = [id, username + '/' + machineFingerprint];

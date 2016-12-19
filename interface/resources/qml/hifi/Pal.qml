@@ -36,10 +36,10 @@ Rectangle {
     height: parent.height;
     // Properties
     property int myCardHeight: 75;
-    property int rowHeight: 50;
-    property int nameCardWidth: width*3/5;
+    property int rowHeight: 65;
     property int separatorColWidth: 30;
-    property int actionWidth: (width - nameCardWidth - separatorColWidth) / (table.columnCount - 2); // "-2" for Name and Separator cols
+    property int actionButtonWidth: 50;
+    property int nameCardWidth: width - separatorColWidth-  actionButtonWidth*(table.columnCount - 2); // "-2" for Name and Separator cols;
 
     // This contains the current user's NameCard and will contain other information in the future
     Item {
@@ -47,9 +47,11 @@ Rectangle {
         // Size
         width: pal.width;
         height: myCardHeight;
-        // Positioning
+        // Anchors
         anchors.top: pal.top;
         anchors.left: pal.left;
+        anchors.topMargin: 10;
+        anchors.bottomMargin: anchors.topMargin;
         // This NameCard refers to the current user's NameCard (the one above the table)
         NameCard {
             id: myCard;
@@ -57,11 +59,10 @@ Rectangle {
             displayName: myData.displayName;
             userName: myData.userName;
             // Size
-            width: nameCardWidth - anchors.leftMargin;
-            height: myCardHeight;
-            // Positioning
+            width: nameCardWidth;
+            height: parent.height;
+            // Anchors
             anchors.left: parent.left;
-            anchors.verticalCenter: parent.verticalCenter;
         }
     }
     // This TableView refers to the table (below the current user's NameCard)
@@ -70,7 +71,7 @@ Rectangle {
         // Size
         height: pal.height - myInfo.height;
         width: pal.width;
-        // Positioning
+        // Anchors
         anchors.top: myInfo.bottom;
         // Properties
         frameVisible: false;
@@ -86,7 +87,7 @@ Rectangle {
         TableViewColumn {
             role: "ignore";
             title: "Ignore"
-            width: actionWidth
+            width: actionButtonWidth
         }
         TableViewColumn {
             title: "";
@@ -96,13 +97,13 @@ Rectangle {
             visible: iAmAdmin;
             role: "mute";
             title: "Mute";
-            width: actionWidth
+            width: actionButtonWidth
         }
         TableViewColumn {
             visible: iAmAdmin;
             role: "kick";
             title: "Ban"
-            width: actionWidth
+            width: actionButtonWidth
         }
         model: userModel;
 
@@ -134,10 +135,10 @@ Rectangle {
                 userName: model.userName;
                 visible: !isCheckBox && !isSeparator;
                 // Size
-                width: nameCardWidth - anchors.leftMargin;
-                // Positioning
+                width: nameCardWidth;
+                height: parent.height;
+                // Anchors
                 anchors.left: parent.left;
-                anchors.verticalCenter: parent.verticalCenter;
             }
             // This Rectangle refers to the cells that contain the action buttons
             Rectangle {
