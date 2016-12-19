@@ -7,6 +7,7 @@ Item {
     property string text: "EDIT"
     property string icon: "icons/edit-icon.svg"
     property bool isActive: false
+    property bool inDebugMode: true
     width: 129
     height: 129
 
@@ -99,12 +100,14 @@ Item {
         hoverEnabled: true
         onClicked: {
             console.log("Tablet Button Clicked!");
-            if (tabletButton.isActive) {
-                tabletButton.state = "base state";
-                tabletButton.isActive = false;
-            } else {
-                tabletButton.state = "active state";
-                tabletButton.isActive = true;
+            if (tabletButton.inDebugMode) {
+                if (tabletButton.isActive) {
+                    tabletButton.state = "base state";
+                    tabletButton.isActive = false;
+                } else {
+                    tabletButton.state = "active state";
+                    tabletButton.isActive = true;
+                }
             }
             tabletButton.clicked();
         }
