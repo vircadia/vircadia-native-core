@@ -502,9 +502,9 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
             if (avatar.processAvatarIdentity(identity)) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
-                 nodeData->flagIdentityChange();
-                 nodeData->setReceivedIdentity();
-             }
+                nodeData->flagIdentityChange();
+                nodeData->setReceivedIdentity();
+            }
         }
     }
 }
@@ -600,7 +600,7 @@ void AvatarMixer::domainSettingsRequestComplete() {
     float domainMaximumScale = _domainMaximumScale;
 
     nodeList->linkedDataCreateCallback = [domainMinimumScale, domainMaximumScale] (Node* node) {
-        auto clientData = std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData };
+        auto clientData = std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData(node->getUUID()) };
         clientData->getAvatar().setDomainMinimumScale(domainMinimumScale);
         clientData->getAvatar().setDomainMaximumScale(domainMaximumScale);
 

@@ -34,6 +34,8 @@ const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
+    AvatarMixerClientData(const QUuid& nodeID = QUuid()) : NodeData(nodeID) {}
+    virtual ~AvatarMixerClientData() {}
     using HRCTime = p_high_resolution_clock::time_point;
 
     int parseData(ReceivedMessage& message) override;
