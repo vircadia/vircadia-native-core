@@ -212,7 +212,8 @@ enum class DomainConnectRequestVersion : PacketVersion {
     NoHostname = 17,
     HasHostname,
     HasProtocolVersions,
-    HasMACAddress
+    HasMACAddress,
+    HasMachineFingerprint
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {

@@ -27,6 +27,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
+#include "FingerprintUtils.h"
 
 #include "NetworkLogging.h"
 #include "udt/PacketHeaders.h"
@@ -371,6 +372,10 @@ void NodeList::sendDomainServerCheckIn() {
             }
 
             packetStream << hardwareAddress;
+
+            // add in machine fingerprint
+            QUuid machineFingerprint = FingerprintUtils::getMachineFingerprint();
+            packetStream << machineFingerprint;
         }
 
         // pack our data to send to the domain-server including
