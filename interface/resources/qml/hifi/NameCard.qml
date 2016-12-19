@@ -20,17 +20,27 @@ Column {
     property int displayTextHeight: 18;
     property int usernameTextHeight: 12;
 
+
     RalewaySemiBold {
+        // Properties
         text: parent.displayName;
-        size: parent.displayTextHeight;
         elide: Text.ElideRight;
+        // Size
         width: parent.width;
+        // Text Size
+        size: parent.displayTextHeight;
+        // Text Positioning
+        verticalAlignment: Text.AlignVCenter;
     }
     RalewayLight {
-        visible: parent.displayName;
+        // Properties
         text: parent.userName;
-        size: parent.usernameTextHeight;
         elide: Text.ElideRight;
+        visible: parent.displayName;
+        // Size
+        size: parent.usernameTextHeight;
         width: parent.width;
+        // Text Positioning
+        verticalAlignment: Text.AlignVCenter;
     }
 }
