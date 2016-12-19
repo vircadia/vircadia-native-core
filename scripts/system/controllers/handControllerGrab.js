@@ -1118,18 +1118,17 @@ function MyController(hand) {
     };
 
     this.off = function(deltaTime, timestamp) {
-        if (this.triggerSmoothedReleased()) {
+
+        if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.waitForTriggerRelease = false;
         }
-        if (!this.waitForTriggerRelease && this.triggerSmoothedSqueezed()) {
+        if (!this.waitForTriggerRelease && (this.triggerSmoothedSqueezed() || this.secondarySqueezed())) {
             this.lastPickTime = 0;
             this.startingHandRotation = getControllerWorldLocation(this.handToController(), true).orientation;
-            if (this.triggerSmoothedSqueezed()) {
-                this.setState(STATE_SEARCHING, "trigger squeeze detected");
-                return;
-            }
+            this.searchStartTime = Date.now();
+            this.setState(STATE_SEARCHING, "trigger squeeze detected");
+            return;
         }
-
 
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldHandPosition = controllerLocation.position;
@@ -1469,6 +1468,9 @@ function MyController(hand) {
     this.search = function(deltaTime, timestamp) {
         var _this = this;
         var name;
+        var FAR_SEARCH_DELAY = 350;  //  msecs before search beam appears
+
+        var farSearching =  this.triggerSmoothedSqueezed() && (Date.now() - this.searchStartTime > FAR_SEARCH_DELAY);
 
         this.grabbedEntity = null;
         this.grabbedOverlay = null;
@@ -1477,7 +1479,7 @@ function MyController(hand) {
 
         this.checkForStrayChildren();
 
-        if (this.triggerSmoothedReleased()) {
+        if ((this.triggerSmoothedReleased() && this.secondaryReleased())) {
             this.setState(STATE_OFF, "trigger released");
             return;
         }
@@ -1496,7 +1498,7 @@ function MyController(hand) {
 
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateHotSpotEntities);
         if (potentialEquipHotspot) {
-            if (this.triggerSmoothedGrab() && holdEnabled) {
+            if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && holdEnabled) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.grabbedEntity = potentialEquipHotspot.entityID;
                 this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
@@ -1539,7 +1541,8 @@ function MyController(hand) {
                     // potentialNearTriggerEntity = entity;
                 }
             } else {
-                if (this.triggerSmoothedGrab() && nearGrabEnabled) {
+                //  If near something grabbable, grab it!
+                if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && nearGrabEnabled) {
                     var props = entityPropertiesCache.getProps(entity);
                     var grabProps = entityPropertiesCache.getGrabProps(entity);
                     var refCount = grabProps.refCount ? grabProps.refCount : 0;
@@ -1629,7 +1632,7 @@ function MyController(hand) {
                     // potentialFarTriggerEntity = entity;
                 }
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
-                if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled) {
+                if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
                     this.grabbedEntity = entity;
                     this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     return;
@@ -1706,7 +1709,7 @@ function MyController(hand) {
             equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
         }
 
-        if (farGrabEnabled) {
+        if (farGrabEnabled && farSearching) {
             this.searchIndicatorOn(rayPickInfo.searchRay);
         }
         Reticle.setVisible(false);
@@ -2145,7 +2148,7 @@ function MyController(hand) {
 
         this.grabPointSphereOff();
 
-        if (this.state == STATE_NEAR_GRABBING && !this.triggerClicked) {
+        if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");
             return;
@@ -2648,7 +2651,7 @@ function MyController(hand) {
         this.grabbedOverlay = null;
         this.grabbedHotspot = null;
 
-        if (this.triggerSmoothedGrab()) {
+        if (this.triggerSmoothedGrab() || this.secondarySqueezed()) {
             this.waitForTriggerRelease = true;
         }
     };
