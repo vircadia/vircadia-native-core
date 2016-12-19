@@ -32,6 +32,9 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
 
         // read the hardware address sent by the client
         dataStream >> newHeader.hardwareAddress;
+
+        // now the machine fingerprint
+        dataStream >> newHeader.machineFingerprint;
     }
     
     dataStream >> newHeader.nodeType

@@ -27,6 +27,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
+#include "FingerprintUtils.h"
 
 #include "NetworkLogging.h"
 #include "udt/PacketHeaders.h"
@@ -127,6 +128,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
     packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
+    packetReceiver.registerListener(PacketType::UsernameFromIDReply, this, "processUsernameFromIDReply");
 }
 
 qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
@@ -370,6 +372,10 @@ void NodeList::sendDomainServerCheckIn() {
             }
 
             packetStream << hardwareAddress;
+
+            // add in machine fingerprint
+            QUuid machineFingerprint = FingerprintUtils::getMachineFingerprint();
+            packetStream << machineFingerprint;
         }
 
         // pack our data to send to the domain-server including
@@ -888,4 +894,37 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
         qWarning() << "NodeList::muteNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
 
     }
+}
+
+void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
+    // send a request to domain-server to get the username associated with the given session ID
+    if (getThisNodeCanKick() || nodeID.isNull()) {
+        // setup the packet
+        auto usernameFromIDRequestPacket = NLPacket::create(PacketType::UsernameFromIDRequest, NUM_BYTES_RFC4122_UUID, true);
+
+        // write the node ID to the packet
+        if (nodeID.isNull()) {
+            usernameFromIDRequestPacket->write(getSessionUUID().toRfc4122());
+        } else {
+            usernameFromIDRequestPacket->write(nodeID.toRfc4122());
+        }
+
+        qDebug() << "Sending packet to get username of node" << uuidStringWithoutCurlyBraces(nodeID);
+
+        sendPacket(std::move(usernameFromIDRequestPacket), _domainHandler.getSockAddr());
+    } else {
+        qWarning() << "You do not have permissions to kick in this domain."
+            << "Request to get the username of node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+    }
+}
+
+void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message) {
+    // read the UUID from the packet
+    QString nodeUUIDString = (QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID))).toString();
+    // read the username from the packet
+    QString username = message->readString();
+
+    qDebug() << "Got username" << username << "for node" << nodeUUIDString;
+
+    emit usernameFromIDReply(nodeUUIDString, username);
 }
