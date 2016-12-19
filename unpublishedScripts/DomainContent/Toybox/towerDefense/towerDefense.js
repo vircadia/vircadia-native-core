@@ -158,8 +158,10 @@ function cleanup() {
         var t = teamEntities[i];
         Entities.deleteEntity(t.targetID);
         Entities.deleteEntity(t.spawnerID);
-        for (var j = 0; j < t.bowIDs.length; ++j) {
-            Entities.deleteEntity(t.bowIDs[j]);
+        if (t.bowIDs !== undefined) {
+            for (var j = 0; j < t.bowIDs.length; ++j) {
+                Entities.deleteEntity(t.bowIDs[j]);
+            }
         }
         Entities.deleteEntity(t.roofID);
         Entities.deleteEntity(t.arenaID);

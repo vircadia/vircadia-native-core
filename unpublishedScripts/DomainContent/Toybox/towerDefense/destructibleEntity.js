@@ -53,6 +53,7 @@ function parseJSON(json) {
 var TEXTURE_NAME = "tex.health1";
 
 (function() {
+    Script.include("block.js");
     DestructibleBlock = function() {
     }
     DestructibleBlock.prototype = {
@@ -138,6 +139,24 @@ var TEXTURE_NAME = "tex.health1";
                 Entities.editEntity(this.entityID, { textures: newTexturesJSON });
                 print("tdBlock.js | Setting texture to: ", newTexturesJSON);
             }
+        },
+        growBlock: function() {
+            var props = getBlockProperties();
+            props.position = Entities.getEntityProperties(this.entityID, 'position').position;
+            props.position.y += props.dimensions.y;
+            Entities.addEntity(props);
+        },
+        startNearTrigger: function () {
+            print("launch.js | got start near trigger");
+            this.growBlock();
+        },
+        startFarTrigger: function () {
+            print("launch.js | got start far trigger");
+            this.growBlock();
+        },
+        clickDownOnEntity: function () {
+            print("launch.js | got click down");
+            this.growBlock();
         }
     };
 

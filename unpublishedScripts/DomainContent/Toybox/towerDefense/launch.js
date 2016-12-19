@@ -12,6 +12,8 @@
 
 (function () {
 
+    Script.include("block.js");
+
     var BLOCK_MODEL_URL = Script.resolvePath("assets/block.fbx");
     var BLOCK_DIMENSIONS = {
         x: 1,
@@ -44,22 +46,12 @@
         muzzleVelocity = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0.0, Math.random() * 360.0, 0.0), muzzleVelocity);
         muzzleVelocity = Vec3.multiplyQbyV(cylinder.rotation, muzzleVelocity);
 
-        Entities.addEntity({
-            type: "Model",
-            name: "TD.block",
-            modelURL: BLOCK_MODEL_URL,
-            shapeType: "compound",
-            //compoundShapeURL: BLOCK_COMPOUND_SHAPE_URL,
-            dimensions: BLOCK_DIMENSIONS,
-            dynamic: 1,
-            gravity: { x: 0.0, y: -9.8, z: 0.0 },
-            collisionsWillMove: 1,
-            position: muzzlePosition,
-            rotation: Quat.multiply(cylinder.rotation, Quat.fromPitchYawRollDegrees(0.0, Math.random() * 360.0, 0.0)),
-            velocity: muzzleVelocity,
-            lifetime: BLOCK_LIFETIME,
-            script: Script.resolvePath("destructibleEntity.js")
-        });
+        var blockProperties = getBlockProperties();
+        blockProperties.position = muzzlePosition;
+        blockProperties.velocity = muzzleVelocity;
+        blockProperties.rotation = Quat.multiply(cylinder.rotation, Quat.fromPitchYawRollDegrees(0.0, Math.random() * 360.0, 0.0));
+
+        Entities.addEntity(blockProperties);
 
         Audio.playSound(muzzleSound, {
             position: cylinder.muzzlePosition,
