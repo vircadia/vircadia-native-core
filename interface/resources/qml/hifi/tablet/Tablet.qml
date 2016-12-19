@@ -171,7 +171,7 @@ Item {
             console.log("Tablet.onCompleted!");
             var component = Qt.createComponent("TabletButton.qml");
             var buttons = [];
-            for (var i = 0; i < 11; i++) {
+            for (var i = 0; i < 5; i++) {
                 buttons.push(component.createObject(flowMain));
             }
 
@@ -182,11 +182,6 @@ Item {
             buttons[3].text = "BUBBLE";
             buttons[4].text = "SNAP";
             buttons[5].text = "HELP";
-            buttons[6].text = "PEOPLE";
-            buttons[7].text = "GOTO";
-            buttons[8].text = "MARKET";
-            buttons[9].text = "EDIT";
-            buttons[10].text = "SCRIPTS";
 
             // set button icon
             buttons[0].icon = "icons/tablet-mute-icon.svg"
