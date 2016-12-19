@@ -81,6 +81,7 @@ void ModelOverlay::render(RenderArgs* args) {
     }
 
     _model->setVisibleInScene(_visible, scene);
+    _model->setLayeredInFront(getDrawInFront(), scene);
 
     scene->enqueuePendingChanges(pendingChanges);
 }
