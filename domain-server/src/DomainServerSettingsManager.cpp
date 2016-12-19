@@ -795,10 +795,6 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
                 // It's time to figure out the username
                 QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
 
-                if (verifiedUsername.isEmpty()) {
-                    // Make sure we're using an empty string as the Verified Username
-                    verifiedUsername = "";
-                }
                 // Setup the packet
                 auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply);
                 usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
