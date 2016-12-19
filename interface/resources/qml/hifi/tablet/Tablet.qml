@@ -7,8 +7,8 @@ Item {
 
     property double miclevel: 0.8
 
-    width: 480
-    height: 720
+    width: parent.width
+    height: parent.height
 
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
@@ -171,7 +171,7 @@ Item {
             console.log("Tablet.onCompleted!");
             var component = Qt.createComponent("TabletButton.qml");
             var buttons = [];
-            for (var i = 0; i < 5; i++) {
+            for (var i = 0; i < 6; i++) {
                 var button = component.createObject(flowMain);
                 button.inDebugMode = true;
                 buttons.push(button);
