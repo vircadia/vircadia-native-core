@@ -260,12 +260,8 @@ void RenderableWebEntityItem::loadSourceURL() {
 
         // TABLET_UI_HACK: move this to overlays as well!
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
-            auto loader = _webSurface->getRootItem()->findChild<QQuickItem*>("loader");
-            if (loader) {
-                auto tablet = loader->findChild<QQuickItem*>("tablet");
-                auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-                tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", tablet);
-            }
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
         }
     }
 }
@@ -369,7 +365,7 @@ void RenderableWebEntityItem::destroyWebSurface() {
         // TABLET_UI_HACK: move this to overlays as well!
         if (rootItem && rootItem->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", nullptr);
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
         }
 
         if (rootItem) {

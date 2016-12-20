@@ -27,10 +27,10 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
     }
 }
 
-void TabletScriptingInterface::setQmlTablet(QString tabletId, QQuickItem* qmlTablet) {
+void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot) {
     TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet(tabletId));
     if (tablet) {
-        tablet->setQmlTablet(qmlTablet);
+        tablet->setQmlTabletRoot(qmlTabletRoot);
     } else {
         qWarning() << "TabletScriptingInterface::setupTablet() bad tablet object";
     }
@@ -39,6 +39,10 @@ void TabletScriptingInterface::setQmlTablet(QString tabletId, QQuickItem* qmlTab
 //
 // TabletProxy
 //
+
+static const char* TABLET_SOURCE_URL = "Tablet.qml";
+static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
+static const char* LOADER_SOURCE_PROPERTY_NAME = "loaderSource";
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
     ;
@@ -66,18 +70,35 @@ static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* 
     buttonProxy->setQmlButton(qobject_cast<QQuickItem*>(qmlButton));
 }
 
-void TabletProxy::setQmlTablet(QQuickItem* qmlTablet) {
+void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot) {
     std::lock_guard<std::mutex> guard(_mutex);
-    if (qmlTablet) {
-        _qmlTablet = qmlTablet;
-        for (auto& buttonProxy : _tabletButtonProxies) {
-            addButtonProxyToQmlTablet(_qmlTablet, buttonProxy.data());
-        }
+    _qmlTabletRoot = qmlTabletRoot;
+    if (_qmlTabletRoot) {
+        gotoHomeScreen();
     } else {
-        for (auto& buttonProxy : _tabletButtonProxies) {
-            buttonProxy->setQmlButton(nullptr);
+        removeButtonsFromHomeScreen();
+    }
+}
+
+void TabletProxy::gotoHomeScreen() {
+    if (_qmlTabletRoot) {
+        QString tabletSource = _qmlTabletRoot->property(LOADER_SOURCE_PROPERTY_NAME).toString();
+        if (tabletSource != TABLET_SOURCE_URL) {
+            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
+            addButtonsToHomeScreen();
         }
-        _qmlTablet = nullptr;
+    }
+}
+
+void TabletProxy::gotoWebScreen(const QString& url) {
+    if (_qmlTabletRoot) {
+        removeButtonsFromHomeScreen();
+        QString tabletSource = _qmlTabletRoot->property(LOADER_SOURCE_PROPERTY_NAME).toString();
+        if (tabletSource != WEB_VIEW_SOURCE_URL) {
+            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
+            // TABLET_UI_HACK: TODO: addEventBridge to tablet....
+        }
+        QMetaObject::invokeMethod(_qmlTabletRoot, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)));
     }
 }
 
@@ -85,8 +106,8 @@ QObject* TabletProxy::addButton(const QVariant& properties) {
     auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
     std::lock_guard<std::mutex> guard(_mutex);
     _tabletButtonProxies.push_back(tabletButtonProxy);
-    if (_qmlTablet) {
-        addButtonProxyToQmlTablet(_qmlTablet, tabletButtonProxy.data());
+    if (_qmlTabletRoot) {
+        addButtonProxyToQmlTablet(_qmlTabletRoot, tabletButtonProxy.data());
     }
     return tabletButtonProxy.data();
 }
@@ -95,13 +116,41 @@ void TabletProxy::removeButton(QObject* tabletButtonProxy) {
     std::lock_guard<std::mutex> guard(_mutex);
     auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
     if (iter != _tabletButtonProxies.end()) {
-        if (_qmlTablet) {
+        if (_qmlTabletRoot) {
             (*iter)->setQmlButton(nullptr);
-            QMetaObject::invokeMethod(_qmlTablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
+            QMetaObject::invokeMethod(_qmlTabletRoot, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
         }
         _tabletButtonProxies.erase(iter);
     } else {
         qWarning() << "TabletProxy::removeButton() could not find button " << tabletButtonProxy;
+    }
+}
+
+void TabletProxy::addButtonsToHomeScreen() {
+    if (!_qmlTabletRoot) {
+        return;
+    }
+
+    auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+    if (!loader) {
+        return;
+    }
+
+    auto tablet = loader->findChild<QQuickItem*>("tablet");
+    if (!tablet) {
+        return;
+    }
+
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    for (auto& buttonProxy : _tabletButtonProxies) {
+        addButtonProxyToQmlTablet(tablet, buttonProxy.data());
+    }
+}
+
+void TabletProxy::removeButtonsFromHomeScreen() {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    for (auto& buttonProxy : _tabletButtonProxies) {
+        buttonProxy->setQmlButton(nullptr);
     }
 }
 

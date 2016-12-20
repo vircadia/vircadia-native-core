@@ -28,6 +28,8 @@ Script.setInterval(function () {
 
 button.clicked.connect(function () {
     print("AJT: BAM!!! CLICK from JS!");
+    var url = "https://news.ycombinator.com/";
+    tablet.gotoWebScreen(url);
 });
 
 Script.scriptEnding.connect(function () {

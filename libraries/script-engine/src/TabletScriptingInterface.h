@@ -37,7 +37,7 @@ public:
      */
     Q_INVOKABLE QObject* getTablet(const QString& tabletId);
 
-    void setQmlTablet(QString tabletId, QQuickItem* qmlTablet);
+    void setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot);
 
 protected:
     std::mutex _mutex;
@@ -54,7 +54,20 @@ class TabletProxy : public QObject {
 public:
     TabletProxy(QString name);
 
-    void setQmlTablet(QQuickItem* qmlTablet);
+    void setQmlTabletRoot(QQuickItem* qmlTabletRoot);
+
+    /**jsdoc
+     * @function TabletProxy#gotoHomeScreen
+     * transition to the home screen
+     */
+    Q_INVOKABLE void gotoHomeScreen();
+
+    /**jsdoc
+     * @function TabletProxy#gotoWebScreen
+     * show the specified web url on the tablet.
+     * @param url {string}
+     */
+    Q_INVOKABLE void gotoWebScreen(const QString& url);
 
     /**jsdoc
      * @function TabletProxy#addButton
@@ -73,10 +86,14 @@ public:
 
     QString getName() const { return _name; }
 protected:
+
+    void addButtonsToHomeScreen();
+    void removeButtonsFromHomeScreen();
+
     QString _name;
     std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
-    QQuickItem* _qmlTablet { nullptr };
+    QQuickItem* _qmlTabletRoot { nullptr };
 };
 
 /**jsdoc
