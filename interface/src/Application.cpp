@@ -4070,7 +4070,6 @@ void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
         if (overlayType == Web3DOverlay::TYPE && isVisible) {
             auto overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(overlayID));
             overlay->setProxyWindow(_window->windowHandle());
-
             if (_keyboardMouseDevice->isActive()) {
                 _keyboardMouseDevice->pluginFocusOutEvent();
             }

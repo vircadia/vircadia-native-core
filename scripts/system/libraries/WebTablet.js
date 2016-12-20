@@ -78,16 +78,16 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
-    var WEB_OVERLAY_Z_OFFSET = -0.01;
-    var HOME_BUTTON_Y_OFFSET = -0.32;
-
-    var webOverlayRotation = Quat.multiply(spawnInfo.rotation, Quat.angleAxis(180, Y_AXIS));
-    var webOverlayPosition = Vec3.sum(spawnInfo.position, Vec3.multiply(WEB_OVERLAY_Z_OFFSET, Quat.getFront(webOverlayRotation)));
+    var WEB_ENTITY_Z_OFFSET = -0.01;
+    if (this.webOverlayID) {
+        Overlays.deleteOverlay(this.webOverlayID);
+    }
 
     this.webOverlayID = Overlays.addOverlay("web3d", {
+        name: "WebTablet Web",
         url: url,
-        position: webOverlayPosition,
-        rotation: webOverlayRotation,
+        localPosition: { x: 0, y: 0, z: WEB_ENTITY_Z_OFFSET },
+        localRotation: Quat.angleAxis(180, Y_AXIS),
         resolution: { x: 480, y: 640 },
         dpi: DPI,
         color: { red: 255, green: 255, blue: 255 },
@@ -96,6 +96,7 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
         parentJointIndex: -1
     });
 
+    var HOME_BUTTON_Y_OFFSET = -0.32;
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
         type: "Sphere",
