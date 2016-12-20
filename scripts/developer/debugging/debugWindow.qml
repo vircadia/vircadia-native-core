@@ -28,6 +28,13 @@ Rectangle {
     }
 
     function fromScript(message) {
+        var MAX_LINE_COUNT = 2000;
+        var TRIM_LINES = 500;
+        if (textArea.lineCount > MAX_LINE_COUNT) {
+            var lines = textArea.text.split('\n');
+            lines.splice(0, TRIM_LINES);
+            textArea.text = lines.join('\n');
+        }
         textArea.append(message);
     }
 }
