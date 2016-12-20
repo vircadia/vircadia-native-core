@@ -10,6 +10,10 @@
 #include "TestScriptingInterface.h"
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QLoggingCategory>
+
+#include <DependencyManager.h>
+#include <Trace.h>
 
 TestScriptingInterface* TestScriptingInterface::getInstance() {
     static TestScriptingInterface sharedInstance;
@@ -27,4 +31,28 @@ void TestScriptingInterface::waitForDownloadIdle() {
 }
 
 void TestScriptingInterface::waitIdle() {
+}
+
+bool TestScriptingInterface::startTracing(QString logrules) {
+    if (!logrules.isEmpty()) {
+        QLoggingCategory::setFilterRules(logrules);
+    }
+
+    if (!DependencyManager::isSet<tracing::Tracer>()) {
+        return false;
+    }
+
+    DependencyManager::get<tracing::Tracer>()->startTracing();
+    return true;
+}
+
+bool TestScriptingInterface::stopTracing(QString filename) {
+    if (!DependencyManager::isSet<tracing::Tracer>()) {
+        return false;
+    }
+
+    auto tracer = DependencyManager::get<tracing::Tracer>();
+    tracer->stopTracing();
+    tracer->serialize(filename);
+    return true;
 }

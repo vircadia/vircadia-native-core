@@ -27,6 +27,7 @@
 #include "Model.h"
 
 #include "RenderUtilsLogging.h"
+#include <Trace.h>
 
 using namespace std;
 
@@ -280,7 +281,8 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(render, __FUNCTION__);
+    PerformanceTimer perfTimer("Model::updateGeometry");
     bool needFullUpdate = false;
 
     if (!isLoaded()) {
@@ -474,7 +476,7 @@ bool Model::convexHullContains(glm::vec3 point) {
 // entity-scripts to call.  I think it would be best to do the picking once-per-frame (in cpu, or gpu if possible)
 // and then the calls use the most recent such result.
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(render, __FUNCTION__);
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
@@ -612,6 +614,22 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
             pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
         }
         foreach (auto item, _collisionRenderItems.keys()) {
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+    }
+}
+
+
+void Model::setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene) {
+    if (_isLayeredInFront != layered) {
+        _isLayeredInFront = layered;
+
+        render::PendingChanges pendingChanges;
+        foreach(auto item, _modelMeshRenderItems.keys()) {
+            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
+        }
+        foreach(auto item, _collisionRenderItems.keys()) {
             pendingChanges.resetItem(item, _collisionRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
@@ -848,6 +866,12 @@ void Model::setTextures(const QVariantMap& textures) {
         _needsUpdateTextures = true;
         _needsFixupInScene = true;
         _renderGeometry->setTextures(textures);
+    } else {
+        // FIXME(Huffman): Disconnect previously connected lambdas so we don't set textures multiple
+        // after the geometry has finished loading.
+        connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, [this, textures]() {
+            _renderGeometry->setTextures(textures);
+        });
     }
 }
 
@@ -967,7 +991,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 void Blender::run() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     QVector<glm::vec3> vertices, normals;
     if (_model) {
         int offset = 0;
@@ -1088,7 +1112,8 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(simulation, __FUNCTION__);
+    PerformanceTimer perfTimer("Model::simulate");
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 

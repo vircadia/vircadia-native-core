@@ -2,9 +2,8 @@
 import QtQuick 2.3
 import QtQuick.Controls 1.4
 import QtWebChannel 1.0
-import QtWebEngine 1.1
+import QtWebEngine 1.2
 import QtWebSockets 1.0
-import "qrc:///qtwebchannel/qwebchannel.js" as WebChannel
 
 import "windows" as Windows
 import "controls"
@@ -23,10 +22,22 @@ Windows.Window {
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     property var source;
-    property var eventBridge;
     property var component;
     property var dynamicContent;
 
+    // Keyboard control properties in case needed by QML content.
+    property bool keyboardEnabled: false
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+
+    // JavaScript event bridge object in case QML content includes Web content.
+    property alias eventBridge: eventBridgeWrapper.eventBridge;
+
+    QtObject {
+        id: eventBridgeWrapper
+        WebChannel.id: "eventBridgeWrapper"
+        property var eventBridge;
+    }
 
     onSourceChanged: {
         if (dynamicContent) {
@@ -71,7 +82,6 @@ Windows.Window {
             dynamicContent.sendToScript.connect(sendToScript);
         }
     }
-
 
     Item {
         id: contentHolder

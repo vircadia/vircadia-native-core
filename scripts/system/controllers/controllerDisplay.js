@@ -21,14 +21,17 @@ function clamp(value, min, max) {
 }
 
 function resolveHardware(path) {
-    var parts = path.split(".");
-    function resolveInner(base, path, i) {
-        if (i >= path.length) {
-            return base;
+    if (typeof path === 'string') {
+        var parts = path.split(".");
+        function resolveInner(base, path, i) {
+            if (i >= path.length) {
+                return base;
+            }
+            return resolveInner(base[path[i]], path, ++i);
         }
-        return resolveInner(base[path[i]], path, ++i);
+        return resolveInner(Controller.Hardware, parts, 0);
     }
-    return resolveInner(Controller.Hardware, parts, 0);
+    return path;
 }
 
 var DEBUG = true;
@@ -132,7 +135,9 @@ createControllerDisplay = function(config) {
                 overlayID = Overlays.addOverlay("model", properties);
 
                 if (part.type === "rotational") {
-                    mapping.from([part.input]).peek().to(function(controller, overlayID, part) {
+                    var input = resolveHardware(part.input);
+                    print("Mapping to: ", part.input, input);
+                    mapping.from([input]).peek().to(function(controller, overlayID, part) {
                         return function(value) {
                             value = clamp(value, part.minValue, part.maxValue);
 
@@ -157,18 +162,85 @@ createControllerDisplay = function(config) {
                     }(controller, overlayID, part));
                 } else if (part.type === "touchpad") {
                     var visibleInput = resolveHardware(part.visibleInput);
-                    var xinput = resolveHardware(part.xInput);
-                    var yinput = resolveHardware(part.yInput);
+                    var xInput = resolveHardware(part.xInput);
+                    var yInput = resolveHardware(part.yInput);
 
                     // TODO: Touchpad inputs are currently only working for half
                     // of the touchpad. When that is fixed, it would be useful
                     // to update these to display the current finger position.
                     mapping.from([visibleInput]).peek().to(function(value) {
                     });
-                    mapping.from([xinput]).peek().to(function(value) {
+                    mapping.from([xInput]).peek().to(function(value) {
                     });
-                    mapping.from([yinput]).peek().invert().to(function(value) {
+                    mapping.from([yInput]).peek().invert().to(function(value) {
                     });
+                } else if (part.type === "joystick") {
+                    (function(controller, overlayID, part) {
+                        const xInput = resolveHardware(part.xInput);
+                        const yInput = resolveHardware(part.yInput);
+
+                        var xvalue = 0;
+                        var yvalue = 0;
+
+                        function calculatePositionAndRotation(xValue, yValue) {
+                            var rotation = Quat.fromPitchYawRollDegrees(yValue * part.xHalfAngle, 0, xValue * part.yHalfAngle);
+
+                            var offset = { x: 0, y: 0, z: 0 };
+                            if (part.originOffset) {
+                                offset = Vec3.multiplyQbyV(rotation, part.originOffset);
+                                offset = Vec3.subtract(part.originOffset, offset);
+                            }
+                            
+                            var partPosition = Vec3.sum(controller.position,
+                                    Vec3.multiplyQbyV(controller.rotation, Vec3.sum(offset, part.naturalPosition)));
+
+                            var partRotation = Quat.multiply(controller.rotation, rotation)
+
+                            return {
+                                position: partPosition,
+                                rotation: partRotation
+                            }
+                        }
+
+                        mapping.from([xInput]).peek().to(function(value) {
+                            xvalue = value;
+                            //print(overlayID, xvalue.toFixed(3), yvalue.toFixed(3));
+                            var posRot = calculatePositionAndRotation(xvalue, yvalue);
+                            Overlays.editOverlay(overlayID, {
+                                localPosition: posRot.position,
+                                localRotation: posRot.rotation
+                            });
+                        });
+
+                        mapping.from([yInput]).peek().to(function(value) {
+                            yvalue = value;
+                            var posRot = calculatePositionAndRotation(xvalue, yvalue);
+                            Overlays.editOverlay(overlayID, {
+                                localPosition: posRot.position,
+                                localRotation: posRot.rotation
+                            });
+                        });
+                    })(controller, overlayID, part);
+
+                } else if (part.type === "linear") {
+                    (function(controller, overlayID, part) {
+                        const input = resolveHardware(part.input);
+
+                        mapping.from([input]).peek().to(function(value) {
+                            //print(value);
+                            var axis = Vec3.multiplyQbyV(controller.rotation, part.axis);
+                            var offset = Vec3.multiply(part.maxTranslation * value, axis);
+
+                            var partPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition));
+                            var position = Vec3.sum(partPosition, offset);
+
+                            Overlays.editOverlay(overlayID, {
+                                localPosition: position
+                            });
+                        });
+
+                    })(controller, overlayID, part);
+
                 } else if (part.type === "static") {
                     // do nothing
                 } else {

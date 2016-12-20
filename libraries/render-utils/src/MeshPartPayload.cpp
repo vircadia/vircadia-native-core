@@ -304,6 +304,12 @@ template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointe
     }
     return Item::Bound();
 }
+template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload) {
+    if (payload) {
+        return payload->getLayer();
+    }
+    return 0;
+}
 
 template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload) {
     if (payload) {
@@ -378,6 +384,10 @@ ItemKey ModelMeshPartPayload::getKey() const {
         builder.withInvisible();
     }
 
+    if (_model->isLayeredInFront()) {
+        builder.withLayered();
+    }
+
     if (_isBlendShaped || _isSkinned) {
         builder.withDeformed();
     }
@@ -394,6 +404,17 @@ ItemKey ModelMeshPartPayload::getKey() const {
     }
 
     return builder.build();
+}
+
+int ModelMeshPartPayload::getLayer() const {
+    // MAgic number while we are defining the layering mechanism:
+    const int LAYER_3D_FRONT = 1;
+    const int LAYER_3D = 0;
+    if (_model->isLayeredInFront()) {
+        return LAYER_3D_FRONT;
+    } else {
+        return LAYER_3D;
+    }
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {

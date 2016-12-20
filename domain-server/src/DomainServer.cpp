@@ -43,6 +43,8 @@
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
+#include <Trace.h>
+#include <StatTracker.h>
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -72,6 +74,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _iceServerPort(ICE_SERVER_DEFAULT_PORT)
 {
     parseCommandLine();
+
+    DependencyManager::set<tracing::Tracer>();
+    DependencyManager::set<StatTracker>();
 
     LogUtils::init();
     Setting::init();
@@ -527,6 +532,7 @@ void DomainServer::setupNodeListAndAssignments() {
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
     packetReceiver.registerListener(PacketType::NodeKickRequest, &_settingsManager, "processNodeKickRequestPacket");
+    packetReceiver.registerListener(PacketType::UsernameFromIDRequest, &_settingsManager, "processUsernameFromIDRequestPacket");
     
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");

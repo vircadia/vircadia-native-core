@@ -16,6 +16,8 @@
 
 #include <QtCore/QDebug>
 
+#include <Profile.h>
+
 #include <LogHandler.h>
 #include <NodeList.h>
 #include <PerfStat.h>
@@ -28,6 +30,7 @@
 #include "OctreeLogging.h"
 #include "OctreeUtils.h"
 #include "SharedUtil.h"
+#include <Trace.h>
 
 AtomicUIntStat OctreeElement::_octreeMemoryUsage { 0 };
 AtomicUIntStat OctreeElement::_octcodeMemoryUsage { 0 };

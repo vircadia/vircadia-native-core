@@ -37,6 +37,7 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
+#include <Trace.h>
 
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
@@ -1116,7 +1117,6 @@ void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep) {
 }
 
 void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp) {
-
     if (connectionStep == ConnectionStep::LookupAddress) {
         QWriteLocker writeLock(&_connectionTimeLock);
 

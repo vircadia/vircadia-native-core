@@ -56,6 +56,7 @@ signals:
     void progress(qint64 totalReceived, qint64 total);
 
 private:
+    int _requestID;
     State _state = NotStarted;
     Error _error = NoError;
     AssetInfo _info;
