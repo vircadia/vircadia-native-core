@@ -31,7 +31,7 @@ import QtQuick.Controls 1.4
 import "../styles-uit"
 import "../controls-uit" as HifiControls
 
-Rectangle {
+Item {
     id: pal;
     // Size
     width: parent.width;
@@ -40,18 +40,19 @@ Rectangle {
     property int myCardHeight: 70;
     property int rowHeight: 70;
     property int separatorColWidth: 10;
-    property int actionButtonWidth: 55;
-    property int nameCardWidth: width - separatorColWidth-  actionButtonWidth*(table.columnCount - 2); // "-2" for Name and Separator cols;
+    property int actionButtonWidth: 70;
+    property int nameCardWidth: width - (iAmAdmin ? separatorColWidth : 0) - actionButtonWidth*(iAmAdmin ? 4 : 2);
 
     // This contains the current user's NameCard and will contain other information in the future
-    Item {
+    Rectangle {
         id: myInfo;
         // Size
         width: pal.width;
         height: myCardHeight;
         // Anchors
         anchors.top: pal.top;
-        anchors.left: pal.left;
+        // Properties
+        radius: hifi.dimensions.borderRadius;
         // This NameCard refers to the current user's NameCard (the one above the table)
         NameCard {
             id: myCard;
@@ -65,17 +66,34 @@ Rectangle {
             anchors.left: parent.left;
         }
     }
+    // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
+    Rectangle {
+        color: "#FFFFFF";
+        width: pal.width;
+        height: 10;
+        anchors.top: myInfo.bottom;
+        anchors.left: parent.left;
+    }
+    Rectangle {
+        color: "#FFFFFF";
+        width: pal.width;
+        height: 10;
+        anchors.bottom: table.top;
+        anchors.left: parent.left;
+    }
     // This TableView refers to the table (below the current user's NameCard)
     HifiControls.Table {
         id: table;
         // Size
         height: pal.height - myInfo.height;
-        width: pal.width;
+        width: pal.width - 4;
         // Anchors
+        anchors.left: parent.left;
         anchors.top: myInfo.bottom;
         // Properties
-        frameVisible: false;
+        centerHeaderText: true;
         sortIndicatorVisible: true;
+        headerVisible: true;
         onSortIndicatorColumnChanged: sortModel();
         onSortIndicatorOrderChanged: sortModel();
 
@@ -98,6 +116,7 @@ Rectangle {
             movable: false;
         }
         TableViewColumn {
+            visible: iAmAdmin;
             title: "";
             width: separatorColWidth;
             resizable: false;
