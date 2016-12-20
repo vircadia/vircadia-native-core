@@ -18,11 +18,16 @@ Row {
     // Spacing
     spacing: 10;
     // Anchors
-    anchors.topMargin: 10;
-    anchors.leftMargin: 10;
-    anchors.verticalCenter: parent.verticalCenter;
+    anchors.top: parent.top;
+    anchors {
+        topMargin: (parent.height - contentHeight)/2;
+        bottomMargin: (parent.height - contentHeight)/2;
+        leftMargin: 10;
+        rightMargin: 10;
+    }
 
     // Properties
+    property int contentHeight: 50;
     property string displayName: "";
     property string userName: "";
     property int displayTextHeight: 18;
@@ -31,8 +36,8 @@ Row {
     Column {
         id: avatarImage;
         // Size
-        width: 50;
-        height: width;
+        height: contentHeight;
+        width: height;
         Rectangle {
             radius: parent.width*0.5;
             color: "#AAA5AD";
@@ -44,12 +49,11 @@ Row {
     Column {
         id: textContainer;
         // Size
-        width: parent.width - avatarImage.width - parent.anchors.leftMargin*2 - parent.spacing;
-        // Anchors
-        anchors.verticalCenter: parent.verticalCenter;
+        width: parent.width - avatarImage.width - parent.anchors.leftMargin - parent.anchors.rightMargin - parent.spacing;
+        height: contentHeight;
 
         // DisplayName Text
-        RalewaySemiBold {
+        FiraSansSemiBold {
             id: displayNameText;
             // Properties
             text: thisNameCard.displayName;
@@ -63,7 +67,7 @@ Row {
         }
 
         // UserName Text
-        RalewayLight {
+        FiraSansSemiBold {
             id: userNameText;
             // Properties
             text: thisNameCard.userName;
@@ -84,11 +88,11 @@ Row {
         }
 
         // VU Meter
-        Hifi.AvatarInputs {
+        Rectangle {
             id: nameCardVUMeter;
             objectName: "AvatarInputs";
             width: parent.width;
-            height: 30;
+            height: 4;
             // Avatar Audio VU Meter
             Item {
                 id: controls;

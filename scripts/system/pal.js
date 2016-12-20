@@ -79,7 +79,7 @@ ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the on
 var pal = new OverlayWindow({
     title: 'People Action List',
     source: 'hifi/Pal.qml',
-    width: 480,
+    width: 580,
     height: 640,
     visible: false
 });
@@ -144,7 +144,8 @@ function usernameFromIDReply(id, username, machineFingerprint) {
         // Set the data to contain specific strings.
         data = ['', username]
     } else {
-        // Set the data to contain the ID and the username+ID concat string.
+        // Set the data to contain the ID and the username (if we have one)
+        // or fingerprint (if we don't have a username) string.
         data = [id, username || machineFingerprint];
     }
     print('Username Data:', JSON.stringify(data));

@@ -28,6 +28,8 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import "../styles-uit"
+import "../controls-uit" as HifiControls
 
 Rectangle {
     id: pal;
@@ -35,10 +37,10 @@ Rectangle {
     width: parent.width;
     height: parent.height;
     // Properties
-    property int myCardHeight: 75;
-    property int rowHeight: 65;
-    property int separatorColWidth: 30;
-    property int actionButtonWidth: 50;
+    property int myCardHeight: 70;
+    property int rowHeight: 70;
+    property int separatorColWidth: 10;
+    property int actionButtonWidth: 55;
     property int nameCardWidth: width - separatorColWidth-  actionButtonWidth*(table.columnCount - 2); // "-2" for Name and Separator cols;
 
     // This contains the current user's NameCard and will contain other information in the future
@@ -50,8 +52,6 @@ Rectangle {
         // Anchors
         anchors.top: pal.top;
         anchors.left: pal.left;
-        anchors.topMargin: 10;
-        anchors.bottomMargin: anchors.topMargin;
         // This NameCard refers to the current user's NameCard (the one above the table)
         NameCard {
             id: myCard;
@@ -66,7 +66,7 @@ Rectangle {
         }
     }
     // This TableView refers to the table (below the current user's NameCard)
-    TableView {
+    HifiControls.Table {
         id: table;
         // Size
         height: pal.height - myInfo.height;
@@ -81,29 +81,41 @@ Rectangle {
 
         TableViewColumn {
             role: "displayName";
-            title: "Name";
-            width: nameCardWidth
+            title: "NAMES";
+            width: nameCardWidth;
+            movable: false;
+        }
+        TableViewColumn {
+            role: "personalMute";
+            title: "MUTE"
+            width: actionButtonWidth;
+            movable: false;
         }
         TableViewColumn {
             role: "ignore";
-            title: "Ignore"
-            width: actionButtonWidth
+            title: "IGNORE";
+            width: actionButtonWidth;
+            movable: false;
         }
         TableViewColumn {
             title: "";
-            width: separatorColWidth
+            width: separatorColWidth;
+            resizable: false;
+            movable: false;
         }
         TableViewColumn {
             visible: iAmAdmin;
             role: "mute";
-            title: "Mute";
-            width: actionButtonWidth
+            title: "SILENCE";
+            width: actionButtonWidth;
+            movable: false;
         }
         TableViewColumn {
             visible: iAmAdmin;
             role: "kick";
-            title: "Ban"
-            width: actionButtonWidth
+            title: "BAN"
+            width: actionButtonWidth;
+            movable: false;
         }
         model: userModel;
 
@@ -127,9 +139,6 @@ Rectangle {
             id: itemCell;
             property bool isCheckBox: typeof(styleData.value) === 'boolean';
             property bool isSeparator: styleData.value === '';
-            // Anchors
-            anchors.topMargin: 10;
-            anchors.bottomMargin: anchors.topMargin;
             // This NameCard refers to the cell that contains an avatar's
             // DisplayName and UserName
             NameCard {
@@ -248,7 +257,7 @@ Rectangle {
                     datum[property] = false;
                 }
             }
-            ['ignore', 'spacer', 'mute', 'kick'].forEach(init);
+            ['personalMute', 'ignore', 'spacer', 'mute', 'kick'].forEach(init);
             datum.userIndex = userIndex++;
             userModel.append(datum);
         });
