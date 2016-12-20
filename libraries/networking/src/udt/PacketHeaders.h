@@ -230,7 +230,8 @@ enum class DomainServerAddedNodeVersion : PacketVersion {
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid,
-    GetUsernameFromUUIDSupport
+    GetUsernameFromUUIDSupport,
+    GetMachineFingerprintFromUUIDSupport
 };
 
 enum class AudioVersion : PacketVersion {

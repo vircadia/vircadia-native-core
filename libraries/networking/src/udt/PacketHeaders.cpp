@@ -44,7 +44,7 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::GetUsernameFromUUIDSupport);
+            return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
