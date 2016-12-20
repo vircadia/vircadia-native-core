@@ -286,7 +286,7 @@ bool RenderableModelEntityItem::getAnimationFrame() {
 
                 resizeJointArrays();
                 if (_jointMapping.size() != _model->getJointStateCount()) {
-                    qDebug() << "RenderableModelEntityItem::getAnimationFrame -- joint count mismatch"
+                    qCDebug(entities) << "RenderableModelEntityItem::getAnimationFrame -- joint count mismatch"
                              << _jointMapping.size() << _model->getJointStateCount();
                     assert(false);
                     return false;

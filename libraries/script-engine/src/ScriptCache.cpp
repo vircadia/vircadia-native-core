@@ -212,11 +212,11 @@ void ScriptCache::scriptContentAvailable() {
                 if (!irrecoverable) {
                     ++scriptRequest.numRetries;
 
-                    qDebug() << "Script request failed: " << url;
+                    qCDebug(scriptengine) << "Script request failed: " << url;
 
                     int timeout = exp(scriptRequest.numRetries) * START_DELAY_BETWEEN_RETRIES;
                     QTimer::singleShot(timeout, this, [this, url]() {
-                        qDebug() << "Retrying script request: " << url;
+                        qCDebug(scriptengine) << "Retrying script request: " << url;
 
                         auto request = ResourceManager::createResourceRequest(nullptr, url);
                         Q_ASSERT(request);

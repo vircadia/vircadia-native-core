@@ -33,6 +33,8 @@
 #include <Trace.h>
 #include <Profile.h>
 
+#include "../NetworkLogging.h"
+
 using namespace udt;
 using namespace std::chrono;
 
@@ -299,12 +301,12 @@ void SendQueue::run() {
         // we've already been asked to stop before we even got a chance to start
         // don't start now
 #ifdef UDT_CONNECTION_DEBUG
-        qDebug() << "SendQueue asked to run after being told to stop. Will not run.";
+        qCDebug(networking) << "SendQueue asked to run after being told to stop. Will not run.";
 #endif
         return;
     } else if (_state == State::Running) {
 #ifdef UDT_CONNECTION_DEBUG
-        qDebug() << "SendQueue asked to run but is already running (according to state). Will not re-run.";
+        qCDebug(networking) << "SendQueue asked to run but is already running (according to state). Will not re-run.";
 #endif
         return;
     }

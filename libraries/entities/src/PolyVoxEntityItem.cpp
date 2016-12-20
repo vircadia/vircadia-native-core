@@ -71,29 +71,29 @@ void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
 
         _voxelVolumeSize = glm::vec3(roundf(voxelVolumeSize.x), roundf(voxelVolumeSize.y), roundf(voxelVolumeSize.z));
         if (_voxelVolumeSize.x < 1) {
-            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to 1";
+            qCDebug(entities) << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to 1";
             _voxelVolumeSize.x = 1;
         }
         if (_voxelVolumeSize.x > MAX_VOXEL_DIMENSION) {
-            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to max";
+            qCDebug(entities) << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to max";
             _voxelVolumeSize.x = MAX_VOXEL_DIMENSION;
         }
 
         if (_voxelVolumeSize.y < 1) {
-            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to 1";
+            qCDebug(entities) << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to 1";
             _voxelVolumeSize.y = 1;
         }
         if (_voxelVolumeSize.y > MAX_VOXEL_DIMENSION) {
-            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to max";
+            qCDebug(entities) << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to max";
             _voxelVolumeSize.y = MAX_VOXEL_DIMENSION;
         }
 
         if (_voxelVolumeSize.z < 1) {
-            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to 1";
+            qCDebug(entities) << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to 1";
             _voxelVolumeSize.z = 1;
         }
         if (_voxelVolumeSize.z > MAX_VOXEL_DIMENSION) {
-            qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to max";
+            qCDebug(entities) << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to max";
             _voxelVolumeSize.z = MAX_VOXEL_DIMENSION;
         }
     });

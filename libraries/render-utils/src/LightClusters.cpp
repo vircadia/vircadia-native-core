@@ -9,6 +9,7 @@
 //
 
 #include "LightClusters.h"
+#include "RenderUtilsLogging.h"
 
 
 #include <gpu/Context.h>
@@ -327,7 +328,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
                     clusterGrid[index].emplace_back(lightId);
                     numClustersTouched++;
                 } else {
-                    qDebug() << "WARNING: LightClusters::scanLightVolumeSphere invalid index found ? numClusters = " << clusterGrid.size() << " index = " << index << " found from cluster xyz = " << x << " " << y << " " << z;
+                    qCDebug(renderutils) << "WARNING: LightClusters::scanLightVolumeSphere invalid index found ? numClusters = " << clusterGrid.size() << " index = " << index << " found from cluster xyz = " << x << " " << y << " " << z;
                 }
             }
         }

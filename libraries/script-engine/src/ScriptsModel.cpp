@@ -205,7 +205,7 @@ void ScriptsModel::downloadFinished() {
             qCDebug(scriptengine) << "Error: Received no data when loading default scripts";
         }
     } else {
-        qDebug() << "Error: when loading default scripts --" << reply->error();
+        qCDebug(scriptengine) << "Error: when loading default scripts --" << reply->error();
     }
 
     reply->deleteLater();

@@ -158,7 +158,7 @@ void NetworkPeer::activateMatchingOrNewSymmetricSocket(const HifiSockAddr& match
 }
 
 void NetworkPeer::softReset() {
-    qDebug() << "Soft reset ";
+    qCDebug(networking) << "Soft reset ";
     // a soft reset should clear the sockets and reset the number of connection attempts
     _localSocket.clear();
     _publicSocket.clear();
