@@ -570,16 +570,26 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         const QString TEST_SCRIPT = "--testScript";
         const QString TRACE_FILE = "--traceFile";
         const QStringList args = arguments();
-        for (int i = 0; i < args.size() - 1; ++i) {
+        std::cout << "adebug args.size() = " << args.size() << std::endl;  // adebug
+        for (int i = 0; i < args.size(); ++i) {
+            std::cout << i << "  adebug  '" << args.at(i).toStdString() << std::endl;  // adebug
             if (args.at(i) == TEST_SCRIPT) {
                 QString testScriptPath = args.at(i + 1);
+                std::cout << "adebug given test script '" << testScriptPath.toStdString() << "'" << std::endl;  // adebug
                 if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
+                    std::cout << "adebug found test script '" << testScriptPath.toStdString() << "'" << std::endl;  // adebug
+                    ++i;
+                } else {
+                    std::cout << "adebug did NOT find test script '" << testScriptPath.toStdString() << "'" << std::endl;  // adebug
                 }
-            } else if (args.at(i) == TRACE_FILE) {
-                QString traceFilePath = args.at(i + 1);
-                setProperty(hifi::properties::TRACING, traceFilePath);
-                DependencyManager::get<tracing::Tracer>()->startTracing();
+            } else {
+                std::cout << "adebug test script not specified'" << std::endl;  // adebug
+                if (args.at(i) == TRACE_FILE) {
+                    QString traceFilePath = args.at(i + 1);
+                    setProperty(hifi::properties::TRACING, traceFilePath);
+                    DependencyManager::get<tracing::Tracer>()->startTracing();
+                }
             }
         }
     }

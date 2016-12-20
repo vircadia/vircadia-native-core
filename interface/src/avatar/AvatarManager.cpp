@@ -25,13 +25,13 @@
 #endif
 
 
+#include <AvatarData.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
 #include <Rig.h>
 #include <SettingHandle.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
-#include <AvatarData.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -129,6 +129,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     QReadLocker lock(&_hashLock);
 
     if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
+        PROFILE_COUNTER(simulation_avatar, "AvatarsPerSec", { { "aps", 0.0f } });
+        PROFILE_COUNTER(simulation_avatar, "JointsPerSec", { { "jps", 0.0f } });
         return;
     }
 
@@ -143,6 +145,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatars
     auto hashCopy = getHashCopy();
 
+    uint64_t start = usecTimestampNow();
     AvatarHash::iterator avatarIterator = hashCopy.begin();
     while (avatarIterator != hashCopy.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
@@ -165,6 +168,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
+    float avatarsPerSecond = (float)(size() * USECS_PER_SECOND) / (float)(usecTimestampNow() - start);
+    PROFILE_COUNTER(simulation_avatar, "AvatarsPerSec", { { "aps", avatarsPerSecond } });
+    PROFILE_COUNTER(simulation_avatar, "JointsPerSec", { { "jps", Avatar::getNumJointsProcessedPerSecond() } });
 }
 
 void AvatarManager::postUpdate(float deltaTime) {

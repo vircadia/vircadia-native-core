@@ -22,6 +22,7 @@ Q_DECLARE_LOGGING_CATEGORY(trace_resource_parse)
 Q_DECLARE_LOGGING_CATEGORY(trace_resource_network)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_animation)
+Q_DECLARE_LOGGING_CATEGORY(trace_simulation_avatar)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics)
 
 class Duration {

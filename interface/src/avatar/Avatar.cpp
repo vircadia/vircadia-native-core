@@ -75,6 +75,19 @@ namespace render {
     }
 }
 
+static uint64_t timeProcessingJoints = 0;
+static int32_t numJointsProcessed = 0;
+
+float Avatar::getNumJointsProcessedPerSecond() {
+    float rate = 0.0f;
+    if (timeProcessingJoints > 0) {
+        rate = (float)(numJointsProcessed * USECS_PER_SECOND) / (float)timeProcessingJoints;
+    }
+    timeProcessingJoints = 0;
+    numJointsProcessed = 0;
+    return rate;
+}
+
 Avatar::Avatar(RigPointer rig) :
     AvatarData(),
     _skeletonOffset(0.0f),
@@ -281,7 +294,7 @@ void Avatar::updateAvatarEntities() {
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
-    if (!isDead() && !_motionState) {
+    if (!_motionState && !isDead()) {
         DependencyManager::get<AvatarManager>()->addAvatarToSimulation(this);
     }
     animateScaleChanges(deltaTime);
@@ -319,6 +332,7 @@ void Avatar::simulate(float deltaTime) {
         }
     }
 
+    uint64_t start = usecTimestampNow();
     if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
         {
             PerformanceTimer perfTimer("skeleton");
@@ -345,6 +359,8 @@ void Avatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel->simulate(deltaTime, false);
     }
+    timeProcessingJoints += usecTimestampNow() - start;
+    numJointsProcessed += _jointData.size();
 
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {
@@ -627,6 +643,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::fixupModelsInScene() {
+#ifdef FOO // adebug
     _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
@@ -650,6 +667,7 @@ void Avatar::fixupModelsInScene() {
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
     _attachmentsToRemove.clear();
     scene->enqueuePendingChanges(pendingChanges);
+#endif // adebug
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
