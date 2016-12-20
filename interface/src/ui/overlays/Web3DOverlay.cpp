@@ -18,16 +18,16 @@
 #include <QtQuick/QQuickItem>
 #include <QtQml/QQmlContext>
 
+#include <AbstractViewStateInterface.h>
+#include <gpu/Batch.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
-#include <TextureCache.h>
-#include <PathUtils.h>
-#include <gpu/Batch.h>
-#include <RegisteredMetaTypes.h>
-#include <AbstractViewStateInterface.h>
-
 #include <gl/OffscreenQmlSurface.h>
+#include <PathUtils.h>
+#include <RegisteredMetaTypes.h>
+#include <TabletScriptingInterface.h>
+#include <TextureCache.h>
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -36,7 +36,7 @@ static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 QString const Web3DOverlay::TYPE = "web3d";
 
-Web3DOverlay::Web3DOverlay() : _dpi(DPI) { 
+Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
@@ -57,6 +57,24 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
 
 Web3DOverlay::~Web3DOverlay() {
     if (_webSurface) {
+        QQuickItem* rootItem = _webSurface->getRootItem();
+
+        // TABLET_UI_HACK: TODO: update this with rootTablet
+        if (rootItem && rootItem->objectName() == "tablet") {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", nullptr);
+        }
+
+        // Fix for crash in QtWebEngineCore when rapidly switching domains
+        // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
+        if (rootItem) {
+            QObject* obj = rootItem->findChild<QObject*>("webEngineView");
+            if (obj) {
+                // stop loading
+                QMetaObject::invokeMethod(obj, "stop");
+            }
+        }
+
         _webSurface->pause();
         _webSurface->disconnect(_connection);
 
@@ -101,6 +119,32 @@ void Web3DOverlay::update(float deltatime) {
     */
 }
 
+void Web3DOverlay::loadSourceURL() {
+
+    QUrl sourceUrl(_url);
+    if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
+        _url.toLower().endsWith(".htm") || _url.toLower().endsWith(".html")) {
+
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        _webSurface->load("Web3DOverlay.qml");
+        _webSurface->resume();
+        _webSurface->getRootItem()->setProperty("url", _url);
+        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
+        _webSurface->getRootContext()->setContextProperty("ApplicationInterface", qApp);
+
+    } else {
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
+        _webSurface->load(_url, [&](QQmlContext* context, QObject* obj) {});
+        _webSurface->resume();
+
+        // TABLET_UI_HACK: TODO: update this to use rootTablet.
+        if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tablet") {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
+        }
+    }
+}
+
 void Web3DOverlay::render(RenderArgs* args) {
     if (!_visible || !getParentVisible()) {
         return;
@@ -119,12 +163,9 @@ void Web3DOverlay::render(RenderArgs* args) {
         // and the current rendering load)
         _webSurface->setMaxFps(10);
         _webSurface->create(currentContext);
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-        _webSurface->load("Web3DOverlay.qml");
-        _webSurface->resume();
-        _webSurface->getRootItem()->setProperty("url", _url);
-        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
-        _webSurface->getRootContext()->setContextProperty("ApplicationInterface", qApp);
+
+        loadSourceURL();
+
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
         currentContext->makeCurrent(currentSurface);
 
@@ -150,7 +191,7 @@ void Web3DOverlay::render(RenderArgs* args) {
                 point.setPos(windowPoint);
                 QList<QTouchEvent::TouchPoint> touchPoints;
                 touchPoints.push_back(point);
-                QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, 
+                QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased,
                     touchPoints);
                 touchEvent->setWindow(_webSurface->getWindow());
                 touchEvent->setDevice(&_touchDevice);
@@ -167,7 +208,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     vec4 color(toGlm(getColor()), getAlpha());
 
     Transform transform = getTransform();
-    
+
     // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
     // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
     /*
@@ -237,7 +278,7 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
 
     if (event.getType() == PointerEvent::Move) {
         // Forward a mouse move event to the Web surface.
-        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, 
+        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton,
             Qt::NoButton, Qt::NoModifier);
         QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
     }
@@ -338,7 +379,7 @@ void Web3DOverlay::setURL(const QString& url) {
     _url = url;
     if (_webSurface) {
         AbstractViewStateInterface::instance()->postLambdaEvent([this, url] {
-            _webSurface->getRootItem()->setProperty("url", url);
+            loadSourceURL();
         });
     }
 }

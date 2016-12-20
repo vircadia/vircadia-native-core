@@ -27,7 +27,6 @@
 
     Script.scriptEnding.connect(function () {
         tablet.removeButton(button);
-        button.clicked.disconnect(onClicked);
     });
 
 }()); // END LOCAL_SCOPE
