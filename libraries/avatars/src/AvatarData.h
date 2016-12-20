@@ -171,6 +171,9 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
 
     Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
+    // sessionDisplayName is sanitized, defaulted version displayName that is defined by the AvatarMixer rather than by Interface clients.
+    // The result is unique among all avatars present at the time.
+    Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
 
@@ -313,6 +316,7 @@ public:
         QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
+        QString sessionDisplayName;
         AvatarEntityMap avatarEntityData;
     };
 
@@ -325,9 +329,11 @@ public:
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
+    const QString& getSessionDisplayName() const { return _sessionDisplayName; }
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) { _sessionDisplayName = sessionDisplayName; };
 
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
@@ -390,6 +396,8 @@ public slots:
 
 protected:
     glm::vec3 _handPosition;
+    virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
+    virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
 
     // Body scale
     float _targetScale;
@@ -417,6 +425,7 @@ protected:
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
+    QString _sessionDisplayName { };
     const QUrl& cannonicalSkeletonModelURL(const QUrl& empty);
 
     float _displayNameTargetAlpha;

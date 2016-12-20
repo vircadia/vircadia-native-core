@@ -984,7 +984,7 @@ QStringList AvatarData::getJointNames() const {
 void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
     QDataStream packetStream(data);
 
-    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.avatarEntityData;
+    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.sessionDisplayName >> identityOut.avatarEntityData;
 }
 
 static const QUrl emptyURL("");
@@ -1006,6 +1006,7 @@ bool AvatarData::processAvatarIdentity(const Identity& identity) {
         setDisplayName(identity.displayName);
         hasIdentityChanged = true;
     }
+    maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
 
     if (identity.attachmentData != _attachmentData) {
         setAttachmentData(identity.attachmentData);
@@ -1030,7 +1031,7 @@ QByteArray AvatarData::identityByteArray() {
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL);
 
     _avatarEntitiesLock.withReadLock([&] {
-        identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _avatarEntityData;
+        identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << getSessionDisplayNameForTransport() << _avatarEntityData;
     });
 
     return identityData;
@@ -1385,6 +1386,7 @@ static const QString JSON_AVATAR_HEAD = QStringLiteral("head");
 static const QString JSON_AVATAR_HEAD_MODEL = QStringLiteral("headModel");
 static const QString JSON_AVATAR_BODY_MODEL = QStringLiteral("bodyModel");
 static const QString JSON_AVATAR_DISPLAY_NAME = QStringLiteral("displayName");
+// It isn't meaningful to persist sessionDisplayName.
 static const QString JSON_AVATAR_ATTACHEMENTS = QStringLiteral("attachments");
 static const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
 static const QString JSON_AVATAR_SCALE = QStringLiteral("scale");

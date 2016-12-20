@@ -117,7 +117,7 @@ function populateUserList() {
     AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
         var avatarPalDatum = {
-            displayName: avatar.displayName || ('anonymous ' + counter++),
+            displayName: avatar.sessionDisplayName,
             userName: '',
             sessionId: id || ''
         };
