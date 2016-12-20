@@ -1470,6 +1470,7 @@ function MyController(hand) {
         this.grabbedOverlay = null;
         this.isInitialGrab = false;
         this.shouldResetParentOnRelease = false;
+        this.preparingHoldRelease = false;
 
         this.checkForStrayChildren();
 
@@ -2151,10 +2152,19 @@ function MyController(hand) {
 
         if (this.state == STATE_HOLD) {
 
-            if (this.secondaryReleased()) {
+            if (this.secondarySqueezed()) {
+                // this.secondaryReleased() will always be true when not depressed
+                // so we cannot simply rely on that for release - ensure that the
+                // trigger was first "prepared" by being pushed in before the release
+                this.preparingHoldRelease = true;
+            }
+
+            if (this.preparingHoldRelease && this.secondaryReleased()) {
                 // we have an equipped object and the secondary trigger was released
                 // short-circuit the other checks and release it
-                this.release()
+                this.preparingHoldRelease = false;
+
+                this.release();
                 return;
             }
 
