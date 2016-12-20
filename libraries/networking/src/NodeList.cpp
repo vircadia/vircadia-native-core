@@ -373,6 +373,7 @@ void NodeList::sendDomainServerCheckIn() {
 
             packetStream << hardwareAddress;
 
+            // now add the machine fingerprint - a null UUID if logged in, real one if not logged in
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << (accountManager->isLoggedIn() ? QUuid() : FingerprintUtils::getMachineFingerprint());
         }
