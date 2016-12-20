@@ -171,7 +171,7 @@ Item {
             console.log("Tablet.onCompleted!");
             var component = Qt.createComponent("TabletButton.qml");
             var buttons = [];
-            for (var i = 0; i < 5; i++) {
+            for (var i = 0; i < 6; i++) {
                 var button = component.createObject(flowMain);
                 button.inDebugMode = true;
                 buttons.push(button);
