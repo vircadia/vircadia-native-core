@@ -1088,13 +1088,15 @@ function MyController(hand) {
     };
 
     this.secondaryReleased = function() {
-        return _this.rawSecondaryValue < BUMPER_ON_VALUE;
+        var released = _this.rawSecondaryValue < BUMPER_ON_VALUE;
 
-        if (_this.state == STATE_HOLD) {
+        if (released) {
             // if we were holding something, the release of the
             // secondary trigger releases it
             _this.release();
         }
+
+        return released;
     };
 
     // this.triggerOrsecondarySqueezed = function () {
