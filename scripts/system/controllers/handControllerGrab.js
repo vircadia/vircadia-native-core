@@ -27,7 +27,7 @@ Script.include("../libraries/controllers.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = true;
+var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 var FORCE_IGNORE_IK = false;
@@ -750,7 +750,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp) {
 // global EquipHotspotBuddy instance
 var equipHotspotBuddy = new EquipHotspotBuddy();
 
-
 function MyController(hand) {
     this.hand = hand;
     this.autoUnequipCounter = 0;
@@ -1193,6 +1192,7 @@ function MyController(hand) {
                 return;
             }
         }
+
 
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldHandPosition = controllerLocation.position;

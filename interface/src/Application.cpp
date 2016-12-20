@@ -1498,6 +1498,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
 
         _connectionMonitor.init();
+        // After all of the constructor is completed, then set firstRun to false.
+        firstRun.set(false);
     }
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
@@ -1517,9 +1519,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::hostnameChanged, this, &Application::addAssetToWorldMessageClose);
-
-    // After all of the constructor is completed, then set firstRun to false.
-    firstRun.set(false);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -4070,6 +4069,7 @@ void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
         if (overlayType == Web3DOverlay::TYPE && isVisible) {
             auto overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(overlayID));
             overlay->setProxyWindow(_window->windowHandle());
+
             if (_keyboardMouseDevice->isActive()) {
                 _keyboardMouseDevice->pluginFocusOutEvent();
             }
