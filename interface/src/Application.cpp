@@ -1498,6 +1498,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
 
         _connectionMonitor.init();
+
         // After all of the constructor is completed, then set firstRun to false.
         firstRun.set(false);
     }
@@ -1590,7 +1591,6 @@ void Application::toggleMenuUnderReticle() const {
     auto reticlePosition = getApplicationCompositor().getReticlePosition();
     offscreenUi->toggleMenu(QPoint(reticlePosition.x - X_LEFT_SHIFT, reticlePosition.y));
 }
-
 
 uint64_t lastTabletUIToggle { 0 };
 const uint64_t toggleTabletUILockout { 500000 };

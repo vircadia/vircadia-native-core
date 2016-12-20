@@ -65,7 +65,7 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
         dimensions: {x: WIDTH, y: HEIGHT, z: DEPTH},
         parentID: MyAvatar.sessionUUID,
         parentJointIndex: SENSOR_TO_ROOM_MATRIX
-    };
+    }
 
     if (location) {
         tabletProperties.localPosition = location.localPosition;
@@ -104,7 +104,7 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
         dimensions: {x: 0.05, y: 0.05, z: 0.05},
         parentID: this.tabletEntityID,
         script: Script.resolvePath("../tablet-ui/HomeButton.js")
-    }, clientOnly);
+        }, clientOnly);
 
     setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
 
