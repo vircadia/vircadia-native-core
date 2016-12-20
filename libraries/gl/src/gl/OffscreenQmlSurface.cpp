@@ -609,6 +609,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 }
 
 void OffscreenQmlSurface::updateQuick() {
+    offscreenTextures.report();
     // If we're
     //   a) not set up
     //   b) already rendering a frame

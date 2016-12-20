@@ -70,6 +70,8 @@ static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3"
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
 
+Q_LOGGING_CATEGORY(scriptengineScript, "hifi.scriptengine.script")
+
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     QString message = "";
     for (int i = 0; i < context->argumentCount(); i++) {
@@ -78,7 +80,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
         }
         message += context->argument(i).toString();
     }
-    qCDebug(scriptengine).noquote() << "script:print()<<" << message;  // noquote() so that \n is treated as newline
+    qCDebug(scriptengineScript).noquote() << "script:print()<<" << message;  // noquote() so that \n is treated as newline
 
     message = message.replace("\\", "\\\\")
                      .replace("\n", "\\n")
