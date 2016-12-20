@@ -16,6 +16,7 @@
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var isActive = false
 var button = tablet.addButton({
+    icon: "icons/tablet-icons/goto-i.svg",
     text:"GOTO"
 });
 
@@ -35,7 +36,7 @@ button.clicked.connect(onClicked);
 DialogsManager.addressBarShown.connect(onAddressBarShown);
 
 Script.scriptEnding.connect(function () {
-    toolBar.removeButton("goto");
+    tablet.removeButton(button);
     button.clicked.disconnect(onClicked);
     DialogsManager.addressBarShown.disconnect(onAddressBarShown);
 });
