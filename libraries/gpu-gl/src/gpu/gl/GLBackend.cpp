@@ -30,6 +30,7 @@
 
 #include "GLTexture.h"
 #include "GLShader.h"
+
 using namespace gpu;
 using namespace gpu::gl;
 
@@ -199,7 +200,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
     _inRenderTransferPass = true;
     { // Sync all the buffers
-        PROFILE_RANGE("syncGPUBuffer");
+        PROFILE_RANGE(render_gpu_gl, "syncGPUBuffer");
 
         for (auto& cached : batch._buffers._items) {
             if (cached._data) {
@@ -209,7 +210,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync all the buffers
-        PROFILE_RANGE("syncCPUTransform");
+        PROFILE_RANGE(render_gpu_gl, "syncCPUTransform");
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
 
@@ -241,7 +242,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync the transform buffers
-        PROFILE_RANGE("syncGPUTransform");
+        PROFILE_RANGE(render_gpu_gl, "syncGPUTransform");
         transferTransformState(batch);
     }
 
@@ -303,7 +304,7 @@ void GLBackend::render(const Batch& batch) {
     }
     
     {
-        PROFILE_RANGE("Transfer");
+        PROFILE_RANGE(render_gpu_gl, "Transfer");
         renderPassTransfer(batch);
     }
 
@@ -313,7 +314,7 @@ void GLBackend::render(const Batch& batch) {
     }
 #endif
     {
-        PROFILE_RANGE(_stereo._enable ? "Render Stereo" : "Render");
+        PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED

@@ -11,7 +11,6 @@
 #include <atomic>
 
 #include <Windows.h>
-#include <QtCore/QLoggingCategory>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtCore/QProcessEnvironment>
@@ -20,14 +19,14 @@
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
 
-using Mutex = std::mutex;
-using Lock = std::unique_lock<Mutex>;
-
-Q_DECLARE_LOGGING_CATEGORY(oculus)
-Q_LOGGING_CATEGORY(oculus, "hifi.plugins.oculus")
+Q_LOGGING_CATEGORY(displayplugins, "hifi.plugins.display")
+Q_LOGGING_CATEGORY(oculus, "hifi.plugins.display.oculus")
 
 static std::atomic<uint32_t> refCount { 0 };
 static ovrSession session { nullptr };
+
+static bool _quitRequested { false };
+static bool _reorientRequested { false };
 
 inline ovrErrorInfo getError() {
     ovrErrorInfo error;
@@ -116,6 +115,26 @@ void releaseOculusSession() {
 #endif
 }
 
+void handleOVREvents() {
+    if (!session) {
+        return;
+    }
+
+    ovrSessionStatus status;
+    if (!OVR_SUCCESS(ovr_GetSessionStatus(session, &status))) {
+        return;
+    }
+
+    _quitRequested = status.ShouldQuit;
+    _reorientRequested = status.ShouldRecenter;
+}
+
+bool quitRequested() {
+    return _quitRequested;
+}
+bool reorientRequested() {
+    return _reorientRequested;
+}
 
 controller::Pose ovrControllerPoseToHandPose(
     ovrHandType hand,
@@ -174,15 +193,14 @@ controller::Pose ovrControllerPoseToHandPose(
 
     static const glm::quat leftQuarterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
     static const glm::quat rightQuarterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
-    static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
 
-    static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ * eighthX) * touchToHand;
-    static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ * eighthX) * touchToHand;
+    static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ) * touchToHand;
+    static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ) * touchToHand;
 
     static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
     static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
-        CONTROLLER_LENGTH_OFFSET / 2.0f,
-        CONTROLLER_LENGTH_OFFSET * 2.0f);
+        -CONTROLLER_LENGTH_OFFSET / 2.0f,
+        CONTROLLER_LENGTH_OFFSET * 1.5f);
     static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
     static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
 

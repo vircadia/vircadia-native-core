@@ -1,6 +1,6 @@
 //
-//  SteamClient.cpp
-//  steamworks-wrapper/src/steamworks-wrapper
+//  SteamAPIPlugin.cpp
+//  plugins/steamClient/src
 //
 //  Created by Clement Brisset on 6/8/16.
 //  Copyright 2016 High Fidelity, Inc.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "SteamClient.h"
+#include "SteamAPIPlugin.h"
 
 #include <atomic>
 
@@ -226,18 +226,18 @@ static std::atomic_bool initialized { false };
 static SteamCallbackManager steamCallbackManager;
 
 
-bool SteamClient::isRunning() {
+bool SteamAPIPlugin::isRunning() {
     return initialized;
 }
 
-bool SteamClient::init() {
+bool SteamAPIPlugin::init() {
     if (SteamAPI_IsSteamRunning() && !initialized) {
         initialized = SteamAPI_Init();
     }
     return initialized;
 }
 
-void SteamClient::shutdown() {
+void SteamAPIPlugin::shutdown() {
     if (initialized) {
         SteamAPI_Shutdown();
     }
@@ -245,7 +245,7 @@ void SteamClient::shutdown() {
     steamCallbackManager.getTicketRequests().stopAll();
 }
 
-int SteamClient::getSteamVRBuildID() {
+int SteamAPIPlugin::getSteamVRBuildID() {
     if (initialized) {
         static const int MAX_PATH_SIZE = 512;
         static const int STEAMVR_APPID = 250820;
@@ -271,7 +271,7 @@ int SteamClient::getSteamVRBuildID() {
 }
 
 
-void SteamClient::runCallbacks() {
+void SteamAPIPlugin::runCallbacks() {
     if (!initialized) {
         return;
     }
@@ -285,7 +285,7 @@ void SteamClient::runCallbacks() {
     Steam_RunCallbacks(steamPipe, false);
 }
 
-void SteamClient::requestTicket(TicketRequestCallback callback) {
+void SteamAPIPlugin::requestTicket(TicketRequestCallback callback) {
     if (!initialized) {
         if (SteamAPI_IsSteamRunning()) {
             init();
@@ -304,7 +304,7 @@ void SteamClient::requestTicket(TicketRequestCallback callback) {
     steamCallbackManager.getTicketRequests().startRequest(callback);
 }
 
-void SteamClient::updateLocation(QString status, QUrl locationUrl) {
+void SteamAPIPlugin::updateLocation(QString status, QUrl locationUrl) {
     if (!initialized) {
         return;
     }
@@ -315,7 +315,7 @@ void SteamClient::updateLocation(QString status, QUrl locationUrl) {
     SteamFriends()->SetRichPresence("connect", connectStr.toLocal8Bit().data());
 }
 
-void SteamClient::openInviteOverlay() {
+void SteamAPIPlugin::openInviteOverlay() {
     if (!initialized) {
         return;
     }
@@ -326,7 +326,7 @@ void SteamClient::openInviteOverlay() {
 }
 
 
-void SteamClient::joinLobby(QString lobbyIdStr) {
+void SteamAPIPlugin::joinLobby(QString lobbyIdStr) {
     if (!initialized) {
         if (SteamAPI_IsSteamRunning()) {
             init();

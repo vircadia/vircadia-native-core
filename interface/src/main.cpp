@@ -15,14 +15,13 @@
 #include <QDir>
 #include <QLocalSocket>
 #include <QLocalServer>
-#include <QSettings>
 #include <QSharedMemory>
 #include <QTranslator>
 
+#include <BuildInfo.h>
 #include <gl/OpenGLVersionChecker.h>
 #include <SharedUtil.h>
 
-#include <steamworks-wrapper/SteamClient.h>
 
 #include "AddressManager.h"
 #include "Application.h"
@@ -32,7 +31,6 @@
 #include <QtCore/QProcess>
 
 #ifdef HAS_BUGSPLAT
-#include <BuildInfo.h>
 #include <BugSplat.h>
 #include <CrashReporter.h>
 #endif
@@ -51,7 +49,13 @@ int main(int argc, const char* argv[]) {
 #endif
 
     disableQtBearerPoll(); // Fixes wifi ping spikes
-    
+
+    // Set application infos
+    QCoreApplication::setApplicationName(BuildInfo::INTERFACE_NAME);
+    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
     bool instanceMightBeRunning = true;
@@ -129,8 +133,10 @@ int main(int argc, const char* argv[]) {
     }
 
     QCommandLineParser parser;
+    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
+    parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
     parser.parse(arguments);
@@ -157,11 +163,9 @@ int main(int argc, const char* argv[]) {
     // or in the main window ctor, before GL startup.
     Application::initPlugins(arguments);
 
-    SteamClient::init();
-
 #ifdef Q_OS_WIN
     // If we're running in steam mode, we need to do an explicit check to ensure we're up to the required min spec
-    if (SteamClient::isRunning()) {
+    if (parser.isSet(checkMinSpecOption)) {
         QString appPath;
         {
             char filename[MAX_PATH];
@@ -183,7 +187,6 @@ int main(int argc, const char* argv[]) {
 
     int exitCode;
     {
-        QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
 
         // If we failed the OpenGLVersion check, log it.
@@ -244,8 +247,6 @@ int main(int argc, const char* argv[]) {
     }
 
     Application::shutdownPlugins();
-
-    SteamClient::shutdown();
 
     qCDebug(interfaceapp, "Normal exit.");
 #if !defined(DEBUG) && !defined(Q_OS_LINUX)

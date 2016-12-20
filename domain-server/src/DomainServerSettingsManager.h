@@ -14,12 +14,15 @@
 
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
+#include <QtNetwork/QNetworkReply>
 
 #include <HifiConfigVariantMap.h>
 #include <HTTPManager.h>
 
 #include <ReceivedMessage.h>
 #include "NodePermissions.h"
+
+#include <Node.h>
 
 const QString SETTINGS_PATHS_KEY = "paths";
 

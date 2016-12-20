@@ -19,6 +19,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 
+#include <AABox.h>
 #include <LogHandler.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -31,7 +32,8 @@
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
-const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 60;
+// FIXME - what we'd actually like to do is send to users at ~50% of their present rate down to 30hz. Assume 90 for now.
+const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
 AvatarMixer::AvatarMixer(ReceivedMessage& message) :
@@ -240,18 +242,39 @@ void AvatarMixer::broadcastAvatarData() {
                     } else {
                         AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-                        // check to see if we're ignoring in radius
+                        // Check to see if the space bubble is enabled
                         if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
-                            float ignoreRadius = glm::min(node->getIgnoreRadius(), otherNode->getIgnoreRadius());
-                            if (glm::distance(nodeData->getPosition(), otherData->getPosition()) < ignoreRadius) {
+                            // Define the minimum bubble size
+                            static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
+                            // Define the scale of the box for the current node
+                            glm::vec3 nodeBoxScale = (nodeData->getPosition() - nodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+                            // Define the scale of the box for the current other node
+                            glm::vec3 otherNodeBoxScale = (otherData->getPosition() - otherData->getGlobalBoundingBoxCorner()) * 2.0f;
+
+                            // Set up the bounding box for the current node
+                            AABox nodeBox(nodeData->getGlobalBoundingBoxCorner(), nodeBoxScale);
+                            // Clamp the size of the bounding box to a minimum scale
+                            if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
+                                nodeBox.setScaleStayCentered(minBubbleSize);
+                            }
+                            // Set up the bounding box for the current other node
+                            AABox otherNodeBox(otherData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+                            // Clamp the size of the bounding box to a minimum scale
+                            if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
+                                otherNodeBox.setScaleStayCentered(minBubbleSize);
+                            }
+                            // Quadruple the scale of both bounding boxes
+                            nodeBox.embiggen(4.0f);
+                            otherNodeBox.embiggen(4.0f);
+
+                            // Perform the collision check between the two bounding boxes
+                            if (nodeBox.touches(otherNodeBox)) {
                                 nodeData->ignoreOther(node, otherNode);
-                                otherData->ignoreOther(otherNode, node);
                                 return false;
                             }
                         }
-                        // not close enough to ignore
+                        // Not close enough to ignore
                         nodeData->removeFromRadiusIgnoringSet(otherNode->getUUID());
-                        otherData->removeFromRadiusIgnoringSet(node->getUUID());
                         return true;
                     }
                 },
@@ -395,8 +418,9 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
 
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
         killPacket->write(killedNode->getUUID().toRfc4122());
+        killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
 
         nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
 
@@ -569,7 +593,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";
     const QString NODE_SEND_BANDWIDTH_KEY = "max_node_send_bandwidth";
 
-    const float DEFAULT_NODE_SEND_BANDWIDTH = 1.0f;
+    const float DEFAULT_NODE_SEND_BANDWIDTH = 5.0f;
     QJsonValue nodeBandwidthValue = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
     if (!nodeBandwidthValue.isDouble()) {
         qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";

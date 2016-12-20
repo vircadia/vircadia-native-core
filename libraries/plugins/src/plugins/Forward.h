@@ -19,6 +19,7 @@ enum class PluginType {
 class DisplayPlugin;
 class InputPlugin;
 class CodecPlugin;
+class SteamClientPlugin;
 class Plugin;
 class PluginContainer;
 class PluginManager;
@@ -29,4 +30,4 @@ using InputPluginPointer = std::shared_ptr<InputPlugin>;
 using InputPluginList = std::vector<InputPluginPointer>;
 using CodecPluginPointer = std::shared_ptr<CodecPlugin>;
 using CodecPluginList = std::vector<CodecPluginPointer>;
-
+using SteamClientPluginPointer = std::shared_ptr<SteamClientPlugin>;

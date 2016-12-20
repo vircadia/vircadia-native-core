@@ -188,11 +188,13 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(avatarMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer)));
             STAT_UPDATE(avatarMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
             STAT_UPDATE(avatarMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(myAvatarSendRate, avatarManager->getMyAvatarSendRate());
         } else {
             STAT_UPDATE(avatarMixerInKbps, -1);
             STAT_UPDATE(avatarMixerInPps, -1);
             STAT_UPDATE(avatarMixerOutKbps, -1);
             STAT_UPDATE(avatarMixerOutPps, -1);
+            STAT_UPDATE(myAvatarSendRate, avatarManager->getMyAvatarSendRate());
         }
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         if (audioMixerNode || force) {

@@ -979,6 +979,29 @@
       ]
     },
     {
+      "name": "audio_threading",
+      "label": "Audio Threading",
+      "assignment-types": [0],
+      "settings": [
+        {
+          "name": "auto_threads",
+          "label": "Automatically determine thread count",
+          "type": "checkbox",
+          "help": "Allow system to determine number of threads (recommended)",
+          "default": false,
+          "advanced": true
+        },
+        {
+          "name": "num_threads",
+          "label": "Number of Threads",
+          "help": "Threads to spin up for audio mixing (if not automatically set)",
+          "placeholder": "1",
+          "default": "1",
+          "advanced": true
+        }
+      ]
+    },
+    {
       "name": "audio_env",
       "label": "Audio Environment",
       "assignment-types": [0],
@@ -1375,8 +1398,8 @@
           "type": "double",
           "label": "Per-Node Bandwidth",
           "help": "Desired maximum send bandwidth (in Megabits per second) to each node",
-          "placeholder": 1.0,
-          "default": 1.0,
+          "placeholder": 5.0,
+          "default": 5.0,
           "advanced": true
         }
       ]

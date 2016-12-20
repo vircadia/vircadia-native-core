@@ -279,6 +279,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
 
     // FInd the light origin cluster
     auto centerCluster = grid.frustumGrid_eyeToClusterPos(glm::vec3(eyePosRadius));
+
     int center_z = centerCluster.z;
     int center_y = centerCluster.y;
 

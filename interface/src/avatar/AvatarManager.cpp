@@ -41,9 +41,11 @@
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
 
-// 70 times per second - target is 60hz, but this helps account for any small deviations
-// in the update loop
-static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = (1000 * 1000) / 70;
+// 50 times per second - target is 45hz, but this helps account for any small deviations
+// in the update loop - this also results in ~30hz when in desktop mode which is essentially
+// what we want
+const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
+static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
@@ -80,7 +82,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
-    connect(nodeList.data(), &NodeList::ignoredNode, this, &AvatarManager::removeAvatar);
+    connect(nodeList.data(), "ignoredNode", this, "removeAvatar");
 }
 
 AvatarManager::~AvatarManager() {
@@ -118,6 +120,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
         PerformanceTimer perfTimer("send");
         _myAvatar->sendAvatarDataPacket();
         _lastSendAvatarDataTime = now;
+        _myAvatarSendRate.increment();
     }
 }
 
@@ -223,16 +226,16 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
 }
 
 // virtual
-void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
+void AvatarManager::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
     QWriteLocker locker(&_hashLock);
 
     auto removedAvatar = _avatarHash.take(sessionUUID);
     if (removedAvatar) {
-        handleRemovedAvatar(removedAvatar);
+        handleRemovedAvatar(removedAvatar, removalReason);
     }
 }
 
-void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
+void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     AvatarHashMap::handleRemovedAvatar(removedAvatar);
 
     // removedAvatar is a shared pointer to an AvatarData but we need to get to the derived Avatar
@@ -247,6 +250,9 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         _motionStatesToRemoveFromPhysics.push_back(motionState);
     }
 
+    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+        emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+    }
     _avatarFades.push_back(removedAvatar);
 }
 

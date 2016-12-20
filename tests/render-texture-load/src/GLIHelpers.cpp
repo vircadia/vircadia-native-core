@@ -48,7 +48,7 @@ QString convertTexture(const QString& sourceFile) {
         fromQImageFormat(sourceImage.format()), 
         gli::extent2d(sourceImage.width(), sourceImage.height()));
     auto sourceSize = sourceImage.byteCount();
-    assert(sourceSize == workTexture[workTexture.base_level()].size());
+    assert(sourceSize == (int)workTexture[workTexture.base_level()].size());
     memcpy(workTexture[workTexture.base_level()].data(), sourceImage.constBits(), sourceSize);
 
     QString resultFile = getKtxFileName(sourceFile) ;

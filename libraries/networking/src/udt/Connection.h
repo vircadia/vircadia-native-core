@@ -58,7 +58,7 @@ public:
     using ControlPacketPointer = std::unique_ptr<ControlPacket>;
     
     Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl);
-    ~Connection();
+    virtual ~Connection();
 
     void sendReliablePacket(std::unique_ptr<Packet> packet);
     void sendReliablePacketList(std::unique_ptr<PacketList> packet);

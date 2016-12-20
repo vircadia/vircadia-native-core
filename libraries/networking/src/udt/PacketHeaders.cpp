@@ -53,7 +53,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerJoints);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HasKillAvatarReason);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:
@@ -78,7 +78,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
-            return static_cast<PacketVersion>(AudioVersion::TerminatingStreamStats);
+            return static_cast<PacketVersion>(AudioVersion::SpaceBubbleChanges);
 
         default:
             return 17;

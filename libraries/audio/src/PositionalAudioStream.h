@@ -46,6 +46,8 @@ public:
     PositionalAudioStream::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
+    const glm::vec3& getAvatarBoundingBoxCorner() const { return _avatarBoundingBoxCorner; }
+    const glm::vec3& getAvatarBoundingBoxScale() const { return _avatarBoundingBoxScale; }
 
 
 protected:
@@ -59,6 +61,9 @@ protected:
     Type _type;
     glm::vec3 _position;
     glm::quat _orientation;
+
+    glm::vec3 _avatarBoundingBoxCorner;
+    glm::vec3 _avatarBoundingBoxScale;
 
     bool _shouldLoopbackForNode;
     bool _isStereo;

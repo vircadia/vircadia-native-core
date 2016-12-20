@@ -604,7 +604,7 @@ bool AssetClient::cancelGetAssetRequest(MessageID id) {
     for (auto& kv : _pendingRequests) {
         auto& messageCallbackMap = kv.second;
         auto requestIt = messageCallbackMap.find(id);
-        if (requestIt != kv.second.end()) {
+        if (requestIt != messageCallbackMap.end()) {
 
             auto& message = requestIt->second.message;
             if (message) {

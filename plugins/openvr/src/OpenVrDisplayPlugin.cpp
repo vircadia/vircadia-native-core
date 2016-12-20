@@ -529,7 +529,7 @@ static bool isBadPose(vr::HmdMatrix34_t* mat) {
 }
 
 bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff7fff00, frameIndex)
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff7fff00, frameIndex)
     handleOpenVrEvents();
     if (openVrQuitRequested()) {
         QMetaObject::invokeMethod(qApp, "quit");
@@ -633,7 +633,7 @@ void OpenVrDisplayPlugin::compositeLayers() {
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
     if (_threadedSubmit) {
         _submitThread->waitForPresent();
@@ -654,7 +654,7 @@ void OpenVrDisplayPlugin::hmdPresent() {
 }
 
 void OpenVrDisplayPlugin::postPreview() {
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
     PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
 

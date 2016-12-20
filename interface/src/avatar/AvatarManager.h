@@ -20,6 +20,7 @@
 #include <PhysicsEngine.h>
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
+#include <shared/RateCounter.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
@@ -74,12 +75,14 @@ public:
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());
 
+    float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
+
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private slots:
-    virtual void removeAvatar(const QUuid& sessionUUID) override;
+    virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
 private:
     explicit AvatarManager(QObject* parent = 0);
@@ -91,7 +94,7 @@ private:
     virtual AvatarSharedPointer newSharedAvatar() override;
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
 
-    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) override;
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarFades;
     std::shared_ptr<MyAvatar> _myAvatar;
@@ -106,6 +109,9 @@ private:
     SetOfAvatarMotionStates _motionStatesThatMightUpdate;
     SetOfMotionStates _motionStatesToAddToPhysics;
     VectorOfMotionStates _motionStatesToRemoveFromPhysics;
+
+    RateCounter<> _myAvatarSendRate;
+
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

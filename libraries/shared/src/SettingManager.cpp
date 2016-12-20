@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SettingManager.h"
+
 #include <QtCore/QThread>
 #include <QtCore/QDebug>
 #include <QtCore/QUuid>
 
 #include "SettingInterface.h"
-#include "SettingManager.h"
 
 namespace Setting {
 
@@ -31,7 +32,6 @@ namespace Setting {
 
     // Custom deleter does nothing, because we need to shutdown later than the dependency manager
     void Manager::customDeleter() { }
-
 
     void Manager::registerHandle(Interface* handle) {
         const QString& key = handle->getKey();

@@ -202,7 +202,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarEntities,
     AbsoluteSixByteRotations,
     SensorToWorldMat,
-    HandControllerJoints
+    HandControllerJoints,
+    HasKillAvatarReason
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -233,6 +234,7 @@ enum class AudioVersion : PacketVersion {
     CodecNameInAudioPackets,
     Exactly10msAudioPackets,
     TerminatingStreamStats,
+    SpaceBubbleChanges,
 };
 
 #endif // hifi_PacketHeaders_h

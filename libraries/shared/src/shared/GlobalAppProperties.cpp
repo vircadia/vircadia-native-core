@@ -13,6 +13,8 @@ namespace hifi { namespace properties {
     const char* CRASHED = "com.highfidelity.crashed";
     const char* STEAM = "com.highfidelity.launchedFromSteam";
     const char* LOGGER = "com.highfidelity.logger";
+    const char* TEST = "com.highfidelity.test";
+    const char* TRACING = "com.highfidelity.tracing";
 
     namespace gl {
         const char* BACKEND = "com.highfidelity.gl.backend";

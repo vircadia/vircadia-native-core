@@ -45,8 +45,13 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
 void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {
     if (!isRadiusIgnoring(other->getUUID())) {
         addToRadiusIgnoringSet(other->getUUID());
-        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
         killPacket->write(other->getUUID().toRfc4122());
+        if (self->isIgnoreRadiusEnabled()) {
+            killPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
+        } else {
+            killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
+        }
         DependencyManager::get<NodeList>()->sendUnreliablePacket(*killPacket, *self);
         _hasReceivedFirstPacketsFrom.erase(other->getUUID());
     }

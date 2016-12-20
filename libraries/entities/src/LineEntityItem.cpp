@@ -136,7 +136,7 @@ EntityPropertyFlags LineEntityItem::getEntityProperties(EncodeBitstreamParams& p
 }
 
 void LineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                        EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                        EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
                                         EntityPropertyFlags& requestedProperties,
                                         EntityPropertyFlags& propertyFlags,
                                         EntityPropertyFlags& propertiesDidntFit,
