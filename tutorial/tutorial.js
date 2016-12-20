@@ -58,6 +58,9 @@ function info() {
     }
 }
 
+const CONTROLLER_TOUCH = 'touch';
+const CONTROLLER_VIVE = 'vive';
+
 var NEAR_BOX_SPAWN_NAME = "tutorial/nearGrab/box_spawn";
 var FAR_BOX_SPAWN_NAME = "tutorial/farGrab/box_spawn";
 var GUN_SPAWN_NAME = "tutorial/gun_spawn";
@@ -323,7 +326,7 @@ function hideEntitiesWithTag(tag) {
     //});
 }
 
-/** 
+/**
  * Return the entity properties for an entity with a given name if it is in our
  * cached list of entities. Otherwise, return undefined.
  */
@@ -516,11 +519,13 @@ stepOrient.prototype = {
 // STEP: Near Grab                                                           //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepNearGrab = function() {
+var stepNearGrab = function(tutorialManager) {
     this.name = 'nearGrab';
-    this.tag = "nearGrab";
+    this.tags = ["bothGrab", "nearGrab", "nearGrab-" + tutorialManager.controllerName];
     this.tempTag = "nearGrab-temporary";
     this.birdIDs = [];
+
+    this.controllerName = tutorialManager.controllerName;
 
     Messages.subscribe("Entity-Exploded");
     Messages.messageReceived.connect(this.onMessage.bind(this));
@@ -531,11 +536,15 @@ stepNearGrab.prototype = {
         this.onFinish = onFinish;
 
         setControllerPartLayer('tips', 'trigger');
-        setControllerPartLayer('trigger', 'highlight');
 
-        // Spawn content set
-        showEntitiesWithTag(this.tag, { visible: true });
-        showEntitiesWithTag('bothGrab', { visible: true });
+        if (this.controllerName === CONTROLLER_TOUCH) {
+            setControllerPartLayer('both_triggers', 'highlight');
+        } else {
+            setControllerPartLayer('trigger', 'highlight');
+        }
+
+        // Show content set
+        showEntitiesWithTags(this.tags);
 
         var boxSpawnPosition = getEntityWithName(NEAR_BOX_SPAWN_NAME).position;
         function createBlock(fireworkNumber) {
@@ -572,9 +581,9 @@ stepNearGrab.prototype = {
         debug("NearGrab | Cleanup");
         this.finished = true;
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('both_triggers', 'normal');
         setControllerPartLayer('trigger', 'normal');
-        hideEntitiesWithTag(this.tag, { visible: false});
-        hideEntitiesWithTag('bothGrab', { visible: false});
+        hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
         if (this.positionWatcher) {
             this.positionWatcher.destroy();
@@ -696,6 +705,7 @@ PositionWatcher.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepEquip = function(tutorialManager) {
     const controllerName = tutorialManager.controllerName;
+    this.controllerName = controllerName;
 
     this.name = 'equip';
 
@@ -714,8 +724,13 @@ var stepEquip = function(tutorialManager) {
 }
 stepEquip.prototype = {
     start: function(onFinish) {
-        setControllerPartLayer('tips', 'trigger');
-        setControllerPartLayer('trigger', 'highlight');
+        if (this.controllerName === CONTROLLER_TOUCH) {
+            setControllerPartLayer('tips', 'grip');
+            setControllerPartLayer('grip', 'highlight');
+        } else {
+            setControllerPartLayer('tips', 'trigger');
+            setControllerPartLayer('trigger', 'highlight');
+        }
 
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             holdEnabled: true,

@@ -52,14 +52,21 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "farGrab"
         }
     },
+    "nearGrab-vive": {
+        "{88221a22-b710-4d35-852b-5257b0aa77dc}": {
+            "tag": "nearGrab-vive"
+        }
+    },
+    "nearGrab-touch": {
+        "{7c0f2fde-6c5c-459b-bf82-421979cebf2e}": {
+            "tag": "nearGrab-touch"
+        }
+    },
     "nearGrab": {
         "{55c861ef-60ca-4722-a6c5-9c6967966ec5}": {
             "tag": "nearGrab"
         },
         "{644d655b-ae66-43b1-9bab-a44b9a8ad632}": {
-            "tag": "nearGrab"
-        },
-        "{88221a22-b710-4d35-852b-5257b0aa77dc}": {
             "tag": "nearGrab"
         },
         "{8bf0baa1-88d0-448a-a782-100d4413bd82}": {

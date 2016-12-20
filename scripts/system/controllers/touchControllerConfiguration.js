@@ -74,6 +74,9 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                         teleport: {
                             defaultTextureURL: BASE_URL + "Oculus-Labels-L.fbx/Oculus-Labels-L.fbm/Teleport.png"
                         },
+                        both_triggers: {
+                            defaultTextureURL: BASE_URL + "Oculus-Labels-L.fbx/Oculus-Labels-L.fbm/Grip-Trigger.png"
+                        },
                     }
                 },
 
@@ -229,6 +232,9 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                         },
                         teleport: {
                             defaultTextureURL: BASE_URL + "Oculus-Labels-R.fbx/Oculus-Labels-R.fbm/Teleport.png"
+                        },
+                        both_triggers: {
+                            defaultTextureURL: BASE_URL + "Oculus-Labels-R.fbx/Oculus-Labels-R.fbm/Grip-Trigger.png"
                         },
                     }
                 },
