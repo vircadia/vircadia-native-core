@@ -230,7 +230,8 @@ enum class DomainServerAddedNodeVersion : PacketVersion {
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid,
-    GetUsernameFromUUIDSupport
+    GetUsernameFromUUIDSupport,
+    GetMachineFingerprintFromUUIDSupport
 };
 
 enum class AudioVersion : PacketVersion {
@@ -239,10 +240,6 @@ enum class AudioVersion : PacketVersion {
     Exactly10msAudioPackets,
     TerminatingStreamStats,
     SpaceBubbleChanges,
-};
-
-enum class UsernameFromIDReplyVersion : PacketVersion {
-    HasMachineFingerprint = 18
 };
 
 #endif // hifi_PacketHeaders_h
