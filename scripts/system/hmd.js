@@ -41,9 +41,6 @@ var button;
 // Disable them in hmd.
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
-    //button.writeProperty('buttonState', isHmd ? 0 : 1);
-    //button.writeProperty('defaultState', isHmd ? 0 : 1);
-    //button.writeProperty('hoverState', isHmd ? 2 : 3);
     desktopOnlyViews.forEach(function (view) {
         Menu.setMenuEnabled("View>" + view, !isHmd);
     });
