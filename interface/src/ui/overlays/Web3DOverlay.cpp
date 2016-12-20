@@ -59,10 +59,9 @@ Web3DOverlay::~Web3DOverlay() {
     if (_webSurface) {
         QQuickItem* rootItem = _webSurface->getRootItem();
 
-        // TABLET_UI_HACK: TODO: update this with rootTablet
-        if (rootItem && rootItem->objectName() == "tablet") {
+        if (rootItem && rootItem->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", nullptr);
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
         }
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains
@@ -137,10 +136,9 @@ void Web3DOverlay::loadSourceURL() {
         _webSurface->load(_url, [&](QQmlContext* context, QObject* obj) {});
         _webSurface->resume();
 
-        // TABLET_UI_HACK: TODO: update this to use rootTablet.
-        if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tablet") {
+        if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
         }
     }
 }

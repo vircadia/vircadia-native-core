@@ -258,10 +258,9 @@ void RenderableWebEntityItem::loadSourceURL() {
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
         _webSurface->load(_sourceUrl, [&](QQmlContext* context, QObject* obj) {});
 
-        // TABLET_UI_HACK: move this to overlays as well!
-        if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tablet") {
+        if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem());
         }
     }
 }
@@ -360,10 +359,9 @@ void RenderableWebEntityItem::destroyWebSurface() {
 
         QQuickItem* rootItem = _webSurface->getRootItem();
 
-        // TABLET_UI_HACK: move this to overlays as well!
-        if (rootItem && rootItem->objectName() == "tablet") {
+        if (rootItem && rootItem->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTablet("com.highfidelity.interface.tablet.system", nullptr);
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
         }
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains

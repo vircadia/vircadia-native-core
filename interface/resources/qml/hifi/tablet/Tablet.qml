@@ -7,8 +7,8 @@ Item {
 
     property double miclevel: 0.8
 
-    width: 480
-    height: 720
+    width: parent.width
+    height: parent.height
 
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
