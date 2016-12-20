@@ -1468,7 +1468,7 @@ function MyController(hand) {
     this.search = function(deltaTime, timestamp) {
         var _this = this;
         var name;
-        var FAR_SEARCH_DELAY = 350;  //  msecs before search beam appears
+        var FAR_SEARCH_DELAY = 0;  //  msecs before search beam appears
 
         var farSearching =  this.triggerSmoothedSqueezed() && (Date.now() - this.searchStartTime > FAR_SEARCH_DELAY);
 
