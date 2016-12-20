@@ -27,6 +27,7 @@ Windows.ScrollingWindow {
     destroyOnCloseButton: false
     property alias source: webview.url
     property alias eventBridge: eventBridgeWrapper.eventBridge;
+    property alias scriptUrl: webview.userScriptUrl
 
     QtObject {
         id: eventBridgeWrapper
@@ -71,6 +72,8 @@ Windows.ScrollingWindow {
             focus: true
             webChannel.registeredObjects: [eventBridgeWrapper]
 
+            property string userScriptUrl: ""
+
             // Create a global EventBridge object for raiseAndLowerKeyboard.
             WebEngineScript {
                 id: createGlobalEventBridge
@@ -87,7 +90,25 @@ Windows.ScrollingWindow {
                 worldId: WebEngineScript.MainWorld
             }
 
-            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
+            // User script.
+            WebEngineScript {
+                id: userScript
+                sourceUrl: webview.userScriptUrl
+                injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
+                worldId: WebEngineScript.MainWorld
+            }
+
+            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
+
+            function onWebEventReceived(event) {
+                if (event.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+                    ApplicationInterface.addAssetToWorldFromURL(event.slice(18));
+                }
+            }
+
+            Component.onCompleted: {
+                eventBridge.webEventReceived.connect(onWebEventReceived);
+            }
         }
     }
 }

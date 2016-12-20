@@ -22,20 +22,13 @@ public:
 public slots:
     QString getURL() const;
     void setURL(const QString& url);
-
-    void emitScriptEvent(const QVariant& scriptMessage);
-    void emitWebEvent(const QVariant& webMessage);
+    void setScriptURL(const QString& script);
 
 signals:
     void urlChanged();
-    void scriptEventReceived(const QVariant& message);
-    void webEventReceived(const QVariant& message);
 
 protected:
     QString qmlSource() const override { return "QmlWebWindow.qml"; }
-
-private:
-    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
 };
 
 #endif

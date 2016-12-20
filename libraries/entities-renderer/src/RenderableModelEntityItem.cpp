@@ -533,7 +533,8 @@ void RenderableModelEntityItem::update(const quint64& now) {
                 properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
                 auto extents = _model->getMeshExtents();
                 properties.setDimensions(extents.maximum - extents.minimum);
-                qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+                qCDebug(entitiesrenderer) << "Autoresizing" << (!getName().isEmpty() ? getName() : getModelURL()) 
+                    << "from mesh extents";
                 QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                         Qt::QueuedConnection,
                                         Q_ARG(QUuid, getEntityItemID()),
