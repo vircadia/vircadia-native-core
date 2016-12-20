@@ -1,8 +1,8 @@
 //
-//  InfoView.qml
+//  debugWindow.qml
 //
-//  Created by Bradley Austin Davis on 27 Apr 2015
-//  Copyright 2015 High Fidelity, Inc.
+//  Brad Hefta-Gaub, created on 12/19/2016.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

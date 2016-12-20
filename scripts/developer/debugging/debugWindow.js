@@ -19,7 +19,6 @@ var window = new OverlayWindow({
 window.setPosition(25, 50);
 window.closed.connect(function() { Script.stop(); });
 
-// Demonstrate sending a message to the QML window
 ScriptDiscoveryService.printedMessage.connect(function(message, scriptFileName) {
     window.sendToQml("[" + scriptFileName + "] " + message);
 });
