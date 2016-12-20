@@ -620,6 +620,22 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
     }
 }
 
+
+void Model::setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene) {
+    if (_isLayeredInFront != layered) {
+        _isLayeredInFront = layered;
+
+        render::PendingChanges pendingChanges;
+        foreach(auto item, _modelMeshRenderItems.keys()) {
+            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
+        }
+        foreach(auto item, _collisionRenderItems.keys()) {
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+    }
+}
+
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        render::PendingChanges& pendingChanges,
                        render::Item::Status::Getters& statusGetters) {

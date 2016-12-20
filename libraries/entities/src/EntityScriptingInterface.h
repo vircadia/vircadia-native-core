@@ -111,6 +111,12 @@ public slots:
     Q_INVOKABLE bool canRezTmp();
 
     /**jsdoc
+    * @function Entities.canWriteAsseets
+    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to write to the asset server
+    */
+    Q_INVOKABLE bool canWriteAssets();
+
+    /**jsdoc
      * Add a new entity with the specified properties. If `clientOnly` is true, the entity will
      * not be sent to the server and will only be visible/accessible on the local client.
      *
@@ -282,6 +288,7 @@ signals:
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
+    void canWriteAssetsChanged(bool canWriteAssets);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);

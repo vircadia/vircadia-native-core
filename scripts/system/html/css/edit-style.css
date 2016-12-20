@@ -334,8 +334,13 @@ input[type=button].red {
 }
 input[type=button].blue {
     color: #fff;
-    background-color: #94132e;
+    background-color: #1080b8;
     background: linear-gradient(#00b4ef 20%, #1080b8 100%);
+}
+input[type=button].white {
+    color: #121212;
+    background-color: #afafaf;
+    background: linear-gradient(#fff 20%, #afafaf 100%);
 }
 
 input[type=button]:enabled:hover {
@@ -350,6 +355,10 @@ input[type=button].blue:enabled:hover {
     background: linear-gradient(#00b4ef, #00b4ef);
     border: none;
 }
+input[type=button].white:enabled:hover {
+    background: linear-gradient(#fff, #fff);
+    border: none;
+}
 
 input[type=button]:active {
     background: linear-gradient(#343434, #343434);
@@ -359,6 +368,9 @@ input[type=button].red:active {
 }
 input[type=button].blue:active {
     background: linear-gradient(#1080b8, #1080b8);
+}
+input[type=button].white:active {
+    background: linear-gradient(#afafaf, #afafaf);
 }
 
 input[type=button]:disabled {

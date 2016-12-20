@@ -32,7 +32,7 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
     // nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path, QUrl url) {
+void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd) {
     qCDebug(scriptengine) << "Url that was downloaded: " + url.toString();
     qCDebug(scriptengine) << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
@@ -45,15 +45,13 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
     }
 
     QString file = unzipFile(path, tempDir);
+    QString filename = QUrl::fromLocalFile(file).toString();
     if (file != "") {
-        qCDebug(scriptengine) << "Object file to upload: " + file;
-        QUrl url = QUrl::fromLocalFile(file);
-        emit unzipSuccess(url.toString());
+        qCDebug(scriptengine) << "File to upload: " + filename;
     } else {
-        qCDebug(scriptengine) << "unzip failed";
+        qCDebug(scriptengine) << "Unzip failed";
     }
-    qCDebug(scriptengine) << "Removing temporary directory at: " + tempDir;
-    QDir(tempDir).removeRecursively();
+    emit unzipResult(path, filename, autoAdd);
 }
 
 // fix to check that we are only referring to a temporary directory
@@ -69,21 +67,6 @@ bool FileScriptingInterface::isTempDir(QString tempDir) {
     return (testContainer == tempContainer);
 }
 
-// checks whether the webview is displaying a Clara.io page for Marketplaces.qml
-bool FileScriptingInterface::isClaraLink(QUrl url) {
-    return (url.toString().contains("clara.io") && !url.toString().contains("clara.io/signup"));
-}
-
-bool FileScriptingInterface::isZippedFbx(QUrl url) {
-    return (url.toString().endsWith("fbx.zip"));
-}
-
-// checks whether a user tries to download a file that is not in .fbx format
-bool FileScriptingInterface::isZipped(QUrl url) {
-    return (url.toString().endsWith(".zip"));
-}
-
-// this function is not in use
 QString FileScriptingInterface::getTempDir() {
     QTemporaryDir dir;
     dir.setAutoRemove(false);
@@ -108,7 +91,6 @@ void FileScriptingInterface::downloadZip(QString path, const QString link) {
     });
     request->send();
 }
-
 
 QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
 

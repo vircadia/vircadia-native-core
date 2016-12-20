@@ -18,6 +18,7 @@
 #include <QtCore/QPointer>
 #include <QtCore/QSet>
 #include <QtCore/QStringList>
+#include <QtQuick/QQuickItem>
 
 #include <QtGui/QImage>
 
@@ -28,6 +29,7 @@
 #include <AbstractViewStateInterface.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
+#include <FileScriptingInterface.h>
 #include <input-plugins/KeyboardMouseDevice.h>
 #include <input-plugins/TouchscreenDevice.h>
 #include <OctreeQuery.h>
@@ -310,6 +312,20 @@ public slots:
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
 
+    // FIXME: Move addAssetToWorld* methods to own class?
+    void addAssetToWorldFromURL(QString url);
+    void addAssetToWorldFromURLRequestFinished();
+    void addAssetToWorld(QString filePath);
+    void addAssetToWorldUnzipFailure(QString filePath);
+    void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
+    void addAssetToWorldUpload(QString filePath, QString mapping);
+    void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
+    void addAssetToWorldAddEntity(QString filePath, QString mapping);
+
+    void handleUnzip(QString sourceFile, QString destinationFile, bool autoAdd);
+
+    FileScriptingInterface* getFileDownloadInterface() { return _fileDownload; }
+
     void handleLocalServerConnection() const;
     void readArgumentsFromLocalSocket() const;
 
@@ -352,9 +368,16 @@ public slots:
 
     static void runTests();
 
+    void setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions);
+
     QUuid getKeyboardFocusEntity() const;  // thread-safe
     void setKeyboardFocusEntity(QUuid id);
     void setKeyboardFocusEntity(EntityItemID entityItemID);
+
+    unsigned int getKeyboardFocusOverlay();
+    void setKeyboardFocusOverlay(unsigned int overlayID);
+
+    void addAssetToWorldMessageClose();
 
 private slots:
     void showDesktop();
@@ -391,6 +414,12 @@ private slots:
     static void packetSent(quint64 length);
     void updateDisplayMode();
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
+
+    void addAssetToWorldCheckModelSize();
+
+    void onAssetToWorldMessageBoxClosed();
+    void addAssetToWorldInfoTimeout();
+    void addAssetToWorldErrorTimeout();
 
 private:
     static void initDisplay();
@@ -567,7 +596,8 @@ private:
 
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
-    ThreadSafeValueCache<EntityItemID> _keyboardFocusedItem;
+    ThreadSafeValueCache<EntityItemID> _keyboardFocusedEntity;
+    ThreadSafeValueCache<unsigned int> _keyboardFocusedOverlay;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
@@ -609,6 +639,22 @@ private:
     model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
+
+    QTimer _addAssetToWorldResizeTimer;
+    QHash<QUuid, int> _addAssetToWorldResizeList;
+
+    void addAssetToWorldInfo(QString modelName, QString infoText);
+    void addAssetToWorldInfoClear(QString modelName);
+    void addAssetToWorldInfoDone(QString modelName);
+    void addAssetToWorldError(QString modelName, QString errorText);
+
+    QQuickItem* _addAssetToWorldMessageBox{ nullptr };
+    QStringList _addAssetToWorldInfoKeys;  // Model name
+    QStringList _addAssetToWorldInfoMessages;  // Info message
+    QTimer _addAssetToWorldInfoTimer;
+    QTimer _addAssetToWorldErrorTimer;
+
+    FileScriptingInterface* _fileDownload;
 };
 
 

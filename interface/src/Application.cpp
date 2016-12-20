@@ -42,6 +42,7 @@
 #include <QtMultimedia/QMediaPlayer>
 
 #include <QProcessEnvironment>
+#include <QTemporaryDir>
 
 #include <gl/QOpenGLContextWrapper.h>
 
@@ -54,6 +55,7 @@
 #include <AnimDebugDraw.h>
 #include <BuildInfo.h>
 #include <AssetClient.h>
+#include <AssetUpload.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
 #include <CursorManager.h>
@@ -79,6 +81,7 @@
 #include <UserActivityLoggerScriptingInterface.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <MappingRequest.h>
 #include <MessagesClient.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
@@ -157,6 +160,7 @@
 #include "ui/DialogsManager.h"
 #include "ui/LoginDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
+#include "ui/overlays/Web3DOverlay.h"
 #include "ui/Snapshot.h"
 #include "ui/SnapshotAnimated.h"
 #include "ui/StandAloneJSConsole.h"
@@ -1190,11 +1194,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
             [this](const EntityItemID& entityItemID, const PointerEvent& event) {
+        setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(entityItemID);
     });
 
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [=](const EntityItemID& entityItemID) {
-        if (entityItemID == _keyboardFocusedItem.get()) {
+        if (entityItemID == _keyboardFocusedEntity.get()) {
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
     });
@@ -1204,7 +1209,26 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
+    // Keyboard focus handling for Web overlays.
+    auto overlays = &(qApp->getOverlays());
+
+    connect(overlays, &Overlays::mousePressOnOverlay, [=](unsigned int overlayID, const PointerEvent& event) {
+        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+        setKeyboardFocusOverlay(overlayID);
+    });
+
+    connect(overlays, &Overlays::overlayDeleted, [=](unsigned int overlayID) {
+        if (overlayID == _keyboardFocusedOverlay.get()) {
+            setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+        }
+    });
+
+    connect(overlays, &Overlays::mousePressOffOverlay, [=]() {
+        setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    });
+
     connect(this, &Application::aboutToQuit, [=]() {
+        setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
@@ -1476,6 +1500,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // After all of the constructor is completed, then set firstRun to false.
         firstRun.set(false);
     }
+
+    // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
+    static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
+    _addAssetToWorldResizeTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS);
+    connect(&_addAssetToWorldResizeTimer, &QTimer::timeout, this, &Application::addAssetToWorldCheckModelSize);
+
+    // Auto-update and close adding asset to world info message box.
+    static const int ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS = 5000;
+    _addAssetToWorldInfoTimer.setInterval(ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS);
+    _addAssetToWorldInfoTimer.setSingleShot(true);
+    connect(&_addAssetToWorldInfoTimer, &QTimer::timeout, this, &Application::addAssetToWorldInfoTimeout);
+    static const int ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS = 8000;
+    _addAssetToWorldErrorTimer.setInterval(ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS);
+    _addAssetToWorldErrorTimer.setSingleShot(true);
+    connect(&_addAssetToWorldErrorTimer, &QTimer::timeout, this, &Application::addAssetToWorldErrorTimeout);
+
+    connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
+    connect(&domainHandler, &DomainHandler::hostnameChanged, this, &Application::addAssetToWorldMessageClose);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -1865,9 +1907,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
-    FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
-    rootContext->setContextProperty("File", fileDownload);
-    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::showAssetServerWidget);
+    _fileDownload = new FileScriptingInterface(engine);
+    rootContext->setContextProperty("File", _fileDownload);
+    connect(_fileDownload, &FileScriptingInterface::unzipResult, this, &Application::handleUnzip);
     rootContext->setContextProperty("MyAvatar", getMyAvatar().get());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -2395,26 +2437,49 @@ bool Application::event(QEvent* event) {
     }
 
     {
-        if (!_keyboardFocusedItem.get().isInvalidID()) {
+        if (!_keyboardFocusedEntity.get().isInvalidID()) {
             switch (event->type()) {
-            case QEvent::KeyPress:
-            case QEvent::KeyRelease: {
-                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedItem.get());
-                if (entity && entity->getEventHandler()) {
-                    event->setAccepted(false);
-                    QCoreApplication::sendEvent(entity->getEventHandler(), event);
-                    if (event->isAccepted()) {
-                        _lastAcceptedKeyPress = usecTimestampNow();
-                        return true;
+                case QEvent::KeyPress:
+                case QEvent::KeyRelease: {
+                    //auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+                    auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
+                    if (entity && entity->getEventHandler()) {
+                        event->setAccepted(false);
+                        QCoreApplication::sendEvent(entity->getEventHandler(), event);
+                        if (event->isAccepted()) {
+                            _lastAcceptedKeyPress = usecTimestampNow();
+                            return true;
+                        }
                     }
+                    break;
                 }
-                break;
-            }
+                default:
+                    break;
+                }
+        }
+    }
 
-            default:
-                break;
-            }
+    {
+        if (_keyboardFocusedOverlay.get() != UNKNOWN_OVERLAY_ID) {
+            switch (event->type()) {
+                case QEvent::KeyPress:
+                case QEvent::KeyRelease: {
+                    // Only Web overlays can have focus.
+                    auto overlay =
+                        std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
+                    if (overlay && overlay->getEventHandler()) {
+                        event->setAccepted(false);
+                        QCoreApplication::sendEvent(overlay->getEventHandler(), event);
+                        if (event->isAccepted()) {
+                            _lastAcceptedKeyPress = usecTimestampNow();
+                            return true;
+                        }
+                    }
+                    break;
+                }
+                default:
+                    break;
+                }
         }
     }
 
@@ -2974,6 +3039,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
         getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
+        getOverlays().mouseMoveEvent(&mappedEvent);
         getEntities()->mouseMoveEvent(&mappedEvent);
     }
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
@@ -2986,7 +3052,6 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->mouseMoveEvent(event);
     }
-
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
@@ -3008,6 +3073,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
+        getOverlays().mousePressEvent(&mappedEvent);
         getEntities()->mousePressEvent(&mappedEvent);
     }
 
@@ -3017,7 +3083,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
-
 
     if (hasFocus()) {
         if (_keyboardMouseDevice->isActive()) {
@@ -3029,7 +3094,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
             HFActionEvent actionEvent(HFActionEvent::startType(),
                 computePickRay(mappedEvent.x(), mappedEvent.y()));
             sendEvent(this, &actionEvent);
-
         }
     }
 }
@@ -3054,6 +3118,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
+        getOverlays().mouseReleaseEvent(&mappedEvent);
         getEntities()->mouseReleaseEvent(&mappedEvent);
     }
 
@@ -3293,20 +3358,30 @@ void Application::idle(float nsecsElapsed) {
     }
 
 
-    // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
+    // Update focus highlight for entity or overlay.
     {
-        if (!_keyboardFocusedItem.get().isInvalidID()) {
+        if (!_keyboardFocusedEntity.get().isInvalidID() || _keyboardFocusedOverlay.get() != UNKNOWN_OVERLAY_ID) {
             const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
             quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
             if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
                 setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+                setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
             } else {
                 // update position of highlight overlay
-                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedItem.get());
-                if (entity && _keyboardFocusHighlight) {
-                    _keyboardFocusHighlight->setRotation(entity->getRotation());
-                    _keyboardFocusHighlight->setPosition(entity->getPosition());
+                if (!_keyboardFocusedEntity.get().isInvalidID()) {
+                    auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
+                    if (entity && _keyboardFocusHighlight) {
+                        _keyboardFocusHighlight->setRotation(entity->getRotation());
+                        _keyboardFocusHighlight->setPosition(entity->getPosition());
+                    }
+                } else {
+                    // Only Web overlays can have focus.
+                    auto overlay =
+                        std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
+                    if (overlay && _keyboardFocusHighlight) {
+                        _keyboardFocusHighlight->setRotation(overlay->getRotation());
+                        _keyboardFocusHighlight->setPosition(overlay->getPosition());
+                    }
                 }
             }
         }
@@ -3894,8 +3969,31 @@ void Application::rotationModeChanged() const {
     }
 }
 
+void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions) {
+    // Create focus
+    if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+        _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
+        _keyboardFocusHighlight->setAlpha(1.0f);
+        _keyboardFocusHighlight->setBorderSize(1.0f);
+        _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
+        _keyboardFocusHighlight->setIsSolid(false);
+        _keyboardFocusHighlight->setPulseMin(0.5);
+        _keyboardFocusHighlight->setPulseMax(1.0);
+        _keyboardFocusHighlight->setColorPulse(1.0);
+        _keyboardFocusHighlight->setIgnoreRayIntersection(true);
+        _keyboardFocusHighlight->setDrawInFront(false);
+        _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
+    }
+
+    // Position focus
+    _keyboardFocusHighlight->setRotation(rotation);
+    _keyboardFocusHighlight->setPosition(position);
+    _keyboardFocusHighlight->setDimensions(dimensions);
+    _keyboardFocusHighlight->setVisible(true);
+}
+
 QUuid Application::getKeyboardFocusEntity() const {
-    return _keyboardFocusedItem.get();
+    return _keyboardFocusedEntity.get();
 }
 
 void Application::setKeyboardFocusEntity(QUuid id) {
@@ -3903,21 +4001,21 @@ void Application::setKeyboardFocusEntity(QUuid id) {
     setKeyboardFocusEntity(entityItemID);
 }
 
+static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
+
 void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    if (_keyboardFocusedItem.get() != entityItemID) {
-        // reset focused entity
-        _keyboardFocusedItem.set(UNKNOWN_ENTITY_ID);
-        if (_keyboardFocusHighlight) {
+    if (_keyboardFocusedEntity.get() != entityItemID) {
+        _keyboardFocusedEntity.set(entityItemID);
+
+        if (_keyboardFocusHighlight && _keyboardFocusedOverlay.get() == UNKNOWN_OVERLAY_ID) {
             _keyboardFocusHighlight->setVisible(false);
         }
 
-        // if invalid, return without expensive (locking) operations
         if (entityItemID == UNKNOWN_ENTITY_ID) {
             return;
         }
 
-        // if valid, query properties
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
         if (!properties.getLocked() && properties.getVisible()) {
             auto entity = getEntities()->getTree()->findEntityByID(entityItemID);
@@ -3926,30 +4024,45 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                 if (_keyboardMouseDevice->isActive()) {
                     _keyboardMouseDevice->pluginFocusOutEvent();
                 }
-                _keyboardFocusedItem.set(entityItemID);
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                // create a focus
-                if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
-                    _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
-                    _keyboardFocusHighlight->setAlpha(1.0f);
-                    _keyboardFocusHighlight->setBorderSize(1.0f);
-                    _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
-                    _keyboardFocusHighlight->setIsSolid(false);
-                    _keyboardFocusHighlight->setPulseMin(0.5);
-                    _keyboardFocusHighlight->setPulseMax(1.0);
-                    _keyboardFocusHighlight->setColorPulse(1.0);
-                    _keyboardFocusHighlight->setIgnoreRayIntersection(true);
-                    _keyboardFocusHighlight->setDrawInFront(false);
-                    _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
-                }
-
-                // position the focus
-                _keyboardFocusHighlight->setRotation(entity->getRotation());
-                _keyboardFocusHighlight->setPosition(entity->getPosition());
-                _keyboardFocusHighlight->setDimensions(entity->getDimensions() * 1.05f);
-                _keyboardFocusHighlight->setVisible(true);
+                setKeyboardFocusHighlight(entity->getPosition(), entity->getRotation(), 
+                    entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
+        }
+    }
+}
+
+unsigned int Application::getKeyboardFocusOverlay() {
+    return _keyboardFocusedOverlay.get();
+}
+
+void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
+    if (overlayID != _keyboardFocusedOverlay.get()) {
+        _keyboardFocusedOverlay.set(overlayID);
+
+        if (_keyboardFocusHighlight && _keyboardFocusedEntity.get() == UNKNOWN_ENTITY_ID) {
+            _keyboardFocusHighlight->setVisible(false);
+        }
+
+        if (overlayID == UNKNOWN_OVERLAY_ID) {
+            return;
+        }
+
+        auto overlayType = getOverlays().getOverlayType(overlayID);
+        auto isVisible = getOverlays().getProperty(overlayID, "visible").value.toBool();
+        if (overlayType == Web3DOverlay::TYPE && isVisible) {
+            auto overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(overlayID));
+            overlay->setProxyWindow(_window->windowHandle());
+
+            if (_keyboardMouseDevice->isActive()) {
+                _keyboardMouseDevice->pluginFocusOutEvent();
+            }
+            _lastAcceptedKeyPress = usecTimestampNow();
+
+            auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
+            const float OVERLAY_DEPTH = 0.0105f;
+            setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
         }
     }
 }
@@ -5513,6 +5626,464 @@ void Application::showAssetServerWidget(QString filePath) {
     };
     DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
     startUpload(nullptr, nullptr);
+}
+
+void Application::addAssetToWorldFromURL(QString url) {
+    qInfo(interfaceapp) << "Download asset and add to world from" << url;
+
+    QString filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
+        QString errorInfo = "You do not have permissions to write to the Asset Server.";
+        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+        addAssetToWorldError(filename, errorInfo);
+        return;
+    }
+
+    addAssetToWorldInfo(filename, "Downloading asset file " + filename + ".");
+
+    auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
+    connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
+    request->send();
+}
+
+void Application::addAssetToWorldFromURLRequestFinished() {
+    auto request = qobject_cast<ResourceRequest*>(sender());
+    auto url = request->getUrl().toString();
+    auto result = request->getResult();
+
+    QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
+
+    if (result == ResourceRequest::Success) {
+        qInfo(interfaceapp) << "Downloaded asset from" << url;
+        QTemporaryDir temporaryDir;
+        temporaryDir.setAutoRemove(false);
+        if (temporaryDir.isValid()) {
+            QString temporaryDirPath = temporaryDir.path();
+            QString downloadPath = temporaryDirPath + "/" + filename;
+            qInfo(interfaceapp) << "Download path:" << downloadPath;
+
+            QFile tempFile(downloadPath);
+            if (tempFile.open(QIODevice::WriteOnly)) {
+                tempFile.write(request->getData());
+                addAssetToWorldInfoClear(filename);  // Remove message from list; next one added will have a different key.
+                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true);
+            } else {
+                QString errorInfo = "Couldn't open temporary file for download";
+                qWarning(interfaceapp) << errorInfo;
+                addAssetToWorldError(filename, errorInfo);
+            }
+        } else {
+            QString errorInfo = "Couldn't create temporary directory for download";
+            qWarning(interfaceapp) << errorInfo;
+            addAssetToWorldError(filename, errorInfo);
+        }
+    } else {
+        qWarning(interfaceapp) << "Error downloading" << url << ":" << request->getResultString();
+        addAssetToWorldError(filename, "Error downloading " + filename + " : " + request->getResultString());
+    }
+
+    request->deleteLater();
+}
+
+
+QString filenameFromPath(QString filePath) {
+    return filePath.right(filePath.length() - filePath.lastIndexOf("/") - 1);
+}
+
+void Application::addAssetToWorldUnzipFailure(QString filePath) {
+    QString filename = filenameFromPath(QUrl(filePath).toLocalFile());
+    qWarning(interfaceapp) << "Couldn't unzip file" << filePath;
+    addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
+}
+
+void Application::addAssetToWorld(QString filePath) {
+    // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
+
+    QString path = QUrl(filePath).toLocalFile();
+    QString filename = filenameFromPath(path);
+    QString mapping = "/" + filename;
+
+    // Test repeated because possibly different code paths.
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
+        QString errorInfo = "You do not have permissions to write to the Asset Server.";
+        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+        addAssetToWorldError(filename, errorInfo);
+        return;
+    }
+
+    addAssetToWorldInfo(filename, "Adding " + mapping.mid(1) + " to the Asset Server.");
+
+    addAssetToWorldWithNewMapping(path, mapping, 0);
+}
+
+void Application::addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy) {
+    auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
+
+    QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
+        const int MAX_COPY_COUNT = 100;  // Limit number of duplicate assets; recursion guard.
+        auto result = request->getError();
+        if (result == GetMappingRequest::NotFound) {
+            addAssetToWorldUpload(filePath, mapping);
+        } else if (result != GetMappingRequest::NoError) {
+            QString errorInfo = "Could not map asset name: "
+                + mapping.left(mapping.length() - QString::number(copy).length() - 1);
+            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            addAssetToWorldError(filenameFromPath(filePath), errorInfo);
+        } else if (copy < MAX_COPY_COUNT - 1) {
+            if (copy > 0) {
+                mapping = mapping.remove(mapping.lastIndexOf("-"), QString::number(copy).length() + 1);
+            }
+            copy++;
+            mapping = mapping.insert(mapping.lastIndexOf("."), "-" + QString::number(copy));
+            addAssetToWorldWithNewMapping(filePath, mapping, copy);
+        } else {
+            QString errorInfo = "Too many copies of asset name: " 
+                + mapping.left(mapping.length() - QString::number(copy).length() - 1);
+            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            addAssetToWorldError(filenameFromPath(filePath), errorInfo);
+        }
+        request->deleteLater();
+    });
+
+    request->start();
+}
+
+void Application::addAssetToWorldUpload(QString filePath, QString mapping) {
+    qInfo(interfaceapp) << "Uploading" << filePath << "to Asset Server as" << mapping;
+    auto upload = DependencyManager::get<AssetClient>()->createUpload(filePath);
+    QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
+        if (upload->getError() != AssetUpload::NoError) {
+            QString errorInfo = "Could not upload asset to the Asset Server.";
+            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            addAssetToWorldError(filenameFromPath(filePath), errorInfo);
+        } else {
+            addAssetToWorldSetMapping(filePath, mapping, hash);
+        }
+
+        // Remove temporary directory created by Clara.io market place download.
+        int index = filePath.lastIndexOf("/model_repo/");
+        if (index > 0) {
+            QString tempDir = filePath.left(index);
+            qCDebug(interfaceapp) << "Removing temporary directory at: " + tempDir;
+            QDir(tempDir).removeRecursively();
+        }
+
+        upload->deleteLater();
+    });
+
+    upload->start();
+}
+
+void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash) {
+    auto request = DependencyManager::get<AssetClient>()->createSetMappingRequest(mapping, hash);
+    connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
+        if (request->getError() != SetMappingRequest::NoError) {
+            QString errorInfo = "Could not set asset mapping.";
+            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            addAssetToWorldError(filenameFromPath(filePath), errorInfo);
+        } else {
+            addAssetToWorldAddEntity(filePath, mapping);
+        }
+        request->deleteLater();
+    });
+
+    request->start();
+}
+
+void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Model);
+    properties.setName(mapping.right(mapping.length() - 1));
+    properties.setModelURL("atp:" + mapping);
+    properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
+    properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
+    properties.setPosition(getMyAvatar()->getPosition() + getMyAvatar()->getOrientation() * glm::vec3(0.0f, 0.0f, -2.0f));
+    properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
+    auto entityID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
+
+    // Note: Model dimensions are not available here; model is scaled per FBX mesh in RenderableModelEntityItem::update() later
+    // on. But FBX dimensions may be in cm, so we monitor for the dimension change and rescale again if warranted.
+    
+    if (entityID == QUuid()) {
+        QString errorInfo = "Could not add asset " + mapping + " to world.";
+        qWarning(interfaceapp) << "Could not add asset to world: " + errorInfo;
+        addAssetToWorldError(filenameFromPath(filePath), errorInfo);
+    } else {
+        // Monitor when asset is rendered in world so that can resize if necessary.
+        _addAssetToWorldResizeList.insert(entityID, 0);  // List value is count of checks performed.
+        if (!_addAssetToWorldResizeTimer.isActive()) {
+            _addAssetToWorldResizeTimer.start();
+        }
+
+        // Close progress message box.
+        addAssetToWorldInfoDone(filenameFromPath(filePath));
+    }
+}
+
+void Application::addAssetToWorldCheckModelSize() {
+    if (_addAssetToWorldResizeList.size() == 0) {
+        return;
+    }
+
+    auto item = _addAssetToWorldResizeList.begin();
+    while (item != _addAssetToWorldResizeList.end()) {
+        auto entityID = item.key();
+
+        EntityPropertyFlags propertyFlags;
+        propertyFlags += PROP_NAME;
+        propertyFlags += PROP_DIMENSIONS;
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        auto properties = entityScriptingInterface->getEntityProperties(entityID, propertyFlags);
+        auto name = properties.getName();
+        auto dimensions = properties.getDimensions();
+
+        const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
+        bool doResize = false;
+
+        const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
+        if (dimensions != DEFAULT_DIMENSIONS) {
+
+            // Scale model so that its maximum is exactly specific size.
+            const float MAXIMUM_DIMENSION = 1.0f;
+            auto previousDimensions = dimensions;
+            auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y,
+                MAXIMUM_DIMENSION / dimensions.z));
+            dimensions *= scale;
+            qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
+            doResize = true;
+
+            item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity; advance to next.
+        } else {
+            // Increment count of checks done.
+            _addAssetToWorldResizeList[entityID]++;
+
+            const int CHECK_MODEL_SIZE_MAX_CHECKS = 300;
+            if (_addAssetToWorldResizeList[entityID] > CHECK_MODEL_SIZE_MAX_CHECKS) {
+                // Have done enough checks; model was either the default size or something's gone wrong.
+
+                // Rescale all dimensions.
+                const glm::vec3 UNIT_DIMENSIONS = glm::vec3(1.0f, 1.0f, 1.0f);
+                dimensions = UNIT_DIMENSIONS;
+                qInfo(interfaceapp) << "Asset" << name << "auto-resize timed out; resized to " << dimensions;
+                doResize = true;
+
+                item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity; advance to next.
+            } else {
+                // No action on this entity; advance to next.
+                ++item;
+            }
+        }
+
+        if (doResize) {
+            EntityItemProperties properties;
+            properties.setDimensions(dimensions);
+            properties.setVisible(true);
+            properties.setCollisionless(false);
+            properties.setUserData(GRABBABLE_USER_DATA);
+            properties.setLastEdited(usecTimestampNow());
+            entityScriptingInterface->editEntity(entityID, properties);
+        }
+    }
+
+    // Stop timer if nothing in list to check.
+    if (_addAssetToWorldResizeList.size() == 0) {
+        _addAssetToWorldResizeTimer.stop();
+    }
+}
+
+
+void Application::addAssetToWorldInfo(QString modelName, QString infoText) {
+    // Displays the most recent info message, subject to being overridden by error messages.
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    Cancel info timer if running.
+    If list has an entry for modelName, delete it (just one).
+    Append modelName, infoText to list.
+    Display infoText in message box unless an error is being displayed (i.e., error timer is running).
+    Show message box if not already visible.
+    */
+
+    _addAssetToWorldInfoTimer.stop();
+
+    addAssetToWorldInfoClear(modelName);
+
+    _addAssetToWorldInfoKeys.append(modelName);
+    _addAssetToWorldInfoMessages.append(infoText);
+
+    if (!_addAssetToWorldErrorTimer.isActive()) {
+        if (!_addAssetToWorldMessageBox) {
+            _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
+                "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+            connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
+        }
+
+        _addAssetToWorldMessageBox->setProperty("text", "\n" + infoText);
+        _addAssetToWorldMessageBox->setVisible(true);
+    }
+}
+
+void Application::addAssetToWorldInfoClear(QString modelName) {
+    // Clears modelName entry from message list without affecting message currently displayed.
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    Delete entry for modelName from list.
+    */
+
+    auto index = _addAssetToWorldInfoKeys.indexOf(modelName);
+    if (index > -1) {
+        _addAssetToWorldInfoKeys.removeAt(index);
+        _addAssetToWorldInfoMessages.removeAt(index);
+    }
+}
+
+void Application::addAssetToWorldInfoDone(QString modelName) {
+    // Continues to display this message if the latest for a few seconds, then deletes it and displays the next latest.
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    Delete entry for modelName from list.
+    (Re)start the info timer to update message box. ... onAddAssetToWorldInfoTimeout()
+    */
+
+    addAssetToWorldInfoClear(modelName);
+    _addAssetToWorldInfoTimer.start();
+}
+
+void Application::addAssetToWorldInfoTimeout() {
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    If list not empty, display last message in list (may already be displayed ) unless an error is being displayed.
+    If list empty, close the message box unless an error is being displayed.
+    */
+
+    if (!_addAssetToWorldErrorTimer.isActive() && _addAssetToWorldMessageBox) {
+        if (_addAssetToWorldInfoKeys.length() > 0) {
+            _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
+        } else {
+            disconnect(_addAssetToWorldMessageBox);
+            _addAssetToWorldMessageBox->setVisible(false);
+            _addAssetToWorldMessageBox->deleteLater();
+            _addAssetToWorldMessageBox = nullptr;
+        }
+    }
+}
+
+
+void Application::addAssetToWorldError(QString modelName, QString errorText) {
+    // Displays the most recent error message for a few seconds.
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    If list has an entry for modelName, delete it.
+    Display errorText in message box.
+    Show message box if not already visible.
+    (Re)start error timer. ... onAddAssetToWorldErrorTimeout()
+    */
+
+    addAssetToWorldInfoClear(modelName);
+
+    if (!_addAssetToWorldMessageBox) {
+        _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
+            "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+        connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
+    }
+
+    _addAssetToWorldMessageBox->setProperty("text", "\n" + errorText);
+    _addAssetToWorldMessageBox->setVisible(true);
+
+    _addAssetToWorldErrorTimer.start();
+}
+
+void Application::addAssetToWorldErrorTimeout() {
+    if (_aboutToQuit) {
+        return;
+    }
+
+    /*
+    If list is not empty, display message from last entry.
+    If list is empty, close the message box.
+    */
+
+    if (_addAssetToWorldMessageBox) {
+        if (_addAssetToWorldInfoKeys.length() > 0) {
+            _addAssetToWorldMessageBox->setProperty("text", "\n" + _addAssetToWorldInfoMessages.last());
+        } else {
+            disconnect(_addAssetToWorldMessageBox);
+            _addAssetToWorldMessageBox->setVisible(false);
+            _addAssetToWorldMessageBox->deleteLater();
+            _addAssetToWorldMessageBox = nullptr;
+        }
+    }
+}
+
+
+void Application::addAssetToWorldMessageClose() {
+    // Clear messages, e.g., if Interface is being closed or domain changes.
+
+    /*
+    Call if user manually closes message box.
+    Call if domain changes.
+    Call if application is shutting down.
+
+    Stop timers.
+    Close the message box if open.
+    Clear lists.
+    */
+
+    _addAssetToWorldInfoTimer.stop();
+    _addAssetToWorldErrorTimer.stop();
+
+    if (_addAssetToWorldMessageBox) {
+        disconnect(_addAssetToWorldMessageBox);
+        _addAssetToWorldMessageBox->setVisible(false);
+        _addAssetToWorldMessageBox->deleteLater();
+        _addAssetToWorldMessageBox = nullptr;
+    }
+
+    _addAssetToWorldInfoKeys.clear();
+    _addAssetToWorldInfoMessages.clear();
+}
+
+void Application::onAssetToWorldMessageBoxClosed() {
+    if (_addAssetToWorldMessageBox) {
+        // User manually closed message box; perhaps because it has become stuck, so reset all messages.
+        qInfo(interfaceapp) << "User manually closed download status message box";
+        disconnect(_addAssetToWorldMessageBox);
+        _addAssetToWorldMessageBox = nullptr;
+        addAssetToWorldMessageClose();
+    }
+}
+
+
+void Application::handleUnzip(QString zipFile, QString unzipFile, bool autoAdd) {
+    if (autoAdd) {
+        if (!unzipFile.isEmpty()) {
+            addAssetToWorld(unzipFile);
+        } else {
+            addAssetToWorldUnzipFailure(zipFile);
+        }
+    } else {
+        showAssetServerWidget(unzipFile);
+    }
 }
 
 void Application::packageModel() {
