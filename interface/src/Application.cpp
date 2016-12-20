@@ -66,7 +66,6 @@
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
-#include <FingerprintUtils.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -614,9 +613,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
     
-    // TODO: This is temporary, while developing
-    FingerprintUtils::getMachineFingerprint();
-    // End TODO
     auto nodeList = DependencyManager::get<NodeList>();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
