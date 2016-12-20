@@ -89,6 +89,7 @@ protected:
 
     void addButtonsToHomeScreen();
     void removeButtonsFromHomeScreen();
+    QQuickItem* getQmlTablet() const;
 
     QString _name;
     std::mutex _mutex;

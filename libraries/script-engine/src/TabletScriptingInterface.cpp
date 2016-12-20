@@ -10,6 +10,8 @@
 
 #include <QtCore/QThread>
 
+#include "ScriptEngineLogging.h"
+
 QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
 
     std::lock_guard<std::mutex> guard(_mutex);
@@ -32,7 +34,7 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
     if (tablet) {
         tablet->setQmlTabletRoot(qmlTabletRoot);
     } else {
-        qWarning() << "TabletScriptingInterface::setupTablet() bad tablet object";
+        qCWarning(scriptengine) << "TabletScriptingInterface::setupTablet() bad tablet object";
     }
 }
 
@@ -57,13 +59,13 @@ static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* 
     bool hasResult = QMetaObject::invokeMethod(qmlTablet, "addButtonProxy", connectionType,
                                                Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, buttonProxy->getProperties()));
     if (!hasResult) {
-        qWarning() << "TabletScriptingInterface addButtonProxyToQmlTablet has no result";
+        qCWarning(scriptengine) << "TabletScriptingInterface addButtonProxyToQmlTablet has no result";
         return;
     }
 
     QObject* qmlButton = qvariant_cast<QObject *>(resultVar);
     if (!qmlButton) {
-        qWarning() << "TabletScriptingInterface addButtonProxyToQmlTablet result not a QObject";
+        qCWarning(scriptengine) << "TabletScriptingInterface addButtonProxyToQmlTablet result not a QObject";
         return;
     }
     QObject::connect(qmlButton, SIGNAL(clicked()), buttonProxy, SLOT(clickedSlot()));
@@ -107,36 +109,40 @@ QObject* TabletProxy::addButton(const QVariant& properties) {
     std::lock_guard<std::mutex> guard(_mutex);
     _tabletButtonProxies.push_back(tabletButtonProxy);
     if (_qmlTabletRoot) {
-        addButtonProxyToQmlTablet(_qmlTabletRoot, tabletButtonProxy.data());
+        auto tablet = getQmlTablet();
+        if (tablet) {
+            addButtonProxyToQmlTablet(tablet, tabletButtonProxy.data());
+        } else {
+            qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
+        }
     }
     return tabletButtonProxy.data();
 }
 
 void TabletProxy::removeButton(QObject* tabletButtonProxy) {
     std::lock_guard<std::mutex> guard(_mutex);
+
+    auto tablet = getQmlTablet();
+    if (!tablet) {
+        qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
+    }
+
     auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
     if (iter != _tabletButtonProxies.end()) {
         if (_qmlTabletRoot) {
             (*iter)->setQmlButton(nullptr);
-            QMetaObject::invokeMethod(_qmlTabletRoot, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
+            if (tablet) {
+                QMetaObject::invokeMethod(tablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
+            }
         }
         _tabletButtonProxies.erase(iter);
     } else {
-        qWarning() << "TabletProxy::removeButton() could not find button " << tabletButtonProxy;
+        qCWarning(scriptengine) << "TabletProxy::removeButton() could not find button " << tabletButtonProxy;
     }
 }
 
 void TabletProxy::addButtonsToHomeScreen() {
-    if (!_qmlTabletRoot) {
-        return;
-    }
-
-    auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-    if (!loader) {
-        return;
-    }
-
-    auto tablet = loader->findChild<QQuickItem*>("tablet");
+    auto tablet = getQmlTablet();
     if (!tablet) {
         return;
     }
@@ -152,6 +158,24 @@ void TabletProxy::removeButtonsFromHomeScreen() {
     for (auto& buttonProxy : _tabletButtonProxies) {
         buttonProxy->setQmlButton(nullptr);
     }
+}
+
+QQuickItem* TabletProxy::getQmlTablet() const {
+    if (!_qmlTabletRoot) {
+        return nullptr;
+    }
+
+    auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+    if (!loader) {
+        return nullptr;
+    }
+
+    auto tablet = loader->findChild<QQuickItem*>("tablet");
+    if (!tablet) {
+        return nullptr;
+    }
+
+    return tablet;
 }
 
 //
