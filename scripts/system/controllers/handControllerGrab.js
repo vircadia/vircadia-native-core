@@ -1062,17 +1062,6 @@ function MyController(hand) {
 
     this.secondaryPress = function(value) {
         _this.rawSecondaryValue = value;
-
-        if (_this.state == STATE_HOLD && !this.secondaryHeldEquip) {
-            // when using the index trigger click equip
-            // any click on the middle finger trigger should release
-            // check if the middle finger trigger is pressed past the threshold
-            var allowReleaseValue = 0.1;
-            if (value > allowReleaseValue) {
-                _this.release();
-            }
-        }
-
     };
 
     this.updateSmoothedTrigger = function() {
@@ -1101,9 +1090,9 @@ function MyController(hand) {
     this.secondaryReleased = function() {
         return _this.rawSecondaryValue < BUMPER_ON_VALUE;
 
-        if (_this.state == STATE_HOLD && this.secondaryHeldEquip) {
-            // when using the middle finger hold equip, the equip is
-            // dropped when the middle finger trigger is released
+        if (_this.state == STATE_HOLD) {
+            // if we were holding something, the release of the
+            // secondary trigger releases it
             _this.release();
         }
     };
@@ -1513,9 +1502,6 @@ function MyController(hand) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.grabbedEntity = potentialEquipHotspot.entityID;
                 this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
-
-                // handle the Oculus Touch equip where the middle finger trigger is held
-                this.secondaryHeldEquip = this.secondarySqueezed && !this.triggerSmoothedGrab;
 
                 return;
             }
