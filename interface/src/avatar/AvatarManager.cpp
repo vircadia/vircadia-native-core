@@ -129,8 +129,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     QReadLocker lock(&_hashLock);
 
     if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
-        PROFILE_COUNTER(simulation_avatar, "AvatarsPerSec", { { "aps", 0.0f } });
-        PROFILE_COUNTER(simulation_avatar, "JointsPerSec", { { "jps", 0.0f } });
         return;
     }
 
@@ -168,9 +166,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
-    float avatarsPerSecond = (float)(size() * USECS_PER_SECOND) / (float)(usecTimestampNow() - start);
-    PROFILE_COUNTER(simulation_avatar, "AvatarsPerSec", { { "aps", avatarsPerSecond } });
-    PROFILE_COUNTER(simulation_avatar, "JointsPerSec", { { "jps", Avatar::getNumJointsProcessedPerSecond() } });
+
+    PROFILE_COUNTER(app, "AvatarsPerSec", { { "aps", (float)(size() * USECS_PER_SECOND) / (float)(usecTimestampNow() - start) } });
+    PROFILE_COUNTER(app, "JointsPerSec", { { "jps", Avatar::getNumJointsProcessedPerSecond() } });
 }
 
 void AvatarManager::postUpdate(float deltaTime) {
