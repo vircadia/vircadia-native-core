@@ -35,6 +35,10 @@
     var checkTimer = false;
     var _this;
 
+    var WANT_COLOR_CHANGE = true;
+    var COLOR_OFF = { red: 128, green: 128, blue: 128 };
+    var COLOR_ON = { red: 255, green: 0, blue: 0 };
+
     var WANT_DEBUG = true;
     function debugPrint(string) {
         if (WANT_DEBUG) {
@@ -69,7 +73,9 @@
             if (soundPlaying && soundPlaying.playing) {
                 soundPlaying.stop();
                 soundPlaying = false;
-                Entities.editEntity(entity, { color: { red: 128, green: 128, blue: 128 }});
+                if (WANT_COLOR_CHANGE) {
+                    Entities.editEntity(entity, { color: COLOR_OFF });
+                }
                 debugPrint("Restarting ambient sound");
             }
         }   
@@ -96,7 +102,10 @@
             if (!soundPlaying && ambientSound.downloaded) {
                 soundPlaying = Audio.playSound(ambientSound,  { loop: true, localOnly: true, volume: volume });
                 debugPrint("Starting ambient sound, volume: " + volume);
-                Entities.editEntity(entity, { color: { red: 255, green: 0, blue: 0 }});
+                if (WANT_COLOR_CHANGE) {
+                    Entities.editEntity(entity, { color: COLOR_ON });
+                }
+                
             } else if (soundPlaying && soundPlaying.playing) {
                 soundPlaying.setOptions( { volume: volume } );
             }
