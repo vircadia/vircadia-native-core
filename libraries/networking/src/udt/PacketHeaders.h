@@ -241,4 +241,8 @@ enum class AudioVersion : PacketVersion {
     SpaceBubbleChanges,
 };
 
+enum class UsernameFromIDReplyVersion : PacketVersion {
+    HasMachineFingerprint = 18
+};
+
 #endif // hifi_PacketHeaders_h

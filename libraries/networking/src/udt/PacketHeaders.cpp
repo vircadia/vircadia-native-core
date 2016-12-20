@@ -80,6 +80,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AudioStreamStats:
             return static_cast<PacketVersion>(AudioVersion::SpaceBubbleChanges);
 
+        case PacketType::UsernameFromIDReply:
+            return static_cast<PacketVersion>(UsernameFromIDReplyVersion::HasMachineFingerprint);
+
         default:
             return 17;
     }
