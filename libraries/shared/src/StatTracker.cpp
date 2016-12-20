@@ -12,23 +12,30 @@ StatTracker::StatTracker() {
     
 }
 
-QVariant StatTracker::getStat(QString name) {
+QVariant StatTracker::getStat(const QString& name) {
     std::lock_guard<std::mutex> lock(_statsLock);
     return _stats[name];
 }
 
-void StatTracker::editStat(QString name, EditStatFunction fn) {
-    std::lock_guard<std::mutex> lock(_statsLock);
-    _stats[name] = fn(_stats[name]);
+void StatTracker::setStat(const QString& name, int value) {
+    Lock lock(_statsLock);
+    _stats[name] = value;
 }
 
-void StatTracker::incrementStat(QString name) {
-    std::lock_guard<std::mutex> lock(_statsLock);
-    QVariant stat = _stats[name];
-    _stats[name] = _stats[name].toInt() + 1;
+void StatTracker::updateStat(const QString& name, int value) {
+    Lock lock(_statsLock);
+    auto itr = _stats.find(name);
+    if (_stats.end() == itr) {
+        _stats[name] = value;
+    } else {
+        *itr = *itr + value;
+    }
 }
 
-void StatTracker::decrementStat(QString name) {
-    std::lock_guard<std::mutex> lock(_statsLock);
-    _stats[name] = _stats[name].toInt() - 1;
+void StatTracker::incrementStat(const QString& name) {
+    updateStat(name, 1);
+}
+
+void StatTracker::decrementStat(const QString& name) {
+    updateStat(name, -1);
 }
