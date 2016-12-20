@@ -165,7 +165,6 @@ function toggleMarketplace() {
 }
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
-
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
     var that = {},
@@ -234,7 +233,6 @@ var toolBar = (function () {
         systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
-            color: "#63d0ff",
             text: "EDIT"
             });
         /*activeButton = systemToolbar.addButton({
@@ -446,9 +444,9 @@ var toolBar = (function () {
 
     that.toggle = function () {
         that.setActive(!isActive);
-        activeButton.writeProperty("buttonState", isActive ? 0 : 1);
-        activeButton.writeProperty("defaultState", isActive ? 0 : 1);
-        activeButton.writeProperty("hoverState", isActive ? 2 : 3);
+        var buttonProperties = activeButton.getProperties();
+        buttonProperties.isActive = isActive;
+        activeButton.editProperties(buttonProperties);
     };
 
     that.setActive = function (active) {

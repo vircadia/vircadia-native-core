@@ -14,26 +14,22 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-
+var isActive = false
 var button = tablet.addButton({
-    color: "63d0ff",
     text:"GOTO"})
-/*var button = toolBar.addButton({
-    objectName: "goto",
-    imageURL: Script.resolvePath("assets/images/tools/directory.svg"),
-    visible: true,
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 3,
-    alpha: 0.9,
-});*/
+
 
 function onAddressBarShown(visible) {
-    //button.writeProperty('buttonState', visible ? 0 : 1);
-    //button.writeProperty('defaultState', visible ? 0 : 1);
-    //button.writeProperty('hoverState', visible ? 2 : 3);
+}
+
+function setActive(active) {
+  isActive = active;
 }
 function onClicked(){
+    setActive(!isActive);
+    var buttonProperties = button.getProperties();
+    buttonProperties.isActive = isActive;
+    button.editProperties(buttonProperties);
     DialogsManager.toggleAddressBar();
 }
 button.clicked.connect(onClicked);

@@ -91,9 +91,9 @@
 
     // Used to set the state of the bubble HUD button
     function writeButtonProperties(parameter) {
-        //button.writeProperty('buttonState', parameter ? 0 : 1);
-        //button.writeProperty('defaultState', parameter ? 0 : 1);
-        //button.writeProperty('hoverState', parameter ? 2 : 3);
+       var buttonProperties = button.getProperties();
+       buttonProperties.isActive = parameter;
+       button.editProperties(buttonProperties);
     }
 
     // The bubble script's update function
@@ -168,14 +168,7 @@
 
     // Setup the bubble button and add it to the toolbar
     var button = tablet.addButton({
-        color: "#63b0ff",
         text: "BUBBLE"});
-    /*var button = toolbar.addButton({
-        objectName: 'bubble',
-        imageURL: buttonImageURL(),
-        visible: true,
-        alpha: 0.9
-    });*/
     onBubbleToggled();
 
     button.clicked.connect(Users.toggleIgnoreRadius);

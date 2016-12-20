@@ -63,7 +63,6 @@ if (headset) {
         alpha: 0.9
     });*/
     button = tablet.addButton({
-        color: "#63d0ff",
         text: "SWITCH"});
     onHmdChanged(HMD.active);
 
