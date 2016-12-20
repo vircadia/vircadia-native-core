@@ -10,8 +10,13 @@
 //
 
 #include "FingerprintUtils.h"
+
 #include <QDebug>
+
 #include <SettingHandle.h>
+#include <SettingManager.h>
+#include <DependencyManager.h>
+
 #ifdef Q_OS_WIN
 #include <comdef.h>
 #include <Wbemidl.h>
@@ -44,7 +49,15 @@ QString FingerprintUtils::getMachineFingerprintString() {
     HRESULT hres;
     IWbemLocator *pLoc = NULL;
 
-    // initialize com
+    // initialize com.  Interface already does, but other
+    // users of this lib don't necessarily do so.
+    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    if (FAILED(hres)) {
+        qDebug() << "Failed to initialize COM library!";
+        return uuidString;
+    }
+    
+    // initialize WbemLocator
     hres = CoCreateInstance(
             CLSID_WbemLocator,             
             0, 
@@ -164,6 +177,11 @@ QUuid FingerprintUtils::getMachineFingerprint() {
     // any errors in getting the string
     QUuid uuid(uuidString);
     if (uuid == QUuid()) {
+        // if you cannot read a fallback key cuz we aren't saving them, just generate one for
+        // this session and move on
+        if (DependencyManager::get<Setting::Manager>().isNull()) {
+            return QUuid::createUuid();
+        }
         // read fallback key (if any)
         Settings settings;
         uuid = QUuid(settings.value(FALLBACK_FINGERPRINT_KEY).toString());

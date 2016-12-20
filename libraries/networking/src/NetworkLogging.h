@@ -14,6 +14,7 @@
 
 #include <QLoggingCategory>
 
+Q_DECLARE_LOGGING_CATEGORY(resourceLog)
 Q_DECLARE_LOGGING_CATEGORY(networking)
 Q_DECLARE_LOGGING_CATEGORY(asset_client)
 Q_DECLARE_LOGGING_CATEGORY(messages_client)

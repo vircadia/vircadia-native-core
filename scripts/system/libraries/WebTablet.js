@@ -13,7 +13,7 @@ Script.include(Script.resolvePath("../libraries/utils.js"));
 var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
-var DEFAULT_DPI = 32;
+var DEFAULT_DPI = 30;
 var DEFAULT_WIDTH = 0.5;
 
 var TABLET_URL = "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx";
@@ -45,9 +45,15 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     var _this = this;
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
-    var HEIGHT = WIDTH * ASPECT;
+    var TABLET_HEIGHT_SCALE = 640 / 680;  //  Screen size of tablet entity isn't quite the desired aspect.
+    var HEIGHT = WIDTH * ASPECT * TABLET_HEIGHT_SCALE;
     var DEPTH = 0.025;
     var DPI = dpi || DEFAULT_DPI;
+    var SENSOR_TO_ROOM_MATRIX = -2;
+
+    var spawnInfo = calcSpawnInfo();
+    var tabletEntityPosition = spawnInfo.position;
+    var tabletEntityRotation = spawnInfo.rotation;
 
     var tabletProperties = {
         name: "WebTablet Tablet",
@@ -58,7 +64,7 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
         }),
         dimensions: {x: WIDTH, y: HEIGHT, z: DEPTH},
         parentID: MyAvatar.sessionUUID,
-        parentJointIndex: -2
+        parentJointIndex: SENSOR_TO_ROOM_MATRIX
     }
 
     if (location) {
@@ -72,33 +78,25 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
 
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
-    var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
     var WEB_ENTITY_Z_OFFSET = -0.01;
-    var HOME_BUTTON_Y_OFFSET = -0.32;
-
-    this.createWebEntity = function(url) {
-        if (_this.webEntityID) {
-            Entities.deleteEntity(_this.webEntityID);
-        }
-        _this.webEntityID = Entities.addEntity({
-            name: "WebTablet Web",
-            type: "Web",
-            sourceUrl: url,
-            dimensions: {x: WIDTH * WEB_ENTITY_REDUCTION_FACTOR.x,
-                         y: HEIGHT * WEB_ENTITY_REDUCTION_FACTOR.y,
-                         z: 0.1},
-            localPosition: { x: 0, y: 0, z: WEB_ENTITY_Z_OFFSET },
-            localRotation: Quat.angleAxis(180, Y_AXIS),
-            shapeType: "box",
-            dpi: DPI,
-            parentID: _this.tabletEntityID,
-            parentJointIndex: -1
-        }, clientOnly);
+    if (this.webOverlayID) {
+        Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    this.createWebEntity(url);
+    this.webOverlayID = Overlays.addOverlay("web3d", {
+        name: "WebTablet Web",
+        url: url,
+        localPosition: { x: 0, y: 0, z: WEB_ENTITY_Z_OFFSET },
+        localRotation: Quat.angleAxis(180, Y_AXIS),
+        resolution: { x: 480, y: 640 },
+        dpi: DPI,
+        color: { red: 255, green: 255, blue: 255 },
+        alpha: 1.0,
+        parentID: this.tabletEntityID,
+        parentJointIndex: -1
+    });
 
-
+    var HOME_BUTTON_Y_OFFSET = -0.32;
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
         type: "Sphere",
@@ -134,15 +132,27 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     this.clicked = false;
 };
 
+WebTablet.prototype.setURL = function (url) {
+    Overlays.editOverlay(this.webOverlayID, { url: url });
+};
+
+WebTablet.prototype.setScriptURL = function (scriptURL) {
+    Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
+};
+
+WebTablet.prototype.getOverlayObject = function () {
+    return Overlays.getOverlayObject(this.webOverlayID);
+};
+
 WebTablet.prototype.destroy = function () {
-    Entities.deleteEntity(this.webEntityID);
+    Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
     Entities.deleteEntity(this.homeButtonEntity);
 };
-WebTablet.prototype.pickle = function () {
-    return JSON.stringify({webEntityID: this.webEntityID, tabletEntityID: this.tabletEntityID});
-};
 
+WebTablet.prototype.pickle = function () {
+    return JSON.stringify({ webOverlayID: this.webOverlayID, tabletEntityID: this.tabletEntityID });
+};
 
 WebTablet.prototype.register = function() {
     Messages.subscribe("home");

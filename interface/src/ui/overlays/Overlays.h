@@ -18,11 +18,13 @@
 #ifndef hifi_Overlays_h
 #define hifi_Overlays_h
 
+#include <QMouseEvent>
 #include <QReadWriteLock>
 #include <QScriptValue>
 
-#include "Overlay.h"
+#include <PointerEvent.h>
 
+#include "Overlay.h"
 #include "OverlayPanel.h"
 #include "PanelAttachable.h"
 
@@ -51,7 +53,7 @@ class RayToOverlayIntersectionResult {
 public:
     RayToOverlayIntersectionResult();
     bool intersects;
-    int overlayID;
+    unsigned int overlayID;
     float distance;
     BoxFace face;
     glm::vec3 surfaceNormal;
@@ -75,8 +77,12 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * @namespace Overlays
  */
 
+const unsigned int UNKNOWN_OVERLAY_ID = 0;
+
 class Overlays : public QObject {
     Q_OBJECT
+
+    Q_PROPERTY(unsigned int keyboardFocusOverlay READ getKeyboardFocusOverlay WRITE setKeyboardFocusOverlay)
 
 public:
     Overlays();
@@ -93,6 +99,10 @@ public:
     /// adds an overlay that's already been created
     unsigned int addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     unsigned int addOverlay(Overlay::Pointer overlay);
+
+    void mousePressEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event);
 
     void cleanupAllOverlays();
 
@@ -146,6 +156,15 @@ public slots:
      * @return {string} The type of the overlay if found, otherwise the empty string.
      */
     QString getOverlayType(unsigned int overlayId) const;
+
+    /**jsdoc
+    * Get the overlay Script object.
+    *
+    * @function Overlays.getOverlayObject
+    * @param {Overlays.OverlayID} overlayID The ID of the overlay to get the script object of.
+    * @return {Object} The script object for the overlay if found.
+    */
+    QObject* getOverlayObject(unsigned int id);
 
     /**jsdoc
      * Get the ID of the overlay at a particular point on the HUD/screen.
@@ -239,6 +258,17 @@ public slots:
     /// return true if there is a panel with that id else false
     bool isAddedPanel(unsigned int id) { return _panels.contains(id); }
 
+    void sendMousePressOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void sendMouseReleaseOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void sendMouseMoveOnOverlay(unsigned int overlayID, const PointerEvent& event);
+
+    void sendHoverEnterOverlay(unsigned int id, PointerEvent event);
+    void sendHoverOverOverlay(unsigned int id, PointerEvent event);
+    void sendHoverLeaveOverlay(unsigned int id, PointerEvent event);
+
+    unsigned int getKeyboardFocusOverlay() const;
+    void setKeyboardFocusOverlay(unsigned int id);
+
 signals:
     /**jsdoc
      * Emitted when an overlay is deleted
@@ -248,6 +278,15 @@ signals:
      */
     void overlayDeleted(unsigned int id);
     void panelDeleted(unsigned int id);
+
+    void mousePressOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void mouseReleaseOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void mouseMoveOnOverlay(unsigned int overlayID, const PointerEvent& event);
+    void mousePressOffOverlay();
+
+    void hoverEnterOverlay(unsigned int overlayID, const PointerEvent& event);
+    void hoverOverOverlay(unsigned int overlayID, const PointerEvent& event);
+    void hoverLeaveOverlay(unsigned int overlayID, const PointerEvent& event);
 
 private:
     void cleanupOverlaysToDelete();
@@ -262,8 +301,12 @@ private:
     QReadWriteLock _deleteLock;
     QScriptEngine* _scriptEngine;
     bool _enabled = true;
+
+    PointerEvent calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
+        QMouseEvent* event, PointerEvent::EventType eventType);
+
+    unsigned int _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
+    unsigned int _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
 };
-
-
 
 #endif // hifi_Overlays_h

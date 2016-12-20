@@ -19,6 +19,7 @@
 #include <RegisteredMetaTypes.h>
 
 #include "Application.h"
+#include "InterfaceLogging.h"
 #include "Image3DOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
@@ -36,6 +37,7 @@
 #include "Web3DOverlay.h"
 #include <QtQuick/QQuickWindow>
 
+Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
 Overlays::Overlays() :
     _nextOverlayID(1) {}
@@ -101,7 +103,7 @@ void Overlays::cleanupOverlaysToDelete() {
 }
 
 void Overlays::renderHUD(RenderArgs* renderArgs) {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(render_overlays, __FUNCTION__);
     QReadLocker lock(&_lock);
     gpu::Batch& batch = *renderArgs->_batch;
 
@@ -292,6 +294,14 @@ QString Overlays::getOverlayType(unsigned int overlayId) const {
     return "";
 }
 
+QObject* Overlays::getOverlayObject(unsigned int id) {
+    Overlay::Pointer thisOverlay = getOverlay(id);
+    if (thisOverlay) {
+        return qobject_cast<QObject*>(&(*thisOverlay));
+    }
+    return nullptr;
+}
+
 unsigned int Overlays::getParentPanel(unsigned int childId) const {
     Overlay::Pointer overlay = getOverlay(childId);
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
@@ -388,7 +398,7 @@ QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const Ove
     if (!value.value.isValid()) {
         return QScriptValue::UndefinedValue;
     }
-    return engine->newVariant(value.value);
+    return engine->toScriptValue(value.value);
 }
 
 void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPropertyResult& value) {
@@ -596,6 +606,38 @@ bool Overlays::isAddedOverlay(unsigned int id) {
     return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
 }
 
+void Overlays::sendMousePressOnOverlay(unsigned int overlayID, const PointerEvent& event) {
+    emit mousePressOnOverlay(overlayID, event);
+}
+
+void Overlays::sendMouseReleaseOnOverlay(unsigned int overlayID, const PointerEvent& event) {
+    emit mouseReleaseOnOverlay(overlayID, event);
+}
+
+void Overlays::sendMouseMoveOnOverlay(unsigned int overlayID, const PointerEvent& event) {
+    emit mouseMoveOnOverlay(overlayID, event);
+}
+
+void Overlays::sendHoverEnterOverlay(unsigned int id, PointerEvent event) {
+    emit hoverEnterOverlay(id, event);
+}
+
+void Overlays::sendHoverOverOverlay(unsigned int  id, PointerEvent event) {
+    emit hoverOverOverlay(id, event);
+}
+
+void Overlays::sendHoverLeaveOverlay(unsigned int  id, PointerEvent event) {
+    emit hoverLeaveOverlay(id, event);
+}
+
+unsigned int Overlays::getKeyboardFocusOverlay() const {
+    return qApp->getKeyboardFocusOverlay();
+}
+
+void Overlays::setKeyboardFocusOverlay(unsigned int id) {
+    qApp->setKeyboardFocusOverlay(id);
+}
+
 float Overlays::width() const {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->getWindow()->size().width();
@@ -604,4 +646,153 @@ float Overlays::width() const {
 float Overlays::height() const {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->getWindow()->size().height();
+}
+
+static const uint32_t MOUSE_POINTER_ID = 0;
+
+static glm::vec2 projectOntoOverlayXYPlane(glm::vec3 position, glm::quat rotation, glm::vec2 dimensions, const PickRay& pickRay, 
+    const RayToOverlayIntersectionResult& rayPickResult) {
+
+    // Project the intersection point onto the local xy plane of the overlay.
+    float distance;
+    glm::vec3 planePosition = position;
+    glm::vec3 planeNormal = rotation * Vectors::UNIT_Z;
+    glm::vec3 overlayDimensions = glm::vec3(dimensions.x, dimensions.y, 0.0f);
+    glm::vec3 rayDirection = pickRay.direction;
+    glm::vec3 rayStart = pickRay.origin;
+    glm::vec3 p;
+    if (rayPlaneIntersection(planePosition, planeNormal, rayStart, rayDirection, distance)) {
+        p = rayStart + rayDirection * distance;
+    } else {
+        p = rayPickResult.intersection;
+    }
+    glm::vec3 localP = glm::inverse(rotation) * (p - position);
+    glm::vec3 normalizedP = (localP / overlayDimensions) + glm::vec3(0.5f);
+    return glm::vec2(normalizedP.x * overlayDimensions.x,
+        (1.0f - normalizedP.y) * overlayDimensions.y);  // flip y-axis
+}
+
+static uint32_t toPointerButtons(const QMouseEvent& event) {
+    uint32_t buttons = 0;
+    buttons |= event.buttons().testFlag(Qt::LeftButton) ? PointerEvent::PrimaryButton : 0;
+    buttons |= event.buttons().testFlag(Qt::RightButton) ? PointerEvent::SecondaryButton : 0;
+    buttons |= event.buttons().testFlag(Qt::MiddleButton) ? PointerEvent::TertiaryButton : 0;
+    return buttons;
+}
+
+static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
+    switch (event.button()) {
+        case Qt::LeftButton:
+            return PointerEvent::PrimaryButton;
+        case Qt::RightButton:
+            return PointerEvent::SecondaryButton;
+        case Qt::MiddleButton:
+            return PointerEvent::TertiaryButton;
+        default:
+            return PointerEvent::NoButtons;
+    }
+}
+
+PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, 
+    RayToOverlayIntersectionResult rayPickResult, QMouseEvent* event, PointerEvent::EventType eventType) {
+
+    auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlay);
+
+    QReadLocker lock(&_lock);
+    auto position = thisOverlay->getPosition();
+    auto rotation = thisOverlay->getRotation();
+    auto dimensions = thisOverlay->getSize();
+
+    glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
+    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID,
+        pos2D, rayPickResult.intersection,
+        rayPickResult.surfaceNormal, ray.direction,
+        toPointerButton(*event), toPointerButtons(*event));
+
+    return pointerEvent;
+}
+
+void Overlays::mousePressEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mousePressEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    if (rayPickResult.intersects) {
+        _currentClickingOnOverlayID = rayPickResult.overlayID;
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
+        if (thisOverlay) {
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
+            emit mousePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+        } else {
+            emit mousePressOffOverlay();
+        }
+    } else {
+        emit mousePressOffOverlay();
+    }
+}
+
+void Overlays::mouseReleaseEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    if (rayPickResult.intersects) {
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(rayPickResult.overlayID));
+        if (thisOverlay) {
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Release);
+            emit mouseReleaseOnOverlay(rayPickResult.overlayID, pointerEvent);
+        }
+    }
+
+    _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
+}
+
+void Overlays::mouseMoveEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    if (rayPickResult.intersects) {
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(rayPickResult.overlayID));
+        if (thisOverlay) {
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
+            emit mouseMoveOnOverlay(rayPickResult.overlayID, pointerEvent);
+
+            // If previously hovering over a different overlay then leave hover on that overlay.
+            if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
+                auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentHoverOverOverlayID));
+                if (thisOverlay) {
+                    auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
+                    emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
+                }
+            }
+
+            // If hovering over a new overlay then enter hover on that overlay.
+            if (rayPickResult.overlayID != _currentHoverOverOverlayID) {
+                emit hoverEnterOverlay(rayPickResult.overlayID, pointerEvent);
+            }
+
+            // Hover over current overlay.
+            emit hoverOverOverlay(rayPickResult.overlayID, pointerEvent);
+
+            _currentHoverOverOverlayID = rayPickResult.overlayID;
+        }
+    } else {
+        // If previously hovering an overlay then leave hover.
+        if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID) {
+            auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentHoverOverOverlayID));
+            if (thisOverlay) {
+                auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
+                emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
+            }
+
+            _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
+        }
+    }
 }

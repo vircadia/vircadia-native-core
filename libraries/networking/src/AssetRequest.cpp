@@ -19,8 +19,12 @@
 #include "NetworkLogging.h"
 #include "NodeList.h"
 #include "ResourceCache.h"
+#include <Trace.h>
+
+static int requestID = 0;
 
 AssetRequest::AssetRequest(const QString& hash) :
+    _requestID(++requestID),
     _hash(hash)
 {
 }

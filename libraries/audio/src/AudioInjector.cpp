@@ -166,7 +166,6 @@ bool AudioInjector::injectLocally() {
 
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
-            _localBuffer->setVolume(_options.volume);
 
             // give our current send position to the local buffer
             _localBuffer->setCurrentOffset(_currentSendOffset);

@@ -95,6 +95,7 @@ public:
 
     // Render Item interface
     render::ItemKey getKey() const override;
+    int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) const override;
 
@@ -122,6 +123,7 @@ private:
 namespace render {
     template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload);
     template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
+    template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
 }

@@ -56,7 +56,10 @@ public:
 
     void setHardwareAddress(const QString& hardwareAddress) { _hardwareAddress = hardwareAddress; }
     const QString& getHardwareAddress() { return _hardwareAddress; }
-    
+   
+    void setMachineFingerprint(const QUuid& machineFingerprint) { _machineFingerprint = machineFingerprint; }
+    const QUuid& getMachineFingerprint() { return _machineFingerprint; }
+
     void addOverrideForKey(const QString& key, const QString& value, const QString& overrideValue);
     void removeOverrideForKey(const QString& key, const QString& value);
 
@@ -85,6 +88,7 @@ private:
     NodeSet _nodeInterestSet;
     QString _nodeVersion;
     QString _hardwareAddress;
+    QUuid   _machineFingerprint;
 
     QString _placeName;
 

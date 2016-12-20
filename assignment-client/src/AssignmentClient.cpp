@@ -37,6 +37,8 @@
 #include "AssignmentClient.h"
 #include "AssignmentClientLogging.h"
 #include "avatars/ScriptableAvatar.h"
+#include <Trace.h>
+#include <StatTracker.h>
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
@@ -48,6 +50,8 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 {
     LogUtils::init();
 
+    DependencyManager::set<tracing::Tracer>();
+    DependencyManager::set<StatTracker>();
     DependencyManager::set<AccountManager>();
 
     auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();

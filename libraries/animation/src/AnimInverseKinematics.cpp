@@ -394,7 +394,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         loadPoses(underPoses);
     } else {
 
-        PROFILE_RANGE_EX("ik/relax", 0xffff00ff, 0);
+        PROFILE_RANGE_EX(simulation_animation, "ik/relax", 0xffff00ff, 0);
 
         // relax toward underPoses
         // HACK: this relaxation needs to be constant per-frame rather than per-realtime
@@ -433,7 +433,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         // build a list of targets from _targetVarVec
         std::vector<IKTarget> targets;
         {
-            PROFILE_RANGE_EX("ik/computeTargets", 0xffff00ff, 0);
+            PROFILE_RANGE_EX(simulation_animation, "ik/computeTargets", 0xffff00ff, 0);
             computeTargets(animVars, targets, underPoses);
         }
 
@@ -450,7 +450,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         } else {
 
             {
-                PROFILE_RANGE_EX("ik/shiftHips", 0xffff00ff, 0);
+                PROFILE_RANGE_EX(simulation_animation, "ik/shiftHips", 0xffff00ff, 0);
 
                 // shift hips according to the _hipsOffset from the previous frame
                 float offsetLength = glm::length(_hipsOffset);
@@ -476,12 +476,12 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             }
 
             {
-                PROFILE_RANGE_EX("ik/ccd", 0xffff00ff, 0);
+                PROFILE_RANGE_EX(simulation_animation, "ik/ccd", 0xffff00ff, 0);
                 solveWithCyclicCoordinateDescent(targets);
             }
 
             {
-                PROFILE_RANGE_EX("ik/measureHipsOffset", 0xffff00ff, 0);
+                PROFILE_RANGE_EX(simulation_animation, "ik/measureHipsOffset", 0xffff00ff, 0);
 
                 // measure new _hipsOffset for next frame
                 // by looking for discrepancies between where a targeted endEffector is
