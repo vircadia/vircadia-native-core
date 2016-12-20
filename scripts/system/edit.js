@@ -14,11 +14,11 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
+
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
 var SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 var EDIT_TOOLBAR = "com.highfidelity.interface.toolbar.edit";
-    
 
 Script.include([
     "libraries/stringHelpers.js",
@@ -165,6 +165,7 @@ function toggleMarketplace() {
 }
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
+
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
     var that = {},
@@ -702,7 +703,6 @@ function mouseClickEvent(event) {
         var foundEntity = result.entityID;
 
         properties = Entities.getEntityProperties(foundEntity);
-
         if (isLocked(properties)) {
             if (wantDebug) {
                 print("Model locked " + properties.id);
