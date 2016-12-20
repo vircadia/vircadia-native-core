@@ -85,7 +85,7 @@ Item {
     HifiControls.Table {
         id: table;
         // Size
-        height: pal.height - myInfo.height;
+        height: pal.height - myInfo.height - 4;
         width: pal.width - 4;
         // Anchors
         anchors.left: parent.left;
@@ -192,6 +192,59 @@ Item {
                         sortModel();
                     }
                 }
+            }
+        }
+    }
+    // This Rectangle refers to the [?] popup button
+    Rectangle {
+        color: hifi.colors.tableBackgroundLight;
+        width: 18;
+        height: hifi.dimensions.tableHeaderHeight - 2;
+        anchors.left: table.left;
+        anchors.top: table.top;
+        anchors.topMargin: 1;
+        anchors.leftMargin: nameCardWidth/2 + 23;
+        RalewayRegular {
+            id: helpText;
+            text: "[?]";
+            size: hifi.fontSizes.tableHeading;
+            font.capitalization: Font.AllUppercase;
+            color: hifi.colors.darkGray;
+            horizontalAlignment: Text.AlignHCenter;
+            verticalAlignment: Text.AlignVCenter;
+            anchors.fill: parent;
+        }
+        MouseArea {
+            anchors.fill: parent;
+            acceptedButtons: Qt.LeftButton;
+            hoverEnabled: true;
+            onClicked: namesPopup.visible = true;
+            onEntered: helpText.color = hifi.colors.baseGrayHighlight;
+            onExited: helpText.color = hifi.colors.darkGray;
+        }
+    }
+    // Explanitory popup upon clicking "[?]"
+    Item {
+        visible: false;
+        id: namesPopup;
+        anchors.fill: pal;
+        Rectangle {
+            anchors.fill: parent;
+            color: "black";
+            opacity: 0.5;
+            radius: hifi.dimensions.borderRadius;
+        }
+        Rectangle {
+            width: 400;
+            height: 200;
+            anchors.centerIn: parent;
+            color: "black";
+        }
+        MouseArea {
+            anchors.fill: parent;
+            acceptedButtons: Qt.LeftButton;
+            onClicked: {
+                namesPopup.visible = false;
             }
         }
     }

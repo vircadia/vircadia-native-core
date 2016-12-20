@@ -38,11 +38,11 @@ Row {
         // Size
         height: contentHeight;
         width: height;
-        Rectangle {
-            radius: parent.width*0.5;
-            color: "#AAA5AD";
+        Image {
+            id: userImage;
+            source: "../../icons/defaultNameCardUser.png"
             // Anchors
-            width: parent.width
+            width: parent.width;
             height: parent.height;
         }
     }
