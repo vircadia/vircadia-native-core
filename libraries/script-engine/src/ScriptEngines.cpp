@@ -37,6 +37,26 @@ void ScriptEngines::onPrintedMessage(const QString& message) {
     emit printedMessage(message, scriptEngine->getFilename());
 }
 
+void ScriptEngines::onErrorMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    emit errorMessage(message, scriptEngine->getFilename());
+}
+
+void ScriptEngines::onWarningMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    emit warningMessage(message, scriptEngine->getFilename());
+}
+
+void ScriptEngines::onInfoMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    emit infoMessage(message, scriptEngine->getFilename());
+}
+
+void ScriptEngines::onErrorLoadingScript(const QString& url) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    emit errorLoadingScript(url, scriptEngine->getFilename());
+}
+
 ScriptEngines::ScriptEngines()
     : _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
 {

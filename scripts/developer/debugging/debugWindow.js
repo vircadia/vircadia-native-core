@@ -23,3 +23,15 @@ window.closed.connect(function() { Script.stop(); });
 ScriptDiscoveryService.printedMessage.connect(function(message, scriptFileName) {
     window.sendToQml("[" + scriptFileName + "] " + message);
 });
+
+ScriptDiscoveryService.warningMessage.connect(function(message, scriptFileName) {
+    window.sendToQml("[" + scriptFileName + "] WARNING - " + message);
+});
+
+ScriptDiscoveryService.errorMessage.connect(function(message, scriptFileName) {
+    window.sendToQml("[" + scriptFileName + "] ERROR - " + message);
+});
+
+ScriptDiscoveryService.infoMessage.connect(function(message, scriptFileName) {
+    window.sendToQml("[" + scriptFileName + "] INFO - " + message);
+});

@@ -74,10 +74,18 @@ signals:
     void scriptCountChanged();
     void scriptsReloading();
     void scriptLoadError(const QString& filename, const QString& error);
-    void printedMessage(const QString& message, const QString& filename);
+    void printedMessage(const QString& message, const QString& engineName);
+    void errorMessage(const QString& message, const QString& engineName);
+    void warningMessage(const QString& message, const QString& engineName);
+    void infoMessage(const QString& message, const QString& engineName);
+    void errorLoadingScript(const QString& url, const QString& engineName);
 
 public slots:
     void onPrintedMessage(const QString& message);
+    void onErrorMessage(const QString& message);
+    void onWarningMessage(const QString& message);
+    void onInfoMessage(const QString& message);
+    void onErrorLoadingScript(const QString& url);
 
 protected slots:
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
