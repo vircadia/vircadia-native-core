@@ -22,9 +22,10 @@
 #include <QFileInfo>
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
-#include "ResourceManager.h"
 
 #include "FileScriptingInterface.h"
+#include "ResourceManager.h"
+#include "ScriptEngineLogging.h"
 
 
 FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent) {
@@ -32,26 +33,26 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
 }
 
 void FileScriptingInterface::runUnzip(QString path, QUrl url) {
-    qDebug() << "Url that was downloaded: " + url.toString();
-    qDebug() << "Path where download is saved: " + path;
+    qCDebug(scriptengine) << "Url that was downloaded: " + url.toString();
+    qCDebug(scriptengine) << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
     QString tempDir = path;
     tempDir.remove(fileName);
-    qDebug() << "Temporary directory at: " + tempDir;
+    qCDebug(scriptengine) << "Temporary directory at: " + tempDir;
     if (!isTempDir(tempDir)) {
-        qDebug() << "Temporary directory mismatch; risk of losing files";
+        qCDebug(scriptengine) << "Temporary directory mismatch; risk of losing files";
         return;
     }
 
     QString file = unzipFile(path, tempDir);
     if (file != "") {
-        qDebug() << "Object file to upload: " + file;
+        qCDebug(scriptengine) << "Object file to upload: " + file;
         QUrl url = QUrl::fromLocalFile(file);
         emit unzipSuccess(url.toString());
     } else {
-        qDebug() << "unzip failed";
+        qCDebug(scriptengine) << "unzip failed";
     }
-    qDebug() << "Removing temporary directory at: " + tempDir;
+    qCDebug(scriptengine) << "Removing temporary directory at: " + tempDir;
     QDir(tempDir).removeRecursively();
 }
 
@@ -94,7 +95,7 @@ QString FileScriptingInterface::convertUrlToPath(QUrl url) {
     QString newUrl;
     QString oldUrl = url.toString();
     newUrl = oldUrl.section("filename=", 1, 1);
-    qDebug() << "Filename should be: " + newUrl;
+    qCDebug(scriptengine) << "Filename should be: " + newUrl;
     return newUrl;
 }
 
@@ -116,12 +117,12 @@ QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
     QString target = tempDir + "/model_repo";
     QStringList list = JlCompress::extractDir(dirName, target);
 
-    qDebug() << list;
+    qCDebug(scriptengine) << list;
 
     if (!list.isEmpty()) {
         return list.front();
     } else {
-        qDebug() << "Extraction failed";
+        qCDebug(scriptengine) << "Extraction failed";
         return "";
     }
 
@@ -130,13 +131,13 @@ QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
 // this function is not in use
 void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName) {
     /*if (!file.isDir()) {
-        qDebug() << "Regular file logged: " + file.fileName();
+        qCDebug(scriptengine) << "Regular file logged: " + file.fileName();
         return;
     }*/
     QFileInfoList files;
 
     if (file.fileName().contains(".zip")) {
-        qDebug() << "Extracting archive: " + file.fileName();
+        qCDebug(scriptengine) << "Extracting archive: " + file.fileName();
         JlCompress::extractDir(file.fileName());
     }
     files = file.dir().entryInfoList();
@@ -146,7 +147,7 @@ void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName)
     }*/
 
     foreach (QFileInfo file, files) {
-        qDebug() << "Looking into file: " + file.fileName();
+        qCDebug(scriptengine) << "Looking into file: " + file.fileName();
         recursiveFileScan(file, dirName);
     }
     return;

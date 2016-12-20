@@ -108,7 +108,7 @@ void HTTPResourceRequest::onRequestFinished() {
         case QNetworkReply::UnknownServerError: // Script.include('QUrl("https://httpbin.org/status/504")')
         case QNetworkReply::InternalServerError: // Script.include('QUrl("https://httpbin.org/status/500")')
         default:
-            qDebug() << "HTTPResourceRequest error:" << QMetaEnum::fromType<QNetworkReply::NetworkError>().valueToKey(_reply->error());
+            qCDebug(networking) << "HTTPResourceRequest error:" << QMetaEnum::fromType<QNetworkReply::NetworkError>().valueToKey(_reply->error());
             _result = Error;
             break;
     }

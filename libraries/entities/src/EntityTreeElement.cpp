@@ -329,7 +329,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                             includeThisEntity = false; // too small, don't include it
 
                             #ifdef WANT_LOD_DEBUGGING
-                            qDebug() << "skipping entity - TOO SMALL - \n"
+                            qCDebug(entities) << "skipping entity - TOO SMALL - \n"
                                      << "......id:" << entity->getID() << "\n"
                                      << "....name:" << entity->getName() << "\n"
                                      << "..bounds:" << entityBounds << "\n"
@@ -341,7 +341,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
                 if (includeThisEntity) {
                     #ifdef WANT_LOD_DEBUGGING
-                    qDebug() << "including entity - \n"
+                    qCDebug(entities) << "including entity - \n"
                         << "......id:" << entity->getID() << "\n"
                         << "....name:" << entity->getName() << "\n"
                         << "....cell:" << getAACube();
@@ -472,7 +472,7 @@ bool EntityTreeElement::bestFitEntityBounds(EntityItemPointer entity) const {
     bool success;
     auto queryCube = entity->getQueryAACube(success);
     if (!success) {
-        qDebug() << "EntityTreeElement::bestFitEntityBounds couldn't get queryCube for" << entity->getName() << entity->getID();
+        qCDebug(entities) << "EntityTreeElement::bestFitEntityBounds couldn't get queryCube for" << entity->getName() << entity->getID();
         return false;
     }
     return bestFitBounds(queryCube);
@@ -973,7 +973,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             }
                         } else {
                             #ifdef WANT_DEBUG
-                                qDebug() << "Received packet for previously deleted entity [" <<
+                                qCDebug(entities) << "Received packet for previously deleted entity [" <<
                                         entityItem->getID() << "] ignoring. (inside " << __FUNCTION__ << ")";
                             #endif
                         }

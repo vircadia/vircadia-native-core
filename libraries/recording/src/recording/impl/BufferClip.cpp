@@ -33,7 +33,7 @@ void BufferClip::addFrame(FrameConstPointer newFrame) {
     );
 
     auto newFrameIndex = itr - _frames.begin();
-    //qDebug() << "Adding frame with time offset " << newFrame->timeOffset << " @ index " << newFrameIndex;
+    //qDebug(recordingLog) << "Adding frame with time offset " << newFrame->timeOffset << " @ index " << newFrameIndex;
     _frames.insert(_frames.begin() + newFrameIndex, Frame(*newFrame));
 }
 

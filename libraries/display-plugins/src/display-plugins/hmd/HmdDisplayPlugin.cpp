@@ -741,7 +741,6 @@ void HmdDisplayPlugin::compositeExtra() {
 }
 
 HmdDisplayPlugin::~HmdDisplayPlugin() {
-    qDebug() << "Destroying HmdDisplayPlugin";
 }
 
 float HmdDisplayPlugin::stutterRate() const {

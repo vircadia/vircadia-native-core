@@ -401,7 +401,7 @@ void NodeList::sendDomainServerCheckIn() {
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
             // so emit our signal that says that
-            qDebug() << "Limit of silent domain checkins reached";
+            qCDebug(networking) << "Limit of silent domain checkins reached";
             emit limitOfSilentDomainCheckInsReached();
         }
 
@@ -629,7 +629,7 @@ void NodeList::processDomainServerAddedNode(QSharedPointer<ReceivedMessage> mess
 void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> message) {
     // read the UUID from the packet, remove it if it exists
     QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-    qDebug() << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
+    qCDebug(networking) << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
     killNodeWithUUID(nodeUUID);
 }
 
@@ -793,7 +793,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
             // write the node ID to the packet
             ignorePacket->write(nodeID.toRfc4122());
 
-            qDebug() << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
+            qCDebug(networking) << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
 
             // send off this ignore packet reliably to the matching node
             sendPacket(std::move(ignorePacket), *destinationNode);
@@ -855,7 +855,7 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
             // write the node ID to the packet
             kickPacket->write(nodeID.toRfc4122());
 
-            qDebug() << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
+            qCDebug(networking) << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
 
             sendPacket(std::move(kickPacket), _domainHandler.getSockAddr());
         } else {
@@ -880,7 +880,7 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
                 // write the node ID to the packet
                 mutePacket->write(nodeID.toRfc4122());
 
-                qDebug() << "Sending packet to mute node" << uuidStringWithoutCurlyBraces(nodeID);
+                qCDebug(networking) << "Sending packet to mute node" << uuidStringWithoutCurlyBraces(nodeID);
             
                 sendPacket(std::move(mutePacket), *audioMixer);
             } else {
@@ -909,7 +909,7 @@ void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
             usernameFromIDRequestPacket->write(nodeID.toRfc4122());
         }
 
-        qDebug() << "Sending packet to get username of node" << uuidStringWithoutCurlyBraces(nodeID);
+        qCDebug(networking) << "Sending packet to get username of node" << uuidStringWithoutCurlyBraces(nodeID);
 
         sendPacket(std::move(usernameFromIDRequestPacket), _domainHandler.getSockAddr());
     } else {
@@ -924,7 +924,7 @@ void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> messag
     // read the username from the packet
     QString username = message->readString();
 
-    qDebug() << "Got username" << username << "for node" << nodeUUIDString;
+    qCDebug(networking) << "Got username" << username << "for node" << nodeUUIDString;
 
     emit usernameFromIDReply(nodeUUIDString, username);
 }

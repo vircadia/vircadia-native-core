@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 
 #include "AACube.h"
+#include "Logging.h"
 #include "OctalCode.h"
 #include "Octree.h"
 #include "OctreeConstants.h"
@@ -444,18 +445,12 @@ void OctreeElement::printDebugDetails(const char* label) const {
         }
     }
 
-    QDebug elementDebug = qDebug().nospace();
-
     QString resultString;
     resultString.sprintf("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isDirty=%s shouldRender=%s\n children=", label,
                          (double)_cube.getCorner().x, (double)_cube.getCorner().y, (double)_cube.getCorner().z,
                          (double)_cube.getScale(),
                          debug::valueOf(isLeaf()), debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
-    elementDebug << resultString;
-
-    outputBits(childBits, &elementDebug);
-    qDebug("octalCode=");
-    printOctalCode(getOctalCode());
+    qCDebug(octree).nospace() << resultString;
 }
 
 float OctreeElement::getEnclosingRadius() const {

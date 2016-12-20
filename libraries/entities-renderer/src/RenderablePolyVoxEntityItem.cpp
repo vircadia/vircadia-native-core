@@ -890,7 +890,7 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
         if (voxelXSize == 0 || voxelXSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION ||
             voxelYSize == 0 || voxelYSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION ||
             voxelZSize == 0 || voxelZSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION) {
-            qDebug() << "voxelSize is not reasonable, skipping decompressions."
+            qCDebug(entities) << "voxelSize is not reasonable, skipping decompressions."
                      << voxelXSize << voxelYSize << voxelZSize << getName() << getID();
             entity->setVoxelDataDirty(false);
             return;
@@ -903,7 +903,7 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
         QByteArray uncompressedData = qUncompress(compressedData);
 
         if (uncompressedData.size() != rawSize) {
-            qDebug() << "PolyVox decompress -- size is (" << voxelXSize << voxelYSize << voxelZSize << ")"
+            qCDebug(entities) << "PolyVox decompress -- size is (" << voxelXSize << voxelYSize << voxelZSize << ")"
                      << "so expected uncompressed length of" << rawSize << "but length is" << uncompressedData.size()
                      << getName() << getID();
             entity->setVoxelDataDirty(false);
@@ -973,7 +973,7 @@ void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
         if (newVoxelData.size() > 1150) {
             // HACK -- until we have a way to allow for properties larger than MTU, don't update.
             // revert the active voxel-space to the last version that fit.
-            qDebug() << "compressed voxel data is too large" << entity->getName() << entity->getID();
+            qCDebug(entities) << "compressed voxel data is too large" << entity->getName() << entity->getID();
             return;
         }
 

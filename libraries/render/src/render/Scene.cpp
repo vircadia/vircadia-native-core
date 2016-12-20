@@ -21,7 +21,7 @@ void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
         _resetItems.push_back(id);
         _resetPayloads.push_back(payload);
     } else {
-        qDebug() << "WARNING: PendingChanges::resetItem with a null payload!";
+        qCDebug(renderlogging) << "WARNING: PendingChanges::resetItem with a null payload!";
         removeItem(id);
     }
 }
@@ -50,7 +50,7 @@ Scene::Scene(glm::vec3 origin, float size) :
 }
 
 Scene::~Scene() {
-    qDebug() << "Scene::~Scene()";
+    qCDebug(renderlogging) << "Scene::~Scene()";
 }
 
 ItemID Scene::allocateID() {
