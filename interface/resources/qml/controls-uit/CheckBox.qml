@@ -21,7 +21,7 @@ Original.CheckBox {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
 
-    readonly property int boxSize: 14
+    property int boxSize: 14
     readonly property int boxRadius: 3
     readonly property int checkSize: 10
     readonly property int checkRadius: 2

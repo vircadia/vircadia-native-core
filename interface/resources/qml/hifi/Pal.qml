@@ -172,25 +172,21 @@ Item {
                 // Anchors
                 anchors.left: parent.left;
             }
-            // This Rectangle refers to the cells that contain the action buttons
-            Rectangle {
-                radius: itemCell.height / 4;
+            
+            // This CheckBox belongs in the columns that contain the action buttons ("Mute", "Ban", etc)
+            HifiControls.CheckBox {
                 visible: isCheckBox && !isSeparator;
-                color: styleData.value ? "green" : "red";
-                anchors.fill: parent;
-                MouseArea {
-                    anchors.fill: parent;
-                    acceptedButtons: Qt.LeftButton;
-                    hoverEnabled: true;
-                    onClicked: {
-                        var newValue = !model[styleData.role];
-                        var datum = userData[model.userIndex];
-                        datum[styleData.role] = model[styleData.role] = newValue;
-                        Users[styleData.role](model.sessionId);
-                        // Just for now, while we cannot undo things:
-                        userData.splice(model.userIndex, 1);
-                        sortModel();
-                    }
+                anchors.centerIn: parent;
+                colorScheme: hifi.colorSchemes.dark;
+                boxSize: 22;
+                onClicked: {
+                    var newValue = !model[styleData.role];
+                    var datum = userData[model.userIndex];
+                    datum[styleData.role] = model[styleData.role] = newValue;
+                    Users[styleData.role](model.sessionId);
+                    // Just for now, while we cannot undo things:
+                    userData.splice(model.userIndex, 1);
+                    sortModel();
                 }
             }
         }

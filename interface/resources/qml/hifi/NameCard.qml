@@ -67,7 +67,7 @@ Row {
         }
 
         // UserName Text
-        FiraSansSemiBold {
+        FiraSansRegular {
             id: userNameText;
             // Properties
             text: thisNameCard.userName;
