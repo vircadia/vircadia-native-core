@@ -54,14 +54,6 @@ function onClicked(){
     Menu.setIsOptionChecked(isDesktop ? headset : desktopMenuItemName, true);
 }
 if (headset) {
-    /*button = toolBar.addButton({
-        objectName: "hmdToggle",
-        imageURL: Script.resolvePath("assets/images/tools/switch.svg"),
-        visible: true,
-        hoverState: 2,
-        defaultState: 0,
-        alpha: 0.9
-    });*/
     button = tablet.addButton({
         text: "SWITCH"});
     onHmdChanged(HMD.active);

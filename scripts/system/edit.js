@@ -235,15 +235,7 @@ var toolBar = (function () {
         activeButton = tablet.addButton({
             text: "EDIT"
             });
-        /*activeButton = systemToolbar.addButton({
-            objectName: EDIT_TOGGLE_BUTTON,
-            imageURL: TOOLS_PATH + "edit.svg",
-            visible: true,
-            alpha: 0.9,
-            buttonState: 1,
-            hoverState: 3,
-            defaultState: 1
-        });*/
+
         activeButton.clicked.connect(function() {
             that.toggle();
         });
