@@ -321,7 +321,7 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
 }
 
 FBXNode FBXReader::parseFBX(QIODevice* device) {
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, device);
+    PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xff0000ff, device);
     // verify the prolog
     const QByteArray BINARY_PROLOG = "Kaydara FBX Binary  ";
     if (device->peek(BINARY_PROLOG.size()) != BINARY_PROLOG) {

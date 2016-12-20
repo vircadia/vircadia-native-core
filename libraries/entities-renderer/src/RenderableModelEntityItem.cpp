@@ -211,7 +211,7 @@ namespace render {
     template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
         if (args) {
             if (payload && payload->entity) {
-                PROFILE_RANGE("MetaModelRender");
+                PROFILE_RANGE(render, "MetaModelRender");
                 payload->entity->render(args);
             }
         }
@@ -533,7 +533,8 @@ void RenderableModelEntityItem::update(const quint64& now) {
                 properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
                 auto extents = _model->getMeshExtents();
                 properties.setDimensions(extents.maximum - extents.minimum);
-                qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+                qCDebug(entitiesrenderer) << "Autoresizing" << (!getName().isEmpty() ? getName() : getModelURL()) 
+                    << "from mesh extents";
                 QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                         Qt::QueuedConnection,
                                         Q_ARG(QUuid, getEntityItemID()),
@@ -1169,6 +1170,7 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
 
 
 void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
+    PerformanceTimer pertTimer("locationChanged");
     EntityItem::locationChanged(tellPhysics);
     if (_model && _model->isActive()) {
         _model->setRotation(getRotation());

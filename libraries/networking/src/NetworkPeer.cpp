@@ -20,6 +20,8 @@
 
 #include "BandwidthRecorder.h"
 #include "NetworkLogging.h"
+#include <Trace.h>
+#include "NodeType.h"
 
 
 NetworkPeer::NetworkPeer(QObject* parent) :
@@ -156,6 +158,7 @@ void NetworkPeer::activateMatchingOrNewSymmetricSocket(const HifiSockAddr& match
 }
 
 void NetworkPeer::softReset() {
+    qDebug() << "Soft reset ";
     // a soft reset should clear the sockets and reset the number of connection attempts
     _localSocket.clear();
     _publicSocket.clear();

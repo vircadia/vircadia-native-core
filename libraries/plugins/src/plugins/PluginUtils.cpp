@@ -24,16 +24,16 @@ bool PluginUtils::isHMDAvailable(const QString& pluginName) {
     return false;
 }
 
-bool PluginUtils::isHandControllerAvailable() {
+bool PluginUtils::isHandControllerAvailable(const QString& pluginName) {
     for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
-        if (inputPlugin->isHandController()) {
+        if (inputPlugin->isHandController() && (pluginName.isEmpty() || inputPlugin->getName() == pluginName)) {
             return true;
         }
     }
     return false;
 };
 
-bool isSubdeviceContainingNameAvailable(QString name) {
+bool PluginUtils::isSubdeviceContainingNameAvailable(QString name) {
     for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
             auto subdeviceNames = inputPlugin->getSubdeviceNames();

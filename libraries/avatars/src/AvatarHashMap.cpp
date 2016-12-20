@@ -13,6 +13,7 @@
 
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
+#include <PerfStat.h>
 #include <SharedUtil.h>
 
 #include "AvatarLogging.h"
@@ -98,6 +99,7 @@ AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) {
 }
 
 void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    PerformanceTimer perfTimer("receiveAvatar");
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (message->getBytesLeftToRead()) {

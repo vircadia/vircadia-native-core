@@ -81,6 +81,7 @@ public:
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
+    void requestUsernameFromSessionID(const QUuid& nodeID);
 
 public slots:
     void reset();
@@ -99,6 +100,8 @@ public slots:
 
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
+    void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
+
 #if (PR_BUILD || DEV_BUILD)
     void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
 #endif
@@ -108,6 +111,7 @@ signals:
     void receivedDomainServerList();
     void ignoredNode(const QUuid& nodeID);
     void ignoreRadiusEnabledChanged(bool isIgnored);
+    void usernameFromIDReply(const QString& nodeID, const QString& username);
 
 private slots:
     void stopKeepalivePingTimer();

@@ -836,6 +836,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // If the new hover entity does not match the previous hover entity then we are entering the new one
         // this is true if the _currentHoverOverEntityID is known or unknown
         if (rayPickResult.entityID != _currentHoverOverEntityID) {
+            emit hoverEnterEntity(rayPickResult.entityID, pointerEvent);
             if (_entitiesScriptEngine) {
                 _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverEnterEntity", pointerEvent);
             }

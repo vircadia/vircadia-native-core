@@ -170,8 +170,8 @@ var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
     var that = {},
         toolBar,
-        systemToolbar,
-        activeButton;
+        activeButton,
+        tablet;
 
     function createNewEntity(properties) {
         Settings.setValue(EDIT_SETTING, false);
@@ -230,16 +230,12 @@ var toolBar = (function () {
             }
         });
 
-        systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
-        activeButton = systemToolbar.addButton({
-            objectName: EDIT_TOGGLE_BUTTON,
-            imageURL: TOOLS_PATH + "edit.svg",
-            visible: true,
-            alpha: 0.9,
-            buttonState: 1,
-            hoverState: 3,
-            defaultState: 1
+
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        activeButton = tablet.addButton({
+            text: "EDIT"
         });
+
         activeButton.clicked.connect(function() {
             that.toggle();
         });
@@ -440,9 +436,7 @@ var toolBar = (function () {
 
     that.toggle = function () {
         that.setActive(!isActive);
-        activeButton.writeProperty("buttonState", isActive ? 0 : 1);
-        activeButton.writeProperty("defaultState", isActive ? 0 : 1);
-        activeButton.writeProperty("hoverState", isActive ? 2 : 3);
+        activeButton.editProperties({isActive: isActive});
     };
 
     that.setActive = function (active) {

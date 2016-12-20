@@ -65,9 +65,7 @@ private:
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
-    ivec2  _lastPress { INT_MIN };
     bool _pressed{ false };
-    QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
     QTouchDevice _touchDevice;
 

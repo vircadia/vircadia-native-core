@@ -350,8 +350,6 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         touchEvent->setTouchPoints(touchPoints);
         touchEvent->setTouchPointStates(touchPointState);
 
-        _lastTouchEvent = *touchEvent;
-
         QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
     }
 }
@@ -368,6 +366,8 @@ void RenderableWebEntityItem::destroyWebSurface() {
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
         }
 
+        // Fix for crash in QtWebEngineCore when rapidly switching domains
+        // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
         if (rootItem) {
             QObject* obj = rootItem->findChild<QObject*>("webEngineView");
             if (obj) {
