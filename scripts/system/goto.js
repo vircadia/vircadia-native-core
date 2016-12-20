@@ -16,20 +16,19 @@
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var isActive = false
 var button = tablet.addButton({
-    text:"GOTO"})
+    text:"GOTO"
+});
 
 
 function onAddressBarShown(visible) {
 }
 
 function setActive(active) {
-  isActive = active;
+    isActive = active;
 }
 function onClicked(){
     setActive(!isActive);
-    var buttonProperties = button.getProperties();
-    buttonProperties.isActive = isActive;
-    button.editProperties(buttonProperties);
+    button.editProperties({isActive: isActive});
     DialogsManager.toggleAddressBar();
 }
 button.clicked.connect(onClicked);

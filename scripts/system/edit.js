@@ -170,7 +170,6 @@ var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
     var that = {},
         toolBar,
-        systemToolbar,
         activeButton,
         tablet;
 
@@ -231,11 +230,11 @@ var toolBar = (function () {
             }
         });
 
-        systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
+
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
             text: "EDIT"
-            });
+        });
 
         activeButton.clicked.connect(function() {
             that.toggle();
@@ -437,9 +436,7 @@ var toolBar = (function () {
 
     that.toggle = function () {
         that.setActive(!isActive);
-        var buttonProperties = activeButton.getProperties();
-        buttonProperties.isActive = isActive;
-        activeButton.editProperties(buttonProperties);
+        activeButton.editProperties({isActive: isActive});
     };
 
     that.setActive = function (active) {

@@ -91,9 +91,7 @@
 
     // Used to set the state of the bubble HUD button
     function writeButtonProperties(parameter) {
-       var buttonProperties = button.getProperties();
-       buttonProperties.isActive = parameter;
-       button.editProperties(buttonProperties);
+        button.editProperties({isActive: parameter});
     }
 
     // The bubble script's update function
@@ -168,7 +166,8 @@
 
     // Setup the bubble button and add it to the toolbar
     var button = tablet.addButton({
-        text: "BUBBLE"});
+        text: "BUBBLE"
+    });
     onBubbleToggled();
 
     button.clicked.connect(Users.toggleIgnoreRadius);

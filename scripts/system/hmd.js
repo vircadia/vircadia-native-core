@@ -41,6 +41,7 @@ var button;
 // Disable them in hmd.
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
+    //TODO change button icon when the hmd changes
     desktopOnlyViews.forEach(function (view) {
         Menu.setMenuEnabled("View>" + view, !isHmd);
     });
@@ -52,7 +53,8 @@ function onClicked(){
 }
 if (headset) {
     button = tablet.addButton({
-        text: "SWITCH"});
+        text: "SWITCH"
+    });
     onHmdChanged(HMD.active);
 
     button.clicked.connect(onClicked);
