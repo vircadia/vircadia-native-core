@@ -167,9 +167,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
 
-    PROFILE_COUNTER(app, "NumAvatarsPerSec",
+    PROFILE_COUNTER(simulation_avatar, "NumAvatarsPerSec",
             { { "NumAvatarsPerSec", (float)(size() * USECS_PER_SECOND) / (float)(usecTimestampNow() - start) } });
-    PROFILE_COUNTER(app, "NumJointsPerSec", { { "NumJointsPerSec", Avatar::getNumJointsProcessedPerSecond() } });
+    PROFILE_COUNTER(simulation_avatar, "NumJointsPerSec", { { "NumJointsPerSec", Avatar::getNumJointsProcessedPerSecond() } });
 }
 
 void AvatarManager::postUpdate(float deltaTime) {
