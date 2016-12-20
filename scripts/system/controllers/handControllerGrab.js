@@ -1088,15 +1088,7 @@ function MyController(hand) {
     };
 
     this.secondaryReleased = function() {
-        var released = _this.rawSecondaryValue < BUMPER_ON_VALUE;
-
-        if (released) {
-            // if we were holding something, the release of the
-            // secondary trigger releases it
-            _this.release();
-        }
-
-        return released;
+        return _this.rawSecondaryValue < BUMPER_ON_VALUE;
     };
 
     // this.triggerOrsecondarySqueezed = function () {
@@ -2158,6 +2150,13 @@ function MyController(hand) {
         }
 
         if (this.state == STATE_HOLD) {
+
+            if (this.secondaryReleased()) {
+                // we have an equipped object and the secondary trigger was released
+                // short-circuit the other checks and release it
+                this.release()
+                return;
+            }
 
             var dropDetected = this.dropGestureProcess(deltaTime);
 
