@@ -235,10 +235,20 @@ Item {
             radius: hifi.dimensions.borderRadius;
         }
         Rectangle {
-            width: 400;
-            height: 200;
+            width: Math.min(parent.width * 0.75, 400);
+            height: popupText.contentHeight*2;
             anchors.centerIn: parent;
-            color: "black";
+            radius: hifi.dimensions.borderRadius;
+            color: "white";
+            FiraSansSemiBold {
+                id: popupText;
+                text: "This is temporary text. It will eventually be used to explain what 'Names' means.";
+                size: hifi.fontSizes.textFieldInput;
+                color: hifi.colors.darkGray;
+                horizontalAlignment: Text.AlignHCenter;
+                anchors.fill: parent;
+                wrapMode: Text.WordWrap;
+            }
         }
         MouseArea {
             anchors.fill: parent;
