@@ -53,6 +53,7 @@ function onClicked(){
 }
 if (headset) {
     button = tablet.addButton({
+        icon: "icons/tablet-icons/switch-a.svg",
         text: "SWITCH"
     });
     onHmdChanged(HMD.active);

@@ -18,29 +18,24 @@
 Script.include("/~/system/libraries/controllers.js");
 
 // grab the toolbar
-var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 var ASSETS_PATH = Script.resolvePath("assets");
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 
 function buttonImageURL() {
-    return TOOLS_PATH + (Users.canKick ? 'kick.svg' : 'ignore.svg');
+    return "icons/tablet-icons/" + (Users.canKick ? 'kick.svg' : 'ignore.svg');
 }
 
 // setup the mod button and add it to the toolbar
 var button = toolbar.addButton({
-    objectName: 'mod',
-    imageURL: buttonImageURL(),
-    visible: true,
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 3,
-    alpha: 0.9
+    icon: buttonImageURL(),
+    text: "KICK"
 });
 
 // if this user's kick permissions change, change the state of the button in the HUD
 Users.canKickChanged.connect(function(canKick){
-    button.writeProperty('imageURL', buttonImageURL());
+    button.editProperties({icon: buttonImageURL()});
 });
 
 var isShowingOverlays = false;
@@ -69,9 +64,9 @@ function buttonClicked(){
         isShowingOverlays = true;
     }
 
-    button.writeProperty('buttonState', isShowingOverlays ? 0 : 1);
-    button.writeProperty('defaultState', isShowingOverlays ? 0 : 1);
-    button.writeProperty('hoverState', isShowingOverlays ? 2 : 3);
+    //button.writeProperty('buttonState', isShowingOverlays ? 0 : 1);
+    //button.writeProperty('defaultState', isShowingOverlays ? 0 : 1);
+    //button.writeProperty('hoverState', isShowingOverlays ? 2 : 3);
 }
 
 button.clicked.connect(buttonClicked);
@@ -251,7 +246,7 @@ triggerMapping.enable();
 
 // cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
-    toolbar.removeButton('mod');
+    tablet.removeButton(button);
     removeOverlays();
     triggerMapping.disable();
 });
