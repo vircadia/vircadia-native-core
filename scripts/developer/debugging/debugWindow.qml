@@ -28,7 +28,7 @@ Rectangle {
     }
 
     function fromScript(message) {
-        textArea.text += message + "\n";
+        textArea.append(message);
     }
 }
 
