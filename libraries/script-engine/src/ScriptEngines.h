@@ -74,9 +74,14 @@ signals:
     void scriptCountChanged();
     void scriptsReloading();
     void scriptLoadError(const QString& filename, const QString& error);
+    void printedMessage(const QString& message, const QString& filename);
+
+public slots:
+    void onPrintedMessage(const QString& message);
 
 protected slots:
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
+
 
 protected:
     friend class ScriptEngine;

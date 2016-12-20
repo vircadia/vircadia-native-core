@@ -32,6 +32,11 @@ ScriptsModel& getScriptsModel() {
     return scriptsModel;
 }
 
+void ScriptEngines::onPrintedMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    emit printedMessage(message, scriptEngine->getFilename());
+}
+
 ScriptEngines::ScriptEngines()
     : _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
 {
