@@ -75,6 +75,19 @@ namespace render {
     }
 }
 
+static uint64_t timeProcessingJoints = 0;
+static int32_t numJointsProcessed = 0;
+
+float Avatar::getNumJointsProcessedPerSecond() {
+    float rate = 0.0f;
+    if (timeProcessingJoints > 0) {
+        rate = (float)(numJointsProcessed * USECS_PER_SECOND) / (float)timeProcessingJoints;
+    }
+    timeProcessingJoints = 0;
+    numJointsProcessed = 0;
+    return rate;
+}
+
 Avatar::Avatar(RigPointer rig) :
     AvatarData(),
     _skeletonOffset(0.0f),
@@ -319,6 +332,7 @@ void Avatar::simulate(float deltaTime) {
         }
     }
 
+    uint64_t start = usecTimestampNow();
     if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
         {
             PerformanceTimer perfTimer("skeleton");
@@ -345,6 +359,8 @@ void Avatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel->simulate(deltaTime, false);
     }
+    timeProcessingJoints += usecTimestampNow() - start;
+    numJointsProcessed += _jointData.size();
 
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {

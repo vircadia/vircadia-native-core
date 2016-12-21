@@ -25,13 +25,13 @@
 #endif
 
 
+#include <AvatarData.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
 #include <Rig.h>
 #include <SettingHandle.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
-#include <AvatarData.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -124,6 +124,9 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     }
 }
 
+
+Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar");
+
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
@@ -143,6 +146,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatars
     auto hashCopy = getHashCopy();
 
+    uint64_t start = usecTimestampNow();
     AvatarHash::iterator avatarIterator = hashCopy.begin();
     while (avatarIterator != hashCopy.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
@@ -165,6 +169,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
+
+    SAMPLE_PROFILE_COUNTER(0.1f, simulation_avatar, "NumAvatarsPerSec",
+            { { "NumAvatarsPerSec", (float)(size() * USECS_PER_SECOND) / (float)(usecTimestampNow() - start) } });
+    SAMPLE_PROFILE_COUNTER(0.1f, simulation_avatar, "NumJointsPerSec", { { "NumJointsPerSec", Avatar::getNumJointsProcessedPerSecond() } });
 }
 
 void AvatarManager::postUpdate(float deltaTime) {
