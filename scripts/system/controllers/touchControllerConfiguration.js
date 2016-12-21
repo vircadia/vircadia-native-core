@@ -215,7 +215,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     modelURL: BASE_URL + "Oculus-Labels-R.fbx",
                     naturalPosition: { x: 0.009739525616168976, y: -0.0017818436026573181, z: 0.016794726252555847 },
 
-                    textureName: "Texture",
+                    textureName: "blank",
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
