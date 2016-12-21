@@ -50,9 +50,20 @@ const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
 namespace AvatarDataPacket {
+
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
     PACKED_BEGIN struct Header {
+        uint8_t packetStateFlags; // state flags, currently used to indicate if the packet is a minimal or fuller packet
+    } PACKED_END;
+    const size_t HEADER_SIZE = 1;
+
+    PACKED_BEGIN struct MinimalAvatarInfo {
+        float globalPosition[3];          // avatar's position
+    } PACKED_END;
+    const size_t MINIMAL_AVATAR_INFO_SIZE = 12;
+
+    PACKED_BEGIN struct AvatarInfo {
         float position[3];                // skeletal model's position
         float globalPosition[3];          // avatar's position
         float globalBoundingBoxCorner[3]; // global position of the lowest corner of the avatar's bounding box 
@@ -65,16 +76,16 @@ namespace AvatarDataPacket {
         float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
         uint8_t flags;
     } PACKED_END;
-    const size_t HEADER_SIZE = 81;
+    const size_t AVATAR_INFO_SIZE = 81;
 
-    // only present if HAS_REFERENTIAL flag is set in header.flags
+    // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
     PACKED_BEGIN struct ParentInfo {
         uint8_t parentUUID[16];       // rfc 4122 encoded
         uint16_t parentJointIndex;
     } PACKED_END;
     const size_t PARENT_INFO_SIZE = 18;
 
-    // only present if IS_FACESHIFT_CONNECTED flag is set in header.flags
+    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
         float leftEyeBlink;
         float rightEyeBlink;
@@ -124,6 +135,8 @@ AvatarData::AvatarData() :
     setBodyRoll(0.0f);
 
     ASSERT(sizeof(AvatarDataPacket::Header) == AvatarDataPacket::HEADER_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::MinimalAvatarInfo) == AvatarDataPacket::MINIMAL_AVATAR_INFO_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::AvatarInfo) == AvatarDataPacket::AVATAR_INFO_SIZE);
     ASSERT(sizeof(AvatarDataPacket::ParentInfo) == AvatarDataPacket::PARENT_INFO_SIZE);
     ASSERT(sizeof(AvatarDataPacket::FaceTrackerInfo) == AvatarDataPacket::FACE_TRACKER_INFO_SIZE);
 }
@@ -132,9 +145,9 @@ AvatarData::~AvatarData() {
     delete _headData;
 }
 
-// We cannot have a file-level variable (const or otherwise) in the header if it uses PathUtils, because that references Application, which will not yet initialized.
+// We cannot have a file-level variable (const or otherwise) in the AvatarInfo if it uses PathUtils, because that references Application, which will not yet initialized.
 // Thus we have a static class getter, referencing a static class var.
-QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the header, every file would have it's own copy, even for class vars.
+QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the AvatarInfo, every file would have it's own copy, even for class vars.
 const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     if (_defaultFullAvatarModelUrl.isEmpty()) {
         _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
@@ -216,56 +229,56 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         memcpy(destinationBuffer, &_globalPosition, sizeof(_globalPosition));
         destinationBuffer += sizeof(_globalPosition);
     } else {
-        auto header = reinterpret_cast<AvatarDataPacket::Header*>(destinationBuffer);
-        header->position[0] = getLocalPosition().x;
-        header->position[1] = getLocalPosition().y;
-        header->position[2] = getLocalPosition().z;
-        header->globalPosition[0] = _globalPosition.x;
-        header->globalPosition[1] = _globalPosition.y;
-        header->globalPosition[2] = _globalPosition.z;
-        header->globalBoundingBoxCorner[0] = getPosition().x - _globalBoundingBoxCorner.x;
-        header->globalBoundingBoxCorner[1] = getPosition().y - _globalBoundingBoxCorner.y;
-        header->globalBoundingBoxCorner[2] = getPosition().z - _globalBoundingBoxCorner.z;
+        auto avatarInfo = reinterpret_cast<AvatarDataPacket::AvatarInfo*>(destinationBuffer);
+        avatarInfo->position[0] = getLocalPosition().x;
+        avatarInfo->position[1] = getLocalPosition().y;
+        avatarInfo->position[2] = getLocalPosition().z;
+        avatarInfo->globalPosition[0] = _globalPosition.x;
+        avatarInfo->globalPosition[1] = _globalPosition.y;
+        avatarInfo->globalPosition[2] = _globalPosition.z;
+        avatarInfo->globalBoundingBoxCorner[0] = getPosition().x - _globalBoundingBoxCorner.x;
+        avatarInfo->globalBoundingBoxCorner[1] = getPosition().y - _globalBoundingBoxCorner.y;
+        avatarInfo->globalBoundingBoxCorner[2] = getPosition().z - _globalBoundingBoxCorner.z;
 
         glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(getLocalOrientation()));
-        packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 0), bodyEulerAngles.y);
-        packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 1), bodyEulerAngles.x);
-        packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 2), bodyEulerAngles.z);
-        packFloatRatioToTwoByte((uint8_t*)(&header->scale), getDomainLimitedScale());
-        header->lookAtPosition[0] = _headData->_lookAtPosition.x;
-        header->lookAtPosition[1] = _headData->_lookAtPosition.y;
-        header->lookAtPosition[2] = _headData->_lookAtPosition.z;
-        header->audioLoudness = _headData->_audioLoudness;
+        packFloatAngleToTwoByte((uint8_t*)(avatarInfo->localOrientation + 0), bodyEulerAngles.y);
+        packFloatAngleToTwoByte((uint8_t*)(avatarInfo->localOrientation + 1), bodyEulerAngles.x);
+        packFloatAngleToTwoByte((uint8_t*)(avatarInfo->localOrientation + 2), bodyEulerAngles.z);
+        packFloatRatioToTwoByte((uint8_t*)(&avatarInfo->scale), getDomainLimitedScale());
+        avatarInfo->lookAtPosition[0] = _headData->_lookAtPosition.x;
+        avatarInfo->lookAtPosition[1] = _headData->_lookAtPosition.y;
+        avatarInfo->lookAtPosition[2] = _headData->_lookAtPosition.z;
+        avatarInfo->audioLoudness = _headData->_audioLoudness;
 
         glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
-        packOrientationQuatToSixBytes(header->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
+        packOrientationQuatToSixBytes(avatarInfo->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
         glm::vec3 scale = extractScale(sensorToWorldMatrix);
-        packFloatScalarToSignedTwoByteFixed((uint8_t*)&header->sensorToWorldScale, scale.x, SENSOR_TO_WORLD_SCALE_RADIX);
-        header->sensorToWorldTrans[0] = sensorToWorldMatrix[3][0];
-        header->sensorToWorldTrans[1] = sensorToWorldMatrix[3][1];
-        header->sensorToWorldTrans[2] = sensorToWorldMatrix[3][2];
+        packFloatScalarToSignedTwoByteFixed((uint8_t*)&avatarInfo->sensorToWorldScale, scale.x, SENSOR_TO_WORLD_SCALE_RADIX);
+        avatarInfo->sensorToWorldTrans[0] = sensorToWorldMatrix[3][0];
+        avatarInfo->sensorToWorldTrans[1] = sensorToWorldMatrix[3][1];
+        avatarInfo->sensorToWorldTrans[2] = sensorToWorldMatrix[3][2];
 
-        setSemiNibbleAt(header->flags, KEY_STATE_START_BIT, _keyState);
+        setSemiNibbleAt(avatarInfo->flags, KEY_STATE_START_BIT, _keyState);
         // hand state
         bool isFingerPointing = _handState & IS_FINGER_POINTING_FLAG;
-        setSemiNibbleAt(header->flags, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
+        setSemiNibbleAt(avatarInfo->flags, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
         if (isFingerPointing) {
-            setAtBit(header->flags, HAND_STATE_FINGER_POINTING_BIT);
+            setAtBit(avatarInfo->flags, HAND_STATE_FINGER_POINTING_BIT);
         }
         // faceshift state
         if (_headData->_isFaceTrackerConnected) {
-            setAtBit(header->flags, IS_FACESHIFT_CONNECTED);
+            setAtBit(avatarInfo->flags, IS_FACESHIFT_CONNECTED);
         }
         // eye tracker state
         if (_headData->_isEyeTrackerConnected) {
-            setAtBit(header->flags, IS_EYE_TRACKER_CONNECTED);
+            setAtBit(avatarInfo->flags, IS_EYE_TRACKER_CONNECTED);
         }
         // referential state
         QUuid parentID = getParentID();
         if (!parentID.isNull()) {
-            setAtBit(header->flags, HAS_REFERENTIAL);
+            setAtBit(avatarInfo->flags, HAS_REFERENTIAL);
         }
-        destinationBuffer += sizeof(AvatarDataPacket::Header);
+        destinationBuffer += sizeof(AvatarDataPacket::AvatarInfo);
 
         if (!parentID.isNull()) {
             auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
@@ -510,13 +523,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     quint64 now = usecTimestampNow();
 
-    PACKET_READ_CHECK(Header, sizeof(AvatarDataPacket::Header));
-    auto header = reinterpret_cast<const AvatarDataPacket::Header*>(sourceBuffer);
-    sourceBuffer += sizeof(AvatarDataPacket::Header);
+    PACKET_READ_CHECK(AvatarInfo, sizeof(AvatarDataPacket::AvatarInfo));
+    auto avatarInfo = reinterpret_cast<const AvatarDataPacket::AvatarInfo*>(sourceBuffer);
+    sourceBuffer += sizeof(AvatarDataPacket::AvatarInfo);
 
-    glm::vec3 position = glm::vec3(header->position[0], header->position[1], header->position[2]);
-    _globalPosition = glm::vec3(header->globalPosition[0], header->globalPosition[1], header->globalPosition[2]);
-    _globalBoundingBoxCorner = glm::vec3(header->globalBoundingBoxCorner[0], header->globalBoundingBoxCorner[1], header->globalBoundingBoxCorner[2]);
+    glm::vec3 position = glm::vec3(avatarInfo->position[0], avatarInfo->position[1], avatarInfo->position[2]);
+    _globalPosition = glm::vec3(avatarInfo->globalPosition[0], avatarInfo->globalPosition[1], avatarInfo->globalPosition[2]);
+    _globalBoundingBoxCorner = glm::vec3(avatarInfo->globalBoundingBoxCorner[0], avatarInfo->globalBoundingBoxCorner[1], avatarInfo->globalBoundingBoxCorner[2]);
     if (isNaN(position)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: position NaN, uuid " << getSessionUUID();
@@ -526,9 +539,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     setLocalPosition(position);
 
     float pitch, yaw, roll;
-    unpackFloatAngleFromTwoByte(header->localOrientation + 0, &yaw);
-    unpackFloatAngleFromTwoByte(header->localOrientation + 1, &pitch);
-    unpackFloatAngleFromTwoByte(header->localOrientation + 2, &roll);
+    unpackFloatAngleFromTwoByte(avatarInfo->localOrientation + 0, &yaw);
+    unpackFloatAngleFromTwoByte(avatarInfo->localOrientation + 1, &pitch);
+    unpackFloatAngleFromTwoByte(avatarInfo->localOrientation + 2, &roll);
     if (isNaN(yaw) || isNaN(pitch) || isNaN(roll)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: localOriention is NaN, uuid " << getSessionUUID();
@@ -545,7 +558,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     float scale;
-    unpackFloatRatioFromTwoByte((uint8_t*)&header->scale, scale);
+    unpackFloatRatioFromTwoByte((uint8_t*)&avatarInfo->scale, scale);
     if (isNaN(scale)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: scale NaN, uuid " << getSessionUUID();
@@ -554,7 +567,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
     setTargetScale(scale);
 
-    glm::vec3 lookAt = glm::vec3(header->lookAtPosition[0], header->lookAtPosition[1], header->lookAtPosition[2]);
+    glm::vec3 lookAt = glm::vec3(avatarInfo->lookAtPosition[0], avatarInfo->lookAtPosition[1], avatarInfo->lookAtPosition[2]);
     if (isNaN(lookAt)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: lookAtPosition is NaN, uuid " << getSessionUUID();
@@ -563,7 +576,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
     _headData->_lookAtPosition = lookAt;
 
-    float audioLoudness = header->audioLoudness;
+    float audioLoudness = avatarInfo->audioLoudness;
     if (isNaN(audioLoudness)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: audioLoudness is NaN, uuid " << getSessionUUID();
@@ -573,16 +586,16 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     _headData->_audioLoudness = audioLoudness;
 
     glm::quat sensorToWorldQuat;
-    unpackOrientationQuatFromSixBytes(header->sensorToWorldQuat, sensorToWorldQuat);
+    unpackOrientationQuatFromSixBytes(avatarInfo->sensorToWorldQuat, sensorToWorldQuat);
     float sensorToWorldScale;
-    unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&header->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
-    glm::vec3 sensorToWorldTrans(header->sensorToWorldTrans[0], header->sensorToWorldTrans[1], header->sensorToWorldTrans[2]);
+    unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&avatarInfo->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
+    glm::vec3 sensorToWorldTrans(avatarInfo->sensorToWorldTrans[0], avatarInfo->sensorToWorldTrans[1], avatarInfo->sensorToWorldTrans[2]);
     glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
 
     _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
 
     { // bitFlags and face data
-        uint8_t bitItems = header->flags;
+        uint8_t bitItems = avatarInfo->flags;
 
         // key state, stored as a semi-nibble in the bitItems
         _keyState = (KeyState)getSemiNibbleAt(bitItems, KEY_STATE_START_BIT);
