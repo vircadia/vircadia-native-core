@@ -148,7 +148,7 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     // If we ARE taking an animated snapshot, we've already re-enabled the HUD by this point.
     if (pathAnimatedSnapshot === "") {
         // show hud
-        //toolBar.writeProperty("visible", true);
+
         Reticle.visible = reticleVisible;
         // show overlays if they were on
         if (resetOverlays) {

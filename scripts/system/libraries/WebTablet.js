@@ -41,7 +41,7 @@ function calcSpawnInfo() {
 
 // ctor
 WebTablet = function (url, width, dpi, location, clientOnly) {
-    print(url);
+
     var _this = this;
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
@@ -54,7 +54,7 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     var spawnInfo = calcSpawnInfo();
     var tabletEntityPosition = spawnInfo.position;
     var tabletEntityRotation = spawnInfo.rotation;
-    
+
     var tabletProperties = {
         name: "WebTablet Tablet",
         type: "Model",
@@ -75,7 +75,7 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
         tabletProperties.position = spawnInfo.position;
         tabletProperties.rotation = spawnInfo.rotation;
     }
-    this.tabletURL = url;
+
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
     var WEB_ENTITY_Z_OFFSET = -0.01;

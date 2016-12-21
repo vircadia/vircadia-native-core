@@ -64,9 +64,7 @@ function buttonClicked(){
         isShowingOverlays = true;
     }
 
-    //button.writeProperty('buttonState', isShowingOverlays ? 0 : 1);
-    //button.writeProperty('defaultState', isShowingOverlays ? 0 : 1);
-    //button.writeProperty('hoverState', isShowingOverlays ? 2 : 3);
+
 }
 
 button.clicked.connect(buttonClicked);

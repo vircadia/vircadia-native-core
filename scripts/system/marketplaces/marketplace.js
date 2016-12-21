@@ -62,15 +62,14 @@ function hideTablet(tablet) {
     Settings.setValue(persistenceKey, "");
 }
 function clearOldTablet() { // If there was a tablet from previous domain or session, kill it and let it be recreated
-    //var tablet = WebTablet.unpickle(Settings.getValue(persistenceKey, ""));
-    //hideTablet(tablet);
+
 }
 function hideMarketplace() {
     if (marketplaceWindow.visible) {
         marketplaceWindow.setVisible(false);
         marketplaceWindow.setURL("about:blank");
     } else if (marketplaceWebTablet) {
-        //hideTablet(marketplaceWebTablet);
+
     }
     marketplaceVisible = false;
 }
@@ -91,9 +90,7 @@ var browseExamplesButton = tablet.addButton({
 });
 
 function updateButtonState(visible) {
-    //browseExamplesButton.writeProperty('buttonState', visible ? 0 : 1);
-    //browseExamplesButton.writeProperty('defaultState', visible ? 0 : 1);
-    //browseExamplesButton.writeProperty('hoverState', visible ? 2 : 3);
+
 }
 function onMarketplaceWindowVisibilityChanged() {
     updateButtonState(marketplaceWindow.visible);
