@@ -39,11 +39,11 @@
     var checkTimer = false;
     var _this;
 
-    var WANT_COLOR_CHANGE = true;
+    var WANT_COLOR_CHANGE = false;
     var COLOR_OFF = { red: 128, green: 128, blue: 128 };
     var COLOR_ON = { red: 255, green: 0, blue: 0 };
 
-    var WANT_DEBUG = true;
+    var WANT_DEBUG = false;
     function debugPrint(string) {
         if (WANT_DEBUG) {
             print(string);
@@ -114,7 +114,6 @@
                 }
                 
             } else if (soundPlaying && soundPlaying.playing) {
-                debugPrint("Setting volume and rotation: " + Quat.safeEulerAngles(rotation).y);
                 soundPlaying.setOptions( { volume: volume, orientation: rotation } );
             }
 
