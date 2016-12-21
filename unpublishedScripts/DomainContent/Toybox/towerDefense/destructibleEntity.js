@@ -146,13 +146,17 @@ var TEXTURE_NAME = "tex.health1";
             props.position.y += props.dimensions.y;
             Entities.addEntity(props);
         },
-        startNearTrigger: function () {
-            print("launch.js | got start near trigger");
-            this.growBlock();
+        startDistanceGrab: function () {
+            print("launch.js | got start distance grab");
+            this.startGrabTime = Date.now();
         },
-        startFarTrigger: function () {
-            print("launch.js | got start far trigger");
-            this.growBlock();
+        releaseGrab: function() {
+            print("launch.js | release grab");
+            var grabbedForMs = Date.now() - this.startGrabTime;
+            print("launch.js | grab time:", grabbedForMs);
+            if (grabbedForMs < 300) {
+                this.growBlock();
+            }
         },
         clickDownOnEntity: function () {
             print("launch.js | got click down");
