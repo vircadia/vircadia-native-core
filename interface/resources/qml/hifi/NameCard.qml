@@ -103,7 +103,7 @@ Row {
                 // Anchors
                 anchors.fill: parent
                 // Style
-                color: "#eeeeee"
+                color: "#dbdbdb" // Very appropriate hex value here
                 radius: parent.radius
             }
             // Rectangle for the VU meter audio level
@@ -112,7 +112,7 @@ Row {
                 // Size
                 width: (nameCardVUMeter.audioLevel) * parent.width
                 // Style
-                color: "#E3E3E3"
+                color: "#dbdbdb" // Very appropriate hex value here
                 radius: parent.radius
                 // Anchors
                 anchors.bottom: parent.bottom

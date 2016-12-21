@@ -32,116 +32,144 @@ import "../styles-uit"
 import "../controls-uit" as HifiControls
 
 Item {
-    id: pal;
+    id: pal
     // Size
-    width: parent.width;
-    height: parent.height;
+    width: parent.width
+    height: parent.height
     // Properties
-    property int myCardHeight: 70;
-    property int rowHeight: 70;
-    property int separatorColWidth: 10;
-    property int actionButtonWidth: 70;
-    property int nameCardWidth: width - (iAmAdmin ? separatorColWidth : 0) - actionButtonWidth*(iAmAdmin ? 4 : 2);
+    property int myCardHeight: 70
+    property int rowHeight: 70
+    property int separatorColWidth: 10
+    property int actionButtonWidth: 75
+    property int nameCardWidth: width - (iAmAdmin ? separatorColWidth : 0) - actionButtonWidth*(iAmAdmin ? 4 : 2)
 
     // This contains the current user's NameCard and will contain other information in the future
     Rectangle {
-        id: myInfo;
+        id: myInfo
         // Size
-        width: pal.width;
-        height: myCardHeight;
+        width: pal.width
+        height: myCardHeight
         // Anchors
-        anchors.top: pal.top;
+        anchors.top: pal.top
         // Properties
-        radius: hifi.dimensions.borderRadius;
+        radius: hifi.dimensions.borderRadius
         // This NameCard refers to the current user's NameCard (the one above the table)
         NameCard {
-            id: myCard;
+            id: myCard
             // Properties
-            displayName: myData.displayName;
-            userName: myData.userName;
+            displayName: myData.displayName
+            userName: myData.userName
             // Size
-            width: nameCardWidth;
-            height: parent.height;
+            width: nameCardWidth
+            height: parent.height
             // Anchors
-            anchors.left: parent.left;
+            anchors.left: parent.left
         }
     }
     // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
     Rectangle {
-        color: "#FFFFFF";
-        width: pal.width;
-        height: 10;
-        anchors.top: myInfo.bottom;
-        anchors.left: parent.left;
+        color: "#FFFFFF"
+        width: pal.width
+        height: 10
+        anchors.top: myInfo.bottom
+        anchors.left: parent.left
     }
     Rectangle {
-        color: "#FFFFFF";
-        width: pal.width;
-        height: 10;
-        anchors.bottom: table.top;
-        anchors.left: parent.left;
+        color: "#FFFFFF"
+        width: pal.width
+        height: 10
+        anchors.bottom: table.top
+        anchors.left: parent.left
+    }
+    // Rectangle that houses "Global Actions" string
+    Rectangle {
+        visible: iAmAdmin
+        color: hifi.colors.tableRowLightEven
+        width: actionButtonWidth * 2 + separatorColWidth - 2
+        height: 40
+        anchors.bottom: myInfo.bottom
+        anchors.bottomMargin: -10
+        anchors.right: myInfo.right
+        radius: hifi.dimensions.borderRadius
+        RalewaySemiBold {
+            text: "ADMIN"
+            size: hifi.fontSizes.tableHeading + 2
+            font.capitalization: Font.AllUppercase
+            color: hifi.colors.redHighlight
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignTop
+            anchors.top: parent.top
+            anchors.topMargin: 8
+            anchors.left: parent.left
+            anchors.right: parent.right
+        }
     }
     // This TableView refers to the table (below the current user's NameCard)
     HifiControls.Table {
-        id: table;
+        id: table
         // Size
-        height: pal.height - myInfo.height - 4;
-        width: pal.width - 4;
+        height: pal.height - myInfo.height - 4
+        width: pal.width - 4
         // Anchors
-        anchors.left: parent.left;
-        anchors.top: myInfo.bottom;
+        anchors.left: parent.left
+        anchors.top: myInfo.bottom
         // Properties
-        centerHeaderText: true;
-        sortIndicatorVisible: true;
-        headerVisible: true;
-        onSortIndicatorColumnChanged: sortModel();
-        onSortIndicatorOrderChanged: sortModel();
+        centerHeaderText: true
+        sortIndicatorVisible: true
+        headerVisible: true
+        onSortIndicatorColumnChanged: sortModel()
+        onSortIndicatorOrderChanged: sortModel()
 
         TableViewColumn {
-            role: "displayName";
-            title: "NAMES";
-            width: nameCardWidth;
-            movable: false;
+            role: "displayName"
+            title: "NAMES"
+            width: nameCardWidth
+            movable: false
+            resizable: false
         }
         TableViewColumn {
-            role: "personalMute";
+            role: "personalMute"
             title: "MUTE"
-            width: actionButtonWidth;
-            movable: false;
+            width: actionButtonWidth
+            movable: false
+            resizable: false
         }
         TableViewColumn {
-            role: "ignore";
-            title: "IGNORE";
-            width: actionButtonWidth;
-            movable: false;
+            role: "ignore"
+            title: "IGNORE"
+            width: actionButtonWidth
+            movable: false
+            resizable: false
         }
         TableViewColumn {
-            visible: iAmAdmin;
-            title: "";
-            width: separatorColWidth;
-            resizable: false;
-            movable: false;
+            visible: iAmAdmin
+            title: ""
+            width: separatorColWidth
+            resizable: false
+            movable: false
         }
         TableViewColumn {
-            visible: iAmAdmin;
-            role: "mute";
-            title: "SILENCE";
-            width: actionButtonWidth;
-            movable: false;
+            visible: iAmAdmin
+            role: "mute"
+            title: "SILENCE"
+            width: actionButtonWidth
+            movable: false
+            resizable: false
         }
         TableViewColumn {
-            visible: iAmAdmin;
-            role: "kick";
+            visible: iAmAdmin
+            role: "kick"
             title: "BAN"
-            width: actionButtonWidth;
-            movable: false;
+            width: actionButtonWidth
+            movable: false
+            resizable: false
         }
-        model: userModel;
+        model: userModel
 
         // This Rectangle refers to each Row in the table.
         rowDelegate: Rectangle { // The only way I know to specify a row height.
             // Size
-            height: rowHeight;
+            height: rowHeight
             color: styleData.selected
                    ? "#afafaf"
                    : styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd
@@ -149,108 +177,108 @@ Item {
 
         // This Item refers to the contents of each Cell
         itemDelegate: Item {
-            id: itemCell;
-            property bool isCheckBox: typeof(styleData.value) === 'boolean';
-            property bool isSeparator: styleData.value === '';
+            id: itemCell
+            property bool isCheckBox: typeof(styleData.value) === 'boolean'
+            property bool isSeparator: styleData.value === ''
             // This NameCard refers to the cell that contains an avatar's
             // DisplayName and UserName
             NameCard {
-                id: nameCard;
+                id: nameCard
                 // Properties
-                displayName: styleData.value;
-                userName: model.userName;
-                visible: !isCheckBox && !isSeparator;
+                displayName: styleData.value
+                userName: model.userName
+                visible: !isCheckBox && !isSeparator
                 // Size
-                width: nameCardWidth;
-                height: parent.height;
+                width: nameCardWidth
+                height: parent.height
                 // Anchors
-                anchors.left: parent.left;
+                anchors.left: parent.left
             }
             
             // This CheckBox belongs in the columns that contain the action buttons ("Mute", "Ban", etc)
             HifiControls.CheckBox {
-                visible: isCheckBox && !isSeparator;
-                anchors.centerIn: parent;
-                boxSize: 22;
+                visible: isCheckBox && !isSeparator
+                anchors.centerIn: parent
+                boxSize: 24
                 onClicked: {
-                    var newValue = !model[styleData.role];
-                    var datum = userData[model.userIndex];
-                    datum[styleData.role] = model[styleData.role] = newValue;
-                    Users[styleData.role](model.sessionId);
+                    var newValue = !model[styleData.role]
+                    var datum = userData[model.userIndex]
+                    datum[styleData.role] = model[styleData.role] = newValue
+                    Users[styleData.role](model.sessionId)
                     // Just for now, while we cannot undo things:
-                    userData.splice(model.userIndex, 1);
-                    sortModel();
+                    userData.splice(model.userIndex, 1)
+                    sortModel()
                 }
             }
         }
     }
     // This Rectangle refers to the [?] popup button
     Rectangle {
-        color: hifi.colors.tableBackgroundLight;
-        width: 18;
-        height: hifi.dimensions.tableHeaderHeight - 2;
-        anchors.left: table.left;
-        anchors.top: table.top;
-        anchors.topMargin: 1;
-        anchors.leftMargin: nameCardWidth/2 + 23;
+        color: hifi.colors.tableBackgroundLight
+        width: 20
+        height: hifi.dimensions.tableHeaderHeight - 2
+        anchors.left: table.left
+        anchors.top: table.top
+        anchors.topMargin: 1
+        anchors.leftMargin: nameCardWidth/2 + 24
         RalewayRegular {
-            id: helpText;
-            text: "[?]";
-            size: hifi.fontSizes.tableHeading;
-            font.capitalization: Font.AllUppercase;
-            color: hifi.colors.darkGray;
-            horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;
-            anchors.fill: parent;
+            id: helpText
+            text: "[?]"
+            size: hifi.fontSizes.tableHeading + 2
+            font.capitalization: Font.AllUppercase
+            color: hifi.colors.darkGray
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            anchors.fill: parent
         }
         MouseArea {
-            anchors.fill: parent;
-            acceptedButtons: Qt.LeftButton;
-            hoverEnabled: true;
-            onClicked: namesPopup.visible = true;
-            onEntered: helpText.color = hifi.colors.baseGrayHighlight;
-            onExited: helpText.color = hifi.colors.darkGray;
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            hoverEnabled: true
+            onClicked: namesPopup.visible = true
+            onEntered: helpText.color = hifi.colors.baseGrayHighlight
+            onExited: helpText.color = hifi.colors.darkGray
         }
     }
     // Explanitory popup upon clicking "[?]"
     Item {
-        visible: false;
-        id: namesPopup;
-        anchors.fill: pal;
+        visible: false
+        id: namesPopup
+        anchors.fill: pal
         Rectangle {
-            anchors.fill: parent;
-            color: "black";
-            opacity: 0.5;
-            radius: hifi.dimensions.borderRadius;
+            anchors.fill: parent
+            color: "black"
+            opacity: 0.5
+            radius: hifi.dimensions.borderRadius
         }
         Rectangle {
-            width: Math.min(parent.width * 0.75, 400);
-            height: popupText.contentHeight*2;
-            anchors.centerIn: parent;
-            radius: hifi.dimensions.borderRadius;
-            color: "white";
+            width: Math.min(parent.width * 0.75, 400)
+            height: popupText.contentHeight*2
+            anchors.centerIn: parent
+            radius: hifi.dimensions.borderRadius
+            color: "white"
             FiraSansSemiBold {
-                id: popupText;
-                text: "This is temporary text. It will eventually be used to explain what 'Names' means.";
-                size: hifi.fontSizes.textFieldInput;
-                color: hifi.colors.darkGray;
-                horizontalAlignment: Text.AlignHCenter;
-                anchors.fill: parent;
-                wrapMode: Text.WordWrap;
+                id: popupText
+                text: "This is temporary text. It will eventually be used to explain what 'Names' means."
+                size: hifi.fontSizes.textFieldInput
+                color: hifi.colors.darkGray
+                horizontalAlignment: Text.AlignHCenter
+                anchors.fill: parent
+                wrapMode: Text.WordWrap
             }
         }
         MouseArea {
-            anchors.fill: parent;
-            acceptedButtons: Qt.LeftButton;
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
             onClicked: {
-                namesPopup.visible = false;
+                namesPopup.visible = false
             }
         }
     }
 
-    property var userData: [];
-    property var myData: ({displayName: "", userName: ""}); // valid dummy until set
-    property bool iAmAdmin: false;
+    property var userData: []
+    property var myData: ({displayName: "", userName: ""}) // valid dummy until set
+    property bool iAmAdmin: false
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var i, data = optionalData || userData, length = data.length;
         for (var i = 0; i < length; i++) {
