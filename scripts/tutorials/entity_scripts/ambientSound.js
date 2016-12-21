@@ -4,7 +4,7 @@
 //  range of this entity.  Great way to add one or more ambisonic soundfields to your environment.  
 //
 //  In the userData section for the entity, add/edit three values:  
-//      userData.SoundURL should be a string giving the URL to the sound file.  Defaults to 100 meters if not set.  
+//      userData.soundURL should be a string giving the URL to the sound file.  Defaults to 100 meters if not set.  
 //      userData.range should be an integer for the max distance away from the entity where the sound will be audible.
 //      userData.volume is the max volume at which the clip should play.  Defaults to 1.0 full volume)
 //
