@@ -101,17 +101,16 @@ getControllerWorldLocation = function (handController, doOffset) {
         z: 0
     };
 
-    var ARROW_MODEL_URL = Script.resolvePath('newarrow_textured.fbx');
-    var ARROW_COLLISION_HULL_URL = Script.resolvePath('newarrow_collision_hull.obj');
+    var ARROW_MODEL_URL = Script.resolvePath('arrow.fbx');
 
     var ARROW_DIMENSIONS = {
-        x: 0.03,
-        y: 0.03,
-        z: 0.96
+        x: 0.20,
+        y: 0.19,
+        z: 0.93
     };
 
     var ARROW_LIFETIME = 15; // seconds
-
+    var ARROW_PARTICLE_LIFESPAN = 2; // seconds
 
     var TOP_NOTCH_OFFSET = 0.6;
     var BOTTOM_NOTCH_OFFSET = 0.6;
@@ -274,8 +273,7 @@ getControllerWorldLocation = function (handController, doOffset) {
                 name: ARROW_NAME,
                 type: 'Model',
                 modelURL: ARROW_MODEL_URL,
-                shapeType: 'compound',
-                compoundShapeURL: ARROW_COLLISION_HULL_URL,
+                shapeType: 'simple-compound',
                 dimensions: ARROW_DIMENSIONS,
                 position: this.bowProperties.position,
                 parentID: this.entityID,
@@ -567,11 +565,51 @@ getControllerWorldLocation = function (handController, doOffset) {
                     lifetime: ARROW_LIFETIME + arrowAge,
                 };
 
-                //actually shoot the arrow and play its sound
+                // add a particle effect to make the arrow easier to see as it flies
+                var arrowParticleProperties = {
+                    accelerationSpread: { x: 0, y: 0, z: 0 },
+                    alpha: 1,
+                    alphaFinish: 0,
+                    alphaSpread: 0,
+                    alphaStart: 0.3,
+                    azimuthFinish: 3.1,
+                    azimuthStart: -3.14159,
+                    color: { red: 255, green: 255, blue: 255 },
+                    colorFinish: { red: 255, green: 255, blue: 255 },
+                    colorSpread: { red: 0, green: 0, blue: 0 },
+                    colorStart: { red: 255, green: 255, blue: 255 },
+                    emitAcceleration: { x: 0, y: 0, z: 0 },
+                    emitDimensions: { x: 0, y: 0, z: 0 },
+                    emitOrientation: { x: -0.7, y: 0.0, z: 0.0, w: 0.7 },
+                    emitRate: 0.01,
+                    emitSpeed: 0,
+                    emitterShouldTrail: 0,
+                    isEmitting: 1,
+                    lifespan: ARROW_PARTICLE_LIFESPAN,
+                    lifetime: ARROW_PARTICLE_LIFESPAN + 1,
+                    maxParticles: 1000,
+                    name: 'arrow-particles',
+                    parentID: this.arrow,
+                    particleRadius: 0.132,
+                    polarFinish: 0,
+                    polarStart: 0,
+                    radiusFinish: 0.35,
+                    radiusSpread: 0,
+                    radiusStart: 0.132,
+                    speedSpread: 0,
+                    textures: Script.resolvePath('arrow-sparkle.png'),
+                    type: 'ParticleEffect'
+                };
+
+                Entities.addEntity(arrowParticleProperties);
+
+                // actually shoot the arrow
                 Entities.editEntity(this.arrow, arrowProperties);
+
+                // play the sound of a shooting arrow
                 this.playShootArrowSound();
 
-                Controller.triggerShortHapticPulse(1, backHand);
+                // Controller.triggerShortHapticPulse(1, backHand);
 
                 Entities.addAction("travel-oriented", this.arrow, {
                     forward: { x: 0, y: 0, z: -1 },
