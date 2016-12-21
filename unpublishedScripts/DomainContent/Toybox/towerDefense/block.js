@@ -13,16 +13,16 @@ getBlockProperties = function() {
         modelURL: BLOCK_MODEL_URL,
         shapeType: "compound",
         //compoundShapeURL: BLOCK_COMPOUND_SHAPE_URL,
-        userData: JSON.stringify({
-            grabbableKey: {
-                wantsTrigger: true
-            }
-        }),
+        //userData: JSON.stringify({
+        //    grabbableKey: {
+        //        wantsTrigger: true
+        //    }
+        //}),
         dimensions: BLOCK_DIMENSIONS,
         dynamic: 1,
         gravity: { x: 0.0, y: -9.8, z: 0.0 },
         collisionsWillMove: 1,
         lifetime: BLOCK_LIFETIME,
-        script: Script.resolvePath("destructibleEntity.js")
+        script: Script.resolvePath("destructibleGrowableEntity.js")
     };
 }

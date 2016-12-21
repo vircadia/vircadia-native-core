@@ -64,7 +64,7 @@
         print("launch.js | got click down");
         this.launchBlock();
     }
-    
+
     this.startNearTrigger = function () {
         print("launch.js | got start near trigger");
         this.launchBlock();
