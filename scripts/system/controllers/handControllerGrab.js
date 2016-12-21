@@ -195,6 +195,8 @@ var STATE_OVERLAY_TOUCHING = 8;
 var holdEnabled = true;
 var nearGrabEnabled = true;
 var farGrabEnabled = true;
+var myAvatarScalingEnabled = true;
+var objectScalingEnabled = true;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -2314,6 +2316,10 @@ function MyController(hand) {
     };
 
     this.maybeScale = function(props) {
+        if (!objectScalingEnabled) {
+            return;
+        }
+
         if (!this.shouldScale) {
             //  If both secondary triggers squeezed, and the non-holding hand is empty, start scaling
             if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed() && this.getOtherHandController().state === STATE_OFF) {
@@ -2333,6 +2339,10 @@ function MyController(hand) {
     }
 
     this.maybeScaleMyAvatar = function() {
+        if (!myAvatarScalingEnabled) {
+            return;
+        }
+
         if (!this.shouldScale) {
             //  If both secondary triggers squeezed, start scaling
             if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed()) {
@@ -3017,6 +3027,14 @@ var handleHandMessages = function(channel, message, sender) {
             if (data.farGrabEnabled !== undefined) {
                 print("farGrabEnabled: ", data.farGrabEnabled);
                 farGrabEnabled = data.farGrabEnabled;
+            }
+            if (data.myAvatarScalingEnabled !== undefined) {
+                print("myAvatarScalingEnabled: ", data.myAvatarScalingEnabled);
+                myAvatarScalingEnabled = data.myAvatarScalingEnabled;
+            }
+            if (data.objectScalingEnabled !== undefined) {
+                print("objectScalingEnabled: ", data.objectScalingEnabled);
+                objectScalingEnabled = data.objectScalingEnabled;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
             try {
