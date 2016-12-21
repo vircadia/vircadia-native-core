@@ -89,12 +89,12 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
 
 bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
-        qDebug() << "MAX POINTS REACHED!";
+        qCDebug(entities) << "MAX POINTS REACHED!";
         return false;
     }
     glm::vec3 halfBox = getDimensions() * 0.5f;
     if ((point.x < -halfBox.x || point.x > halfBox.x) || (point.y < -halfBox.y || point.y > halfBox.y) || (point.z < -halfBox.z || point.z > halfBox.z)) {
-        qDebug() << "Point is outside entity's bounding box";
+        qCDebug(entities) << "Point is outside entity's bounding box";
         return false;
     }
     _points << point;
@@ -142,7 +142,7 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
         if ((point.x < -halfBox.x || point.x > halfBox.x) ||
             (point.y < -halfBox.y || point.y > halfBox.y) ||
             (point.z < -halfBox.z || point.z > halfBox.z)) {
-            qDebug() << "Point is outside entity's bounding box";
+            qCDebug(entities) << "Point is outside entity's bounding box";
             return false;
         }
     }

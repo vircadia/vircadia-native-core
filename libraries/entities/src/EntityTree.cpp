@@ -343,7 +343,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     auto nodeList = DependencyManager::get<NodeList>();
     if (!nodeList) {
-        qDebug() << "EntityTree::addEntity -- can't get NodeList";
+        qCDebug(entities) << "EntityTree::addEntity -- can't get NodeList";
         return nullptr;
     }
 
@@ -1243,7 +1243,7 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
     if (hasSomethingNewer) {
         int elapsed = usecTimestampNow() - considerEntitiesSince;
         int difference = considerEntitiesSince - sinceTime;
-        qDebug() << "EntityTree::hasEntitiesDeletedSince() sinceTime:" << sinceTime 
+        qCDebug(entities) << "EntityTree::hasEntitiesDeletedSince() sinceTime:" << sinceTime 
                     << "considerEntitiesSince:" << considerEntitiesSince << "elapsed:" << elapsed << "difference:" << difference;
     }
 #endif
@@ -1276,7 +1276,7 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     #ifdef EXTRA_ERASE_DEBUGGING
-        qDebug() << "EntityTree::processEraseMessage()";
+        qCDebug(entities) << "EntityTree::processEraseMessage()";
     #endif
     withWriteLock([&] {
         message.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
@@ -1296,7 +1296,7 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
 
                 QUuid entityID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
                 #ifdef EXTRA_ERASE_DEBUGGING
-                    qDebug() << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
+                    qCDebug(entities) << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
                 #endif
 
                 EntityItemID entityItemID(entityID);
@@ -1318,7 +1318,7 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     #ifdef EXTRA_ERASE_DEBUGGING
-        qDebug() << "EntityTree::processEraseMessageDetails()";
+        qCDebug(entities) << "EntityTree::processEraseMessageDetails()";
     #endif
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
@@ -1347,7 +1347,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             processedBytes += encodedID.size();
 
             #ifdef EXTRA_ERASE_DEBUGGING
-                qDebug() << "    ---- EntityTree::processEraseMessageDetails() contains id:" << entityID;
+                qCDebug(entities) << "    ---- EntityTree::processEraseMessageDetails() contains id:" << entityID;
             #endif
 
             EntityItemID entityItemID(entityID);

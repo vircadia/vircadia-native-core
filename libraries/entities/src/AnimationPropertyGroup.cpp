@@ -167,10 +167,10 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
 
 
 void AnimationPropertyGroup::debugDump() const {
-    qDebug() << "   AnimationPropertyGroup: ---------------------------------------------";
-    qDebug() << "       url:" << getURL() << " has changed:" << urlChanged();
-    qDebug() << "       fps:" << getFPS() << " has changed:" << fpsChanged();
-    qDebug() << "currentFrame:" << getCurrentFrame() << " has changed:" << currentFrameChanged();
+    qCDebug(entities) << "   AnimationPropertyGroup: ---------------------------------------------";
+    qCDebug(entities) << "       url:" << getURL() << " has changed:" << urlChanged();
+    qCDebug(entities) << "       fps:" << getFPS() << " has changed:" << fpsChanged();
+    qCDebug(entities) << "currentFrame:" << getCurrentFrame() << " has changed:" << currentFrameChanged();
 }
 
 void AnimationPropertyGroup::listChangedProperties(QList<QString>& out) {

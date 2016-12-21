@@ -15,6 +15,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QDebug>
 #include "ThreadHelpers.h"
+#include "RenderUtilsLogging.h"
 
 FboCache::FboCache() {
     // Why do we even HAVE that lever?
@@ -61,7 +62,7 @@ QOpenGLFramebufferObject* FboCache::getReadyFbo() {
         _destroyFboQueue.clear();
 
         if (_readyFboQueue.empty()) {
-            qDebug() << "Building new offscreen FBO number " << _fboMap.size() + 1;
+            qCDebug(renderutils) << "Building new offscreen FBO number " << _fboMap.size() + 1;
             result = new QOpenGLFramebufferObject(_size, QOpenGLFramebufferObject::CombinedDepthStencil);
             _fboMap[result->texture()] = QSharedPointer<QOpenGLFramebufferObject>(result);
             _readyFboQueue.push_back(result);

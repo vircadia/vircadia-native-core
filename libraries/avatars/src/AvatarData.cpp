@@ -147,14 +147,14 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     bool success;
     Transform trans = getTransform(success);
     if (!success) {
-        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+        qCWarning(avatars) << "Warning -- AvatarData::nextAttitude failed";
         return;
     }
     trans.setTranslation(position);
     trans.setRotation(orientation);
     SpatiallyNestable::setTransform(trans, success);
     if (!success) {
-        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+        qCWarning(avatars) << "Warning -- AvatarData::nextAttitude failed";
     }
     updateAttitude();
 }
@@ -390,7 +390,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
 
     #ifdef WANT_DEBUG
     if (sendAll) {
-        qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
+        qCDebug(avatars) << "AvatarData::toByteArray" << cullSmallChanges << sendAll
                  << "rotations:" << rotationSentCount << "translations:" << translationSentCount
                  << "largest:" << maxTranslationDimension
                  << "size:"
@@ -678,7 +678,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     #ifdef WANT_DEBUG
     if (numValidJointRotations > 15) {
-        qDebug() << "RECEIVING -- rotations:" << numValidJointRotations
+        qCDebug(avatars) << "RECEIVING -- rotations:" << numValidJointRotations
                  << "translations:" << numValidJointTranslations
                  << "size:" << (int)(sourceBuffer - startPosition);
     }
@@ -1450,7 +1450,7 @@ QJsonObject AvatarData::toJson() const {
     bool success;
     Transform avatarTransform = getTransform(success);
     if (!success) {
-        qDebug() << "Warning -- AvatarData::toJson couldn't get avatar transform";
+        qCWarning(avatars) << "Warning -- AvatarData::toJson couldn't get avatar transform";
     }
     avatarTransform.setScale(getDomainLimitedScale());
     if (recordingBasis) {
@@ -1595,7 +1595,7 @@ QByteArray AvatarData::toFrame(const AvatarData& avatar) {
     {
         QJsonObject obj = root;
         obj.remove(JSON_AVATAR_JOINT_ARRAY);
-        qDebug().noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
+        qCDebug(avatars).noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
     }
 #endif
     return QJsonDocument(root).toBinaryData();
@@ -1608,7 +1608,7 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
     {
         QJsonObject obj = doc.object();
         obj.remove(JSON_AVATAR_JOINT_ARRAY);
-        qDebug().noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
+        qCDebug(avatars).noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
     }
 #endif
     result.fromJson(doc.object());

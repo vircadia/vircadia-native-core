@@ -42,7 +42,7 @@ std::atomic<bool> Texture::_enableSparseTextures { recommendedSparseTextures };
 
 struct ReportTextureState {
     ReportTextureState() {
-        qDebug() << "[TEXTURE TRANSFER SUPPORT]"
+        qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT]"
             << "\n\tidealThreadCount:" << QThread::idealThreadCount()
             << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures;
     }
@@ -50,10 +50,10 @@ struct ReportTextureState {
 
 void Texture::setEnableSparseTextures(bool enabled) {
 #ifdef Q_OS_WIN
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
+    qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
     _enableSparseTextures = enabled;
 #else
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
+    qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
 #endif
 }
 
@@ -114,7 +114,7 @@ Texture::Size Texture::getAllowedGPUMemoryUsage() {
 }
 
 void Texture::setAllowedGPUMemoryUsage(Size size) {
-    qDebug() << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
+    qCDebug(gpulogging) << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
     _allowedCPUMemoryUsage = size;
 }
 

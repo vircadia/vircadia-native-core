@@ -13,6 +13,8 @@
 
 #include "ObjectActionSpring.h"
 
+#include "PhysicsLogging.h"
+
 const float SPRING_MAX_SPEED = 10.0f;
 
 const uint16_t ObjectActionSpring::springVersion = 1;
@@ -29,13 +31,13 @@ ObjectActionSpring::ObjectActionSpring(const QUuid& id, EntityItemPointer ownerE
     _angularTimeScale(FLT_MAX),
     _rotationalTargetSet(true) {
     #if WANT_DEBUG
-    qDebug() << "ObjectActionSpring::ObjectActionSpring";
+    qCDebug(physics) << "ObjectActionSpring::ObjectActionSpring";
     #endif
 }
 
 ObjectActionSpring::~ObjectActionSpring() {
     #if WANT_DEBUG
-    qDebug() << "ObjectActionSpring::~ObjectActionSpring";
+    qCDebug(physics) << "ObjectActionSpring::~ObjectActionSpring";
     #endif
 }
 
@@ -126,7 +128,7 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         btRigidBody* rigidBody = motionState->getRigidBody();
         if (!rigidBody) {
-            qDebug() << "ObjectActionSpring::updateActionWorker no rigidBody";
+            qCDebug(physics) << "ObjectActionSpring::updateActionWorker no rigidBody";
             return;
         }
 

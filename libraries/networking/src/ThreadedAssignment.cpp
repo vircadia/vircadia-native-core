@@ -18,6 +18,8 @@
 
 #include "ThreadedAssignment.h"
 
+#include "NetworkLogging.h"
+
 ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
     Assignment(message),
     _isFinished(false),
@@ -42,7 +44,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
 
         if (_isFinished) {
 
-            qDebug() << "ThreadedAssignment::setFinished(true) called - finishing up.";
+            qCDebug(networking) << "ThreadedAssignment::setFinished(true) called - finishing up.";
             
             auto nodeList = DependencyManager::get<NodeList>();
             
@@ -109,7 +111,7 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
     // verify that the number of queued check-ins is not >= our max
     // the number of queued check-ins is cleared anytime we get a response from the domain-server
     if (_numQueuedCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-        qDebug() << "At least" << MAX_SILENT_DOMAIN_SERVER_CHECK_INS << "have been queued without a response from domain-server"
+        qCDebug(networking) << "At least" << MAX_SILENT_DOMAIN_SERVER_CHECK_INS << "have been queued without a response from domain-server"
             << "Stopping the current assignment";
         setFinished(true);
     } else {
@@ -122,6 +124,6 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
 }
 
 void ThreadedAssignment::domainSettingsRequestFailed() {
-    qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+    qCDebug(networking) << "Failed to retreive settings object from domain-server. Bailing on assignment.";
     setFinished(true);
 }

@@ -11,6 +11,8 @@
 
 #include "BasePacket.h"
 
+#include "../NetworkLogging.h"
+
 using namespace udt;
 
 const qint64 BasePacket::PACKET_WRITE_ERROR = -1;
@@ -131,7 +133,7 @@ void BasePacket::setPayloadSize(qint64 payloadSize) {
         Q_ASSERT(payloadSize <= _payloadCapacity);
         _payloadSize = payloadSize;
     } else {
-        qDebug() << "You can not call setPayloadSize for a non-writeable Packet.";
+        qCDebug(networking) << "You can not call setPayloadSize for a non-writeable Packet.";
         Q_ASSERT(false);
     }
 }

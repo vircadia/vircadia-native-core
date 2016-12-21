@@ -282,7 +282,7 @@ void Socket::clearConnections() {
 
     if (_connectionsHash.size() > 0) {
         // clear all of the current connections in the socket
-        qDebug() << "Clearing all remaining connections in Socket.";
+        qCDebug(networking) << "Clearing all remaining connections in Socket.";
         _connectionsHash.clear();
     }
 }
