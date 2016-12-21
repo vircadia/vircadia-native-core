@@ -147,14 +147,14 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     bool success;
     Transform trans = getTransform(success);
     if (!success) {
-        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+        qCWarning(avatars) << "Warning -- AvatarData::nextAttitude failed";
         return;
     }
     trans.setTranslation(position);
     trans.setRotation(orientation);
     SpatiallyNestable::setTransform(trans, success);
     if (!success) {
-        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+        qCWarning(avatars) << "Warning -- AvatarData::nextAttitude failed";
     }
     updateAttitude();
 }
@@ -403,7 +403,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sen
 
         #ifdef WANT_DEBUG
         if (sendAll) {
-            qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
+            qCDebug(avatars) << "AvatarData::toByteArray" << cullSmallChanges << sendAll
                      << "rotations:" << rotationSentCount << "translations:" << translationSentCount
                      << "largest:" << maxTranslationDimension
                      << "size:"
@@ -705,9 +705,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     #ifdef WANT_DEBUG
     if (numValidJointRotations > 15) {
-        qDebug() << "RECEIVING -- rotations:" << numValidJointRotations
-                    << "translations:" << numValidJointTranslations
-                    << "size:" << (int)(sourceBuffer - startPosition);
+        qCDebug(avatars) << "RECEIVING -- rotations:" << numValidJointRotations
+                 << "translations:" << numValidJointTranslations
+                 << "size:" << (int)(sourceBuffer - startPosition);
     }
     #endif
 
@@ -1011,7 +1011,7 @@ QStringList AvatarData::getJointNames() const {
 void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
     QDataStream packetStream(data);
 
-    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.avatarEntityData;
+    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.sessionDisplayName >> identityOut.avatarEntityData;
 }
 
 static const QUrl emptyURL("");
@@ -1033,6 +1033,7 @@ bool AvatarData::processAvatarIdentity(const Identity& identity) {
         setDisplayName(identity.displayName);
         hasIdentityChanged = true;
     }
+    maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
 
     if (identity.attachmentData != _attachmentData) {
         setAttachmentData(identity.attachmentData);
@@ -1057,7 +1058,7 @@ QByteArray AvatarData::identityByteArray() {
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL);
 
     _avatarEntitiesLock.withReadLock([&] {
-        identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _avatarEntityData;
+        identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << getSessionDisplayNameForTransport() << _avatarEntityData;
     });
 
     return identityData;
@@ -1412,6 +1413,7 @@ static const QString JSON_AVATAR_HEAD = QStringLiteral("head");
 static const QString JSON_AVATAR_HEAD_MODEL = QStringLiteral("headModel");
 static const QString JSON_AVATAR_BODY_MODEL = QStringLiteral("bodyModel");
 static const QString JSON_AVATAR_DISPLAY_NAME = QStringLiteral("displayName");
+// It isn't meaningful to persist sessionDisplayName.
 static const QString JSON_AVATAR_ATTACHEMENTS = QStringLiteral("attachments");
 static const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
 static const QString JSON_AVATAR_SCALE = QStringLiteral("scale");
@@ -1475,7 +1477,7 @@ QJsonObject AvatarData::toJson() const {
     bool success;
     Transform avatarTransform = getTransform(success);
     if (!success) {
-        qDebug() << "Warning -- AvatarData::toJson couldn't get avatar transform";
+        qCWarning(avatars) << "Warning -- AvatarData::toJson couldn't get avatar transform";
     }
     avatarTransform.setScale(getDomainLimitedScale());
     if (recordingBasis) {
@@ -1620,7 +1622,7 @@ QByteArray AvatarData::toFrame(const AvatarData& avatar) {
     {
         QJsonObject obj = root;
         obj.remove(JSON_AVATAR_JOINT_ARRAY);
-        qDebug().noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
+        qCDebug(avatars).noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
     }
 #endif
     return QJsonDocument(root).toBinaryData();
@@ -1633,7 +1635,7 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
     {
         QJsonObject obj = doc.object();
         obj.remove(JSON_AVATAR_JOINT_ARRAY);
-        qDebug().noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
+        qCDebug(avatars).noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
     }
 #endif
     result.fromJson(doc.object());

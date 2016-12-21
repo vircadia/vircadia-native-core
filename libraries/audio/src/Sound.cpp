@@ -97,54 +97,9 @@ void Sound::downSample(const QByteArray& rawAudioByteArray, int sampleRate) {
         // no resampling needed
         _byteArray = rawAudioByteArray;
 
-    } else if (_isAmbisonic) {
-
-        // FIXME: add a proper Ambisonic resampler!
-        int numChannels = 4;
-        AudioSRC resampler[4] { {sampleRate, AudioConstants::SAMPLE_RATE, 1}, 
-                                {sampleRate, AudioConstants::SAMPLE_RATE, 1}, 
-                                {sampleRate, AudioConstants::SAMPLE_RATE, 1}, 
-                                {sampleRate, AudioConstants::SAMPLE_RATE, 1} };
-
-        // resize to max possible output
-        int numSourceFrames = rawAudioByteArray.size() / (numChannels * sizeof(AudioConstants::AudioSample));
-        int maxDestinationFrames = resampler[0].getMaxOutput(numSourceFrames);
-        int maxDestinationBytes = maxDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-        _byteArray.resize(maxDestinationBytes);
-
-        int numDestinationFrames = 0;
-
-        // iterate over channels
-        int16_t* srcBuffer = new int16_t[numSourceFrames];
-        int16_t* dstBuffer = new int16_t[maxDestinationFrames];
-        for (int ch = 0; ch < 4; ch++) {
-
-            int16_t* src = (int16_t*)rawAudioByteArray.data();
-            int16_t* dst = (int16_t*)_byteArray.data();
-
-            // deinterleave samples
-            for (int i = 0; i < numSourceFrames; i++) {
-                srcBuffer[i] = src[4*i + ch];
-            }
-
-            // resample one channel
-            numDestinationFrames = resampler[ch].render(srcBuffer, dstBuffer, numSourceFrames);
-
-            // reinterleave samples
-            for (int i = 0; i < numDestinationFrames; i++) {
-                dst[4*i + ch] = dstBuffer[i];
-            }
-        }
-        delete[] srcBuffer;
-        delete[] dstBuffer;
-
-        // truncate to actual output
-        int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-        _byteArray.resize(numDestinationBytes);
-
     } else {
 
-        int numChannels = _isStereo ? 2 : 1;
+        int numChannels = _isAmbisonic ? AudioConstants::AMBISONIC : (_isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
         AudioSRC resampler(sampleRate, AudioConstants::SAMPLE_RATE, numChannels);
 
         // resize to max possible output

@@ -10,6 +10,8 @@
 #include <gl/GLHelpers.h>
 #include <gl/Context.h>
 
+#include <gpu/GPULogging.h>
+
 #include "GLShared.h"
 #include "GLTexture.h"
 
@@ -155,7 +157,7 @@ bool GLTextureTransferHelper::process() {
     auto lastReportInterval = now - lastReport;
     if (lastReportInterval > USECS_PER_SECOND * 4) {
         lastReport = now;
-        qDebug() << "Texture list " << _transferringTextures.size();
+        qCDebug(gpulogging) << "Texture list " << _transferringTextures.size();
     }
 
     size_t transferCount = 0;

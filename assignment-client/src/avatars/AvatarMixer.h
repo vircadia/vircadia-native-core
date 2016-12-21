@@ -19,6 +19,7 @@
 #include <PortableHighResolutionClock.h>
 
 #include <ThreadedAssignment.h>
+#include "AvatarMixerClientData.h"
 
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
 class AvatarMixer : public ThreadedAssignment {
@@ -48,6 +49,7 @@ private slots:
 private:
     void broadcastAvatarData();
     void parseDomainServerSettings(const QJsonObject& domainSettings);
+    void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
     QThread _broadcastThread;
 
@@ -69,8 +71,7 @@ private:
 
     RateCounter<> _broadcastRate;
     p_high_resolution_clock::time_point _lastDebugMessage;
-
-
+    QHash<QString, QPair<int, int>> _sessionDisplayNames;
 };
 
 #endif // hifi_AvatarMixer_h

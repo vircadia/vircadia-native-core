@@ -10,8 +10,14 @@
 //
 
 #include "FingerprintUtils.h"
+#include "NetworkLogging.h"
+
 #include <QDebug>
+
 #include <SettingHandle.h>
+#include <SettingManager.h>
+#include <DependencyManager.h>
+
 #ifdef Q_OS_WIN
 #include <comdef.h>
 #include <Wbemidl.h>
@@ -37,14 +43,22 @@ QString FingerprintUtils::getMachineFingerprintString() {
     IOObjectRelease(ioRegistryRoot);
     uuidString = QString::fromCFString(uuidCf);
     CFRelease(uuidCf); 
-    qDebug() << "Mac serial number: " << uuidString;
+    qCDebug(networking) << "Mac serial number: " << uuidString;
 #endif //Q_OS_MAC
 
 #ifdef Q_OS_WIN
     HRESULT hres;
     IWbemLocator *pLoc = NULL;
 
-    // initialize com
+    // initialize com.  Interface already does, but other
+    // users of this lib don't necessarily do so.
+    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    if (FAILED(hres)) {
+        qCDebug(networking) << "Failed to initialize COM library!";
+        return uuidString;
+    }
+    
+    // initialize WbemLocator
     hres = CoCreateInstance(
             CLSID_WbemLocator,             
             0, 
@@ -52,7 +66,7 @@ QString FingerprintUtils::getMachineFingerprintString() {
             IID_IWbemLocator, (LPVOID *) &pLoc);
 
     if (FAILED(hres)) {
-        qDebug() << "Failed to initialize WbemLocator";
+        qCDebug(networking) << "Failed to initialize WbemLocator";
         return uuidString;
     }
     
@@ -75,7 +89,7 @@ QString FingerprintUtils::getMachineFingerprintString() {
 
     if (FAILED(hres)) {
         pLoc->Release();
-        qDebug() << "Failed to connect to WMI";
+        qCDebug(networking) << "Failed to connect to WMI";
         return uuidString;
     }
     
@@ -94,7 +108,7 @@ QString FingerprintUtils::getMachineFingerprintString() {
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();     
-        qDebug() << "Failed to set security on proxy blanket";
+        qCDebug(networking) << "Failed to set security on proxy blanket";
         return uuidString;
     }
     
@@ -110,7 +124,7 @@ QString FingerprintUtils::getMachineFingerprintString() {
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
-        qDebug() << "query to get Win32_ComputerSystemProduct info";
+        qCDebug(networking) << "query to get Win32_ComputerSystemProduct info";
         return uuidString;
     }
     
@@ -148,7 +162,7 @@ QString FingerprintUtils::getMachineFingerprintString() {
     pSvc->Release();
     pLoc->Release();
     
-    qDebug() << "Windows BIOS UUID: " << uuidString;
+    qCDebug(networking) << "Windows BIOS UUID: " << uuidString;
 #endif //Q_OS_WIN
 
     return uuidString;
@@ -164,15 +178,20 @@ QUuid FingerprintUtils::getMachineFingerprint() {
     // any errors in getting the string
     QUuid uuid(uuidString);
     if (uuid == QUuid()) {
+        // if you cannot read a fallback key cuz we aren't saving them, just generate one for
+        // this session and move on
+        if (DependencyManager::get<Setting::Manager>().isNull()) {
+            return QUuid::createUuid();
+        }
         // read fallback key (if any)
         Settings settings;
         uuid = QUuid(settings.value(FALLBACK_FINGERPRINT_KEY).toString());
-        qDebug() << "read fallback maching fingerprint: " << uuid.toString();
+        qCDebug(networking) << "read fallback maching fingerprint: " << uuid.toString();
         if (uuid == QUuid()) {
             // no fallback yet, set one
             uuid = QUuid::createUuid();
             settings.setValue(FALLBACK_FINGERPRINT_KEY, uuid.toString());
-            qDebug() << "no fallback machine fingerprint, setting it to: " << uuid.toString();
+            qCDebug(networking) << "no fallback machine fingerprint, setting it to: " << uuid.toString();
         }
     }
     return uuid;

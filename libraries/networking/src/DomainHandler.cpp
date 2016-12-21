@@ -247,7 +247,7 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
 }
 
 void DomainHandler::completedIceServerHostnameLookup() {
-    qDebug() << "ICE server socket is at" << _iceServerSockAddr;
+    qCDebug(networking) << "ICE server socket is at" << _iceServerSockAddr;
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetICEServerSocket);
 
@@ -335,7 +335,7 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<ReceivedMessage>
 
 void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> message) {
     if (_icePeer.hasSockets()) {
-        qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
+        qCDebug(networking) << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
         // bail on processing this packet if our ice peer already has sockets
         return;
     }

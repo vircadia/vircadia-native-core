@@ -16,6 +16,7 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 
@@ -27,7 +28,6 @@
 #include <UUID.h>
 #include <TryLocker.h>
 
-#include "AvatarMixerClientData.h"
 #include "AvatarMixer.h"
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
@@ -67,6 +67,20 @@ AvatarMixer::~AvatarMixer() {
 // An 80% chance of sending a identity packet within a 5 second interval.
 // assuming 60 htz update rate.
 const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
+
+void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
+    QByteArray individualData = nodeData->getAvatar().identityByteArray();
+
+    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
+
+    individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
+
+    identityPacket->write(individualData);
+
+    DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *destinationNode);
+
+    ++_sumIdentityPackets;
+}
 
 // NOTE: some additional optimizations to consider.
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
@@ -231,6 +245,27 @@ void AvatarMixer::broadcastAvatarData() {
             // setup a PacketList for the avatarPackets
             auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
+            if (avatar.getSessionDisplayName().isEmpty() &&  // We haven't set it yet...
+                nodeData->getReceivedIdentity()) { // ... but we have processed identity (with possible displayName).
+                QString baseName = avatar.getDisplayName().trimmed();
+                const QRegularExpression curses{ "fuck|shit|damn|cock|cunt" }; // POC. We may eventually want something much more elaborate (subscription?).
+                baseName = baseName.replace(curses, "*"); // Replace rather than remove, so that people have a clue that the person's a jerk.
+                const QRegularExpression trailingDigits{ "\\s*_\\d+$" }; // whitespace "_123"
+                baseName = baseName.remove(trailingDigits);
+                if (baseName.isEmpty()) {
+                    baseName = "anonymous";
+                }
+
+                QPair<int, int>& soFar = _sessionDisplayNames[baseName]; // Inserts and answers 0, 0 if not already present, which is what we want.
+                int& highWater = soFar.first;
+                nodeData->setBaseDisplayName(baseName);
+                avatar.setSessionDisplayName((highWater > 0) ? baseName + "_" + QString::number(highWater) : baseName);
+                highWater++;
+                soFar.second++; // refcount
+                nodeData->flagIdentityChange();
+                sendIdentityPacket(nodeData, node); // Tell new node about its sessionUUID. Others will find out below.
+            }
+
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             nodeList->eachMatchingNode(
@@ -299,17 +334,7 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
 
-                        QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
-
-                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
-
-                        individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
-
-                        identityPacket->write(individualData);
-
-                        nodeList->sendPacket(std::move(identityPacket), *node);
-
-                        ++_sumIdentityPackets;
+                        sendIdentityPacket(otherNodeData, node);
                     }
 
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
@@ -446,6 +471,16 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         && killedNode->getLinkedData()) {
         auto nodeList = DependencyManager::get<NodeList>();
 
+        {  // decrement sessionDisplayNames table and possibly remove
+           QMutexLocker nodeDataLocker(&killedNode->getLinkedData()->getMutex());
+           AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(killedNode->getLinkedData());
+           const QString& baseDisplayName = nodeData->getBaseDisplayName();
+           // No sense guarding against very rare case of a node with no entry, as this will work without the guard and do one less lookup in the common case.
+           if (--_sessionDisplayNames[baseDisplayName].second <= 0) {
+               _sessionDisplayNames.remove(baseDisplayName);
+           }
+        }
+
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
         auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
@@ -510,6 +545,7 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             if (avatar.processAvatarIdentity(identity)) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
+                nodeData->setReceivedIdentity();
             }
         }
     }
@@ -608,7 +644,7 @@ void AvatarMixer::domainSettingsRequestComplete() {
     float domainMaximumScale = _domainMaximumScale;
 
     nodeList->linkedDataCreateCallback = [domainMinimumScale, domainMaximumScale] (Node* node) {
-        auto clientData = std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData };
+        auto clientData = std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData(node->getUUID()) };
         clientData->getAvatar().setDomainMinimumScale(domainMinimumScale);
         clientData->getAvatar().setDomainMaximumScale(domainMaximumScale);
 

@@ -35,6 +35,8 @@ const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
+    AvatarMixerClientData(const QUuid& nodeID = QUuid()) : NodeData(nodeID) {}
+    virtual ~AvatarMixerClientData() {}
     using HRCTime = p_high_resolution_clock::time_point;
 
     int parseData(ReceivedMessage& message) override;
@@ -51,6 +53,8 @@ public:
 
     HRCTime getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void flagIdentityChange() { _identityChangeTimestamp = p_high_resolution_clock::now(); }
+    bool getReceivedIdentity() const { return _gotIdentity; }
+    void setReceivedIdentity() { _gotIdentity = true;  }
 
     void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
     float getFullRateDistance() const { return _fullRateDistance; }
@@ -96,6 +100,8 @@ public:
     void resetInViewStats() { _recentOtherAvatarsInView = _recentOtherAvatarsOutOfView = 0; }
     void incrementAvatarInView() { _recentOtherAvatarsInView++; }
     void incrementAvatarOutOfView() { _recentOtherAvatarsOutOfView++; }
+    const QString& getBaseDisplayName() { return _baseDisplayName; }
+    void setBaseDisplayName(const QString& baseDisplayName) { _baseDisplayName = baseDisplayName; }
 
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
@@ -105,6 +111,7 @@ private:
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
     HRCTime _identityChangeTimestamp;
+    bool _gotIdentity { false };
 
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;
@@ -123,6 +130,7 @@ private:
 
     int _recentOtherAvatarsInView { 0 };
     int _recentOtherAvatarsOutOfView { 0 };
+    QString _baseDisplayName{}; // The santized key used in determinging unique sessionDisplayName, so that we can remove from dictionary.
 };
 
 #endif // hifi_AvatarMixerClientData_h

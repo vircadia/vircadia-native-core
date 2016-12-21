@@ -21,6 +21,7 @@
 #include <QSize>
 #include <QStringList>
 
+#include "SharedLogging.h"
 
 QSettings::SettingsMap jsonDocumentToVariantMap(const QJsonDocument& document);
 QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map);
@@ -32,7 +33,7 @@ bool readJSONFile(QIODevice& device, QSettings::SettingsMap& map) {
     auto document = QJsonDocument::fromJson(bytesRead, &jsonParseError);
 
     if (jsonParseError.error != QJsonParseError::NoError) {
-        qDebug() << "Error parsing QSettings file:" << jsonParseError.errorString();
+        qCDebug(shared) << "Error parsing QSettings file:" << jsonParseError.errorString();
         return false;
     }
 
@@ -53,7 +54,7 @@ void loadOldINIFile(QSettings& settings) {
 
     QSettings iniSettings;
     if (!iniSettings.allKeys().isEmpty()) {
-        qDebug() << "No data in json settings file, trying to load old ini settings file.";
+        qCDebug(shared) << "No data in json settings file, trying to load old ini settings file.";
 
         for (auto key : iniSettings.allKeys()) {
             auto variant = iniSettings.value(key);
@@ -75,7 +76,7 @@ void loadOldINIFile(QSettings& settings) {
             settings.setValue(key, variant);
         }
 
-        qDebug() << "Loaded" << settings.allKeys().size() << "keys from ini settings file.";
+        qCDebug(shared) << "Loaded" << settings.allKeys().size() << "keys from ini settings file.";
     }
 
     QSettings::setDefaultFormat(JSON_FORMAT);

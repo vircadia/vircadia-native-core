@@ -11,7 +11,7 @@
 var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
-var DEFAULT_DPI = 32;
+var DEFAULT_DPI = 30;
 var DEFAULT_WIDTH = 0.5;
 
 var TABLET_URL = "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx";
@@ -43,14 +43,16 @@ WebTablet = function (url, width, dpi, clientOnly) {
 
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
-    var HEIGHT = WIDTH * ASPECT;
+    var TABLET_HEIGHT_SCALE = 640 / 680;  //  Screen size of tablet entity isn't quite the desired aspect.
+    var HEIGHT = WIDTH * ASPECT * TABLET_HEIGHT_SCALE;
     var DEPTH = 0.025;
     var DPI = dpi || DEFAULT_DPI;
+    var SENSOR_TO_ROOM_MATRIX = -2;
 
     var spawnInfo = calcSpawnInfo();
-
     var tabletEntityPosition = spawnInfo.position;
     var tabletEntityRotation = spawnInfo.rotation;
+
     this.tabletEntityID = Entities.addEntity({
         name: "tablet",
         type: "Model",
@@ -62,40 +64,50 @@ WebTablet = function (url, width, dpi, clientOnly) {
         }),
         dimensions: {x: WIDTH, y: HEIGHT, z: DEPTH},
         parentID: MyAvatar.sessionUUID,
-        parentJointIndex: -2
+        parentJointIndex: SENSOR_TO_ROOM_MATRIX
     }, clientOnly);
 
-    var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
-    var WEB_ENTITY_Z_OFFSET = -0.01;
+    var WEB_OVERLAY_Z_OFFSET = -0.01;
 
-    var webEntityRotation = Quat.multiply(spawnInfo.rotation, Quat.angleAxis(180, Y_AXIS));
-    var webEntityPosition = Vec3.sum(spawnInfo.position, Vec3.multiply(WEB_ENTITY_Z_OFFSET, Quat.getFront(webEntityRotation)));
+    var webOverlayRotation = Quat.multiply(spawnInfo.rotation, Quat.angleAxis(180, Y_AXIS));
+    var webOverlayPosition = Vec3.sum(spawnInfo.position, Vec3.multiply(WEB_OVERLAY_Z_OFFSET, Quat.getFront(webOverlayRotation)));
 
-    this.webEntityID = Entities.addEntity({
-        name: "web",
-        type: "Web",
-        sourceUrl: url,
-        dimensions: {x: WIDTH * WEB_ENTITY_REDUCTION_FACTOR.x,
-                     y: HEIGHT * WEB_ENTITY_REDUCTION_FACTOR.y,
-                     z: 0.1},
-        position: webEntityPosition,
-        rotation: webEntityRotation,
-        shapeType: "box",
+    this.webOverlayID = Overlays.addOverlay("web3d", {
+        url: url,
+        position: webOverlayPosition,
+        rotation: webOverlayRotation,
+        resolution: { x: 480, y: 640 },
         dpi: DPI,
+        color: { red: 255, green: 255, blue: 255 },
+        alpha: 1.0,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
-    }, clientOnly);
+    });
 
     this.state = "idle";
 };
 
+WebTablet.prototype.setURL = function (url) {
+    Overlays.editOverlay(this.webOverlayID, { url: url });
+};
+
+WebTablet.prototype.setScriptURL = function (scriptURL) {
+    Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
+};
+
+WebTablet.prototype.getOverlayObject = function () {
+    return Overlays.getOverlayObject(this.webOverlayID);
+};
+
 WebTablet.prototype.destroy = function () {
-    Entities.deleteEntity(this.webEntityID);
+    Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
 };
+
 WebTablet.prototype.pickle = function () {
-    return JSON.stringify({webEntityID: this.webEntityID, tabletEntityID: this.tabletEntityID});
+    return JSON.stringify({ webOverlayID: this.webOverlayID, tabletEntityID: this.tabletEntityID });
 };
+
 WebTablet.unpickle = function (string) {
     if (!string) {
         return;

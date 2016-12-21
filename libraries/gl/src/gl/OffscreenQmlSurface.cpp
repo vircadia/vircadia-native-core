@@ -38,6 +38,9 @@
 #include "GLLogging.h"
 #include "Context.h"
 
+Q_LOGGING_CATEGORY(trace_render_qml, "trace.render.qml")
+Q_LOGGING_CATEGORY(trace_render_qml_gl, "trace.render.qml.gl")
+
 struct TextureSet {
     // The number of surfaces with this size
     size_t count { 0 };
@@ -100,11 +103,14 @@ public:
     }
 
     void report() {
-        uint64_t now = usecTimestampNow();
-        if ((now - _lastReport) > USECS_PER_SECOND * 5) {
-            _lastReport = now;
-            qCDebug(glLogging) << "Current offscreen texture count " << _allTextureCount;
-            qCDebug(glLogging) << "Current offscreen active texture count " << _activeTextureCount;
+        if (randFloat() < 0.01f) {
+            PROFILE_COUNTER(render_qml_gl, "offscreenTextures", {
+                { "total", QVariant::fromValue(_allTextureCount.load()) },
+                { "active", QVariant::fromValue(_activeTextureCount.load()) },
+            });
+            PROFILE_COUNTER(render_qml_gl, "offscreenTextureMemory", {
+                { "value", QVariant::fromValue(_totalTextureUsage) }
+            });
         }
     }
 
@@ -186,7 +192,6 @@ private:
     std::unordered_map<GLuint, uvec2> _textureSizes;
     Mutex _mutex;
     std::list<OffscreenQmlSurface::TextureAndFence> _returnedTextures;
-    uint64_t _lastReport { 0 };
     size_t _totalTextureUsage { 0 };
 } offscreenTextures;
 
@@ -276,6 +281,7 @@ void OffscreenQmlSurface::render() {
         return;
     }
 
+    PROFILE_RANGE(render_qml_gl, __FUNCTION__)
     _canvas->makeCurrent();
 
     _renderControl->sync();
@@ -284,7 +290,6 @@ void OffscreenQmlSurface::render() {
     GLuint texture = offscreenTextures.getNextTexture(_size);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
     glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
-    PROFILE_RANGE("qml_render->rendercontrol")
     _renderControl->render();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -617,12 +622,12 @@ void OffscreenQmlSurface::updateQuick() {
     }
 
     if (_polish) {
+        PROFILE_RANGE(render_qml, "OffscreenQML polish")
         _renderControl->polishItems();
         _polish = false;
     }
 
     if (_render) {
-        PROFILE_RANGE(__FUNCTION__);
         render();
         _render = false;
     }

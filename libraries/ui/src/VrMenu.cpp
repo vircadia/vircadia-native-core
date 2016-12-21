@@ -15,6 +15,7 @@
 #include <QDebug>
 
 #include "OffscreenUi.h"
+#include "ui/Logging.h"
 
 static unsigned int USER_DATA_ID = 0;
 
@@ -158,7 +159,7 @@ void VrMenu::addMenu(QMenu* menu) {
 void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
     auto text = action->text();
     if (text == "Login") {
-        qDebug() << "Login action " << action;
+        qDebug(uiLogging) << "Login action " << action;
     }
 
     new MenuUserData(action, qmlAction);

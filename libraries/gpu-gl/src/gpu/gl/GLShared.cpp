@@ -16,6 +16,7 @@
 #include <fstream>
 
 Q_LOGGING_CATEGORY(gpugllogging, "hifi.gpu.gl")
+Q_LOGGING_CATEGORY(trace_render_gpu_gl, "trace.render.gpu.gl")
 
 namespace gpu { namespace gl {
 

@@ -117,10 +117,16 @@ function populateUserList() {
     AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
         var avatarPalDatum = {
-            displayName: avatar.displayName || ('anonymous ' + counter++),
-            userName: "fakeAcct" + (id || "Me"),
+            displayName: avatar.sessionDisplayName,
+            userName: '',
             sessionId: id || ''
         };
+        // If the current user is an admin OR
+        // they're requesting their own username ("id" is blank)...
+        if (Users.canKick || !id) {
+            // Request the username from the given UUID
+            Users.requestUsernameFromID(id);
+        }
         data.push(avatarPalDatum);
         if (id) { // No overlay for ourself.
             addAvatarNode(id);
@@ -129,6 +135,23 @@ function populateUserList() {
     });
     pal.sendToQml({method: 'users', params: data});
 }
+
+// The function that handles the reply from the server
+function usernameFromIDReply(id, username, machineFingerprint) {
+    var data;
+    // If the ID we've received is our ID...
+    if (AvatarList.getAvatar('').sessionUUID === id) {
+        // Set the data to contain specific strings.
+        data = ['', username + ' (hidden)']
+    } else {
+        // Set the data to contain the ID and the username+ID concat string.
+        data = [id, username + '/' + machineFingerprint];
+    }
+    print('Username Data:', JSON.stringify(data));
+    // Ship the data off to QML
+    pal.sendToQml({ method: 'updateUsername', params: data });
+}
+
 var pingPong = true;
 function updateOverlays() {
     var eye = Camera.position;
@@ -249,6 +272,7 @@ function onVisibileChanged() {
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibileChanged);
 pal.closed.connect(off);
+Users.usernameFromIDReply.connect(usernameFromIDReply);
 
 //
 // Cleanup.
@@ -258,6 +282,7 @@ Script.scriptEnding.connect(function () {
     toolBar.removeButton(buttonName);
     pal.visibleChanged.disconnect(onVisibileChanged);
     pal.closed.disconnect(off);
+    Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     off();
 });
 

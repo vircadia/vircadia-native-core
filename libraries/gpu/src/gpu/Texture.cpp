@@ -17,6 +17,7 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
+#include <Trace.h>
 
 #include <NumericalConstants.h>
 
@@ -41,7 +42,7 @@ std::atomic<bool> Texture::_enableSparseTextures { recommendedSparseTextures };
 
 struct ReportTextureState {
     ReportTextureState() {
-        qDebug() << "[TEXTURE TRANSFER SUPPORT]"
+        qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT]"
             << "\n\tidealThreadCount:" << QThread::idealThreadCount()
             << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures;
     }
@@ -49,10 +50,10 @@ struct ReportTextureState {
 
 void Texture::setEnableSparseTextures(bool enabled) {
 #ifdef Q_OS_WIN
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
+    qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
     _enableSparseTextures = enabled;
 #else
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
+    qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
 #endif
 }
 
@@ -113,7 +114,7 @@ Texture::Size Texture::getAllowedGPUMemoryUsage() {
 }
 
 void Texture::setAllowedGPUMemoryUsage(Size size) {
-    qDebug() << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
+    qCDebug(gpulogging) << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
     _allowedCPUMemoryUsage = size;
 }
 
@@ -757,6 +758,9 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     if(width != cubeTexture.getHeight()) {
         return false;
     }
+
+    PROFILE_RANGE(render_gpu, "sphericalHarmonicsFromTexture");
+
     const uint sqOrder = order*order;
 
     // allocate memory for calculations
@@ -788,6 +792,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
 
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
+        PROFILE_RANGE(render_gpu, "ProcessFace");
 
         auto numComponents = cubeTexture.accessStoredMipFace(0,face)->getFormat().getScalarCount();
         auto data = cubeTexture.accessStoredMipFace(0,face)->readData();

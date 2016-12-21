@@ -166,7 +166,6 @@ bool AudioInjector::injectLocally() {
 
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
-            _localBuffer->setVolume(_options.volume);
 
             // give our current send position to the local buffer
             _localBuffer->setCurrentOffset(_currentSendOffset);
@@ -209,7 +208,7 @@ qint64 writeStringToStream(const QString& string, QDataStream& stream) {
 
 int64_t AudioInjector::injectNextFrame() {
     if (stateHas(AudioInjectorState::NetworkInjectionFinished)) {
-        qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
+        qCDebug(audio)  << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
 
@@ -232,7 +231,7 @@ int64_t AudioInjector::injectNextFrame() {
             auto numSamples = static_cast<int>(_audioData.size() / sampleSize);
             auto targetSize = numSamples * sampleSize;
             if (targetSize != _audioData.size()) {
-                qDebug() << "Resizing audio that doesn't end at multiple of sample size, resizing from "
+                qCDebug(audio)  << "Resizing audio that doesn't end at multiple of sample size, resizing from "
                     << _audioData.size() << " to " << targetSize;
                 _audioData.resize(targetSize);
             }
@@ -298,7 +297,7 @@ int64_t AudioInjector::injectNextFrame() {
 
         } else {
             // no samples to inject, return immediately
-            qDebug() << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
+            qCDebug(audio)  << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
@@ -389,7 +388,7 @@ int64_t AudioInjector::injectNextFrame() {
 
     if (currentFrameBasedOnElapsedTime - _nextFrame > MAX_ALLOWED_FRAMES_TO_FALL_BEHIND) {
         // If we are falling behind by more frames than our threshold, let's skip the frames ahead
-        qDebug() << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
+        qCDebug(audio)  << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
         _nextFrame = currentFrameBasedOnElapsedTime;
         _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData.size();
     }

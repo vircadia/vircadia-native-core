@@ -26,7 +26,7 @@
 #include <QByteArray>
 
 #include "ByteCountCoding.h"
-#include <SharedUtil.h>
+#include "SharedLogging.h"
 
 template<typename Enum>class PropertyFlags {
 public:
@@ -255,14 +255,14 @@ template<typename Enum> inline size_t PropertyFlags<Enum>::decode(const QByteArr
 }
 
 template<typename Enum> inline void PropertyFlags<Enum>::debugDumpBits() {
-    qDebug() << "_minFlag=" << _minFlag;
-    qDebug() << "_maxFlag=" << _maxFlag;
-    qDebug() << "_trailingFlipped=" << _trailingFlipped;
+    qCDebug(shared) << "_minFlag=" << _minFlag;
+    qCDebug(shared) << "_maxFlag=" << _maxFlag;
+    qCDebug(shared) << "_trailingFlipped=" << _trailingFlipped;
     QString bits;
     for(int i = 0; i < _flags.size(); i++) {
         bits += (_flags.at(i) ? "1" : "0");
     }
-    qDebug() << "bits:" << bits;
+    qCDebug(shared) << "bits:" << bits;
 }
 
 
