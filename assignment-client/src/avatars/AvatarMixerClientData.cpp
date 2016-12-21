@@ -62,10 +62,6 @@ void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
     _currentViewFrustum.fromByteArray(message);
 }
 
-bool AvatarMixerClientData::otherAvatarInView(const glm::vec3& otherAvatar) {
-    return !_currentViewFrustumIsValid || _currentViewFrustum.pointIntersectsFrustum(otherAvatar);
-}
-
 bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
     return !_currentViewFrustumIsValid || _currentViewFrustum.boxIntersectsKeyhole(otherAvatarBox);
 }

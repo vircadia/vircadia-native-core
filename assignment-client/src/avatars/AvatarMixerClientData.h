@@ -95,7 +95,6 @@ public:
     void readViewFrustumPacket(const QByteArray& message);
 
     bool otherAvatarInView(const AABox& otherAvatarBox);
-    bool otherAvatarInView(const glm::vec3& otherAvatar);
 
     void resetInViewStats() { _recentOtherAvatarsInView = _recentOtherAvatarsOutOfView = 0; }
     void incrementAvatarInView() { _recentOtherAvatarsInView++; }

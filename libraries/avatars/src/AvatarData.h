@@ -209,7 +209,14 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    virtual QByteArray toByteArray(bool cullSmallChanges, bool sendAll, bool sendMinimum = false);
+    typedef enum { 
+        MinimumData, 
+        CullSmallData,
+        IncludeSmallData,
+        SendAllData
+    } AvatarDataDetail;
+
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail);
     virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged

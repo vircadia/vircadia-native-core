@@ -181,7 +181,11 @@ void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     _handPosition = glm::inverse(getOrientation()) * (handPosition - getPosition());
 }
 
-QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll, bool sendMinimum) {
+
+QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
+    bool cullSmallChanges = (dataDetail == CullSmallData);
+    bool sendAll = (dataDetail == SendAllData);
+    bool sendMinimum = (dataDetail == MinimumData);
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
@@ -1208,9 +1212,9 @@ void AvatarData::sendAvatarDataPacket() {
 
     // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
     // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
-    bool sendFullUpdate = randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO;
-    QByteArray avatarByteArray = toByteArray(true, sendFullUpdate);
-    doneEncoding(true);
+    QByteArray avatarByteArray = toByteArray((randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? SendAllData : CullSmallData);
+
+    doneEncoding(true); // FIXME - doneEncoding() takes a bool for culling small changes, that's janky!
 
     static AvatarDataSequenceNumber sequenceNumber = 0;
 

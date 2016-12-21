@@ -386,17 +386,19 @@ void AvatarMixer::broadcastAvatarData() {
                     // determine if avatar is in view, to determine how much data to include...
                     glm::vec3 otherNodeBoxScale = (otherNodeData->getPosition() - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
                     AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                    bool sendMinimumForOutOfView = !nodeData->otherAvatarInView(otherNodeBox);
 
-                    if (sendMinimumForOutOfView) {
+                    AvatarData::AvatarDataDetail detail;
+                    if (!nodeData->otherAvatarInView(otherNodeBox)) {
+                        detail = AvatarData::MinimumData;
                         nodeData->incrementAvatarOutOfView();
                     } else {
+                        detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
+                                        ? AvatarData::SendAllData : AvatarData::IncludeSmallData;
                         nodeData->incrementAvatarInView();
                     }
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-                    numAvatarDataBytes +=
-                        avatarPacketList->write(otherAvatar.toByteArray(false, distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO, sendMinimumForOutOfView));
+                    numAvatarDataBytes += avatarPacketList->write(otherAvatar.toByteArray(detail));
 
                     avatarPacketList->endSegment();
             });
