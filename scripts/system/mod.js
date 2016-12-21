@@ -24,18 +24,18 @@ var ASSETS_PATH = Script.resolvePath("assets");
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 
 function buttonImageURL() {
-    return "icons/tablet-icons/" + (Users.canKick ? 'kick.svg' : 'ignore.svg');
+    return (Users.canKick ? "kick.svg" : "ignore.svg");
 }
 
 // setup the mod button and add it to the toolbar
-var button = toolbar.addButton({
-    icon: buttonImageURL(),
+var button = tablet.addButton({
+    icon: "icons/tablet-icons/ignore-i.svg",
     text: "KICK"
 });
 
 // if this user's kick permissions change, change the state of the button in the HUD
 Users.canKickChanged.connect(function(canKick){
-    button.editProperties({icon: buttonImageURL()});
+    button.editProperties({text: buttonImageURL()});
 });
 
 var isShowingOverlays = false;

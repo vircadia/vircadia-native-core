@@ -26,18 +26,6 @@
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, tabletLocation);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.webEntityID;
-
-        var setUpTabletUI = function() {
-            var root = UIWebTablet.getRoot();
-            if (!root) {
-                print("HERE no root yet");
-                Script.setTimeout(setUpTabletUI, 100);
-                return;
-            }
-            print("HERE got root", root);
-        }
-
-        Script.setTimeout(setUpTabletUI, 100);
     }
 
     function hideTabletUI() {

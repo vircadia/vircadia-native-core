@@ -177,8 +177,8 @@
 
     // Cleanup the toolbar button and overlays when script is stopped
     Script.scriptEnding.connect(function () {
-        tablet.removeButton(button);
         button.clicked.disconnect(Users.toggleIgnoreRadius);
+        tablet.removeButton(button);
         Users.ignoreRadiusEnabledChanged.disconnect(onBubbleToggled);
         Users.enteredIgnoreRadius.disconnect(enteredIgnoreRadius);
         Overlays.deleteOverlay(bubbleOverlay);

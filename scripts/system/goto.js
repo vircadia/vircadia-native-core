@@ -36,8 +36,8 @@ button.clicked.connect(onClicked);
 DialogsManager.addressBarShown.connect(onAddressBarShown);
 
 Script.scriptEnding.connect(function () {
-    tablet.removeButton(button);
     button.clicked.disconnect(onClicked);
+    tablet.removeButton(button);
     DialogsManager.addressBarShown.disconnect(onAddressBarShown);
 });
 

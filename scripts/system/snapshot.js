@@ -208,8 +208,8 @@ Window.snapshotShared.connect(snapshotShared);
 Window.processingGif.connect(processingGif);
 
 Script.scriptEnding.connect(function () {
-    tablet.removeButton(button);
     button.clicked.disconnect(onClicked);
+    tablet.removeButton(button);
     Window.snapshotShared.disconnect(snapshotShared);
     Window.processingGif.disconnect(processingGif);
 });
