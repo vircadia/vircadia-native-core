@@ -136,7 +136,7 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
     static auto EMPTY = QUuid();
 
     {
-        QWriteLocker locker(&_hashLock);
+        QReadLocker locker(&_hashLock);
         auto me = _avatarHash.find(EMPTY);
         if ((me != _avatarHash.end()) && (identity.uuid == me.value()->getSessionUUID())) {
             // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
