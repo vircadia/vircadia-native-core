@@ -77,11 +77,18 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "nearGrab"
         }
     },
+    "equip-part1-touch": {
+        "{470f0634-8be7-4b52-a8bd-5183d489fcb6}": {
+            "tag": "equip-part1-touch"
+        }
+    },
+    "equip-part1-vive": {
+        "{97ced5e7-fc81-40f9-a9e8-f85b4b30f24c}": {
+            "tag": "equip-part1-vive"
+        }
+    },
     "equip-part1": {
         "{d73822ca-0a34-4cf4-a530-3258ac459a14}": {
-            "tag": "equip-part1"
-        },
-        "{97ced5e7-fc81-40f9-a9e8-f85b4b30f24c}": {
             "tag": "equip-part1"
         },
         "{8572d991-5777-45df-97bf-7243d7b12f81}": {
@@ -109,16 +116,17 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
     "equip-part2-vive": {
         "{b5d17eda-90ab-40cf-b973-efcecb2e992e}": {
             "tag": "equip-part2-vive"
+        },
+        "{6307cd16-dd1d-4988-a339-578178436b45}": {
+            "tag": "equip-part2-vive"
         }
     },
     "equip-part2-touch": {
         "{69195139-e020-4739-bb2c-50faebc6860a}": {
             "tag": "equip-part2-touch"
-        }
-    },
-    "equip-part2": {
-        "{6307cd16-dd1d-4988-a339-578178436b45}": {
-            "tag": "equip-part2"
+        },
+        "{9b0a99ae-221b-4e59-ba3c-d8e64a083774}": {
+            "tag": "equip-part2-touch"
         }
     },
     "bothGrab": {

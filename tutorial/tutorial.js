@@ -535,11 +535,12 @@ stepNearGrab.prototype = {
         this.finished = false;
         this.onFinish = onFinish;
 
-        setControllerPartLayer('tips', 'trigger');
-
         if (this.controllerName === CONTROLLER_TOUCH) {
-            setControllerPartLayer('both_triggers', 'highlight');
+            setControllerPartLayer('tips', 'both_triggers');
+            setControllerPartLayer('trigger', 'highlight');
+            setControllerPartLayer('grip', 'highlight');
         } else {
+            setControllerPartLayer('tips', 'trigger');
             setControllerPartLayer('trigger', 'highlight');
         }
 
@@ -581,8 +582,8 @@ stepNearGrab.prototype = {
         debug("NearGrab | Cleanup");
         this.finished = true;
         setControllerPartLayer('tips', 'blank');
-        setControllerPartLayer('both_triggers', 'normal');
         setControllerPartLayer('trigger', 'normal');
+        setControllerPartLayer('grip', 'normal');
         hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
         if (this.positionWatcher) {
