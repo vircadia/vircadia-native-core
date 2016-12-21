@@ -373,9 +373,9 @@ void NodeList::sendDomainServerCheckIn() {
 
             packetStream << hardwareAddress;
 
-            // add in machine fingerprint
-            QUuid machineFingerprint = FingerprintUtils::getMachineFingerprint();
-            packetStream << machineFingerprint;
+            // now add the machine fingerprint - a null UUID if logged in, real one if not logged in
+            auto accountManager = DependencyManager::get<AccountManager>();
+            packetStream << (accountManager->isLoggedIn() ? QUuid() : FingerprintUtils::getMachineFingerprint());
         }
 
         // pack our data to send to the domain-server including
