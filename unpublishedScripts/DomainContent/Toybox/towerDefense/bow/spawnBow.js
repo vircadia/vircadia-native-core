@@ -14,7 +14,7 @@ Entities.addEntity({
         "y": -1,
         "z": 0
     },
-    "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/newarrow_textured.fbx",
+    "modelURL": Script.resolvePath("bow-deadly.fbx"),
     "name": "Hifi-Bow",
     "rotation": {
         "w": 0.9718012809753418,
