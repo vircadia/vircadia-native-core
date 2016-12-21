@@ -374,6 +374,8 @@ function disableEverything() {
         nearGrabEnabled: true,
         holdEnabled: false,
         farGrabEnabled: false,
+        myAvatarScalingEnabled: false,
+        objectScalingEnabled: false,
     }));
     setControllerPartLayer('touchpad', 'blank');
     setControllerPartLayer('trigger', 'blank');
@@ -402,6 +404,8 @@ function reenableEverything() {
         nearGrabEnabled: true,
         holdEnabled: true,
         farGrabEnabled: true,
+        myAvatarScalingEnabled: true,
+        objectScalingEnabled: true,
     }));
     setControllerPartLayer('touchpad', 'blank');
     setControllerPartLayer('trigger', 'blank');
