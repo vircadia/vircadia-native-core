@@ -124,6 +124,9 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     }
 }
 
+
+Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar");
+
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
@@ -167,9 +170,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
 
-    PROFILE_COUNTER(simulation_avatar, "NumAvatarsPerSec",
+    SAMPLE_PROFILE_COUNTER(0.1f, simulation_avatar, "NumAvatarsPerSec",
             { { "NumAvatarsPerSec", (float)(size() * USECS_PER_SECOND) / (float)(usecTimestampNow() - start) } });
-    PROFILE_COUNTER(simulation_avatar, "NumJointsPerSec", { { "NumJointsPerSec", Avatar::getNumJointsProcessedPerSecond() } });
+    SAMPLE_PROFILE_COUNTER(0.1f, simulation_avatar, "NumJointsPerSec", { { "NumJointsPerSec", Avatar::getNumJointsProcessedPerSecond() } });
 }
 
 void AvatarManager::postUpdate(float deltaTime) {

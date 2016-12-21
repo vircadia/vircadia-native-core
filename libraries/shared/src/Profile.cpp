@@ -18,7 +18,6 @@ Q_LOGGING_CATEGORY(trace_resource_network, "trace.resource.network")
 Q_LOGGING_CATEGORY(trace_resource_parse, "trace.resource.parse")
 Q_LOGGING_CATEGORY(trace_simulation, "trace.simulation")
 Q_LOGGING_CATEGORY(trace_simulation_animation, "trace.simulation.animation")
-Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar")
 Q_LOGGING_CATEGORY(trace_simulation_physics, "trace.simulation.physics")
 
 #if defined(NSIGHT_FOUND)
