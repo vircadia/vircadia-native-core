@@ -236,7 +236,7 @@ Messages.messageReceived.connect(function(channel, messageJSON, senderID) {
                         position: Vec3.sum(BASE_POSITION, BASES[i].spawnerPosition),
                         dimensions: { x: TARGET_SIZE, y: TARGET_SIZE, z: TARGET_SIZE },
                         color: BASES[i].color,
-                        script: Script.resolvePath("launch.js"),
+                        script: Script.resolvePath("launchEntity.js"),
                         userData: JSON.stringify({
                             grabbableKey: { 
                                 wantsTrigger: true
