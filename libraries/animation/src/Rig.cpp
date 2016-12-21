@@ -1195,7 +1195,7 @@ bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const 
 
 void Rig::applyOverridePoses() {
     PerformanceTimer perfTimer("override");
-    if (!_animSkeleton || _numOverrides == 0) {
+    if (_numOverrides == 0 || !_animSkeleton) {
         return;
     }
 
@@ -1218,17 +1218,15 @@ void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& a
 
     ASSERT(_animSkeleton->getNumJoints() == (int)relativePoses.size());
 
-    {
-        absolutePosesOut.resize(relativePoses.size());
-        AnimPose geometryToRigTransform(_geometryToRigTransform);
-        for (int i = 0; i < (int)relativePoses.size(); i++) {
-            int parentIndex = _animSkeleton->getParentIndex(i);
-            if (parentIndex == -1) {
-                // transform all root absolute poses into rig space
-                absolutePosesOut[i] = geometryToRigTransform * relativePoses[i];
-            } else {
-                absolutePosesOut[i] = absolutePosesOut[parentIndex] * relativePoses[i];
-            }
+    absolutePosesOut.resize(relativePoses.size());
+    AnimPose geometryToRigTransform(_geometryToRigTransform);
+    for (int i = 0; i < (int)relativePoses.size(); i++) {
+        int parentIndex = _animSkeleton->getParentIndex(i);
+        if (parentIndex == -1) {
+            // transform all root absolute poses into rig space
+            absolutePosesOut[i] = geometryToRigTransform * relativePoses[i];
+        } else {
+            absolutePosesOut[i] = absolutePosesOut[parentIndex] * relativePoses[i];
         }
     }
 }
