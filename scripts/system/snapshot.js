@@ -111,10 +111,6 @@ function onClicked() {
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     Window.snapshotTaken.connect(resetButtons);
-    
-    //button.writeProperty("buttonState", 0);
-    //button.writeProperty("defaultState", 0);
-    //button.writeProperty("hoverState", 2);
 
     // hide overlays if they are on
     if (resetOverlays) {
@@ -162,10 +158,6 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
         // Allow the user to click the snapshot HUD button again
         button.clicked.connect(onClicked);
     }
-    // update button states
-    //button.writeProperty("buttonState", 1);
-    //button.writeProperty("defaultState", 1);
-    //button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
 
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
@@ -191,11 +183,6 @@ function processingGif() {
     // show hud
     Reticle.visible = reticleVisible;
 
-    // update button states
-    //button.writeProperty("buttonState", 0);
-    //button.writeProperty("defaultState", 0);
-    //button.writeProperty("hoverState", 2);
-    // Don't allow the user to click the snapshot button yet
     button.clicked.disconnect(onClicked);
     // show overlays if they were on
     if (resetOverlays) {
