@@ -57,6 +57,14 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
     }
 }
 
+void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
+    _currentViewFrustum.fromByteArray(message);
+}
+
+bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
+    return _currentViewFrustum.boxIntersectsKeyhole(otherAvatarBox);
+}
+
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["display_name"] = _avatar->getDisplayName();
     jsonObject["full_rate_distance"] = _fullRateDistance;
@@ -70,4 +78,6 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
 
     jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
+    jsonObject["recent_other_av_in_view"] = _recentOtherAvatarsInView;
+    jsonObject["recent_other_av_out_of_view"] = _recentOtherAvatarsOutOfView;
 }

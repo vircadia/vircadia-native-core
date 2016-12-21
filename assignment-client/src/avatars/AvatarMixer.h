@@ -15,6 +15,7 @@
 #ifndef hifi_AvatarMixer_h
 #define hifi_AvatarMixer_h
 
+#include <shared/RateCounter.h>
 #include <PortableHighResolutionClock.h>
 
 #include <ThreadedAssignment.h>
@@ -35,6 +36,7 @@ public slots:
     void sendStatsPacket() override;
 
 private slots:
+    void handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
@@ -67,6 +69,8 @@ private:
 
     QTimer* _broadcastTimer = nullptr;
 
+    RateCounter<> _broadcastRate;
+    p_high_resolution_clock::time_point _lastDebugMessage;
     QHash<QString, QPair<int, int>> _sessionDisplayNames;
 };
 

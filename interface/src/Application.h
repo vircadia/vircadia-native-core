@@ -444,6 +444,7 @@ private:
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
     int sendNackPackets();
+    void sendAvatarViewFrustum();
 
     std::shared_ptr<MyAvatar> getMyAvatar() const;
 

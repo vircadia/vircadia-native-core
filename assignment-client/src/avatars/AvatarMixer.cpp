@@ -44,6 +44,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
     packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
@@ -85,6 +86,8 @@ void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const Shar
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 void AvatarMixer::broadcastAvatarData() {
+    _broadcastRate.increment();
+
     int idleTime = AVATAR_DATA_SEND_INTERVAL_MSECS;
 
     if (_lastFrameTimestamp.time_since_epoch().count() > 0) {
@@ -173,6 +176,7 @@ void AvatarMixer::broadcastAvatarData() {
                 return;
             }
             ++_sumListeners;
+            nodeData->resetInViewStats();
 
             AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getClientGlobalPosition();
@@ -379,9 +383,22 @@ void AvatarMixer::broadcastAvatarData() {
                     // start a new segment in the PacketList for this avatar
                     avatarPacketList->startSegment();
 
+                    // determine if avatar is in view, to determine how much data to include...
+                    glm::vec3 otherNodeBoxScale = (otherNodeData->getPosition() - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+                    AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+
+                    AvatarData::AvatarDataDetail detail;
+                    if (!nodeData->otherAvatarInView(otherNodeBox)) {
+                        detail = AvatarData::MinimumData;
+                        nodeData->incrementAvatarOutOfView();
+                    } else {
+                        detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
+                                        ? AvatarData::SendAllData : AvatarData::IncludeSmallData;
+                        nodeData->incrementAvatarInView();
+                    }
+
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-                    numAvatarDataBytes +=
-                        avatarPacketList->write(otherAvatar.toByteArray(false, distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO));
+                    numAvatarDataBytes += avatarPacketList->write(otherAvatar.toByteArray(detail));
 
                     avatarPacketList->endSegment();
             });
@@ -410,6 +427,9 @@ void AvatarMixer::broadcastAvatarData() {
 
     // We're done encoding this version of the otherAvatars.  Update their "lastSent" joint-states so
     // that we can notice differences, next time around.
+    //
+    // FIXME - this seems suspicious, the code seems to consider all avatars, but not all avatars will
+    // have had their joints sent, so actually we should consider the time since they actually were sent????
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& otherNode)->bool {
             if (!otherNode->getLinkedData()) {
@@ -434,6 +454,18 @@ void AvatarMixer::broadcastAvatarData() {
         });
 
     _lastFrameTimestamp = p_high_resolution_clock::now();
+
+#ifdef WANT_DEBUG
+    auto sinceLastDebug = p_high_resolution_clock::now() - _lastDebugMessage;
+    auto sinceLastDebugUsecs = std::chrono::duration_cast<std::chrono::microseconds>(sinceLastDebug).count();
+    quint64 DEBUG_INTERVAL = USECS_PER_SECOND * 5;
+
+    if (sinceLastDebugUsecs > DEBUG_INTERVAL) {
+        qDebug() << "broadcast rate:" << _broadcastRate.rate() << "hz";
+        _lastDebugMessage = p_high_resolution_clock::now();
+    }
+#endif
+
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -483,6 +515,18 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     }
 }
 
+void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->getOrCreateLinkedData(senderNode);
+
+    if (senderNode->getLinkedData()) {
+        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            nodeData->readViewFrustumPacket(message->getMessage());
+        }
+    }
+}
+
 void AvatarMixer::handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->updateNodeWithDataFromPacket(message, senderNode);
@@ -529,6 +573,7 @@ void AvatarMixer::sendStatsPacket() {
 
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
+    statsObject["broadcast_loop_rate"] = _broadcastRate.rate();
 
     QJsonObject avatarsObject;
 
@@ -581,6 +626,7 @@ void AvatarMixer::run() {
 
     // setup the timer that will be fired on the broadcast thread
     _broadcastTimer = new QTimer;
+    _broadcastTimer->setTimerType(Qt::PreciseTimer);
     _broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
     _broadcastTimer->moveToThread(&_broadcastThread);
 
