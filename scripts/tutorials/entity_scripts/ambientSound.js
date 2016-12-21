@@ -106,7 +106,7 @@
             if (!soundPlaying && ambientSound.downloaded) {
                 soundPlaying = Audio.playSound(ambientSound,  { loop: true, 
                                                                 localOnly: true, 
-                                                                rotation: rotation,
+                                                                orientation: rotation,
                                                                 volume: volume });
                 debugPrint("Starting ambient sound, volume: " + volume);
                 if (WANT_COLOR_CHANGE) {
