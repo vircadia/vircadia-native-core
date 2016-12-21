@@ -39,9 +39,8 @@ Item {
     // Properties
     property int myCardHeight: 70
     property int rowHeight: 70
-    property int separatorColWidth: 10
     property int actionButtonWidth: 75
-    property int nameCardWidth: width - (iAmAdmin ? separatorColWidth : 0) - actionButtonWidth*(iAmAdmin ? 4 : 2)
+    property int nameCardWidth: width - actionButtonWidth*(iAmAdmin ? 4 : 2)
 
     // This contains the current user's NameCard and will contain other information in the future
     Rectangle {
@@ -81,27 +80,39 @@ Item {
         anchors.bottom: table.top
         anchors.left: parent.left
     }
-    // Rectangle that houses "Global Actions" string
+    // Rectangle that houses "ADMIN" string
     Rectangle {
-        visible: iAmAdmin
-        color: hifi.colors.tableRowLightEven
-        width: actionButtonWidth * 2 + separatorColWidth - 2
+        id: adminTab
+        // Size
+        width: actionButtonWidth * 2 - 2
         height: 40
+        // Anchors
         anchors.bottom: myInfo.bottom
         anchors.bottomMargin: -10
         anchors.right: myInfo.right
+        // Properties
+        visible: iAmAdmin
+        // Style
+        color: hifi.colors.tableRowLightEven
         radius: hifi.dimensions.borderRadius
+        border.color: hifi.colors.lightGrayText
+        border.width: 2
+        // "ADMIN" text
         RalewaySemiBold {
             text: "ADMIN"
+            // Text size
             size: hifi.fontSizes.tableHeading + 2
-            font.capitalization: Font.AllUppercase
-            color: hifi.colors.redHighlight
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignTop
+            // Anchors
             anchors.top: parent.top
             anchors.topMargin: 8
             anchors.left: parent.left
             anchors.right: parent.right
+            // Style
+            font.capitalization: Font.AllUppercase
+            color: hifi.colors.redHighlight
+            // Alignment
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignTop
         }
     }
     // This TableView refers to the table (below the current user's NameCard)
@@ -143,13 +154,6 @@ Item {
         }
         TableViewColumn {
             visible: iAmAdmin
-            title: ""
-            width: separatorColWidth
-            resizable: false
-            movable: false
-        }
-        TableViewColumn {
-            visible: iAmAdmin
             role: "mute"
             title: "SILENCE"
             width: actionButtonWidth
@@ -179,7 +183,6 @@ Item {
         itemDelegate: Item {
             id: itemCell
             property bool isCheckBox: typeof(styleData.value) === 'boolean'
-            property bool isSeparator: styleData.value === ''
             // This NameCard refers to the cell that contains an avatar's
             // DisplayName and UserName
             NameCard {
@@ -187,7 +190,7 @@ Item {
                 // Properties
                 displayName: styleData.value
                 userName: model.userName
-                visible: !isCheckBox && !isSeparator
+                visible: !isCheckBox
                 // Size
                 width: nameCardWidth
                 height: parent.height
@@ -197,7 +200,7 @@ Item {
             
             // This CheckBox belongs in the columns that contain the action buttons ("Mute", "Ban", etc)
             HifiControls.CheckBox {
-                visible: isCheckBox && !isSeparator
+                visible: isCheckBox
                 anchors.centerIn: parent
                 boxSize: 24
                 onClicked: {
@@ -211,6 +214,18 @@ Item {
                 }
             }
         }
+    }
+    // Separator between user and admin functions
+    Rectangle {
+        // Size
+        width: 2
+        height: table.height
+        // Anchors
+        anchors.left: adminTab.left
+        anchors.top: table.top
+        // Properties
+        visible: iAmAdmin
+        color: hifi.colors.lightGrayText
     }
     // This Rectangle refers to the [?] popup button
     Rectangle {
@@ -356,7 +371,7 @@ Item {
                     datum[property] = false;
                 }
             }
-            ['personalMute', 'ignore', 'spacer', 'mute', 'kick'].forEach(init);
+            ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
             datum.userIndex = userIndex++;
             userModel.append(datum);
         });
