@@ -17,6 +17,7 @@
 #include "Menu.h"
 
 HIFI_QML_DEF(AvatarInputs)
+HIFI_QML_DEF(AvatarInputs2)
 
 
 static AvatarInputs* INSTANCE{ nullptr };

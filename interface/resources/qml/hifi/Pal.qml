@@ -142,15 +142,9 @@ Item {
         rowDelegate: Rectangle { // The only way I know to specify a row height.
             // Size
             height: rowHeight;
-            // The rest of this is cargo-culted to restore the default styling
-            SystemPalette {
-                id: myPalette;
-                colorGroup: SystemPalette.Active
-            }
-            color: {
-                var baseColor = styleData.alternate?myPalette.alternateBase:myPalette.base
-                return styleData.selected?myPalette.highlight:baseColor
-            }
+            color: styleData.selected
+                   ? "#afafaf"
+                   : styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd
         }
 
         // This Item refers to the contents of each Cell
@@ -177,7 +171,6 @@ Item {
             HifiControls.CheckBox {
                 visible: isCheckBox && !isSeparator;
                 anchors.centerIn: parent;
-                colorScheme: hifi.colorSchemes.dark;
                 boxSize: 22;
                 onClicked: {
                     var newValue = !model[styleData.role];

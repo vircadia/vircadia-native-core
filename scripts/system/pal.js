@@ -140,7 +140,7 @@ function populateUserList() {
 function usernameFromIDReply(id, username, machineFingerprint) {
     var data;
     // If the ID we've received is our ID...
-    if (AvatarList.getAvatar('').sessionUUID === id) {
+    if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
         data = ['', username]
     } else {
