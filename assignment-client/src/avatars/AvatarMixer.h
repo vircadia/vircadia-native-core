@@ -41,6 +41,7 @@ private slots:
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleNodeUnignoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleRequestDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void domainSettingsRequestComplete();

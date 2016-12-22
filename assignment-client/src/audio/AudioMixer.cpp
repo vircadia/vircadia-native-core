@@ -65,6 +65,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::NodeUnignoreRequest, this, "handleNodeUnignoreRequestPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
@@ -223,6 +224,10 @@ void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, 
 
 void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     sendingNode->parseIgnoreRequestMessage(packet);
+}
+
+void AudioMixer::handleNodeUnignoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    sendingNode->parseUnignoreRequestMessage(packet);
 }
 
 void AudioMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {

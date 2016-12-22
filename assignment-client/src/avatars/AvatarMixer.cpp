@@ -585,6 +585,9 @@ void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> 
     senderNode->parseIgnoreRequestMessage(message);
 }
 
+void AvatarMixer::handleNodeUnignoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    sendingNode->parseUnignoreRequestMessage(packet);
+}
 void AvatarMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     sendingNode->parseIgnoreRadiusRequestMessage(packet);
 }

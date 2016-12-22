@@ -105,7 +105,8 @@ public:
         UsernameFromIDReply,
         ViewFrustum,
         RequestDomainListData,
-        LAST_PACKET_TYPE = ViewFrustum // FIXME! RequestDomainListData
+        NodeUnignoreRequest,
+        LAST_PACKET_TYPE = ViewFrustum // FIXME! NodeUnignoreRequest
     };
 };
 
