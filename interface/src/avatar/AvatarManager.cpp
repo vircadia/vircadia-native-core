@@ -198,6 +198,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             // only remove from _avatarFades if we're sure its motionState has been removed from PhysicsEngine
+            qDebug() << "fixme hrs at minimum fade scale" << _motionStatesToRemoveFromPhysics.empty();
             if (_motionStatesToRemoveFromPhysics.empty()) {
                 fadingIterator = _avatarFades.erase(fadingIterator);
             } else {

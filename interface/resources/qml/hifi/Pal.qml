@@ -190,7 +190,7 @@ Item {
                 id: nameCard
                 // Properties
                 displayName: styleData.value
-                userName: model.userName
+                userName: model && model.userName
                 audioLevel: model.audioLevel
                 visible: !isCheckBox
                 // Size
@@ -204,15 +204,26 @@ Item {
             HifiControls.CheckBox {
                 visible: isCheckBox
                 anchors.centerIn: parent
+                checked: model[styleData.role]
                 boxSize: 24
                 onClicked: {
                     var newValue = !model[styleData.role]
                     var datum = userData[model.userIndex]
                     datum[styleData.role] = model[styleData.role] = newValue
-                    Users[styleData.role](model.sessionId)
-                    // Just for now, while we cannot undo things:
-                    userData.splice(model.userIndex, 1)
-                    sortModel()
+                    var key = styleData.role;
+                    if (!newValue) {
+                        key = 'un' + key;
+                    }
+                    if (styleData.role === 'ignore') {
+                        if (newValue) {
+                            ignored[datum.sessionId] = datum;
+                            console.log('fixme hrs adding to ignored', JSON.stringify(datum), 'at', datum.sessionId);
+                        } else {
+                            delete ignored[datum.sessionId];
+                        }
+                    }
+                    console.log('fixme hrs pal action', key, model.sessionId);
+                    Users[key](model.sessionId);
                 }
             }
         }
@@ -336,6 +347,7 @@ Item {
     property var userData: []
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
     property bool iAmAdmin: false
+    property var ignored: ({}); // FIXME: reset when changing domains
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var i, data = optionalData || userData, length = data.length;
         for (var i = 0; i < length; i++) {
@@ -354,6 +366,16 @@ Item {
             myData = data[myIndex];
             data.splice(myIndex, 1);
             userData = data;
+            var ignoredID, index;
+            for (ignoredID in ignored) {
+                index = findSessionIndex(ignoredID);
+                console.log('fixme hrs adding back ignored', ignoredID, index, JSON.stringify(ignored[ignoredID]));
+                if (-1 === index) { // Add back any missing ignored, because they sometimes take a moment to show up.
+                    userData.push(ignored[ignoredID]);
+                } else {            // Mark existing ignored.
+                    userData[index].ignored = true;
+                }
+            }
             sortModel();
             break;
         case 'select':

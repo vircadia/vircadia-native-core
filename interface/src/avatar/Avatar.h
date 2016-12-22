@@ -178,6 +178,8 @@ public:
     glm::vec3 getUncachedRightPalmPosition() const;
     glm::quat getUncachedRightPalmRotation() const;
 
+    Q_INVOKABLE void setShouldDie();
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

@@ -292,7 +292,15 @@ void Avatar::updateAvatarEntities() {
     }
 }
 
+void Avatar::setShouldDie() {
+    // This will cause the avatar to be shrunk away and removed (the actual Avatar gets removed), but then it comes back.
+    _owningAvatarMixer.clear();
 
+    // This removes the avatar from physics and makes it shrink away, but does not actualy remvoe Avatar from Avatar Manager.
+    // FIXME hrs remove, unless it can be made to work cleanly.
+    // (In which case, this could be on AvatarList/AvatarManager instead, and consider moving pal.js usage to Pal.qml, and removing (un)ignoredNode signalling.)
+    //DependencyManager::get<AvatarManager>()->handleRemovedAvatar(AvatarSharedPointer(this), AvatarIgnored);
+}
 
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
