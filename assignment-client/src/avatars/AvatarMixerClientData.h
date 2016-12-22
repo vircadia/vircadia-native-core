@@ -102,7 +102,7 @@ public:
     const QString& getBaseDisplayName() { return _baseDisplayName; }
     void setBaseDisplayName(const QString& baseDisplayName) { _baseDisplayName = baseDisplayName; }
     bool getRequestsDomainListData() { return _requestsDomainListData; }
-    void setRequestDomainListData(bool requesting) { _requestsDomainListData = requesting; }
+    void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
 private:
     AvatarSharedPointer _avatar { new AvatarData() };

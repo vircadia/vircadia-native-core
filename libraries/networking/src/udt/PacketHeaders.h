@@ -104,7 +104,7 @@ public:
         UsernameFromIDRequest,
         UsernameFromIDReply,
         ViewFrustum,
-        RequestDomainListData,
+        RequestsDomainListData,
         NodeUnignoreRequest,
         LAST_PACKET_TYPE = NodeUnignoreRequest
     };

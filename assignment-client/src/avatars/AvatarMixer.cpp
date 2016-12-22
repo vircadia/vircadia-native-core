@@ -51,7 +51,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::NodeUnignoreRequest, this, "handleNodeUnignoreRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
-    packetReceiver.registerListener(PacketType::RequestDomainListData, this, "handleRequestDomainListDataPacket");
+    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
@@ -536,18 +536,18 @@ void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> messag
     }
 }
 
-void AvatarMixer::handleRequestDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->getOrCreateLinkedData(senderNode);
-    qDebug() << "HRS FIXME received requestDomainListData packet from" << senderNode->getUUID();
+    qDebug() << "HRS FIXME received RequestsDomainListData packet from" << senderNode->getUUID();
 
     if (senderNode->getLinkedData()) {
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
         if (nodeData != nullptr) {
             bool isRequesting;
             message->readPrimitive(&isRequesting);
-            qDebug() << "HRS FIXME handling requestDomainListData packet" << isRequesting << "from" << nodeData->getNodeID();
-            nodeData->setRequestDomainListData(isRequesting);
+            qDebug() << "HRS FIXME handling RequestsDomainListData packet" << isRequesting << "from" << nodeData->getNodeID();
+            nodeData->setRequestsDomainListData(isRequesting);
         }
     }
 }

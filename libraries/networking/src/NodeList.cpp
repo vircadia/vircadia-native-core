@@ -971,10 +971,10 @@ void NodeList::setRequestsDomainListData(bool isRequesting) {
     eachMatchingNode([](const SharedNodePointer& node)->bool {
         return node->getType() == NodeType::AvatarMixer;
     }, [this, isRequesting](const SharedNodePointer& destinationNode) {
-        auto packet = NLPacket::create(PacketType::RequestDomainListData, sizeof(bool), true); // reliable
+        auto packet = NLPacket::create(PacketType::RequestsDomainListData, sizeof(bool), true); // reliable
         packet->writePrimitive(isRequesting);
         sendPacket(std::move(packet), *destinationNode);
-        qDebug() << "HRS FIXME sending requestDomainListData packet" << isRequesting;
+        qDebug() << "HRS FIXME sending RequestsDomainListData packet" << isRequesting;
     });
     _requestsDomainListData = isRequesting;
 }
