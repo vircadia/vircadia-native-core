@@ -1293,23 +1293,10 @@ void Avatar::setOrientation(const glm::quat& orientation) {
 void Avatar::updatePalms() {
     PerformanceTimer perfTimer("palms");
     // update thread-safe caches
-    glm::quat rotation;
-    int i = _skeletonModel->getLeftHandJointIndex();
-    if (_skeletonModel->getJointRotationInWorldFrame(i, rotation)) {
-        _leftPalmRotationCache.set(rotation);
-    }
-    glm::vec3 position;
-    if (_skeletonModel->getJointPositionInWorldFrame(i, position)) {
-        _leftPalmPositionCache.set(position);
-    }
-
-    i = _skeletonModel->getRightHandJointIndex();
-    if (_skeletonModel->getJointRotationInWorldFrame(i, rotation)) {
-        _rightPalmRotationCache.set(rotation);
-    }
-    if (_skeletonModel->getJointPositionInWorldFrame(i, position)) {
-        _rightPalmPositionCache.set(position);
-    }
+    _leftPalmRotationCache.set(getUncachedLeftPalmRotation());
+    _rightPalmRotationCache.set(getUncachedRightPalmRotation());
+    _leftPalmPositionCache.set(getUncachedLeftPalmPosition());
+    _rightPalmPositionCache.set(getUncachedRightPalmPosition());
 }
 
 void Avatar::setParentID(const QUuid& parentID) {
