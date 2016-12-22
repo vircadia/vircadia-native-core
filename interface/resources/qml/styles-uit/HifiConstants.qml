@@ -89,8 +89,8 @@ Item {
         readonly property color transparent: "#00ffffff"
 
         // Control specific colors
-        readonly property color tableRowLightOdd: "#eaeaea"  // Equivalent to white50 over #e3e3e3 background
-        readonly property color tableRowLightEven: "#c6c6c6" // Equivavlent to "#1a575757" over #e3e3e3 background
+        readonly property color tableRowLightOdd: "#fafafa"
+        readonly property color tableRowLightEven: "#eeeeee" // Equivavlent to "#1a575757" over #e3e3e3 background
         readonly property color tableRowDarkOdd: "#2e2e2e"   // Equivalent to "#80393939" over #404040 background
         readonly property color tableRowDarkEven: "#1c1c1c"  // Equivalent to "#a6181818" over #404040 background
         readonly property color tableBackgroundLight: tableRowLightEven

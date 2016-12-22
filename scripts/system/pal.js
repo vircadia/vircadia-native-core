@@ -79,7 +79,7 @@ ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the on
 var pal = new OverlayWindow({
     title: 'People Action List',
     source: 'hifi/Pal.qml',
-    width: 480,
+    width: 580,
     height: 640,
     visible: false
 });
@@ -140,12 +140,13 @@ function populateUserList() {
 function usernameFromIDReply(id, username, machineFingerprint) {
     var data;
     // If the ID we've received is our ID...
-    if (AvatarList.getAvatar('').sessionUUID === id) {
+    if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username + ' (hidden)']
+        data = ['', username]
     } else {
-        // Set the data to contain the ID and the username+ID concat string.
-        data = [id, username + '/' + machineFingerprint];
+        // Set the data to contain the ID and the username (if we have one)
+        // or fingerprint (if we don't have a username) string.
+        data = [id, username || machineFingerprint];
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
