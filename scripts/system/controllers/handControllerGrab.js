@@ -1290,11 +1290,11 @@ function MyController(hand) {
                     Entities.sendHoverOverEntity(entity, pointerEvent);
                 }
 
-                if (!isEditing()) {
-                    this.grabbedEntity = entity;
-                    this.setState(STATE_ENTITY_TOUCHING, "begin touching entity '" + name + "'");
-                    return;
-                }
+
+                this.grabbedEntity = entity;
+                this.setState(STATE_ENTITY_TOUCHING, "begin touching entity '" + name + "'");
+                return;
+
             } else if (this.hoverEntity) {
                 pointerEvent = {
                     type: "Move",
@@ -1346,11 +1346,11 @@ function MyController(hand) {
                     Overlays.sendHoverOverOverlay(overlay, pointerEvent);
                 }
 
-                if (!isEditing()) {
-                    this.grabbedOverlay = overlay;
-                    this.setState(STATE_OVERLAY_TOUCHING, "begin touching overlay '" + overlay + "'");
-                    return;
-                }
+
+                this.grabbedOverlay = overlay;
+                this.setState(STATE_OVERLAY_TOUCHING, "begin touching overlay '" + overlay + "'");
+                return;
+
 
             } else if (this.hoverOverlay) {
                 pointerEvent = {
