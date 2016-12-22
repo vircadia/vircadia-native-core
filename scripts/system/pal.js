@@ -132,6 +132,8 @@ function populateUserList() {
             // Request the username from the given UUID
             Users.requestUsernameFromID(id);
         }
+        // Request personal mute status from AudioMixer
+        Users.requestPersonalMuteStatus(id);
         data.push(avatarPalDatum);
         if (id) { // No overlay for ourself.
             addAvatarNode(id);

@@ -79,12 +79,14 @@ public:
     void ignoreNodeBySessionID(const QUuid& nodeID);
     void unignoreNodeBySessionID(const QUuid& nodeID);
     bool isIgnoringNode(const QUuid& nodeID) const;
+    void personalMuteNodeBySessionID(const QUuid& nodeID, bool enabled);
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool isRequesting);
+    void requestPersonalMuteStatus(const QUuid& nodeID);
 
 public slots:
     void reset();
@@ -104,6 +106,7 @@ public slots:
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
     void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
+    void processPersonalMuteStatusReply(QSharedPointer<ReceivedMessage> message);
 
 #if (PR_BUILD || DEV_BUILD)
     void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
@@ -116,6 +119,7 @@ signals:
     void unignoredNode(const QUuid& nodeID);
     void ignoreRadiusEnabledChanged(bool isIgnored);
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
+    void personalMuteStatusReply(const QString& nodeID, bool isPersonalMuted);
 
 private slots:
     void stopKeepalivePingTimer();

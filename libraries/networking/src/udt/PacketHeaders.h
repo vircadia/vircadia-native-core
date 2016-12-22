@@ -106,7 +106,10 @@ public:
         ViewFrustum,
         RequestsDomainListData,
         NodeUnignoreRequest,
-        LAST_PACKET_TYPE = NodeUnignoreRequest
+        NodePersonalMuteRequest,
+        NodePersonalMuteStatusRequest,
+        NodePersonalMuteStatusReply,
+        LAST_PACKET_TYPE = NodePersonalMuteStatusReply
     };
 };
 
@@ -245,6 +248,7 @@ enum class AudioVersion : PacketVersion {
     Exactly10msAudioPackets,
     TerminatingStreamStats,
     SpaceBubbleChanges,
+    HasPersonalMute,
 };
 
 #endif // hifi_PacketHeaders_h

@@ -210,22 +210,28 @@ Item {
                     var newValue = !model[styleData.role]
                     var datum = userData[model.userIndex]
                     datum[styleData.role] = model[styleData.role] = newValue
-                    var key = styleData.role;
-                    if (!newValue) {
-                        key = 'un' + key;
-                    }
-                    if (styleData.role === 'ignore') {
+                    if (styleData.role === "personalMute") {
+                        Users[styleData.role](model.sessionId, newValue)
+                    } else if (styleData.role === 'ignore') {
+                        var key = styleData.role;
+                        if (!newValue) {
+                            key = 'un' + key;
+                        }
                         if (newValue) {
                             ignored[datum.sessionId] = datum;
                             console.log('fixme hrs adding to ignored', JSON.stringify(datum), 'at', datum.sessionId);
                         } else {
                             delete ignored[datum.sessionId];
-                        }
+                        }    
+                        console.log('fixme hrs pal action', key, model.sessionId);
+                        Users[key](model.sessionId);            
+                    } else {
+                        Users[styleData.role](model.sessionId)
+                        // Just for now, while we cannot undo things:
+                        userData.splice(model.userIndex, 1)
+                        sortModel()
                     }
-                    console.log('fixme hrs pal action', key, model.sessionId);
-                    Users[key](model.sessionId);
                 }
-            }
         }
     }
     // Refresh button
@@ -422,7 +428,14 @@ Item {
                 }
             }
             break;
-        default:
+        case 'updateMuted':
+            var userId = message.params[0];
+            var enabled = message.params[1];
+            var userIndex = findSessionIndex(userId);
+            userModel.get(userIndex).personalMute.property = enabled;
+                userData[userIndex].personalMute.property = enabled; // Defensive programming
+            break;
+    default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }
     }

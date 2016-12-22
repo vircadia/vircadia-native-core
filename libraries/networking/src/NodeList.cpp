@@ -875,6 +875,64 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
     }
 }
 
+void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool enabled) {
+    // cannot personal mute yourself, or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+        if (audioMixer) {
+            // setup the packet
+            auto personalMutePacket = NLPacket::create(PacketType::NodePersonalMuteRequest, NUM_BYTES_RFC4122_UUID + sizeof(bool), true);
+
+            // write the node ID to the packet
+            personalMutePacket->write(nodeID.toRfc4122());
+            personalMutePacket->writePrimitive(enabled);
+
+            qCDebug(networking) << "Sending Personal Mute Packet to" << (enabled ? "mute" : "unmute") << "node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            sendPacket(std::move(personalMutePacket), *audioMixer);
+        } else {
+            qWarning() << "Couldn't find audio mixer to send node personal mute request";
+        }
+    } else {
+        qWarning() << "NodeList::personalMuteNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
+    }
+}
+
+void NodeList::requestPersonalMuteStatus(const QUuid& nodeID) {
+    // cannot personal mute yourself, or nobody; don't bother checking the status
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+        if (audioMixer) {
+            // send a request to the audio mixer to get the personal mute status associated with the given session ID
+            // setup the packet
+            auto personalMuteStatusPacket = NLPacket::create(PacketType::NodePersonalMuteStatusRequest, NUM_BYTES_RFC4122_UUID, true);
+
+            // write the node ID to the packet
+            personalMuteStatusPacket->write(nodeID.toRfc4122());
+
+            qCDebug(networking) << "Sending Personal Mute Status Request Packet for node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            sendPacket(std::move(personalMuteStatusPacket), *audioMixer);
+        } else {
+            qWarning() << "Couldn't find audio mixer to send node personal mute status request";
+        }
+    } else {
+        qWarning() << "NodeList::requestPersonalMuteStatus called with an invalid ID or an ID which matches the current session ID.";
+    }
+}
+
+void NodeList::processPersonalMuteStatusReply(QSharedPointer<ReceivedMessage> message) {
+    // read the UUID from the packet
+    QString nodeUUIDString = (QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID))).toString();
+    // read the personal mute status
+    bool isPersonalMuted;
+    message->readPrimitive(&isPersonalMuted);
+
+    qCDebug(networking) << "Got personal muted status" << isPersonalMuted << "for node" << nodeUUIDString;
+
+    emit personalMuteStatusReply(nodeUUIDString, isPersonalMuted);
+}
+
 void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)

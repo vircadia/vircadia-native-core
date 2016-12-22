@@ -66,6 +66,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::NodeUnignoreRequest, this, "handleNodeUnignoreRequestPacket");
+    packetReceiver.registerListener(PacketType::NodePersonalMuteRequest, this, "handleNodePersonalMuteRequestPacket");
+    packetReceiver.registerListener(PacketType::NodePersonalMuteStatusRequest, this, "handleNodePersonalMuteStatusRequestPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
@@ -230,6 +232,54 @@ void AudioMixer::handleNodeUnignoreRequestPacket(QSharedPointer<ReceivedMessage>
     sendingNode->parseUnignoreRequestMessage(packet);
 }
 
+void AudioMixer::handleNodePersonalMuteRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    // parse out the UUID being muted from the packet
+    QUuid ignoredUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    bool enabled;
+    packet->readPrimitive(&enabled);
+
+    if (!ignoredUUID.isNull() && ignoredUUID != _uuid) {
+        if (enabled) {
+            qDebug() << "Adding" << uuidStringWithoutCurlyBraces(ignoredUUID) << "to personally muted set for"
+                << uuidStringWithoutCurlyBraces(_uuid);
+
+            // Add the session UUID to the set of personally muted ones for this listening node
+            sendingNode->addIgnoredNode(ignoredUUID);
+        } else {
+            qDebug() << "Removing" << uuidStringWithoutCurlyBraces(ignoredUUID) << "from personally muted set for"
+                << uuidStringWithoutCurlyBraces(_uuid);
+
+            // Remove the session UUID to the set of personally muted ones for this listening node
+            sendingNode->_ignoredNodeIDSet.unsafe_erase(ignoredUUID);
+        }
+    } else {
+        qWarning() << "Node::addPersonalMutedNode called with null ID or ID of personal muting node.";
+    }
+}
+
+void AudioMixer::handleNodePersonalMuteStatusRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    // parse out the UUID whose personal mute status is being requested from the packet
+    QUuid UUIDToCheck = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    if (!UUIDToCheck.isNull()) {
+        // First, make sure we actually have a node with this UUID
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        auto matchingNode = limitedNodeList->nodeWithUUID(UUIDToCheck);
+
+        // If we do have a matching node...
+        if (matchingNode) {
+            auto personalMuteStatusPacket = NLPacket::create(PacketType::NodePersonalMuteStatusReply, NUM_BYTES_RFC4122_UUID + sizeof(bool), true);
+
+            // write the node ID to the packet
+            personalMuteStatusPacket->write(UUIDToCheck.toRfc4122());
+            personalMuteStatusPacket->writePrimitive(isIgnoringNodeWithID(UUIDToCheck));
+
+            qCDebug(networking) << "Sending Personal Mute Status Request Packet for node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            limitedNodeList->sendPacket(std::move(personalMuteStatusPacket), *sendingNode);
+        }
+    }
+}
 void AudioMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     sendingNode->parseIgnoreRadiusRequestMessage(packet);
 }
