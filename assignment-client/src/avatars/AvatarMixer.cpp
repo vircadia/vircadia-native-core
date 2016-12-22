@@ -49,6 +49,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::NodeUnignoreRequest, this, "handleNodeUnignoreRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RequestDomainListData, this, "handleRequestDomainListDataPacket");
 
@@ -208,8 +209,8 @@ void AvatarMixer::broadcastAvatarData() {
 
             // send extra data that is otherwise surpressed
             bool getsOutOfView = nodeData->getRequestsDomainListData();
-            bool getsAnyIgnored = node->getCanKick();
-            bool getsIgnoredByMe = getsAnyIgnored || nodeData->getRequestsDomainListData();
+            bool getsIgnoredByMe = nodeData->getRequestsDomainListData();
+            bool getsAnyIgnored = getsIgnoredByMe && node->getCanKick();
 
             // Check if it is time to adjust what we send this client based on the observed
             // bandwidth to this node. We do this once a second, which is also the window for
@@ -339,7 +340,7 @@ void AvatarMixer::broadcastAvatarData() {
                         && (forceSend
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
-                        qDebug() << "FIXME HRS sending identity to" << node->getUUID() << "from" << otherNode->getUUID();
+                        qDebug() << "FIXME HRS sending identity to" << node->getUUID() << "from" << otherNode->getUUID() << "gets mine/all/view:" << getsIgnoredByMe << getsAnyIgnored << getsOutOfView ;
                         sendIdentityPacket(otherNodeData, node);
                     }
 

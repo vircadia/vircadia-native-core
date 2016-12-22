@@ -77,6 +77,7 @@ public:
     void enableIgnoreRadius() { ignoreNodesInRadius(true); }
     void disableIgnoreRadius() { ignoreNodesInRadius(false); }
     void ignoreNodeBySessionID(const QUuid& nodeID);
+    void unignoreNodeBySessionID(const QUuid& nodeID);
     bool isIgnoringNode(const QUuid& nodeID) const;
 
     void kickNodeBySessionID(const QUuid& nodeID);
@@ -112,6 +113,7 @@ signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
     void ignoredNode(const QUuid& nodeID);
+    void unignoredNode(const QUuid& nodeID);
     void ignoreRadiusEnabledChanged(bool isIgnored);
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
 

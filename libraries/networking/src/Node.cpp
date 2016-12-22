@@ -118,7 +118,7 @@ void Node::removeIgnoredNode(const QUuid& otherNodeID) {
         // remove the session UUID from the set of ignored ones for this listening node
         _ignoredNodeIDSet.unsafe_erase(otherNodeID);
     } else {
-        qCWarning(networking) << "Node::addIgnoredNode called with null ID or ID of ignoring node.";
+        qCWarning(networking) << "Node::removeIgnoredNode called with null ID or ID of ignoring node.";
     }
 }
 

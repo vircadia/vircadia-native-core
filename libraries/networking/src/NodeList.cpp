@@ -811,6 +811,38 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
     }
 }
 
+void NodeList::unignoreNodeBySessionID(const QUuid& nodeID) {
+    // enumerate the nodes to send a reliable ignore packet to each that can leverage it
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
+            if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
+                return true;
+            } else {
+                return false;
+            }
+        }, [&nodeID, this](const SharedNodePointer& destinationNode) {
+            // create a reliable NLPacket with space for the ignore UUID
+            auto ignorePacket = NLPacket::create(PacketType::NodeUnignoreRequest, NUM_BYTES_RFC4122_UUID, true);
+
+            // write the node ID to the packet
+            ignorePacket->write(nodeID.toRfc4122());
+
+            qCDebug(networking) << "Sending packet to unignore node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            // send off this ignore packet reliably to the matching node
+            sendPacket(std::move(ignorePacket), *destinationNode);
+        });
+
+        QWriteLocker setLocker { &_ignoredSetLock }; // write lock for unsafe_erase
+        _ignoredNodeIDs.unsafe_erase(nodeID);
+
+        emit unignoredNode(nodeID);
+
+    } else {
+        qWarning() << "NodeList::unignoreNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
+    }
+}
+
 bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
     QReadLocker setLocker { &_ignoredSetLock };
     return _ignoredNodeIDs.find(nodeID) != _ignoredNodeIDs.cend();

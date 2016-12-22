@@ -37,6 +37,7 @@ public slots:
     * @param {nodeID} nodeID The node or session ID of the user you want to ignore.
     */
     void ignore(const QUuid& nodeID);
+    void unignore(const QUuid& nodeID);
 
     /**jsdoc
     * Kick another user.
