@@ -1,39 +1,5 @@
-if (!Function.prototype.bind) {
-  Function.prototype.bind = function(oThis) {
-    if (typeof this !== 'function') {
-      // closest thing possible to the ECMAScript 5
-      // internal IsCallable function
-      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
-    }
-
-    var aArgs   = Array.prototype.slice.call(arguments, 1),
-        fToBind = this,
-        fNOP    = function() {},
-        fBound  = function() {
-          return fToBind.apply(this instanceof fNOP
-                 ? this
-                 : oThis,
-                 aArgs.concat(Array.prototype.slice.call(arguments)));
-        };
-
-    if (this.prototype) {
-      // Function.prototype doesn't have a prototype property
-      fNOP.prototype = this.prototype;
-    }
-    fBound.prototype = new fNOP();
-
-    return fBound;
-  };
-}
-
 (function() {
-    function parseJSON(json) {
-        try {
-            return JSON.parse(json);
-        } catch(e) {
-            return undefined;
-        }
-    }
+    Script.include('utils.js');
 
     Enemy = function() {
     };
@@ -46,7 +12,7 @@ if (!Function.prototype.bind) {
             this.entityIDsThatHaveCollidedWithMe = [];
 
             var userData = Entities.getEntityProperties(this.entityID, 'userData').userData;
-            var data = parseJSON(userData);
+            var data = utils.parseJSON(userData);
             if (data !== undefined && data.gameChannel !== undefined) {
                 this.gameChannel = data.gameChannel;
             } else {
@@ -54,7 +20,6 @@ if (!Function.prototype.bind) {
             }
         },
         onCollide: function(entityA, entityB, collision) {
-            print("Collided with: ", entityB);
             if (this.entityIDsThatHaveCollidedWithMe.indexOf(entityB) > -1) {
                 return;
             }
@@ -65,6 +30,7 @@ if (!Function.prototype.bind) {
             // If the other entity's name includes 'projectile' and we haven't hit it before,
             // continue on.
             if (colliderName.indexOf("projectile") > -1) {
+                print("Collided with: ", entityB);
                 Messages.sendMessage(this.gameChannel, JSON.stringify({
                     type: "enemy-killed",
                     entityID: this.entityID,
@@ -74,6 +40,7 @@ if (!Function.prototype.bind) {
                 Messages.sendMessage(this.gameChannel, JSON.stringify({
                     type: "enemy-escaped",
                     entityID: this.entityID,
+                    position: Entities.getEntityProperties(this.entityID, 'position').position
                 }));
                 Entities.deleteEntity(this.entityID);
             }
