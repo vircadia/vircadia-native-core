@@ -137,5 +137,4 @@ void OculusBaseDisplayPlugin::updatePresentPose() {
 }
 
 OculusBaseDisplayPlugin::~OculusBaseDisplayPlugin() {
-    qDebug() << "Destroying OculusBaseDisplayPlugin";
 }

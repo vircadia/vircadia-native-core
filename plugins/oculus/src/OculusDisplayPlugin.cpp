@@ -183,5 +183,4 @@ QString OculusDisplayPlugin::getPreferredAudioOutDevice() const {
 }
 
 OculusDisplayPlugin::~OculusDisplayPlugin() {
-    qDebug() << "Destroying OculusDisplayPlugin";
 }
