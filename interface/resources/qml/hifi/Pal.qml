@@ -58,6 +58,7 @@ Item {
             // Properties
             displayName: myData.displayName
             userName: myData.userName
+            audioLevel: myData.audioLevel
             // Size
             width: nameCardWidth
             height: parent.height
@@ -190,6 +191,7 @@ Item {
                 // Properties
                 displayName: styleData.value
                 userName: model.userName
+                audioLevel: model.audioLevel
                 visible: !isCheckBox
                 // Size
                 width: nameCardWidth
@@ -292,7 +294,7 @@ Item {
     }
 
     property var userData: []
-    property var myData: ({displayName: "", userName: ""}) // valid dummy until set
+    property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
     property bool iAmAdmin: false
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var i, data = optionalData || userData, length = data.length;
@@ -341,6 +343,18 @@ Item {
                 // Set the userName appropriately
                 userModel.get(userIndex).userName = userName;
                 userData[userIndex].userName = userName; // Defensive programming
+            }
+            break;
+        case 'updateAudioLevel': 
+            var userId = message.params[0];
+            var audioLevel = message.params[1];
+            if (!userId) {
+                myData.audioLevel = audioLevel;
+                myCard.audioLevel = audioLevel;
+            } else {
+                var userIndex = findSessionIndex(userId);
+                userModel.get(userIndex).audioLevel = audioLevel;
+                userData[userIndex].audioLevel = audioLevel;
             }
             break;
         default:

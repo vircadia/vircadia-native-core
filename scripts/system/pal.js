@@ -119,7 +119,8 @@ function populateUserList() {
         var avatarPalDatum = {
             displayName: avatar.sessionDisplayName,
             userName: '',
-            sessionId: id || ''
+            sessionId: id || '',
+            audioLevel: getAudioLevel(id)
         };
         // If the current user is an admin OR
         // they're requesting their own username ("id" is blank)...
@@ -262,6 +263,49 @@ function onClicked() {
     pal.setVisible(!pal.visible);
 }
 
+var AVERAGING_RATIO = 0.05
+var LOUDNESS_FLOOR = 11.0;
+var LOUDNESS_SCALE = 2.8 / 5.0;
+var LOG2 = Math.log(2.0);
+var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
+var accumulatedLevels={};
+
+function getAudioLevel(id) {
+    // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
+    // But of course it gets the data at a different rate, so we tweak the averaging ratio and frequency
+    // of updating (the latter for efficiency too).
+    var avatar = AvatarList.getAvatar(id);
+    var audioLevel = 0.0;
+
+    // we will do exponential moving average by taking some the last loudness and averaging
+    accumulatedLevels[id] = AVERAGING_RATIO*(accumulatedLevels[id] || 0 ) + (1-AVERAGING_RATIO)*(avatar.audioLoudness);
+    
+    // add 1 to insure we don't go log() and hit -infinity.  Math.log is
+    // natural log, so to get log base 2, just divide by ln(2).
+    var logLevel = Math.log(accumulatedLevels[id]+1) / LOG2;
+    
+    if (logLevel <= LOUDNESS_FLOOR) {
+        audioLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
+    } else {
+        audioLevel = (logLevel - (LOUDNESS_FLOOR - 1.0)) * LOUDNESS_SCALE;
+    }
+    if (audioLevel > 1.0) {
+        audioLevel = 1;
+    }
+    return audioLevel;
+}
+
+
+// we will update the audioLevels periodically
+// TODO: tune for efficiency - expecially with large numbers of avatars
+Script.setInterval(function () {
+    if (pal.visible) {
+        AvatarList.getAvatarIdentifiers().sort().forEach(function (id) {
+            var level = getAudioLevel(id);
+            pal.sendToQml({method: 'updateAudioLevel', params: [id, level]});
+        });
+    }
+}, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 //
 // Button state.
 //
