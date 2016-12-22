@@ -106,7 +106,7 @@ public:
         ViewFrustum,
         RequestDomainListData,
         NodeUnignoreRequest,
-        LAST_PACKET_TYPE = ViewFrustum // FIXME! NodeUnignoreRequest
+        LAST_PACKET_TYPE = NodeUnignoreRequest
     };
 };
 
@@ -209,7 +209,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     SensorToWorldMat,
     HandControllerJoints,
     HasKillAvatarReason,
-    SessionDisplayName
+    SessionDisplayName,
+    Unignore
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
