@@ -930,3 +930,19 @@ void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> messag
 
     emit usernameFromIDReply(nodeUUIDString, username, machineFingerprintString);
 }
+
+void NodeList::setRequestsDomainListData(bool isRequesting) {
+    // Tell the avatar mixer whether I want to receive any additional data to which I might be entitiled .
+    if (_requestsDomainListData == isRequesting) {
+        return;
+    }
+    eachMatchingNode([](const SharedNodePointer& node)->bool {
+        return node->getType() == NodeType::AvatarMixer;
+    }, [this, isRequesting](const SharedNodePointer& destinationNode) {
+        auto packet = NLPacket::create(PacketType::RequestDomainListData, sizeof(bool), true); // reliable
+        packet->writePrimitive(isRequesting);
+        sendPacket(std::move(packet), *destinationNode);
+        qDebug() << "HRS FIXME sending requestDomainListData packet" << isRequesting;
+    });
+    _requestsDomainListData = isRequesting;
+}

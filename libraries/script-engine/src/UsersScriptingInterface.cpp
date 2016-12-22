@@ -61,3 +61,10 @@ void UsersScriptingInterface::disableIgnoreRadius() {
 bool UsersScriptingInterface::getIgnoreRadiusEnabled() {
     return DependencyManager::get<NodeList>()->getIgnoreRadiusEnabled();
 }
+
+bool UsersScriptingInterface::getRequestsDomainListData() {
+    return DependencyManager::get<NodeList>()->getRequestsDomainListData();
+}
+void UsersScriptingInterface::setRequestsDomainListData(bool isRequesting) {
+    DependencyManager::get<NodeList>()->setRequestsDomainListData(isRequesting);
+}

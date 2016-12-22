@@ -104,7 +104,8 @@ public:
         UsernameFromIDRequest,
         UsernameFromIDReply,
         ViewFrustum,
-        LAST_PACKET_TYPE = ViewFrustum
+        RequestDomainListData,
+        LAST_PACKET_TYPE = ViewFrustum // FIXME! RequestDomainListData
     };
 };
 

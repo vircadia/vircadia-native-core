@@ -50,6 +50,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::RequestDomainListData, this, "handleRequestDomainListDataPacket");
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
@@ -205,6 +206,11 @@ void AvatarMixer::broadcastAvatarData() {
             // use the data rate specifically for avatar data for FRD adjustment checks
             float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
 
+            // send extra data that is otherwise surpressed
+            bool getsOutOfView = nodeData->getRequestsDomainListData();
+            bool getsAnyIgnored = node->getCanKick();
+            bool getsIgnoredByMe = getsAnyIgnored || nodeData->getRequestsDomainListData();
+
             // Check if it is time to adjust what we send this client based on the observed
             // bandwidth to this node. We do this once a second, which is also the window for
             // the bandwidth reported by node->getOutboundBandwidth();
@@ -275,14 +281,14 @@ void AvatarMixer::broadcastAvatarData() {
                     // or that has ignored the viewing node
                     if (!otherNode->getLinkedData()
                         || otherNode->getUUID() == node->getUUID()
-                        || node->isIgnoringNodeWithID(otherNode->getUUID())
-                        || otherNode->isIgnoringNodeWithID(node->getUUID())) {
+                        || (node->isIgnoringNodeWithID(otherNode->getUUID()) && !getsIgnoredByMe)
+                        || (otherNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
                         return false;
                     } else {
                         AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
                         // Check to see if the space bubble is enabled
-                        if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
+                        if ((node->isIgnoreRadiusEnabled() && !getsIgnoredByMe) || (otherNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
                             // Define the minimum bubble size
                             static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
                             // Define the scale of the box for the current node
@@ -333,7 +339,7 @@ void AvatarMixer::broadcastAvatarData() {
                         && (forceSend
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
-
+                        qDebug() << "FIXME HRS sending identity to" << node->getUUID() << "from" << otherNode->getUUID();
                         sendIdentityPacket(otherNodeData, node);
                     }
 
@@ -349,6 +355,7 @@ void AvatarMixer::broadcastAvatarData() {
                     maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
 
                     if (distanceToAvatar != 0.0f
+                        && !getsOutOfView
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
                     }
@@ -388,7 +395,7 @@ void AvatarMixer::broadcastAvatarData() {
                     AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
 
                     AvatarData::AvatarDataDetail detail;
-                    if (!nodeData->otherAvatarInView(otherNodeBox)) {
+                    if (!nodeData->otherAvatarInView(otherNodeBox) && !getsOutOfView) {
                         detail = AvatarData::MinimumData;
                         nodeData->incrementAvatarOutOfView();
                     } else {
@@ -396,6 +403,7 @@ void AvatarMixer::broadcastAvatarData() {
                                         ? AvatarData::SendAllData : AvatarData::IncludeSmallData;
                         nodeData->incrementAvatarInView();
                     }
+                    //qDebug() << "FIXME HRS sending" << detail << "to" << node->getUUID() << "from" << otherNode->getUUID();
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                     numAvatarDataBytes += avatarPacketList->write(otherAvatar.toByteArray(detail));
@@ -523,6 +531,22 @@ void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> messag
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
         if (nodeData != nullptr) {
             nodeData->readViewFrustumPacket(message->getMessage());
+        }
+    }
+}
+
+void AvatarMixer::handleRequestDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->getOrCreateLinkedData(senderNode);
+    qDebug() << "HRS FIXME received requestDomainListData packet from" << senderNode->getUUID();
+
+    if (senderNode->getLinkedData()) {
+        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            bool isRequesting;
+            message->readPrimitive(&isRequesting);
+            qDebug() << "HRS FIXME handling requestDomainListData packet" << isRequesting << "from" << nodeData->getNodeID();
+            nodeData->setRequestDomainListData(isRequesting);
         }
     }
 }

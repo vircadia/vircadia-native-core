@@ -252,9 +252,11 @@ function off() {
     }
     triggerMapping.disable(); // It's ok if we disable twice.
     removeOverlays();
+    Users.requestsDomainListData = false;
 }
 function onClicked() {
     if (!pal.visible) {
+        Users.requestsDomainListData = true;
         populateUserList();
         pal.raise();
         isWired = true;

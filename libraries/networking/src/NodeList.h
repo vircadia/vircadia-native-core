@@ -82,6 +82,8 @@ public:
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
+    bool getRequestsDomainListData() { return _requestsDomainListData; }
+    void setRequestsDomainListData(bool isRequesting);
 
 public slots:
     void reset();
@@ -153,6 +155,7 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
+    bool _requestsDomainListData;
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;

@@ -24,6 +24,7 @@ class UsersScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
     Q_PROPERTY(bool canKick READ getCanKick)
+    Q_PROPERTY(bool requestsDomainListData READ getRequestsDomainListData WRITE setRequestsDomainListData)
 
 public:
     UsersScriptingInterface();
@@ -105,6 +106,11 @@ signals:
     * @function Users.usernameFromIDReply
     */
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
+
+private:
+    bool getRequestsDomainListData();
+    void setRequestsDomainListData(bool requests);
+    bool _requestsDomainListData;
 };
 
 
