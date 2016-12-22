@@ -51,7 +51,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
-static const int AUDIO_LOUDNESS_RADIX = 10;
+static const int AUDIO_LOUDNESS_RADIX = 2;
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
@@ -193,7 +193,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         avatarInfo->lookAtPosition[1] = _headData->_lookAtPosition.y;
         avatarInfo->lookAtPosition[2] = _headData->_lookAtPosition.z;
 
-        packFloatScalarToSignedTwoByteFixed((uint8_t*)&avatarInfo->audioLoudness, _headData->_audioLoudness, AUDIO_LOUDNESS_RADIX);
+        packFloatScalarToSignedTwoByteFixed((uint8_t*)&avatarInfo->audioLoudness, 
+                                                glm::min(_headData->_audioLoudness, MAX_AUDIO_LOUDNESS), AUDIO_LOUDNESS_RADIX);
 
         glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
         packOrientationQuatToSixBytes(avatarInfo->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
