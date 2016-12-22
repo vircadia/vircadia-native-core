@@ -83,6 +83,111 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 
 const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
+
+namespace AvatarDataPacket {
+
+    // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
+
+    PACKED_BEGIN struct Header {
+        uint8_t packetStateFlags; // state flags, currently used to indicate if the packet is a minimal or fuller packet
+    } PACKED_END;
+    const size_t HEADER_SIZE = 1;
+
+    PACKED_BEGIN struct MinimalAvatarInfo {
+        float globalPosition[3];          // avatar's position
+    } PACKED_END;
+    const size_t MINIMAL_AVATAR_INFO_SIZE = 12;
+
+    PACKED_BEGIN struct AvatarInfo {
+        // FIXME - this has 8 unqiue items, we could use a simple header byte to indicate whether or not the fields 
+        // exist in the packet and have changed since last being sent.
+        float globalPosition[3];          // avatar's position
+                                                // FIXME - possible savings:
+                                                //    a) could be encoded as relative to last known position, most movements
+                                                //       will be withing a smaller radix
+                                                //    b) would still need an intermittent absolute value.
+
+        float position[3];                // skeletal model's position 
+                                                // FIXME - this used to account for a registration offset from the avatar's position
+                                                // to the position of the skeletal model/mesh. This relative offset doesn't change from
+                                                // frame to frame, instead only changes when the model changes, it could be moved to the
+                                                // identity packet and/or only included when it changes.
+                                                // if it's encoded relative to the globalPosition, it could be reduced to a smaller radix
+                                                //
+                                                // POTENTIAL SAVINGS - 12 bytes
+
+        float globalBoundingBoxCorner[3]; // global position of the lowest corner of the avatar's bounding box 
+                                                // FIXME - this would change less frequently if it was the dimensions of the bounding box
+                                                // instead of the corner.
+                                                //
+                                                // POTENTIAL SAVINGS - 12 bytes
+
+        uint16_t localOrientation[3];     // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
+        uint16_t scale;                   // (compressed) 'ratio' encoding uses sign bit as flag.
+                                                // FIXME - this doesn't change every frame
+                                                //
+                                                // POTENTIAL SAVINGS - 2 bytes
+
+        float lookAtPosition[3];          // world space position that eyes are focusing on.
+                                                // FIXME - unless the person has an eye tracker, this is simulated... 
+                                                //    a) maybe we can just have the client calculate this
+                                                //    b) at distance this will be hard to discern and can likely be 
+                                                //       descimated or dropped completely
+                                                //
+                                                // POTENTIAL SAVINGS - 12 bytes
+
+        uint16_t audioLoudness;           // current loundess of microphone
+                                                // FIXME - 
+                                                //    a) this could probably be decimated with a smaller radix <<< DONE
+                                                //    b) this doesn't change every frame
+                                                //
+                                                // POTENTIAL SAVINGS - 4-2 bytes
+
+        // FIXME - these 20 bytes are only used by viewers if my avatar has "attachments"
+        // we could save these bytes if no attachments are active.
+        //
+        // POTENTIAL SAVINGS - 20 bytes
+
+        uint8_t sensorToWorldQuat[6];     // 6 byte compressed quaternion part of sensor to world matrix
+        uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
+        float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
+                                                // FIXME - sensorToWorldTrans might be able to be better compressed if it was
+                                                // relative to the avatar position.
+        uint8_t flags;
+    } PACKED_END;
+    const size_t AVATAR_INFO_SIZE = 79;
+
+    // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
+    PACKED_BEGIN struct ParentInfo {
+        uint8_t parentUUID[16];       // rfc 4122 encoded
+        uint16_t parentJointIndex;
+    } PACKED_END;
+    const size_t PARENT_INFO_SIZE = 18;
+
+    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
+    PACKED_BEGIN struct FaceTrackerInfo {
+        float leftEyeBlink;
+        float rightEyeBlink;
+        float averageLoudness;
+        float browAudioLift;
+        uint8_t numBlendshapeCoefficients;
+        // float blendshapeCoefficients[numBlendshapeCoefficients];
+    } PACKED_END;
+    const size_t FACE_TRACKER_INFO_SIZE = 17;
+
+    // variable length structure follows
+    /*
+    struct JointData {
+    uint8_t numJoints;
+    uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
+    SixByteQuat rotation[numValidRotations];  // encodeded and compressed by packOrientationQuatToSixBytes()
+    uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
+    SixByteTrans translation[numValidTranslations];  // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+    };
+    */
+}
+
+
 // Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
 // backward compatibility. The bits are ordered as such (0-7 left to right).
@@ -481,6 +586,9 @@ protected:
     ThreadSafeValueCache<glm::mat4> _controllerRightHandMatrixCache { glm::mat4() };
 
     int getFauxJointIndex(const QString& name) const;
+
+    AvatarDataPacket::AvatarInfo _lastAvatarInfo;
+    glm::mat4 _lastSensorToWorldMatrix;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

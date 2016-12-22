@@ -398,6 +398,8 @@ void AvatarMixer::broadcastAvatarData() {
                     }
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
+
+                    //qDebug() << "about to write data for:" << otherNode->getUUID();
                     numAvatarDataBytes += avatarPacketList->write(otherAvatar.toByteArray(detail));
 
                     avatarPacketList->endSegment();

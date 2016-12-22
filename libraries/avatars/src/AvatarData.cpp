@@ -49,67 +49,9 @@ const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
-namespace AvatarDataPacket {
-
-    // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
-
-    PACKED_BEGIN struct Header {
-        uint8_t packetStateFlags; // state flags, currently used to indicate if the packet is a minimal or fuller packet
-    } PACKED_END;
-    const size_t HEADER_SIZE = 1;
-
-    PACKED_BEGIN struct MinimalAvatarInfo {
-        float globalPosition[3];          // avatar's position
-    } PACKED_END;
-    const size_t MINIMAL_AVATAR_INFO_SIZE = 12;
-
-    PACKED_BEGIN struct AvatarInfo {
-        float position[3];                // skeletal model's position
-        float globalPosition[3];          // avatar's position
-        float globalBoundingBoxCorner[3]; // global position of the lowest corner of the avatar's bounding box 
-        uint16_t localOrientation[3];     // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
-        uint16_t scale;                   // (compressed) 'ratio' encoding uses sign bit as flag.
-        float lookAtPosition[3];          // world space position that eyes are focusing on.
-        float audioLoudness;              // current loundess of microphone
-        uint8_t sensorToWorldQuat[6];     // 6 byte compressed quaternion part of sensor to world matrix
-        uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
-        float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
-        uint8_t flags;
-    } PACKED_END;
-    const size_t AVATAR_INFO_SIZE = 81;
-
-    // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
-    PACKED_BEGIN struct ParentInfo {
-        uint8_t parentUUID[16];       // rfc 4122 encoded
-        uint16_t parentJointIndex;
-    } PACKED_END;
-    const size_t PARENT_INFO_SIZE = 18;
-
-    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
-    PACKED_BEGIN struct FaceTrackerInfo {
-        float leftEyeBlink;
-        float rightEyeBlink;
-        float averageLoudness;
-        float browAudioLift;
-        uint8_t numBlendshapeCoefficients;
-        // float blendshapeCoefficients[numBlendshapeCoefficients];
-    } PACKED_END;
-    const size_t FACE_TRACKER_INFO_SIZE = 17;
-
-    // variable length structure follows
-    /*
-    struct JointData {
-        uint8_t numJoints;
-        uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
-        SixByteQuat rotation[numValidRotations];  // encodeded and compressed by packOrientationQuatToSixBytes()
-        uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
-        SixByteTrans translation[numValidTranslations];  // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
-    };
-    */
-}
-
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
+static const int AUDIO_LOUDNESS_RADIX = 10;
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
@@ -230,12 +172,14 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         destinationBuffer += sizeof(_globalPosition);
     } else {
         auto avatarInfo = reinterpret_cast<AvatarDataPacket::AvatarInfo*>(destinationBuffer);
-        avatarInfo->position[0] = getLocalPosition().x;
-        avatarInfo->position[1] = getLocalPosition().y;
-        avatarInfo->position[2] = getLocalPosition().z;
         avatarInfo->globalPosition[0] = _globalPosition.x;
         avatarInfo->globalPosition[1] = _globalPosition.y;
         avatarInfo->globalPosition[2] = _globalPosition.z;
+
+        avatarInfo->position[0] = getLocalPosition().x;
+        avatarInfo->position[1] = getLocalPosition().y;
+        avatarInfo->position[2] = getLocalPosition().z;
+
         avatarInfo->globalBoundingBoxCorner[0] = getPosition().x - _globalBoundingBoxCorner.x;
         avatarInfo->globalBoundingBoxCorner[1] = getPosition().y - _globalBoundingBoxCorner.y;
         avatarInfo->globalBoundingBoxCorner[2] = getPosition().z - _globalBoundingBoxCorner.z;
@@ -248,7 +192,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         avatarInfo->lookAtPosition[0] = _headData->_lookAtPosition.x;
         avatarInfo->lookAtPosition[1] = _headData->_lookAtPosition.y;
         avatarInfo->lookAtPosition[2] = _headData->_lookAtPosition.z;
-        avatarInfo->audioLoudness = _headData->_audioLoudness;
+
+        packFloatScalarToSignedTwoByteFixed((uint8_t*)&avatarInfo->audioLoudness, _headData->_audioLoudness, AUDIO_LOUDNESS_RADIX);
 
         glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
         packOrientationQuatToSixBytes(avatarInfo->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
@@ -279,6 +224,33 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
             setAtBit(avatarInfo->flags, HAS_REFERENTIAL);
         }
         destinationBuffer += sizeof(AvatarDataPacket::AvatarInfo);
+
+        #if 0 // debugging
+        #define COMPARE_MEMBER_V3(L, R, M) { if (L.M[0] != R.M[0] || L.M[1] != R.M[1] || L.M[2] != R.M[2]) {  qCDebug(avatars) << #M " changed - old:" << "{" << L.M[0] << "," << L.M[1] << ", " << L.M[2] << "}" << " new:" "{" << R.M[0] << "," << R.M[1] << ", " << R.M[2] << "}"; } }
+        #define COMPARE_MEMBER_F(L, R, M) { if (L.M != R.M) {  qCDebug(avatars) << #M " changed - old:" << L.M << " new:" << R.M; } }
+
+        qCDebug(avatars) << "--------------";
+        COMPARE_MEMBER_V3(_lastAvatarInfo, (*avatarInfo), position);
+        COMPARE_MEMBER_V3(_lastAvatarInfo, (*avatarInfo), globalPosition);
+        COMPARE_MEMBER_V3(_lastAvatarInfo, (*avatarInfo), globalBoundingBoxCorner);
+        COMPARE_MEMBER_V3(_lastAvatarInfo, (*avatarInfo), localOrientation);
+        COMPARE_MEMBER_F(_lastAvatarInfo, (*avatarInfo), scale);
+        COMPARE_MEMBER_V3(_lastAvatarInfo, (*avatarInfo), lookAtPosition);
+        COMPARE_MEMBER_F(_lastAvatarInfo, (*avatarInfo), audioLoudness);
+
+        if (_lastSensorToWorldMatrix != sensorToWorldMatrix) {
+            qCDebug(avatars) << "sensorToWorldMatrix changed - old:" << _lastSensorToWorldMatrix << "new:" << sensorToWorldMatrix;
+        }
+        //COMPARE_MEMBER_V3(_lastAvatarInfo, (*avatarInfo), sensorToWorldQuat);
+        COMPARE_MEMBER_F(_lastAvatarInfo, (*avatarInfo), sensorToWorldScale);
+        COMPARE_MEMBER_V3(_lastAvatarInfo, (*avatarInfo), sensorToWorldTrans);
+        COMPARE_MEMBER_F(_lastAvatarInfo, (*avatarInfo), flags);
+
+        memcpy(&_lastAvatarInfo, avatarInfo, sizeof(_lastAvatarInfo));
+        _lastSensorToWorldMatrix = sensorToWorldMatrix;
+
+        #endif
+
 
         if (!parentID.isNull()) {
             auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
@@ -527,8 +499,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     auto avatarInfo = reinterpret_cast<const AvatarDataPacket::AvatarInfo*>(sourceBuffer);
     sourceBuffer += sizeof(AvatarDataPacket::AvatarInfo);
 
-    glm::vec3 position = glm::vec3(avatarInfo->position[0], avatarInfo->position[1], avatarInfo->position[2]);
     _globalPosition = glm::vec3(avatarInfo->globalPosition[0], avatarInfo->globalPosition[1], avatarInfo->globalPosition[2]);
+    glm::vec3 position = glm::vec3(avatarInfo->position[0], avatarInfo->position[1], avatarInfo->position[2]);
     _globalBoundingBoxCorner = glm::vec3(avatarInfo->globalBoundingBoxCorner[0], avatarInfo->globalBoundingBoxCorner[1], avatarInfo->globalBoundingBoxCorner[2]);
     if (isNaN(position)) {
         if (shouldLogError(now)) {
@@ -576,7 +548,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
     _headData->_lookAtPosition = lookAt;
 
-    float audioLoudness = avatarInfo->audioLoudness;
+
+    float audioLoudness;
+    unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&avatarInfo->audioLoudness, &audioLoudness, AUDIO_LOUDNESS_RADIX);
+
+    // FIXME - is this really needed?
     if (isNaN(audioLoudness)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: audioLoudness is NaN, uuid " << getSessionUUID();
