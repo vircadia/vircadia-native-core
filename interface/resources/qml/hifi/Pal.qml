@@ -47,7 +47,7 @@ Item {
         id: myInfo
         // Size
         width: pal.width
-        height: myCardHeight
+        height: myCardHeight + 20
         // Anchors
         anchors.top: pal.top
         // Properties
@@ -215,6 +215,46 @@ Item {
             }
         }
     }
+    // Refresh button
+    Rectangle {
+        // Size
+        width: hifi.dimensions.tableHeaderHeight-1
+        height: hifi.dimensions.tableHeaderHeight-1
+        // Anchors
+        anchors.left: table.left
+        anchors.leftMargin: 4
+        anchors.top: table.top
+        // Style
+        color: hifi.colors.tableBackgroundLight
+        // Actual refresh icon
+        HiFiGlyphs {
+            id: reloadButton
+            text: hifi.glyphs.reloadSmall
+            // Size
+            size: parent.width*1.5
+            // Anchors
+            anchors.fill: parent
+            // Style
+            horizontalAlignment: Text.AlignHCenter
+            color: hifi.colors.darkGray
+        }
+        MouseArea {
+            id: reloadButtonArea
+            // Anchors
+            anchors.fill: parent
+            hoverEnabled: true
+            // Everyone likes a responsive refresh button!
+            // So use onPressed instead of onClicked
+            onPressed: {
+                reloadButton.color = hifi.colors.lightGrayText
+                pal.sendToScript({method: 'refresh'})
+            }
+            onReleased: reloadButton.color = (containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray)
+            onEntered: reloadButton.color = hifi.colors.baseGrayHighlight
+            onExited: reloadButton.color = (pressed ?  hifi.colors.lightGrayText: hifi.colors.darkGray)
+        }
+    }
+
     // Separator between user and admin functions
     Rectangle {
         // Size

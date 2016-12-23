@@ -94,6 +94,10 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
             overlay.select(selected);
         });
         break;
+    case 'refresh':
+        removeOverlays();
+        populateUserList();
+        break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
@@ -265,13 +269,13 @@ function onClicked() {
 //
 // Button state.
 //
-function onVisibileChanged() {
+function onVisibleChanged() {
     button.writeProperty('buttonState', pal.visible ? 0 : 1);
     button.writeProperty('defaultState', pal.visible ? 0 : 1);
     button.writeProperty('hoverState', pal.visible ? 2 : 3);
 }
 button.clicked.connect(onClicked);
-pal.visibleChanged.connect(onVisibileChanged);
+pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
 
@@ -281,7 +285,7 @@ Users.usernameFromIDReply.connect(usernameFromIDReply);
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     toolBar.removeButton(buttonName);
-    pal.visibleChanged.disconnect(onVisibileChanged);
+    pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     off();
