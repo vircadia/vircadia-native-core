@@ -110,6 +110,9 @@ void AvatarMixer::broadcastAvatarData() {
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
 
+    // only send extra avatar data (avatars out of view, ignored) every Nth AvatarData frame
+    const int EXTRA_AVATAR_DATA_FRAME_RATIO = 10; 
+    
     // NOTE: The following code calculates the _performanceThrottlingRatio based on how much the avatar-mixer was
     // able to sleep. This will eventually be used to ask for an additional avatar-mixer to help out. Currently the value
     // is unused as it is assumed this should not be hit before the avatar-mixer hits the desired bandwidth limit per client.
@@ -368,6 +371,11 @@ void AvatarMixer::broadcastAvatarData() {
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
+                    // this throttles the extra data to only be sent every Nth message
+                    if (getsOutOfView && lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0) {
+                        return;
+                    }
+                    
                     if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
                         // we got out out of order packets from the sender, track it
                         otherNodeData->incrementNumOutOfOrderSends();
