@@ -115,6 +115,8 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
             skinProgram, state);
     }
 
+    const auto cachedMode = addJob<RenderShadowSetup>("Setup");
+
     // CPU jobs:
     // Fetch and cull the items from the scene
     auto shadowFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
@@ -127,6 +129,8 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
 
     // GPU jobs: Render to shadow map
     addJob<RenderShadowMap>("RenderShadowMap", sortedShapes, shapePlumber);
+
+    addJob<RenderShadowTeardown>("Teardown", cachedMode);
 }
 
 void RenderShadowTask::configure(const Config& configuration) {
@@ -144,16 +148,18 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
         return;
     }
 
+    for (auto job : _jobs) {
+        job.run(sceneContext, renderContext);
+    }
+}
+
+void RenderShadowSetup::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Output& output) {
     auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalShadow = lightStage->getShadow(0);
 
-    // If the global light is not set, bail
-    if (!globalShadow) {
-        return;
-    }
-
     // Cache old render args
-    RenderArgs::RenderMode mode = args->_renderMode;
+    RenderArgs* args = renderContext->args;
+    output = args->_renderMode;
 
     auto nearClip = args->getViewFrustum().getNearClip();
     float nearDepth = -args->_boomOffset.z;
@@ -163,14 +169,12 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     // Set the keylight render args
     args->pushViewFrustum(*(globalShadow->getFrustum()));
     args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+}
 
-    // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
+void RenderShadowTeardown::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Input& input) {
+    RenderArgs* args = renderContext->args;
 
     // Reset the render args
     args->popViewFrustum();
-    args->_renderMode = mode;
+    args->_renderMode = input;
 };
