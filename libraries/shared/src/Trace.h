@@ -101,7 +101,10 @@ private:
 };
 
 inline void traceEvent(const QLoggingCategory& category, const QString& name, EventType type, const QString& id = "", const QVariantMap& args = {}, const QVariantMap& extra = {}) {
-    DependencyManager::get<Tracer>()->traceEvent(category, name, type, id, args, extra);
+    const auto& tracer = DependencyManager::get<Tracer>();
+    if (tracer) {
+        tracer->traceEvent(category, name, type, id, args, extra);
+    }
 }
 
 inline void traceEvent(const QLoggingCategory& category, const QString& name, EventType type, int id, const QVariantMap& args = {}, const QVariantMap& extra = {}) {

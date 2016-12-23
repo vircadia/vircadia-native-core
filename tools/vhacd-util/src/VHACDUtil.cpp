@@ -51,6 +51,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
             return false;
         }
         result = *geom;
+        delete geom;
 
         reSortFBXGeometryMeshes(result);
     } catch (const QString& error) {
