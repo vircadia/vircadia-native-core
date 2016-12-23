@@ -19,7 +19,7 @@
 
 
 class ContactInfo {
-public: 
+public:
     void update(uint32_t currentStep, const btManifoldPoint& p);
     ContactEventType computeType(uint32_t thisStep);
 
@@ -30,9 +30,9 @@ public:
     btVector3 normalWorldOnB;
     btScalar distance;
 private:
-    uint32_t _lastStep = 0;
-    uint32_t _numSteps = 0;
-};  
+    uint32_t _lastStep { 0 };
+    uint32_t _numChecks { 0 };
+};
 
 
 #endif // hifi_ContactEvent_h

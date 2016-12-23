@@ -13,15 +13,15 @@
 
 void ContactInfo::update(uint32_t currentStep, const btManifoldPoint& p) {
     _lastStep = currentStep;
-    ++_numSteps;
     positionWorldOnB = p.m_positionWorldOnB;
     normalWorldOnB = p.m_normalWorldOnB;
     distance = p.m_distance1;
-}   
+}
 
 ContactEventType ContactInfo::computeType(uint32_t thisStep) {
-    if (_lastStep != thisStep) {
-        return CONTACT_EVENT_TYPE_END;
+    ++_numChecks;
+    if (_numChecks == 1) {
+        return CONTACT_EVENT_TYPE_START;
     }
-    return (_numSteps == 1) ? CONTACT_EVENT_TYPE_START : CONTACT_EVENT_TYPE_CONTINUE;
+    return (_lastStep == thisStep) ? CONTACT_EVENT_TYPE_CONTINUE : CONTACT_EVENT_TYPE_END;
 }
