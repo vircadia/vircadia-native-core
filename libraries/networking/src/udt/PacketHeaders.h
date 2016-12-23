@@ -207,7 +207,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     SensorToWorldMat,
     HandControllerJoints,
     HasKillAvatarReason,
-    SessionDisplayName
+    SessionDisplayName,
+    VariableAvatarData
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

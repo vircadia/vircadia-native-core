@@ -84,20 +84,169 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
 
+
+// Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
+// referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
+// backward compatibility. The bits are ordered as such (0-7 left to right).
+//     +-----+-----+-+-+-+--+
+//     |K0,K1|H0,H1|F|E|R|H2|
+//     +-----+-----+-+-+-+--+
+// Key state - K0,K1 is found in the 1st and 2nd bits
+// Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
+// Faceshift - F is found in the 5th bit
+// Eye tracker - E is found in the 6th bit
+// Referential Data - R is found in the 7th bit
+const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
+const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
+const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
+const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
+const int HAS_REFERENTIAL = 6; // 7th bit
+const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
+
+
+const char HAND_STATE_NULL = 0;
+const char LEFT_HAND_POINTING_FLAG = 1;
+const char RIGHT_HAND_POINTING_FLAG = 2;
+const char IS_FINGER_POINTING_FLAG = 4;
+
+// AvatarData state flags - we store the details about the packet encoding in the first byte, 
+// before the "header" structure
+const char AVATARDATA_FLAGS_MINIMUM = 0;
+
+using smallFloat = uint16_t; // a compressed float with less precision, user defined radix
+
 namespace AvatarDataPacket {
+    // Packet State Flags - we store the details about the existence of other records in this bitset:
+    // AvatarGlobalPosition, Avatar Faceshift, eye tracking, and existence of
+    using HasFlags = uint16_t;
+    const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION = 1U << 0;
+    const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 1; // FIXME - can this be in the PARENT_INFO??
+    const HasFlags PACKET_HAS_AVATAR_DIMENSIONS      = 1U << 2;
+    const HasFlags PACKET_HAS_AVATAR_ORIENTATION     = 1U << 3;
+    const HasFlags PACKET_HAS_AVATAR_SCALE           = 1U << 4;
+    const HasFlags PACKET_HAS_LOOK_AT_POSITION       = 1U << 5;
+    const HasFlags PACKET_HAS_AUDIO_LOUDNESS         = 1U << 6;
+    const HasFlags PACKET_HAS_SENSOR_TO_WORLD_MATRIX = 1U << 7;
+    const HasFlags PACKET_HAS_ADDITIONAL_FLAGS       = 1U << 8;
+    const HasFlags PACKET_HAS_PARENT_INFO            = 1U << 9;
+    const HasFlags PACKET_HAS_FACE_TRACKER_INFO      = 1U << 10;
+    const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
 
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
     PACKED_BEGIN struct Header {
-        uint8_t packetStateFlags; // state flags, currently used to indicate if the packet is a minimal or fuller packet
+        HasFlags packetHasFlags;        // state flags, indicated which additional records are included in the packet
+                                        //    bit 0  - has AvatarGlobalPosition
+                                        //    bit 1  - has AvatarLocalPosition
+                                        //    bit 2  - has AvatarDimensions
+                                        //    bit 3  - has AvatarOrientation
+                                        //    bit 4  - has AvatarScale
+                                        //    bit 5  - has LookAtPosition
+                                        //    bit 6  - has AudioLoudness
+                                        //    bit 7  - has SensorToWorldMatrix
+                                        //    bit 8  - has AdditionalFlags
+                                        //    bit 9  - has ParentInfo
+                                        //    bit 10 - has FaceTrackerInfo
+                                        //    bit 11 - has JointData
     } PACKED_END;
-    const size_t HEADER_SIZE = 1;
+    const size_t HEADER_SIZE = 2;
 
-    PACKED_BEGIN struct MinimalAvatarInfo {
+    PACKED_BEGIN struct AvatarGlobalPosition {
         float globalPosition[3];          // avatar's position
     } PACKED_END;
-    const size_t MINIMAL_AVATAR_INFO_SIZE = 12;
+    const size_t AVATAR_GLOBAL_POSITION_SIZE = 12;
 
+    PACKED_BEGIN struct AvatarLocalPosition {
+        float localPosition[3];             // this appears to be the avatar local position?? 
+                                          // this is a reduced precision radix
+                                          // FIXME - could this be changed into compressed floats?
+    } PACKED_END;
+    const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
+
+    PACKED_BEGIN struct AvatarDimensions {
+        float avatarDimensions[3];        // avatar's bounding box in world space units, but relative to the 
+                                          // position. Assumed to be centered around the world position
+                                          // FIXME - could this be changed into compressed floats?
+    } PACKED_END;
+    const size_t AVATAR_DIMENSIONS_SIZE = 12;
+
+
+    PACKED_BEGIN struct AvatarOrientation {
+        smallFloat localOrientation[3];   // avatar's local euler angles (degrees, compressed) relative to the
+                                          // thing it's attached to, or world relative if not attached
+    } PACKED_END;
+    const size_t AVATAR_ORIENTATION_SIZE = 6;
+
+    PACKED_BEGIN struct AvatarScale {
+        smallFloat scale;                 // avatar's scale, (compressed) 'ratio' encoding uses sign bit as flag.
+    } PACKED_END;
+    const size_t AVATAR_SCALE_SIZE = 2;
+
+    PACKED_BEGIN struct LookAtPosition {
+        float lookAtPosition[3];          // world space position that eyes are focusing on.
+                                          // FIXME - unless the person has an eye tracker, this is simulated... 
+                                          //    a) maybe we can just have the client calculate this
+                                          //    b) at distance this will be hard to discern and can likely be 
+                                          //       descimated or dropped completely
+                                          //
+                                          // POTENTIAL SAVINGS - 12 bytes
+    } PACKED_END;
+    const size_t LOOK_AT_POSITION_SIZE = 12;
+
+    PACKED_BEGIN struct AudioLoudness {
+        smallFloat audioLoudness;         // current loudness of microphone, (compressed)
+    } PACKED_END;
+    const size_t AUDIO_LOUDNESS_SIZE = 2;
+
+    PACKED_BEGIN struct SensorToWorldMatrix {
+        // FIXME - these 20 bytes are only used by viewers if my avatar has "attachments"
+        // we could save these bytes if no attachments are active.
+        //
+        // POTENTIAL SAVINGS - 20 bytes
+
+        uint8_t sensorToWorldQuat[6];     // 6 byte compressed quaternion part of sensor to world matrix
+        uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
+        float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
+                                          // FIXME - sensorToWorldTrans might be able to be better compressed if it was
+                                          // relative to the avatar position.
+    } PACKED_END;
+    const size_t SENSOR_TO_WORLD_SIZE = 20;
+
+    PACKED_BEGIN struct AdditionalFlags {
+        uint8_t flags;                    // additional flags: hand state, key state, eye tracking
+    } PACKED_END;
+    const size_t ADDITIONAL_FLAGS_SIZE = 1;
+
+    // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
+    PACKED_BEGIN struct ParentInfo {
+        uint8_t parentUUID[16];       // rfc 4122 encoded
+        uint16_t parentJointIndex;
+    } PACKED_END;
+    const size_t PARENT_INFO_SIZE = 18;
+
+    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
+    PACKED_BEGIN struct FaceTrackerInfo {
+        float leftEyeBlink;
+        float rightEyeBlink;
+        float averageLoudness;
+        float browAudioLift;
+        uint8_t numBlendshapeCoefficients;
+        // float blendshapeCoefficients[numBlendshapeCoefficients];
+    } PACKED_END;
+    const size_t FACE_TRACKER_INFO_SIZE = 17;
+
+    // variable length structure follows
+    /*
+    struct JointData {
+        uint8_t numJoints;
+        uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
+        SixByteQuat rotation[numValidRotations];               // encodeded and compressed by packOrientationQuatToSixBytes()
+        uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
+        SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+    };
+    */
+
+    // OLD FORMAT....
     PACKED_BEGIN struct AvatarInfo {
         // FIXME - this has 8 unqiue items, we could use a simple header byte to indicate whether or not the fields 
         // exist in the packet and have changed since last being sent.
@@ -156,65 +305,7 @@ namespace AvatarDataPacket {
         uint8_t flags;
     } PACKED_END;
     const size_t AVATAR_INFO_SIZE = 79;
-
-    // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
-    PACKED_BEGIN struct ParentInfo {
-        uint8_t parentUUID[16];       // rfc 4122 encoded
-        uint16_t parentJointIndex;
-    } PACKED_END;
-    const size_t PARENT_INFO_SIZE = 18;
-
-    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
-    PACKED_BEGIN struct FaceTrackerInfo {
-        float leftEyeBlink;
-        float rightEyeBlink;
-        float averageLoudness;
-        float browAudioLift;
-        uint8_t numBlendshapeCoefficients;
-        // float blendshapeCoefficients[numBlendshapeCoefficients];
-    } PACKED_END;
-    const size_t FACE_TRACKER_INFO_SIZE = 17;
-
-    // variable length structure follows
-    /*
-    struct JointData {
-    uint8_t numJoints;
-    uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
-    SixByteQuat rotation[numValidRotations];  // encodeded and compressed by packOrientationQuatToSixBytes()
-    uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
-    SixByteTrans translation[numValidTranslations];  // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
-    };
-    */
 }
-
-
-// Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
-// referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
-// backward compatibility. The bits are ordered as such (0-7 left to right).
-//     +-----+-----+-+-+-+--+
-//     |K0,K1|H0,H1|F|E|R|H2|
-//     +-----+-----+-+-+-+--+
-// Key state - K0,K1 is found in the 1st and 2nd bits
-// Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
-// Faceshift - F is found in the 5th bit
-// Eye tracker - E is found in the 6th bit
-// Referential Data - R is found in the 7th bit
-const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
-const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
-const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
-const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
-const int HAS_REFERENTIAL = 6; // 7th bit
-const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
-
-const char HAND_STATE_NULL = 0;
-const char LEFT_HAND_POINTING_FLAG = 1;
-const char RIGHT_HAND_POINTING_FLAG = 2;
-const char IS_FINGER_POINTING_FLAG = 4;
-
-// AvatarData state flags - we store the details about the packet encoding in the first byte, 
-// before the "header" structure
-const char AVATARDATA_FLAGS_MINIMUM = 0;
-
 
 static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
@@ -512,6 +603,29 @@ public slots:
     float getTargetScale() { return _targetScale; }
 
 protected:
+    void lazyInitHeadData();
+
+    bool avatarLocalPositionChanged();
+    bool avatarDimensionsChanged();
+    bool avatarOrientationChanged();
+    bool avatarScaleChanged();
+    bool lookAtPositionChanged();
+    bool audioLoudnessChanged();
+    bool sensorToWorldMatrixChanged();
+    bool additionalFlagsChanged();
+
+    bool hasParent() { return !getParentID().isNull(); }
+    bool parentInfoChanged();
+
+    bool hasFaceTracker() { return _headData ? _headData->_isFaceTrackerConnected : false; }
+    bool faceTrackerInfoChanged();
+
+    QByteArray toByteArray_OLD(AvatarDataDetail dataDetail);
+    QByteArray toByteArray_NEW(AvatarDataDetail dataDetail);
+
+    int parseDataFromBuffer_OLD(const QByteArray& buffer);
+    int parseDataFromBuffer_NEW(const QByteArray& buffer);
+
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
@@ -571,7 +685,21 @@ protected:
     // _globalPosition is sent along with localPosition + parent because the avatar-mixer doesn't know
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
-    glm::vec3 _globalPosition;
+    glm::vec3 _globalPosition { 0, 0, 0 };
+
+    glm::vec3 _lastSentGlobalPosition { 0, 0, 0 };
+    glm::vec3 _lastSentLocalPosition { 0, 0, 0 };
+    glm::vec3 _lastSentAvatarDimensions { 0, 0, 0 };
+    glm::quat _lastSentLocalOrientation;
+    float _lastSentScale { 0 };
+    glm::vec3 _lastSentLookAt { 0, 0, 0 };
+    float _lastSentAudioLoudness { 0 };
+    glm::mat4 _lastSentSensorToWorldMatrix;
+    uint8_t _lastSentAdditionalFlags { 0 };
+    QUuid _lastSentParentID;
+    quint16 _lastSentParentJointIndex { -1 };
+   
+
     glm::vec3 _globalBoundingBoxCorner;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
