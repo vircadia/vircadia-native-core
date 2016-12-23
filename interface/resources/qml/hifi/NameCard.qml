@@ -33,6 +33,7 @@ Row {
     property string userName: ""
     property int displayTextHeight: 18
     property int usernameTextHeight: 12
+    property real audioLevel: 0.0
 
     Column {
         id: avatarImage
@@ -91,7 +92,6 @@ Row {
         // VU Meter
         Rectangle { // CHANGEME to the appropriate type!
             id: nameCardVUMeter
-            objectName: "AvatarInputs"
             // Size
             width: parent.width
             height: 8
@@ -110,7 +110,7 @@ Row {
             Rectangle {
                 id: vuMeterLevel
                 // Size
-                width: (nameCardVUMeter.audioLevel) * parent.width
+                width: (thisNameCard.audioLevel) * parent.width
                 // Style
                 color: "#dbdbdb" // Very appropriate hex value here
                 radius: parent.radius
