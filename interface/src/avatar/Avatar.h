@@ -256,6 +256,9 @@ protected:
     ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
+    void addToScene(AvatarSharedPointer self);
+    void ensureInScene(AvatarSharedPointer self);
+
 private:
     int _leftPointerGeometryID { 0 };
     int _rightPointerGeometryID { 0 };
@@ -264,6 +267,7 @@ private:
     bool _shouldAnimate { true };
     bool _shouldSkipRender { false };
     bool _isLookAtTarget { false };
+    bool _inScene { false };
 
     float getBoundingRadius() const;
 

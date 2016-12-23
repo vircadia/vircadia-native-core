@@ -159,6 +159,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             removeAvatar(avatarIterator.key());
             ++avatarIterator;
         } else {
+            avatar->ensureInScene(avatar);
             avatar->simulate(deltaTime);
             ++avatarIterator;
 
@@ -198,7 +199,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             // only remove from _avatarFades if we're sure its motionState has been removed from PhysicsEngine
-            qDebug() << "fixme hrs at minimum fade scale" << _motionStatesToRemoveFromPhysics.empty();
             if (_motionStatesToRemoveFromPhysics.empty()) {
                 fadingIterator = _avatarFades.erase(fadingIterator);
             } else {
@@ -220,16 +220,7 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     auto newAvatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
     auto rawRenderableAvatar = std::static_pointer_cast<Avatar>(newAvatar);
 
-    render::ScenePointer scene = qApp->getMain3DScene();
-    if (scene) {
-        render::PendingChanges pendingChanges;
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
-            rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
-        }
-        scene->enqueuePendingChanges(pendingChanges);
-    } else {
-        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
-    }
+    rawRenderableAvatar->addToScene(rawRenderableAvatar);
 
     return newAvatar;
 }
