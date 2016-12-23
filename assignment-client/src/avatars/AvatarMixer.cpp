@@ -207,9 +207,13 @@ void AvatarMixer::broadcastAvatarData() {
             // use the data rate specifically for avatar data for FRD adjustment checks
             float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
 
-            // send extra data that is otherwise surpressed
+            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that are not in the view frustrum
             bool getsOutOfView = nodeData->getRequestsDomainListData();
-            bool getsIgnoredByMe = nodeData->getRequestsDomainListData();
+
+            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that they've ignored
+            bool getsIgnoredByMe = getsOutOfView;
+            
+            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
             bool getsAnyIgnored = getsIgnoredByMe && node->getCanKick();
 
             // Check if it is time to adjust what we send this client based on the observed

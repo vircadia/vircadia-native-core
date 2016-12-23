@@ -812,7 +812,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
 }
 
 void NodeList::unignoreNodeBySessionID(const QUuid& nodeID) {
-    // enumerate the nodes to send a reliable ignore packet to each that can leverage it
+    // enumerate the nodes to send a reliable unignore packet to each that can leverage it
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
         eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
@@ -821,7 +821,7 @@ void NodeList::unignoreNodeBySessionID(const QUuid& nodeID) {
                 return false;
             }
         }, [&nodeID, this](const SharedNodePointer& destinationNode) {
-            // create a reliable NLPacket with space for the ignore UUID
+            // create a reliable NLPacket with space for the unignore UUID
             auto ignorePacket = NLPacket::create(PacketType::NodeUnignoreRequest, NUM_BYTES_RFC4122_UUID, true);
 
             // write the node ID to the packet
@@ -829,7 +829,7 @@ void NodeList::unignoreNodeBySessionID(const QUuid& nodeID) {
 
             qCDebug(networking) << "Sending packet to unignore node" << uuidStringWithoutCurlyBraces(nodeID);
 
-            // send off this ignore packet reliably to the matching node
+            // send off this unignore packet reliably to the matching node
             sendPacket(std::move(ignorePacket), *destinationNode);
         });
 
