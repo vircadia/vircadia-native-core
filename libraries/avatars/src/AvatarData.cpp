@@ -510,7 +510,7 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
     //   - this toByteArray() side-effects the AvatarData, is that safe? in particular
     //     is it possible we'll call toByteArray() and then NOT actually use the result?
 
-    sendAll = true;
+    //sendAll = true;
 
     bool hasAvatarGlobalPosition = true; // always include global position
     bool hasAvatarLocalPosition = sendAll || avatarLocalPositionChanged();

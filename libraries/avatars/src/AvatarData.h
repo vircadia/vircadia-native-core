@@ -697,7 +697,7 @@ protected:
     glm::mat4 _lastSentSensorToWorldMatrix;
     uint8_t _lastSentAdditionalFlags { 0 };
     QUuid _lastSentParentID;
-    quint16 _lastSentParentJointIndex { -1 };
+    quint16 _lastSentParentJointIndex { 0 };
    
 
     glm::vec3 _globalBoundingBoxCorner;
