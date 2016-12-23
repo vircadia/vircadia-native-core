@@ -120,7 +120,7 @@ function populateUserList() {
             displayName: avatar.sessionDisplayName,
             userName: '',
             sessionId: id || '',
-            audioLevel: getAudioLevel(id)
+            audioLevel: 0.0
         };
         // If the current user is an admin OR
         // they're requesting their own username ("id" is blank)...
@@ -300,10 +300,14 @@ function getAudioLevel(id) {
 // TODO: tune for efficiency - expecially with large numbers of avatars
 Script.setInterval(function () {
     if (pal.visible) {
+        var param = {};
         AvatarList.getAvatarIdentifiers().sort().forEach(function (id) {
             var level = getAudioLevel(id);
-            pal.sendToQml({method: 'updateAudioLevel', params: [id, level]});
+            // qml didn't like an object with null/empty string for a key, so...
+            var userId = id || 0;
+            param[userId]= level;
         });
+        pal.sendToQml({method: 'updateAudioLevel', params: param});
     }
 }, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 //

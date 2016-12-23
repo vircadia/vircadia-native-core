@@ -346,15 +346,18 @@ Item {
             }
             break;
         case 'updateAudioLevel': 
-            var userId = message.params[0];
-            var audioLevel = message.params[1];
-            if (!userId) {
-                myData.audioLevel = audioLevel;
-                myCard.audioLevel = audioLevel;
-            } else {
-                var userIndex = findSessionIndex(userId);
-                userModel.get(userIndex).audioLevel = audioLevel;
-                userData[userIndex].audioLevel = audioLevel;
+            for (var userId in message.params) {
+                var audioLevel = message.params[userId];
+                // If the userId is 0, we're updating "myData".
+                if (userId == 0) {
+                    myData.audioLevel = audioLevel;
+                    myCard.audioLevel = audioLevel; // Defensive programming
+                } else {
+                    console.log("userid:" + userId);
+                    var userIndex = findSessionIndex(userId);
+                    userModel.get(userIndex).audioLevel = audioLevel;
+                    userData[userIndex].audioLevel = audioLevel; // Defensive programming
+                }
             }
             break;
         default:
