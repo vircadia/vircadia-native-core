@@ -510,6 +510,7 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
     //   - this toByteArray() side-effects the AvatarData, is that safe? in particular
     //     is it possible we'll call toByteArray() and then NOT actually use the result?
 
+    sendAll = true;
 
     bool hasAvatarGlobalPosition = true; // always include global position
     bool hasAvatarLocalPosition = sendAll || avatarLocalPositionChanged();
@@ -522,7 +523,7 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
     bool hasAdditionalFlags = sendAll || additionalFlagsChanged();
     bool hasParentInfo = hasParent() && (sendAll || parentInfoChanged());
     bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChanged());
-    bool hasJointData = !sendMinimum;
+    bool hasJointData = sendAll || !sendMinimum;
 
     //qDebug() << __FUNCTION__ << "sendAll:" << sendAll;
     //qDebug() << "hasAvatarGlobalPosition:" << hasAvatarGlobalPosition;
@@ -610,6 +611,7 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
         data->lookAtPosition[2] = lookAt.z;
         destinationBuffer += sizeof(AvatarDataPacket::LookAtPosition);
         _lastSentLookAt = lookAt;
+        //qDebug() << "hasLookAtPosition lookAt:" << lookAt;
     }
 
     if (hasAudioLoudness) {
@@ -618,6 +620,7 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
         packFloatScalarToSignedTwoByteFixed((uint8_t*)&data->audioLoudness, audioLoudness, AUDIO_LOUDNESS_RADIX);
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
         _lastSentAudioLoudness = audioLoudness;
+        //qDebug() << "hasAudioLoudness audioLoudness:" << audioLoudness;
     }
 
     if (hasSensorToWorldMatrix) {
@@ -663,6 +666,12 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
         _lastSentAdditionalFlags = flags;
+
+        //qDebug() << "hasAdditionalFlags _keyState:" << _keyState;
+        //qDebug() << "hasAdditionalFlags _handState:" << _handState;
+        //qDebug() << "hasAdditionalFlags _isFaceTrackerConnected:" << _headData->_isFaceTrackerConnected;
+        //qDebug() << "hasAdditionalFlags _isEyeTrackerConnected:" << _headData->_isEyeTrackerConnected;
+        //qDebug() << "hasAdditionalFlags bitItems:" << flags;
     }
 
     if (hasParentInfo) {
@@ -695,8 +704,16 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
     if (hasJointData) {
         QReadLocker readLock(&_jointDataLock);
 
+        int rotationSentCount = 0;
+        int translationSentCount = 0;
+
+
         // joint rotation data
-        *destinationBuffer++ = _jointData.size();
+        int numJoints = _jointData.size();
+        *destinationBuffer++ = (uint8_t)numJoints;
+
+        //qDebug() << "hasJointData numJoints:" << numJoints;
+
         unsigned char* validityPosition = destinationBuffer;
         unsigned char validity = 0;
         int validityBit = 0;
@@ -716,7 +733,7 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
                     fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
                     if (data.rotationSet) {
                         validity |= (1 << validityBit);
-#ifdef WANT_DEBUG
+#if 1 //def WANT_DEBUG
                         rotationSentCount++;
 #endif
                     }
@@ -764,7 +781,7 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
                     glm::distance(data.translation, _lastSentJointData[i].translation) > AVATAR_MIN_TRANSLATION) {
                     if (data.translationSet) {
                         validity |= (1 << validityBit);
-#ifdef WANT_DEBUG
+#if 1 //def WANT_DEBUG
                         translationSentCount++;
 #endif
                         maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
@@ -807,6 +824,9 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
             TRANSLATION_COMPRESSION_RADIX);
 
+        //qDebug() << "hasJointData rotationSentCount:" << rotationSentCount << "translationSentCount:" << translationSentCount;
+
+
 #ifdef WANT_DEBUG
         if (sendAll) {
             qCDebug(avatars) << "AvatarData::toByteArray" << cullSmallChanges << sendAll
@@ -821,6 +841,8 @@ QByteArray AvatarData::toByteArray_NEW(AvatarDataDetail dataDetail) {
 #endif
     }
 
+    int avatarDataSize = destinationBuffer - startPosition;
+    //qDebug() << "avatarDataSize:" << avatarDataSize;
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
@@ -1149,6 +1171,12 @@ int AvatarData::parseDataFromBuffer_NEW(const QByteArray& buffer) {
 
     // read the packet flags
     memcpy(&packetStateFlags, sourceBuffer, sizeof(packetStateFlags));
+    sourceBuffer += sizeof(packetStateFlags);
+
+    //qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags;
+    //qDebug() << "buffer size:" << buffer.size();
+
+
 
     #define HAS_FLAG(B,F) ((B & F) == F)
 
@@ -1165,7 +1193,6 @@ int AvatarData::parseDataFromBuffer_NEW(const QByteArray& buffer) {
     bool hasFaceTrackerInfo      = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO);
     bool hasJointData            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DATA);
 
-    sourceBuffer += sizeof(AvatarDataPacket::HasFlags);
 
     quint64 now = usecTimestampNow();
 
@@ -1307,10 +1334,17 @@ int AvatarData::parseDataFromBuffer_NEW(const QByteArray& buffer) {
         _handState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
+
         _headData->_isFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
         _headData->_isEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
 
+        //qDebug() << "hasAdditionalFlags _keyState:" << _keyState;
+        //qDebug() << "hasAdditionalFlags _handState:" << _handState;
+        //qDebug() << "hasAdditionalFlags _isFaceTrackerConnected:" << _headData->_isFaceTrackerConnected;
+        //qDebug() << "hasAdditionalFlags _isEyeTrackerConnected:" << _headData->_isEyeTrackerConnected;
+
         //qDebug() << "hasAdditionalFlags bitItems:" << bitItems;
+        sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
     }
 
     // FIXME -- make sure to handle the existance of a parent vs a change in the parent...
@@ -1434,6 +1468,9 @@ int AvatarData::parseDataFromBuffer_NEW(const QByteArray& buffer) {
         // faux joints
         sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerLeftHandMatrixCache);
         sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerRightHandMatrixCache);
+
+        //qDebug() << "hasJointData numValidJointRotations:" << numValidJointRotations << "numValidJointTranslations:" << numValidJointTranslations;
+
     }
 
     int numBytesRead = sourceBuffer - startPosition;
