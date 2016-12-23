@@ -228,26 +228,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
 }
 
-void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    // sanity checks
-    assert(sceneContext);
-    if (!sceneContext->_scene) {
-        return;
-    }
-
-
-    // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->args && renderContext->args->hasViewFrustum())) {
-        return;
-    }
-
-    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
-}
-
 void BeginGPURangeTimer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
     gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {

@@ -139,20 +139,6 @@ void RenderShadowTask::configure(const Config& configuration) {
     Task::configure(configuration);
 }
 
-void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    assert(sceneContext);
-    RenderArgs* args = renderContext->args;
-
-    // sanity checks
-    if (!sceneContext->_scene || !args) {
-        return;
-    }
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
-}
-
 void RenderShadowSetup::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Output& output) {
     auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalShadow = lightStage->getShadow(0);

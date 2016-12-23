@@ -24,7 +24,6 @@ public:
     RenderForwardTask(render::CullFunctor cullFunctor);
 
     void configure(const Config& config) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     using JobModel = Model<RenderForwardTask, Config>;
 };

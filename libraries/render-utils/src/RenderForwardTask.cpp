@@ -86,26 +86,6 @@ RenderForwardTask::RenderForwardTask(CullFunctor cullFunctor) {
     addJob<Blit>("Blit", framebuffer);
 }
 
-void RenderForwardTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    // sanity checks
-    assert(sceneContext);
-    if (!sceneContext->_scene) {
-        return;
-    }
-
-
-    // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->args && renderContext->args->hasViewFrustum())) {
-        return;
-    }
-
-    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
-}
-
 void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();

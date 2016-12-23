@@ -49,7 +49,6 @@ public:
     RenderShadowTask(render::CullFunctor shouldRender);
 
     void configure(const Config& configuration);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 };
 
 class RenderShadowSetup {
