@@ -48,49 +48,18 @@ using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
-RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
-    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
-
+RenderDeferredTask::RenderDeferredTask(RenderFetchSortCullTask::Output items) {
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
 
-    // CPU jobs:
-    // Fetch and cull the items from the scene
-    auto spatialFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
-    const auto spatialSelection = addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
-    const auto culledSpatialSelection = addJob<CullSpatialSelection>("CullSceneSelection", spatialSelection, cullFunctor, RenderDetails::ITEM, spatialFilter);
-
-    // Overlays are not culled
-    const auto nonspatialSelection = addJob<FetchNonspatialItems>("FetchOverlaySelection");
-
-    // Multi filter visible items into different buckets
-    const int NUM_FILTERS = 3;
-    const int OPAQUE_SHAPE_BUCKET = 0;
-    const int TRANSPARENT_SHAPE_BUCKET = 1;
-    const int LIGHT_BUCKET = 2;
-    const int BACKGROUND_BUCKET = 2;
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray spatialFilters = { {
-            ItemFilter::Builder::opaqueShape(),
-            ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::light()
-    } };
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray nonspatialFilters = { {
-            ItemFilter::Builder::opaqueShape(),
-            ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::background()
-    } };
-    const auto filteredSpatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-    const auto filteredNonspatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-
-    // Extract / Sort opaques / Transparents / Lights / Overlays
-    const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredSpatialBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", filteredSpatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto lights = filteredSpatialBuckets[LIGHT_BUCKET];
-
-    const auto overlayOpaques = addJob<DepthSortItems>("DepthSortOverlayOpaque", filteredNonspatialBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
+    // Extract opaques / transparents / lights / overlays
+    const auto opaques = items[0];
+    const auto transparents = items[1];
+    const auto lights = items[2];
+    const auto overlayOpaques = items[3];
+    const auto overlayTransparents = items[4];
+    const auto background = items[5];
 
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -202,8 +171,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
         // Scene Octree Debuging job
         {
-            addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
-            addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
+            // addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
+            // addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
         }
 
         // Status icon rendering job

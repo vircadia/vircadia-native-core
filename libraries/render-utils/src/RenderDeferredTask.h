@@ -13,7 +13,7 @@
 #define hifi_RenderDeferredTask_h
 
 #include <gpu/Pipeline.h>
-#include <render/CullTask.h>
+#include <render/RenderFetchSortCullTask.h>
 #include "LightingModel.h"
 
 
@@ -192,19 +192,11 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
-using RenderDeferredTaskConfig = render::GPUTaskConfig;
-
 class RenderDeferredTask : public render::Task {
 public:
-    using Config = RenderDeferredTaskConfig;
-    RenderDeferredTask(render::CullFunctor cullFunctor);
+    using JobModel = Model<RenderDeferredTask>;
 
-    void configure(const Config& config) {}
-
-    using JobModel = Model<RenderDeferredTask, Config>;
-
-protected:
-    gpu::RangeTimerPointer _gpuTimer;
+    RenderDeferredTask(RenderFetchSortCullTask::Output items);
 };
 
 #endif // hifi_RenderDeferredTask_h
