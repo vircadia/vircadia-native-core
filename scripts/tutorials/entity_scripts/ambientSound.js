@@ -8,6 +8,9 @@
 //      userData.range should be an integer for the max distance away from the entity where the sound will be audible.
 //      userData.volume is the max volume at which the clip should play.  Defaults to 1.0 full volume)
 //
+//  The rotation of the entity is copied to the ambisonic field, so by rotating the entity you will rotate the 
+//  direction in-which a certain sound comes from.  
+//  
 //  Remember that the entity has to be visible to the user for the sound to play at all, so make sure the entity is
 //  large enough to be loaded at the range you set, particularly for large ranges.  
 //   
@@ -27,6 +30,7 @@
     var range = DEFAULT_RANGE;
     var maxVolume = DEFAULT_VOLUME;
     var UPDATE_INTERVAL_MSECS = 100;
+    var rotation;
 
     var entity;
     var ambientSound;
@@ -35,11 +39,11 @@
     var checkTimer = false;
     var _this;
 
-    var WANT_COLOR_CHANGE = true;
+    var WANT_COLOR_CHANGE = false;
     var COLOR_OFF = { red: 128, green: 128, blue: 128 };
     var COLOR_ON = { red: 255, green: 0, blue: 0 };
 
-    var WANT_DEBUG = true;
+    var WANT_DEBUG = false;
     function debugPrint(string) {
         if (WANT_DEBUG) {
             print(string);
@@ -92,23 +96,27 @@
     this.maybeUpdate = function() {
         // Every UPDATE_INTERVAL_MSECS, update the volume of the ambient sound based on distance from my avatar
         _this.updateSettings();
-        var props = Entities.getEntityProperties(entity);
         var HYSTERESIS_FRACTION = 0.1;
-        var props = Entities.getEntityProperties(entity, [ "position" ]);
+        var props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
         center = props.position;
+        rotation = props.rotation;
         var distance = Vec3.length(Vec3.subtract(MyAvatar.position, center));
         if (distance <= range) {
             var volume = (1.0 - distance / range) * maxVolume;
             if (!soundPlaying && ambientSound.downloaded) {
-                soundPlaying = Audio.playSound(ambientSound,  { loop: true, localOnly: true, volume: volume });
+                soundPlaying = Audio.playSound(ambientSound,  { loop: true, 
+                                                                localOnly: true, 
+                                                                orientation: rotation,
+                                                                volume: volume });
                 debugPrint("Starting ambient sound, volume: " + volume);
                 if (WANT_COLOR_CHANGE) {
                     Entities.editEntity(entity, { color: COLOR_ON });
                 }
                 
             } else if (soundPlaying && soundPlaying.playing) {
-                soundPlaying.setOptions( { volume: volume } );
+                soundPlaying.setOptions( { volume: volume, orientation: rotation } );
             }
+
         } else if (soundPlaying && soundPlaying.playing && (distance > range * HYSTERESIS_FRACTION)) {
             soundPlaying.stop();
             soundPlaying = false;
