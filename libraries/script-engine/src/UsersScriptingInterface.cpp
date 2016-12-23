@@ -34,17 +34,16 @@ void UsersScriptingInterface::unignore(const QUuid& nodeID) {
     DependencyManager::get<NodeList>()->unignoreNodeBySessionID(nodeID);
 }
 
-void UsersScriptingInterface::personalMute(const QUuid& nodeID, bool enabled) {
+void UsersScriptingInterface::personalMute(const QUuid& nodeID, bool muteEnabled) {
     // ask the NodeList to mute the user with the given session ID
 	// "Personal Mute" only applies one way and is not global
-    DependencyManager::get<NodeList>()->personalMuteNodeBySessionID(nodeID, enabled);
+    DependencyManager::get<NodeList>()->personalMuteNodeBySessionID(nodeID, muteEnabled);
 }
 
 void UsersScriptingInterface::requestPersonalMuteStatus(const QUuid& nodeID) {
     // ask the Audio Mixer via the NodeList for the Personal Mute status associated with the given session ID
     DependencyManager::get<NodeList>()->requestPersonalMuteStatus(nodeID);
 }
-
 
 void UsersScriptingInterface::kick(const QUuid& nodeID) {
     // ask the NodeList to kick the user with the given session ID

@@ -129,6 +129,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
     packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
     packetReceiver.registerListener(PacketType::UsernameFromIDReply, this, "processUsernameFromIDReply");
+    packetReceiver.registerListener(PacketType::NodePersonalMuteStatusReply, this, "processPersonalMuteStatusReply");
 }
 
 qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
@@ -875,7 +876,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
     }
 }
 
-void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool enabled) {
+void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled) {
     // cannot personal mute yourself, or nobody
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
@@ -885,9 +886,9 @@ void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool enabled) {
 
             // write the node ID to the packet
             personalMutePacket->write(nodeID.toRfc4122());
-            personalMutePacket->writePrimitive(enabled);
+            personalMutePacket->writePrimitive(muteEnabled);
 
-            qCDebug(networking) << "Sending Personal Mute Packet to" << (enabled ? "mute" : "unmute") << "node" << uuidStringWithoutCurlyBraces(nodeID);
+            qCDebug(networking) << "Sending Personal Mute Packet to" << (muteEnabled ? "mute" : "unmute") << "node" << uuidStringWithoutCurlyBraces(nodeID);
 
             sendPacket(std::move(personalMutePacket), *audioMixer);
         } else {

@@ -45,7 +45,7 @@ public slots:
     * @param {nodeID} nodeID The node or session ID of the user you want to mute.
     * @param {bool} enable True for enabled; false for disabled.
     */
-    void personalMute(const QUuid& nodeID, bool enabled);
+    void personalMute(const QUuid& nodeID, bool muteEnabled);
 
     /**jsdoc
     * Requests a bool containing whether you have given the given Avatar UUID.

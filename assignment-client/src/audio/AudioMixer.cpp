@@ -250,16 +250,16 @@ void AudioMixer::handleNodePersonalMuteRequestPacket(QSharedPointer<ReceivedMess
                 << uuidStringWithoutCurlyBraces(_uuid);
 
             // Remove the session UUID to the set of personally muted ones for this listening node
-            sendingNode->_ignoredNodeIDSet.unsafe_erase(ignoredUUID);
+            //sendingNode->removeIgnoredNode(ignoredUUID);
         }
     } else {
-        qWarning() << "Node::addPersonalMutedNode called with null ID or ID of personal muting node.";
+        qWarning() << "Node::handlePersonalMutedNode called with null ID or ID of personal muting node.";
     }
 }
 
 void AudioMixer::handleNodePersonalMuteStatusRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     // parse out the UUID whose personal mute status is being requested from the packet
-    QUuid UUIDToCheck = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid UUIDToCheck = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     if (!UUIDToCheck.isNull()) {
         // First, make sure we actually have a node with this UUID
@@ -269,12 +269,13 @@ void AudioMixer::handleNodePersonalMuteStatusRequestPacket(QSharedPointer<Receiv
         // If we do have a matching node...
         if (matchingNode) {
             auto personalMuteStatusPacket = NLPacket::create(PacketType::NodePersonalMuteStatusReply, NUM_BYTES_RFC4122_UUID + sizeof(bool), true);
+            bool isMuted = sendingNode->isIgnoringNodeWithID(UUIDToCheck);
 
             // write the node ID to the packet
             personalMuteStatusPacket->write(UUIDToCheck.toRfc4122());
-            personalMuteStatusPacket->writePrimitive(isIgnoringNodeWithID(UUIDToCheck));
+            personalMuteStatusPacket->writePrimitive(isMuted);
 
-            qCDebug(networking) << "Sending Personal Mute Status Request Packet for node" << uuidStringWithoutCurlyBraces(nodeID);
+            qDebug() << "Personal Mute Status: node" << uuidStringWithoutCurlyBraces(UUIDToCheck) << "mute status:" << isMuted;
 
             limitedNodeList->sendPacket(std::move(personalMuteStatusPacket), *sendingNode);
         }

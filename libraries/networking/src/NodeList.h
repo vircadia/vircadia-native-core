@@ -79,7 +79,7 @@ public:
     void ignoreNodeBySessionID(const QUuid& nodeID);
     void unignoreNodeBySessionID(const QUuid& nodeID);
     bool isIgnoringNode(const QUuid& nodeID) const;
-    void personalMuteNodeBySessionID(const QUuid& nodeID, bool enabled);
+    void personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled);
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
