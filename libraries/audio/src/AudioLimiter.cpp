@@ -158,7 +158,7 @@ static inline int32_t peaklog2(float* input) {
         return 0x7fffffff;
     }
 
-    int k = x >> (31 - LOG2_TABBITS);
+    size_t k = x >> (31 - LOG2_TABBITS);
 
     // polynomial for log2(1+x) over x=[0,1]
     int32_t c0 = log2Table[k][0];
@@ -197,7 +197,7 @@ static inline int32_t peaklog2(float* input0, float* input1) {
         return 0x7fffffff;
     }
 
-    int k = x >> (31 - LOG2_TABBITS);
+    size_t k = x >> (31 - LOG2_TABBITS);
 
     // polynomial for log2(1+x) over x=[0,1]
     int32_t c0 = log2Table[k][0];
@@ -240,7 +240,7 @@ static inline int32_t peaklog2(float* input0, float* input1, float* input2, floa
         return 0x7fffffff;
     }
 
-    int k = x >> (31 - LOG2_TABBITS);
+    size_t k = x >> (31 - LOG2_TABBITS);
 
     // polynomial for log2(1+x) over x=[0,1]
     int32_t c0 = log2Table[k][0];
@@ -264,7 +264,7 @@ static inline int32_t fixexp2(int32_t x) {
     int32_t e = x >> LOG2_FRACBITS;
     x = ~(x << LOG2_INTBITS) & 0x7fffffff;
 
-    int k = x >> (31 - EXP2_TABBITS);
+    size_t k = x >> (31 - EXP2_TABBITS);
 
     // polynomial for exp2(x)
     int32_t c0 = exp2Table[k][0];
@@ -301,7 +301,7 @@ class PeakFilterT {
     static_assert((CIC1 - 1) + (CIC2 - 1) == (N - 1), "Total CIC delay must be N-1");
 
     int32_t _buffer[2*N] = {};  // shared FIFO
-    int _index = 0;
+    size_t _index = 0;
 
     int32_t _acc1 = 0;  // CIC1 integrator
     int32_t _acc2 = 0;  // CIC2 integrator
@@ -310,21 +310,21 @@ public:
     PeakFilterT() {
 
         // fill history
-        for (int n = 0; n < N-1; n++) {
+        for (size_t n = 0; n < N-1; n++) {
             process(0x7fffffff);
         }
     }
 
     int32_t process(int32_t x) {
 
-        const int MASK = 2*N - 1;   // buffer wrap
-        int i = _index;
+        const size_t MASK = 2*N - 1;    // buffer wrap
+        size_t i = _index;
 
         // Fast peak-hold using a running-min filter.  Finds the peak (min) value
         // in the sliding window of N-1 samples, using only log2(N) comparisons.
         // Hold time of N-1 samples exactly cancels the step response of FIR filter.
 
-        for (int n = 1; n < N; n <<= 1) {
+        for (size_t n = 1; n < N; n <<= 1) {
 
             _buffer[i] = x;
             i = (i + n) & MASK;
@@ -372,13 +372,13 @@ class MonoDelay {
     static_assert((N & (N - 1)) == 0, "N must be a power of 2");
 
     float _buffer[N] = {};
-    int _index = 0;
+    size_t _index = 0;
 
 public:
     void process(float& x) {
 
-        const int MASK = N - 1;     // buffer wrap
-        int i = _index;
+        const size_t MASK = N - 1;  // buffer wrap
+        size_t i = _index;
 
         _buffer[i] = x;
 
@@ -399,13 +399,13 @@ class StereoDelay {
     static_assert((N & (N - 1)) == 0, "N must be a power of 2");
 
     float _buffer[2*N] = {};
-    int _index = 0;
+    size_t _index = 0;
 
 public:
     void process(float& x0, float& x1) {
 
-        const int MASK = 2*N - 1;   // buffer wrap
-        int i = _index;
+        const size_t MASK = 2*N - 1;    // buffer wrap
+        size_t i = _index;
 
         _buffer[i+0] = x0;
         _buffer[i+1] = x1;
@@ -428,13 +428,13 @@ class QuadDelay {
     static_assert((N & (N - 1)) == 0, "N must be a power of 2");
 
     float _buffer[4*N] = {};
-    int _index = 0;
+    size_t _index = 0;
 
 public:
     void process(float& x0, float& x1, float& x2, float& x3) {
 
-        const int MASK = 4*N - 1;   // buffer wrap
-        int i = _index;
+        const size_t MASK = 4*N - 1;    // buffer wrap
+        size_t i = _index;
 
         _buffer[i+0] = x0;
         _buffer[i+1] = x1;
@@ -547,7 +547,7 @@ void LimiterImpl::setRelease(float release) {
     double x = MAXHOLD * _sampleRate;
     double xstep = x / NHOLD;   // 1.0 to 1.0/NHOLD
 
-    int i = 0;
+    size_t i = 0;
     for (; i < NHOLD; i++) {
 
         // max release
@@ -613,12 +613,12 @@ int32_t LimiterImpl::envelope(int32_t attn) {
         // arc = (attn-rms)*6/attn for attn = 1dB to 6dB
         // arc = (attn-rms)*6/6    for attn > 6dB
 
-        int bits = MIN(attn >> 20, 0x3f);   // saturate 1/attn at 6dB
-        _arc = MAX(attn - _rms, 0);         // peak/rms = (attn-rms)
-        _arc = MULHI(_arc, invTable[bits]); // normalized peak/rms = (attn-rms)/attn
-        _arc = MIN(_arc, NARC - 1);         // saturate at 6dB
+        size_t bits = MIN(attn >> 20, 0x3f);    // saturate 1/attn at 6dB
+        _arc = MAX(attn - _rms, 0);             // peak/rms = (attn-rms)
+        _arc = MULHI(_arc, invTable[bits]);     // normalized peak/rms = (attn-rms)/attn
+        _arc = MIN(_arc, NARC - 1);             // saturate at 6dB
 
-        _arcRelease = 0x7fffffff;           // reset release
+        _arcRelease = 0x7fffffff;               // reset release
     }
     _attn = attn;
 
@@ -649,7 +649,7 @@ public:
 template<int N>
 void LimiterMono<N>::process(float* input, int16_t* output, int numFrames) {
 
-    for (int n = 0; n < numFrames; n++) {
+    for (size_t n = 0; n < numFrames; n++) {
 
         // peak detect and convert to log2 domain
         int32_t peak = peaklog2(&input[n]);
@@ -701,7 +701,7 @@ public:
 template<int N>
 void LimiterStereo<N>::process(float* input, int16_t* output, int numFrames) {
 
-    for (int n = 0; n < numFrames; n++) {
+    for (size_t n = 0; n < numFrames; n++) {
 
         // peak detect and convert to log2 domain
         int32_t peak = peaklog2(&input[2*n+0], &input[2*n+1]);
@@ -758,7 +758,7 @@ public:
 template<int N>
 void LimiterQuad<N>::process(float* input, int16_t* output, int numFrames) {
 
-    for (int n = 0; n < numFrames; n++) {
+    for (size_t n = 0; n < numFrames; n++) {
 
         // peak detect and convert to log2 domain
         int32_t peak = peaklog2(&input[4*n+0], &input[4*n+1], &input[4*n+2], &input[4*n+3]);
