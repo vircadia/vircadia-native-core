@@ -158,7 +158,7 @@ static inline int32_t peaklog2(float* input) {
         return 0x7fffffff;
     }
 
-    size_t k = x >> (31 - LOG2_TABBITS);
+    int k = x >> (31 - LOG2_TABBITS);
 
     // polynomial for log2(1+x) over x=[0,1]
     int32_t c0 = log2Table[k][0];
@@ -197,7 +197,7 @@ static inline int32_t peaklog2(float* input0, float* input1) {
         return 0x7fffffff;
     }
 
-    size_t k = x >> (31 - LOG2_TABBITS);
+    int k = x >> (31 - LOG2_TABBITS);
 
     // polynomial for log2(1+x) over x=[0,1]
     int32_t c0 = log2Table[k][0];
@@ -240,7 +240,7 @@ static inline int32_t peaklog2(float* input0, float* input1, float* input2, floa
         return 0x7fffffff;
     }
 
-    size_t k = x >> (31 - LOG2_TABBITS);
+    int k = x >> (31 - LOG2_TABBITS);
 
     // polynomial for log2(1+x) over x=[0,1]
     int32_t c0 = log2Table[k][0];
@@ -264,7 +264,7 @@ static inline int32_t fixexp2(int32_t x) {
     int32_t e = x >> LOG2_FRACBITS;
     x = ~(x << LOG2_INTBITS) & 0x7fffffff;
 
-    size_t k = x >> (31 - EXP2_TABBITS);
+    int k = x >> (31 - EXP2_TABBITS);
 
     // polynomial for exp2(x)
     int32_t c0 = exp2Table[k][0];
@@ -547,7 +547,7 @@ void LimiterImpl::setRelease(float release) {
     double x = MAXHOLD * _sampleRate;
     double xstep = x / NHOLD;   // 1.0 to 1.0/NHOLD
 
-    size_t i = 0;
+    int i = 0;
     for (; i < NHOLD; i++) {
 
         // max release
@@ -649,7 +649,7 @@ public:
 template<int N>
 void LimiterMono<N>::process(float* input, int16_t* output, int numFrames) {
 
-    for (size_t n = 0; n < numFrames; n++) {
+    for (int n = 0; n < numFrames; n++) {
 
         // peak detect and convert to log2 domain
         int32_t peak = peaklog2(&input[n]);
@@ -701,7 +701,7 @@ public:
 template<int N>
 void LimiterStereo<N>::process(float* input, int16_t* output, int numFrames) {
 
-    for (size_t n = 0; n < numFrames; n++) {
+    for (int n = 0; n < numFrames; n++) {
 
         // peak detect and convert to log2 domain
         int32_t peak = peaklog2(&input[2*n+0], &input[2*n+1]);
@@ -758,7 +758,7 @@ public:
 template<int N>
 void LimiterQuad<N>::process(float* input, int16_t* output, int numFrames) {
 
-    for (size_t n = 0; n < numFrames; n++) {
+    for (int n = 0; n < numFrames; n++) {
 
         // peak detect and convert to log2 domain
         int32_t peak = peaklog2(&input[4*n+0], &input[4*n+1], &input[4*n+2], &input[4*n+3]);
