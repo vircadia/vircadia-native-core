@@ -957,7 +957,8 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
 }
 
 bool EntityTreeRenderer::isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree,
-    const EntityItemID& id, const Collision& collision) {
+        const EntityItemID& id, const Collision& collision) {
+    // BUG: this method is poorly named.  It should be called like: isOwnerOfObjectOrOwnerOfOtherIfObjectIsUnowned()
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
     if (!entity) {
         return false;
@@ -965,7 +966,7 @@ bool EntityTreeRenderer::isCollisionOwner(const QUuid& myNodeID, EntityTreePoint
     QUuid simulatorID = entity->getSimulatorID();
     if (simulatorID.isNull()) {
         // Can be null if it has never moved since being created or coming out of persistence.
-        // However, for there to be a collission, one of the two objects must be moving.
+        // However, for there to be a collision, one of the two objects must be moving.
         const EntityItemID& otherID = (id == collision.idA) ? collision.idB : collision.idA;
         EntityItemPointer otherEntity = entityTree->findEntityByEntityItemID(otherID);
         if (!otherEntity) {
@@ -1054,6 +1055,8 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     playEntityCollisionSound(myNodeID, entityTree, idB, collision);
 
     // And now the entity scripts
+    // BUG! scripts don't get the final COLLISION_EVENT_TYPE_END event in a timely manner because
+    // by the time it gets here the object has been deactivated and local ownership is relenquished.
     if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
         emit collisionWithEntity(idA, idB, collision);
         if (_entitiesScriptEngine) {
