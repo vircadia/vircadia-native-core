@@ -620,12 +620,6 @@ protected:
     bool hasFaceTracker() { return _headData ? _headData->_isFaceTrackerConnected : false; }
     bool faceTrackerInfoChanged();
 
-    QByteArray toByteArray_OLD(AvatarDataDetail dataDetail);
-    QByteArray toByteArray_NEW(AvatarDataDetail dataDetail);
-
-    int parseDataFromBuffer_OLD(const QByteArray& buffer);
-    int parseDataFromBuffer_NEW(const QByteArray& buffer);
-
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
