@@ -234,17 +234,19 @@ void Model::updateRenderItems() {
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
-                if (!data.hasStartedFade() && data._model && data._model->isLoaded() && data._model->getGeometry()->areTexturesLoaded()) {
-                    data.startFade();
-                }
-                // Ensure the model geometry was not reset between frames
-                if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
-                    // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                    data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
+                if (data._model && data._model->isLoaded()) {
+                    if (!data.hasStartedFade() && data._model->getGeometry()->areTexturesLoaded()) {
+                        data.startFade();
+                    }
+                    // Ensure the model geometry was not reset between frames
+                    if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
+                        // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+                        data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
 
-                    // update the model transform and bounding box for this render item.
-                    const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                    data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                        // update the model transform and bounding box for this render item.
+                        const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+                        data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                    }
                 }
             });
         }

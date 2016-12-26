@@ -4307,7 +4307,7 @@ void Application::update(float deltaTime) {
 
     // AvatarManager update
     {
-        PerformanceTimer perfTimer("AvatarManger");
+        PerformanceTimer perfTimer("AvatarManager");
         _avatarSimCounter.increment();
 
         {
