@@ -19,19 +19,19 @@ class QUrl;
 
 class SteamAPIPlugin : public SteamClientPlugin {
 public:
-    bool isRunning();
+    bool isRunning() override;
 
-    bool init();
-    void shutdown();
+    bool init() override;
+    void shutdown() override;
 
-    void runCallbacks();
+    void runCallbacks() override;
 
-    void requestTicket(TicketRequestCallback callback);
-    void updateLocation(QString status, QUrl locationUrl);
-    void openInviteOverlay();
-    void joinLobby(QString lobbyId);
+    void requestTicket(TicketRequestCallback callback) override;
+    void updateLocation(QString status, QUrl locationUrl) override;
+    void openInviteOverlay() override;
+    void joinLobby(QString lobbyId) override;
 
-    int getSteamVRBuildID();
+    int getSteamVRBuildID() override;
 };
 
 #endif // hifi_SteamAPIPlugin_h
