@@ -146,6 +146,12 @@ GameManager.prototype = {
         this.checkEnemyPositionsTimer = null;
         this.enemyIDs = [];
 
+        // SpawnQueue is a list of enemies left to spawn. Each entry looks like:
+        //
+        //   { spawnAt: 1000, position: { x: 0, y: 0, z: 0 } }
+        //
+        // where spawnAt is the number of millseconds after the start of the wave
+        // to spawn the enemy. The list is sorted by spawnAt, ascending.
         this.spawnQueue = [];
 
         this.gameState = GAME_STATES.PLAYING;
@@ -223,6 +229,12 @@ GameManager.prototype = {
             var entityID = Entities.addEntity(baseEnemyProperties);
             this.enemyIDs.push(entityID);
             this.spawnQueue.splice(0, 1);
+            Script.setTimeout(function() {
+                var velocity = Entities.getEntityProperties(entityID, 'velocity').velocity;
+                velocity.y += 5;
+                Entities.editEntity(entityID, { velocity: velocity });
+
+            }, 500 + Math.random() * 4000);
         }
         print("Spawn queue size: ", this.spawnQueue.length, "Elapsed time: ", waveElapsedTime, "Number of enemies:", this.enemyIDs.length);
     },
