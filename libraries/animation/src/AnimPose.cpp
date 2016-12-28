@@ -18,11 +18,17 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
                                              glm::vec3(0.0f));
 
 AnimPose::AnimPose(const glm::mat4& mat) : _dirty(false) {
+    static const float EPSILON = 0.0001f;
     _mat = mat;
     _scale = extractScale(mat);
     // quat_cast doesn't work so well with scaled matrices, so cancel it out.
     glm::mat4 tmp = glm::scale(mat, 1.0f / _scale);
-    _rot = glm::normalize(glm::quat_cast(tmp));
+    _rot = glm::quat_cast(tmp);
+    float lengthSquared = glm::length2(_rot);
+    if (glm::abs(lengthSquared - 1.0f) > EPSILON) {
+        float oneOverLength = 1.0f / sqrt(lengthSquared);
+        _rot = glm::quat(_rot.w * oneOverLength, _rot.x * oneOverLength, _rot.y * oneOverLength, _rot.z * oneOverLength);
+    }
     _trans = extractTranslation(mat);
 }
 
