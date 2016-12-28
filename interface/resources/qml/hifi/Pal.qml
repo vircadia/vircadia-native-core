@@ -212,14 +212,14 @@ Item {
                     datum[styleData.role] = model[styleData.role] = newValue
                     if (styleData.role === "personalMute") {
                         Users[styleData.role](model.sessionId, newValue)
-                    } else if (styleData.role === 'ignore') {
+                    } else if (styleData.role === "ignore") {
                         var key = styleData.role;
                         if (!newValue) {
                             key = 'un' + key;
                         }
                         if (newValue) {
                             ignored[datum.sessionId] = datum;
-                            console.log('fixme hrs adding to ignored', JSON.stringify(datum), 'at', datum.sessionId);
+                            console.log("fixme hrs adding to ignored", JSON.stringify(datum), "at", datum.sessionId);
                         } else {
                             delete ignored[datum.sessionId];
                         }    
@@ -232,6 +232,7 @@ Item {
                         sortModel()
                     }
                 }
+            }
         }
     }
     // Refresh button
