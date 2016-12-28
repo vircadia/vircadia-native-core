@@ -38,13 +38,13 @@ set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${INSTALL_DIR}/lib CACHE FILEPATH "Location 
 
 if (APPLE)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip5.1.0.0.dylib CACHE FILEPATH "Location of QuaZip release library")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/libquazip5d.1.0.0.dylib CACHE FILEPATH "Location of QuaZip release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/libquazip5.1.0.0.dylib CACHE FILEPATH "Location of QuaZip release library")
 elseif (WIN32)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/quazip5.lib CACHE FILEPATH "Location of QuaZip release library")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/quazip5d.lib CACHE FILEPATH "Location of QuaZip release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/quazip5.lib CACHE FILEPATH "Location of QuaZip release library")
 else ()
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip5.so CACHE FILEPATH "Location of QuaZip release library")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/libquazip5d.so CACHE FILEPATH "Location of QuaZip release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/libquazip5.so CACHE FILEPATH "Location of QuaZip release library")
 endif ()
 
 include(SelectLibraryConfigurations)
