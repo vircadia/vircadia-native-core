@@ -17,10 +17,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-struct AnimPose {
+class AnimPose {
+public:
     AnimPose() {}
     explicit AnimPose(const glm::mat4& mat);
-    AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : scale(scaleIn), rot(rotIn), trans(transIn) {}
+    AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : _scale(scaleIn), _rot(rotIn), _trans(transIn) {}
     static const AnimPose identity;
 
     glm::vec3 xformPoint(const glm::vec3& rhs) const;
@@ -31,15 +32,29 @@ struct AnimPose {
 
     AnimPose inverse() const;
     AnimPose mirror() const;
-    operator glm::mat4() const;
+    operator const glm::mat4&() const;
 
-    glm::vec3 scale;
-    glm::quat rot;
-    glm::vec3 trans;
+    const glm::vec3& scale() const { return _scale; }
+    glm::vec3& scale() { _dirty = true; return _scale; }
+
+    const glm::quat& rot() const { return _rot; }
+    glm::quat& rot() { _dirty = true; return _rot; }
+
+    const glm::vec3& trans() const { return _trans; }
+    glm::vec3& trans() { _dirty = true;  return _trans; }
+
+private:
+    friend QDebug operator<<(QDebug debug, const AnimPose& pose);
+
+    mutable bool _dirty { true };
+    mutable glm::mat4 _mat;
+    glm::vec3 _scale { 1.0f };
+    glm::quat _rot;
+    glm::vec3 _trans;
 };
 
 inline QDebug operator<<(QDebug debug, const AnimPose& pose) {
-    debug << "AnimPose, trans = (" << pose.trans.x << pose.trans.y << pose.trans.z << "), rot = (" << pose.rot.x << pose.rot.y << pose.rot.z << pose.rot.w << "), scale = (" << pose.scale.x << pose.scale.y << pose.scale.z << ")";
+    debug << "AnimPose, trans = (" << pose.trans().x << pose.trans().y << pose.trans().z << "), rot = (" << pose.rot().x << pose.rot().y << pose.rot().z << pose.rot().w << "), scale = (" << pose.scale().x << pose.scale().y << pose.scale().z << ")";
     return debug;
 }
 

@@ -141,7 +141,7 @@ public:
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
 
     // rig space
-    glm::mat4 getJointTransform(int jointIndex) const;
+    const glm::mat4& getJointTransform(int jointIndex) const;
 
     // Start or stop animations as needed.
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
