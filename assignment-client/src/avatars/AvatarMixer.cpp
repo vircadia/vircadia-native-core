@@ -111,7 +111,7 @@ void AvatarMixer::broadcastAvatarData() {
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
 
     // only send extra avatar data (avatars out of view, ignored) every Nth AvatarData frame
-    const int EXTRA_AVATAR_DATA_FRAME_RATIO = 10; 
+    const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16; 
     
     // NOTE: The following code calculates the _performanceThrottlingRatio based on how much the avatar-mixer was
     // able to sleep. This will eventually be used to ask for an additional avatar-mixer to help out. Currently the value
@@ -370,11 +370,6 @@ void AvatarMixer::broadcastAvatarData() {
 
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
-
-                    // this throttles the extra data to only be sent every Nth message
-                    if (getsOutOfView && lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0) {
-                        return;
-                    }
                     
                     if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
                         // we got out out of order packets from the sender, track it
@@ -400,15 +395,21 @@ void AvatarMixer::broadcastAvatarData() {
                     nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
                                                              otherNodeData->getLastReceivedSequenceNumber());
 
-                    // start a new segment in the PacketList for this avatar
-                    avatarPacketList->startSegment();
-
                     // determine if avatar is in view, to determine how much data to include...
                     glm::vec3 otherNodeBoxScale = (otherNodeData->getPosition() - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
                     AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+                    bool isInView = nodeData->otherAvatarInView(otherNodeBox);
+
+                    // this throttles the extra data to only be sent every Nth message
+                    if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
+                        return;
+                    }
+
+                    // start a new segment in the PacketList for this avatar
+                    avatarPacketList->startSegment();
 
                     AvatarData::AvatarDataDetail detail;
-                    if (!nodeData->otherAvatarInView(otherNodeBox) && !getsOutOfView) {
+                    if (!isInView && !getsOutOfView) {
                         detail = AvatarData::MinimumData;
                         nodeData->incrementAvatarOutOfView();
                     } else {
