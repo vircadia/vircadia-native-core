@@ -25,8 +25,9 @@ Q_LOGGING_CATEGORY(trace_simulation_physics, "trace.simulation.physics")
 #define NSIGHT_TRACING
 #endif
 
-Duration::Duration(const QLoggingCategory& category, const QString& name, uint32_t argbColor, uint64_t payload, QVariantMap args) : _name(name), _category(category) {
+Duration::Duration(const QLoggingCategory& category, const QString& name, uint32_t argbColor, uint64_t payload, const QVariantMap& baseArgs) : _name(name), _category(category) {
     if (_category.isDebugEnabled()) {
+        QVariantMap args = baseArgs;
         args["nv_payload"] = QVariant::fromValue(payload);
         tracing::traceEvent(_category, _name, tracing::DurationBegin, "", args);
 
