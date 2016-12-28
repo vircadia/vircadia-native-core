@@ -26,7 +26,7 @@ AnimPose::AnimPose(const glm::mat4& mat) : _dirty(false) {
     _rot = glm::quat_cast(tmp);
     float lengthSquared = glm::length2(_rot);
     if (glm::abs(lengthSquared - 1.0f) > EPSILON) {
-        float oneOverLength = 1.0f / sqrt(lengthSquared);
+        float oneOverLength = 1.0f / sqrtf(lengthSquared);
         _rot = glm::quat(_rot.w * oneOverLength, _rot.x * oneOverLength, _rot.y * oneOverLength, _rot.z * oneOverLength);
     }
     _trans = extractTranslation(mat);
