@@ -102,12 +102,25 @@ public:
     const QString& getBaseDisplayName() { return _baseDisplayName; }
     void setBaseDisplayName(const QString& baseDisplayName) { _baseDisplayName = baseDisplayName; }
 
+    quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
+        quint64 result = 0;
+        if (_lastOtherAvatarEncodeTime.find(otherAvatar) != _lastOtherAvatarEncodeTime.end()) {
+            result = _lastOtherAvatarEncodeTime[otherAvatar];
+        }
+        _lastOtherAvatarEncodeTime[otherAvatar] = usecTimestampNow();
+        return result;
+    }
+
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
     uint16_t _lastReceivedSequenceNumber { 0 };
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
+
+    // this is a map of the last time we encoded an "other" avatar for
+    // sending to "this" node
+    std::unordered_map<QUuid, quint64> _lastOtherAvatarEncodeTime;
 
     HRCTime _identityChangeTimestamp;
     bool _gotIdentity { false };

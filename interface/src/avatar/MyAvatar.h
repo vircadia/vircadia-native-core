@@ -333,7 +333,7 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    QByteArray toByteArray(AvatarDataDetail dataDetail) override;
+    QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime) override;
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;

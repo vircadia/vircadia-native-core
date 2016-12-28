@@ -132,6 +132,7 @@ float AvatarData::getTargetScale() const {
 
 void AvatarData::setTargetScale(float targetScale) {
     _targetScale = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    _scaleChanged = usecTimestampNow();
 }
 
 void AvatarData::setTargetScaleVerbose(float targetScale) {
@@ -159,48 +160,47 @@ void AvatarData::lazyInitHeadData() {
 }
 
 
-bool AvatarData::avatarLocalPositionChanged() {
-    return _lastSentLocalPosition != getLocalPosition();
+bool AvatarData::avatarDimensionsChangedSince(quint64 time) {
+    return _avatarDimensionsChanged >= time;
 }
 
-bool AvatarData::avatarDimensionsChanged() {
-    auto avatarDimensions = getPosition() - _globalBoundingBoxCorner;
-    return _lastSentAvatarDimensions != avatarDimensions;
+bool AvatarData::avatarScaleChangedSince(quint64 time) {
+    return _avatarScaleChanged >= time;
 }
 
-bool AvatarData::avatarOrientationChanged() {
-    return _lastSentLocalOrientation != getLocalOrientation();
+bool AvatarData::lookAtPositionChangedSince(quint64 time) {
+    return _headData->lookAtPositionChangedSince(time);
 }
 
-bool AvatarData::avatarScaleChanged() {
-    return _lastSentScale != getDomainLimitedScale();
+bool AvatarData::audioLoudnessChangedSince(quint64 time) {
+    return _headData->audioLoudnessChangedSince(time);
 }
 
-bool AvatarData::lookAtPositionChanged() {
-    return _lastSentLookAt != _headData->_lookAtPosition;
+bool AvatarData::sensorToWorldMatrixChangedSince(quint64 time) {
+    return _sensorToWorldMatrixChanged >= time;
 }
 
-bool AvatarData::audioLoudnessChanged() {
-    return _lastSentAudioLoudness != glm::min(_headData->_audioLoudness, MAX_AUDIO_LOUDNESS);
-}
-
-bool AvatarData::sensorToWorldMatrixChanged() {
-    return _lastSentSensorToWorldMatrix != getSensorToWorldMatrix();
-}
-
-bool AvatarData::additionalFlagsChanged() {
+bool AvatarData::additionalFlagsChangedSince(quint64 time) {
     return true; // FIXME!
 }
 
-bool AvatarData::parentInfoChanged() {
-    return (_lastSentParentID != getParentID()) || (_lastSentParentJointIndex != _parentJointIndex);
+bool AvatarData::parentInfoChangedSince(quint64 time) {
+    return _parentChanged >= time;
 }
 
-bool AvatarData::faceTrackerInfoChanged() {
+bool AvatarData::faceTrackerInfoChangedSince(quint64 time) {
     return true; // FIXME!
 }
 
-QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
+QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime) {
+
+    // if no timestamp was included, then assume the avatarData is single instance 
+    // and is tracking its own last encoding time.
+    if (lastSentTime == 0) {
+        lastSentTime = _lastToByteArray;
+        _lastToByteArray = usecTimestampNow();
+    }
+
     bool cullSmallChanges = (dataDetail == CullSmallData);
     bool sendAll = (dataDetail == SendAllData);
     bool sendMinimum = (dataDetail == MinimumData);
@@ -261,18 +261,25 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
     //      the others will be partial.
     //      we need some way of keeping track of what was sent the last time.
 
+    //  AvatarDataRegulator
+    //      .lastSent = time
+    //
+    //  hasAvatarGlobalPosition = (globalPositionChanged > lastSent) 
+    //  hasAvatarLocalPosition = (localPositionChanged > lastSent) 
+    //  ...
 
     bool hasAvatarGlobalPosition = true; // always include global position
-    bool hasAvatarLocalPosition = sendAll || avatarLocalPositionChanged();
-    bool hasAvatarDimensions = sendAll || avatarDimensionsChanged();
-    bool hasAvatarOrientation = sendAll || avatarOrientationChanged();
-    bool hasAvatarScale = sendAll || avatarScaleChanged();
-    bool hasLookAtPosition = sendAll || lookAtPositionChanged();
-    bool hasAudioLoudness = sendAll || audioLoudnessChanged();
-    bool hasSensorToWorldMatrix = sendAll || sensorToWorldMatrixChanged();
-    bool hasAdditionalFlags = sendAll || additionalFlagsChanged();
-    bool hasParentInfo = hasParent() && (sendAll || parentInfoChanged());
-    bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChanged());
+    bool hasAvatarLocalPosition = sendAll || tranlationChangedSince(lastSentTime);
+    bool hasAvatarOrientation = sendAll || rotationChangedSince(lastSentTime);
+
+    bool hasAvatarDimensions = sendAll || avatarDimensionsChangedSince(lastSentTime);
+    bool hasAvatarScale = sendAll || avatarScaleChangedSince(lastSentTime);
+    bool hasLookAtPosition = sendAll || lookAtPositionChangedSince(lastSentTime);
+    bool hasAudioLoudness = sendAll || audioLoudnessChangedSince(lastSentTime);
+    bool hasSensorToWorldMatrix = sendAll || sensorToWorldMatrixChangedSince(lastSentTime);
+    bool hasAdditionalFlags = sendAll || additionalFlagsChangedSince(lastSentTime);
+    bool hasParentInfo = hasParent() && (sendAll || parentInfoChangedSince(lastSentTime));
+    bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
     bool hasJointData = sendAll || !sendMinimum;
 
     //qDebug() << __FUNCTION__ << "sendAll:" << sendAll;
@@ -294,7 +301,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
           | (hasFaceTrackerInfo      ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
           | (hasJointData            ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0);
 
-    qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags;
+    qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags << "lastSentTime:" << lastSentTime;
+    qDebug() << "..." << "tranlationChangedSince():" << tranlationChangedSince(lastSentTime);
+    qDebug() << "..." << "rotationChangedSince():" << rotationChangedSince(lastSentTime);
+    qDebug() << "..." << "lookAtPositionChangedSince():" << lookAtPositionChangedSince(lastSentTime);
+    qDebug() << "..." << "audioLoudnessChangedSince():" << audioLoudnessChangedSince(lastSentTime);
+    qDebug() << "..." << "parentInfoChangedSince():" << parentInfoChangedSince(lastSentTime);
 
     memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
     destinationBuffer += sizeof(packetStateFlags);
@@ -305,8 +317,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         data->globalPosition[1] = _globalPosition.y;
         data->globalPosition[2] = _globalPosition.z;
         destinationBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
-        _lastSentGlobalPosition = _globalPosition;
-
         //qDebug() << "hasAvatarGlobalPosition _globalPosition:" << _globalPosition;
     }
 
@@ -321,17 +331,18 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         data->localPosition[1] = localPosition.y;
         data->localPosition[2] = localPosition.z;
         destinationBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
-        _lastSentLocalPosition = localPosition;
     }
 
     if (hasAvatarDimensions) {
         auto data = reinterpret_cast<AvatarDataPacket::AvatarDimensions*>(destinationBuffer);
+
+        // FIXME - make this just dimensions!!!
         auto avatarDimensions = getPosition() - _globalBoundingBoxCorner;
         data->avatarDimensions[0] = avatarDimensions.x;
         data->avatarDimensions[1] = avatarDimensions.y;
         data->avatarDimensions[2] = avatarDimensions.z;
         destinationBuffer += sizeof(AvatarDataPacket::AvatarDimensions);
-        _lastSentAvatarDimensions = avatarDimensions;
+        qDebug() << "hasAvatarDimensions avatarDimensions:" << avatarDimensions;
     }
 
     if (hasAvatarOrientation) {
@@ -342,7 +353,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         packFloatAngleToTwoByte((uint8_t*)(data->localOrientation + 1), bodyEulerAngles.x);
         packFloatAngleToTwoByte((uint8_t*)(data->localOrientation + 2), bodyEulerAngles.z);
         destinationBuffer += sizeof(AvatarDataPacket::AvatarOrientation);
-        _lastSentLocalOrientation = localOrientation;
+        qDebug() << "hasAvatarOrientation bodyEulerAngles:" << bodyEulerAngles;
     }
 
     if (hasAvatarScale) {
@@ -350,27 +361,25 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         auto scale = getDomainLimitedScale();
         packFloatRatioToTwoByte((uint8_t*)(&data->scale), scale);
         destinationBuffer += sizeof(AvatarDataPacket::AvatarScale);
-        _lastSentScale = scale;
+        qDebug() << "hasAvatarScale scale:" << scale;
     }
 
     if (hasLookAtPosition) {
         auto data = reinterpret_cast<AvatarDataPacket::LookAtPosition*>(destinationBuffer);
-        auto lookAt = _headData->_lookAtPosition;
+        auto lookAt = _headData->getLookAtPosition();
         data->lookAtPosition[0] = lookAt.x;
         data->lookAtPosition[1] = lookAt.y;
         data->lookAtPosition[2] = lookAt.z;
         destinationBuffer += sizeof(AvatarDataPacket::LookAtPosition);
-        _lastSentLookAt = lookAt;
-        //qDebug() << "hasLookAtPosition lookAt:" << lookAt;
+        qDebug() << "hasLookAtPosition lookAt:" << lookAt;
     }
 
     if (hasAudioLoudness) {
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
-        auto audioLoudness = glm::min(_headData->_audioLoudness, MAX_AUDIO_LOUDNESS);
+        auto audioLoudness = glm::min(_headData->getAudioLoudness(), MAX_AUDIO_LOUDNESS);
         packFloatScalarToSignedTwoByteFixed((uint8_t*)&data->audioLoudness, audioLoudness, AUDIO_LOUDNESS_RADIX);
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
-        _lastSentAudioLoudness = audioLoudness;
-        //qDebug() << "hasAudioLoudness audioLoudness:" << audioLoudness;
+        qDebug() << "hasAudioLoudness audioLoudness:" << audioLoudness;
     }
 
     if (hasSensorToWorldMatrix) {
@@ -383,7 +392,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         data->sensorToWorldTrans[1] = sensorToWorldMatrix[3][1];
         data->sensorToWorldTrans[2] = sensorToWorldMatrix[3][2];
         destinationBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
-        _lastSentSensorToWorldMatrix = sensorToWorldMatrix;
+        qDebug() << "hasSensorToWorldMatrix...";
     }
 
     QUuid parentID = getParentID();
@@ -415,7 +424,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         }
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
-        _lastSentAdditionalFlags = flags;
 
         //qDebug() << "hasAdditionalFlags _keyState:" << _keyState;
         //qDebug() << "hasAdditionalFlags _handState:" << _handState;
@@ -430,8 +438,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
         memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
         parentInfo->parentJointIndex = _parentJointIndex;
         destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
-        _lastSentParentID = parentID;
-        _lastSentParentJointIndex = _parentJointIndex;
     }
 
     // If it is connected, pack up the data
@@ -701,8 +707,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         PACKET_READ_CHECK(AvatarGlobalPosition, sizeof(AvatarDataPacket::AvatarGlobalPosition));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarGlobalPosition*>(sourceBuffer);
         _globalPosition = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]);
+        _globalPositionChanged = usecTimestampNow();
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
-        //qDebug() << "hasAvatarGlobalPosition _globalPosition:" << _globalPosition;
+        qDebug() << "hasAvatarGlobalPosition _globalPosition:" << _globalPosition;
     }
 
     if (hasAvatarLocalPosition) {
@@ -717,7 +724,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
         setLocalPosition(position);
         sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
-        //qDebug() << "hasAvatarLocalPosition position:" << position;
+        qDebug() << "hasAvatarLocalPosition position:" << position;
     }
 
     if (hasAvatarDimensions) {
@@ -726,8 +733,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         // FIXME - this is suspicious looking!
         _globalBoundingBoxCorner = glm::vec3(data->avatarDimensions[0], data->avatarDimensions[1], data->avatarDimensions[2]);
+        _avatarDimensionsChanged = usecTimestampNow();
         sourceBuffer += sizeof(AvatarDataPacket::AvatarDimensions);
-        //qDebug() << "hasAvatarDimensions _globalBoundingBoxCorner:" << _globalBoundingBoxCorner;
+        qDebug() << "hasAvatarDimensions _globalBoundingBoxCorner:" << _globalBoundingBoxCorner;
     }
 
     if (hasAvatarOrientation) {
@@ -752,7 +760,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             setLocalOrientation(newOrientation);
         }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarOrientation);
-        //qDebug() << "hasAvatarOrientation newOrientation:" << newOrientation;
+        qDebug() << "hasAvatarOrientation newOrientation:" << newOrientation;
     }
 
     if (hasAvatarScale) {
@@ -768,7 +776,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
         setTargetScale(scale);
         sourceBuffer += sizeof(AvatarDataPacket::AvatarScale);
-        //qDebug() << "hasAvatarOrientation scale:" << scale;
+        qDebug() << "hasAvatarOrientation scale:" << scale;
     }
 
     if (hasLookAtPosition) {
@@ -781,9 +789,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return buffer.size();
         }
-        _headData->_lookAtPosition = lookAt;
+        _headData->setLookAtPosition(lookAt);
         sourceBuffer += sizeof(AvatarDataPacket::LookAtPosition);
-        //qDebug() << "hasLookAtPosition lookAt:" << lookAt;
+        qDebug() << "hasLookAtPosition lookAt:" << lookAt;
     }
 
     if (hasAudioLoudness) {
@@ -798,9 +806,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return buffer.size();
         }
-        _headData->_audioLoudness = audioLoudness;
+        _headData->setAudioLoudness(audioLoudness);
         sourceBuffer += sizeof(AvatarDataPacket::AudioLoudness);
-        //qDebug() << "hasAudioLoudness audioLoudness:" << audioLoudness;
+        qDebug() << "hasAudioLoudness audioLoudness:" << audioLoudness;
     }
 
     if (hasSensorToWorldMatrix) {
@@ -813,8 +821,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         glm::vec3 sensorToWorldTrans(data->sensorToWorldTrans[0], data->sensorToWorldTrans[1], data->sensorToWorldTrans[2]);
         glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
         _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
+        _sensorToWorldMatrixChanged = usecTimestampNow();
         sourceBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
-        //qDebug() << "hasSensorToWorldMatrix sensorToWorldMatrix:" << sensorToWorldMatrix;
+        qDebug() << "hasSensorToWorldMatrix sensorToWorldMatrix:" << sensorToWorldMatrix;
     }
 
     if (hasAdditionalFlags) {
@@ -844,8 +853,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         //qDebug() << "hasAdditionalFlags _isFaceTrackerConnected:" << _headData->_isFaceTrackerConnected;
         //qDebug() << "hasAdditionalFlags _isEyeTrackerConnected:" << _headData->_isEyeTrackerConnected;
 
-        //qDebug() << "hasAdditionalFlags bitItems:" << bitItems;
+        qDebug() << "hasAdditionalFlags bitItems:" << bitItems;
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
+
+        _additionalFlagsChanged = usecTimestampNow();
     }
 
     // FIXME -- make sure to handle the existance of a parent vs a change in the parent...
@@ -858,8 +869,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         QByteArray byteArray((const char*)parentInfo->parentUUID, NUM_BYTES_RFC4122_UUID);
         _parentID = QUuid::fromRfc4122(byteArray);
         _parentJointIndex = parentInfo->parentJointIndex;
-        //qDebug() << "hasParentInfo _parentID:" << _parentID;
+        qDebug() << "hasParentInfo _parentID:" << _parentID;
+        _parentChanged = usecTimestampNow();
+
     } else {
+        // FIXME - this aint totally right, for switching to parent/no-parent
         _parentID = QUuid();
     }
 
@@ -879,13 +893,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
         sourceBuffer += coefficientsSize;
-        //qDebug() << "hasFaceTrackerInfo numCoefficients:" << numCoefficients;
+        qDebug() << "hasFaceTrackerInfo numCoefficients:" << numCoefficients;
     }
 
     if (hasJointData) {
         PACKET_READ_CHECK(NumJoints, sizeof(uint8_t));
         int numJoints = *sourceBuffer++;
-        //qDebug() << "hasJointData numJoints:" << numJoints;
+        qDebug() << "hasJointData numJoints:" << numJoints;
 
         const int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
         PACKET_READ_CHECK(JointRotationValidityBits, bytesOfValidity);

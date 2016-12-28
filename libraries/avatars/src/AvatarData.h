@@ -412,7 +412,7 @@ public:
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail);
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime = 0);
     virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged
@@ -464,10 +464,11 @@ public:
     void setTargetScaleVerbose(float targetScale);
 
     float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
+
     void setDomainMinimumScale(float domainMinimumScale)
-        { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); }
-    void setDomainMaximumScale(float domainMaximumScale)
-        { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); }
+        { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
+    void setDomainMaximumScale(float domainMaximumScale) 
+        { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
@@ -602,23 +603,23 @@ public slots:
 
     float getTargetScale() { return _targetScale; }
 
+    void resetLastSent() { _lastToByteArray = 0; }
+
 protected:
     void lazyInitHeadData();
 
-    bool avatarLocalPositionChanged();
-    bool avatarDimensionsChanged();
-    bool avatarOrientationChanged();
-    bool avatarScaleChanged();
-    bool lookAtPositionChanged();
-    bool audioLoudnessChanged();
-    bool sensorToWorldMatrixChanged();
-    bool additionalFlagsChanged();
+    bool avatarDimensionsChangedSince(quint64 time);
+    bool avatarScaleChangedSince(quint64 time);
+    bool lookAtPositionChangedSince(quint64 time);
+    bool audioLoudnessChangedSince(quint64 time);
+    bool sensorToWorldMatrixChangedSince(quint64 time);
+    bool additionalFlagsChangedSince(quint64 time);
 
     bool hasParent() { return !getParentID().isNull(); }
-    bool parentInfoChanged();
+    bool parentInfoChangedSince(quint64 time);
 
     bool hasFaceTracker() { return _headData ? _headData->_isFaceTrackerConnected : false; }
-    bool faceTrackerInfoChanged();
+    bool faceTrackerInfoChangedSince(quint64 time);
 
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
@@ -681,17 +682,17 @@ protected:
     // updates about one avatar to another.
     glm::vec3 _globalPosition { 0, 0, 0 };
 
-    glm::vec3 _lastSentGlobalPosition { 0, 0, 0 };
-    glm::vec3 _lastSentLocalPosition { 0, 0, 0 };
-    glm::vec3 _lastSentAvatarDimensions { 0, 0, 0 };
-    glm::quat _lastSentLocalOrientation;
-    float _lastSentScale { 0 };
-    glm::vec3 _lastSentLookAt { 0, 0, 0 };
-    float _lastSentAudioLoudness { 0 };
-    glm::mat4 _lastSentSensorToWorldMatrix;
-    uint8_t _lastSentAdditionalFlags { 0 };
-    QUuid _lastSentParentID;
-    quint16 _lastSentParentJointIndex { 0 };
+
+    quint64 _globalPositionChanged { 0 };
+    quint64 _avatarDimensionsChanged { 0 };
+    quint64 _avatarScaleChanged { 0 };
+    quint64 _lookAtChanged { 0 };
+    quint64 _audioLoudnessChanged { 0 };
+    quint64 _sensorToWorldMatrixChanged { 0 };
+    quint64 _additionalFlagsChanged { 0 };
+    quint64 _parentChanged { 0 };
+
+    quint64  _lastToByteArray { 0 }; // tracks the last time we did a toByteArray
    
 
     glm::vec3 _globalBoundingBoxCorner;
@@ -710,7 +711,6 @@ protected:
     int getFauxJointIndex(const QString& name) const;
 
     AvatarDataPacket::AvatarInfo _lastAvatarInfo;
-    glm::mat4 _lastSensorToWorldMatrix;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
