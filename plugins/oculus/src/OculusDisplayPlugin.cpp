@@ -147,17 +147,25 @@ void OculusDisplayPlugin::hmdPresent() {
             logWarning("Failed to present");
         }
 
-        static int droppedFrames = 0;
+        static int compositorDroppedFrames = 0;
+        static int appDroppedFrames = 0;
         ovrPerfStats perfStats;
         ovr_GetPerfStats(_session, &perfStats);
         for (int i = 0; i < perfStats.FrameStatsCount; ++i) {
             const auto& frameStats = perfStats.FrameStats[i];
-            int delta = frameStats.CompositorDroppedFrameCount - droppedFrames;
+            int delta = frameStats.CompositorDroppedFrameCount - compositorDroppedFrames;
             _stutterRate.increment(delta);
-            droppedFrames = frameStats.CompositorDroppedFrameCount;
+            compositorDroppedFrames = frameStats.CompositorDroppedFrameCount;
+            appDroppedFrames = frameStats.AppDroppedFrameCount;
         }
+        _hardwareStats["app_dropped_frame_count"] = appDroppedFrames;
     }
     _presentRate.increment();
+}
+
+
+QJsonObject OculusDisplayPlugin::getHardwareStats() const {
+    return _hardwareStats;
 }
 
 bool OculusDisplayPlugin::isHmdMounted() const {

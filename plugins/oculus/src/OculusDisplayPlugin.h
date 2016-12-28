@@ -19,6 +19,8 @@ public:
 
     QString getPreferredAudioInDevice() const override;
     QString getPreferredAudioOutDevice() const override;
+    
+    virtual QJsonObject getHardwareStats() const;
 
 protected:
     bool internalActivate() override;
@@ -33,5 +35,7 @@ private:
     ovrTextureSwapChain _textureSwapChain;
     gpu::FramebufferPointer _outputFramebuffer;
     bool _customized { false };
+
+    QJsonObject _hardwareStats;
 };
 
