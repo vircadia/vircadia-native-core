@@ -31,16 +31,15 @@ AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
 }
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
-    for (int i = 0; i < (int)_joints.size(); i++) {
-        if (_joints[i].name == jointName) {
-            return i;
-        }
+    auto itr = _jointIndicesByName.find(jointName);
+    if (_jointIndicesByName.end() == itr) {
+        return -1;
     }
-    return -1;
+    return itr.value();
 }
 
 int AnimSkeleton::getNumJoints() const {
-    return (int)_joints.size();
+    return _jointsSize;
 }
 
 const AnimPose& AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
@@ -78,7 +77,7 @@ const QString& AnimSkeleton::getJointName(int jointIndex) const {
 }
 
 AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const {
-    if (jointIndex < 0 || jointIndex >= (int)poses.size() || jointIndex >= (int)_joints.size()) {
+    if (jointIndex < 0 || jointIndex >= (int)poses.size() || jointIndex >= _jointsSize) {
         return AnimPose::identity;
     } else {
         return getAbsolutePose(_joints[jointIndex].parentIndex, poses) * poses[jointIndex];
@@ -87,7 +86,7 @@ AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses)
 
 void AnimSkeleton::convertRelativePosesToAbsolute(AnimPoseVec& poses) const {
     // poses start off relative and leave in absolute frame
-    int lastIndex = std::min((int)poses.size(), (int)_joints.size());
+    int lastIndex = std::min((int)poses.size(), _jointsSize);
     for (int i = 0; i < lastIndex; ++i) {
         int parentIndex = _joints[i].parentIndex;
         if (parentIndex != -1) {
@@ -98,7 +97,7 @@ void AnimSkeleton::convertRelativePosesToAbsolute(AnimPoseVec& poses) const {
 
 void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
     // poses start off absolute and leave in relative frame
-    int lastIndex = std::min((int)poses.size(), (int)_joints.size());
+    int lastIndex = std::min((int)poses.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
         int parentIndex = _joints[i].parentIndex;
         if (parentIndex != -1) {
@@ -109,7 +108,7 @@ void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
 
 void AnimSkeleton::convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const {
     // poses start off absolute and leave in relative frame
-    int lastIndex = std::min((int)rotations.size(), (int)_joints.size());
+    int lastIndex = std::min((int)rotations.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
         int parentIndex = _joints[i].parentIndex;
         if (parentIndex != -1) {
@@ -149,19 +148,19 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
 
 void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) {
     _joints = joints;
-
+    _jointsSize = (int)joints.size();
     // build a cache of bind poses
-    _absoluteBindPoses.reserve(joints.size());
-    _relativeBindPoses.reserve(joints.size());
+    _absoluteBindPoses.reserve(_jointsSize);
+    _relativeBindPoses.reserve(_jointsSize);
 
     // build a chache of default poses
-    _absoluteDefaultPoses.reserve(joints.size());
-    _relativeDefaultPoses.reserve(joints.size());
-    _relativePreRotationPoses.reserve(joints.size());
-    _relativePostRotationPoses.reserve(joints.size());
+    _absoluteDefaultPoses.reserve(_jointsSize);
+    _relativeDefaultPoses.reserve(_jointsSize);
+    _relativePreRotationPoses.reserve(_jointsSize);
+    _relativePostRotationPoses.reserve(_jointsSize);
 
     // iterate over FBXJoints and extract the bind pose information.
-    for (int i = 0; i < (int)joints.size(); i++) {
+    for (int i = 0; i < _jointsSize; i++) {
 
         // build pre and post transforms
         glm::mat4 preRotationTransform = _joints[i].preTransform * glm::mat4_cast(_joints[i].preRotation);
@@ -205,8 +204,8 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
 
     // build mirror map.
     _nonMirroredIndices.clear();
-    _mirrorMap.reserve(_joints.size());
-    for (int i = 0; i < (int)joints.size(); i++) {
+    _mirrorMap.reserve(_jointsSize);
+    for (int i = 0; i < _jointsSize; i++) {
         if (_joints[i].name.endsWith("tEye")) {
             // HACK: we don't want to mirror some joints so we remember their indices
             // so we can restore them after a future mirror operation
@@ -225,6 +224,10 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
         } else {
             _mirrorMap.push_back(i);
         }
+    }
+
+    for (int i = 0; i < _jointsSize; i++) {
+        _jointIndicesByName[_joints[i].name] = i;
     }
 }
 
