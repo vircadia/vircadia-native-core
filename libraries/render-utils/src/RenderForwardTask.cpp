@@ -80,6 +80,9 @@ RenderForwardTask::RenderForwardTask(CullFunctor cullFunctor) {
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
+    addJob<DrawBackground>("DrawBackground", background);
+
+    // bounds do not draw on stencil buffer, so they must come last
     addJob<DrawBounds>("DrawBounds", opaques);
 
     // Blit!
@@ -173,6 +176,8 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
         // Setup projection
         glm::mat4 projMat;
         Transform viewMat;
@@ -196,4 +201,27 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
             batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
         }
     });
+}
+
+void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.enableSkybox(true);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        // Setup projection
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        renderItems(sceneContext, renderContext, items);
+    });
+    args->_batch = nullptr;
 }
