@@ -1160,7 +1160,8 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     }
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
-    glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+    static const glm::mat4 zeroScale(
+        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -1170,11 +1171,17 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
-
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+#if GLM_ARCH & GLM_ARCH_SSE2
+            glm::mat4 temp, out, inverseBindMatrix = cluster.inverseBindMatrix;
+            glm_mat4_mul((glm_vec4*)&modelToWorld, (glm_vec4*)&jointMatrix, (glm_vec4*)&temp);
+            glm_mat4_mul((glm_vec4*)&temp, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
+            state.clusterMatrices[j] = out;
+#else 
             state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+#endif
 
             // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
             if (!_cauterizeBoneSet.empty()) {
