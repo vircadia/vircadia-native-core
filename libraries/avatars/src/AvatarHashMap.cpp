@@ -145,7 +145,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
             identity.uuid = EMPTY;
         }
     }
-    qDebug() << "FIXME HRS processing identity packet regarding" << identity.uuid << "ignoring:" << nodeList->isIgnoringNode(identity.uuid) << "reqestsDomainList:" << nodeList->getRequestsDomainListData();
     if (!nodeList->isIgnoringNode(identity.uuid) || nodeList->getRequestsDomainListData()) {
         // mesh URL for a UUID, find avatar in our list
         auto avatar = newOrExistingAvatar(identity.uuid, sendingNode);

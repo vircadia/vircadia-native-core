@@ -974,7 +974,6 @@ void NodeList::setRequestsDomainListData(bool isRequesting) {
         auto packet = NLPacket::create(PacketType::RequestsDomainListData, sizeof(bool), true); // reliable
         packet->writePrimitive(isRequesting);
         sendPacket(std::move(packet), *destinationNode);
-        qDebug() << "HRS FIXME sending RequestsDomainListData packet" << isRequesting;
     });
     _requestsDomainListData = isRequesting;
 }

@@ -347,7 +347,6 @@ void AvatarMixer::broadcastAvatarData() {
                         && (forceSend
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
-                        qDebug() << "FIXME HRS sending identity to" << node->getUUID() << "from" << otherNode->getUUID() << "gets mine/all/view:" << getsIgnoredByMe << getsAnyIgnored << getsOutOfView ;
                         sendIdentityPacket(otherNodeData, node);
                     }
 
@@ -417,7 +416,6 @@ void AvatarMixer::broadcastAvatarData() {
                                         ? AvatarData::SendAllData : AvatarData::IncludeSmallData;
                         nodeData->incrementAvatarInView();
                     }
-                    //qDebug() << "FIXME HRS sending" << detail << "to" << node->getUUID() << "from" << otherNode->getUUID();
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                     numAvatarDataBytes += avatarPacketList->write(otherAvatar.toByteArray(detail));
@@ -552,14 +550,12 @@ void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> messag
 void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->getOrCreateLinkedData(senderNode);
-    qDebug() << "HRS FIXME received RequestsDomainListData packet from" << senderNode->getUUID();
 
     if (senderNode->getLinkedData()) {
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
         if (nodeData != nullptr) {
             bool isRequesting;
             message->readPrimitive(&isRequesting);
-            qDebug() << "HRS FIXME handling RequestsDomainListData packet" << isRequesting << "from" << nodeData->getNodeID();
             nodeData->setRequestsDomainListData(isRequesting);
         }
     }
