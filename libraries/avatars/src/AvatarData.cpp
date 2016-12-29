@@ -284,7 +284,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
     bool hasJointData = sendAll || !sendMinimum;
 
-    qDebug() << __FUNCTION__ << "sendAll:" << sendAll;
+    //qDebug() << __FUNCTION__ << "sendAll:" << sendAll;
     //qDebug() << "hasAvatarGlobalPosition:" << hasAvatarGlobalPosition;
     //qDebug() << "hasAvatarOrientation:" << hasAvatarOrientation;
 
@@ -303,7 +303,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
           | (hasFaceTrackerInfo      ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
           | (hasJointData            ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0);
 
-    qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags << "lastSentTime:" << lastSentTime;
+    //qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags << "lastSentTime:" << lastSentTime;
 
     /*
     qDebug() << "..." << "tranlationChangedSince():" << tranlationChangedSince(lastSentTime);
@@ -688,7 +688,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     memcpy(&packetStateFlags, sourceBuffer, sizeof(packetStateFlags));
     sourceBuffer += sizeof(packetStateFlags);
 
-    qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags;
+    //qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags;
     //qDebug() << "buffer size:" << buffer.size();
 
 
@@ -907,7 +907,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     if (hasJointData) {
         PACKET_READ_CHECK(NumJoints, sizeof(uint8_t));
         int numJoints = *sourceBuffer++;
-        qDebug() << "....hasJointData numJoints:" << numJoints;
+        //qDebug() << "....hasJointData numJoints:" << numJoints;
 
         const int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
         PACKET_READ_CHECK(JointRotationValidityBits, bytesOfValidity);
