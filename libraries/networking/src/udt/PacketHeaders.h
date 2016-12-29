@@ -105,10 +105,7 @@ public:
         UsernameFromIDReply,
         ViewFrustum,
         RequestsDomainListData,
-        NodePersonalMuteRequest,
-        NodePersonalMuteStatusRequest,
-        NodePersonalMuteStatusReply,
-        LAST_PACKET_TYPE = NodePersonalMuteStatusReply
+        LAST_PACKET_TYPE = RequestsDomainListData
     };
 };
 

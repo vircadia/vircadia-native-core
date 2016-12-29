@@ -202,7 +202,7 @@ Item {
             
             // This CheckBox belongs in the columns that contain the action buttons ("Mute", "Ban", etc)
             HifiControls.CheckBox {
-                visible: isCheckBox
+                visible: styleData.role === "personalMute" ? (model["ignore"] === true ? false : true) : isCheckBox
                 anchors.centerIn: parent
                 checked: model[styleData.role]
                 boxSize: 24
@@ -211,7 +211,10 @@ Item {
                     var datum = userData[model.userIndex]
                     datum[styleData.role] = model[styleData.role] = newValue
                     if (styleData.role === "personalMute" || styleData.role === "ignore") {
-                        Users[styleData.role](model.sessionId, newValue)      
+                        Users[styleData.role](model.sessionId, newValue)
+                        if (styleData.role === "ignore") {
+                            datum["personalMute"] = model["personalMute"] = newValue
+                        }
                     } else {
                         Users[styleData.role](model.sessionId)
                         // Just for now, while we cannot undo things:
@@ -403,13 +406,6 @@ Item {
                     userData[userIndex].audioLevel = audioLevel; // Defensive programming
                 }
             }
-            break;
-        case 'updatePersonalMutedStatus':
-            var userId = message.params[0];
-            var enabled = message.params[1];
-            var userIndex = findSessionIndex(userId);
-            userModel.setProperty(userIndex, "personalMute", enabled);
-            userData[userIndex].personalMute.property = enabled; // Defensive programming
             break;
     default:
             console.log('Unrecognized message:', JSON.stringify(message));

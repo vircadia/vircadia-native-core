@@ -21,7 +21,6 @@ UsersScriptingInterface::UsersScriptingInterface() {
     connect(nodeList.data(), &NodeList::usernameFromIDReply, this, &UsersScriptingInterface::usernameFromIDReply);
     connect(nodeList.data(), &NodeList::ignoredNode, this, &UsersScriptingInterface::ignoredNode);
     connect(nodeList.data(), &NodeList::unignoredNode, this, &UsersScriptingInterface::unignoredNode);
-    connect(nodeList.data(), &NodeList::personalMuteStatusReply, this, &UsersScriptingInterface::personalMuteStatusReply);
 }
 
 void UsersScriptingInterface::ignore(const QUuid& nodeID, bool ignoreEnabled) {
@@ -40,9 +39,9 @@ void UsersScriptingInterface::personalMute(const QUuid& nodeID, bool muteEnabled
     DependencyManager::get<NodeList>()->personalMuteNodeBySessionID(nodeID, muteEnabled);
 }
 
-void UsersScriptingInterface::requestPersonalMuteStatus(const QUuid& nodeID) {
-    // ask the Audio Mixer via the NodeList for the Personal Mute status associated with the given session ID
-    DependencyManager::get<NodeList>()->requestPersonalMuteStatus(nodeID);
+bool UsersScriptingInterface::getPersonalMuteStatus(const QUuid& nodeID) {
+    // ask the NodeList for the Personal Mute status associated with the given session ID
+    return DependencyManager::get<NodeList>()->isPersonalMutingNode(nodeID);
 }
 
 void UsersScriptingInterface::kick(const QUuid& nodeID) {

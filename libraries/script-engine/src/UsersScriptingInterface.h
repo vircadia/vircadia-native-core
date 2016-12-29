@@ -59,7 +59,7 @@ public slots:
     * @function Users.requestPersonalMuteStatus
     * @param {nodeID} nodeID The node or session ID of the user whose personal mute status you want.
     */
-    void requestPersonalMuteStatus(const QUuid& nodeID);
+    bool getPersonalMuteStatus(const QUuid& nodeID);
 
     /**jsdoc
     * Kick another user.
@@ -131,12 +131,6 @@ signals:
     * @function Users.usernameFromIDReply
     */
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
-
-    /**jsdoc
-    * Notifies scripts of the Personal Mute status associated with a UUID.
-    * @function Users.usernameFromIDReply
-    */
-    void personalMuteStatusReply(const QString& nodeID, bool isPersonalMuted);
 
 private:
     bool getRequestsDomainListData();

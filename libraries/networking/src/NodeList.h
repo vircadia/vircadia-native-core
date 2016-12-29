@@ -79,7 +79,7 @@ public:
     void ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled);
     bool isIgnoringNode(const QUuid& nodeID) const;
     void personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled);
-    void requestPersonalMuteStatus(const QUuid& nodeID);
+    bool isPersonalMutingNode(const QUuid& nodeID) const;
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
@@ -105,7 +105,6 @@ public slots:
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
     void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
-    void processPersonalMuteStatusReply(QSharedPointer<ReceivedMessage> message);
 
 #if (PR_BUILD || DEV_BUILD)
     void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
@@ -118,7 +117,6 @@ signals:
     void unignoredNode(const QUuid& nodeID);
     void ignoreRadiusEnabledChanged(bool isIgnored);
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
-    void personalMuteStatusReply(const QString& nodeID, bool isPersonalMuted);
 
 private slots:
     void stopKeepalivePingTimer();
@@ -164,6 +162,8 @@ private:
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
+    mutable QReadWriteLock _personalMutedSetLock;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _personalMutedNodeIDs;
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
     Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };

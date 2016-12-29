@@ -136,7 +136,7 @@ function populateUserList() {
         // and ignore status from AudioMixer/AvatarMixer
         // (as long as we're not requesting it for our own ID)
         if (id) {
-            Users.requestPersonalMuteStatus(id);
+            avatarPalDatum['personalMute'] = Users.getPersonalMuteStatus(id);
             avatarPalDatum['ignore'] = Users.getIgnoreStatus(id);
         }
         data.push(avatarPalDatum);
@@ -163,14 +163,6 @@ function usernameFromIDReply(id, username, machineFingerprint) {
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
     pal.sendToQml({ method: 'updateUsername', params: data });
-}
-
-// The function that handles the personal muted status from the AudioMixer
-function personalMuteStatusReply(id, isPersonalMuted) {
-    var data = [id, isPersonalMuted];
-    print('Personal Muted Status Data:', JSON.stringify(data));
-    // Ship the data off to QML
-    pal.sendToQml({ method: 'updatePersonalMutedStatus', params: data });
 }
 
 var pingPong = true;
@@ -343,7 +335,6 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
-Users.personalMuteStatusReply.connect(personalMuteStatusReply);
 
 function onIgnore(sessionId) { // make it go away in the usual way, since we'll still get data keeping it live
     // Why doesn't this work from .qml? (crashes)
@@ -361,7 +352,6 @@ Script.scriptEnding.connect(function () {
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Users.ignoredNode.disconnect(onIgnore);
-    Users.personalMuteStatusReply.disconnect(personalMuteStatusReply);
     off();
 });
 
