@@ -22,6 +22,13 @@
 const char* OculusDisplayPlugin::NAME { "Oculus Rift" };
 static ovrPerfHudMode currentDebugMode = ovrPerfHud_Off;
 
+
+OculusDisplayPlugin::OculusDisplayPlugin() {
+    _appDroppedFrames.store(0);
+    _compositorDroppedFrames.store(0);
+}
+
+
 bool OculusDisplayPlugin::internalActivate() {
     bool result = Parent::internalActivate();
     currentDebugMode = ovrPerfHud_Off;
@@ -147,17 +154,29 @@ void OculusDisplayPlugin::hmdPresent() {
             logWarning("Failed to present");
         }
 
-        static int droppedFrames = 0;
+        static int compositorDroppedFrames = 0;
+        static int appDroppedFrames = 0;
         ovrPerfStats perfStats;
         ovr_GetPerfStats(_session, &perfStats);
         for (int i = 0; i < perfStats.FrameStatsCount; ++i) {
             const auto& frameStats = perfStats.FrameStats[i];
-            int delta = frameStats.CompositorDroppedFrameCount - droppedFrames;
+            int delta = frameStats.CompositorDroppedFrameCount - compositorDroppedFrames;
             _stutterRate.increment(delta);
-            droppedFrames = frameStats.CompositorDroppedFrameCount;
+            compositorDroppedFrames = frameStats.CompositorDroppedFrameCount;
+            appDroppedFrames = frameStats.AppDroppedFrameCount;
         }
+        _appDroppedFrames.store(appDroppedFrames);
+        _compositorDroppedFrames.store(compositorDroppedFrames);
     }
     _presentRate.increment();
+}
+
+
+QJsonObject OculusDisplayPlugin::getHardwareStats() const {
+    QJsonObject hardwareStats;
+    hardwareStats["app_dropped_frame_count"] = _appDroppedFrames.load();
+    hardwareStats["compositor_dropped_frame_count"] = _compositorDroppedFrames.load();
+    return hardwareStats;
 }
 
 bool OculusDisplayPlugin::isHmdMounted() const {
