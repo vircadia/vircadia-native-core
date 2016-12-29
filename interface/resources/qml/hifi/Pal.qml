@@ -40,7 +40,7 @@ Item {
     property int myCardHeight: 70
     property int rowHeight: 70
     property int actionButtonWidth: 75
-    property int nameCardWidth: width - actionButtonWidth*(iAmAdmin ? 4 : 2)
+    property int nameCardWidth: width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4
 
     // This contains the current user's NameCard and will contain other information in the future
     Rectangle {
@@ -85,7 +85,7 @@ Item {
     Rectangle {
         id: adminTab
         // Size
-        width: actionButtonWidth * 2 - 2
+        width: actionButtonWidth * 2 + 2
         height: 40
         // Anchors
         anchors.bottom: myInfo.bottom
@@ -115,6 +115,19 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
         }
+    }
+    // Separator between user and admin functions
+    Rectangle {
+        // Size
+        width: 2
+        height: table.height
+        // Anchors
+        anchors.left: adminTab.left
+        anchors.top: table.top
+        // Properties
+        z: 100
+        visible: iAmAdmin
+        color: hifi.colors.lightGrayText
     }
     // This TableView refers to the table (below the current user's NameCard)
     HifiControls.Table {
@@ -191,7 +204,7 @@ Item {
                 // Properties
                 displayName: styleData.value
                 userName: model && model.userName
-                audioLevel: model.audioLevel
+                audioLevel: model && model.audioLevel
                 visible: !isCheckBox
                 // Size
                 width: nameCardWidth
@@ -202,12 +215,16 @@ Item {
             
             // This CheckBox belongs in the columns that contain the action buttons ("Mute", "Ban", etc)
             HifiControls.CheckBox {
-                visible: styleData.role === "personalMute" ? (model["ignore"] === true ? false : true) : isCheckBox
+                visible: isCheckBox
                 anchors.centerIn: parent
-                checked: model[styleData.role]
+                checked: model && model[styleData.role]
+                enabled: styleData.role === "personalMute" ? (model["ignore"] === true ? false : true) : true
                 boxSize: 24
                 onClicked: {
                     var newValue = !model[styleData.role]
+                    if (newValue === undefined) {
+                        newValue = false
+                    }
                     var datum = userData[model.userIndex]
                     datum[styleData.role] = model[styleData.role] = newValue
                     if (styleData.role === "personalMute" || styleData.role === "ignore") {
@@ -263,19 +280,6 @@ Item {
             onEntered: reloadButton.color = hifi.colors.baseGrayHighlight
             onExited: reloadButton.color = (pressed ?  hifi.colors.lightGrayText: hifi.colors.darkGray)
         }
-    }
-
-    // Separator between user and admin functions
-    Rectangle {
-        // Size
-        width: 2
-        height: table.height
-        // Anchors
-        anchors.left: adminTab.left
-        anchors.top: table.top
-        // Properties
-        visible: iAmAdmin
-        color: hifi.colors.lightGrayText
     }
     // This Rectangle refers to the [?] popup button
     Rectangle {

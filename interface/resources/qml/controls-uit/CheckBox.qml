@@ -27,7 +27,9 @@ Original.CheckBox {
     readonly property int checkRadius: 2
 
     style: CheckBoxStyle {
-        indicator: Rectangle {
+        indicator:
+
+        Rectangle {
             id: box
             width: boxSize
             height: boxSize
@@ -49,6 +51,19 @@ Original.CheckBox {
                            ? (checkBox.isLightColorScheme ? hifi.colors.checkboxChecked : hifi.colors.checkboxLightFinish)
                            : (checkBox.isLightColorScheme ? hifi.colors.checkboxLightFinish : hifi.colors.checkboxDarkFinish)
                 }
+            }
+
+            Rectangle {
+                id: disabledOverlay
+                visible: !enabled
+                z: 100
+                width: boxSize
+                height: boxSize
+                radius: boxRadius
+                border.width: 1
+                border.color: hifi.colors.baseGrayHighlight
+                color: hifi.colors.baseGrayHighlight
+                opacity: 0.5
             }
 
             Rectangle {
