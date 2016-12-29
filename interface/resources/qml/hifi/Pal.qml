@@ -386,7 +386,7 @@ Item {
                 // Get the index in userModel and userData associated with the passed UUID
                 var userIndex = findSessionIndex(userId);
                 // Set the userName appropriately
-                userModel.get(userIndex).userName = userName;
+                userModel.setProperty(userIndex, "userName", userName);
                 userData[userIndex].userName = userName; // Defensive programming
             }
             break;
@@ -399,7 +399,7 @@ Item {
                     myCard.audioLevel = audioLevel; // Defensive programming
                 } else {
                     var userIndex = findSessionIndex(userId);
-                    userModel.get(userIndex).audioLevel = audioLevel;
+                    userModel.setProperty(userIndex, "audioLevel", audioLevel);
                     userData[userIndex].audioLevel = audioLevel; // Defensive programming
                 }
             }
@@ -408,7 +408,7 @@ Item {
             var userId = message.params[0];
             var enabled = message.params[1];
             var userIndex = findSessionIndex(userId);
-            userModel.get(userIndex).personalMute.property = enabled;
+            userModel.setProperty(userIndex, "personalMute", enabled);
             userData[userIndex].personalMute.property = enabled; // Defensive programming
             break;
     default:

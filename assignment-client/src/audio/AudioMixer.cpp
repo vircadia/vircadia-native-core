@@ -245,7 +245,7 @@ void AudioMixer::handleNodePersonalMuteRequestPacket(QSharedPointer<ReceivedMess
                 << uuidStringWithoutCurlyBraces(_uuid);
 
             // Remove the session UUID to the set of personally muted ones for this listening node
-            //sendingNode->removeIgnoredNode(ignoredUUID);
+            sendingNode->removeIgnoredNode(ignoredUUID);
         }
     } else {
         qWarning() << "Node::handlePersonalMutedNode called with null ID or ID of personal muting node.";
