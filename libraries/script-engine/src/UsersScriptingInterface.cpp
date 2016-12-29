@@ -24,14 +24,14 @@ UsersScriptingInterface::UsersScriptingInterface() {
     connect(nodeList.data(), &NodeList::personalMuteStatusReply, this, &UsersScriptingInterface::personalMuteStatusReply);
 }
 
-void UsersScriptingInterface::ignore(const QUuid& nodeID) {
+void UsersScriptingInterface::ignore(const QUuid& nodeID, bool ignoreEnabled) {
     // ask the NodeList to ignore this user (based on the session ID of their node)
-    DependencyManager::get<NodeList>()->ignoreNodeBySessionID(nodeID);
+    DependencyManager::get<NodeList>()->ignoreNodeBySessionID(nodeID, ignoreEnabled);
 }
 
-void UsersScriptingInterface::unignore(const QUuid& nodeID) {
-    // ask the NodeList to ignore this user (based on the session ID of their node)
-    DependencyManager::get<NodeList>()->unignoreNodeBySessionID(nodeID);
+void UsersScriptingInterface::requestIgnoreStatus(const QUuid& nodeID) {
+    // ask the Audio Mixer via the NodeList for the Personal Mute status associated with the given session ID
+    DependencyManager::get<NodeList>()->isIgnoringNode(nodeID);
 }
 
 void UsersScriptingInterface::personalMute(const QUuid& nodeID, bool muteEnabled) {

@@ -778,7 +778,7 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
     sendPacket(std::move(ignorePacket), *destinationNode);
 }
 
-void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
+void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
         eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
@@ -787,60 +787,33 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
             } else {
                 return false;
             }
-        }, [&nodeID, this](const SharedNodePointer& destinationNode) {
+        }, [&nodeID, ignoreEnabled, this](const SharedNodePointer& destinationNode) {
             // create a reliable NLPacket with space for the ignore UUID
-            auto ignorePacket = NLPacket::create(PacketType::NodeIgnoreRequest, NUM_BYTES_RFC4122_UUID, true);
+            auto ignorePacket = NLPacket::create(PacketType::NodeIgnoreRequest, NUM_BYTES_RFC4122_UUID + sizeof(bool), true);
 
             // write the node ID to the packet
             ignorePacket->write(nodeID.toRfc4122());
+            ignorePacket->writePrimitive(ignoreEnabled);
 
-            qCDebug(networking) << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
+            qCDebug(networking) << "Sending packet to" << (ignoreEnabled ? "ignore" : "unignore") << "node" << uuidStringWithoutCurlyBraces(nodeID);
 
             // send off this ignore packet reliably to the matching node
             sendPacket(std::move(ignorePacket), *destinationNode);
         });
 
-        QReadLocker setLocker { &_ignoredSetLock };
+        QReadLocker setLocker { &_ignoredSetLock }; // write lock for insert and unsafe_erase
 
-        // add this nodeID to our set of ignored IDs
-        _ignoredNodeIDs.insert(nodeID);
-
-        emit ignoredNode(nodeID);
+        if (ignoreEnabled) {
+            // add this nodeID to our set of ignored IDs
+            _ignoredNodeIDs.insert(nodeID);
+            emit ignoredNode(nodeID);
+        } else {
+            _ignoredNodeIDs.unsafe_erase(nodeID);
+            emit unignoredNode(nodeID);
+        }
 
     } else {
         qWarning() << "NodeList::ignoreNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
-    }
-}
-
-void NodeList::unignoreNodeBySessionID(const QUuid& nodeID) {
-    // enumerate the nodes to send a reliable unignore packet to each that can leverage it
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
-        eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
-            if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
-                return true;
-            } else {
-                return false;
-            }
-        }, [&nodeID, this](const SharedNodePointer& destinationNode) {
-            // create a reliable NLPacket with space for the unignore UUID
-            auto ignorePacket = NLPacket::create(PacketType::NodeUnignoreRequest, NUM_BYTES_RFC4122_UUID, true);
-
-            // write the node ID to the packet
-            ignorePacket->write(nodeID.toRfc4122());
-
-            qCDebug(networking) << "Sending packet to unignore node" << uuidStringWithoutCurlyBraces(nodeID);
-
-            // send off this unignore packet reliably to the matching node
-            sendPacket(std::move(ignorePacket), *destinationNode);
-        });
-
-        QWriteLocker setLocker { &_ignoredSetLock }; // write lock for unsafe_erase
-        _ignoredNodeIDs.unsafe_erase(nodeID);
-
-        emit unignoredNode(nodeID);
-
-    } else {
-        qWarning() << "NodeList::unignoreNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
     }
 }
 
@@ -874,6 +847,18 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
         // also send them the current ignore radius state.
         sendIgnoreRadiusStateToNode(newNode);
     }
+}
+
+void NodeList::processPersonalMuteStatusReply(QSharedPointer<ReceivedMessage> message) {
+    // read the UUID from the packet
+    QString nodeUUIDString = (QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID))).toString();
+    // read the personal mute status
+    bool isPersonalMuted;
+    message->readPrimitive(&isPersonalMuted);
+
+    qCDebug(networking) << "Got personal muted status" << isPersonalMuted << "for node" << nodeUUIDString;
+
+    emit personalMuteStatusReply(nodeUUIDString, isPersonalMuted);
 }
 
 void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled) {

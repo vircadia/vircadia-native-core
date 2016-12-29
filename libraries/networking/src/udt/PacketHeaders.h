@@ -105,7 +105,6 @@ public:
         UsernameFromIDReply,
         ViewFrustum,
         RequestsDomainListData,
-        NodeUnignoreRequest,
         NodePersonalMuteRequest,
         NodePersonalMuteStatusRequest,
         NodePersonalMuteStatusReply,

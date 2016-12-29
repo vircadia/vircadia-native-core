@@ -49,7 +49,6 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
-    packetReceiver.registerListener(PacketType::NodeUnignoreRequest, this, "handleNodeUnignoreRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
 
@@ -595,9 +594,6 @@ void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> 
     senderNode->parseIgnoreRequestMessage(message);
 }
 
-void AvatarMixer::handleNodeUnignoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
-    sendingNode->parseUnignoreRequestMessage(packet);
-}
 void AvatarMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     sendingNode->parseIgnoreRadiusRequestMessage(packet);
 }

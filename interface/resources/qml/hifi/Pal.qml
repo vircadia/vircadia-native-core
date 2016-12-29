@@ -210,21 +210,8 @@ Item {
                     var newValue = !model[styleData.role]
                     var datum = userData[model.userIndex]
                     datum[styleData.role] = model[styleData.role] = newValue
-                    if (styleData.role === "personalMute") {
-                        Users[styleData.role](model.sessionId, newValue)
-                    } else if (styleData.role === "ignore") {
-                        var key = styleData.role;
-                        if (!newValue) {
-                            key = 'un' + key;
-                        }
-                        if (newValue) {
-                            ignored[datum.sessionId] = datum;
-                            console.log("fixme hrs adding to ignored", JSON.stringify(datum), "at", datum.sessionId);
-                        } else {
-                            delete ignored[datum.sessionId];
-                        }    
-                        console.log('fixme hrs pal action', key, model.sessionId);
-                        Users[key](model.sessionId);            
+                    if (styleData.role === "personalMute" || styleData.role === "ignore") {
+                        Users[styleData.role](model.sessionId, newValue)      
                     } else {
                         Users[styleData.role](model.sessionId)
                         // Just for now, while we cannot undo things:
@@ -354,7 +341,6 @@ Item {
     property var userData: []
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
     property bool iAmAdmin: false
-    property var ignored: ({}); // FIXME: reset when changing domains
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var i, data = optionalData || userData, length = data.length;
         for (var i = 0; i < length; i++) {
@@ -373,16 +359,6 @@ Item {
             myData = data[myIndex];
             data.splice(myIndex, 1);
             userData = data;
-            var ignoredID, index;
-            for (ignoredID in ignored) {
-                index = findSessionIndex(ignoredID);
-                console.log('fixme hrs adding back ignored', ignoredID, index, JSON.stringify(ignored[ignoredID]));
-                if (-1 === index) { // Add back any missing ignored, because they sometimes take a moment to show up.
-                    userData.push(ignored[ignoredID]);
-                } else {            // Mark existing ignored.
-                    userData[index].ignored = true;
-                }
-            }
             sortModel();
             break;
         case 'select':
@@ -429,12 +405,19 @@ Item {
                 }
             }
             break;
-        case 'updateMuted':
+        case 'updatePersonalMutedStatus':
             var userId = message.params[0];
             var enabled = message.params[1];
             var userIndex = findSessionIndex(userId);
             userModel.get(userIndex).personalMute.property = enabled;
                 userData[userIndex].personalMute.property = enabled; // Defensive programming
+            break;
+        case 'updateIgnoredStatus':
+            var userId = message.params[0];
+            var enabled = message.params[1];
+            var userIndex = findSessionIndex(userId);
+            userModel.get(userIndex).ignore.property = enabled;
+                userData[userIndex].ignore.property = enabled; // Defensive programming
             break;
     default:
             console.log('Unrecognized message:', JSON.stringify(message));

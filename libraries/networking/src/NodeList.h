@@ -76,17 +76,16 @@ public:
     void toggleIgnoreRadius() { ignoreNodesInRadius(!getIgnoreRadiusEnabled()); }
     void enableIgnoreRadius() { ignoreNodesInRadius(true); }
     void disableIgnoreRadius() { ignoreNodesInRadius(false); }
-    void ignoreNodeBySessionID(const QUuid& nodeID);
-    void unignoreNodeBySessionID(const QUuid& nodeID);
+    void ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled);
     bool isIgnoringNode(const QUuid& nodeID) const;
     void personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled);
+    void requestPersonalMuteStatus(const QUuid& nodeID);
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool isRequesting);
-    void requestPersonalMuteStatus(const QUuid& nodeID);
 
 public slots:
     void reset();

@@ -73,7 +73,6 @@ public:
     bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
 
     void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
-    void parseUnignoreRequestMessage(QSharedPointer<ReceivedMessage> message);
     void addIgnoredNode(const QUuid& otherNodeID);
     void removeIgnoredNode(const QUuid& otherNodeID);
     bool isIgnoringNodeWithID(const QUuid& nodeID) const { QReadLocker lock { &_ignoredNodeIDSetLock }; return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
