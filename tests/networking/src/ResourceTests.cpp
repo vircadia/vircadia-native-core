@@ -40,6 +40,12 @@ static QSharedPointer<Resource> resource;
 static bool waitForSignal(QObject *sender, const char *signal, int timeout = 1000) {
     QEventLoop loop;
     QTimer timer;
+
+    // The default timer type is not very accurate below about 200ms http://doc.qt.io/qt-5/qt.html#TimerType-enum
+    static const int MIN_TIMEOUT_FOR_COARSE_TIMER = 200;
+    if (timeout < MIN_TIMEOUT_FOR_COARSE_TIMER) {
+        timer.setTimerType(Qt::PreciseTimer);
+    }
     timer.setInterval(timeout);
     timer.setSingleShot(true);
 
@@ -61,7 +67,7 @@ void ResourceTests::downloadFirst() {
     const int timeout = 1000;
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(timeout);
+    timer.setInterval(timeout); // 1s, Qt::CoarseTimer acceptable
     timer.setSingleShot(true);
 
     loop.connect(resource, SIGNAL(loaded(QNetworkReply&)), SLOT(quit()));
@@ -85,7 +91,7 @@ void ResourceTests::downloadAgain() {
     const int timeout = 1000;
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(timeout);
+    timer.setInterval(timeout); // 1s, Qt::CoarseTimer acceptable
     timer.setSingleShot(true);
 
     loop.connect(resource, SIGNAL(loaded(QNetworkReply&)), SLOT(quit()));

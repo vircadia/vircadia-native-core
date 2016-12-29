@@ -1087,6 +1087,12 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     QTimer* newTimer = new QTimer(this);
     newTimer->setSingleShot(isSingleShot);
 
+    // The default timer type is not very accurate below about 200ms http://doc.qt.io/qt-5/qt.html#TimerType-enum
+    static const int MIN_TIMEOUT_FOR_COARSE_TIMER = 200;
+    if (intervalMS < MIN_TIMEOUT_FOR_COARSE_TIMER) {
+        newTimer->setTimerType(Qt::PreciseTimer);
+    }
+
     connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
 
     // make sure the timer stops when the script does
