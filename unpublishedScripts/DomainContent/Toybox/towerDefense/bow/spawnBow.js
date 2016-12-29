@@ -53,5 +53,5 @@ Entities.addEntity({
     "shapeType": "compound",
     "type": "Model",
     "userData": JSON.stringify(userData),
-    lifetime: 40
+    lifetime: 600
 });
