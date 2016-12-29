@@ -182,7 +182,9 @@ Item {
             movable: false
             resizable: false
         }
-        model: userModel
+        model: ListModel {
+            id: userModel
+        }
 
         // This Rectangle refers to each Row in the table.
         rowDelegate: Rectangle { // The only way I know to specify a row height.
@@ -217,7 +219,7 @@ Item {
             HifiControls.CheckBox {
                 visible: isCheckBox
                 anchors.centerIn: parent
-                checked: model && model[styleData.role]
+                checked: model[styleData.role] 
                 enabled: styleData.role === "personalMute" ? (model["ignore"] === true ? false : true) : true
                 boxSize: 24
                 onClicked: {
@@ -225,12 +227,13 @@ Item {
                     if (newValue === undefined) {
                         newValue = false
                     }
-                    var datum = userData[model.userIndex]
-                    datum[styleData.role] = model[styleData.role] = newValue
+                    userModel.setProperty(model.userIndex, styleData.role, newValue)
+                    userData[model.userIndex][styleData.role] = newValue // Defensive programming
                     if (styleData.role === "personalMute" || styleData.role === "ignore") {
                         Users[styleData.role](model.sessionId, newValue)
                         if (styleData.role === "ignore") {
-                            datum["personalMute"] = model["personalMute"] = newValue
+                            userModel.setProperty(model.userIndex, "personalMute", newValue)
+                            userData[model.userIndex]["personalMute"] = newValue // Defensive programming
                         }
                     } else {
                         Users[styleData.role](model.sessionId)
@@ -238,6 +241,10 @@ Item {
                         userData.splice(model.userIndex, 1)
                         sortModel()
                     }
+                    // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
+                    // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
+                    // "checked: model[stayleData.role]" above.
+                    checked = Qt.binding(function() { return model[styleData.role] })
                 }
             }
         }
@@ -414,9 +421,6 @@ Item {
     default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }
-    }
-    ListModel {
-        id: userModel
     }
     function sortModel() {
         var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
