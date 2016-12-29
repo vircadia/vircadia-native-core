@@ -12,6 +12,7 @@
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
     using Parent = OculusBaseDisplayPlugin;
 public:
+    OculusDisplayPlugin();
     ~OculusDisplayPlugin();
     const QString getName() const override { return NAME; }
 
@@ -36,6 +37,7 @@ private:
     gpu::FramebufferPointer _outputFramebuffer;
     bool _customized { false };
 
-    QJsonObject _hardwareStats;
+    std::atomic_int _compositorDroppedFrames;
+    std::atomic_int _appDroppedFrames;
 };
 
