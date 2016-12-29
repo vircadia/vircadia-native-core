@@ -159,6 +159,7 @@ void OculusDisplayPlugin::hmdPresent() {
             appDroppedFrames = frameStats.AppDroppedFrameCount;
         }
         _hardwareStats["app_dropped_frame_count"] = appDroppedFrames;
+        _hardwareStats["compositor_dropped_frame_count"] = compositorDroppedFrames;
     }
     _presentRate.increment();
 }
