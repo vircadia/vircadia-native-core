@@ -795,7 +795,8 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
             ignorePacket->write(nodeID.toRfc4122());
             ignorePacket->writePrimitive(ignoreEnabled);
 
-            qCDebug(networking) << "Sending packet to" << (ignoreEnabled ? "ignore" : "unignore") << "node" << uuidStringWithoutCurlyBraces(nodeID);
+            qCDebug(networking) << "Sending packet to" << (destinationNode->getType() == NodeType::AudioMixer ? "AudioMixer" : "AvatarMixer") << "to"
+                << (ignoreEnabled ? "ignore" : "unignore") << "node" << uuidStringWithoutCurlyBraces(nodeID);
 
             // send off this ignore packet reliably to the matching node
             sendPacket(std::move(ignorePacket), *destinationNode);
@@ -847,18 +848,6 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
         // also send them the current ignore radius state.
         sendIgnoreRadiusStateToNode(newNode);
     }
-}
-
-void NodeList::processPersonalMuteStatusReply(QSharedPointer<ReceivedMessage> message) {
-    // read the UUID from the packet
-    QString nodeUUIDString = (QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID))).toString();
-    // read the personal mute status
-    bool isPersonalMuted;
-    message->readPrimitive(&isPersonalMuted);
-
-    qCDebug(networking) << "Got personal muted status" << isPersonalMuted << "for node" << nodeUUIDString;
-
-    emit personalMuteStatusReply(nodeUUIDString, isPersonalMuted);
 }
 
 void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled) {

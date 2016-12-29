@@ -40,11 +40,11 @@ public slots:
     void ignore(const QUuid& nodeID, bool ignoreEnabled);
 
     /**jsdoc
-    * Requests a bool containing whether you have ignored the given Avatar UUID.
-    * @function Users.requestIgnoreStatus
+    * Gets a bool containing whether you have ignored the given Avatar UUID.
+    * @function Users.getIgnoreStatus
     * @param {nodeID} nodeID The node or session ID of the user whose ignore status you want.
     */
-    void requestIgnoreStatus(const QUuid& nodeID);
+    bool getIgnoreStatus(const QUuid& nodeID);
 
     /**jsdoc
     * Mute another user for you and you only.
@@ -137,12 +137,6 @@ signals:
     * @function Users.usernameFromIDReply
     */
     void personalMuteStatusReply(const QString& nodeID, bool isPersonalMuted);
-
-    /**jsdoc
-    * Notifies scripts of the Ignore status associated with a UUID.
-    * @function Users.ignoreStatusReply
-    */
-    void ignoreStatusReply(const QString& nodeID, bool isIgnored);
 
 private:
     bool getRequestsDomainListData();

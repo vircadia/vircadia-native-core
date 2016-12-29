@@ -398,7 +398,6 @@ Item {
                     myData.audioLevel = audioLevel;
                     myCard.audioLevel = audioLevel; // Defensive programming
                 } else {
-                    console.log("userid:" + userId);
                     var userIndex = findSessionIndex(userId);
                     userModel.get(userIndex).audioLevel = audioLevel;
                     userData[userIndex].audioLevel = audioLevel; // Defensive programming
@@ -410,14 +409,7 @@ Item {
             var enabled = message.params[1];
             var userIndex = findSessionIndex(userId);
             userModel.get(userIndex).personalMute.property = enabled;
-                userData[userIndex].personalMute.property = enabled; // Defensive programming
-            break;
-        case 'updateIgnoredStatus':
-            var userId = message.params[0];
-            var enabled = message.params[1];
-            var userIndex = findSessionIndex(userId);
-            userModel.get(userIndex).ignore.property = enabled;
-                userData[userIndex].ignore.property = enabled; // Defensive programming
+            userData[userIndex].personalMute.property = enabled; // Defensive programming
             break;
     default:
             console.log('Unrecognized message:', JSON.stringify(message));

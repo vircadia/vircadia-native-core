@@ -62,7 +62,6 @@ private slots:
     void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void handleNodeKilled(SharedNodePointer killedNode);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
-    void handleNodeUnignoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNodePersonalMuteRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNodePersonalMuteStatusRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);

@@ -29,9 +29,9 @@ void UsersScriptingInterface::ignore(const QUuid& nodeID, bool ignoreEnabled) {
     DependencyManager::get<NodeList>()->ignoreNodeBySessionID(nodeID, ignoreEnabled);
 }
 
-void UsersScriptingInterface::requestIgnoreStatus(const QUuid& nodeID) {
-    // ask the Audio Mixer via the NodeList for the Personal Mute status associated with the given session ID
-    DependencyManager::get<NodeList>()->isIgnoringNode(nodeID);
+bool UsersScriptingInterface::getIgnoreStatus(const QUuid& nodeID) {
+    // ask the NodeList for the Ignore status associated with the given session ID
+    return DependencyManager::get<NodeList>()->isIgnoringNode(nodeID);
 }
 
 void UsersScriptingInterface::personalMute(const QUuid& nodeID, bool muteEnabled) {
