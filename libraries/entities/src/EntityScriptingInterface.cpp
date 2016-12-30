@@ -178,6 +178,8 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
 
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     _activityTracking.addedEntityCount++;
 
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
@@ -270,6 +272,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     EntityItemProperties results;
     if (_entityTree) {
         _entityTree->withReadLock([&] {
@@ -316,6 +320,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     _activityTracking.editedEntityCount++;
 
     EntityItemProperties properties = scriptSideProperties;
@@ -467,6 +473,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 }
 
 void EntityScriptingInterface::deleteEntity(QUuid id) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     _activityTracking.deletedEntityCount++;
 
     EntityItemID entityID(id);
@@ -522,6 +530,8 @@ void EntityScriptingInterface::setEntitiesScriptEngine(EntitiesScriptEngineProvi
 }
 
 void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method, const QStringList& params) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
     if (_entitiesScriptEngine) {
         EntityItemID entityID{ id };
@@ -530,6 +540,8 @@ void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method,
 }
 
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     EntityItemID result;
     if (_entityTree) {
         EntityItemPointer closestEntity;
@@ -553,6 +565,8 @@ void EntityScriptingInterface::dumpTree() const {
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     QVector<QUuid> result;
     if (_entityTree) {
         QVector<EntityItemPointer> entities;
@@ -568,6 +582,8 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     QVector<QUuid> result;
     if (_entityTree) {
         QVector<EntityItemPointer> entities;
@@ -584,6 +600,8 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frustum) const {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     QVector<QUuid> result;
 
     const QString POSITION_PROPERTY = "position";
@@ -627,6 +645,7 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
                 const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
 
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
@@ -734,6 +753,8 @@ RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
 }
 
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& value) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     obj.setProperty("accurate", value.accurate);
@@ -781,6 +802,8 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 }
 
 void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, RayToEntityIntersectionResult& value) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     value.intersects = object.property("intersects").toVariant().toBool();
     value.accurate = object.property("accurate").toVariant().toBool();
     QScriptValue entityIDValue = object.property("entityID");
@@ -818,6 +841,8 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 
 bool EntityScriptingInterface::setVoxels(QUuid entityID,
                                          std::function<bool(PolyVoxEntityItem&)> actor) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     if (!_entityTree) {
         return false;
     }
@@ -842,6 +867,8 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
 }
 
 bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     if (!_entityTree) {
         return false;
     }
@@ -881,18 +908,24 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
 
 
 bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
             return polyVoxEntity.setSphere(center, radius, value);
         });
 }
 
 bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     return setVoxels(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
             return polyVoxEntity.setVoxelInVolume(position, value);
         });
 }
 
 bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
             return polyVoxEntity.setAll(value);
         });
@@ -900,12 +933,16 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
 
 bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
                                                  const glm::vec3& cuboidSize, int value) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     return setVoxels(entityID, [lowPosition, cuboidSize, value](PolyVoxEntityItem& polyVoxEntity) {
             return polyVoxEntity.setCuboid(lowPosition, cuboidSize, value);
         });
 }
 
 bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
@@ -924,6 +961,8 @@ bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::v
 }
 
 bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& point) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
@@ -999,6 +1038,8 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
 QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                                           const QUuid& entityID,
                                           const QVariantMap& arguments) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     QUuid actionID = QUuid::createUuid();
     auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
     bool success = false;
@@ -1030,6 +1071,8 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
 
 
 bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     return actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             bool success = entity->updateAction(simulation, actionID, arguments);
             if (success) {
@@ -1040,6 +1083,8 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
 }
 
 bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& actionID) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     bool success = false;
     actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             success = entity->removeAction(simulation, actionID);
@@ -1053,6 +1098,8 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
 }
 
 QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     QVector<QUuid> result;
     actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             QList<QUuid> actionIDs = entity->getActionIDs();
@@ -1063,6 +1110,8 @@ QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {
 }
 
 QVariantMap EntityScriptingInterface::getActionArguments(const QUuid& entityID, const QUuid& actionID) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     QVariantMap result;
     actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             result = entity->getActionArguments(actionID);

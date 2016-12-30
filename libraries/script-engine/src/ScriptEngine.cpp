@@ -64,6 +64,8 @@
 #include "ScriptEngines.h"
 #include "TabletScriptingInterface.h"
 
+#include <Profile.h>
+
 #include "MIDIEvent.h"
 
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
@@ -927,7 +929,10 @@ void ScriptEngine::run() {
         bool processedEvents = false;
         while (!_isFinished && clock::now() < sleepUntil) {
 
-            QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            {
+                PROFILE_RANGE(script, "processEvents-sleep");
+                QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            }
             processedEvents = true;
 
             // If after processing events, we're past due, exit asap
@@ -941,6 +946,8 @@ void ScriptEngine::run() {
             auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
             std::this_thread::sleep_until(smallSleepUntil);
         }
+
+        PROFILE_RANGE(script, "ScriptMainLoop");
 
 #ifdef SCRIPT_DELAY_DEBUG
         {
@@ -965,6 +972,7 @@ void ScriptEngine::run() {
 
         // Only call this if we didn't processEvents as part of waiting for next frame
         if (!processedEvents) {
+            PROFILE_RANGE(script, "processEvents");
             QCoreApplication::processEvents();
         }
 
@@ -989,7 +997,10 @@ void ScriptEngine::run() {
             float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
                 auto preUpdate = clock::now();
-                emit update(deltaTime);
+                {
+                    PROFILE_RANGE(script, "ScriptUpdate");
+                    emit update(deltaTime);
+                }
                 auto postUpdate = clock::now();
                 auto elapsed = (postUpdate - preUpdate);
                 totalUpdates += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
