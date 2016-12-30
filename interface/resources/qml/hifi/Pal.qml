@@ -118,19 +118,6 @@ Item {
             verticalAlignment: Text.AlignTop
         }
     }
-    // Separator between user and admin functions
-    Rectangle {
-        // Size
-        width: 2
-        height: table.height
-        // Anchors
-        anchors.left: adminTab.left
-        anchors.top: table.top
-        // Properties
-        z: 100
-        visible: iAmAdmin
-        color: hifi.colors.lightGrayText
-    }
     // This TableView refers to the table (below the current user's NameCard)
     HifiControls.Table {
         id: table
@@ -248,6 +235,18 @@ Item {
                 }
             }
         }
+    }
+    // Separator between user and admin functions
+    Rectangle {
+        // Size
+        width: 2
+        height: table.height
+        // Anchors
+        anchors.left: adminTab.left
+        anchors.top: table.top
+        // Properties
+        visible: iAmAdmin
+        color: hifi.colors.lightGrayText
     }
     // Refresh button
     Rectangle {
@@ -390,6 +389,7 @@ Item {
                 datum.userIndex = userIndex++;
                 userModel.append(datum);
             });
+            sortModel();
             break;
         case 'select':
             var sessionId = message.params[0];
@@ -438,11 +438,9 @@ Item {
     }
     function sortModel() {
         var sortedList = [];
-        console.log('sortedList before:', JSON.stringify(sortedList));
         for (var i = 0; i < userModel.count; i++) {
             sortedList.push(userModel.get(i));
         }
-        console.log('sortedList:', JSON.stringify(sortedList));
 
         var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
         var before = (table.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
@@ -456,18 +454,18 @@ Item {
             }
         });
         table.selection.clear();
-        userModel.clear();
-        var userIndex = 0;
-        sortedList.forEach(function (datum) {
-            function init(property) {
-                if (datum[property] === undefined) {
-                    datum[property] = false;
+        var currentUserIndex = 0;
+        for (var i = 0; i < sortedList.length; i++) {
+            function init(prop) {
+                if (sortedList[i][prop] === undefined) {
+                    sortedList[i][prop] = false;
                 }
             }
+            sortedList[i].userIndex = currentUserIndex++;
             ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
-            datum.userIndex = userIndex++;
-            userModel.append(datum);
-        });
+            userModel.append(sortedList[i]);
+        }
+        userModel.remove(0, sortedList.length);
     }
     signal sendToScript(var message);
     function noticeSelection() {
