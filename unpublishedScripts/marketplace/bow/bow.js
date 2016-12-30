@@ -593,3 +593,8 @@
 
     return bow;
 });
+
+var TIMER_INTERVAL = 5;
+var RPCkicker = Script.setInterval(function() {
+    // do nothing, but make sure we get RPC messages in a reliable way
+},TIMER_INTERVAL);
