@@ -154,7 +154,6 @@
         },
         continueEquip: function(entityID, args) {
             this.deltaTime = checkInterval();
-            print("continueEquip deltaTime:" + this.deltaTime);
             //debounce during debugging -- maybe we're updating too fast?
             if (USE_DEBOUNCE === true) {
                 this.sinceLastUpdate = this.sinceLastUpdate + this.deltaTime;
@@ -375,8 +374,8 @@
                     this.pullBackDistance = 0;
                     this.state = STATE_ARROW_GRABBED;
                 } else {
-                    this.updateArrowPositionInNotch(false, false);
                     this.updateString();
+                    this.updateArrowPositionInNotch(false, false);
                 }
             }
             if (this.state === STATE_ARROW_GRABBED) {
@@ -590,17 +589,6 @@
 
     Messages.subscribe('Hifi-Object-Manipulation');
     Messages.messageReceived.connect(bow.handleMessages);
-
-    var TIMER_INTERVAL = 5;
-    var lastRPC = Date.now();
-    var RPCkicker = Script.setInterval(function() {
-        // do nothing, but make sure we get RPC messages in a reliable way
-        var now = Date.now();
-        deltaTime = now - lastRPC;
-        lastRPC = now;
-        //print("RPCkicker interval:"+deltaTime);
-    },TIMER_INTERVAL);
-
 
     return bow;
 });
