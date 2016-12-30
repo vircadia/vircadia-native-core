@@ -32,22 +32,19 @@ public:
 
     AnimPose inverse() const;
     AnimPose mirror() const;
-    operator const glm::mat4&() const;
+    operator glm::mat4() const;
 
     const glm::vec3& scale() const { return _scale; }
-    glm::vec3& scale() { _dirty = true; return _scale; }
+    glm::vec3& scale() { return _scale; }
 
     const glm::quat& rot() const { return _rot; }
-    glm::quat& rot() { _dirty = true; return _rot; }
+    glm::quat& rot() { return _rot; }
 
     const glm::vec3& trans() const { return _trans; }
-    glm::vec3& trans() { _dirty = true;  return _trans; }
+    glm::vec3& trans() { return _trans; }
 
 private:
     friend QDebug operator<<(QDebug debug, const AnimPose& pose);
-
-    mutable bool _dirty { true };
-    mutable glm::mat4 _mat;
     glm::vec3 _scale { 1.0f };
     glm::quat _rot;
     glm::vec3 _trans;

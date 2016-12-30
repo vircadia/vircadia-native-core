@@ -17,9 +17,8 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
                                              glm::quat(),
                                              glm::vec3(0.0f));
 
-AnimPose::AnimPose(const glm::mat4& mat) : _dirty(false) {
+AnimPose::AnimPose(const glm::mat4& mat) {
     static const float EPSILON = 0.0001f;
-    _mat = mat;
     _scale = extractScale(mat);
     // quat_cast doesn't work so well with scaled matrices, so cancel it out.
     glm::mat4 tmp = glm::scale(mat, 1.0f / _scale);
@@ -60,7 +59,6 @@ AnimPose AnimPose::operator*(const AnimPose& rhs) const {
 #else 
     return AnimPose(static_cast<glm::mat4>(*this) * static_cast<glm::mat4>(rhs));
 #endif
-
 }
 
 AnimPose AnimPose::inverse() const {
@@ -72,14 +70,10 @@ AnimPose AnimPose::mirror() const {
     return AnimPose(_scale, glm::quat(_rot.w, _rot.x, -_rot.y, -_rot.z), glm::vec3(-_trans.x, _trans.y, _trans.z));
 }
 
-AnimPose::operator const glm::mat4&() const {
-    if (_dirty) {
-        glm::vec3 xAxis = _rot * glm::vec3(_scale.x, 0.0f, 0.0f);
-        glm::vec3 yAxis = _rot * glm::vec3(0.0f, _scale.y, 0.0f);
-        glm::vec3 zAxis = _rot * glm::vec3(0.0f, 0.0f, _scale.z);
-        _mat = glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
-            glm::vec4(zAxis, 0.0f), glm::vec4(_trans, 1.0f));
-        _dirty = false;
-    }
-    return _mat;
+AnimPose::operator glm::mat4() const {
+    glm::vec3 xAxis = _rot * glm::vec3(_scale.x, 0.0f, 0.0f);
+    glm::vec3 yAxis = _rot * glm::vec3(0.0f, _scale.y, 0.0f);
+    glm::vec3 zAxis = _rot * glm::vec3(0.0f, 0.0f, _scale.z);
+    return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
+        glm::vec4(zAxis, 0.0f), glm::vec4(_trans, 1.0f));
 }

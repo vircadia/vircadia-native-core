@@ -1233,7 +1233,7 @@ void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& a
     }
 }
 
-const glm::mat4& Rig::getJointTransform(int jointIndex) const {
+glm::mat4 Rig::getJointTransform(int jointIndex) const {
     static const glm::mat4 IDENTITY;
     if (isIndexValid(jointIndex)) {
         return _internalPoseSet._absolutePoses[jointIndex];
