@@ -56,5 +56,6 @@ RenderFetchCullSortTask::RenderFetchCullSortTask(CullFunctor cullFunctor) {
     const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
     const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
-    setOutput(Output{{ opaques, transparents, lights, overlayOpaques, overlayTransparents, background }});
+    setOutput(Output{{
+            opaques, transparents, lights, overlayOpaques, overlayTransparents, background, spatialSelection }});
 }

@@ -19,7 +19,7 @@
 
 class RenderFetchCullSortTask : public render::Task {
 public:
-    using Output = std::array<render::Varying, 6>;
+    using Output = std::array<render::Varying, 7>;
     using JobModel = ModelO<RenderFetchCullSortTask>;
 
     RenderFetchCullSortTask(render::CullFunctor cullFunctor);

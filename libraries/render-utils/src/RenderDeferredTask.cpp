@@ -60,6 +60,7 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     const auto overlayOpaques = items[3];
     const auto overlayTransparents = items[4];
     const auto background = items[5];
+    const auto spatialSelection = items[6];
 
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -169,10 +170,10 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
         addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
 
 
-        // Scene Octree Debuging job
+        // Scene Octree Debugging job
         {
-            // addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
-            // addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
+            addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
+            addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
         }
 
         // Status icon rendering job
