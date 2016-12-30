@@ -194,8 +194,8 @@ Item {
                 id: nameCard
                 // Properties
                 displayName: styleData.value
-                userName: model && model.userName
-                audioLevel: model && model.audioLevel
+                userName: model ? model.userName : ""
+                audioLevel: model ? model.audioLevel : 0.0
                 visible: !isCheckBox
                 // Size
                 width: nameCardWidth
@@ -205,11 +205,19 @@ Item {
             }
             
             // This CheckBox belongs in the columns that contain the action buttons ("Mute", "Ban", etc)
+            // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
+            // will appear in the "hovered" state. Hovering over the checkbox will fix it.
+            // Clicking on the sides of the sorting header doesn't cause this problem.
+            // I'm guessing this is a QT bug and not anything I can fix. I spent too long trying to work around it...
+            // I'm just going to leave the minor visual bug in.
             HifiControls.CheckBox {
+                id: actionCheckBox
                 visible: isCheckBox
                 anchors.centerIn: parent
-                checked: model[styleData.role] 
-                enabled: styleData.role === "personalMute" ? (model["ignore"] === true ? false : true) : true
+                checked: model ? model[styleData.role] : false
+                // If this is a "personal mute" checkbox, and the model is valid, Check the checkbox if the Ignore
+                // checkbox is checked.
+                enabled: styleData.role === "personalMute" ? ((model ? model["ignore"] : false) === true ? false : true) : true
                 boxSize: 24
                 onClicked: {
                     var newValue = !model[styleData.role]
@@ -225,13 +233,13 @@ Item {
                     } else {
                         Users[styleData.role](model.sessionId)
                         // Just for now, while we cannot undo things:
-                        userModel.remove(model.userIndex, 1)
+                        userModel.remove(model.userIndex)
                         sortModel()
                     }
                     // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
                     // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
-                    // "checked: model[stayleData.role]" above.
-                    checked = Qt.binding(function() { return model[styleData.role] })
+                    // "checked: model[styleData.role]" above.
+                    checked = Qt.binding(function() { return (model && model[styleData.role]) ? model[styleData.role] : false})
                 }
             }
         }
@@ -327,18 +335,22 @@ Item {
             radius: hifi.dimensions.borderRadius
         }
         Rectangle {
-            width: Math.min(parent.width * 0.75, 400)
-            height: popupText.contentHeight*2
+            width: Math.max(parent.width * 0.75, 400)
+            height: popupText.contentHeight*1.5
             anchors.centerIn: parent
             radius: hifi.dimensions.borderRadius
             color: "white"
             FiraSansSemiBold {
                 id: popupText
-                text: "This is temporary text. It will eventually be used to explain what 'Names' means."
+                text: "Bold names in the list are Avatar Display Names.\n" +
+                    "If a Display Name isn't set, a unique Session Display Name is assigned to them." +
+                    "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each present avatar."
                 size: hifi.fontSizes.textFieldInput
                 color: hifi.colors.darkGray
                 horizontalAlignment: Text.AlignHCenter
                 anchors.fill: parent
+                anchors.leftMargin: 15
+                anchors.rightMargin: 15
                 wrapMode: Text.WordWrap
             }
         }
@@ -395,11 +407,13 @@ Item {
             var sessionId = message.params[0];
             var selected = message.params[1];
             var userIndex = findSessionIndexInUserModel(sessionId);
-            if (selected) {
-                table.selection.clear(); // for now, no multi-select
-                table.selection.select(userIndex);
-            } else {
-                table.selection.deselect(userIndex);
+            if (userIndex != -1) {
+                if (selected) {
+                    table.selection.clear(); // for now, no multi-select
+                    table.selection.select(userIndex);
+                } else {
+                    table.selection.deselect(userIndex);
+                }
             }
             break;
         // Received an "updateUsername()" request from the JS
@@ -415,8 +429,10 @@ Item {
             } else {
                 // Get the index in userModel associated with the passed UUID
                 var userIndex = findSessionIndexInUserModel(userId);
-                // Set the userName appropriately
-                userModel.setProperty(userIndex, "userName", userName);
+                if (userIndex != -1) {
+                    // Set the userName appropriately
+                    userModel.setProperty(userIndex, "userName", userName);
+                }
             }
             break;
         case 'updateAudioLevel': 
@@ -428,7 +444,9 @@ Item {
                     myCard.audioLevel = audioLevel; // Defensive programming
                 } else {
                     var userIndex = findSessionIndexInUserModel(userId);
-                    userModel.setProperty(userIndex, "audioLevel", audioLevel);
+                    if (userIndex != -1) {
+                        userModel.setProperty(userIndex, "audioLevel", audioLevel);
+                    }
                 }
             }
             break;
