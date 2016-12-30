@@ -1271,6 +1271,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["sim_rate"] = getAverageSimsPerSecond();
         properties["avatar_sim_rate"] = getAvatarSimrate();
         properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
+        properties["hardware_stats"] = displayPlugin->getHardwareStats();
 
         auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
         properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();

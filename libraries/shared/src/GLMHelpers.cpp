@@ -370,7 +370,7 @@ glm::quat glmExtractRotation(const glm::mat4& matrix) {
 glm::vec3 extractScale(const glm::mat4& matrix) {
     glm::mat3 m(matrix);
     float det = glm::determinant(m);
-    if (det < 0) {
+    if (det < 0.0f) {
         // left handed matrix, flip sign to compensate.
         return glm::vec3(-glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
     } else {
