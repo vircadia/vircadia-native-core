@@ -218,6 +218,7 @@ protected:
     void init();
 
     bool evaluatePending() const { return _evaluatesPending > 0; }
+    quint64 getTimersRemainingTime();
     void timerFired();
     void stopAllTimers();
     void stopAllTimersForEntityScript(const EntityItemID& entityID);
@@ -252,6 +253,8 @@ protected:
     std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
 
     std::recursive_mutex _lock;
+
+    std::chrono::microseconds _totalTimerExecution { 0 };
 };
 
 #endif // hifi_ScriptEngine_h

@@ -102,7 +102,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(this, &LimitedNodeList::nodeActivated, this, &NodeList::maybeSendIgnoreSetToNode);
     
     // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
-    _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS);
+    _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
     connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);

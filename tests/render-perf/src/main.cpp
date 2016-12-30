@@ -546,7 +546,7 @@ public:
         restorePosition();
 
         QTimer* timer = new QTimer(this);
-        timer->setInterval(0);
+        timer->setInterval(0); // Qt::CoarseTimer acceptable
         connect(timer, &QTimer::timeout, this, [this] {
             draw();
         });
