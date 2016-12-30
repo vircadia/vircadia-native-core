@@ -5419,6 +5419,15 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
         return !entityServerNode || isPhysicsEnabled();
     });
 
+    scriptEngine->setGetTargetUpdateRateFunction([this]() {
+        auto displayPlugin = _displayPlugin;
+        if (displayPlugin) {
+            auto targetUpdateRate = displayPlugin->getTargetFrameRate();
+            return targetUpdateRate;
+        }
+        return 60.0f;
+    });
+
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();

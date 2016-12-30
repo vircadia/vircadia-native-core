@@ -41,11 +41,9 @@
 #include "ScriptUUID.h"
 #include "Vec3.h"
 
-class QScriptEngineDebugger;
-
 static const QString NO_SCRIPT("");
 
-static const int SCRIPT_FPS = 60;
+class QScriptEngineDebugger;
 
 class CallbackData {
 public:
@@ -56,6 +54,7 @@ public:
 
 typedef QList<CallbackData> CallbackList;
 typedef QHash<QString, CallbackList> RegisteredEventHandlers;
+using GetTargetUpdateRateFunction = std::function<float()>;
 
 class EntityScriptDetails {
 public:
@@ -201,6 +200,8 @@ public:
 
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
 
+    void setGetTargetUpdateRateFunction(GetTargetUpdateRateFunction function) { _getTargetUpdateRate = function; }
+
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
     void updateMemoryCost(const qint64&);
@@ -269,6 +270,8 @@ protected:
     ScriptUUID _uuidLibrary;
     std::atomic<bool> _isUserLoaded { false };
     bool _isReloading { false };
+
+    GetTargetUpdateRateFunction _getTargetUpdateRate { []() { return 60.0f; } };
 
     ArrayBufferClass* _arrayBufferClass;
 
