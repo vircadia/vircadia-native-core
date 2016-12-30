@@ -228,17 +228,15 @@ Item {
                         newValue = false
                     }
                     userModel.setProperty(model.userIndex, styleData.role, newValue)
-                    userData[model.userIndex][styleData.role] = newValue // Defensive programming
                     if (styleData.role === "personalMute" || styleData.role === "ignore") {
                         Users[styleData.role](model.sessionId, newValue)
                         if (styleData.role === "ignore") {
                             userModel.setProperty(model.userIndex, "personalMute", newValue)
-                            userData[model.userIndex]["personalMute"] = newValue // Defensive programming
                         }
                     } else {
                         Users[styleData.role](model.sessionId)
                         // Just for now, while we cannot undo things:
-                        userData.splice(model.userIndex, 1)
+                        userModel.remove(model.userIndex, 1)
                         sortModel()
                     }
                     // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
@@ -352,13 +350,11 @@ Item {
         }
     }
 
-    property var userData: []
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
     property bool iAmAdmin: false
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
-        var i, data = optionalData || userData, length = data.length;
-        for (var i = 0; i < length; i++) {
-            if (data[i].sessionId === sessionId) {
+        for (var i = 0; i < userModel.count; i++) {
+            if (userModel.get(i).sessionId === sessionId) {
                 return i;
             }
         }
@@ -372,8 +368,18 @@ Item {
             iAmAdmin = Users.canKick;
             myData = data[myIndex];
             data.splice(myIndex, 1);
-            userData = data;
-            sortModel();
+            userModel.clear();
+            var userIndex = 0;
+            data.forEach(function (datum) {
+                function init(property) {
+                    if (datum[property] === undefined) {
+                        datum[property] = false;
+                    }
+                }
+                ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
+                datum.userIndex = userIndex++;
+                userModel.append(datum);
+            });
             break;
         case 'select':
             var sessionId = message.params[0];
@@ -397,11 +403,10 @@ Item {
                 myData.userName = userName;
                 myCard.userName = userName; // Defensive programming
             } else {
-                // Get the index in userModel and userData associated with the passed UUID
+                // Get the index in userModel associated with the passed UUID
                 var userIndex = findSessionIndex(userId);
                 // Set the userName appropriately
                 userModel.setProperty(userIndex, "userName", userName);
-                userData[userIndex].userName = userName; // Defensive programming
             }
             break;
         case 'updateAudioLevel': 
@@ -414,7 +419,6 @@ Item {
                 } else {
                     var userIndex = findSessionIndex(userId);
                     userModel.setProperty(userIndex, "audioLevel", audioLevel);
-                    userData[userIndex].audioLevel = audioLevel; // Defensive programming
                 }
             }
             break;
@@ -423,10 +427,15 @@ Item {
         }
     }
     function sortModel() {
+        var sortable = [];
+        for (var i = 0; i < userModel.count; i++) {
+            sortable.push(userModel.get(i));
+        }
+
         var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
         var before = (table.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
         var after = -1 * before;
-        userData.sort(function (a, b) {
+        sortable.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
             switch (true) {
             case (aValue < bValue): return before;
@@ -437,7 +446,7 @@ Item {
         table.selection.clear();
         userModel.clear();
         var userIndex = 0;
-        userData.forEach(function (datum) {
+        sortable.forEach(function (datum) {
             function init(property) {
                 if (datum[property] === undefined) {
                     datum[property] = false;
@@ -452,7 +461,7 @@ Item {
     function noticeSelection() {
         var userIds = [];
         table.selection.forEach(function (userIndex) {
-            userIds.push(userData[userIndex].sessionId);
+            userIds.push(userModel.get(userIndex).sessionId);
         });
         pal.sendToScript({method: 'selected', params: userIds});
     }
