@@ -154,6 +154,7 @@
         },
         continueEquip: function(entityID, args) {
             this.deltaTime = checkInterval();
+            print("continueEquip delta:" + this.deltaTime);
             //debounce during debugging -- maybe we're updating too fast?
             if (USE_DEBOUNCE === true) {
                 this.sinceLastUpdate = this.sinceLastUpdate + this.deltaTime;

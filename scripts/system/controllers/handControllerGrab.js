@@ -2141,6 +2141,7 @@ function MyController(hand) {
     };
 
     this.nearGrabbing = function(deltaTime, timestamp) {
+        print("nearGrabbing() deltaTime:" + deltaTime);
 
         this.grabPointSphereOff();
 
