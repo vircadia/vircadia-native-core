@@ -863,6 +863,10 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
+    auto filenameParts = _fileNameString.split("/");
+    auto name = filenameParts.size() > 0 ? filenameParts[filenameParts.size() - 1] : "unknown";
+    PROFILE_SET_THREAD_NAME("Script: " + name);
+
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         return; // bail early - avoid setting state in init(), as evaluate() will bail too
     }
