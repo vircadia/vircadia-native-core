@@ -31,14 +31,8 @@
 #include <render/drawItemBounds_frag.h>
 
 using namespace render;
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
-extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
 RenderForwardTask::RenderForwardTask(CullFunctor cullFunctor) {
-    // Prepare the ShapePipelines
-    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
-    initDeferredPipelines(*shapePlumber);
-
     // CPU jobs:
     // Fetch and cull the items from the scene
     const auto spatialSelection = addJob<FetchSpatialTree>("FetchSceneSelection");
