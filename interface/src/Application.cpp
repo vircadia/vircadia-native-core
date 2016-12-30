@@ -3411,6 +3411,10 @@ void Application::idle(float nsecsElapsed) {
     static std::once_flag once;
     std::call_once(once, [] {
         initCpuUsage(); 
+    PROFILE_COUNTER(app, "fps", { { "fps", _frameCounter.rate() } });
+    PROFILE_COUNTER(app, "downloads", {
+        { "current", ResourceCache::getLoadingRequests().length() },
+        { "pending", ResourceCache::getPendingRequestCount() }
     });
 
     vec3 kernelUserAndSystem;
