@@ -598,7 +598,7 @@
         var now = Date.now();
         deltaTime = now - lastRPC;
         lastRPC = now;
-        print("RPCkicker interval:"+deltaTime);
+        //print("RPCkicker interval:"+deltaTime);
     },TIMER_INTERVAL);
 
 
