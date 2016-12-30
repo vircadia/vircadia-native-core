@@ -368,7 +368,7 @@ void AvatarMixer::broadcastAvatarData() {
 
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
-                    
+
                     if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
                         // we got out out of order packets from the sender, track it
                         otherNodeData->incrementNumOutOfOrderSends();

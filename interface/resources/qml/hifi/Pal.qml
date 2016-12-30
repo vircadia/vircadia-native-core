@@ -244,18 +244,6 @@ Item {
             }
         }
     }
-    // Separator between user and admin functions
-    Rectangle {
-        // Size
-        width: 2
-        height: table.height
-        // Anchors
-        anchors.left: adminTab.left
-        anchors.top: table.top
-        // Properties
-        visible: iAmAdmin
-        color: hifi.colors.lightGrayText
-    }
     // Refresh button
     Rectangle {
         // Size
@@ -294,6 +282,18 @@ Item {
             onEntered: reloadButton.color = hifi.colors.baseGrayHighlight
             onExited: reloadButton.color = (pressed ?  hifi.colors.lightGrayText: hifi.colors.darkGray)
         }
+    }
+    // Separator between user and admin functions
+    Rectangle {
+        // Size
+        width: 2
+        height: table.height
+        // Anchors
+        anchors.left: adminTab.left
+        anchors.top: table.top
+        // Properties
+        visible: iAmAdmin
+        color: hifi.colors.lightGrayText
     }
     // This Rectangle refers to the [?] popup button
     Rectangle {
