@@ -132,17 +132,14 @@ function populateUserList() {
             // Request the username from the given UUID
             Users.requestUsernameFromID(id);
         }
-        // Request personal mute status from AudioMixer
-        // and ignore status from AudioMixer/AvatarMixer
-        // (as long as we're not requesting it for our own ID)
+        // Request personal mute status and ignore status
+        // from NodeList (as long as we're not requesting it for our own ID)
         if (id) {
             avatarPalDatum['personalMute'] = Users.getPersonalMuteStatus(id);
             avatarPalDatum['ignore'] = Users.getIgnoreStatus(id);
+            addAvatarNode(id); // No overlay for ourselves
         }
         data.push(avatarPalDatum);
-        if (id) { // No overlay for ourself.
-            addAvatarNode(id);
-        }
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
     pal.sendToQml({method: 'users', params: data});

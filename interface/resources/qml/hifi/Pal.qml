@@ -41,6 +41,8 @@ Item {
     property int rowHeight: 70
     property int actionButtonWidth: 75
     property int nameCardWidth: width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4
+    property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
+    property bool iAmAdmin: false
 
     // This contains the current user's NameCard and will contain other information in the future
     Rectangle {
@@ -350,9 +352,7 @@ Item {
         }
     }
 
-    property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
-    property bool iAmAdmin: false
-    function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
+    function findSessionIndexInUserModel(sessionId) { // no findIndex in .qml
         for (var i = 0; i < userModel.count; i++) {
             if (userModel.get(i).sessionId === sessionId) {
                 return i;
@@ -364,10 +364,20 @@ Item {
         switch (message.method) {
         case 'users':
             var data = message.params;
-            var myIndex = findSessionIndex('', data);
-            iAmAdmin = Users.canKick;
-            myData = data[myIndex];
-            data.splice(myIndex, 1);
+            var myIndex = -1;
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].sessionId === "") {
+                    myIndex = i;
+                    break;
+                }
+            }
+            if (myIndex !== -1) {
+                iAmAdmin = Users.canKick;
+                myData = data[myIndex];
+                data.splice(myIndex, 1);
+            } else {
+                console.log("This user's data was not found in the user list. PAL will not function properly.");
+            }
             userModel.clear();
             var userIndex = 0;
             data.forEach(function (datum) {
@@ -384,7 +394,7 @@ Item {
         case 'select':
             var sessionId = message.params[0];
             var selected = message.params[1];
-            var userIndex = findSessionIndex(sessionId);
+            var userIndex = findSessionIndexInUserModel(sessionId);
             if (selected) {
                 table.selection.clear(); // for now, no multi-select
                 table.selection.select(userIndex);
@@ -404,7 +414,7 @@ Item {
                 myCard.userName = userName; // Defensive programming
             } else {
                 // Get the index in userModel associated with the passed UUID
-                var userIndex = findSessionIndex(userId);
+                var userIndex = findSessionIndexInUserModel(userId);
                 // Set the userName appropriately
                 userModel.setProperty(userIndex, "userName", userName);
             }
@@ -417,25 +427,27 @@ Item {
                     myData.audioLevel = audioLevel;
                     myCard.audioLevel = audioLevel; // Defensive programming
                 } else {
-                    var userIndex = findSessionIndex(userId);
+                    var userIndex = findSessionIndexInUserModel(userId);
                     userModel.setProperty(userIndex, "audioLevel", audioLevel);
                 }
             }
             break;
-    default:
+        default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }
     }
     function sortModel() {
-        var sortable = [];
+        var sortedList = [];
+        console.log('sortedList before:', JSON.stringify(sortedList));
         for (var i = 0; i < userModel.count; i++) {
-            sortable.push(userModel.get(i));
+            sortedList.push(userModel.get(i));
         }
+        console.log('sortedList:', JSON.stringify(sortedList));
 
         var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
         var before = (table.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
         var after = -1 * before;
-        sortable.sort(function (a, b) {
+        sortedList.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
             switch (true) {
             case (aValue < bValue): return before;
@@ -446,7 +458,7 @@ Item {
         table.selection.clear();
         userModel.clear();
         var userIndex = 0;
-        sortable.forEach(function (datum) {
+        sortedList.forEach(function (datum) {
             function init(property) {
                 if (datum[property] === undefined) {
                     datum[property] = false;
