@@ -840,15 +840,6 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
-
-#ifdef _WIN32
-    // VS13 does not sleep_until unless it uses the system_clock, see:
-    // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
-    using clock = std::chrono::system_clock;
-#else
-    using clock = std::chrono::high_resolution_clock;
-#endif
-
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         return; // bail early - avoid setting state in init(), as evaluate() will bail too
     }
@@ -861,6 +852,14 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     QScriptValue result = evaluate(_scriptContents, _fileNameString);
+
+#ifdef _WIN32
+    // VS13 does not sleep_until unless it uses the system_clock, see:
+    // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
+    using clock = std::chrono::system_clock;
+#else
+    using clock = std::chrono::high_resolution_clock;
+#endif
 
     clock::time_point startTime = clock::now();
     int thisFrame = 0;
