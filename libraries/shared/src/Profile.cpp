@@ -10,6 +10,7 @@
 
 Q_LOGGING_CATEGORY(trace_app, "trace.app")
 Q_LOGGING_CATEGORY(trace_app_detail, "trace.app.detail")
+Q_LOGGING_CATEGORY(trace_metadata, "trace.metadata")
 Q_LOGGING_CATEGORY(trace_network, "trace.network")
 Q_LOGGING_CATEGORY(trace_parse, "trace.parse")
 Q_LOGGING_CATEGORY(trace_render, "trace.render")
