@@ -595,6 +595,11 @@
 });
 
 var TIMER_INTERVAL = 5;
+var lastRPC = Date.now();
 var RPCkicker = Script.setInterval(function() {
     // do nothing, but make sure we get RPC messages in a reliable way
+    var now = Date.now();
+    deltaTime = now - lastRPC;
+    lastRPC = now;
+    print("RPCkicker interval:"+deltaTime);
 },TIMER_INTERVAL);
