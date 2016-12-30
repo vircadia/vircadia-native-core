@@ -956,6 +956,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
     }
 }
 
+/*
 bool EntityTreeRenderer::isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree,
         const EntityItemID& id, const Collision& collision) {
     // BUG: this method is poorly named.  It should be called like: isOwnerOfObjectOrOwnerOfOtherIfObjectIsUnowned()
@@ -982,43 +983,35 @@ bool EntityTreeRenderer::isCollisionOwner(const QUuid& myNodeID, EntityTreePoint
     return true;
 }
 
-void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
-                                                  const EntityItemID& id, const Collision& collision) {
+bool EntityTreeRenderer::isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree, const EntityItemID& id) {
+    EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
+    return ((bool)entity && myNodeID == entity->getSimulatorID());
+}
+*/
 
-    if (!isCollisionOwner(myNodeID, entityTree, id, collision)) {
-        return;
-    }
-
-    SharedSoundPointer collisionSound;
-    float mass = 1.0; // value doesn't get used, but set it so compiler is quiet
-    AACube minAACube;
-    bool success = false;
-    _tree->withReadLock([&] {
-        EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
-        if (entity) {
-            collisionSound = entity->getCollisionSound();
-            mass = entity->computeMass();
-            minAACube = entity->getMinimumAACube(success);
-        }
-    });
-    if (!success) {
-        return;
-    }
+void EntityTreeRenderer::playEntityCollisionSound(EntityItemPointer entity, const Collision& collision) {
+    assert((bool)entity);
+    SharedSoundPointer collisionSound = entity->getCollisionSound();
     if (!collisionSound) {
         return;
     }
+    bool success = false;
+    AACube minAACube = entity->getMinimumAACube(success);
+    if (!success) {
+        return;
+    }
+    float mass = entity->computeMass();
 
-    const float COLLISION_PENETRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
+    const float COLLISION_PENETRATION_TO_VELOCITY = 50.0f; // as a subsitute for RELATIVE entity->getVelocity()
     // The collision.penetration is a pretty good indicator of changed velocity AFTER the initial contact,
     // but that first contact depends on exactly where we hit in the physics step.
     // We can get a more consistent initial-contact energy reading by using the changed velocity.
     // Note that velocityChange is not a good indicator for continuing collisions, because it does not distinguish
     // between bounce and sliding along a surface.
-    const float linearVelocity = (collision.type == CONTACT_EVENT_TYPE_START) ?
-        glm::length(collision.velocityChange) :
-        glm::length(collision.penetration) * COLLISION_PENETRATION_TO_VELOCITY;
-    const float energy = mass * linearVelocity * linearVelocity / 2.0f;
-    const glm::vec3 position = collision.contactPoint;
+    const float speedSquared = (collision.type == CONTACT_EVENT_TYPE_START) ?
+        glm::length2(collision.velocityChange) :
+        glm::length2(collision.penetration) * COLLISION_PENETRATION_TO_VELOCITY;
+    const float energy = mass * speedSquared / 2.0f;
     const float COLLISION_ENERGY_AT_FULL_VOLUME = (collision.type == CONTACT_EVENT_TYPE_START) ? 150.0f : 5.0f;
     const float COLLISION_MINIMUM_VOLUME = 0.005f;
     const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
@@ -1032,7 +1025,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
     const float stretchFactor = log(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
-    AudioInjector::playSound(collisionSound, volume, stretchFactor, position);
+    AudioInjector::playSound(collisionSound, volume, stretchFactor, collision.contactPoint);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,
@@ -1048,23 +1041,23 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         return;
     }
 
-    // See if we should play sounds
     EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
     const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
-    playEntityCollisionSound(myNodeID, entityTree, idA, collision);
-    playEntityCollisionSound(myNodeID, entityTree, idB, collision);
 
-    // And now the entity scripts
+    // trigger scripted collision sounds and events for locally owned objects
     // BUG! scripts don't get the final COLLISION_EVENT_TYPE_END event in a timely manner because
     // by the time it gets here the object has been deactivated and local ownership is relenquished.
-    if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
+    EntityItemPointer entityA = entityTree->findEntityByEntityItemID(idA);
+    if ((bool)entityA && myNodeID == entityA->getSimulatorID()) {
+        playEntityCollisionSound(entityA, collision);
         emit collisionWithEntity(idA, idB, collision);
         if (_entitiesScriptEngine) {
             _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
         }
     }
-
-    if (isCollisionOwner(myNodeID, entityTree, idB, collision)) {
+    EntityItemPointer entityB = entityTree->findEntityByEntityItemID(idB);
+    if ((bool)entityB && myNodeID == entityB->getSimulatorID()) {
+        playEntityCollisionSound(entityB, collision);
         emit collisionWithEntity(idB, idA, collision);
         if (_entitiesScriptEngine) {
             _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, collision);
