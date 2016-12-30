@@ -816,6 +816,7 @@ function MyController(hand) {
     };
 
     this.update = function(deltaTime, timestamp) {
+        print("this.update() deltaTime:" + deltaTime + " timestamp:" + timestamp + " now:" + Date.now());
 
         this.updateSmoothedTrigger();
 
@@ -844,6 +845,7 @@ function MyController(hand) {
 
     this.callEntityMethodOnGrabbed = function(entityMethodName) {
         var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+        print("this.callEntityMethodOnGrabbed() entityMethodName:" + entityMethodName + " now:" + Date.now());
         Entities.callEntityMethod(this.grabbedEntity, entityMethodName, args);
     };
 
@@ -2141,7 +2143,7 @@ function MyController(hand) {
     };
 
     this.nearGrabbing = function(deltaTime, timestamp) {
-        print("nearGrabbing() deltaTime:" + deltaTime);
+        print("nearGrabbing() deltaTime:" + deltaTime + " now:" + Date.now());
 
         this.grabPointSphereOff();
 
@@ -3068,8 +3070,15 @@ var handleHandMessages = function(channel, message, sender) {
 Messages.messageReceived.connect(handleHandMessages);
 
 var BASIC_TIMER_INTERVAL_MS = 20; // 20ms = 50hz good enough
+var lastInterval = Date.now();
 var updateIntervalTimer = Script.setInterval(function(){
-    update(BASIC_TIMER_INTERVAL_MS / 1000);
+    var thisInterval = Date.now();
+    var deltaTimeMsec = thisInterval - lastInterval;
+    var deltaTime = deltaTimeMsec / 1000;
+    lastInterval = thisInterval;
+
+    print("setInterval function() deltaTimeMsec:" + deltaTimeMsec + " deltaTime:" + deltaTime + "(sec) now:" + Date.now());
+    update(deltaTime);
 }, BASIC_TIMER_INTERVAL_MS);
 
 function cleanup() {

@@ -928,22 +928,23 @@ void ScriptEngine::run() {
             auto remainingSleepUntil = std::chrono::duration_cast<std::chrono::microseconds>(sleepUntil - clock::now());
             auto closestUntil = std::min(remainingSleepUntil, untilTimer);
             auto thisSleepUntil = std::min(sleepUntil, clock::now() + closestUntil);
+            auto untilThisSleepUntil = std::chrono::duration_cast<std::chrono::microseconds>(thisSleepUntil - clock::now());
 
             // if the sleep until is more than 1 ms away, then don't sleep, and instead use a wait condition 
             // for any possible invoke methods that might also be pending.
             const std::chrono::microseconds MAX_USECS_TO_SLEEP(USECS_PER_MSEC);
-            if (closestUntil < MAX_USECS_TO_SLEEP) {
-                qDebug() << "about to sleep:" << closestUntil.count() << "usec";
+            if (untilThisSleepUntil < MAX_USECS_TO_SLEEP) {
+                qDebug() << "[" << getFilename() << "]" << "about to sleep untilThisSleepUntil:" << untilThisSleepUntil.count() << "usec -- averageTimerPerFrame:" << averageTimerPerFrame.count();
                 std::this_thread::sleep_until(thisSleepUntil);
             } else {
                 // FIXME - we might want to make this 1 less ms to wait
-                unsigned long maxWait = closestUntil.count() / USECS_PER_MSEC;
-                qDebug() << "about to wait:" << maxWait << "ms --- closestUntil:" << closestUntil.count() << "usec";
+                unsigned long maxWait = untilThisSleepUntil.count() / USECS_PER_MSEC;
+                qDebug() << "[" << getFilename() << "]" << "about to wait:" << maxWait << "ms --- untilThisSleepUntil:" << untilThisSleepUntil.count() << "usec -- averageTimerPerFrame:" << averageTimerPerFrame.count();
                 _waitingOnInvokeMethod.lock();
                 bool signalled = _hasInvokeMethod.wait(&_waitingOnInvokeMethod, maxWait);
                 _waitingOnInvokeMethod.unlock();
                 if (signalled) {
-                    qDebug() << "SIGNALLED!! done waiting... now:" << usecTimestampNow();
+                    qDebug() << "[" << getFilename() << "]" << "SIGNALLED!! done waiting... now:" << usecTimestampNow();
                 }
 
             }
@@ -1664,13 +1665,15 @@ void ScriptEngine::callWithEnvironment(const EntityItemID& entityID, const QUrl&
 }
 
 void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
+    qDebug() << "[" << getFilename() << "]" << __FUNCTION__ << "method:" << methodName << "now:" << usecTimestampNow();
+
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
             "entityID:" << entityID << "methodName:" << methodName;
 #endif
 
-        qDebug() << "about to invokeMethod callEntityScriptMethod() now:" << usecTimestampNow();
+        qDebug() << "[" << getFilename() << "]" << "about to invokeMethod callEntityScriptMethod() now:" << usecTimestampNow();
 
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
                                   Q_ARG(const EntityItemID&, entityID),
@@ -1692,6 +1695,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             QScriptValueList args;
             args << entityID.toScriptValue(this);
             args << qScriptValueFromSequence(this, params);
+
+            qDebug() << "[" << getFilename() << "]" << __FUNCTION__ << "about to callWithEnvironment()... method:" << methodName << "now:" << usecTimestampNow();
             callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
         }
 
