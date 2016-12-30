@@ -800,7 +800,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         _registeredHandlers[entityID] = RegisteredEventHandlers();
     }
     CallbackList& handlersForEvent = _registeredHandlers[entityID][eventName];
-    CallbackData handlerData = {handler, currentEntityIdentifier, currentSandboxURL};
+    CallbackData handlerData = { handler, currentEntityIdentifier, currentSandboxURL };
     handlersForEvent << handlerData; // Note that the same handler can be added many times. See removeEntityEventHandler().
 }
 
@@ -840,6 +840,15 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
+
+#ifdef _WIN32
+    // VS13 does not sleep_until unless it uses the system_clock, see:
+    // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
+    using clock = std::chrono::system_clock;
+#else
+    using clock = std::chrono::high_resolution_clock;
+#endif
+
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         return; // bail early - avoid setting state in init(), as evaluate() will bail too
     }
@@ -852,14 +861,6 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     QScriptValue result = evaluate(_scriptContents, _fileNameString);
-
-#ifdef _WIN32
-    // VS13 does not sleep_until unless it uses the system_clock, see:
-    // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
-    using clock = std::chrono::system_clock;
-#else
-    using clock = std::chrono::high_resolution_clock;
-#endif
 
     clock::time_point startTime = clock::now();
     int thisFrame = 0;
@@ -878,23 +879,48 @@ void ScriptEngine::run() {
         // Throttle to SCRIPT_FPS
         // We'd like to try to keep the script at a solid SCRIPT_FPS update rate. And so we will 
         // calculate a sleepUntil to be the time from our start time until the original target
-        // sleepUntil for this frame.
-        const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
-        clock::time_point targetSleepUntil(startTime + thisFrame++ * FRAME_DURATION);
+        // sleepUntil for this frame. This approach will allow us to "catch up" in the event 
+        // that some of our script udpates/frames take a little bit longer than the target average 
+        // to execute.
+        // NOTE: if we go to variable SCRIPT_FPS, then we will need to reconsider this approach
+        const std::chrono::microseconds TARGET_SCRIPT_FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
+        clock::time_point targetSleepUntil(startTime + (thisFrame++ * TARGET_SCRIPT_FRAME_DURATION));
 
-        // However, if our sleepUntil is not at least our average update time into the future
-        // it means our script is taking too long in it's updates, and we want to punish the
-        // script a little bit. So we will force the sleepUntil to be at least our averageUpdate
-        // time into the future.
+        // However, if our sleepUntil is not at least our average update and timer execution time 
+        // into the future it means our script is taking too long in its updates, and we want to 
+        // punish the script a little bit. So we will force the sleepUntil to be at least our 
+        // averageUpdate + averageTimerPerFrame time into the future.
         auto averageUpdate = totalUpdates / thisFrame;
-        auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageUpdate);
+        auto averageTimerPerFrame = _totalTimerExecution / thisFrame;
+        auto averageTimerAndUpdate = averageUpdate + averageTimerPerFrame;
+        auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageTimerAndUpdate);
 
         // We don't want to actually sleep for too long, because it causes our scripts to hang 
         // on shutdown and stop... so we want to loop and sleep until we've spent our time in 
         // purgatory, constantly checking to see if our script was asked to end
+        bool processedEvents = false;
         while (!_isFinished && clock::now() < sleepUntil) {
+
             QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
-            auto thisSleepUntil = std::min(sleepUntil, clock::now() + FRAME_DURATION);
+            processedEvents = true;
+
+            // If after processing events, we're past due, exit asap
+            if (clock::now() >= sleepUntil) {
+                break;
+            }
+
+            // determine how long before the next timer should fire, we'd ideally like to sleep just
+            // that long, so the next processEvents() will allow the timers to fire on time.
+            const std::chrono::microseconds minTimerTimeRemaining(USECS_PER_MSEC * getTimersRemainingTime());
+
+            // However, if we haven't yet slept at least as long as our average timer per frame, then we will 
+            // punish the timers to at least wait as long as the average run time of the timers.
+            auto untilTimer = std::max(minTimerTimeRemaining, averageTimerPerFrame);
+
+            // choose the closest time point, our 
+            auto remainingSleepUntil = std::chrono::duration_cast<std::chrono::microseconds>(sleepUntil - clock::now());
+            auto closestUntil = std::min(remainingSleepUntil, untilTimer);
+            auto thisSleepUntil = std::min(sleepUntil, clock::now() + closestUntil);
             std::this_thread::sleep_until(thisSleepUntil);
         }
 
@@ -919,7 +945,10 @@ void ScriptEngine::run() {
             break;
         }
 
-        QCoreApplication::processEvents();
+        // Only call this if we didn't processEvents as part of waiting for next frame
+        if (!processedEvents) {
+            QCoreApplication::processEvents();
+        }
 
         if (_isFinished) {
             break;
@@ -981,6 +1010,21 @@ void ScriptEngine::run() {
     emit runningStateChanged();
     emit doneRunning();
 }
+
+quint64 ScriptEngine::getTimersRemainingTime() {
+    quint64 minimumTime = USECS_PER_SECOND; // anything larger than this can be ignored
+    QMutableHashIterator<QTimer*, CallbackData> i(_timerFunctionMap);
+    while (i.hasNext()) {
+        i.next();
+        QTimer* timer = i.key();
+        int remainingTime = timer->remainingTime();
+        if (remainingTime >= 0) {
+            minimumTime = std::min((quint64)remainingTime, minimumTime);
+        }
+    }
+    return minimumTime;
+}
+
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
 // we want to only call it in our own run "shutdown" processing.
@@ -1077,7 +1121,12 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
+        auto preTimer = p_high_resolution_clock::now();
         callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
+        auto postTimer = p_high_resolution_clock::now();
+        auto elapsed = (postTimer - preTimer);
+        _totalTimerExecution += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
+
     }
 }
 
@@ -1098,7 +1147,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
 
-    CallbackData timerData = {function, currentEntityIdentifier, currentSandboxURL};
+    CallbackData timerData = {function, currentEntityIdentifier, currentSandboxURL };
     _timerFunctionMap.insert(newTimer, timerData);
 
     newTimer->start(intervalMS);
