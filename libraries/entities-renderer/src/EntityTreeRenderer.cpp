@@ -1060,7 +1060,10 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         playEntityCollisionSound(entityB, collision);
         emit collisionWithEntity(idB, idA, collision);
         if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, collision);
+            // since we're swapping A and B we need to send the inverted collision
+            Collision invertedCollision(collision);
+            invertedCollision.invert();
+            _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, invertedCollision);
         }
     }
 }
