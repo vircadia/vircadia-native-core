@@ -59,7 +59,7 @@
 #include <model-networking/ModelCache.h>
 #include <GeometryCache.h>
 #include <DeferredLightingEffect.h>
-#include <render/RenderFetchSortCullTask.h>
+#include <render/RenderFetchCullSortTask.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
@@ -536,13 +536,13 @@ public:
         _initContext.makeCurrent();
         // Render engine init
         _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", _cullFunctor);
-        const auto items = _renderEngine->addJob<RenderFetchSortCullTask>("FetchSortCull", _cullFunctor);
-        assert(items.canCast<RenderFetchSortCullTask::Output>());
+        const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", _cullFunctor);
+        assert(items.canCast<RenderFetchCullSortTask::Output>());
         static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
         if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-            _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", items.get<RenderFetchSortCullTask::Output>());
+            _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", items.get<RenderFetchCullSortTask::Output>());
         } else {
-            _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items.get<RenderFetchSortCullTask::Output>());
+            _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items.get<RenderFetchCullSortTask::Output>());
         }
         _renderEngine->load();
         _renderEngine->registerScene(_main3DScene);

@@ -1,5 +1,5 @@
 //
-//  RenderFetchSortCullTask.h
+//  RenderFetchCullSortTask.h
 //  render/src/
 //
 //  Created by Zach Pomerantz on 12/22/2016.
@@ -9,20 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_RenderFetchSortCullTask_h
-#define hifi_RenderFetchSortCullTask_h
+#ifndef hifi_RenderFetchCullSortTask_h
+#define hifi_RenderFetchCullSortTask_h
 
 #include <gpu/Pipeline.h>
 
 #include "Task.h"
 #include "CullTask.h"
 
-class RenderFetchSortCullTask : public render::Task {
+class RenderFetchCullSortTask : public render::Task {
 public:
     using Output = std::array<render::Varying, 6>;
-    using JobModel = ModelO<RenderFetchSortCullTask>;
+    using JobModel = ModelO<RenderFetchCullSortTask>;
 
-    RenderFetchSortCullTask(render::CullFunctor cullFunctor);
+    RenderFetchCullSortTask(render::CullFunctor cullFunctor);
 };
 
-#endif // hifi_RenderFetchSortCullTask_h
+#endif // hifi_RenderFetchCullSortTask_h

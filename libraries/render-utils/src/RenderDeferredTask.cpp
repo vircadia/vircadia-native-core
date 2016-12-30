@@ -48,7 +48,7 @@ using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
-RenderDeferredTask::RenderDeferredTask(RenderFetchSortCullTask::Output items) {
+RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);

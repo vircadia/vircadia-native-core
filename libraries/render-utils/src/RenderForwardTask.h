@@ -13,14 +13,14 @@
 #define hifi_RenderForwardTask_h
 
 #include <gpu/Pipeline.h>
-#include <render/RenderFetchSortCullTask.h>
+#include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 
 class RenderForwardTask : public render::Task {
 public:
     using JobModel = Model<RenderForwardTask>;
 
-    RenderForwardTask(RenderFetchSortCullTask::Output items);
+    RenderForwardTask(RenderFetchCullSortTask::Output items);
 };
 
 class PrepareFramebuffer {

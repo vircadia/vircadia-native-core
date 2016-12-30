@@ -13,18 +13,18 @@
 #define hifi_RenderDeferredTask_h
 
 #include <gpu/Pipeline.h>
-#include <render/RenderFetchSortCullTask.h>
+#include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 
 
 class BeginGPURangeTimer {
 public:
     using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;
-    
+
     BeginGPURangeTimer(const std::string& name) : _gpuTimer(std::make_shared<gpu::RangeTimer>(name)) {}
-    
+
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer);
-    
+
 protected:
     gpu::RangeTimerPointer _gpuTimer;
 };
@@ -35,12 +35,12 @@ class EndGPURangeTimer {
 public:
     using Config = GPURangeTimerConfig;
     using JobModel = render::Job::ModelI<EndGPURangeTimer, gpu::RangeTimerPointer, Config>;
-    
+
     EndGPURangeTimer() {}
-    
+
     void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer);
-    
+
 protected:
 };
 
@@ -196,7 +196,7 @@ class RenderDeferredTask : public render::Task {
 public:
     using JobModel = Model<RenderDeferredTask>;
 
-    RenderDeferredTask(RenderFetchSortCullTask::Output items);
+    RenderDeferredTask(RenderFetchCullSortTask::Output items);
 };
 
 #endif // hifi_RenderDeferredTask_h

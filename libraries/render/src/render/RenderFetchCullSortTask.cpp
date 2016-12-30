@@ -1,5 +1,5 @@
 //
-//  RenderFetchSortCullTask.cpp
+//  RenderFetchCullSortTask.cpp
 //  render/src/
 //
 //  Created by Zach Pomerantz on 12/22/2016.
@@ -9,14 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "RenderFetchSortCullTask.h"
+#include "RenderFetchCullSortTask.h"
 
 #include "CullTask.h"
 #include "SortTask.h"
 
 using namespace render;
 
-RenderFetchSortCullTask::RenderFetchSortCullTask(CullFunctor cullFunctor) {
+RenderFetchCullSortTask::RenderFetchCullSortTask(CullFunctor cullFunctor) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // CPU jobs:
