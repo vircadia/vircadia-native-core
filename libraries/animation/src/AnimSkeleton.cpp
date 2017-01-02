@@ -32,10 +32,10 @@ AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
     auto itr = _jointIndicesByName.find(jointName);
-    if (_jointIndicesByName.end() == itr) {
-        return -1;
+    if (_jointIndicesByName.end() != itr) {
+        return itr.value();
     }
-    return itr.value();
+    return -1;
 }
 
 int AnimSkeleton::getNumJoints() const {
@@ -202,6 +202,10 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
         }
     }
 
+    for (int i = 0; i < _jointsSize; i++) {
+        _jointIndicesByName[_joints[i].name] = i;
+    }
+
     // build mirror map.
     _nonMirroredIndices.clear();
     _mirrorMap.reserve(_jointsSize);
@@ -224,10 +228,6 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
         } else {
             _mirrorMap.push_back(i);
         }
-    }
-
-    for (int i = 0; i < _jointsSize; i++) {
-        _jointIndicesByName[_joints[i].name] = i;
     }
 }
 
