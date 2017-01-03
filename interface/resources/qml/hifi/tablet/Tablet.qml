@@ -10,7 +10,7 @@ Item {
     width: parent.width
     height: parent.height
 
-    // called by C++ code to keep mic level display bar UI updated
+    // called by C++ code to keep audio bar updated
     function setMicLevel(newMicLevel) {
         tablet.micLevel = newMicLevel;
     }
