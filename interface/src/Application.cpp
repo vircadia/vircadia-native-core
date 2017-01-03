@@ -66,7 +66,6 @@
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
-#include <FingerprintUtils.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -616,9 +615,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
     
-    // TODO: This is temporary, while developing
-    FingerprintUtils::getMachineFingerprint();
-    // End TODO
     auto nodeList = DependencyManager::get<NodeList>();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
@@ -1141,7 +1137,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_settingsThread, SIGNAL(finished()), &_settingsTimer, SLOT(stop()));
     _settingsTimer.moveToThread(&_settingsThread);
     _settingsTimer.setSingleShot(false);
-    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
+    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
     _settingsThread.start();
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
@@ -1246,7 +1242,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);
-    sendStatsTimer->setInterval(SEND_STATS_INTERVAL_MS);
+    sendStatsTimer->setInterval(SEND_STATS_INTERVAL_MS);  // 10s, Qt::CoarseTimer acceptable
     connect(sendStatsTimer, &QTimer::timeout, this, [this]() {
 
         QJsonObject properties = {};
@@ -1277,6 +1273,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["sim_rate"] = getAverageSimsPerSecond();
         properties["avatar_sim_rate"] = getAvatarSimrate();
         properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
+        properties["hardware_stats"] = displayPlugin->getHardwareStats();
 
         auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
         properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();
@@ -1347,7 +1344,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Periodically check for count of nearby avatars
     static int lastCountOfNearbyAvatars = -1;
     QTimer* checkNearbyAvatarsTimer = new QTimer(this);
-    checkNearbyAvatarsTimer->setInterval(CHECK_NEARBY_AVATARS_INTERVAL_MS);
+    checkNearbyAvatarsTimer->setInterval(CHECK_NEARBY_AVATARS_INTERVAL_MS); // 10 seconds, Qt::CoarseTimer ok
     connect(checkNearbyAvatarsTimer, &QTimer::timeout, this, [this]() {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         int nearbyAvatars = avatarManager->numberOfAvatarsInRange(avatarManager->getMyAvatar()->getPosition(),
@@ -1505,16 +1502,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
-    _addAssetToWorldResizeTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS);
+    _addAssetToWorldResizeTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_addAssetToWorldResizeTimer, &QTimer::timeout, this, &Application::addAssetToWorldCheckModelSize);
 
     // Auto-update and close adding asset to world info message box.
     static const int ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS = 5000;
-    _addAssetToWorldInfoTimer.setInterval(ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS);
+    _addAssetToWorldInfoTimer.setInterval(ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS); // 5s, Qt::CoarseTimer acceptable
     _addAssetToWorldInfoTimer.setSingleShot(true);
     connect(&_addAssetToWorldInfoTimer, &QTimer::timeout, this, &Application::addAssetToWorldInfoTimeout);
     static const int ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS = 8000;
-    _addAssetToWorldErrorTimer.setInterval(ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS);
+    _addAssetToWorldErrorTimer.setInterval(ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS); // 8s, Qt::CoarseTimer acceptable
     _addAssetToWorldErrorTimer.setSingleShot(true);
     connect(&_addAssetToWorldErrorTimer, &QTimer::timeout, this, &Application::addAssetToWorldErrorTimeout);
 
@@ -4326,7 +4323,7 @@ void Application::update(float deltaTime) {
 
     // AvatarManager update
     {
-        PerformanceTimer perfTimer("AvatarManger");
+        PerformanceTimer perfTimer("AvatarManager");
         _avatarSimCounter.increment();
 
         {
@@ -4376,6 +4373,7 @@ void Application::update(float deltaTime) {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
             }
+            sendAvatarViewFrustum();
             _lastQueriedViewFrustum = _viewFrustum;
         }
     }
@@ -4413,6 +4411,14 @@ void Application::update(float deltaTime) {
     }
 
     AnimDebugDraw::getInstance().update();
+}
+
+void Application::sendAvatarViewFrustum() {
+    QByteArray viewFrustumByteArray = _viewFrustum.toByteArray();
+    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size());
+    avatarPacket->write(viewFrustumByteArray);
+
+    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
 
@@ -5397,6 +5403,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(scriptEngine);
+
+    // connect this script engines printedMessage signal to the global ScriptEngines these various messages
+    connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
+    connect(scriptEngine, &ScriptEngine::errorMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
+    connect(scriptEngine, &ScriptEngine::warningMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
+    connect(scriptEngine, &ScriptEngine::infoMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {

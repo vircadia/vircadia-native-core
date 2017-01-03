@@ -800,7 +800,12 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
                 usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
                 usernameFromIDReplyPacket->writeString(verifiedUsername);
 
-                qDebug() << "Sending username" << verifiedUsername << "associated with node" << nodeUUID;
+                // now put in the machine fingerprint
+                DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+                QUuid machineFingerprint = nodeData ? nodeData->getMachineFingerprint() : QUuid();
+                usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
+                
+                qDebug() << "Sending username" << verifiedUsername << "and machine fingerprint" << machineFingerprint << "associated with node" << nodeUUID;
 
                 // Ship it!
                 limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);

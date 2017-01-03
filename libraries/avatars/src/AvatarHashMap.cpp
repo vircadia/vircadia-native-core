@@ -133,6 +133,18 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 
     // make sure this isn't for an ignored avatar
     auto nodeList = DependencyManager::get<NodeList>();
+    static auto EMPTY = QUuid();
+
+    {
+        QReadLocker locker(&_hashLock);
+        auto me = _avatarHash.find(EMPTY);
+        if ((me != _avatarHash.end()) && (identity.uuid == me.value()->getSessionUUID())) {
+            // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
+            // identity packet for ourself (such as when we are assigned a sessionDisplayName by the mixer upon joining),
+            // we make things match here.
+            identity.uuid = EMPTY;
+        }
+    }
     if (!nodeList->isIgnoringNode(identity.uuid)) {
         // mesh URL for a UUID, find avatar in our list
         auto avatar = newOrExistingAvatar(identity.uuid, sendingNode);
@@ -160,7 +172,7 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
 }
 
 void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
-    qDebug() << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
+    qCDebug(avatars) << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
         << "from AvatarHashMap";
     emit avatarRemovedEvent(removedAvatar->getSessionUUID());
 }

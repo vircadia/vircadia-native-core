@@ -370,7 +370,7 @@ glm::quat glmExtractRotation(const glm::mat4& matrix) {
 glm::vec3 extractScale(const glm::mat4& matrix) {
     glm::mat3 m(matrix);
     float det = glm::determinant(m);
-    if (det < 0) {
+    if (det < 0.0f) {
         // left handed matrix, flip sign to compensate.
         return glm::vec3(-glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
     } else {
@@ -502,7 +502,10 @@ glm::mat4 cancelOutRollAndPitch(const glm::mat4& m) {
 
 glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p) {
     glm::vec4 temp = m * glm::vec4(p, 1.0f);
-    return glm::vec3(temp.x / temp.w, temp.y / temp.w, temp.z / temp.w);
+    if (temp.w != 1.0f) {
+        temp *= (1.0f / temp.w);
+    }
+    return glm::vec3(temp);
 }
 
 // does not handle non-uniform scale correctly, but it's faster then transformVectorFull

@@ -53,4 +53,12 @@ private:
     int _scaleLocation { -1 };
 };
 
+class DrawBackground {
+public:
+    using Inputs = render::ItemBounds;
+    using JobModel = render::Job::ModelI<DrawBackground, Inputs>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& background);
+};
+
 #endif // hifi_RenderForwardTask_h

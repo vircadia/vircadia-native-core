@@ -902,7 +902,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
         connect(_initialSTUNTimer.data(), &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
 
         const int STUN_INITIAL_UPDATE_INTERVAL_MSECS = 250;
-        _initialSTUNTimer->setInterval(STUN_INITIAL_UPDATE_INTERVAL_MSECS);
+        _initialSTUNTimer->setInterval(STUN_INITIAL_UPDATE_INTERVAL_MSECS); // 250ms, Qt::CoarseTimer acceptable
 
         // if we don't know the STUN IP yet we need to wait until it is known to start STUN requests
         if (_stunSockAddr.getAddress().isNull()) {

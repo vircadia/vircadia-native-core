@@ -101,10 +101,10 @@ signals:
     void enteredIgnoreRadius();
 
     /**jsdoc
-    * Notifies scripts of the username associated with a UUID.
-    * @function Users.enteredIgnoreRadius
+    * Notifies scripts of the username and machine fingerprint associated with a UUID.
+    * @function Users.usernameFromIDReply
     */
-    void usernameFromIDReply(const QString& nodeID, const QString& username);
+    void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
 };
 
 

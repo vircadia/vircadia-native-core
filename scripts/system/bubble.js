@@ -64,7 +64,7 @@
         Audio.playSound(bubbleActivateSound, {
             position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
             localOnly: true,
-            volume: 0.4
+            volume: 0.2
         });
         hideOverlays();
         if (updateConnected === true) {

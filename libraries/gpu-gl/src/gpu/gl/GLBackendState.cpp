@@ -11,6 +11,8 @@
 #include "GLBackend.h"
 #include "GLState.h"
 
+#include <gpu/GPULogging.h>
+
 using namespace gpu;
 using namespace gpu::gl;
 
@@ -172,7 +174,7 @@ void GLBackend::do_setStateDepthTest(State::DepthTest test) {
             glDepthFunc(COMPARISON_TO_GL[test.getFunction()]);
         }
         if (CHECK_GL_ERROR()) {
-            qDebug() << "DepthTest" << (test.isEnabled() ? "Enabled" : "Disabled")
+            qCDebug(gpulogging) << "DepthTest" << (test.isEnabled() ? "Enabled" : "Disabled")
                 << "Mask=" << (test.getWriteMask() ? "Write" : "no Write")
                 << "Func=" << test.getFunction()
                 << "Raw=" << test.getRaw();

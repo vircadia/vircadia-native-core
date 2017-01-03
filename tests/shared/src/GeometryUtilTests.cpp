@@ -255,11 +255,11 @@ void GeometryUtilTests::testTwistSwingDecomposition() {
                 glm::quat measuredTwistRotation;
                 glm::quat measuredSwingRotation;
                 swingTwistDecomposition(totalRotation, twistAxis, measuredSwingRotation, measuredTwistRotation);
-    
+
                 // dot decomposed with components
                 float twistDot = fabsf(glm::dot(twistRotation, measuredTwistRotation));
                 float swingDot = fabsf(glm::dot(swingRotation, measuredSwingRotation));
-    
+
                 // the dot products should be very close to 1.0
                 const float MIN_ERROR = 1.0e-6f;
                 QCOMPARE_WITH_ABS_ERROR(1.0f, twistDot, MIN_ERROR);
@@ -277,7 +277,7 @@ void GeometryUtilTests::testSphereCapsulePenetration() {
     glm::vec3 capsuleEnd(0.0f, 10.0f, 0.0f);
     float capsuleRadius = 1.0f;
 
-    glm::vec3 penetration(glm::vec3::_null);
+    glm::vec3 penetration(0.0f);
     bool hit = findSphereCapsulePenetration(sphereCenter, sphereRadius, capsuleStart, capsuleEnd, capsuleRadius, penetration);
     QCOMPARE(hit, true);
     QCOMPARE_WITH_ABS_ERROR(penetration, glm::vec3(-0.5f, 0.0f, 0.0f), EPSILON);

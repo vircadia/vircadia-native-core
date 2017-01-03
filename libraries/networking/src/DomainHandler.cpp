@@ -41,12 +41,12 @@ DomainHandler::DomainHandler(QObject* parent) :
     
     // setup a timeout for failure on settings requests
     static const int DOMAIN_SETTINGS_TIMEOUT_MS = 5000;
-    _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS);
+    _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS); // 5s, Qt::CoarseTimer acceptable
     connect(&_settingsTimer, &QTimer::timeout, this, &DomainHandler::settingsReceiveFail);
 
     // setup the API refresh timer for auto connection information refresh from API when failing to connect
     const int API_REFRESH_TIMEOUT_MSEC = 2500;
-    _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC);
+    _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC); // 2.5s, Qt::CoarseTimer acceptable
 
     auto addressManager = DependencyManager::get<AddressManager>();
     connect(&_apiRefreshTimer, &QTimer::timeout, addressManager.data(), &AddressManager::refreshPreviousLookup);
@@ -247,7 +247,7 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
 }
 
 void DomainHandler::completedIceServerHostnameLookup() {
-    qDebug() << "ICE server socket is at" << _iceServerSockAddr;
+    qCDebug(networking) << "ICE server socket is at" << _iceServerSockAddr;
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetICEServerSocket);
 
@@ -335,7 +335,7 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<ReceivedMessage>
 
 void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> message) {
     if (_icePeer.hasSockets()) {
-        qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
+        qCDebug(networking) << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
         // bail on processing this packet if our ice peer already has sockets
         return;
     }

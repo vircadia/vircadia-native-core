@@ -38,6 +38,7 @@
 #include <shared/NetworkUtils.h>
 #include <shared/FileLogger.h>
 #include <shared/FileUtils.h>
+#include <StatTracker.h>
 #include <LogHandler.h>
 #include <AssetClient.h>
 
@@ -475,6 +476,8 @@ public:
         DependencyManager::registerInheritance<EntityActionFactoryInterface, TestActionFactory>();
         DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
         DependencyManager::registerInheritance<SpatialParentFinder, ParentFinder>();
+        DependencyManager::set<tracing::Tracer>();
+        DependencyManager::set<StatTracker>();
         DependencyManager::set<AddressManager>();
         DependencyManager::set<NodeList>(NodeType::Agent);
         DependencyManager::set<DeferredLightingEffect>();
@@ -543,7 +546,7 @@ public:
         restorePosition();
 
         QTimer* timer = new QTimer(this);
-        timer->setInterval(0);
+        timer->setInterval(0); // Qt::CoarseTimer acceptable
         connect(timer, &QTimer::timeout, this, [this] {
             draw();
         });

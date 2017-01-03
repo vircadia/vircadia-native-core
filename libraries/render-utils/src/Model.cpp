@@ -234,17 +234,19 @@ void Model::updateRenderItems() {
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
-                if (!data.hasStartedFade() && data._model && data._model->isLoaded() && data._model->getGeometry()->areTexturesLoaded()) {
-                    data.startFade();
-                }
-                // Ensure the model geometry was not reset between frames
-                if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
-                    // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                    data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
+                if (data._model && data._model->isLoaded()) {
+                    if (!data.hasStartedFade() && data._model->getGeometry()->areTexturesLoaded()) {
+                        data.startFade();
+                    }
+                    // Ensure the model geometry was not reset between frames
+                    if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
+                        // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+                        data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
 
-                    // update the model transform and bounding box for this render item.
-                    const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                    data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                        // update the model transform and bounding box for this render item.
+                        const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+                        data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                    }
                 }
             });
         }
@@ -1158,7 +1160,8 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     }
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
-    glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+    static const glm::mat4 zeroScale(
+        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -1168,11 +1171,17 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
-
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+#if GLM_ARCH & GLM_ARCH_SSE2
+            glm::mat4 temp, out, inverseBindMatrix = cluster.inverseBindMatrix;
+            glm_mat4_mul((glm_vec4*)&modelToWorld, (glm_vec4*)&jointMatrix, (glm_vec4*)&temp);
+            glm_mat4_mul((glm_vec4*)&temp, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
+            state.clusterMatrices[j] = out;
+#else 
             state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+#endif
 
             // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
             if (!_cauterizeBoneSet.empty()) {
@@ -1309,7 +1318,7 @@ void Model::createVisibleRenderItemSet() {
 
     // all of our mesh vectors must match in size
     if ((int)meshes.size() != _meshStates.size()) {
-        qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
+        qCDebug(renderlogging) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
 

@@ -21,6 +21,8 @@
 
 #include "ProceduralCommon_frag.h"
 
+#include "Logging.h"
+
 // Userdata parsing constants
 static const QString PROCEDURAL_USER_DATA_KEY = "ProceduralEntity";
 static const QString URL_KEY = "shaderUrl";
@@ -122,14 +124,16 @@ bool Procedural::parseShader(const QUrl& shaderPath) {
     if (_shaderUrl.isLocalFile()) {
         _shaderPath = _shaderUrl.toLocalFile();
 #if WANT_DEBUG
-        qDebug() << "Shader path: " << _shaderPath;
+        qCDebug(procedural) << "Shader path: " << _shaderPath;
 #endif
         if (!QFile(_shaderPath).exists()) {
             _networkShader.reset();
             return false;;
         }
     } else {
-        qDebug() << "Shader url: " << _shaderUrl;
+#if WANT_DEBUG
+        qCDebug(procedural) << "Shader url: " << _shaderUrl;
+#endif
         _networkShader = ShaderCache::instance().getShader(_shaderUrl);
     }
 
@@ -271,7 +275,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         }
 
         // Leave this here for debugging
-        // qDebug() << "FragmentShader:\n" << fragmentShaderSource.c_str();
+        // qCDebug(procedural) << "FragmentShader:\n" << fragmentShaderSource.c_str();
 
         _fragmentShader = gpu::Shader::createPixel(fragmentShaderSource);
         _shader = gpu::Shader::createProgram(_vertexShader, _fragmentShader);

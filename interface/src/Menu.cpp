@@ -704,6 +704,15 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
          qApp, SLOT(toggleLogDialog()));
 
+    action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...");
+    connect(action, &QAction::triggered, [] {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        QUrl defaultScriptsLoc = defaultScriptsLocation();
+        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
+        scriptEngines->loadScript(defaultScriptsLoc.toString());
+    });
+
+
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
 

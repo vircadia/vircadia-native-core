@@ -32,6 +32,36 @@ ScriptsModel& getScriptsModel() {
     return scriptsModel;
 }
 
+void ScriptEngines::onPrintedMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit printedMessage(message, scriptName);
+}
+
+void ScriptEngines::onErrorMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit errorMessage(message, scriptName);
+}
+
+void ScriptEngines::onWarningMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit warningMessage(message, scriptName);
+}
+
+void ScriptEngines::onInfoMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit infoMessage(message, scriptName);
+}
+
+void ScriptEngines::onErrorLoadingScript(const QString& url) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit errorLoadingScript(url, scriptName);
+}
+
 ScriptEngines::ScriptEngines()
     : _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
 {

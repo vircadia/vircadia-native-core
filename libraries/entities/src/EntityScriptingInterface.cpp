@@ -189,7 +189,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 
     if (propertiesWithSimID.getParentID() == AVATAR_SELF_ID) {
-        qDebug() << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
+        qCDebug(entities) << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
         propertiesWithSimID.setParentID(QUuid());
     }
 
@@ -370,7 +370,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
             } else if (scriptSideProperties.getParentID() == AVATAR_SELF_ID) {
-                qDebug() << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
+                qCDebug(entities) << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
                 properties.setParentID(QUuid());
             }
             if (!scriptSideProperties.parentJointIndexChanged()) {
@@ -931,12 +931,12 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         EntitySimulationPointer simulation = _entityTree->getSimulation();
         entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {
-            qDebug() << "actionWorker -- unknown entity" << entityID;
+            qCDebug(entities) << "actionWorker -- unknown entity" << entityID;
             return;
         }
 
         if (!simulation) {
-            qDebug() << "actionWorker -- no simulation" << entityID;
+            qCDebug(entities) << "actionWorker -- no simulation" << entityID;
             return;
         }
 
@@ -1051,7 +1051,7 @@ EntityItemPointer EntityScriptingInterface::checkForTreeEntityAndTypeMatch(const
     
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
-        qDebug() << "EntityScriptingInterface::checkForTreeEntityAndTypeMatch - no entity with ID" << entityID;
+        qCDebug(entities) << "EntityScriptingInterface::checkForTreeEntityAndTypeMatch - no entity with ID" << entityID;
         return entity;
     }
     
@@ -1311,7 +1311,7 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
 
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
     if (!entity) {
-        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        qCDebug(entities) << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
         return result;
     }
 

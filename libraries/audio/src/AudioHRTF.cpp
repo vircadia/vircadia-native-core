@@ -16,6 +16,14 @@
 #include "AudioHRTF.h"
 #include "AudioHRTFData.h"
 
+#if defined(_MSC_VER)
+#define ALIGN32 __declspec(align(32))
+#elif defined(__GNUC__)
+#define ALIGN32 __attribute__((aligned(32)))
+#else
+#define ALIGN32
+#endif
+
 #ifndef MAX
 #define MAX(a,b)    (((a) > (b)) ? (a) : (b))
 #endif
@@ -30,7 +38,7 @@
 // Transients in the time-varying Thiran allpass filter are eliminated by the initial delay.
 // Valimaki, Laakso. "Elimination of Transients in Time-Varying Allpass Fractional Delay Filters"
 //
-static const float crossfadeTable[HRTF_BLOCK] = {
+ALIGN32 static const float crossfadeTable[HRTF_BLOCK] = {
     1.0000000000f, 1.0000000000f, 1.0000000000f, 1.0000000000f, 1.0000000000f, 1.0000000000f, 1.0000000000f, 1.0000000000f, 
     0.9999545513f, 0.9998182135f, 0.9995910114f, 0.9992729863f, 0.9988641959f, 0.9983647147f, 0.9977746334f, 0.9970940592f, 
     0.9963231160f, 0.9954619438f, 0.9945106993f, 0.9934695553f, 0.9923387012f, 0.9911183425f, 0.9898087010f, 0.9884100149f, 
@@ -192,25 +200,29 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
 
         for (int k = 0; k < HRTF_TAPS; k += 4) {
 
-            acc0 = _mm_add_ps(acc0, _mm_mul_ps(_mm_load1_ps(&coef0[-k-0]), _mm_loadu_ps(&ps[k+0])));
-            acc1 = _mm_add_ps(acc1, _mm_mul_ps(_mm_load1_ps(&coef1[-k-0]), _mm_loadu_ps(&ps[k+0])));
-            acc2 = _mm_add_ps(acc2, _mm_mul_ps(_mm_load1_ps(&coef2[-k-0]), _mm_loadu_ps(&ps[k+0])));
-            acc3 = _mm_add_ps(acc3, _mm_mul_ps(_mm_load1_ps(&coef3[-k-0]), _mm_loadu_ps(&ps[k+0])));
+            __m128 x0 = _mm_loadu_ps(&ps[k+0]);
+            acc0 = _mm_add_ps(acc0, _mm_mul_ps(_mm_load1_ps(&coef0[-k-0]), x0));
+            acc1 = _mm_add_ps(acc1, _mm_mul_ps(_mm_load1_ps(&coef1[-k-0]), x0));
+            acc2 = _mm_add_ps(acc2, _mm_mul_ps(_mm_load1_ps(&coef2[-k-0]), x0));
+            acc3 = _mm_add_ps(acc3, _mm_mul_ps(_mm_load1_ps(&coef3[-k-0]), x0));
 
-            acc0 = _mm_add_ps(acc0, _mm_mul_ps(_mm_load1_ps(&coef0[-k-1]), _mm_loadu_ps(&ps[k+1])));
-            acc1 = _mm_add_ps(acc1, _mm_mul_ps(_mm_load1_ps(&coef1[-k-1]), _mm_loadu_ps(&ps[k+1])));
-            acc2 = _mm_add_ps(acc2, _mm_mul_ps(_mm_load1_ps(&coef2[-k-1]), _mm_loadu_ps(&ps[k+1])));
-            acc3 = _mm_add_ps(acc3, _mm_mul_ps(_mm_load1_ps(&coef3[-k-1]), _mm_loadu_ps(&ps[k+1])));
+            __m128 x1 = _mm_loadu_ps(&ps[k+1]);
+            acc0 = _mm_add_ps(acc0, _mm_mul_ps(_mm_load1_ps(&coef0[-k-1]), x1));
+            acc1 = _mm_add_ps(acc1, _mm_mul_ps(_mm_load1_ps(&coef1[-k-1]), x1));
+            acc2 = _mm_add_ps(acc2, _mm_mul_ps(_mm_load1_ps(&coef2[-k-1]), x1));
+            acc3 = _mm_add_ps(acc3, _mm_mul_ps(_mm_load1_ps(&coef3[-k-1]), x1));
 
-            acc0 = _mm_add_ps(acc0, _mm_mul_ps(_mm_load1_ps(&coef0[-k-2]), _mm_loadu_ps(&ps[k+2])));
-            acc1 = _mm_add_ps(acc1, _mm_mul_ps(_mm_load1_ps(&coef1[-k-2]), _mm_loadu_ps(&ps[k+2])));
-            acc2 = _mm_add_ps(acc2, _mm_mul_ps(_mm_load1_ps(&coef2[-k-2]), _mm_loadu_ps(&ps[k+2])));
-            acc3 = _mm_add_ps(acc3, _mm_mul_ps(_mm_load1_ps(&coef3[-k-2]), _mm_loadu_ps(&ps[k+2])));
+            __m128 x2 = _mm_loadu_ps(&ps[k+2]);
+            acc0 = _mm_add_ps(acc0, _mm_mul_ps(_mm_load1_ps(&coef0[-k-2]), x2));
+            acc1 = _mm_add_ps(acc1, _mm_mul_ps(_mm_load1_ps(&coef1[-k-2]), x2));
+            acc2 = _mm_add_ps(acc2, _mm_mul_ps(_mm_load1_ps(&coef2[-k-2]), x2));
+            acc3 = _mm_add_ps(acc3, _mm_mul_ps(_mm_load1_ps(&coef3[-k-2]), x2));
 
-            acc0 = _mm_add_ps(acc0, _mm_mul_ps(_mm_load1_ps(&coef0[-k-3]), _mm_loadu_ps(&ps[k+3])));
-            acc1 = _mm_add_ps(acc1, _mm_mul_ps(_mm_load1_ps(&coef1[-k-3]), _mm_loadu_ps(&ps[k+3])));
-            acc2 = _mm_add_ps(acc2, _mm_mul_ps(_mm_load1_ps(&coef2[-k-3]), _mm_loadu_ps(&ps[k+3])));
-            acc3 = _mm_add_ps(acc3, _mm_mul_ps(_mm_load1_ps(&coef3[-k-3]), _mm_loadu_ps(&ps[k+3])));
+            __m128 x3 = _mm_loadu_ps(&ps[k+3]);
+            acc0 = _mm_add_ps(acc0, _mm_mul_ps(_mm_load1_ps(&coef0[-k-3]), x3));
+            acc1 = _mm_add_ps(acc1, _mm_mul_ps(_mm_load1_ps(&coef1[-k-3]), x3));
+            acc2 = _mm_add_ps(acc2, _mm_mul_ps(_mm_load1_ps(&coef2[-k-3]), x3));
+            acc3 = _mm_add_ps(acc3, _mm_mul_ps(_mm_load1_ps(&coef3[-k-3]), x3));
         }
 
         _mm_storeu_ps(&dst0[i], acc0);
@@ -226,11 +238,11 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
 
 #include "CPUDetect.h"
 
-void FIR_1x4_AVX(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
+void FIR_1x4_AVX2(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
 
 static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
 
-    static auto f = cpuSupportsAVX() ? FIR_1x4_AVX : FIR_1x4_SSE;
+    static auto f = cpuSupportsAVX2() ? FIR_1x4_AVX2 : FIR_1x4_SSE;
     (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
 }
 
@@ -842,12 +854,12 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
     assert(index < HRTF_TABLES);
     assert(numFrames == HRTF_BLOCK);
 
-    float in[HRTF_TAPS + HRTF_BLOCK];               // mono
-    float firCoef[4][HRTF_TAPS];                    // 4-channel
-    float firBuffer[4][HRTF_DELAY + HRTF_BLOCK];    // 4-channel
-    float bqCoef[5][8];                             // 4-channel (interleaved)
-    float bqBuffer[4 * HRTF_BLOCK];                 // 4-channel (interleaved)
-    int delay[4];                                   // 4-channel (interleaved)
+    ALIGN32 float in[HRTF_TAPS + HRTF_BLOCK];               // mono
+    ALIGN32 float firCoef[4][HRTF_TAPS];                    // 4-channel
+    ALIGN32 float firBuffer[4][HRTF_DELAY + HRTF_BLOCK];    // 4-channel
+    ALIGN32 float bqCoef[5][8];                             // 4-channel (interleaved)
+    ALIGN32 float bqBuffer[4 * HRTF_BLOCK];                 // 4-channel (interleaved)
+    int delay[4];                                           // 4-channel (interleaved)
 
     // to avoid polluting the cache, old filters are recomputed instead of stored
     setFilters(firCoef, bqCoef, delay, index, _azimuthState, _distanceState, _gainState, L0);

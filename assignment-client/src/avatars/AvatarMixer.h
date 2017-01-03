@@ -15,9 +15,11 @@
 #ifndef hifi_AvatarMixer_h
 #define hifi_AvatarMixer_h
 
+#include <shared/RateCounter.h>
 #include <PortableHighResolutionClock.h>
 
 #include <ThreadedAssignment.h>
+#include "AvatarMixerClientData.h"
 
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
 class AvatarMixer : public ThreadedAssignment {
@@ -34,6 +36,7 @@ public slots:
     void sendStatsPacket() override;
 
 private slots:
+    void handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
@@ -46,6 +49,7 @@ private slots:
 private:
     void broadcastAvatarData();
     void parseDomainServerSettings(const QJsonObject& domainSettings);
+    void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
     QThread _broadcastThread;
 
@@ -64,6 +68,10 @@ private:
     float _domainMaximumScale { MAX_AVATAR_SCALE };
 
     QTimer* _broadcastTimer = nullptr;
+
+    RateCounter<> _broadcastRate;
+    p_high_resolution_clock::time_point _lastDebugMessage;
+    QHash<QString, QPair<int, int>> _sessionDisplayNames;
 };
 
 #endif // hifi_AvatarMixer_h

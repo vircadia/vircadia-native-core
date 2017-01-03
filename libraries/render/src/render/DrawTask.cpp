@@ -10,6 +10,7 @@
 //
 
 #include "DrawTask.h"
+#include "Logging.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -46,7 +47,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
-        qDebug() << "Item could not be rendered with invalid key" << key;
+        qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
     }
 }
 
@@ -96,7 +97,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
             } else if (key.hasOwnPipeline()) {
                 ownPipelineBucket.push_back(item);
             } else {
-                qDebug() << "Item could not be rendered with invalid key" << key;
+                qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
             }
         }
     }

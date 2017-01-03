@@ -103,7 +103,8 @@ public:
         RadiusIgnoreRequest,
         UsernameFromIDRequest,
         UsernameFromIDReply,
-        LAST_PACKET_TYPE = UsernameFromIDReply
+        ViewFrustum,
+        LAST_PACKET_TYPE = ViewFrustum
     };
 };
 
@@ -205,7 +206,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AbsoluteSixByteRotations,
     SensorToWorldMat,
     HandControllerJoints,
-    HasKillAvatarReason
+    HasKillAvatarReason,
+    SessionDisplayName
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -230,7 +232,8 @@ enum class DomainServerAddedNodeVersion : PacketVersion {
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid,
-    GetUsernameFromUUIDSupport
+    GetUsernameFromUUIDSupport,
+    GetMachineFingerprintFromUUIDSupport
 };
 
 enum class AudioVersion : PacketVersion {
