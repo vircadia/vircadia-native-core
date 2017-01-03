@@ -33,11 +33,25 @@ private:
     gpu::FramebufferPointer _framebuffer;
 };
 
-class DrawBounds {
+class DrawBackground {
 public:
     using Inputs = render::ItemBounds;
-    using JobModel = render::Job::ModelI<DrawBounds, Inputs>;
+    using JobModel = render::Job::ModelI<DrawBackground, Inputs>;
 
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& background);
+};
+
+class DrawBounds {
+public:
+    class Config : public render::JobConfig {
+    public:
+        Config() : JobConfig(false) {}
+    };
+
+    using Inputs = render::ItemBounds;
+    using JobModel = render::Job::ModelI<DrawBounds, Inputs, Config>;
+
+    void configure(const Config& configuration) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& items);
 
 private:
@@ -45,14 +59,6 @@ private:
     gpu::PipelinePointer _boundsPipeline;
     int _cornerLocation { -1 };
     int _scaleLocation { -1 };
-};
-
-class DrawBackground {
-public:
-    using Inputs = render::ItemBounds;
-    using JobModel = render::Job::ModelI<DrawBackground, Inputs>;
-
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& background);
 };
 
 #endif // hifi_RenderForwardTask_h

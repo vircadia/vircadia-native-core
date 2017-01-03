@@ -371,6 +371,7 @@ protected:
 class JobConfig : public QObject {
     Q_OBJECT
     Q_PROPERTY(double cpuRunTime READ getCPURunTime NOTIFY newStats()) //ms
+    Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled)
 
     double _msCPURunTime{ 0.0 };
 public:
@@ -380,7 +381,7 @@ public:
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
     bool isEnabled() { return alwaysEnabled || enabled; }
-    void setEnabled(bool enable) { enabled = enable; }
+    void setEnabled(bool enable) { enabled = alwaysEnabled || enable; }
 
     bool alwaysEnabled{ true };
     bool enabled{ true };
