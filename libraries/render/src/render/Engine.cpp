@@ -52,11 +52,3 @@ void Engine::load() {
         }
     }
 }
-
-void Engine::run() {
-    for (auto job : _jobs) {
-        job.run(_sceneContext, _renderContext);
-    }
-
-}
-

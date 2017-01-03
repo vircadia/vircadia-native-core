@@ -49,7 +49,20 @@ public:
     RenderShadowTask(render::CullFunctor shouldRender);
 
     void configure(const Config& configuration);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+};
+
+class RenderShadowSetup {
+public:
+    using Output = RenderArgs::RenderMode;
+    using JobModel = render::Job::ModelO<RenderShadowSetup, Output>;
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Output& output);
+};
+
+class RenderShadowTeardown {
+public:
+    using Input = RenderArgs::RenderMode;
+    using JobModel = render::Job::ModelI<RenderShadowTeardown, Input>;
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Input& input);
 };
 
 #endif // hifi_RenderShadowTask_h
