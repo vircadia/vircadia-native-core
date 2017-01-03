@@ -1,22 +1,15 @@
-
 // Tester, try testing these different settings.
 //
-//  +-----------------+---------------------+----------------------+------------------------------------------------------------------------------------------------------------------
-//  | TIMER_INTERVAL  |  TIMER_WORK_EFFORT  |  UPDATE_WORK_EFFORT  |  Expected result                                   
-//  +-----------------+---------------------+----------------------+------------------------------------------------------------------------------------------------------------------
-//  | 20              |  < 1000             |  < 1000              |  timer 20ms/work 0ms, update 16.6ms/work 0ms       
-//  | 5               |  < 1000             |  < 1000              |  timer 5ms/work 0ms, update 16.6ms/work 0ms        
-//  | 11              |  < 1000             |  < 1000              |  timer 11ms/work 0ms, update 16.6ms/work 0ms       
-//  | 11              |  ~100000            |  < 1000              |  timer 11ms/work 3ms, update 16.6ms/work 0ms       
-//  | 11              |  ~500000            |  < 1000              |  timer 17.3ms/work 16.4ms, update 17.4ms/work 0ms, punishing the script, timer & update delayed 
-//  | 40              |  ~1000000           |  < 1000              |  timer 40ms/work 32ms, update 31ms/work 0ms, punishing the script, update delayed, timer on time
-//  | 10              |  ~1000              |  ~1000000            |  timer 16ms/work 0ms, update 63ms/work 33ms, punishing the script, update delayed, timer slightly delayed
-//  | 10              |  ~1000000           |  ~1000000            |  timer 90ms/work 33ms, update ~100-120ms/work 33ms, punishing the script, timer & update delayed 
-//  +-----------------+---------------------+----------------------+------------------------------------------------------------------------------------------------------------------
+// Changing the TIMER_HZ will show different performance results. It's expected that at 90hz you'll see a fair
+// amount of variance, as Qt Timers simply aren't accurate enough. In general RPC peformance should match the timer
+// without significant difference in variance.
 
-var TIMER_HZ = 50;
+var TIMER_HZ = 50; // Change this for different values
 var TIMER_INTERVAL = 1000 / TIMER_HZ;
 var TIMER_WORK_EFFORT = 0; // 1000 is light work, 1000000 ~= 30ms
+
+var UPDATE_HZ = 60; // standard script update rate
+var UPDATE_INTERVAL = 1000/UPDATE_HZ; // standard script update interval
 var UPDATE_WORK_EFFORT = 0; // 1000 is light work, 1000000 ~= 30ms
 
 var basePosition = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
@@ -186,8 +179,6 @@ var updateBox = Entities.addEntity(
   });
 
 
-var UPDATE_HZ = 60; // standard script update interval
-var UPDATE_INTERVAL = 1000/UPDATE_HZ; // standard script update interval
 var updateTime = 0;
 var updateFunction = function(deltaTime){
 	updateCount++;
