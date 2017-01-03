@@ -27,9 +27,7 @@ Original.CheckBox {
     readonly property int checkRadius: 2
 
     style: CheckBoxStyle {
-        indicator:
-
-        Rectangle {
+        indicator: Rectangle {
             id: box
             width: boxSize
             height: boxSize

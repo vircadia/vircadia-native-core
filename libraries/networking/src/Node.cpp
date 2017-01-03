@@ -82,11 +82,11 @@ void Node::updateClockSkewUsec(qint64 clockSkewSample) {
 }
 
 void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {
+    bool addToIgnore;
+    message->readPrimitive(&addToIgnore);
     while (message->getBytesLeftToRead()) {
         // parse out the UUID being ignored from the packet
         QUuid ignoredUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-        bool addToIgnore;
-        message->readPrimitive(&addToIgnore);
 
         if (addToIgnore) {
             addIgnoredNode(ignoredUUID);

@@ -790,9 +790,9 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
             // create a reliable NLPacket with space for the ignore UUID
             auto ignorePacket = NLPacket::create(PacketType::NodeIgnoreRequest, NUM_BYTES_RFC4122_UUID + sizeof(bool), true);
 
+            ignorePacket->writePrimitive(ignoreEnabled);
             // write the node ID to the packet
             ignorePacket->write(nodeID.toRfc4122());
-            ignorePacket->writePrimitive(ignoreEnabled);
 
             qCDebug(networking) << "Sending packet to" << (destinationNode->getType() == NodeType::AudioMixer ? "AudioMixer" : "AvatarMixer") << "to"
                 << (ignoreEnabled ? "ignore" : "unignore") << "node" << uuidStringWithoutCurlyBraces(nodeID);
@@ -801,16 +801,17 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
             sendPacket(std::move(ignorePacket), *destinationNode);
         });
 
-        QReadLocker ignoredSetLocker { &_ignoredSetLock }; // write lock for insert and unsafe_erase
-        QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // write lock for insert and unsafe_erase
-
         if (ignoreEnabled) {
+            QReadLocker ignoredSetLocker{ &_ignoredSetLock }; // read lock for insert
+            QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // read lock for insert 
             // add this nodeID to our set of ignored IDs
             _ignoredNodeIDs.insert(nodeID);
             // add this nodeID to our set of personal muted IDs
             _personalMutedNodeIDs.insert(nodeID);
             emit ignoredNode(nodeID);
         } else {
+            QWriteLocker ignoredSetLocker{ &_ignoredSetLock }; // write lock for unsafe_erase
+            QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock }; // write lock for unsafe_erase
             _ignoredNodeIDs.unsafe_erase(nodeID);
             _personalMutedNodeIDs.unsafe_erase(nodeID);
             emit unignoredNode(nodeID);
@@ -838,20 +839,21 @@ void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled
                 // setup the packet
                 auto personalMutePacket = NLPacket::create(PacketType::NodeIgnoreRequest, NUM_BYTES_RFC4122_UUID + sizeof(bool), true);
 
+                personalMutePacket->writePrimitive(muteEnabled);
                 // write the node ID to the packet
                 personalMutePacket->write(nodeID.toRfc4122());
-                personalMutePacket->writePrimitive(muteEnabled);
 
                 qCDebug(networking) << "Sending Personal Mute Packet to" << (muteEnabled ? "mute" : "unmute") << "node" << uuidStringWithoutCurlyBraces(nodeID);
 
                 sendPacket(std::move(personalMutePacket), *audioMixer);
 
-                QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // write lock for insert and unsafe_erase
 
                 if (muteEnabled) {
+                    QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // read lock for insert 
                     // add this nodeID to our set of personal muted IDs
                     _personalMutedNodeIDs.insert(nodeID);
                 } else {
+                    QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock }; // write lock for unsafe_erase
                     _personalMutedNodeIDs.unsafe_erase(nodeID);
                 }
             }
@@ -879,6 +881,9 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
             // setup a packet list so we can send the stream of ignore IDs
             auto personalMutePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
 
+            // Force the "enabled" flag in this packet to true
+            personalMutePacketList->writePrimitive(true);
+
             // enumerate the ignored IDs and write them to the packet list
             auto it = _personalMutedNodeIDs.cbegin();
             while (it != _personalMutedNodeIDs.end()) {
@@ -902,6 +907,9 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
         if (_ignoredNodeIDs.size() > 0) {
             // setup a packet list so we can send the stream of ignore IDs
             auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+
+            // Force the "enabled" flag in this packet to true
+            ignorePacketList->writePrimitive(true);
 
             // enumerate the ignored IDs and write them to the packet list
             auto it = _ignoredNodeIDs.cbegin();
@@ -1008,7 +1016,7 @@ void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> messag
 }
 
 void NodeList::setRequestsDomainListData(bool isRequesting) {
-    // Tell the avatar mixer whether I want to receive any additional data to which I might be entitiled .
+    // Tell the avatar mixer whether I want to receive any additional data to which I might be entitled
     if (_requestsDomainListData == isRequesting) {
         return;
     }

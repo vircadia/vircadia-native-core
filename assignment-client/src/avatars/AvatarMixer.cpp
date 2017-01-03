@@ -110,6 +110,10 @@ void AvatarMixer::broadcastAvatarData() {
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
 
     // only send extra avatar data (avatars out of view, ignored) every Nth AvatarData frame
+    // Extra avatar data will be sent (AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND/EXTRA_AVATAR_DATA_FRAME_RATIO) times
+    // per second.
+    // This value should be a power of two for performance purposes, as the mixer performs a modulo operation every frame
+    // to determine whether the extra data should be sent.
     const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16; 
     
     // NOTE: The following code calculates the _performanceThrottlingRatio based on how much the avatar-mixer was

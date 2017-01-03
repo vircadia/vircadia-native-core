@@ -42,6 +42,9 @@ Item {
     property int actionButtonWidth: 75
     property int nameCardWidth: width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
+    // FIXME: Need to determine & handle when this list gets reset.
+    property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
+    property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
 
     // This contains the current user's NameCard and will contain other information in the future
@@ -187,7 +190,8 @@ Item {
         // This Item refers to the contents of each Cell
         itemDelegate: Item {
             id: itemCell
-            property bool isCheckBox: typeof(styleData.value) === 'boolean'
+            property bool isCheckBox: styleData.role === "personalMute" || styleData.role === "ignore"
+            property bool isButton: styleData.role === "mute" || styleData.role === "kick"
             // This NameCard refers to the cell that contains an avatar's
             // DisplayName and UserName
             NameCard {
@@ -196,7 +200,7 @@ Item {
                 displayName: styleData.value
                 userName: model ? model.userName : ""
                 audioLevel: model ? model.audioLevel : 0.0
-                visible: !isCheckBox
+                visible: !isCheckBox && !isButton
                 // Size
                 width: nameCardWidth
                 height: parent.height
@@ -204,7 +208,7 @@ Item {
                 anchors.left: parent.left
             }
             
-            // This CheckBox belongs in the columns that contain the action buttons ("Mute", "Ban", etc)
+            // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
             // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
             // will appear in the "hovered" state. Hovering over the checkbox will fix it.
             // Clicking on the sides of the sorting header doesn't cause this problem.
@@ -225,21 +229,48 @@ Item {
                         newValue = false
                     }
                     userModel.setProperty(model.userIndex, styleData.role, newValue)
+                    userModelData[model.userIndex][styleData.role] = newValue // Defensive programming
                     if (styleData.role === "personalMute" || styleData.role === "ignore") {
                         Users[styleData.role](model.sessionId, newValue)
                         if (styleData.role === "ignore") {
                             userModel.setProperty(model.userIndex, "personalMute", newValue)
+                            userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
+                            if (newValue) {
+                                ignored[model.sessionId] = userModelData[model.userIndex]
+                            } else {
+                                delete ignored[model.sessionId]
+                            }
                         }
                     } else {
-                        Users[styleData.role](model.sessionId)
-                        // Just for now, while we cannot undo things:
-                        userModel.remove(model.userIndex)
-                        sortModel()
+                        console.log("User clicked on an unknown checkbox.");
                     }
                     // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
                     // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
                     // "checked: model[styleData.role]" above.
                     checked = Qt.binding(function() { return (model && model[styleData.role]) ? model[styleData.role] : false})
+                }
+            }
+            
+            // This Button belongs in the columns that contain the stateless action buttons ("Silence" & "Ban" for now)
+            HifiControls.Button {
+                id: actionButton
+                color: 2 // Red
+                visible: isButton
+                anchors.centerIn: parent
+                width: 24
+                height: 24
+                onClicked: {
+                    if (styleData.role === "mute" || styleData.role === "kick") {
+                        Users[styleData.role](model.sessionId)
+                        if (styleData.role === "kick") {
+                            // Just for now, while we cannot undo "Ban":
+                            userModel.remove(model.userIndex)
+                            delete userModelData[model.userIndex] // Defensive programming
+                            sortModel()
+                        }
+                    } else {
+                        console.log("User clicked on an unknown checkbox.");
+                    }
                 }
             }
         }
@@ -363,9 +394,10 @@ Item {
         }
     }
 
-    function findSessionIndexInUserModel(sessionId) { // no findIndex in .qml
-        for (var i = 0; i < userModel.count; i++) {
-            if (userModel.get(i).sessionId === sessionId) {
+    function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
+        var data = optionalData || userModelData, length = data.length;
+        for (var i = 0; i < length; i++) {
+            if (data[i].sessionId === sessionId) {
                 return i;
             }
         }
@@ -375,38 +407,30 @@ Item {
         switch (message.method) {
         case 'users':
             var data = message.params;
-            var myIndex = -1;
-            for (var i = 0; i < data.length; i++) {
-                if (data[i].sessionId === "") {
-                    myIndex = i;
-                    break;
-                }
-            }
-            if (myIndex !== -1) {
+            var index = -1;
+            index = findSessionIndex('', data);
+            if (index !== -1) {
                 iAmAdmin = Users.canKick;
-                myData = data[myIndex];
-                data.splice(myIndex, 1);
+                myData = data[index];
+                data.splice(index, 1);
             } else {
                 console.log("This user's data was not found in the user list. PAL will not function properly.");
             }
-            userModel.clear();
-            var userIndex = 0;
-            data.forEach(function (datum) {
-                function init(property) {
-                    if (datum[property] === undefined) {
-                        datum[property] = false;
-                    }
+            userModelData = data;
+            for (var ignoredID in ignored) {
+                index = findSessionIndex(ignoredID);
+                if (index === -1) { // Add back any missing ignored to the PAL, because they sometimes take a moment to show up.
+                    userModelData.push(ignored[ignoredID]);
+                } else { // Already appears in PAL; update properties of existing element in model data
+                    userModelData[index] = ignored[ignoredID];
                 }
-                ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
-                datum.userIndex = userIndex++;
-                userModel.append(datum);
-            });
+            }
             sortModel();
             break;
         case 'select':
             var sessionId = message.params[0];
             var selected = message.params[1];
-            var userIndex = findSessionIndexInUserModel(sessionId);
+            var userIndex = findSessionIndex(sessionId);
             if (userIndex != -1) {
                 if (selected) {
                     table.selection.clear(); // for now, no multi-select
@@ -427,11 +451,12 @@ Item {
                 myData.userName = userName;
                 myCard.userName = userName; // Defensive programming
             } else {
-                // Get the index in userModel associated with the passed UUID
-                var userIndex = findSessionIndexInUserModel(userId);
+                // Get the index in userModel and userModelData associated with the passed UUID
+                var userIndex = findSessionIndex(userId);
                 if (userIndex != -1) {
                     // Set the userName appropriately
                     userModel.setProperty(userIndex, "userName", userName);
+                    userModelData[userIndex].userName = userName; // Defensive programming
                 }
             }
             break;
@@ -443,9 +468,10 @@ Item {
                     myData.audioLevel = audioLevel;
                     myCard.audioLevel = audioLevel; // Defensive programming
                 } else {
-                    var userIndex = findSessionIndexInUserModel(userId);
+                    var userIndex = findSessionIndex(userId);
                     if (userIndex != -1) {
                         userModel.setProperty(userIndex, "audioLevel", audioLevel);
+                        userModelData[userIndex].audioLevel = audioLevel; // Defensive programming
                     }
                 }
             }
@@ -455,15 +481,10 @@ Item {
         }
     }
     function sortModel() {
-        var sortedList = [];
-        for (var i = 0; i < userModel.count; i++) {
-            sortedList.push(userModel.get(i));
-        }
-
         var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
         var before = (table.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
         var after = -1 * before;
-        sortedList.sort(function (a, b) {
+        userModelData.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
             switch (true) {
             case (aValue < bValue): return before;
@@ -472,24 +493,26 @@ Item {
             }
         });
         table.selection.clear();
-        var currentUserIndex = 0;
-        for (var i = 0; i < sortedList.length; i++) {
-            function init(prop) {
-                if (sortedList[i][prop] === undefined) {
-                    sortedList[i][prop] = false;
+
+        userModel.clear();
+        var userIndex = 0;
+        userModelData.forEach(function (datum) {
+            function init(property) {
+                if (datum[property] === undefined) {
+                    datum[property] = false;
                 }
             }
-            sortedList[i].userIndex = currentUserIndex++;
             ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
-            userModel.append(sortedList[i]);
-        }
-        userModel.remove(0, sortedList.length);
+            datum.userIndex = userIndex++;
+            userModel.append(datum);
+            console.log('appending to userModel:', JSON.stringify(datum));
+        });
     }
     signal sendToScript(var message);
     function noticeSelection() {
         var userIds = [];
         table.selection.forEach(function (userIndex) {
-            userIds.push(userModel.get(userIndex).sessionId);
+            userIds.push(userModelData[userIndex].sessionId);
         });
         pal.sendToScript({method: 'selected', params: userIds});
     }
