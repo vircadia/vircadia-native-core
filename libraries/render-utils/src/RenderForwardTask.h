@@ -25,9 +25,11 @@ public:
 
 class PrepareFramebuffer {
 public:
-    using JobModel = render::Job::ModelO<PrepareFramebuffer, gpu::FramebufferPointer>;
+    using Inputs = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelO<PrepareFramebuffer, Inputs>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+            gpu::FramebufferPointer& framebuffer);
 
 private:
     gpu::FramebufferPointer _framebuffer;
@@ -38,7 +40,8 @@ public:
     using Inputs = render::ItemBounds;
     using JobModel = render::Job::ModelI<DrawBackground, Inputs>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& background);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+            const Inputs& background);
 };
 
 class DrawBounds {
@@ -52,7 +55,8 @@ public:
     using JobModel = render::Job::ModelI<DrawBounds, Inputs, Config>;
 
     void configure(const Config& configuration) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& items);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+            const Inputs& items);
 
 private:
     const gpu::PipelinePointer getPipeline();

@@ -49,7 +49,8 @@ RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
     addJob<Blit>("Blit", framebuffer);
 }
 
-void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
+void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        gpu::FramebufferPointer& framebuffer) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
@@ -112,7 +113,8 @@ const gpu::PipelinePointer DrawBounds::getPipeline() {
     return _boundsPipeline;
 }
 
-void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
+void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -143,7 +145,8 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
     });
 }
 
-void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
+void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& background) {
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -161,7 +164,7 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderItems(sceneContext, renderContext, items);
+        renderItems(sceneContext, renderContext, background);
     });
     args->_batch = nullptr;
 }
