@@ -48,40 +48,11 @@
 
 using namespace render;
 
-gpu::BufferView getDefaultMaterialBuffer() {
-    model::Material::Schema schema;
-    schema._albedo = vec3(1.0f);
-    schema._opacity = 1.0f;
-    schema._metallic = 0.1f;
-    schema._roughness = 0.9f;
-    return gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(model::Material::Schema), (const gpu::Byte*) &schema));
-}
+void initOverlay3DPipelines(ShapePlumber& plumber);
+void initDeferredPipelines(render::ShapePlumber& plumber);
 
-void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
-    // Set a default albedo map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-        DependencyManager::get<TextureCache>()->getWhiteTexture());
-    // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-        DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-
-    // Set a default material
-    if (pipeline.locations->materialBufferUnit >= 0) {
-        static const gpu::BufferView OPAQUE_SCHEMA_BUFFER = getDefaultMaterialBuffer();
-        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, OPAQUE_SCHEMA_BUFFER);
-    }
-}
-
-void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
-    batchSetter(pipeline, batch);
-    // Set the light
-    if (pipeline.locations->lightBufferUnit >= 0) {
-        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(batch,
-            pipeline.locations->lightBufferUnit,
-            pipeline.locations->lightAmbientBufferUnit,
-            pipeline.locations->lightAmbientMapUnit);
-    }
-}
+void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
+void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
 
 void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
@@ -282,4 +253,43 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         Key::Builder().withSkinned().withDepthOnly(),
         skinModelShadowVertex, modelShadowPixel);
 
+}
+
+void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
+    // Set a default albedo map
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+        DependencyManager::get<TextureCache>()->getWhiteTexture());
+    // Set a default normal map
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+        DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+
+    // Set a default material
+    if (pipeline.locations->materialBufferUnit >= 0) {
+        // Create a default schema
+        static bool isMaterialSet = false;
+        static model::Material material;
+        if (!isMaterialSet) {
+            material.setAlbedo(vec3(1.0f));
+            material.setOpacity(1.0f);
+            material.setMetallic(0.1f);
+            material.setRoughness(0.9f);
+            isMaterialSet = true;
+        }
+
+        // Set a default schema
+        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, material.getSchemaBuffer());
+    }
+}
+
+void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
+    // Set the batch
+    batchSetter(pipeline, batch);
+
+    // Set the light
+    if (pipeline.locations->lightBufferUnit >= 0) {
+        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(batch,
+            pipeline.locations->lightBufferUnit,
+            pipeline.locations->lightAmbientBufferUnit,
+            pipeline.locations->lightAmbientMapUnit);
+    }
 }
