@@ -35,6 +35,19 @@ private:
     gpu::FramebufferPointer _framebuffer;
 };
 
+class Draw {
+public:
+    using Inputs = render::ItemBounds;
+    using JobModel = render::Job::ModelI<Draw, Inputs>;
+
+    Draw(const render::ShapePlumberPointer& shapePlumber) : _shapePlumber(shapePlumber) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+            const Inputs& items);
+
+private:
+    render::ShapePlumberPointer _shapePlumber;
+};
+
 class DrawBackground {
 public:
     using Inputs = render::ItemBounds;

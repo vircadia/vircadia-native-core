@@ -30,6 +30,9 @@
 using namespace render;
 
 RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
+    // Prepare the ShapePipelines
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+
     // Extract opaques / transparents / lights / overlays
     const auto opaques = items[0];
     const auto transparents = items[1];
@@ -40,6 +43,7 @@ RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
+    addJob<Draw>("DrawOpaques", opaques, shapePlumber);
     addJob<DrawBackground>("DrawBackground", background);
 
     // bounds do not draw on stencil buffer, so they must come last
@@ -88,6 +92,28 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
     });
 
     framebuffer = _framebuffer;
+}
+
+void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& items) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        // Setup projection
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        batch.setModelTransform(Transform());
+
+        // Render items
+        renderStateSortShapes(sceneContext, renderContext, _shapePlumber, items, -1);
+    });
+    args->_batch = nullptr;
 }
 
 void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
