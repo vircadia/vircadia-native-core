@@ -398,9 +398,13 @@ bool GL45Texture::continueTransfer() {
                     glTextureSubImage2D(_id, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
                 } else if (GL_TEXTURE_CUBE_MAP == _target) {
                     // DSA ARB does not work on AMD, so use EXT
-                    // glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
-                    auto target = CUBE_FACE_LAYOUT[face];
-                    glTextureSubImage2DEXT(_id, target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                    // unless EXT is not available on the driver
+                    if (glTextureSubImage2DEXT) {
+                        auto target = CUBE_FACE_LAYOUT[face];
+                        glTextureSubImage2DEXT(_id, target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                    } else {
+                        glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
+                    }
                 } else {
                     Q_ASSERT(false);
                 }

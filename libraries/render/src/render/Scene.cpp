@@ -35,7 +35,7 @@ void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) 
     _updateFunctors.push_back(functor);
 }
 
-void PendingChanges::merge(PendingChanges& changes) {
+void PendingChanges::merge(const PendingChanges& changes) {
     _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
     _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
@@ -71,7 +71,7 @@ void Scene::enqueuePendingChanges(const PendingChanges& pendingChanges) {
 
 void consolidateChangeQueue(PendingChangesQueue& queue, PendingChanges& singleBatch) {
     while (!queue.empty()) {
-        auto pendingChanges = queue.front();
+        const auto& pendingChanges = queue.front();
         singleBatch.merge(pendingChanges);
         queue.pop();
     };

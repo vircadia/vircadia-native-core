@@ -101,6 +101,7 @@
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
+#include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
 #include <ResourceCache.h>
@@ -1135,7 +1136,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_settingsThread, SIGNAL(finished()), &_settingsTimer, SLOT(stop()));
     _settingsTimer.moveToThread(&_settingsThread);
     _settingsTimer.setSingleShot(false);
-    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
+    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
     _settingsThread.start();
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
@@ -1240,7 +1241,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);
-    sendStatsTimer->setInterval(SEND_STATS_INTERVAL_MS);
+    sendStatsTimer->setInterval(SEND_STATS_INTERVAL_MS);  // 10s, Qt::CoarseTimer acceptable
     connect(sendStatsTimer, &QTimer::timeout, this, [this]() {
 
         QJsonObject properties = {};
@@ -1271,6 +1272,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["sim_rate"] = getAverageSimsPerSecond();
         properties["avatar_sim_rate"] = getAvatarSimrate();
         properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
+        properties["hardware_stats"] = displayPlugin->getHardwareStats();
 
         auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
         properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();
@@ -1341,7 +1343,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Periodically check for count of nearby avatars
     static int lastCountOfNearbyAvatars = -1;
     QTimer* checkNearbyAvatarsTimer = new QTimer(this);
-    checkNearbyAvatarsTimer->setInterval(CHECK_NEARBY_AVATARS_INTERVAL_MS);
+    checkNearbyAvatarsTimer->setInterval(CHECK_NEARBY_AVATARS_INTERVAL_MS); // 10 seconds, Qt::CoarseTimer ok
     connect(checkNearbyAvatarsTimer, &QTimer::timeout, this, [this]() {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         int nearbyAvatars = avatarManager->numberOfAvatarsInRange(avatarManager->getMyAvatar()->getPosition(),
@@ -1499,16 +1501,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
-    _addAssetToWorldResizeTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS);
+    _addAssetToWorldResizeTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_addAssetToWorldResizeTimer, &QTimer::timeout, this, &Application::addAssetToWorldCheckModelSize);
 
     // Auto-update and close adding asset to world info message box.
     static const int ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS = 5000;
-    _addAssetToWorldInfoTimer.setInterval(ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS);
+    _addAssetToWorldInfoTimer.setInterval(ADD_ASSET_TO_WORLD_INFO_TIMEOUT_MS); // 5s, Qt::CoarseTimer acceptable
     _addAssetToWorldInfoTimer.setSingleShot(true);
     connect(&_addAssetToWorldInfoTimer, &QTimer::timeout, this, &Application::addAssetToWorldInfoTimeout);
     static const int ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS = 8000;
-    _addAssetToWorldErrorTimer.setInterval(ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS);
+    _addAssetToWorldErrorTimer.setInterval(ADD_ASSET_TO_WORLD_ERROR_TIMEOUT_MS); // 8s, Qt::CoarseTimer acceptable
     _addAssetToWorldErrorTimer.setSingleShot(true);
     connect(&_addAssetToWorldErrorTimer, &QTimer::timeout, this, &Application::addAssetToWorldErrorTimeout);
 
@@ -1818,11 +1820,13 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
+    const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
+    assert(items.canCast<RenderFetchCullSortTask::Output>());
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
     if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-        _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", cullFunctor);
+        _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", items.get<RenderFetchCullSortTask::Output>());
     } else {
-        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
+        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items.get<RenderFetchCullSortTask::Output>());
     }
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
@@ -4307,7 +4311,7 @@ void Application::update(float deltaTime) {
 
     // AvatarManager update
     {
-        PerformanceTimer perfTimer("AvatarManger");
+        PerformanceTimer perfTimer("AvatarManager");
         _avatarSimCounter.increment();
 
         {

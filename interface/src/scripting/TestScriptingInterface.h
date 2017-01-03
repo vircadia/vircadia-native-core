@@ -10,6 +10,7 @@
 #ifndef hifi_TestScriptingInterface_h
 #define hifi_TestScriptingInterface_h
 
+#include <functional>
 #include <QtCore/QObject>
 
 class TestScriptingInterface : public QObject {
@@ -34,9 +35,23 @@ public slots:
     void waitForDownloadIdle();
 
     /**jsdoc
-    * Waits for all pending downloads and texture transfers to be complete
+    * Waits for all file parsing operations to be complete
+    */
+    void waitForProcessingIdle();
+
+    /**jsdoc
+    * Waits for all pending downloads, parsing and texture transfers to be complete
     */
     void waitIdle();
+
+
+    bool waitForConnection(qint64 maxWaitMs = 10000);
+
+    void wait(int milliseconds);
+
+    bool loadTestScene(QString sceneFile);
+
+    void clear();
 
     /**jsdoc
     * Start recording Chrome compatible tracing events
@@ -49,6 +64,9 @@ public slots:
     * Using a filename with a .gz extension will automatically compress the output file
     */
     bool stopTracing(QString filename);
+
+private:
+    bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
 };
 
 #endif // hifi_TestScriptingInterface_h

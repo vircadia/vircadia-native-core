@@ -28,7 +28,7 @@ void TraceTests::testTraceSerialization() {
         auto start = usecTimestampNow();
         PROFILE_RANGE(test, "TestEvent")
         for (size_t i = 0; i < 10000; ++i) {
-            SAMPLE_PROFILE_COUNTER(0.1f, test, "TestCounter", { { "i", i } })
+            SAMPLE_PROFILE_COUNTER(0.1f, test, "TestCounter", { { "i", (int)i } })
         }
         auto duration = usecTimestampNow() - start;
         duration /= USECS_PER_MSEC;

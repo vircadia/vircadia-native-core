@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     QTimer timer;
-    timer.setInterval(1);
+    timer.setInterval(1); // Qt::CoarseTimer acceptable
     app.connect(&timer, &QTimer::timeout, &app, [&] {
         window.draw();
     });
