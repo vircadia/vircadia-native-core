@@ -816,8 +816,6 @@ function MyController(hand) {
     };
 
     this.update = function(deltaTime, timestamp) {
-        print("this.update() deltaTime:" + deltaTime + " timestamp:" + timestamp + " now:" + Date.now());
-
         this.updateSmoothedTrigger();
 
         //  If both trigger and grip buttons squeezed and nothing is held, rescale my avatar!
@@ -845,7 +843,6 @@ function MyController(hand) {
 
     this.callEntityMethodOnGrabbed = function(entityMethodName) {
         var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        print("this.callEntityMethodOnGrabbed() entityMethodName:" + entityMethodName + " now:" + Date.now());
         Entities.callEntityMethod(this.grabbedEntity, entityMethodName, args);
     };
 
@@ -2143,8 +2140,6 @@ function MyController(hand) {
     };
 
     this.nearGrabbing = function(deltaTime, timestamp) {
-        print("nearGrabbing() deltaTime:" + deltaTime + " now:" + Date.now());
-
         this.grabPointSphereOff();
 
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
@@ -3069,16 +3064,65 @@ var handleHandMessages = function(channel, message, sender) {
 
 Messages.messageReceived.connect(handleHandMessages);
 
-var BASIC_TIMER_INTERVAL_MS = 20; // 20ms = 50hz good enough
+var TARGET_UPDATE_HZ = 50; // 50hz good enough (no change in logic)
+var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ; 
 var lastInterval = Date.now();
+
+var intervalCount = 0;
+var totalDelta = 0;
+var totalVariance = 0;
+var highVarianceCount = 0;
+var veryhighVarianceCount = 0;
+var updateTotalWork = 0;
+
+var UPDATE_PERFORMANCE_DEBUGGING = false;
+    
 var updateIntervalTimer = Script.setInterval(function(){
+
+    intervalCount++;
     var thisInterval = Date.now();
     var deltaTimeMsec = thisInterval - lastInterval;
     var deltaTime = deltaTimeMsec / 1000;
     lastInterval = thisInterval;
 
-    print("setInterval function() deltaTimeMsec:" + deltaTimeMsec + " deltaTime:" + deltaTime + "(sec) now:" + Date.now());
+    totalDelta += deltaTimeMsec;
+
+    var variance = Math.abs(deltaTimeMsec - BASIC_TIMER_INTERVAL_MS);
+    totalVariance += variance;
+
+    if (variance > 1) {
+        highVarianceCount++;
+    }
+
+    if (variance > 5) {
+        veryhighVarianceCount++;
+    }
+
+    // will call update for both hands
+    var preWork = Date.now();
     update(deltaTime);
+    var postWork = Date.now();
+    var workDelta = postWork - preWork;
+    updateTotalWork += workDelta;
+
+    if (intervalCount == 100) {
+
+        if (UPDATE_PERFORMANCE_DEBUGGING) {
+    		print("handControllerGrab.js -- For " + intervalCount + " samples average= " + totalDelta/intervalCount + " ms" 
+                     + " average variance:" + totalVariance/intervalCount + " ms"
+                     + " high variance count:" + highVarianceCount + " [ " + (highVarianceCount/intervalCount) * 100 + "% ] "
+                     + " VERY high variance count:" + veryhighVarianceCount + " [ " + (veryhighVarianceCount/intervalCount) * 100 + "% ] "
+                     + " average work:" + updateTotalWork/intervalCount + " ms");
+        }
+
+        intervalCount = 0;
+        totalDelta = 0;
+        totalVariance = 0;
+        highVarianceCount = 0;
+        veryhighVarianceCount = 0;
+        updateTotalWork = 0;
+    }
+
 }, BASIC_TIMER_INTERVAL_MS);
 
 function cleanup() {

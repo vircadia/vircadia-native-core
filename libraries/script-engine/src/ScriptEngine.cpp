@@ -573,7 +573,6 @@ void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
         QMetaObject::invokeMethod(this, "registerValue",
                                   Q_ARG(const QString&, valueName),
                                   Q_ARG(QScriptValue, value));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 
@@ -604,7 +603,6 @@ void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
         QMetaObject::invokeMethod(this, "registerGlobalObject",
                                   Q_ARG(const QString&, name),
                                   Q_ARG(QObject*, object));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -630,7 +628,6 @@ void ScriptEngine::registerFunction(const QString& name, QScriptEngine::Function
                                   Q_ARG(const QString&, name),
                                   Q_ARG(QScriptEngine::FunctionSignature, functionSignature),
                                   Q_ARG(int, numArguments));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -650,7 +647,6 @@ void ScriptEngine::registerFunction(const QString& parent, const QString& name, 
                                   Q_ARG(const QString&, name),
                                   Q_ARG(QScriptEngine::FunctionSignature, functionSignature),
                                   Q_ARG(int, numArguments));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -676,7 +672,6 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
                                   Q_ARG(QScriptEngine::FunctionSignature, getter),
                                   Q_ARG(QScriptEngine::FunctionSignature, setter),
                                   Q_ARG(const QString&, parent));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -709,7 +704,6 @@ void ScriptEngine::removeEventHandler(const EntityItemID& entityID, const QStrin
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, eventName),
                                   Q_ARG(QScriptValue, handler));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -741,7 +735,6 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, eventName),
                                   Q_ARG(QScriptValue, handler));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -828,7 +821,6 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
                                   Q_ARG(const QString&, sourceCode),
                                   Q_ARG(const QString&, fileName),
                                   Q_ARG(int, lineNumber));
-        _hasInvokeMethod.wakeAll();
         return result;
     }
 
@@ -916,38 +908,11 @@ void ScriptEngine::run() {
                 break;
             }
 
-            // determine how long before the next timer should fire, we'd ideally like to sleep just
-            // that long, so the next processEvents() will allow the timers to fire on time.
-            const std::chrono::microseconds minTimerTimeRemaining(USECS_PER_MSEC * getTimersRemainingTime());
-
-            // However, if we haven't yet slept at least as long as our average timer per frame, then we will 
-            // punish the timers to at least wait as long as the average run time of the timers.
-            auto untilTimer = std::max(minTimerTimeRemaining, averageTimerPerFrame);
-
-            // choose the closest time point, our 
-            auto remainingSleepUntil = std::chrono::duration_cast<std::chrono::microseconds>(sleepUntil - clock::now());
-            auto closestUntil = std::min(remainingSleepUntil, untilTimer);
-            auto thisSleepUntil = std::min(sleepUntil, clock::now() + closestUntil);
-            auto untilThisSleepUntil = std::chrono::duration_cast<std::chrono::microseconds>(thisSleepUntil - clock::now());
-
-            // if the sleep until is more than 1 ms away, then don't sleep, and instead use a wait condition 
-            // for any possible invoke methods that might also be pending.
-            const std::chrono::microseconds MAX_USECS_TO_SLEEP(USECS_PER_MSEC);
-            if (untilThisSleepUntil < MAX_USECS_TO_SLEEP) {
-                qDebug() << "[" << getFilename() << "]" << "about to sleep untilThisSleepUntil:" << untilThisSleepUntil.count() << "usec -- averageTimerPerFrame:" << averageTimerPerFrame.count();
-                std::this_thread::sleep_until(thisSleepUntil);
-            } else {
-                // FIXME - we might want to make this 1 less ms to wait
-                unsigned long maxWait = untilThisSleepUntil.count() / USECS_PER_MSEC;
-                qDebug() << "[" << getFilename() << "]" << "about to wait:" << maxWait << "ms --- untilThisSleepUntil:" << untilThisSleepUntil.count() << "usec -- averageTimerPerFrame:" << averageTimerPerFrame.count();
-                _waitingOnInvokeMethod.lock();
-                bool signalled = _hasInvokeMethod.wait(&_waitingOnInvokeMethod, maxWait);
-                _waitingOnInvokeMethod.unlock();
-                if (signalled) {
-                    qDebug() << "[" << getFilename() << "]" << "SIGNALLED!! done waiting... now:" << usecTimestampNow();
-                }
-
-            }
+            // We only want to sleep a small amount so that any pending events (like timers or invokeMethod events)
+            // will be able to process quickly.
+            static const int SMALL_SLEEP_AMOUNT = 100;
+            auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
+            std::this_thread::sleep_until(smallSleepUntil);
         }
 
 #ifdef SCRIPT_DELAY_DEBUG
@@ -1037,21 +1002,6 @@ void ScriptEngine::run() {
     emit doneRunning();
 }
 
-quint64 ScriptEngine::getTimersRemainingTime() {
-    quint64 minimumTime = USECS_PER_SECOND; // anything larger than this can be ignored
-    QMutableHashIterator<QTimer*, CallbackData> i(_timerFunctionMap);
-    while (i.hasNext()) {
-        i.next();
-        QTimer* timer = i.key();
-        int remainingTime = timer->remainingTime();
-        if (remainingTime >= 0) {
-            minimumTime = std::min((quint64)remainingTime, minimumTime);
-        }
-    }
-    return minimumTime;
-}
-
-
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
 // we want to only call it in our own run "shutdown" processing.
 void ScriptEngine::stopAllTimers() {
@@ -1062,6 +1012,7 @@ void ScriptEngine::stopAllTimers() {
         stopTimer(timer);
     }
 }
+
 void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
      // We could maintain a separate map of entityID => QTimer, but someone will have to prove to me that it's worth the complexity. -HRS
     QVector<QTimer*> toDelete;
@@ -1085,7 +1036,6 @@ void ScriptEngine::stop(bool marshal) {
 
     if (marshal) {
         QMetaObject::invokeMethod(this, "stop");
-        _hasInvokeMethod.wakeAll();
         return;
     }
     if (!_isFinished) {
@@ -1106,7 +1056,6 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
                                   Q_ARG(QStringList, names),
                                   Q_ARG(bool, useNames),
                                   Q_ARG(AnimVariantResultHandler, resultHandler));
-        _hasInvokeMethod.wakeAll();
         return;
     }
     QScriptValue javascriptParameters = parameters.animVariantMapToScriptValue(this, names, useNames);
@@ -1457,7 +1406,6 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
                                   Q_ARG(const QString&, contents),
                                   Q_ARG(bool, isURL),
                                   Q_ARG(bool, success));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 
@@ -1556,7 +1504,6 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
 
         QMetaObject::invokeMethod(this, "unloadEntityScript",
                                   Q_ARG(const EntityItemID&, entityID));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -1578,7 +1525,6 @@ void ScriptEngine::unloadAllEntityScripts() {
 #endif
 
         QMetaObject::invokeMethod(this, "unloadAllEntityScripts");
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -1665,21 +1611,16 @@ void ScriptEngine::callWithEnvironment(const EntityItemID& entityID, const QUrl&
 }
 
 void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
-    qDebug() << "[" << getFilename() << "]" << __FUNCTION__ << "method:" << methodName << "now:" << usecTimestampNow();
-
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
             "entityID:" << entityID << "methodName:" << methodName;
 #endif
 
-        qDebug() << "[" << getFilename() << "]" << "about to invokeMethod callEntityScriptMethod() now:" << usecTimestampNow();
-
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, methodName),
                                   Q_ARG(const QStringList&, params));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -1695,8 +1636,6 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             QScriptValueList args;
             args << entityID.toScriptValue(this);
             args << qScriptValueFromSequence(this, params);
-
-            qDebug() << "[" << getFilename() << "]" << __FUNCTION__ << "about to callWithEnvironment()... method:" << methodName << "now:" << usecTimestampNow();
             callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
         }
 
@@ -1714,7 +1653,6 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, methodName),
                                   Q_ARG(const PointerEvent&, event));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -1748,7 +1686,6 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
                                   Q_ARG(const QString&, methodName),
                                   Q_ARG(const EntityItemID&, otherID),
                                   Q_ARG(const Collision&, collision));
-        _hasInvokeMethod.wakeAll();
         return;
     }
 #ifdef THREAD_DEBUGGING

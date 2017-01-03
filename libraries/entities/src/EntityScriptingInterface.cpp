@@ -526,8 +526,6 @@ void EntityScriptingInterface::setEntitiesScriptEngine(EntitiesScriptEngineProvi
 }
 
 void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method, const QStringList& params) {
-    qDebug() << __FUNCTION__ << "method:" << method << "now:" << usecTimestampNow();
-
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
     if (_entitiesScriptEngine) {
         EntityItemID entityID{ id };

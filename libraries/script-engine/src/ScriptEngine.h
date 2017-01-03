@@ -217,9 +217,6 @@ protected:
 
     void init();
 
-    QWaitCondition _hasInvokeMethod;
-    QMutex _waitingOnInvokeMethod;
-
     bool evaluatePending() const { return _evaluatesPending > 0; }
     quint64 getTimersRemainingTime();
     void timerFired();
