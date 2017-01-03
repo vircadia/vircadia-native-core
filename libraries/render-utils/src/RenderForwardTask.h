@@ -13,20 +13,14 @@
 #define hifi_RenderForwardTask_h
 
 #include <gpu/Pipeline.h>
-#include <render/CullTask.h>
+#include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
-
-using RenderForwardTaskConfig = render::GPUTaskConfig;
 
 class RenderForwardTask : public render::Task {
 public:
-    using Config = RenderForwardTaskConfig;
-    RenderForwardTask(render::CullFunctor cullFunctor);
+    using JobModel = Model<RenderForwardTask>;
 
-    void configure(const Config& config) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-    using JobModel = Model<RenderForwardTask, Config>;
+    RenderForwardTask(RenderFetchCullSortTask::Output items);
 };
 
 class PrepareFramebuffer {
@@ -51,6 +45,14 @@ private:
     gpu::PipelinePointer _boundsPipeline;
     int _cornerLocation { -1 };
     int _scaleLocation { -1 };
+};
+
+class DrawBackground {
+public:
+    using Inputs = render::ItemBounds;
+    using JobModel = render::Job::ModelI<DrawBackground, Inputs>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& background);
 };
 
 #endif // hifi_RenderForwardTask_h
