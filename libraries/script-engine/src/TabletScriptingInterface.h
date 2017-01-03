@@ -37,7 +37,7 @@ public:
      */
     Q_INVOKABLE QObject* getTablet(const QString& tabletId);
 
-    void setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot);
+    void setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
 protected:
     std::mutex _mutex;
@@ -46,7 +46,7 @@ protected:
 
 /**jsdoc
  * @class TabletProxy
- * @property name {string} name of this tablet
+ * @property name {string} READ_ONLY: name of this tablet
  */
 class TabletProxy : public QObject {
     Q_OBJECT
@@ -54,7 +54,7 @@ class TabletProxy : public QObject {
 public:
     TabletProxy(QString name);
 
-    void setQmlTabletRoot(QQuickItem* qmlTabletRoot);
+    void setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
     /**jsdoc
      * transition to the home screen
@@ -85,6 +85,23 @@ public:
     Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
 
     QString getName() const { return _name; }
+
+    /**jsdoc
+     * Used to send an event to the html/js embedded in the tablet
+     * @function TabletProxy#emitScriptEvent
+     * @param msg {object|string}
+     */
+    Q_INVOKABLE void emitScriptEvent(QVariant msg);
+
+signals:
+    /**jsdoc
+     * Signaled when this tablet receives an event from the html/js embedded in the tablet
+     * @function TabletProxy#webEventReceived
+     * @param msg {object|string}
+     * @returns {Signal}
+     */
+    void webEventReceived(QVariant msg);
+
 protected:
 
     void addButtonsToHomeScreen();
@@ -95,18 +112,22 @@ protected:
     std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
+    QObject* _qmlOffscreenSurface { nullptr };
 };
 
 /**jsdoc
  * @class TabletButtonProxy
- * @property imageUrl {string}
+ * @property uuid {QUuid} READ_ONLY: uniquely identifies this button
  */
 class TabletButtonProxy : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QUuid uuid READ getUuid)
 public:
     TabletButtonProxy(const QVariantMap& properties);
 
     void setQmlButton(QQuickItem* qmlButton);
+
+    QUuid getUuid() const { return _uuid; }
 
     /**jsdoc
      * Returns the current value of this button's properties
