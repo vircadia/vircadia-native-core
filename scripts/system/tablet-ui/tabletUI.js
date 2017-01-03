@@ -95,9 +95,11 @@
     }
 
     Script.setInterval(function() {
-        var currentMicLevel = getMicLevel();
-        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");      
-        tablet.updateAudioBar(currentMicLevel);
+       if (tabletShown) {
+            var currentMicLevel = getMicLevel();
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");      
+            tablet.updateAudioBar(currentMicLevel);
+        }
     }, MIC_LEVEL_UPDATE_INTERVAL_MS);
 
 }()); // END LOCAL_SCOPE
