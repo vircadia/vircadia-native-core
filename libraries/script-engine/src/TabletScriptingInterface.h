@@ -57,29 +57,29 @@ public:
     void setQmlTabletRoot(QQuickItem* qmlTabletRoot);
 
     /**jsdoc
-     * @function TabletProxy#gotoHomeScreen
      * transition to the home screen
+     * @function TabletProxy#gotoHomeScreen
      */
     Q_INVOKABLE void gotoHomeScreen();
 
     /**jsdoc
-     * @function TabletProxy#gotoWebScreen
      * show the specified web url on the tablet.
+     * @function TabletProxy#gotoWebScreen
      * @param url {string}
      */
     Q_INVOKABLE void gotoWebScreen(const QString& url);
 
     /**jsdoc
-     * @function TabletProxy#addButton
      * Creates a new button, adds it to this and returns it.
+     * @function TabletProxy#addButton
      * @param properties {Object} button properties UI_TABLET_HACK: enumerate these when we figure out what they should be!
      * @returns {TabletButtonProxy}
      */
     Q_INVOKABLE QObject* addButton(const QVariant& properties);
 
     /**jsdoc
-     * @function TabletProxy#removeButton
      * removes button from the tablet
+     * @function TabletProxy.removeButton
      * @param tabletButtonProxy {TabletButtonProxy} button to be removed
      */
     Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
