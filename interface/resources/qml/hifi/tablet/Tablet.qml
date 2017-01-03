@@ -166,28 +166,6 @@ Item {
             anchors.top: parent.top
             anchors.topMargin: 30
         }
-
-        Component.onCompleted: {
-            console.log("Tablet.onCompleted!");
-            var component = Qt.createComponent("TabletButton.qml");
-            var buttons = [];
-            for (var i = 0; i < 6; i++) {
-                var button = component.createObject(flowMain);
-                button.inDebugMode = true;
-                buttons.push(button);
-            }
-
-            // set button text
-            buttons[0].text = "MUTE";
-            buttons[1].text = "VR";
-            buttons[2].text = "MENU";
-            buttons[3].text = "BUBBLE";
-            buttons[4].text = "SNAP";
-            buttons[5].text = "HELP";
-
-            // set button icon
-            buttons[0].icon = "icons/tablet-mute-icon.svg"
-        }
     }
     states: [
         State {

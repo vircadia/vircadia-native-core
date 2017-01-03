@@ -13,26 +13,18 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-var button = toolBar.addButton({
-    objectName: "mute",
-    imageURL: Script.resolvePath("assets/images/tools/mic.svg"),
-    visible: true,
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 3,
-    alpha: 0.9
+function muteURL() {
+    return "icons/tablet-icons/" + (AudioDevice.getMuted() ? "mic-a.svg" : "mic-i.svg"); 
+}
+var button = tablet.addButton({
+    icon: "icons/tablet-icons/mic-a.svg",
+    text: "MUTE"
 });
 
 function onMuteToggled() {
-    // We could just toggle state, but we're less likely to get out of wack if we read the AudioDevice.
-    // muted => button "on" state => 1. go figure.
-    var state = AudioDevice.getMuted() ? 0 : 1;
-    var hoverState = AudioDevice.getMuted() ? 2 : 3;
-    button.writeProperty('buttonState', state);
-    button.writeProperty('defaultState', state);
-    button.writeProperty('hoverState', hoverState);
+    button.editProperties({icon: muteURL()});
 }
 onMuteToggled();
 function onClicked(){
@@ -43,8 +35,8 @@ button.clicked.connect(onClicked);
 AudioDevice.muteToggled.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
-    toolBar.removeButton("mute");
     button.clicked.disconnect(onClicked);
+    tablet.removeButton(button);
     AudioDevice.muteToggled.disconnect(onMuteToggled);
 });
 

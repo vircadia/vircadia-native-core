@@ -11,18 +11,13 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var SNAPSHOT_DELAY = 500; // 500ms
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var resetOverlays;
 var reticleVisible;
 var clearOverlayWhenMoving;
-var button = toolBar.addButton({
-    objectName: "snapshot",
-    imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
-    visible: true,
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 2,
-    alpha: 0.9,
+var button = tablet.addButton({
+    icon: "icons/tablet-icons/snap-i.svg",
+    text: "SNAP"
 });
 
 function shouldOpenFeedAfterShare() {
@@ -116,18 +111,11 @@ function onClicked() {
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     Window.snapshotTaken.connect(resetButtons);
-    
-    button.writeProperty("buttonState", 0);
-    button.writeProperty("defaultState", 0);
-    button.writeProperty("hoverState", 2);
 
     // hide overlays if they are on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", false);
     }
-    
-    // hide hud
-    toolBar.writeProperty("visible", false);
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
@@ -160,7 +148,7 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     // If we ARE taking an animated snapshot, we've already re-enabled the HUD by this point.
     if (pathAnimatedSnapshot === "") {
         // show hud
-        toolBar.writeProperty("visible", true);
+
         Reticle.visible = reticleVisible;
         // show overlays if they were on
         if (resetOverlays) {
@@ -170,10 +158,6 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
         // Allow the user to click the snapshot HUD button again
         button.clicked.connect(onClicked);
     }
-    // update button states
-    button.writeProperty("buttonState", 1);
-    button.writeProperty("defaultState", 1);
-    button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
 
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
@@ -197,14 +181,8 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
 
 function processingGif() {
     // show hud
-    toolBar.writeProperty("visible", true);
     Reticle.visible = reticleVisible;
 
-    // update button states
-    button.writeProperty("buttonState", 0);
-    button.writeProperty("defaultState", 0);
-    button.writeProperty("hoverState", 2);
-    // Don't allow the user to click the snapshot button yet
     button.clicked.disconnect(onClicked);
     // show overlays if they were on
     if (resetOverlays) {
@@ -217,8 +195,8 @@ Window.snapshotShared.connect(snapshotShared);
 Window.processingGif.connect(processingGif);
 
 Script.scriptEnding.connect(function () {
-    toolBar.removeButton("snapshot");
     button.clicked.disconnect(onClicked);
+    tablet.removeButton(button);
     Window.snapshotShared.disconnect(snapshotShared);
     Window.processingGif.disconnect(processingGif);
 });

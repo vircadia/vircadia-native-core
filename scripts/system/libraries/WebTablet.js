@@ -117,6 +117,8 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
                Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
                _this.clicked = true;
             }
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.gotoHomeScreen();
         }
     }
 

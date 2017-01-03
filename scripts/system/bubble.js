@@ -166,6 +166,7 @@
 
     // Setup the bubble button and add it to the toolbar
     var button = tablet.addButton({
+        icon: "icons/tablet-icons/bubble-i.svg",
         text: "BUBBLE"
     });
     onBubbleToggled();
@@ -176,8 +177,8 @@
 
     // Cleanup the toolbar button and overlays when script is stopped
     Script.scriptEnding.connect(function () {
-        tablet.removeButton('bubble');
         button.clicked.disconnect(Users.toggleIgnoreRadius);
+        tablet.removeButton(button);
         Users.ignoreRadiusEnabledChanged.disconnect(onBubbleToggled);
         Users.enteredIgnoreRadius.disconnect(enteredIgnoreRadius);
         Overlays.deleteOverlay(bubbleOverlay);

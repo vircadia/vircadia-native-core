@@ -42,30 +42,11 @@ function shouldShowWebTablet() {
 }
 
 function showMarketplace(marketplaceID) {
-    if (shouldShowWebTablet()) {
-        updateButtonState(true);
-
-        if (HMD.tabletID) {
-            UIWebTablet.createWebEntity("https://metaverse.highfidelity.com/marketplace");
-            HMD.tabletID = UIWebTablet.webEntityID;
-        } else {
-            marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace",
-                                                 null, // width
-                                                 null, // dpi
-                                                 null, // location
-                                                 true); // client-only
-           marketplaceWebTablet.register();
-        }
-        Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
-    } else {
-        var url = MARKETPLACE_URL;
-        if (marketplaceID) {
-            url = url + "/items/" + marketplaceID;
-        }
-        marketplaceWindow.setURL(url);
-        marketplaceWindow.setVisible(true);
+    var url = MARKETPLACE_URL;
+    if (marketplaceID) {
+        url = url + "/items/" + marketplaceID;
     }
-
+    tablet.gotoWebScreen(url);
     marketplaceVisible = true;
     UserActivityLogger.openedMarketplace();
 }
@@ -81,15 +62,14 @@ function hideTablet(tablet) {
     Settings.setValue(persistenceKey, "");
 }
 function clearOldTablet() { // If there was a tablet from previous domain or session, kill it and let it be recreated
-    var tablet = WebTablet.unpickle(Settings.getValue(persistenceKey, ""));
-    hideTablet(tablet);
+
 }
 function hideMarketplace() {
     if (marketplaceWindow.visible) {
         marketplaceWindow.setVisible(false);
         marketplaceWindow.setURL("about:blank");
     } else if (marketplaceWebTablet) {
-        hideTablet(marketplaceWebTablet);
+
     }
     marketplaceVisible = false;
 }
@@ -102,21 +82,15 @@ function toggleMarketplace() {
     }
 }
 
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-var browseExamplesButton = toolBar.addButton({
-    imageURL: toolIconUrl + "market.svg",
-    objectName: "marketplace",
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 3,
-    alpha: 0.9
+var browseExamplesButton = tablet.addButton({
+    icon: "icons/tablet-icons/market-i.svg",
+    text: "MARKET"
 });
 
 function updateButtonState(visible) {
-    browseExamplesButton.writeProperty('buttonState', visible ? 0 : 1);
-    browseExamplesButton.writeProperty('defaultState', visible ? 0 : 1);
-    browseExamplesButton.writeProperty('hoverState', visible ? 2 : 3);
+
 }
 function onMarketplaceWindowVisibilityChanged() {
     updateButtonState(marketplaceWindow.visible);
@@ -135,8 +109,8 @@ clearOldTablet(); // Run once at startup, in case there's anything laying around
 // but the HUD version stays around, so lets do the same.
 
 Script.scriptEnding.connect(function () {
-    toolBar.removeButton("marketplace");
     browseExamplesButton.clicked.disconnect(onClick);
+    tablet.removeButton(browseExamplesButton);
     marketplaceWindow.visibleChanged.disconnect(onMarketplaceWindowVisibilityChanged);
 });
 

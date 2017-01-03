@@ -196,7 +196,6 @@ var toolBar = (function () {
 
     function cleanup() {
         that.setActive(false);
-        systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
     }
 
     function addButton(name, image, handler) {
@@ -233,6 +232,7 @@ var toolBar = (function () {
 
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
+            icon: "icons/tablet-icons/edit-i.svg",
             text: "EDIT"
         });
 
@@ -478,7 +478,6 @@ var toolBar = (function () {
             toolBar.writeProperty("shown", false);
             toolBar.writeProperty("shown", true);
         }
-        // toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
