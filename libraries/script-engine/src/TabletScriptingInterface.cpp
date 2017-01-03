@@ -146,7 +146,7 @@ void TabletProxy::updateAudioBar(const double micLevel) {
     if (!tablet) {
         qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
     } else {
-        QMetaObject::invokeMethod(tablet, "setMicLevel", Qt::AutoConnection, Q_ARG(QVariant, QVariant::QVariant(micLevel)));
+        QMetaObject::invokeMethod(tablet, "setMicLevel", Qt::AutoConnection, Q_ARG(QVariant, QVariant(micLevel)));
     }
 }
 
