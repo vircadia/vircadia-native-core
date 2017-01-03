@@ -39,19 +39,21 @@ void MovingPercentileTests::testRunningMedian() {
 }
 
 
-float MovingPercentileTests::random() {
-    return rand() / (float)RAND_MAX;
+int64_t MovingPercentileTests::random() {
+    return ((int64_t) rand() << 48) ^
+            ((int64_t) rand() << 32) ^
+            ((int64_t) rand() << 16) ^
+            ((int64_t) rand());
 }
 
 void MovingPercentileTests::testRunningMinForN (int n) {
-    
     // Stores the last n samples
-    QQueue<float> samples;
+    QQueue<int64_t> samples;
     
     MovingPercentile movingMin (n, 0.0f);
     
     for (int s = 0; s < 3 * n; ++s) {
-        float sample = random();
+        int64_t sample = random();
         
         samples.push_back(sample);
         if (samples.size() > n)
@@ -64,30 +66,32 @@ void MovingPercentileTests::testRunningMinForN (int n) {
         movingMin.updatePercentile(sample);
         
         // Calculate the minimum of the moving samples
-        float expectedMin = std::numeric_limits<float>::max();
+        int64_t expectedMin = std::numeric_limits<int64_t>::max();
         
         int prevSize = samples.size();
-        for (auto val : samples)
+        for (auto val : samples) {
             expectedMin = std::min(val, expectedMin);
+        }
         QCOMPARE(samples.size(), prevSize);
         
-        QCOMPARE(movingMin.getValueAtPercentile(), expectedMin);
+        QVERIFY(movingMin.getValueAtPercentile() - expectedMin == 0L);
     }
 }
 
 void MovingPercentileTests::testRunningMaxForN (int n) {
     
     // Stores the last n samples
-    QQueue<float> samples;
+    QQueue<int64_t> samples;
     
     MovingPercentile movingMax (n, 1.0f);
     
     for (int s = 0; s < 10000; ++s) {
-        float sample = random();
+        int64_t sample = random();
         
         samples.push_back(sample);
-        if (samples.size() > n)
+        if (samples.size() > n) {
             samples.pop_front();
+        }
         
         if (samples.size() == 0) {
             QFAIL_WITH_MESSAGE("\n\n\n\tWTF\n\tsamples.size() = " << samples.size() << ", n = " << n);
@@ -96,22 +100,22 @@ void MovingPercentileTests::testRunningMaxForN (int n) {
         movingMax.updatePercentile(sample);
         
         // Calculate the maximum of the moving samples
-        float expectedMax = std::numeric_limits<float>::min();
+        int64_t expectedMax = std::numeric_limits<int64_t>::min();
         for (auto val : samples)
             expectedMax = std::max(val, expectedMax);
         
-        QCOMPARE(movingMax.getValueAtPercentile(), expectedMax);
+        QVERIFY(movingMax.getValueAtPercentile() - expectedMax == 0L);
     }
 }
 
 void MovingPercentileTests::testRunningMedianForN (int n) {
     // Stores the last n samples
-    QQueue<float> samples;
+    QQueue<int64_t> samples;
     
     MovingPercentile movingMedian (n, 0.5f);
     
     for (int s = 0; s < 10000; ++s) {
-        float sample = random();
+        int64_t sample = random();
         
         samples.push_back(sample);
         if (samples.size() > n)

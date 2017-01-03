@@ -20,6 +20,7 @@ TableView {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool expandSelectedRow: false
+    property bool centerHeaderText: false
 
     model: ListModel { }
 
@@ -34,9 +35,12 @@ TableView {
             size: hifi.fontSizes.tableHeading
             font.capitalization: Font.AllUppercase
             color: hifi.colors.baseGrayHighlight
+            horizontalAlignment: (centerHeaderText ? Text.AlignHCenter : Text.AlignLeft)
             anchors {
                 left: parent.left
                 leftMargin: hifi.dimensions.tablePadding
+                right: parent.right
+                rightMargin: hifi.dimensions.tablePadding
                 verticalCenter: parent.verticalCenter
             }
         }
@@ -48,7 +52,7 @@ TableView {
             size: hifi.fontSizes.tableHeadingIcon
             anchors {
                 left: titleText.right
-                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3
+                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 3 : 0)
                 right: parent.right
                 rightMargin: hifi.dimensions.tablePadding
                 verticalCenter: titleText.verticalCenter

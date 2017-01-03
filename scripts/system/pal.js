@@ -79,7 +79,7 @@ ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the on
 var pal = new OverlayWindow({
     title: 'People Action List',
     source: 'hifi/Pal.qml',
-    width: 480,
+    width: 580,
     height: 640,
     visible: false
 });
@@ -93,6 +93,10 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
             var selected = ExtendedOverlay.isSelected(id);
             overlay.select(selected);
         });
+        break;
+    case 'refresh':
+        removeOverlays();
+        populateUserList();
         break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
@@ -119,7 +123,8 @@ function populateUserList() {
         var avatarPalDatum = {
             displayName: avatar.sessionDisplayName,
             userName: '',
-            sessionId: id || ''
+            sessionId: id || '',
+            audioLevel: 0.0
         };
         // If the current user is an admin OR
         // they're requesting their own username ("id" is blank)...
@@ -140,12 +145,13 @@ function populateUserList() {
 function usernameFromIDReply(id, username, machineFingerprint) {
     var data;
     // If the ID we've received is our ID...
-    if (AvatarList.getAvatar('').sessionUUID === id) {
+    if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username + ' (hidden)']
+        data = ['', username]
     } else {
-        // Set the data to contain the ID and the username+ID concat string.
-        data = [id, username + '/' + machineFingerprint];
+        // Set the data to contain the ID and the username (if we have one)
+        // or fingerprint (if we don't have a username) string.
+        data = [id, username || machineFingerprint];
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
@@ -261,16 +267,63 @@ function onClicked() {
     pal.setVisible(!pal.visible);
 }
 
+var AVERAGING_RATIO = 0.05
+var LOUDNESS_FLOOR = 11.0;
+var LOUDNESS_SCALE = 2.8 / 5.0;
+var LOG2 = Math.log(2.0);
+var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
+var accumulatedLevels = {};
+
+function getAudioLevel(id) {
+    // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
+    // But of course it gets the data at a different rate, so we tweak the averaging ratio and frequency
+    // of updating (the latter for efficiency too).
+    var avatar = AvatarList.getAvatar(id);
+    var audioLevel = 0.0;
+
+    // we will do exponential moving average by taking some the last loudness and averaging
+    accumulatedLevels[id] = AVERAGING_RATIO * (accumulatedLevels[id] || 0 ) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+    
+    // add 1 to insure we don't go log() and hit -infinity.  Math.log is
+    // natural log, so to get log base 2, just divide by ln(2).
+    var logLevel = Math.log(accumulatedLevels[id] + 1) / LOG2;
+    
+    if (logLevel <= LOUDNESS_FLOOR) {
+        audioLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
+    } else {
+        audioLevel = (logLevel - (LOUDNESS_FLOOR - 1.0)) * LOUDNESS_SCALE;
+    }
+    if (audioLevel > 1.0) {
+        audioLevel = 1;
+    }
+    return audioLevel;
+}
+
+
+// we will update the audioLevels periodically
+// TODO: tune for efficiency - expecially with large numbers of avatars
+Script.setInterval(function () {
+    if (pal.visible) {
+        var param = {};
+        AvatarList.getAvatarIdentifiers().sort().forEach(function (id) {
+            var level = getAudioLevel(id);
+            // qml didn't like an object with null/empty string for a key, so...
+            var userId = id || 0;
+            param[userId]= level;
+        });
+        pal.sendToQml({method: 'updateAudioLevel', params: param});
+    }
+}, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 //
 // Button state.
 //
-function onVisibileChanged() {
+function onVisibleChanged() {
     button.writeProperty('buttonState', pal.visible ? 0 : 1);
     button.writeProperty('defaultState', pal.visible ? 0 : 1);
     button.writeProperty('hoverState', pal.visible ? 2 : 3);
 }
 button.clicked.connect(onClicked);
-pal.visibleChanged.connect(onVisibileChanged);
+pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
 
@@ -280,7 +333,7 @@ Users.usernameFromIDReply.connect(usernameFromIDReply);
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     toolBar.removeButton(buttonName);
-    pal.visibleChanged.disconnect(onVisibileChanged);
+    pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     off();

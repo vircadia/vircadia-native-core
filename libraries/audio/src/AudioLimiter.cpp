@@ -212,6 +212,49 @@ static inline int32_t peaklog2(float* input0, float* input1) {
 }
 
 //
+// Peak detection and -log2(x) for float input (quad)
+// x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
+// x > 2^LOG2_HEADROOM undefined
+//
+static inline int32_t peaklog2(float* input0, float* input1, float* input2, float* input3) {
+
+    // float as integer bits
+    int32_t u0 = *(int32_t*)input0;
+    int32_t u1 = *(int32_t*)input1;
+    int32_t u2 = *(int32_t*)input2;
+    int32_t u3 = *(int32_t*)input3;
+
+    // max absolute value
+    u0 &= IEEE754_FABS_MASK;
+    u1 &= IEEE754_FABS_MASK;
+    u2 &= IEEE754_FABS_MASK;
+    u3 &= IEEE754_FABS_MASK;
+    int32_t peak = MAX(MAX(u0, u1), MAX(u2, u3));
+
+    // split into e and x - 1.0
+    int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
+    int32_t x = (peak << (31 - IEEE754_MANT_BITS)) & 0x7fffffff;
+
+    // saturate
+    if (e > 31) {
+        return 0x7fffffff;
+    }
+
+    int k = x >> (31 - LOG2_TABBITS);
+
+    // polynomial for log2(1+x) over x=[0,1]
+    int32_t c0 = log2Table[k][0];
+    int32_t c1 = log2Table[k][1];
+    int32_t c2 = log2Table[k][2];
+
+    c1 += MULHI(c0, x);
+    c2 += MULHI(c1, x);
+
+    // reconstruct result in Q26
+    return (e << LOG2_FRACBITS) - (c2 >> 3);
+}
+
+//
 // Compute exp2(-x) for x=[0,32] in Q26, result in Q31
 // x < 0 undefined
 //
@@ -258,7 +301,7 @@ class PeakFilterT {
     static_assert((CIC1 - 1) + (CIC2 - 1) == (N - 1), "Total CIC delay must be N-1");
 
     int32_t _buffer[2*N] = {};  // shared FIFO
-    int _index = 0;
+    size_t _index = 0;
 
     int32_t _acc1 = 0;  // CIC1 integrator
     int32_t _acc2 = 0;  // CIC2 integrator
@@ -267,21 +310,21 @@ public:
     PeakFilterT() {
 
         // fill history
-        for (int n = 0; n < N-1; n++) {
+        for (size_t n = 0; n < N-1; n++) {
             process(0x7fffffff);
         }
     }
 
     int32_t process(int32_t x) {
 
-        const int MASK = 2*N - 1;   // buffer wrap
-        int i = _index;
+        const size_t MASK = 2*N - 1;    // buffer wrap
+        size_t i = _index;
 
         // Fast peak-hold using a running-min filter.  Finds the peak (min) value
         // in the sliding window of N-1 samples, using only log2(N) comparisons.
         // Hold time of N-1 samples exactly cancels the step response of FIR filter.
 
-        for (int n = 1; n < N; n <<= 1) {
+        for (size_t n = 1; n < N; n <<= 1) {
 
             _buffer[i] = x;
             i = (i + n) & MASK;
@@ -329,13 +372,13 @@ class MonoDelay {
     static_assert((N & (N - 1)) == 0, "N must be a power of 2");
 
     float _buffer[N] = {};
-    int _index = 0;
+    size_t _index = 0;
 
 public:
     void process(float& x) {
 
-        const int MASK = N - 1;     // buffer wrap
-        int i = _index;
+        const size_t MASK = N - 1;  // buffer wrap
+        size_t i = _index;
 
         _buffer[i] = x;
 
@@ -356,13 +399,13 @@ class StereoDelay {
     static_assert((N & (N - 1)) == 0, "N must be a power of 2");
 
     float _buffer[2*N] = {};
-    int _index = 0;
+    size_t _index = 0;
 
 public:
     void process(float& x0, float& x1) {
 
-        const int MASK = 2*N - 1;   // buffer wrap
-        int i = _index;
+        const size_t MASK = 2*N - 1;    // buffer wrap
+        size_t i = _index;
 
         _buffer[i+0] = x0;
         _buffer[i+1] = x1;
@@ -371,6 +414,39 @@ public:
 
         x0 = _buffer[i+0];
         x1 = _buffer[i+1];
+
+        _index = i;
+    }
+};
+
+//
+// N-1 sample delay (quad)
+//
+template<int N>
+class QuadDelay {
+
+    static_assert((N & (N - 1)) == 0, "N must be a power of 2");
+
+    float _buffer[4*N] = {};
+    size_t _index = 0;
+
+public:
+    void process(float& x0, float& x1, float& x2, float& x3) {
+
+        const size_t MASK = 4*N - 1;    // buffer wrap
+        size_t i = _index;
+
+        _buffer[i+0] = x0;
+        _buffer[i+1] = x1;
+        _buffer[i+2] = x2;
+        _buffer[i+3] = x3;
+
+        i = (i + 4*(N - 1)) & MASK;
+
+        x0 = _buffer[i+0];
+        x1 = _buffer[i+1];
+        x2 = _buffer[i+2];
+        x3 = _buffer[i+3];
 
         _index = i;
     }
@@ -428,7 +504,7 @@ LimiterImpl::LimiterImpl(int sampleRate) {
 //
 void LimiterImpl::setThreshold(float threshold) {
 
-    const double OUT_CEILING = -0.3;
+    const double OUT_CEILING = -0.3;    // cannot be 0.0, due to dither
     const double Q31_TO_Q15 = 32768 / 2147483648.0;
 
     // limiter threshold = -48dB to 0dB
@@ -537,12 +613,12 @@ int32_t LimiterImpl::envelope(int32_t attn) {
         // arc = (attn-rms)*6/attn for attn = 1dB to 6dB
         // arc = (attn-rms)*6/6    for attn > 6dB
 
-        int bits = MIN(attn >> 20, 0x3f);   // saturate 1/attn at 6dB
-        _arc = MAX(attn - _rms, 0);         // peak/rms = (attn-rms)
-        _arc = MULHI(_arc, invTable[bits]); // normalized peak/rms = (attn-rms)/attn
-        _arc = MIN(_arc, NARC - 1);         // saturate at 6dB
+        size_t bits = MIN(attn >> 20, 0x3f);    // saturate 1/attn at 6dB
+        _arc = MAX(attn - _rms, 0);             // peak/rms = (attn-rms)
+        _arc = MULHI(_arc, invTable[bits]);     // normalized peak/rms = (attn-rms)/attn
+        _arc = MIN(_arc, NARC - 1);             // saturate at 6dB
 
-        _arcRelease = 0x7fffffff;           // reset release
+        _arcRelease = 0x7fffffff;               // reset release
     }
     _attn = attn;
 
@@ -571,8 +647,8 @@ public:
 };
 
 template<int N>
-void LimiterMono<N>::process(float* input, int16_t* output, int numFrames)
-{
+void LimiterMono<N>::process(float* input, int16_t* output, int numFrames) {
+
     for (int n = 0; n < numFrames; n++) {
 
         // peak detect and convert to log2 domain
@@ -623,8 +699,8 @@ public:
 };
 
 template<int N>
-void LimiterStereo<N>::process(float* input, int16_t* output, int numFrames)
-{
+void LimiterStereo<N>::process(float* input, int16_t* output, int numFrames) {
+
     for (int n = 0; n < numFrames; n++) {
 
         // peak detect and convert to log2 domain
@@ -664,6 +740,71 @@ void LimiterStereo<N>::process(float* input, int16_t* output, int numFrames)
 }
 
 //
+// Limiter (quad)
+//
+template<int N>
+class LimiterQuad : public LimiterImpl {
+
+    PeakFilter<N> _filter;
+    QuadDelay<N> _delay;
+
+public:
+    LimiterQuad(int sampleRate) : LimiterImpl(sampleRate) {}
+
+    // interleaved quad input/output
+    void process(float* input, int16_t* output, int numFrames) override;
+};
+
+template<int N>
+void LimiterQuad<N>::process(float* input, int16_t* output, int numFrames) {
+
+    for (int n = 0; n < numFrames; n++) {
+
+        // peak detect and convert to log2 domain
+        int32_t peak = peaklog2(&input[4*n+0], &input[4*n+1], &input[4*n+2], &input[4*n+3]);
+
+        // compute limiter attenuation
+        int32_t attn = MAX(_threshold - peak, 0);
+
+        // apply envelope
+        attn = envelope(attn);
+
+        // convert from log2 domain
+        attn = fixexp2(attn);
+
+        // lowpass filter
+        attn = _filter.process(attn);
+        float gain = attn * _outGain;
+
+        // delay audio
+        float x0 = input[4*n+0];
+        float x1 = input[4*n+1];
+        float x2 = input[4*n+2];
+        float x3 = input[4*n+3];
+        _delay.process(x0, x1, x2, x3);
+
+        // apply gain
+        x0 *= gain;
+        x1 *= gain;
+        x2 *= gain;
+        x3 *= gain;
+
+        // apply dither
+        float d = dither();
+        x0 += d;
+        x1 += d;
+        x2 += d;
+        x3 += d;
+
+        // store 16-bit output
+        output[4*n+0] = (int16_t)floatToInt(x0);
+        output[4*n+1] = (int16_t)floatToInt(x1);
+        output[4*n+2] = (int16_t)floatToInt(x2);
+        output[4*n+3] = (int16_t)floatToInt(x3);
+    }
+}
+
+//
 // Public API
 //
 
@@ -693,6 +834,19 @@ AudioLimiter::AudioLimiter(int sampleRate, int numChannels) {
             _impl = new LimiterStereo<64>(sampleRate);
         } else {
             _impl = new LimiterStereo<128>(sampleRate);
+        }
+
+    } else if (numChannels == 4) {
+
+        // ~1.5ms lookahead for all rates
+        if (sampleRate < 16000) {
+            _impl = new LimiterQuad<16>(sampleRate);
+        } else if (sampleRate < 32000) {
+            _impl = new LimiterQuad<32>(sampleRate);
+        } else if (sampleRate < 64000) {
+            _impl = new LimiterQuad<64>(sampleRate);
+        } else {
+            _impl = new LimiterQuad<128>(sampleRate);
         }
 
     } else {

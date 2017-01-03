@@ -99,18 +99,22 @@ static void cubicInterpolation(const float* input, float* output, int inputSize,
     }
 }
 
-int AudioSRC::createRationalFilter(int upFactor, int downFactor, float gain) {
-    int numTaps = PROTOTYPE_TAPS;
+int AudioSRC::createRationalFilter(int upFactor, int downFactor, float gain, Quality quality) {
+
+    int prototypeTaps = prototypeFilterTable[quality].taps;
+    int prototypeCoefs = prototypeFilterTable[quality].coefs;
+    const float* prototypeFilter = prototypeFilterTable[quality].filter;
+
+    int numTaps = prototypeTaps;
     int numPhases = upFactor;
     int numCoefs = numTaps * numPhases;
-    int oldCoefs = numCoefs;
-    int prototypeCoefs = PROTOTYPE_TAPS * PROTOTYPE_PHASES;
 
     //
     // When downsampling, we can lower the filter cutoff by downFactor/upFactor using the
     // time-scaling property of the Fourier transform.  The gain is adjusted accordingly.
     //
     if (downFactor > upFactor) {
+        int oldCoefs = numCoefs;
         numCoefs = ((int64_t)oldCoefs * downFactor) / upFactor;
         numTaps = (numCoefs + upFactor - 1) / upFactor;
         gain *= (float)oldCoefs / numCoefs;
@@ -149,18 +153,22 @@ int AudioSRC::createRationalFilter(int upFactor, int downFactor, float gain) {
     return numTaps;
 }
 
-int AudioSRC::createIrrationalFilter(int upFactor, int downFactor, float gain) {
-    int numTaps = PROTOTYPE_TAPS;
+int AudioSRC::createIrrationalFilter(int upFactor, int downFactor, float gain, Quality quality) {
+
+    int prototypeTaps = prototypeFilterTable[quality].taps;
+    int prototypeCoefs = prototypeFilterTable[quality].coefs;
+    const float* prototypeFilter = prototypeFilterTable[quality].filter;
+
+    int numTaps = prototypeTaps;
     int numPhases = upFactor;
     int numCoefs = numTaps * numPhases;
-    int oldCoefs = numCoefs;
-    int prototypeCoefs = PROTOTYPE_TAPS * PROTOTYPE_PHASES;
 
     //
     // When downsampling, we can lower the filter cutoff by downFactor/upFactor using the
     // time-scaling property of the Fourier transform.  The gain is adjusted accordingly.
     //
     if (downFactor > upFactor) {
+        int oldCoefs = numCoefs;
         numCoefs = ((int64_t)oldCoefs * downFactor) / upFactor;
         numTaps = (numCoefs + upFactor - 1) / upFactor;
         gain *= (float)oldCoefs / numCoefs;
@@ -1405,7 +1413,8 @@ int AudioSRC::render(float** inputs, float** outputs, int inputFrames) {
     return outputFrames;
 }
 
-AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels) {
+AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels, Quality quality) {
+
     assert(inputSampleRate > 0);
     assert(outputSampleRate > 0);
     assert(numChannels > 0);
@@ -1433,9 +1442,9 @@ AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels) {
 
     // create the polyphase filter
     if (_step == 0) {
-        _numTaps = createRationalFilter(_upFactor, _downFactor, 1.0f);
+        _numTaps = createRationalFilter(_upFactor, _downFactor, 1.0f, quality);
     } else {
-        _numTaps = createIrrationalFilter(_upFactor, _downFactor, 1.0f);
+        _numTaps = createIrrationalFilter(_upFactor, _downFactor, 1.0f, quality);
     }
 
     //printf("up=%d down=%.3f taps=%d\n", _upFactor, _downFactor + (LO32(_step)<<SRC_PHASEBITS) * Q32_TO_FLOAT, _numTaps);

@@ -27,11 +27,11 @@ ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
     _statsTimer(this)
 {
     static const int STATS_TIMEOUT_MS = 1000;
-    _statsTimer.setInterval(STATS_TIMEOUT_MS);
+    _statsTimer.setInterval(STATS_TIMEOUT_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
 
     connect(&_domainServerTimer, &QTimer::timeout, this, &ThreadedAssignment::checkInWithDomainServerOrExit);
-    _domainServerTimer.setInterval(DOMAIN_SERVER_CHECK_IN_MSECS);
+    _domainServerTimer.setInterval(DOMAIN_SERVER_CHECK_IN_MSECS); // 1s, Qt::CoarseTimer acceptable
 
     // if the NL tells us we got a DS response, clear our member variable of queued check-ins
     auto nodeList = DependencyManager::get<NodeList>();

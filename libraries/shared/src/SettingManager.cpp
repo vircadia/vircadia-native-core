@@ -83,7 +83,7 @@ namespace Setting {
             _saveTimer = new QTimer(this);
             Q_CHECK_PTR(_saveTimer);
             _saveTimer->setSingleShot(true); // We will restart it once settings are saved.
-            _saveTimer->setInterval(SAVE_INTERVAL_MSEC);
+            _saveTimer->setInterval(SAVE_INTERVAL_MSEC); // 5s, Qt::CoarseTimer acceptable
             connect(_saveTimer, SIGNAL(timeout()), this, SLOT(saveAll()));
         }
         _saveTimer->start();
