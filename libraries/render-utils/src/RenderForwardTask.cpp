@@ -90,6 +90,30 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
     framebuffer = _framebuffer;
 }
 
+void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& background) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.enableSkybox(true);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        // Setup projection
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        renderItems(sceneContext, renderContext, background);
+    });
+    args->_batch = nullptr;
+}
+
 const gpu::PipelinePointer DrawBounds::getPipeline() {
     if (!_boundsPipeline) {
         auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
@@ -143,28 +167,4 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
             batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
         }
     });
-}
-
-void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
-        const Inputs& background) {
-    RenderArgs* args = renderContext->args;
-
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-
-        batch.enableSkybox(true);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        // Setup projection
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        renderItems(sceneContext, renderContext, background);
-    });
-    args->_batch = nullptr;
 }
