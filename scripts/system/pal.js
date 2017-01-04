@@ -335,7 +335,7 @@ Users.usernameFromIDReply.connect(usernameFromIDReply);
 function clearIgnoredInQMLAndRefreshPAL() {
     pal.sendToQml({ method: 'clearIgnored' });
     removeOverlays();
-    populateUserList();
+    Script.setTimeout(populateUserList, 200); // Short delay before populating the PAL to allow the HashMap to populate
 }
 Window.domainChanged.connect(clearIgnoredInQMLAndRefreshPAL);
 Window.domainConnectionRefused.connect(clearIgnoredInQMLAndRefreshPAL);
