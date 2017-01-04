@@ -19,7 +19,6 @@ UsersScriptingInterface::UsersScriptingInterface() {
     connect(nodeList.data(), &LimitedNodeList::canKickChanged, this, &UsersScriptingInterface::canKickChanged);
     connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &UsersScriptingInterface::ignoreRadiusEnabledChanged);
     connect(nodeList.data(), &NodeList::usernameFromIDReply, this, &UsersScriptingInterface::usernameFromIDReply);
-    connect(nodeList.data(), &NodeList::ignoredNode, this, &UsersScriptingInterface::ignoredNode);
 }
 
 void UsersScriptingInterface::ignore(const QUuid& nodeID, bool ignoreEnabled) {

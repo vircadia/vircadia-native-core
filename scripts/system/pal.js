@@ -333,14 +333,6 @@ pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
 
-function onIgnore(sessionId, enabled) { // make it go away in the usual way, since we'll still get data keeping it live
-    if (enabled) {
-        // Why doesn't this work from .qml? (crashes)
-        AvatarList.getAvatar(sessionId).setShouldDie();
-    }
-}
-Users.ignoredNode.connect(onIgnore);
-
 //
 // Cleanup.
 //
@@ -350,7 +342,6 @@ Script.scriptEnding.connect(function () {
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-    Users.ignoredNode.disconnect(onIgnore);
     off();
 });
 

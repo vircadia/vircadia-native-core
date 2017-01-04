@@ -218,10 +218,9 @@ Item {
                 id: actionCheckBox
                 visible: isCheckBox
                 anchors.centerIn: parent
-                checked: model && model[styleData.role]
-                // If this is a "personal mute" checkbox, and the model is valid, Check the checkbox if the Ignore
-                // checkbox is checked.
-                enabled: styleData.role === "personalMute" ? ((model && model["ignore"]) === true ? false : true) : true
+                checked: model[styleData.role]
+                // If this is a "Personal Mute" checkbox, disable the checkbox if the "Ignore" checkbox is checked.
+                enabled: !(styleData.role === "personalMute" && model["ignore"])
                 boxSize: 24
                 onClicked: {
                     var newValue = !model[styleData.role]
@@ -239,8 +238,8 @@ Item {
                     }
                     // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
                     // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
-                    // "checked: model[styleData.role]" above.
-                    checked = Qt.binding(function() { return (model && model[styleData.role]) ? model[styleData.role] : false})
+                    // "checked:" statement above.
+                    checked = Qt.binding(function() { return (model[styleData.role])})
                 }
             }
             
