@@ -44,7 +44,7 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
 
 static const char* TABLET_SOURCE_URL = "Tablet.qml";
 static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
-static const char* LOADER_SOURCE_PROPERTY_NAME = "loaderSource";
+static const char* LOADER_SOURCE_PROPERTY_NAME = "LoaderSource";
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
     ;
@@ -88,8 +88,10 @@ void TabletProxy::gotoHomeScreen() {
     if (_qmlTabletRoot) {
         QString tabletSource = _qmlTabletRoot->property(LOADER_SOURCE_PROPERTY_NAME).toString();
         if (tabletSource != TABLET_SOURCE_URL) {
+            _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, TABLET_SOURCE_URL);
+            auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
-            addButtonsToHomeScreen();
         }
     }
 }
@@ -99,6 +101,7 @@ void TabletProxy::gotoWebScreen(const QString& url) {
         removeButtonsFromHomeScreen();
         QString tabletSource = _qmlTabletRoot->property(LOADER_SOURCE_PROPERTY_NAME).toString();
         if (tabletSource != WEB_VIEW_SOURCE_URL) {
+            _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, WEB_VIEW_SOURCE_URL);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
             // TABLET_UI_HACK: TODO: addEventBridge to tablet....
         }
@@ -168,6 +171,8 @@ void TabletProxy::addButtonsToHomeScreen() {
     for (auto& buttonProxy : _tabletButtonProxies) {
         addButtonProxyToQmlTablet(tablet, buttonProxy.data());
     }
+     auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+     QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
 }
 
 void TabletProxy::removeButtonsFromHomeScreen() {

@@ -17,13 +17,14 @@
 (function() { // BEGIN LOCAL_SCOPE
     var tabletShown = false;
     var tabletLocation = null;
+    var activeHand = null;
 
     Script.include("../libraries/WebTablet.js");
 
     function showTabletUI() {
         tabletShown = true;
         print("show tablet-ui");
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, tabletLocation);
+        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, activeHand);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.webEntityID;
     }
@@ -51,6 +52,13 @@
             hideTabletUI();
         }
     }
+
+    function toggleHand(channel, hand, senderUUID, localOnly) {
+        activeHand = JSON.parse(hand);
+    }
+
+    Messages.subscribe("toggleHand");
+    Messages.messageReceived.connect(toggleHand);
 
     Script.update.connect(updateShowTablet);
     // Script.setInterval(updateShowTablet, 1000);
