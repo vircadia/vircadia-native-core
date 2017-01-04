@@ -44,6 +44,7 @@
 #include "Util.h"
 #include "world.h"
 #include "InterfaceLogging.h"
+#include "SceneScriptingInterface.h"
 #include "SoftAttachmentModel.h"
 #include <Rig.h>
 
@@ -292,7 +293,10 @@ void Avatar::updateAvatarEntities() {
     }
 }
 
-
+void Avatar::setShouldDie() {
+    // This will cause the avatar to be shrunk away and removed (the actual Avatar gets removed), but then it comes back.
+    _owningAvatarMixer.clear();
+}
 
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
@@ -459,6 +463,7 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
         attachmentModel->addToScene(scene, pendingChanges);
     }
 
+    _inScene = true;
     return true;
 }
 
@@ -469,6 +474,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, pendingChanges);
     }
+    _inScene = false;
 }
 
 void Avatar::updateRenderItem(render::PendingChanges& pendingChanges) {
@@ -1326,5 +1332,23 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
         if (!success) {
             qCDebug(interfaceapp) << "Avatar::setParentJointIndex failed to reset avatar's location.";
         }
+    }
+}
+
+void Avatar::addToScene(AvatarSharedPointer myHandle) {
+    render::ScenePointer scene = qApp->getMain3DScene();
+    if (scene) {
+        render::PendingChanges pendingChanges;
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars() && !DependencyManager::get<NodeList>()->isIgnoringNode(getSessionUUID())) {
+            addToScene(myHandle, scene, pendingChanges);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+    } else {
+        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
+    }
+}
+void Avatar::ensureInScene(AvatarSharedPointer self) {
+    if (!_inScene) {
+        addToScene(self);
     }
 }
