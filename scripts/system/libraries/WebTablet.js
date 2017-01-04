@@ -118,7 +118,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
                _this.clicked = true;
             }
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.gotoHomeScreen();
+            tablet.gotoMenuScreen();
         }
     };
 

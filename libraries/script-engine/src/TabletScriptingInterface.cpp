@@ -14,6 +14,8 @@
 #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
 #include "ScriptEngineLogging.h"
+#include "DependencyManager.h"
+#include "OffscreenUi.h"
 
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
@@ -56,6 +58,7 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
 static const char* TABLET_SOURCE_URL = "Tablet.qml";
 static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
 static const char* LOADER_SOURCE_PROPERTY_NAME = "LoaderSource";
+static const char* VRMENU_SOURCE_URL = "VrMenuView.qml";
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
     ;
@@ -92,6 +95,16 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
         gotoHomeScreen();
     } else {
         removeButtonsFromHomeScreen();
+    }
+}
+
+void TabletProxy::gotoMenuScreen() {
+    if (_qmlTabletRoot) {
+        _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, TABLET_SOURCE_URL);
+        auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto rootMenu = offscreenUi->getRootMenu();
+        QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
     }
 }
 
@@ -184,6 +197,10 @@ void TabletProxy::addButtonsToHomeScreen() {
     }
      auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
      QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
+}
+
+void TabletProxy::addButtonsToMenuScreen() {
+    
 }
 
 void TabletProxy::removeButtonsFromHomeScreen() {
