@@ -242,6 +242,10 @@ void NodeList::reset() {
     _ignoredSetLock.lockForWrite();
     _ignoredNodeIDs.clear();
     _ignoredSetLock.unlock();
+    // lock and clear our set of personally muted IDs
+    _personalMutedSetLock.lockForWrite();
+    _personalMutedNodeIDs.clear();
+    _personalMutedSetLock.unlock();
 
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
