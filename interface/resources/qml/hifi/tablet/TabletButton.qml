@@ -6,6 +6,8 @@ Item {
     property var uuid;
     property string text: "EDIT"
     property string icon: "icons/edit-icon.svg"
+    property string activeText: tabletButton.text
+    property string activeIcon: tabletButton.icon
     property bool isActive: false
     property bool inDebugMode: false
     property bool isEntered: false
@@ -170,11 +172,17 @@ Item {
             PropertyChanges {
                 target: text
                 color: "#333333"
+                text: tabletButton.activeText
             }
 
             PropertyChanges {
                 target: iconColorOverlay
                 color: "#333333"
+            }
+
+            PropertyChanges {
+                target: icon
+                source: "../../../" + tabletButton.activeIcon
             }
         },
         State {
