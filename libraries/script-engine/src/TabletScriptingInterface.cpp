@@ -79,8 +79,6 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
     if (_qmlTabletRoot && _qmlOffscreenSurface) {
         QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
         gotoHomeScreen();
-        //auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-        //QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
     } else {
         removeButtonsFromHomeScreen();
     }
