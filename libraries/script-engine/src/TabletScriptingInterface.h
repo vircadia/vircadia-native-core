@@ -109,9 +109,11 @@ signals:
      */
     void webEventReceived(QVariant msg);
 
-protected:
-
+private slots:
     void addButtonsToHomeScreen();
+    
+protected:
+    
     void removeButtonsFromHomeScreen();
     QQuickItem* getQmlTablet() const;
 
