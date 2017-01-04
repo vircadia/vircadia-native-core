@@ -198,8 +198,8 @@ Item {
                 id: nameCard
                 // Properties
                 displayName: styleData.value
-                userName: model ? model.userName : ""
-                audioLevel: model ? model.audioLevel : 0.0
+                userName: model && model.userName
+                audioLevel: model && model.audioLevel
                 visible: !isCheckBox && !isButton
                 // Size
                 width: nameCardWidth
@@ -218,31 +218,24 @@ Item {
                 id: actionCheckBox
                 visible: isCheckBox
                 anchors.centerIn: parent
-                checked: model ? model[styleData.role] : false
+                checked: model && model[styleData.role]
                 // If this is a "personal mute" checkbox, and the model is valid, Check the checkbox if the Ignore
                 // checkbox is checked.
-                enabled: styleData.role === "personalMute" ? ((model ? model["ignore"] : false) === true ? false : true) : true
+                enabled: styleData.role === "personalMute" ? ((model && model["ignore"]) === true ? false : true) : true
                 boxSize: 24
                 onClicked: {
                     var newValue = !model[styleData.role]
-                    if (newValue === undefined) {
-                        newValue = false
-                    }
                     userModel.setProperty(model.userIndex, styleData.role, newValue)
                     userModelData[model.userIndex][styleData.role] = newValue // Defensive programming
-                    if (styleData.role === "personalMute" || styleData.role === "ignore") {
-                        Users[styleData.role](model.sessionId, newValue)
-                        if (styleData.role === "ignore") {
-                            userModel.setProperty(model.userIndex, "personalMute", newValue)
-                            userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
-                            if (newValue) {
-                                ignored[model.sessionId] = userModelData[model.userIndex]
-                            } else {
-                                delete ignored[model.sessionId]
-                            }
+                    Users[styleData.role](model.sessionId, newValue)
+                    if (styleData.role === "ignore") {
+                        userModel.setProperty(model.userIndex, "personalMute", newValue)
+                        userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
+                        if (newValue) {
+                            ignored[model.sessionId] = userModelData[model.userIndex]
+                        } else {
+                            delete ignored[model.sessionId]
                         }
-                    } else {
-                        console.log("User clicked on an unknown checkbox.");
                     }
                     // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
                     // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
@@ -257,20 +250,28 @@ Item {
                 color: 2 // Red
                 visible: isButton
                 anchors.centerIn: parent
-                width: 24
+                width: 32
                 height: 24
                 onClicked: {
-                    if (styleData.role === "mute" || styleData.role === "kick") {
-                        Users[styleData.role](model.sessionId)
-                        if (styleData.role === "kick") {
-                            // Just for now, while we cannot undo "Ban":
-                            userModel.remove(model.userIndex)
-                            delete userModelData[model.userIndex] // Defensive programming
-                            sortModel()
-                        }
-                    } else {
-                        console.log("User clicked on an unknown checkbox.");
+                    Users[styleData.role](model.sessionId)
+                    if (styleData.role === "kick") {
+                        // Just for now, while we cannot undo "Ban":
+                        userModel.remove(model.userIndex)
+                        delete userModelData[model.userIndex] // Defensive programming
+                        sortModel()
                     }
+                }
+                // muted/error glyphs
+                HiFiGlyphs {
+                    text: (styleData.role === "kick") ? hifi.glyphs.error : hifi.glyphs.muted
+                    // Size
+                    size: parent.height*1.3
+                    // Anchors
+                    anchors.fill: parent
+                    // Style
+                    horizontalAlignment: Text.AlignHCenter
+                    color: enabled ? hifi.buttons.textColor[actionButton.color]
+                                   : hifi.buttons.disabledTextColor[actionButton.colorScheme]
                 }
             }
         }
@@ -374,8 +375,8 @@ Item {
             FiraSansSemiBold {
                 id: popupText
                 text: "Bold names in the list are Avatar Display Names.\n" +
-                    "If a Display Name isn't set, a unique Session Display Name is assigned to them." +
-                    "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each present avatar."
+                    "If a Display Name isn't set, a unique Session Display Name is assigned." +
+                    "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present."
                 size: hifi.fontSizes.textFieldInput
                 color: hifi.colors.darkGray
                 horizontalAlignment: Text.AlignHCenter
@@ -431,13 +432,11 @@ Item {
             var sessionId = message.params[0];
             var selected = message.params[1];
             var userIndex = findSessionIndex(sessionId);
-            if (userIndex != -1) {
-                if (selected) {
-                    table.selection.clear(); // for now, no multi-select
-                    table.selection.select(userIndex);
-                } else {
-                    table.selection.deselect(userIndex);
-                }
+            if (selected) {
+                table.selection.clear(); // for now, no multi-select
+                table.selection.select(userIndex);
+            } else {
+                table.selection.deselect(userIndex);
             }
             break;
         // Received an "updateUsername()" request from the JS
@@ -457,6 +456,8 @@ Item {
                     // Set the userName appropriately
                     userModel.setProperty(userIndex, "userName", userName);
                     userModelData[userIndex].userName = userName; // Defensive programming
+                } else {
+                    console.log("updateUsername() called with unknown UUID: ", userId);
                 }
             }
             break;
@@ -472,6 +473,8 @@ Item {
                     if (userIndex != -1) {
                         userModel.setProperty(userIndex, "audioLevel", audioLevel);
                         userModelData[userIndex].audioLevel = audioLevel; // Defensive programming
+                    } else {
+                        console.log("updateUsername() called with unknown UUID: ", userId);
                     }
                 }
             }
@@ -505,7 +508,6 @@ Item {
             ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
             datum.userIndex = userIndex++;
             userModel.append(datum);
-            console.log('appending to userModel:', JSON.stringify(datum));
         });
     }
     signal sendToScript(var message);

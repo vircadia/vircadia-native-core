@@ -117,8 +117,7 @@ public slots:
 signals:
     void canKickChanged(bool canKick);
     void ignoreRadiusEnabledChanged(bool isEnabled);
-    void ignoredNode(const QUuid& nodeID);
-    void unignoredNode(const QUuid& nodeID);
+    void ignoredNode(const QUuid& nodeID, bool enabled);
 
     /**jsdoc
     * Notifies scripts that another user has entered the ignore radius

@@ -113,8 +113,7 @@ public slots:
 signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
-    void ignoredNode(const QUuid& nodeID);
-    void unignoredNode(const QUuid& nodeID);
+    void ignoredNode(const QUuid& nodeID, bool enabled);
     void ignoreRadiusEnabledChanged(bool isIgnored);
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
 

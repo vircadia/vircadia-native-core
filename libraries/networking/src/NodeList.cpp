@@ -808,13 +808,13 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
             _ignoredNodeIDs.insert(nodeID);
             // add this nodeID to our set of personal muted IDs
             _personalMutedNodeIDs.insert(nodeID);
-            emit ignoredNode(nodeID);
+            emit ignoredNode(nodeID, true);
         } else {
             QWriteLocker ignoredSetLocker{ &_ignoredSetLock }; // write lock for unsafe_erase
             QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock }; // write lock for unsafe_erase
             _ignoredNodeIDs.unsafe_erase(nodeID);
             _personalMutedNodeIDs.unsafe_erase(nodeID);
-            emit unignoredNode(nodeID);
+            emit ignoredNode(nodeID, false);
         }
 
     } else {

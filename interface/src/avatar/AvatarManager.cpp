@@ -82,7 +82,11 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
-    connect(nodeList.data(), "ignoredNode", this, "removeAvatar");
+    connect(nodeList.data(), &NodeList::ignoredNode, this, [=](const QUuid& nodeID, bool enabled) {
+        if (enabled) {
+            removeAvatar(nodeID);
+        }
+    });
 }
 
 AvatarManager::~AvatarManager() {
