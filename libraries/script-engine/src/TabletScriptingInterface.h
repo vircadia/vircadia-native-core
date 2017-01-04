@@ -111,9 +111,7 @@ signals:
 
 private slots:
     void addButtonsToHomeScreen();
-    
 protected:
-    
     void removeButtonsFromHomeScreen();
     QQuickItem* getQmlTablet() const;
 

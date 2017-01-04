@@ -31,7 +31,7 @@ function calcSpawnInfo(hand) {
         var finalOffset = Vec3.sum(frontOffset, Vec3.multiply(-0.3, front));
         return {
             position: finalOffset,
-            rotation: Quat.lookAt(finalOffset, HMD.position, Y_AXIS) 
+            rotation: Quat.lookAt(finalOffset, HMD.position, Y_AXIS)
         };
     } else {
         var front = Quat.getFront(MyAvatar.orientation);
