@@ -53,6 +53,7 @@ using namespace std::placeholders;
 
 void initOverlay3DPipelines(ShapePlumber& plumber);
 void initDeferredPipelines(ShapePlumber& plumber);
+void initForwardPipelines(ShapePlumber& plumber);
 
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel);
@@ -217,6 +218,21 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         Key::Builder().withSkinned().withDepthOnly(),
         skinModelShadowVertex, modelShadowPixel);
 }
+
+void initForwardPipelines(render::ShapePlumber& plumber) {
+    // Vertex shaders
+    auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
+
+    // Pixel shaders
+    auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
+
+    using Key = render::ShapeKey;
+    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
+    // Opaques
+    addPipeline(
+        Key::Builder(),
+        modelVertex, modelPixel);
+    }
 
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel) {

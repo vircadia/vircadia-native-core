@@ -48,6 +48,17 @@ private:
     render::ShapePlumberPointer _shapePlumber;
 };
 
+class Stencil {
+public:
+    using JobModel = render::Job::Model<Stencil>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+private:
+    const gpu::PipelinePointer getPipeline();
+    gpu::PipelinePointer _stencilPipeline;
+};
+
 class DrawBackground {
 public:
     using Inputs = render::ItemBounds;
