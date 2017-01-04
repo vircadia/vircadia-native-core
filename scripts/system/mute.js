@@ -20,7 +20,9 @@ function muteURL() {
 }
 var button = tablet.addButton({
     icon: "icons/tablet-icons/mic-a.svg",
-    text: "MUTE"
+    text: "MUTE",
+    activeIcon: "icons/tablet-icons/mic-i.svg",
+    activeText: "UNMUTE"
 });
 
 function onMuteToggled() {
