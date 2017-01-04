@@ -37,6 +37,7 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
+#include <Trace.h>
 
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
@@ -901,7 +902,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
         connect(_initialSTUNTimer.data(), &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
 
         const int STUN_INITIAL_UPDATE_INTERVAL_MSECS = 250;
-        _initialSTUNTimer->setInterval(STUN_INITIAL_UPDATE_INTERVAL_MSECS);
+        _initialSTUNTimer->setInterval(STUN_INITIAL_UPDATE_INTERVAL_MSECS); // 250ms, Qt::CoarseTimer acceptable
 
         // if we don't know the STUN IP yet we need to wait until it is known to start STUN requests
         if (_stunSockAddr.getAddress().isNull()) {
@@ -1116,7 +1117,6 @@ void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep) {
 }
 
 void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp) {
-
     if (connectionStep == ConnectionStep::LookupAddress) {
         QWriteLocker writeLock(&_connectionTimeLock);
 

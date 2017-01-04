@@ -43,6 +43,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _lastSimulated(0),
     _lastUpdated(0),
     _lastEdited(0),
+    _lastEditedBy(ENTITY_ITEM_DEFAULT_LAST_EDITED_BY),
     _lastEditedFromRemote(0),
     _lastEditedFromRemoteInRemoteTime(0),
     _created(UNKNOWN_CREATED_TIME),
@@ -141,11 +142,13 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_CLIENT_ONLY;
     requestedProperties += PROP_OWNING_AVATAR_ID;
 
+    requestedProperties += PROP_LAST_EDITED_BY;
+
     return requestedProperties;
 }
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                            EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const {
+                                            EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData) const {
 
     // ALL this fits...
     //    object ID [16 bytes]
@@ -279,6 +282,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, getParentID());
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
+        APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -803,6 +807,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
+    READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -1160,6 +1165,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     properties._id = getID();
     properties._idSet = true;
     properties._created = _created;
+    properties._lastEdited = _lastEdited;
     properties.setClientOnly(_clientOnly);
     properties.setOwningAvatarID(_owningAvatarID);
 
@@ -1204,6 +1210,8 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(clientOnly, getClientOnly);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(owningAvatarID, getOwningAvatarID);
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
 
     properties._defaultSettings = false;
 
@@ -1307,12 +1315,18 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(clientOnly, setClientOnly);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
 
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
+
     AACube saveQueryAACube = _queryAACube;
     checkAndAdjustQueryAACube();
     if (saveQueryAACube != _queryAACube) {
         somethingChanged = true;
     }
 
+    // Now check the sub classes 
+    somethingChanged |= setSubClassProperties(properties);
+
+    // Finally notify if change detected
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
         #ifdef WANT_DEBUG

@@ -22,17 +22,13 @@ class FileScriptingInterface : public QObject {
 public:
     FileScriptingInterface(QObject* parent);
 
-
 public slots:
-    bool isZippedFbx(QUrl url);
-    bool isZipped(QUrl url);
-    bool isClaraLink(QUrl url);
     QString convertUrlToPath(QUrl url);
-    void runUnzip(QString path, QUrl url);
+    void runUnzip(QString path, QUrl url, bool autoAdd);
     QString getTempDir();
 
 signals:
-    void unzipSuccess(QString url);
+    void unzipResult(QString zipFile, QString unzipFile, bool autoAdd);
 
 private:
     bool isTempDir(QString tempDir);

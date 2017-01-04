@@ -56,6 +56,9 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, RayToEntityIntersectionResult& results);
 
 
+/**jsdoc
+ * @namespace Entities
+ */
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
@@ -87,40 +90,96 @@ public:
     ActivityTracking getActivityTracking() const { return _activityTracking; }
 public slots:
 
-    // returns true if the DomainServer will allow this Node/Avatar to make changes
+    /**jsdoc
+     * Returns `true` if the DomainServer will allow this Node/Avatar to make changes
+     *
+     * @function Entities.canAdjustLocks
+     * @return {bool} `true` if the client can adjust locks, `false` if not.
+     */
     Q_INVOKABLE bool canAdjustLocks();
 
-    // returns true if the DomainServer will allow this Node/Avatar to rez new entities
+    /**jsdoc
+     * @function Entities.canRez
+     * @return {bool} `true` if the DomainServer will allow this Node/Avatar to rez new entities
+     */
     Q_INVOKABLE bool canRez();
+
+    /**jsdoc
+     * @function Entities.canRezTmp
+     * @return {bool} `true` if the DomainServer will allow this Node/Avatar to rez new temporary entities
+     */
     Q_INVOKABLE bool canRezTmp();
 
-    /// adds a model with the specific properties
+    /**jsdoc
+    * @function Entities.canWriteAsseets
+    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to write to the asset server
+    */
+    Q_INVOKABLE bool canWriteAssets();
+
+    /**jsdoc
+     * Add a new entity with the specified properties. If `clientOnly` is true, the entity will
+     * not be sent to the server and will only be visible/accessible on the local client.
+     *
+     * @function Entities.addEntity
+     * @param {EntityItemProperties} properties Properties of the entity to create.
+     * @param {bool} [clientOnly=false] Whether the entity should only exist locally or not.
+     * @return {EntityID} The entity ID of the newly created entity. The ID will be a null
+     *     UUID (`{00000000-0000-0000-0000-000000000000}`) if the entity could not be created.
+     */
     Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool clientOnly = false);
 
     /// temporary method until addEntity can be used from QJSEngine
+    /// Deliberately not adding jsdoc, only used internally.
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType, bool dynamic,
                                      const glm::vec3& position, const glm::vec3& gravity);
 
-    /// gets the current model properties for a specific model
-    /// this function will not find return results in script engine contexts which don't have access to models
+    /**jsdoc
+     * Return the properties for the specified {EntityID}.
+     * not be sent to the server and will only be visible/accessible on the local client.
+     * @param {EntityItemProperties} properties Properties of the entity to create.
+     * @param {EntityPropertyFlags} [desiredProperties=[]] Array containing the names of the properties you
+     *     would like to get. If the array is empty, all properties will be returned.
+     * @return {EntityItemProperties} The entity properties for the specified entity.
+     */
     Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID);
     Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties);
 
-    /// edits a model updating only the included properties, will return the identified EntityItemID in case of
-    /// successful edit, if the input entityID is for an unknown model this function will have no effect
+    /**jsdoc
+     * Updates an entity with the specified properties.
+     *
+     * @function Entities.editEntity
+     * @return {EntityID} The EntityID of the entity if the edit was successful, otherwise the null {EntityID}.
+     */
     Q_INVOKABLE QUuid editEntity(QUuid entityID, const EntityItemProperties& properties);
 
-    /// deletes a model
+    /**jsdoc
+     * Deletes an entity.
+     *
+     * @function Entities.deleteEntity
+     * @param {EntityID} entityID The ID of the entity to delete.
+     */
     Q_INVOKABLE void deleteEntity(QUuid entityID);
 
     /// Allows a script to call a method on an entity's script. The method will execute in the entity script
     /// engine. If the entity does not have an entity script or the method does not exist, this call will have
     /// no effect.
+    /**jsdoc
+     * Call a method on an entity. If it is running an entity script (specified by the `script` property)
+     * and it exposes a property with the specified name `method`, it will be called
+     * using `params` as the list of arguments.
+     *
+     * @function Entities.callEntityMethod
+     * @param {EntityID} entityID The ID of the entity to call the method on.
+     * @param {string} method The name of the method to call.
+     * @param {string[]} params The list of parameters to call the specified method with.
+     */
     Q_INVOKABLE void callEntityMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
 
     /// finds the closest model to the center point, within the radius
     /// will return a EntityItemID.isKnownID = false if no models are in the radius
     /// this function will not find any models in script engine contexts which don't have access to models
+    /**jsdoc
+     */
     Q_INVOKABLE QUuid findClosestEntity(const glm::vec3& center, float radius) const;
 
     /// finds models within the search sphere specified by the center point and radius
@@ -202,6 +261,7 @@ public slots:
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
+    Q_INVOKABLE bool isChildOfParent(QUuid childID, QUuid parentID);
 
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
     Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
@@ -228,6 +288,7 @@ signals:
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
+    void canWriteAssetsChanged(bool canWriteAssets);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);

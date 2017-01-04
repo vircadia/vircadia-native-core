@@ -240,11 +240,8 @@ var toolBar = (function () {
             hoverState: 3,
             defaultState: 1
         });
-        activeButton.clicked.connect(function () {
-            that.setActive(!isActive);
-            activeButton.writeProperty("buttonState", isActive ? 0 : 1);
-            activeButton.writeProperty("defaultState", isActive ? 0 : 1);
-            activeButton.writeProperty("hoverState", isActive ? 2 : 3);
+        activeButton.clicked.connect(function() {
+            that.toggle();
         });
 
         toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
@@ -438,6 +435,14 @@ var toolBar = (function () {
 
     that.clearEntityList = function () {
         entityListTool.clearEntityList();
+    };
+
+
+    that.toggle = function () {
+        that.setActive(!isActive);
+        activeButton.writeProperty("buttonState", isActive ? 0 : 1);
+        activeButton.writeProperty("defaultState", isActive ? 0 : 1);
+        activeButton.writeProperty("hoverState", isActive ? 2 : 3);
     };
 
     that.setActive = function (active) {
@@ -1022,19 +1027,70 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
     }
 }
 
+function sortSelectedEntities(selected) {
+    var sortedEntities = selected.slice();
+    var begin = 0;
+    while (begin < sortedEntities.length) {
+        var elementRemoved = false;
+        var next = begin + 1;
+        while (next < sortedEntities.length) {
+            var beginID = sortedEntities[begin];
+            var nextID = sortedEntities[next];
+
+            if (Entities.isChildOfParent(beginID, nextID)) {
+                sortedEntities[begin] = nextID;
+                sortedEntities[next] = beginID;
+                sortedEntities.splice(next, 1);
+                elementRemoved = true;
+                break;
+            } else if (Entities.isChildOfParent(nextID, beginID)) {
+                sortedEntities.splice(next, 1);
+                elementRemoved = true;
+                break;
+            }
+            next++;
+        }
+        if (!elementRemoved) {
+            begin++;
+        }
+    }
+    return sortedEntities;
+}
+
+function recursiveDelete(entities, childrenList) {
+    var entitiesLength = entities.length;
+    for (var i = 0; i < entitiesLength; i++) {
+        var entityID = entities[i];
+        var children = Entities.getChildrenIDs(entityID);
+        var grandchildrenList = [];
+        recursiveDelete(children, grandchildrenList);
+        var initialProperties = Entities.getEntityProperties(entityID);
+        childrenList.push({
+            entityID: entityID,
+            properties: initialProperties,
+            children: grandchildrenList
+        });
+        Entities.deleteEntity(entityID);
+    }
+}
+
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         selectedParticleEntity = 0;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
-        for (var i = 0; i < selectionManager.selections.length; i++) {
-            var entityID = SelectionManager.selections[i];
+        var newSortedSelection = sortSelectedEntities(selectionManager.selections);
+        for (var i = 0; i < newSortedSelection.length; i++) {
+            var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
-            SelectionManager.savedProperties[entityID];
+            var children = Entities.getChildrenIDs(entityID);
+            var childList = [];
+            recursiveDelete(children, childList);
             savedProperties.push({
                 entityID: entityID,
-                properties: initialProperties
+                properties: initialProperties,
+                children: childList
             });
             Entities.deleteEntity(entityID);
         }
@@ -1093,7 +1149,6 @@ function handeMenuEvent(menuItem) {
             }
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
-
         var importURL = null;
         if (menuItem === "Import Entities") {
             var fullPath = Window.browse("Select Model to Import", "", "*.json");
@@ -1105,6 +1160,9 @@ function handeMenuEvent(menuItem) {
         }
 
         if (importURL) {
+            if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+                toolBar.toggle();
+            }
             importSVO(importURL);
         }
     } else if (menuItem === "Entity List...") {
@@ -1185,8 +1243,6 @@ function importSVO(importURL) {
             if (isActive) {
                 selectionManager.setSelections(pastedEntityIDs);
             }
-
-            Window.raiseMainWindow();
         } else {
             Window.notifyEditError("Can't import objects: objects would be out of bounds.");
         }
@@ -1248,6 +1304,16 @@ Controller.keyReleaseEvent.connect(function (event) {
     }
 });
 
+function recursiveAdd(newParentID, parentData) {
+    var children = parentData.children;
+    for (var i = 0; i < children.length; i++) {
+        var childProperties = children[i].properties;
+        childProperties.parentID = newParentID;
+        var newChildID = Entities.addEntity(childProperties);
+        recursiveAdd(newChildID, children[i]);
+    }
+}
+
 // When an entity has been deleted we need a way to "undo" this deletion.  Because it's not currently
 // possible to create an entity with a specific id, earlier undo commands to the deleted entity
 // will fail if there isn't a way to find the new entity id.
@@ -1269,6 +1335,7 @@ function applyEntityProperties(data) {
         entityID = data.createEntities[i].entityID;
         var entityProperties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(entityProperties);
+        recursiveAdd(newEntityID, data.createEntities[i]);
         DELETED_ENTITY_MAP[entityID] = newEntityID;
         if (data.selectCreated) {
             selectedEntityIDs.push(newEntityID);
@@ -1309,19 +1376,11 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
         }
         undoData.setProperties.push({
             entityID: entityID,
-            properties: {
-                position: initialProperties.position,
-                rotation: initialProperties.rotation,
-                dimensions: initialProperties.dimensions
-            }
+            properties: initialProperties
         });
         redoData.setProperties.push({
             entityID: entityID,
-            properties: {
-                position: currentProperties.position,
-                rotation: currentProperties.rotation,
-                dimensions: currentProperties.dimensions
-            }
+            properties: currentProperties
         });
     }
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);

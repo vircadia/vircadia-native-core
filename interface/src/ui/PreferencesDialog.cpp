@@ -23,6 +23,7 @@
 #include "LODManager.h"
 #include "Menu.h"
 #include "Snapshot.h"
+#include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
 
 #include "AmbientOcclusionEffect.h"
@@ -31,7 +32,7 @@
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
-
+    auto nodeList = DependencyManager::get<NodeList>();
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     static const QString AVATAR_BASICS { "Avatar Basics" };
     {
@@ -81,6 +82,20 @@ void setupPreferences() {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
         auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->bool { return SnapshotAnimated::alsoTakeAnimatedSnapshot.get(); };
+        auto setter = [](bool value) { SnapshotAnimated::alsoTakeAnimatedSnapshot.set(value); };
+        preferences->addPreference(new CheckPreference(SNAPSHOTS, "Take Animated GIF Snapshot with HUD Button", getter, setter));
+    }
+    {
+        auto getter = []()->float { return SnapshotAnimated::snapshotAnimatedDuration.get(); };
+        auto setter = [](float value) { SnapshotAnimated::snapshotAnimatedDuration.set(value); };
+        auto preference = new SpinnerPreference(SNAPSHOTS, "Animated Snapshot Duration", getter, setter);
+        preference->setMin(1);
+        preference->setMax(5);
+        preference->setStep(1);
         preferences->addPreference(preference);
     }
 
@@ -277,23 +292,24 @@ void setupPreferences() {
     {
         static const QString RENDER("Graphics");
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        if (renderConfig) {
+            auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
+            if (ambientOcclusionConfig) {
+                auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
+                auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
+                auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
+                preference->setItems(ambientOcclusionConfig->getPresetList());
+                preferences->addPreference(preference);
+            }
 
-        auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
-        {
-            auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
-            auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
-            auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
-            preference->setItems(ambientOcclusionConfig->getPresetList());
-            preferences->addPreference(preference);
-        }
-
-        auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
-        {
-            auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
-            auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
-            auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
-            preference->setItems(shadowConfig->getPresetList());
-            preferences->addPreference(preference);
+            auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
+            if (shadowConfig) {
+                auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
+                auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
+                auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
+                preference->setItems(shadowConfig->getPresetList());
+                preferences->addPreference(preference);
+            }
         }
     }
     {

@@ -53,9 +53,9 @@ function animStateHandler(props) {
 }
 
 function update(dt) {
-    var leftTrigger = normalizeControllerValue(Controller.getValue(Controller.Standard.LT));
-    var rightTrigger = normalizeControllerValue(Controller.getValue(Controller.Standard.RT));
-
+    var leftTrigger = clamp(Controller.getValue(Controller.Standard.LT) + Controller.getValue(Controller.Standard.LeftGrip), 0, 1);
+    var rightTrigger = clamp(Controller.getValue(Controller.Standard.RT) + Controller.getValue(Controller.Standard.RightGrip), 0, 1);
+        
     //  Average last few trigger values together for a bit of smoothing
     var tau = clamp(dt / TRIGGER_SMOOTH_TIMESCALE, 0, 1);
     lastLeftTrigger = lerp(leftTrigger, lastLeftTrigger, tau);

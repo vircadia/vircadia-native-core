@@ -311,6 +311,7 @@ protected:
 
     std::map<QString, AnimNode::Pointer> _origRoleAnimations;
 
+    int32_t _numOverrides { 0 };
     bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };
 

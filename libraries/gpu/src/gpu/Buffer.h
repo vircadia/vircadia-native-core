@@ -13,6 +13,7 @@
 
 #if _DEBUG
 #include <QtCore/QDebug>
+#include "GPULogging.h"
 #endif
 
 #include "Forward.h"
@@ -27,6 +28,8 @@ class Buffer : public Resource {
     static std::atomic<uint32_t> _bufferCPUCount;
     static std::atomic<Size> _bufferCPUMemoryUsage;
     static void updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void incrementBufferCPUCount();
+    static void decrementBufferCPUCount();
 
 public:
     using Flag = PageManager::Flag;
@@ -60,7 +63,7 @@ public:
     // The size in bytes of data stored in the buffer
     Size getSize() const override;
     template <typename T>
-    Size getTypedSize() const { return getSize() / sizeof(T); };
+    Size getNumTypedElements() const { return getSize() / sizeof(T); };
 
     const Byte* getData() const { return getSysmem().readData(); }
     
@@ -177,7 +180,7 @@ protected:
 
 public:
     using Size = Resource::Size;
-    using Index = int;
+    using Index = int32_t;
 
     BufferPointer _buffer;
     Size _offset { 0 };
@@ -316,13 +319,13 @@ public:
     template <typename T> const T& get() const {
  #if _DEBUG
         if (!_buffer) {
-            qDebug() << "Accessing null gpu::buffer!";
+            qCDebug(gpulogging) << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - _offset)) {
-            qDebug() << "Accessing buffer in non allocated memory, element size = " << sizeof(T) << " available space in buffer at offset is = " << (_buffer->getSize() - _offset);
+            qCDebug(gpulogging) << "Accessing buffer in non allocated memory, element size = " << sizeof(T) << " available space in buffer at offset is = " << (_buffer->getSize() - _offset);
         }
         if (sizeof(T) > _size) {
-            qDebug() << "Accessing buffer outside the BufferView range, element size = " << sizeof(T) << " when bufferView size = " << _size;
+            qCDebug(gpulogging) << "Accessing buffer outside the BufferView range, element size = " << sizeof(T) << " when bufferView size = " << _size;
         }
  #endif
         const T* t = (reinterpret_cast<const T*> (_buffer->getData() + _offset));
@@ -332,13 +335,13 @@ public:
     template <typename T> T& edit() {
  #if _DEBUG
         if (!_buffer) {
-            qDebug() << "Accessing null gpu::buffer!";
+            qCDebug(gpulogging) << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - _offset)) {
-            qDebug() << "Accessing buffer in non allocated memory, element size = " << sizeof(T) << " available space in buffer at offset is = " << (_buffer->getSize() - _offset);
+            qCDebug(gpulogging) << "Accessing buffer in non allocated memory, element size = " << sizeof(T) << " available space in buffer at offset is = " << (_buffer->getSize() - _offset);
         }
         if (sizeof(T) > _size) {
-            qDebug() << "Accessing buffer outside the BufferView range, element size = " << sizeof(T) << " when bufferView size = " << _size;
+            qCDebug(gpulogging) << "Accessing buffer outside the BufferView range, element size = " << sizeof(T) << " when bufferView size = " << _size;
         }
  #endif
         _buffer->markDirty(_offset, sizeof(T));
@@ -350,13 +353,13 @@ public:
         Resource::Size elementOffset = index * _stride + _offset;
  #if _DEBUG
         if (!_buffer) {
-            qDebug() << "Accessing null gpu::buffer!";
+            qCDebug(gpulogging) << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - elementOffset)) {
-            qDebug() << "Accessing buffer in non allocated memory, index = " << index << ", element size = " << sizeof(T) << " available space in buffer at offset is = " << (_buffer->getSize() - elementOffset);
+            qCDebug(gpulogging) << "Accessing buffer in non allocated memory, index = " << index << ", element size = " << sizeof(T) << " available space in buffer at offset is = " << (_buffer->getSize() - elementOffset);
         }
         if (index > getNum<T>()) {
-            qDebug() << "Accessing buffer outside the BufferView range, index = " << index << " number elements = " << getNum<T>();
+            qCDebug(gpulogging) << "Accessing buffer outside the BufferView range, index = " << index << " number elements = " << getNum<T>();
         }
  #endif
         return *(reinterpret_cast<const T*> (_buffer->getData() + elementOffset));
@@ -366,13 +369,13 @@ public:
         Resource::Size elementOffset = index * _stride + _offset;
  #if _DEBUG
         if (!_buffer) {
-            qDebug() << "Accessing null gpu::buffer!";
+            qCDebug(gpulogging) << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - elementOffset)) {
-            qDebug() << "Accessing buffer in non allocated memory, index = " << index << ", element size = " << sizeof(T) << " available space in buffer at offset is = " << (_buffer->getSize() - elementOffset);
+            qCDebug(gpulogging) << "Accessing buffer in non allocated memory, index = " << index << ", element size = " << sizeof(T) << " available space in buffer at offset is = " << (_buffer->getSize() - elementOffset);
         }
         if (index > getNum<T>()) {
-            qDebug() << "Accessing buffer outside the BufferView range, index = " << index << " number elements = " << getNum<T>();
+            qCDebug(gpulogging) << "Accessing buffer outside the BufferView range, index = " << index << " number elements = " << getNum<T>();
         }
  #endif
         _buffer->markDirty(elementOffset, sizeof(T));
@@ -380,6 +383,26 @@ public:
     }
 };
  
+
+    template <class T> class StructBuffer : public gpu::BufferView {
+    public:
+
+        template <class U> static BufferPointer makeBuffer() {
+            U t;
+            return std::make_shared<gpu::Buffer>(sizeof(U), (const gpu::Byte*) &t, sizeof(U));
+        }
+        ~StructBuffer<T>() {};
+        StructBuffer<T>() : gpu::BufferView(makeBuffer<T>()) {}
+
+
+        T& edit() {
+            return BufferView::edit<T>(0);
+        }
+        const T& get() const {
+            return BufferView::get<T>(0);
+        }
+        const T* operator ->() const { return &get(); }
+    };
 };
 
 #endif

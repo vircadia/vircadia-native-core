@@ -99,7 +99,12 @@ public:
         SelectedAudioFormat,
         MoreEntityShapes,
         NodeKickRequest,
-        LAST_PACKET_TYPE = NodeKickRequest
+        NodeMuteRequest,
+        RadiusIgnoreRequest,
+        UsernameFromIDRequest,
+        UsernameFromIDReply,
+        ViewFrustum,
+        LAST_PACKET_TYPE = ViewFrustum
     };
 };
 
@@ -188,6 +193,7 @@ const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH = 61;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
 const PacketVersion VERSION_WEB_ENTITIES_SUPPORT_DPI = 63;
 const PacketVersion VERSION_ENTITIES_ARROW_ACTION = 64;
+const PacketVersion VERSION_ENTITIES_LAST_EDITED_BY = 65;
 
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19
@@ -199,13 +205,17 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarEntities,
     AbsoluteSixByteRotations,
     SensorToWorldMat,
-    HandControllerJoints
+    HandControllerJoints,
+    HasKillAvatarReason,
+    SessionDisplayName
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
     NoHostname = 17,
     HasHostname,
-    HasProtocolVersions
+    HasProtocolVersions,
+    HasMACAddress,
+    HasMachineFingerprint
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
@@ -221,7 +231,9 @@ enum class DomainServerAddedNodeVersion : PacketVersion {
 
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
-    PermissionsGrid
+    PermissionsGrid,
+    GetUsernameFromUUIDSupport,
+    GetMachineFingerprintFromUUIDSupport
 };
 
 enum class AudioVersion : PacketVersion {
@@ -229,6 +241,7 @@ enum class AudioVersion : PacketVersion {
     CodecNameInAudioPackets,
     Exactly10msAudioPackets,
     TerminatingStreamStats,
+    SpaceBubbleChanges,
 };
 
 #endif // hifi_PacketHeaders_h

@@ -75,6 +75,19 @@ namespace render {
     }
 }
 
+static uint64_t timeProcessingJoints = 0;
+static int32_t numJointsProcessed = 0;
+
+float Avatar::getNumJointsProcessedPerSecond() {
+    float rate = 0.0f;
+    if (timeProcessingJoints > 0) {
+        rate = (float)(numJointsProcessed * USECS_PER_SECOND) / (float)timeProcessingJoints;
+    }
+    timeProcessingJoints = 0;
+    numJointsProcessed = 0;
+    return rate;
+}
+
 Avatar::Avatar(RigPointer rig) :
     AvatarData(),
     _skeletonOffset(0.0f),
@@ -184,6 +197,7 @@ void Avatar::animateScaleChanges(float deltaTime) {
 }
 
 void Avatar::updateAvatarEntities() {
+    PerformanceTimer perfTimer("attachments");
     // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
     // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
     // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
@@ -261,13 +275,16 @@ void Avatar::updateAvatarEntities() {
         }
 
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-        _avatarEntitiesLock.withReadLock([&] {
-            foreach (auto entityID, recentlyDettachedAvatarEntities) {
-                if (!_avatarEntityData.contains(entityID)) {
-                    entityTree->deleteEntity(entityID, true, true);
+        if (!recentlyDettachedAvatarEntities.empty()) {
+            // only lock this thread when absolutely necessary
+            _avatarEntitiesLock.withReadLock([&] {
+                foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                    if (!_avatarEntityData.contains(entityID)) {
+                        entityTree->deleteEntity(entityID, true, true);
+                    }
                 }
-            }
-        });
+            });
+        }
     });
 
     if (success) {
@@ -285,30 +302,40 @@ void Avatar::simulate(float deltaTime) {
     }
     animateScaleChanges(deltaTime);
 
-    // update the shouldAnimate flag to match whether or not we will render the avatar.
-    const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
-    const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
-    ViewFrustum viewFrustum;
-    qApp->copyViewFrustum(viewFrustum);
-    float visibility = calculateRenderAccuracy(viewFrustum.getPosition(),
-            getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
-    if (!_shouldAnimate) {
-        if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
-            _shouldAnimate = true;
-            qCDebug(interfaceapp) << "Restoring" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
+    bool avatarInView = false;
+    { // update the shouldAnimate flag to match whether or not we will render the avatar.
+        PerformanceTimer perfTimer("cull");
+        {
+            // simple frustum check
+            PerformanceTimer perfTimer("inView");
+            ViewFrustum viewFrustum;
+            qApp->copyDisplayViewFrustum(viewFrustum);
+            avatarInView = viewFrustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())
+                || viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
         }
-    } else if (visibility < MAXIMUM_VISIBILITY_FOR_OFF) {
-        _shouldAnimate = false;
-        qCDebug(interfaceapp) << "Optimizing" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
+        PerformanceTimer lodPerfTimer("LOD");
+        if (avatarInView) {
+            const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
+            const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
+            ViewFrustum viewFrustum;
+            qApp->copyViewFrustum(viewFrustum);
+            float visibility = calculateRenderAccuracy(viewFrustum.getPosition(),
+                getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
+            if (!_shouldAnimate) {
+                if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
+                    _shouldAnimate = true;
+                    qCDebug(interfaceapp) << "Restoring" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
+                }
+            } else if (visibility < MAXIMUM_VISIBILITY_FOR_OFF) {
+                _shouldAnimate = false;
+                qCDebug(interfaceapp) << "Optimizing" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
+            }
+        }
     }
 
-    // simple frustum check
-    float boundingRadius = getBoundingRadius();
-    qApp->copyDisplayViewFrustum(viewFrustum);
-    bool avatarPositionInView = viewFrustum.sphereIntersectsFrustum(getPosition(), boundingRadius);
-    bool avatarMeshInView = viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
-
-    if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
+    uint64_t start = usecTimestampNow();
+    // CRUFT? _shouldSkipRender is never set 'true'
+    if (_shouldAnimate && avatarInView && !_shouldSkipRender) {
         {
             PerformanceTimer perfTimer("skeleton");
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
@@ -331,8 +358,11 @@ void Avatar::simulate(float deltaTime) {
     } else {
         // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
         getHead()->setPosition(getPosition());
+        PerformanceTimer perfTimer("skeleton");
         _skeletonModel->simulate(deltaTime, false);
     }
+    timeProcessingJoints += usecTimestampNow() - start;
+    numJointsProcessed += _jointData.size();
 
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {
@@ -379,6 +409,7 @@ void Avatar::applyPositionDelta(const glm::vec3& delta) {
 }
 
 void Avatar::measureMotionDerivatives(float deltaTime) {
+    PerformanceTimer perfTimer("derivatives");
     // linear
     float invDeltaTime = 1.0f / deltaTime;
     // Floating point error prevents us from computing velocity in a naive way
@@ -645,6 +676,7 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 // virtual
 void Avatar::simulateAttachments(float deltaTime) {
+    PerformanceTimer perfTimer("attachments");
     for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         auto& model = _attachmentModels.at(i);
@@ -695,7 +727,7 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
     glm::vec3 bodyUpDirection = getBodyUpDirection();
     DEBUG_VALUE("bodyUpDirection =", bodyUpDirection);
 
-    if (getSkeletonModel()->getNeckPosition(namePosition)) {
+    if (_skeletonModel->getNeckPosition(namePosition)) {
         float headHeight = getHeadHeight();
         DEBUG_VALUE("namePosition =", namePosition);
         DEBUG_VALUE("headHeight =", headHeight);
@@ -1039,6 +1071,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
+    PerformanceTimer perfTimer("unpack");
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1213,8 +1246,8 @@ glm::vec3 Avatar::getUncachedLeftPalmPosition() const {
         return leftPalmPosition;
     }
     // avatar didn't have a LeftHandMiddle1 joint, fall back on this:
-    getSkeletonModel()->getJointRotationInWorldFrame(getSkeletonModel()->getLeftHandJointIndex(), leftPalmRotation);
-    getSkeletonModel()->getLeftHandPosition(leftPalmPosition);
+    _skeletonModel->getJointRotationInWorldFrame(_skeletonModel->getLeftHandJointIndex(), leftPalmRotation);
+    _skeletonModel->getLeftHandPosition(leftPalmPosition);
     leftPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftPalmRotation);
     return leftPalmPosition;
 }
@@ -1222,7 +1255,7 @@ glm::vec3 Avatar::getUncachedLeftPalmPosition() const {
 glm::quat Avatar::getUncachedLeftPalmRotation() const {
     assert(QThread::currentThread() == thread());  // main thread access only
     glm::quat leftPalmRotation;
-    getSkeletonModel()->getJointRotationInWorldFrame(getSkeletonModel()->getLeftHandJointIndex(), leftPalmRotation);
+    _skeletonModel->getJointRotationInWorldFrame(_skeletonModel->getLeftHandJointIndex(), leftPalmRotation);
     return leftPalmRotation;
 }
 
@@ -1234,8 +1267,8 @@ glm::vec3 Avatar::getUncachedRightPalmPosition() const {
         return rightPalmPosition;
     }
     // avatar didn't have a RightHandMiddle1 joint, fall back on this:
-    getSkeletonModel()->getJointRotationInWorldFrame(getSkeletonModel()->getRightHandJointIndex(), rightPalmRotation);
-    getSkeletonModel()->getRightHandPosition(rightPalmPosition);
+    _skeletonModel->getJointRotationInWorldFrame(_skeletonModel->getRightHandJointIndex(), rightPalmRotation);
+    _skeletonModel->getRightHandPosition(rightPalmPosition);
     rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
     return rightPalmPosition;
 }
@@ -1243,7 +1276,7 @@ glm::vec3 Avatar::getUncachedRightPalmPosition() const {
 glm::quat Avatar::getUncachedRightPalmRotation() const {
     assert(QThread::currentThread() == thread());  // main thread access only
     glm::quat rightPalmRotation;
-    getSkeletonModel()->getJointRotationInWorldFrame(getSkeletonModel()->getRightHandJointIndex(), rightPalmRotation);
+    _skeletonModel->getJointRotationInWorldFrame(_skeletonModel->getRightHandJointIndex(), rightPalmRotation);
     return rightPalmRotation;
 }
 
@@ -1258,6 +1291,7 @@ void Avatar::setOrientation(const glm::quat& orientation) {
 }
 
 void Avatar::updatePalms() {
+    PerformanceTimer perfTimer("palms");
     // update thread-safe caches
     _leftPalmRotationCache.set(getUncachedLeftPalmRotation());
     _rightPalmRotationCache.set(getUncachedRightPalmRotation());

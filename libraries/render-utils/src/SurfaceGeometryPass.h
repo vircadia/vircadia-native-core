@@ -87,7 +87,7 @@ private:
     const gpu::PipelinePointer& getDownsamplePipeline();
     gpu::PipelinePointer _downsamplePipeline;
 
-    gpu::RangeTimer _gpuTimer;
+    gpu::RangeTimerPointer _gpuTimer;
 };
 
 
@@ -202,7 +202,7 @@ private:
     render::BlurGaussianDepthAware _diffusePass;
 
 
-    gpu::RangeTimer _gpuTimer;
+    gpu::RangeTimerPointer _gpuTimer;
 };
 
 #endif // hifi_SurfaceGeometryPass_h

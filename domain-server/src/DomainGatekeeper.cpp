@@ -109,18 +109,32 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         // set the sending sock addr and node interest set on this node
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         nodeData->setSendingSockAddr(message->getSenderSockAddr());
-        nodeData->setNodeInterestSet(nodeConnection.interestList.toSet());
+
+        // guard against patched agents asking to hear about other agents
+        auto safeInterestSet = nodeConnection.interestList.toSet();
+        if (nodeConnection.nodeType == NodeType::Agent) {
+            safeInterestSet.remove(NodeType::Agent);
+        }
+
+        nodeData->setNodeInterestSet(safeInterestSet);
         nodeData->setPlaceName(nodeConnection.placeName);
+
+        qDebug() << "Allowed connection from node" << uuidStringWithoutCurlyBraces(node->getUUID())
+            << "on" << message->getSenderSockAddr() << "with MAC" << nodeConnection.hardwareAddress
+            << "and machine fingerprint" << nodeConnection.machineFingerprint;
 
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
         emit connectedNode(node);
     } else {
-        qDebug() << "Refusing connection from node at" << message->getSenderSockAddr();
+        qDebug() << "Refusing connection from node at" << message->getSenderSockAddr()
+            << "with hardware address" << nodeConnection.hardwareAddress 
+            << "and machine fingerprint" << nodeConnection.machineFingerprint;
     }
 }
 
-NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress) {
+NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress, 
+                                                        const QString& hardwareAddress, const QUuid& machineFingerprint) {
     NodePermissions userPerms;
 
     userPerms.setAll(false);
@@ -137,8 +151,19 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #ifdef WANT_DEBUG
         qDebug() << "|  user-permissions: unverified or no username for" << userPerms.getID() << ", so:" << userPerms;
 #endif
+        if (!hardwareAddress.isEmpty() && _server->_settingsManager.hasPermissionsForMAC(hardwareAddress)) {
+            // this user comes from a MAC we have in our permissions table, apply those permissions
+            userPerms = _server->_settingsManager.getPermissionsForMAC(hardwareAddress);
 
-        if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
+#ifdef WANT_DEBUG
+            qDebug() << "|  user-permissions: specific MAC matches, so:" << userPerms;
+#endif
+        } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
+            userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
+#ifdef WANT_DEBUG
+            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+#endif
+        } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
             userPerms = _server->_settingsManager.getPermissionsForIP(senderAddress);
 
@@ -151,6 +176,13 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
             userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
 #ifdef WANT_DEBUG
             qDebug() << "|  user-permissions: specific user matches, so:" << userPerms;
+#endif
+        } else if (!hardwareAddress.isEmpty() && _server->_settingsManager.hasPermissionsForMAC(hardwareAddress)) {
+            // this user comes from a MAC we have in our permissions table, apply those permissions
+            userPerms = _server->_settingsManager.getPermissionsForMAC(hardwareAddress);
+
+#ifdef WANT_DEBUG
+            qDebug() << "|  user-permissions: specific MAC matches, so:" << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
@@ -248,7 +280,16 @@ void DomainGatekeeper::updateNodePermissions() {
             // or the public socket if we haven't activated a socket for the node yet
             HifiSockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
 
-            userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, connectingAddr.getAddress());
+            QString hardwareAddress;
+            QUuid machineFingerprint;
+
+            DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+            if (nodeData) {
+                hardwareAddress = nodeData->getHardwareAddress();
+                machineFingerprint = nodeData->getMachineFingerprint();
+            }
+
+            userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, connectingAddr.getAddress(), hardwareAddress, machineFingerprint);
         }
 
         node->setPermissions(userPerms);
@@ -301,6 +342,9 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
     nodeData->setWalletUUID(it->second.getWalletUUID());
     nodeData->setNodeVersion(it->second.getNodeVersion());
+    nodeData->setHardwareAddress(nodeConnection.hardwareAddress);
+    nodeData->setMachineFingerprint(nodeConnection.machineFingerprint);
+
     nodeData->setWasAssigned(true);
 
     // cleanup the PendingAssignedNodeData for this assignment now that it's connecting
@@ -362,7 +406,8 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         }
     }
 
-    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, nodeConnection.senderSockAddr.getAddress());
+    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, nodeConnection.senderSockAddr.getAddress(),
+                                      nodeConnection.hardwareAddress, nodeConnection.machineFingerprint);
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
@@ -417,6 +462,12 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     // if we have a username from the connect request, set it on the DomainServerNodeData
     nodeData->setUsername(username);
+
+    // set the hardware address passed in the connect request
+    nodeData->setHardwareAddress(nodeConnection.hardwareAddress);
+
+    // set the machine fingerprint passed in the connect request
+    nodeData->setMachineFingerprint(nodeConnection.machineFingerprint);
 
     // also add an interpolation to DomainServerNodeData so that servers can get username in stats
     nodeData->addOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,

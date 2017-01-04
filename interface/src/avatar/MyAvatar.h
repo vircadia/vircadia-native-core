@@ -333,7 +333,7 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    QByteArray toByteArray(bool cullSmallChanges, bool sendAll) override;
+    QByteArray toByteArray(AvatarDataDetail dataDetail) override;
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
@@ -374,6 +374,7 @@ private:
 
     void clampTargetScaleToDomainLimits();
     void clampScaleChangeToDomainLimits(float desiredScale);
+    glm::mat4 computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const;
 
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;

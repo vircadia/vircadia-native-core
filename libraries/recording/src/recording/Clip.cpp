@@ -9,6 +9,7 @@
 #include "Clip.h"
 
 #include "Frame.h"
+#include "Logging.h"
 
 #include "impl/FileClip.h"
 #include "impl/BufferClip.h"
@@ -64,7 +65,7 @@ bool writeFrame(QIODevice& output, const Frame& frame, bool compressed = true) {
     if (written != sizeof(FrameType)) {
         return false;
     }
-    //qDebug() << "Writing frame with time offset " << frame.timeOffset;
+    //qDebug(recordingLog) << "Writing frame with time offset " << frame.timeOffset;
     written = output.write((char*)&(frame.timeOffset), sizeof(Frame::Time));
     if (written != sizeof(Frame::Time)) {
         return false;

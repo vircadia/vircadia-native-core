@@ -12,13 +12,16 @@
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
     using Parent = OculusBaseDisplayPlugin;
 public:
+    OculusDisplayPlugin();
     ~OculusDisplayPlugin();
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     void init() override;
 
     QString getPreferredAudioInDevice() const override;
     QString getPreferredAudioOutDevice() const override;
+    
+    virtual QJsonObject getHardwareStats() const;
 
 protected:
     bool internalActivate() override;
@@ -29,9 +32,12 @@ protected:
     void cycleDebugOutput() override;
 
 private:
-    static const QString NAME;
+    static const char* NAME;
     ovrTextureSwapChain _textureSwapChain;
     gpu::FramebufferPointer _outputFramebuffer;
     bool _customized { false };
+
+    std::atomic_int _compositorDroppedFrames;
+    std::atomic_int _appDroppedFrames;
 };
 

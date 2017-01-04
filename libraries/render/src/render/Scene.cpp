@@ -11,7 +11,8 @@
 #include "Scene.h"
 
 #include <numeric>
-#include "gpu/Batch.h"
+#include <gpu/Batch.h>
+#include "Logging.h"
 
 using namespace render;
 
@@ -20,7 +21,7 @@ void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
         _resetItems.push_back(id);
         _resetPayloads.push_back(payload);
     } else {
-        qDebug() << "WARNING: PendingChanges::resetItem with a null payload!";
+        qCDebug(renderlogging) << "WARNING: PendingChanges::resetItem with a null payload!";
         removeItem(id);
     }
 }
@@ -34,7 +35,7 @@ void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) 
     _updateFunctors.push_back(functor);
 }
 
-void PendingChanges::merge(PendingChanges& changes) {
+void PendingChanges::merge(const PendingChanges& changes) {
     _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
     _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
@@ -49,7 +50,7 @@ Scene::Scene(glm::vec3 origin, float size) :
 }
 
 Scene::~Scene() {
-    qDebug() << "Scene::~Scene()";
+    qCDebug(renderlogging) << "Scene::~Scene()";
 }
 
 ItemID Scene::allocateID() {
@@ -70,20 +71,23 @@ void Scene::enqueuePendingChanges(const PendingChanges& pendingChanges) {
 
 void consolidateChangeQueue(PendingChangesQueue& queue, PendingChanges& singleBatch) {
     while (!queue.empty()) {
-        auto pendingChanges = queue.front();
+        const auto& pendingChanges = queue.front();
         singleBatch.merge(pendingChanges);
         queue.pop();
     };
 }
  
 void Scene::processPendingChangesQueue() {
-    PROFILE_RANGE(__FUNCTION__);
-    _changeQueueMutex.lock();
+    PROFILE_RANGE(render, __FUNCTION__);
     PendingChanges consolidatedPendingChanges;
-    consolidateChangeQueue(_changeQueue, consolidatedPendingChanges);
-    _changeQueueMutex.unlock();
+
+    {
+        std::unique_lock<std::mutex> lock(_changeQueueMutex);
+        consolidateChangeQueue(_changeQueue, consolidatedPendingChanges);
+    }
     
-    _itemsMutex.lock();
+    {
+        std::unique_lock<std::mutex> lock(_itemsMutex);
         // Here we should be able to check the value of last ItemID allocated 
         // and allocate new items accordingly
         ItemID maxID = _IDAllocator.load();
@@ -107,9 +111,7 @@ void Scene::processPendingChangesQueue() {
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
-
-     // ready to go back to rendering activities
-    _itemsMutex.unlock();
+    }
 }
 
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {

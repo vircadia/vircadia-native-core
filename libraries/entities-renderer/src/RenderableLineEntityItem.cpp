@@ -24,6 +24,13 @@ EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID
     return entity;
 }
 
+RenderableLineEntityItem::~RenderableLineEntityItem() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_lineVerticesID);
+    }
+}
+
 void RenderableLineEntityItem::updateGeometry() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {

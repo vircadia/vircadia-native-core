@@ -19,6 +19,8 @@
 
 #include <OctreeRenderer.h> // for RenderArgs
 
+#include "EntitiesLogging.h"
+
 class EntityItem;
 using EntityItemPointer = std::shared_ptr<EntityItem>;
 using EntityItemWeakPointer = std::weak_ptr<EntityItem>;
@@ -77,7 +79,7 @@ private:
 struct EntityRegistrationChecker {
     EntityRegistrationChecker(bool result, const char* debugMessage) {
         if (!result) {
-            qDebug() << debugMessage;
+            qCDebug(entities) << debugMessage;
         }
     }
 };

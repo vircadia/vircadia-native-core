@@ -24,6 +24,7 @@
 #include <QMimeData>
 #include <QDebug>
 
+#include "ui/Logging.h"
 
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
@@ -35,7 +36,7 @@ MainWindow::MainWindow(QWidget* parent) :
 }
 
 MainWindow::~MainWindow() {
-    qDebug() << "Destroying main window";
+    qCDebug(uiLogging) << "Destroying main window";
 }
 
 void MainWindow::restoreGeometry() {

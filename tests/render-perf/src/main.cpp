@@ -14,6 +14,8 @@
 #include <gl/Config.h>
 #include <gl/Context.h>
 
+#include <QProcessEnvironment>
+
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
@@ -22,7 +24,6 @@
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtCore/QThreadPool>
-
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QResizeEvent>
@@ -33,11 +34,11 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QApplication>
 
-
 #include <shared/RateCounter.h>
 #include <shared/NetworkUtils.h>
 #include <shared/FileLogger.h>
 #include <shared/FileUtils.h>
+#include <StatTracker.h>
 #include <LogHandler.h>
 #include <AssetClient.h>
 
@@ -46,6 +47,9 @@
 #include <gpu/gl/GLTexture.h>
 #include <gpu/StandardShaderLib.h>
 
+#include <SimpleEntitySimulation.h>
+#include <EntityActionInterface.h>
+#include <EntityActionFactoryInterface.h>
 #include <WebEntityItem.h>
 #include <OctreeUtils.h>
 #include <render/Engine.h>
@@ -56,8 +60,10 @@
 #include <model-networking/ModelCache.h>
 #include <GeometryCache.h>
 #include <DeferredLightingEffect.h>
+#include <render/RenderFetchCullSortTask.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
+#include <RenderForwardTask.h>
 #include <OctreeConstants.h>
 
 #include <EntityTreeRenderer.h>
@@ -67,6 +73,8 @@
 
 #include "Camera.hpp"
 
+Q_DECLARE_LOGGING_CATEGORY(renderperflogging)
+Q_LOGGING_CATEGORY(renderperflogging, "hifi.render_perf")
 
 static const QString LAST_SCENE_KEY = "lastSceneFile";
 static const QString LAST_LOCATION_KEY = "lastLocation";
@@ -104,13 +112,13 @@ public:
 class QWindowCamera : public Camera {
     Key forKey(int key) {
         switch (key) {
-        case Qt::Key_W: return FORWARD;
-        case Qt::Key_S: return BACK;
-        case Qt::Key_A: return LEFT;
-        case Qt::Key_D: return RIGHT;
-        case Qt::Key_E: return UP;
-        case Qt::Key_C: return DOWN;
-        default: break;
+            case Qt::Key_W: return FORWARD;
+            case Qt::Key_S: return BACK;
+            case Qt::Key_A: return LEFT;
+            case Qt::Key_D: return RIGHT;
+            case Qt::Key_E: return UP;
+            case Qt::Key_C: return DOWN;
+            default: break;
         }
         return INVALID;
     }
@@ -152,7 +160,7 @@ public:
 };
 
 static QString toHumanSize(size_t size, size_t maxUnit = std::numeric_limits<size_t>::max()) {
-    static const std::vector<QString> SUFFIXES{ { "B", "KB", "MB", "GB", "TB", "PB" } };
+    static const std::vector<QString> SUFFIXES { { "B", "KB", "MB", "GB", "TB", "PB" } };
     const size_t maxIndex = std::min(maxUnit, SUFFIXES.size() - 1);
     size_t suffixIndex = 0;
 
@@ -187,7 +195,7 @@ public:
     gpu::ContextPointer _gpuContext; // initialized during window creation
     std::atomic<size_t> _presentCount;
     QElapsedTimer _elapsed;
-    std::atomic<uint16_t> _fps{ 1 };
+    std::atomic<uint16_t> _fps { 1 };
     RateCounter<200> _fpsCounter;
     std::mutex _mutex;
     std::shared_ptr<gpu::Backend> _backend;
@@ -197,7 +205,7 @@ public:
     std::queue<gpu::FramePointer> _pendingFrames;
     gpu::FramePointer _activeFrame;
     QSize _size;
-    static const size_t FRAME_TIME_BUFFER_SIZE{ 8192 };
+    static const size_t FRAME_TIME_BUFFER_SIZE { 8192 };
 
     void submitFrame(const gpu::FramePointer& frame) {
         std::unique_lock<std::mutex> lock(_frameLock);
@@ -273,7 +281,7 @@ public:
             _gpuContext->executeFrame(frame);
 
             {
-                
+
                 auto geometryCache = DependencyManager::get<GeometryCache>();
                 gpu::Batch presentBatch;
                 presentBatch.setViewportTransform({ 0, 0, _size.width(), _size.height() });
@@ -290,7 +298,7 @@ public:
         _context.makeCurrent();
         _context.swapBuffers();
         _fpsCounter.increment();
-        static size_t _frameCount{ 0 };
+        static size_t _frameCount { 0 };
         ++_frameCount;
         if (_elapsed.elapsed() >= 500) {
             _fps = _fpsCounter.rate();
@@ -357,6 +365,21 @@ public:
     }
 };
 
+class TestActionFactory : public EntityActionFactoryInterface {
+public:
+    virtual EntityActionPointer factory(EntityActionType type,
+        const QUuid& id,
+        EntityItemPointer ownerEntity,
+        QVariantMap arguments) override {
+        return EntityActionPointer();
+    }
+
+
+    virtual EntityActionPointer factoryBA(EntityItemPointer ownerEntity, QByteArray data) override {
+        return nullptr;
+    }
+};
+
 // Background Render Data & rendering functions
 class BackgroundRenderData {
 public:
@@ -386,17 +409,17 @@ namespace render {
         auto backgroundMode = skyStage->getBackgroundMode();
 
         switch (backgroundMode) {
-        case model::SunSkyStage::SKY_BOX: {
-            auto skybox = skyStage->getSkybox();
-            if (skybox) {
-                PerformanceTimer perfTimer("skybox");
-                skybox->render(batch, args->getViewFrustum());
-                break;
+            case model::SunSkyStage::SKY_BOX: {
+                auto skybox = skyStage->getSkybox();
+                if (skybox) {
+                    PerformanceTimer perfTimer("skybox");
+                    skybox->render(batch, args->getViewFrustum());
+                    break;
+                }
             }
-        }
-        default:
-            // this line intentionally left blank
-            break;
+            default:
+                // this line intentionally left blank
+                break;
         }
     }
 }
@@ -452,8 +475,11 @@ protected:
 public:
     //"/-17.2049,-8.08629,-19.4153/0,0.881994,0,-0.47126"
     static void setup() {
+        DependencyManager::registerInheritance<EntityActionFactoryInterface, TestActionFactory>();
         DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
         DependencyManager::registerInheritance<SpatialParentFinder, ParentFinder>();
+        DependencyManager::set<tracing::Tracer>();
+        DependencyManager::set<StatTracker>();
         DependencyManager::set<AddressManager>();
         DependencyManager::set<NodeList>(NodeType::Agent);
         DependencyManager::set<DeferredLightingEffect>();
@@ -466,6 +492,7 @@ public:
         DependencyManager::set<ModelBlender>();
         DependencyManager::set<PathUtils>();
         DependencyManager::set<SceneScriptingInterface>();
+        DependencyManager::set<TestActionFactory>();
     }
 
     QTestWindow() {
@@ -478,7 +505,6 @@ public:
         _octree->init();
         // Prevent web entities from rendering
         REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
-        REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, LightEntityItem::factory);
 
         DependencyManager::set<ParentFinder>(_octree->getTree());
         getEntities()->setViewFrustum(_viewFrustum);
@@ -486,6 +512,13 @@ public:
         NodePermissions permissions;
         permissions.setAll(true);
         nodeList->setPermissions(permissions);
+
+        {
+            SimpleEntitySimulationPointer simpleSimulation { new SimpleEntitySimulation() };
+            simpleSimulation->setEntityTree(_octree->getTree());
+            _octree->getTree()->setSimulation(simpleSimulation);
+            _entitySimulation = simpleSimulation;
+        }
 
         ResourceManager::init();
 
@@ -506,7 +539,14 @@ public:
         _initContext.makeCurrent();
         // Render engine init
         _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", _cullFunctor);
-        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", _cullFunctor);
+        const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", _cullFunctor);
+        assert(items.canCast<RenderFetchCullSortTask::Output>());
+        static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
+        if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
+            _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", items.get<RenderFetchCullSortTask::Output>());
+        } else {
+            _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items.get<RenderFetchCullSortTask::Output>());
+        }
         _renderEngine->load();
         _renderEngine->registerScene(_main3DScene);
 
@@ -515,7 +555,7 @@ public:
         restorePosition();
 
         QTimer* timer = new QTimer(this);
-        timer->setInterval(0);
+        timer->setInterval(0); // Qt::CoarseTimer acceptable
         connect(timer, &QTimer::timeout, this, [this] {
             draw();
         });
@@ -562,49 +602,49 @@ protected:
 
     void keyPressEvent(QKeyEvent* event) override {
         switch (event->key()) {
-        case Qt::Key_F1:
-            importScene();
-            return;
+            case Qt::Key_F1:
+                importScene();
+                return;
 
-        case Qt::Key_F2:
-            reloadScene();
-            return;
+            case Qt::Key_F2:
+                reloadScene();
+                return;
 
-        case Qt::Key_F4:
-            cycleMode();
-            return;
+            case Qt::Key_F4:
+                cycleMode();
+                return;
 
-        case Qt::Key_F5:
-            goTo();
-            return;
+            case Qt::Key_F5:
+                goTo();
+                return;
 
-        case Qt::Key_F6:
-            savePosition();
-            return;
+            case Qt::Key_F6:
+                savePosition();
+                return;
 
-        case Qt::Key_F7:
-            restorePosition();
-            return;
+            case Qt::Key_F7:
+                restorePosition();
+                return;
 
-        case Qt::Key_F8:
-            resetPosition();
-            return;
+            case Qt::Key_F8:
+                resetPosition();
+                return;
 
-        case Qt::Key_F9:
-            toggleCulling();
-            return;
+            case Qt::Key_F9:
+                toggleCulling();
+                return;
 
-        case Qt::Key_Home:
-            gpu::Texture::setAllowedGPUMemoryUsage(0);
-            return;
+            case Qt::Key_Home:
+                gpu::Texture::setAllowedGPUMemoryUsage(0);
+                return;
 
-        case Qt::Key_End:
-            gpu::Texture::setAllowedGPUMemoryUsage(MB_TO_BYTES(64));
-            return;
+            case Qt::Key_End:
+                gpu::Texture::setAllowedGPUMemoryUsage(MB_TO_BYTES(64));
+                return;
 
 
-        default:
-            break;
+            default:
+                break;
         }
         _camera.onKeyPress(event);
     }
@@ -677,7 +717,7 @@ private:
 
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         framebufferCache->setFrameBufferSize(windowSize);
-        
+
         renderArgs._blitFramebuffer = framebufferCache->getFramebuffer();
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, windowSize.width(), windowSize.height());
@@ -757,34 +797,34 @@ private:
             if (commandParams.length() < 2) {
                 qDebug() << "No wait time specified";
                 return;
-            }
+                }
             int seconds = commandParams[1].toInt();
             _nextCommandTime = usecTimestampNow() + seconds * USECS_PER_SECOND;
-        } else if (verb == "load") {
-            if (commandParams.length() < 2) {
-                qDebug() << "No load file specified";
-                return;
-            }
-            QString file = commandParams[1];
-            if (QFileInfo(file).isRelative()) {
-                file = _commandPath + "/" + file;
-            }
-            if (!QFileInfo(file).exists()) {
-                qDebug() << "Cannot find scene file " + file;
-                return;
-            }
-
-            importScene(file);
-        } else if (verb == "go") {
-            if (commandParams.length() < 2) {
-                qDebug() << "No destination specified for go command";
-                return;
-            }
-            parsePath(commandParams[1]);
-        } else {
-            qDebug() << "Unknown command " << command;
+    } else if (verb == "load") {
+        if (commandParams.length() < 2) {
+            qDebug() << "No load file specified";
+            return;
         }
+        QString file = commandParams[1];
+        if (QFileInfo(file).isRelative()) {
+            file = _commandPath + "/" + file;
+        }
+        if (!QFileInfo(file).exists()) {
+            qDebug() << "Cannot find scene file " + file;
+            return;
+        }
+
+        importScene(file);
+    } else if (verb == "go") {
+        if (commandParams.length() < 2) {
+            qDebug() << "No destination specified for go command";
+            return;
+        }
+        parsePath(commandParams[1]);
+    } else {
+        qDebug() << "Unknown command " << command;
     }
+}
 
     void runNextCommand(quint64 now) {
         if (_commands.empty()) {
@@ -830,7 +870,6 @@ private:
         EntityUpdateOperator updateOperator(now);
         //getEntities()->getTree()->recurseTreeWithOperator(&updateOperator);
         {
-            PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
             for (auto& iter : _postUpdateLambdas) {
                 iter.second();
             }
@@ -873,7 +912,7 @@ private:
         gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
-        PROFILE_RANGE(__FUNCTION__);
+        PROFILE_RANGE(render, __FUNCTION__);
         PerformanceTimer perfTimer("draw");
         // The pending changes collecting the changes here
         render::PendingChanges pendingChanges;
@@ -894,14 +933,14 @@ private:
         }
         auto frame = gpuContext->endFrame();
         frame->framebuffer = renderArgs->_blitFramebuffer;
-        frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){ 
+        frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer) {
             DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
         };
         _renderThread.submitFrame(frame);
         if (!_renderThread.isThreaded()) {
             _renderThread.process();
         }
-        
+
 
     }
 
@@ -946,7 +985,7 @@ private:
                         orientationRegex.cap(3).toFloat(),
                         orientationRegex.cap(4).toFloat());
                     if (!glm::any(glm::isnan(v))) {
-                        _camera.setRotation(glm::normalize(glm::quat(v.w, v.x, v.y, v.z)));
+                        _camera.setRotation(glm::quat(v.w, v.x, v.y, v.z));
                     }
                 }
             }
@@ -1008,6 +1047,7 @@ private:
             arg(v.x).arg(v.y).arg(v.z).
             arg(q.x).arg(q.y).arg(q.z).arg(q.w);
         _settings.setValue(LAST_LOCATION_KEY, viewpoint);
+        _camera.setRotation(q);
     }
 
     void restorePosition() {
@@ -1019,7 +1059,7 @@ private:
     }
 
     void resetPosition() {
-        _camera.yawPitch = vec3(0);
+        _camera.setRotation(quat());
         _camera.setPosition(vec3());
     }
 
@@ -1046,7 +1086,7 @@ private:
     }
 
 private:
-    render::CullFunctor _cullFunctor { [&](const RenderArgs* args, const AABox& bounds)->bool{
+    render::CullFunctor _cullFunctor { [&](const RenderArgs* args, const AABox& bounds)->bool {
         if (_cullingEnabled) {
             return cull(args, bounds);
         } else {
@@ -1059,7 +1099,7 @@ private:
     QSize _size;
     QSettings _settings;
 
-    std::atomic<size_t> _renderCount;
+    std::atomic<size_t> _renderCount{ 0 };
     gl::OffscreenContext _initContext;
     RenderThread _renderThread;
     QWindowCamera _camera;
@@ -1068,6 +1108,7 @@ private:
     model::SunSkyStage _sunSkyStage;
     model::LightPointer _globalLight { std::make_shared<model::Light>() };
     bool _ready { false };
+    EntitySimulationPointer _entitySimulation;
 
     QStringList _commands;
     QString _commandPath;
@@ -1118,9 +1159,10 @@ int main(int argc, char** argv) {
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow::setup();
     QTestWindow window;
-    //window.loadCommands("C:/Users/bdavis/Git/dreaming/exports/commands.txt");
+    //window.loadCommands("C:/Users/bdavis/Git/dreaming/exports2/commands.txt");
     app.exec();
     return 0;
 }
 
 #include "main.moc"
+

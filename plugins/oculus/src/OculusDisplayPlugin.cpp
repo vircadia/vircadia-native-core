@@ -19,8 +19,15 @@
 
 #include "OculusHelpers.h"
 
-const QString OculusDisplayPlugin::NAME("Oculus Rift");
+const char* OculusDisplayPlugin::NAME { "Oculus Rift" };
 static ovrPerfHudMode currentDebugMode = ovrPerfHud_Off;
+
+
+OculusDisplayPlugin::OculusDisplayPlugin() {
+    _appDroppedFrames.store(0);
+    _compositorDroppedFrames.store(0);
+}
+
 
 bool OculusDisplayPlugin::internalActivate() {
     bool result = Parent::internalActivate();
@@ -110,7 +117,7 @@ void OculusDisplayPlugin::hmdPresent() {
         return;
     }
 
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
     int curIndex;
     ovr_GetTextureSwapChainCurrentIndex(_session, _textureSwapChain, &curIndex);
@@ -146,8 +153,30 @@ void OculusDisplayPlugin::hmdPresent() {
         if (!OVR_SUCCESS(result)) {
             logWarning("Failed to present");
         }
+
+        static int compositorDroppedFrames = 0;
+        static int appDroppedFrames = 0;
+        ovrPerfStats perfStats;
+        ovr_GetPerfStats(_session, &perfStats);
+        for (int i = 0; i < perfStats.FrameStatsCount; ++i) {
+            const auto& frameStats = perfStats.FrameStats[i];
+            int delta = frameStats.CompositorDroppedFrameCount - compositorDroppedFrames;
+            _stutterRate.increment(delta);
+            compositorDroppedFrames = frameStats.CompositorDroppedFrameCount;
+            appDroppedFrames = frameStats.AppDroppedFrameCount;
+        }
+        _appDroppedFrames.store(appDroppedFrames);
+        _compositorDroppedFrames.store(compositorDroppedFrames);
     }
     _presentRate.increment();
+}
+
+
+QJsonObject OculusDisplayPlugin::getHardwareStats() const {
+    QJsonObject hardwareStats;
+    hardwareStats["app_dropped_frame_count"] = _appDroppedFrames.load();
+    hardwareStats["compositor_dropped_frame_count"] = _compositorDroppedFrames.load();
+    return hardwareStats;
 }
 
 bool OculusDisplayPlugin::isHmdMounted() const {
@@ -173,5 +202,4 @@ QString OculusDisplayPlugin::getPreferredAudioOutDevice() const {
 }
 
 OculusDisplayPlugin::~OculusDisplayPlugin() {
-    qDebug() << "Destroying OculusDisplayPlugin";
 }

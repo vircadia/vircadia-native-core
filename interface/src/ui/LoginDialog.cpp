@@ -11,12 +11,14 @@
 
 #include "LoginDialog.h"
 
-#include <QDesktopServices>
-#include <QJsonDocument>
-#include <QNetworkReply>
+#include <QtGui/QDesktopServices>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
+#include <QtNetwork/QNetworkReply>
 
 #include <NetworkingConstants.h>
-#include <steamworks-wrapper/SteamClient.h>
+#include <plugins/PluginManager.h>
+#include <plugins/SteamClientPlugin.h>
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
@@ -47,7 +49,7 @@ void LoginDialog::toggleAction() {
         connection = connect(loginAction, &QAction::triggered, accountManager.data(), &AccountManager::logout);
     } else {
         // change the menu item to login
-        loginAction->setText("Login");
+        loginAction->setText("Login / Sign Up");
         connection = connect(loginAction, &QAction::triggered, [] {
             LoginDialog::show();
         });
@@ -55,7 +57,8 @@ void LoginDialog::toggleAction() {
 }
 
 bool LoginDialog::isSteamRunning() const {
-    return SteamClient::isRunning();
+    auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
+    return steamClient && steamClient->isRunning();
 }
 
 void LoginDialog::login(const QString& username, const QString& password) const {
@@ -65,69 +68,75 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 
 void LoginDialog::loginThroughSteam() {
     qDebug() << "Attempting to login through Steam";
-    SteamClient::requestTicket([this](Ticket ticket) {
-        if (ticket.isNull()) {
-            emit handleLoginFailed();
-            return;
-        }
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->requestTicket([this](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
 
-        DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
-    });
+            DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
+        });
+    }
 }
 
 void LoginDialog::linkSteam() {
     qDebug() << "Attempting to link Steam account";
-    SteamClient::requestTicket([this](Ticket ticket) {
-        if (ticket.isNull()) {
-            emit handleLoginFailed();
-            return;
-        }
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->requestTicket([this](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
 
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "linkCompleted";
-        callbackParams.errorCallbackReceiver = this;
-        callbackParams.errorCallbackMethod = "linkFailed";
+            JSONCallbackParameters callbackParams;
+            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.jsonCallbackMethod = "linkCompleted";
+            callbackParams.errorCallbackReceiver = this;
+            callbackParams.errorCallbackMethod = "linkFailed";
 
-        const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
+            const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
 
-        QJsonObject payload;
-        payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
+            QJsonObject payload;
+            payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
 
-        auto accountManager = DependencyManager::get<AccountManager>();
-        accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
-                                    QNetworkAccessManager::PostOperation, callbackParams,
-                                    QJsonDocument(payload).toJson());
-    });
+            auto accountManager = DependencyManager::get<AccountManager>();
+            accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
+                                        QNetworkAccessManager::PostOperation, callbackParams,
+                                        QJsonDocument(payload).toJson());
+        });
+    }
 }
 
 void LoginDialog::createAccountFromStream(QString username) {
     qDebug() << "Attempting to create account from Steam info";
-    SteamClient::requestTicket([this, username](Ticket ticket) {
-        if (ticket.isNull()) {
-            emit handleLoginFailed();
-            return;
-        }
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->requestTicket([this, username](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
 
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "createCompleted";
-        callbackParams.errorCallbackReceiver = this;
-        callbackParams.errorCallbackMethod = "createFailed";
+            JSONCallbackParameters callbackParams;
+            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.jsonCallbackMethod = "createCompleted";
+            callbackParams.errorCallbackReceiver = this;
+            callbackParams.errorCallbackMethod = "createFailed";
 
-        const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
+            const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
 
-        QJsonObject payload;
-        payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
-        if (!username.isEmpty()) {
-            payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
-        }
+            QJsonObject payload;
+            payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
+            if (!username.isEmpty()) {
+                payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
+            }
 
-        auto accountManager = DependencyManager::get<AccountManager>();
-        accountManager->sendRequest(CREATE_ACCOUNT_FROM_STEAM_PATH, AccountManagerAuth::None,
-                                    QNetworkAccessManager::PostOperation, callbackParams,
-                                    QJsonDocument(payload).toJson());
-    });
+            auto accountManager = DependencyManager::get<AccountManager>();
+            accountManager->sendRequest(CREATE_ACCOUNT_FROM_STEAM_PATH, AccountManagerAuth::None,
+                                        QNetworkAccessManager::PostOperation, callbackParams,
+                                        QJsonDocument(payload).toJson());
+        });
+    }
 
 }
 
@@ -151,5 +160,85 @@ void LoginDialog::createCompleted(QNetworkReply& reply) {
 
 void LoginDialog::createFailed(QNetworkReply& reply) {
     emit handleCreateFailed(reply.errorString());
+}
+
+void LoginDialog::signup(const QString& email, const QString& username, const QString& password) {
+    
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "signupCompleted";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "signupFailed";
+    
+    QJsonObject payload;
+    
+    QJsonObject userObject;
+    userObject.insert("email", email);
+    userObject.insert("username", username);
+    userObject.insert("password", password);
+    
+    payload.insert("user", userObject);
+    
+    static const QString API_SIGNUP_PATH = "api/v1/users";
+    
+    qDebug() << "Sending a request to create an account for" << username;
+    
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->sendRequest(API_SIGNUP_PATH, AccountManagerAuth::None,
+                                QNetworkAccessManager::PostOperation, callbackParams,
+                                QJsonDocument(payload).toJson());
+}
+
+void LoginDialog::signupCompleted(QNetworkReply& reply) {
+    emit handleSignupCompleted();
+}
+
+QString errorStringFromAPIObject(const QJsonValue& apiObject) {
+    if (apiObject.isArray()) {
+        return apiObject.toArray()[0].toString();
+    } else if (apiObject.isString()) {
+        return apiObject.toString();
+    } else {
+        return "is invalid";
+    }
+}
+
+void LoginDialog::signupFailed(QNetworkReply& reply) {
+    
+    // parse the returned JSON to see what the problem was
+    auto jsonResponse = QJsonDocument::fromJson(reply.readAll());
+    
+    static const QString RESPONSE_DATA_KEY = "data";
+    
+    auto dataJsonValue = jsonResponse.object()[RESPONSE_DATA_KEY];
+    
+    if (dataJsonValue.isObject()) {
+        auto dataObject = dataJsonValue.toObject();
+        
+        static const QString EMAIL_DATA_KEY = "email";
+        static const QString USERNAME_DATA_KEY = "username";
+        static const QString PASSWORD_DATA_KEY = "password";
+        
+        QStringList errorStringList;
+        
+        if (dataObject.contains(EMAIL_DATA_KEY)) {
+            errorStringList.append(QString("Email %1.").arg(errorStringFromAPIObject(dataObject[EMAIL_DATA_KEY])));
+        }
+        
+        if (dataObject.contains(USERNAME_DATA_KEY)) {
+            errorStringList.append(QString("Username %1.").arg(errorStringFromAPIObject(dataObject[USERNAME_DATA_KEY])));
+        }
+        
+        if (dataObject.contains(PASSWORD_DATA_KEY)) {
+            errorStringList.append(QString("Password %1.").arg(errorStringFromAPIObject(dataObject[PASSWORD_DATA_KEY])));
+        }
+        
+        emit handleSignupFailed(errorStringList.join('\n'));
+    } else {
+        static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE = "There was an unknown error while creating your account. Please try again later.";
+        emit handleSignupFailed(DEFAULT_SIGN_UP_FAILURE_MESSAGE);
+    }
+    
+    
 }
 

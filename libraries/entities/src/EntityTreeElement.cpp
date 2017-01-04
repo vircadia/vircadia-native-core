@@ -54,9 +54,9 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
 
     if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
-            = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
-        qCDebug(entities) << "    encode data:" << entityTreeElementExtraEncodeData;
+        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
+            = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
+        qCDebug(entities) << "    encode data:" << &(*entityTreeElementExtraEncodeData);
     } else {
         qCDebug(entities) << "    encode data: MISSING!!";
     }
@@ -68,7 +68,7 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     // Check to see if this element yet has encode data... if it doesn't create it
     if (!extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData = new EntityTreeElementExtraEncodeData();
+        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData { new EntityTreeElementExtraEncodeData() };
         entityTreeElementExtraEncodeData->elementCompleted = (_entityItems.size() == 0);
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             EntityTreeElementPointer child = getChildAtIndex(i);
@@ -96,8 +96,8 @@ bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamPa
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
 
     if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
-                        = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
+        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
+                        = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
 
         bool childCompleted = entityTreeElementExtraEncodeData->childCompleted[childIndex];
 
@@ -125,8 +125,8 @@ bool EntityTreeElement::alreadyFullyEncoded(EncodeBitstreamParams& params) const
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
 
     if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
-                        = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
+        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
+                        = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
 
         // If we know that ALL subtrees below us have already been recursed, then we don't
         // need to recurse this child.
@@ -139,8 +139,8 @@ void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppen
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
-                        = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
+        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
+                        = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
 
         if (childAppendState == OctreeElement::COMPLETED) {
             entityTreeElementExtraEncodeData->childCompleted[childIndex] = true;
@@ -164,8 +164,8 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     assert(extraEncodeData->contains(this));
 
-    EntityTreeElementExtraEncodeData* thisExtraEncodeData
-                = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
+    EntityTreeElementExtraEncodeDataPointer thisExtraEncodeData
+                = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
 
     // Note: this will be called when OUR element has finished running through encodeTreeBitstreamRecursion()
     // which means, it's possible that our parent element hasn't finished encoding OUR data... so
@@ -188,8 +188,8 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
             // If we've encoding this element before... but we're coming back a second time in an attempt to
             // encoud our parent... this might happen.
             if (extraEncodeData->contains(childElement.get())) {
-                EntityTreeElementExtraEncodeData* childExtraEncodeData
-                    = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[childElement.get()]);
+                EntityTreeElementExtraEncodeDataPointer childExtraEncodeData
+                    = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[childElement.get()]);
 
                 if (wantDebug) {
                     qCDebug(entities) << "checking child: " << childElement->_cube;
@@ -237,15 +237,15 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
-    EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData = NULL;
+    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData = NULL;
     bool hadElementExtraData = false;
     if (extraEncodeData && extraEncodeData->contains(this)) {
         entityTreeElementExtraEncodeData =
-            static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
+            std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
         hadElementExtraData = true;
     } else {
         // if there wasn't one already, then create one
-        entityTreeElementExtraEncodeData = new EntityTreeElementExtraEncodeData();
+        entityTreeElementExtraEncodeData.reset(new EntityTreeElementExtraEncodeData());
         entityTreeElementExtraEncodeData->elementCompleted = !hasContent();
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -268,7 +268,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
     //assert(extraEncodeData);
     //assert(extraEncodeData->contains(this));
-    //entityTreeElementExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
+    //entityTreeElementExtraEncodeData = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
 
     LevelDetails elementLevel = packetData->startLevel();
 
@@ -329,7 +329,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                             includeThisEntity = false; // too small, don't include it
 
                             #ifdef WANT_LOD_DEBUGGING
-                            qDebug() << "skipping entity - TOO SMALL - \n"
+                            qCDebug(entities) << "skipping entity - TOO SMALL - \n"
                                      << "......id:" << entity->getID() << "\n"
                                      << "....name:" << entity->getName() << "\n"
                                      << "..bounds:" << entityBounds << "\n"
@@ -341,7 +341,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
                 if (includeThisEntity) {
                     #ifdef WANT_LOD_DEBUGGING
-                    qDebug() << "including entity - \n"
+                    qCDebug(entities) << "including entity - \n"
                         << "......id:" << entity->getID() << "\n"
                         << "....name:" << entity->getName() << "\n"
                         << "....cell:" << getAACube();
@@ -472,7 +472,7 @@ bool EntityTreeElement::bestFitEntityBounds(EntityItemPointer entity) const {
     bool success;
     auto queryCube = entity->getQueryAACube(success);
     if (!success) {
-        qDebug() << "EntityTreeElement::bestFitEntityBounds couldn't get queryCube for" << entity->getName() << entity->getID();
+        qCDebug(entities) << "EntityTreeElement::bestFitEntityBounds couldn't get queryCube for" << entity->getName() << entity->getID();
         return false;
     }
     return bestFitBounds(queryCube);
@@ -623,7 +623,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         // and testing intersection there.
         if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance,
                                                 localFace, localSurfaceNormal)) {
-            if (localDistance < distance) {
+            if (entityFrameBox.contains(entityFrameOrigin) || localDistance < distance) {
                 // now ask the entity if we actually intersect
                 if (entity->supportsDetailedRayIntersection()) {
                     if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance,
@@ -973,7 +973,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             }
                         } else {
                             #ifdef WANT_DEBUG
-                                qDebug() << "Received packet for previously deleted entity [" <<
+                                qCDebug(entities) << "Received packet for previously deleted entity [" <<
                                         entityItem->getID() << "] ignoring. (inside " << __FUNCTION__ << ")";
                             #endif
                         }

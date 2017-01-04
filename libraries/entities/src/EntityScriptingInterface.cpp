@@ -35,6 +35,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
     connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
+    connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -61,6 +62,11 @@ bool EntityScriptingInterface::canRez() {
 bool EntityScriptingInterface::canRezTmp() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRezTmp();
+}
+
+bool EntityScriptingInterface::canWriteAssets() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanWriteAssets();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -183,7 +189,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 
     if (propertiesWithSimID.getParentID() == AVATAR_SELF_ID) {
-        qDebug() << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
+        qCDebug(entities) << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
         propertiesWithSimID.setParentID(QUuid());
     }
 
@@ -364,7 +370,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
             } else if (scriptSideProperties.getParentID() == AVATAR_SELF_ID) {
-                qDebug() << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
+                qCDebug(entities) << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
                 properties.setParentID(QUuid());
             }
             if (!scriptSideProperties.parentJointIndexChanged()) {
@@ -925,12 +931,12 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         EntitySimulationPointer simulation = _entityTree->getSimulation();
         entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {
-            qDebug() << "actionWorker -- unknown entity" << entityID;
+            qCDebug(entities) << "actionWorker -- unknown entity" << entityID;
             return;
         }
 
         if (!simulation) {
-            qDebug() << "actionWorker -- no simulation" << entityID;
+            qCDebug(entities) << "actionWorker -- no simulation" << entityID;
             return;
         }
 
@@ -1045,7 +1051,7 @@ EntityItemPointer EntityScriptingInterface::checkForTreeEntityAndTypeMatch(const
     
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
-        qDebug() << "EntityScriptingInterface::checkForTreeEntityAndTypeMatch - no entity with ID" << entityID;
+        qCDebug(entities) << "EntityScriptingInterface::checkForTreeEntityAndTypeMatch - no entity with ID" << entityID;
         return entity;
     }
     
@@ -1305,7 +1311,7 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
 
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
     if (!entity) {
-        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        qCDebug(entities) << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
         return result;
     }
 
@@ -1316,6 +1322,26 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
     });
 
     return result;
+}
+
+bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
+    bool isChild = false;
+
+    if (!_entityTree) {
+        return isChild;
+    }
+
+    _entityTree->withReadLock([&] {
+        EntityItemPointer parent = _entityTree->findEntityByEntityItemID(parentID);
+        parent->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+            if(descendant->getID() == childID) {
+                isChild = true;
+                return; 
+            }
+        });
+    });
+    
+    return isChild;
 }
 
 QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex) {

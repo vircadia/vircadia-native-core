@@ -12,7 +12,6 @@
 #include <QCommandLineParser>
 #include <QThread>
 
-#include <BuildInfo.h>
 #include <LogHandler.h>
 #include <SharedUtil.h>
 #include <HifiConfigVariantMap.h>
@@ -39,11 +38,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 #   else
     ShutdownEventListener::getInstance();
 #   endif
-
-    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    setOrganizationDomain("highfidelity.io");
-    setApplicationName("assignment-client");
-    setApplicationVersion(BuildInfo::VERSION);
 
     // parse command-line
     QCommandLineParser parser;

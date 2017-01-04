@@ -55,22 +55,20 @@ ScrollingWindow {
 
         Component.onCompleted: {
             var categories = Preferences.categories;
-            var categoryMap;
             var i;
-            if (showCategories && showCategories.length) {
-                categoryMap = {};
-                for (i = 0; i < showCategories.length; ++i) {
-                    categoryMap[showCategories[i]] = true;
-                }
+
+            // build a map of valid categories.
+            var categoryMap = {};
+            for (i = 0; i < categories.length; i++) {
+                categoryMap[categories[i]] = true;
             }
 
-            for (i = 0; i < categories.length; ++i) {
-                var category = categories[i];
-                if (categoryMap && !categoryMap[category]) {
-                    continue;
+            // create a section for each valid category in showCategories
+            // NOTE: the sort order of items in the showCategories array is the same order in the dialog.
+            for (i = 0; i < showCategories.length; i++) {
+                if (categoryMap[showCategories[i]]) {
+                    sections.push(sectionBuilder.createObject(prefControls, {name: showCategories[i]}));
                 }
-
-                sections.push(sectionBuilder.createObject(prefControls, { name: category }));
             }
 
             if (sections.length) {

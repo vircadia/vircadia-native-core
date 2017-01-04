@@ -20,6 +20,26 @@
 
 #include "../NumericalConstants.h"
 #include "../SharedUtil.h"
+#include "../SharedLogging.h"
+
+class FilePersistThread : public GenericQueueThread < QString > {
+    Q_OBJECT
+public:
+    FilePersistThread(const FileLogger& logger);
+
+signals:
+    void rollingLogFile(QString newFilename);
+
+protected:
+    void rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled = true);
+    virtual bool processQueueItems(const Queue& messages) override;
+
+private:
+    const FileLogger& _logger;
+    QMutex _fileMutex;
+    uint64_t _lastRollTime;
+};
+
 
 
 static const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
@@ -69,7 +89,7 @@ void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfR
         if (file.copy(newFileName)) {
             file.open(QIODevice::WriteOnly | QIODevice::Truncate);
             file.close();
-            qDebug() << "Rolled log file:" << newFileName;
+            qCDebug(shared) << "Rolled log file:" << newFileName;
 
             if (notifyListenersIfRolled) {
                 emit rollingLogFile(newFileName);
@@ -97,6 +117,7 @@ void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfR
 }
 
 bool FilePersistThread::processQueueItems(const Queue& messages) {
+    QMutexLocker lock(&_fileMutex);
     QFile file(_logger._fileName);
     rollFileIfNecessary(file);
     if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
@@ -140,5 +161,7 @@ QString FileLogger::getLogData() {
 }
 
 void FileLogger::sync() {
-    _persistThreadInstance->waitIdle();
+    _persistThreadInstance->process();
 }
+
+#include "FileLogger.moc"

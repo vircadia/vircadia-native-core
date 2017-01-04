@@ -70,6 +70,10 @@ Item {
                         text: "Present Drop Rate: " + root.presentdroprate.toFixed(2);
                     }
                     StatText {
+                        text: "Stutter Rate: " + root.stutterrate.toFixed(3);
+                        visible: root.stutterrate != -1;
+                    }
+                    StatText {
                         text: "Simrate: " + root.simrate
                     }
                     StatText {
@@ -150,7 +154,8 @@ Item {
                     StatText {
                         visible: root.expanded;
                         text: "Avatar Mixer Out: " + root.avatarMixerOutKbps + " kbps, " +
-                            root.avatarMixerOutPps + "pps";
+                            root.avatarMixerOutPps + "pps, " +
+                            root.myAvatarSendRate.toFixed(2) + "hz";
                     }
                     StatText {
                         visible: root.expanded;
@@ -241,7 +246,7 @@ Item {
                         text: "GPU Buffers: "
                     }
                     StatText {
-                        text: "  Count: " + root.gpuTextures;
+                        text: "  Count: " + root.gpuBuffers;
                     }
                     StatText {
                         text: "  Memory: " + root.gpuBufferMemory;

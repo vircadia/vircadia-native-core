@@ -48,49 +48,19 @@ using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
-RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
-    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
-
+RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
 
-    // CPU jobs:
-    // Fetch and cull the items from the scene
-    auto spatialFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
-    const auto spatialSelection = addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
-    const auto culledSpatialSelection = addJob<CullSpatialSelection>("CullSceneSelection", spatialSelection, cullFunctor, RenderDetails::ITEM, spatialFilter);
-
-    // Overlays are not culled
-    const auto nonspatialSelection = addJob<FetchNonspatialItems>("FetchOverlaySelection");
-
-    // Multi filter visible items into different buckets
-    const int NUM_FILTERS = 3;
-    const int OPAQUE_SHAPE_BUCKET = 0;
-    const int TRANSPARENT_SHAPE_BUCKET = 1;
-    const int LIGHT_BUCKET = 2;
-    const int BACKGROUND_BUCKET = 2;
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray spatialFilters = { {
-            ItemFilter::Builder::opaqueShape(),
-            ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::light()
-    } };
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray nonspatialFilters = { {
-            ItemFilter::Builder::opaqueShape(),
-            ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::background()
-    } };
-    const auto filteredSpatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-    const auto filteredNonspatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-
-    // Extract / Sort opaques / Transparents / Lights / Overlays
-    const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredSpatialBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", filteredSpatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto lights = filteredSpatialBuckets[LIGHT_BUCKET];
-
-    const auto overlayOpaques = addJob<DepthSortItems>("DepthSortOverlayOpaque", filteredNonspatialBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
+    // Extract opaques / transparents / lights / overlays
+    const auto opaques = items[0];
+    const auto transparents = items[1];
+    const auto lights = items[2];
+    const auto overlayOpaques = items[3];
+    const auto overlayTransparents = items[4];
+    const auto background = items[5];
+    const auto spatialSelection = items[6];
 
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -101,7 +71,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
    // const auto fullFrameRangeTimer = addJob<BeginGPURangeTimer>("BeginRangeTimer");
-    const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer");
+    const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
     const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).hasVarying();
     const auto prepareDeferredOutputs = addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
@@ -142,24 +112,38 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
     const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
 
+    
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
-    const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-		surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
-	
+    // Light Clustering
+    // Create the cluster grid of lights, cpu job for now
+    const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget).hasVarying();
+    const auto lightClusters = addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
+    
+    
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
+    const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
+        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters).hasVarying();
+    
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
     // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
     const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
-
+   
+    
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
     addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
-    const auto toneAndPostRangeTimer = addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer");
+    // LIght Cluster Grid Debuging job
+    {
+        const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).hasVarying();
+        addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
+    }
+    
+    const auto toneAndPostRangeTimer = addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
@@ -174,17 +158,19 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
-		// Debugging Deferred buffer job
-		const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
-		addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+        // Debugging Deferred buffer job
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
+        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
-        addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
+        const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
+            surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
+        addJob<DebugSubsurfaceScattering>("DebugScattering", debugSubsurfaceScatteringInputs);
 
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
         addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
 
 
-        // Scene Octree Debuging job
+        // Scene Octree Debugging job
         {
             addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
             addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
@@ -210,26 +196,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
  //   addJob<EndGPURangeTimer>("RangeTimer", fullFrameRangeTimer);
 
-}
-
-void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    // sanity checks
-    assert(sceneContext);
-    if (!sceneContext->_scene) {
-        return;
-    }
-
-
-    // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->args && renderContext->args->hasViewFrustum())) {
-        return;
-    }
-
-    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
 }
 
 void BeginGPURangeTimer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
@@ -390,7 +356,7 @@ gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
 
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
         state->setColorWriteMask(0);
 
         _opaquePipeline = gpu::Pipeline::create(program, state);

@@ -30,6 +30,7 @@
 #include <QtNetwork/QUdpSocket>
 
 #include <DependencyManager.h>
+#include <SettingHandle.h>
 
 #include "DomainHandler.h"
 #include "LimitedNodeList.h"
@@ -70,10 +71,17 @@ public:
     
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
+    void ignoreNodesInRadius(bool enabled = true);
+    bool getIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled.get(); }
+    void toggleIgnoreRadius() { ignoreNodesInRadius(!getIgnoreRadiusEnabled()); }
+    void enableIgnoreRadius() { ignoreNodesInRadius(true); }
+    void disableIgnoreRadius() { ignoreNodesInRadius(false); }
     void ignoreNodeBySessionID(const QUuid& nodeID);
     bool isIgnoringNode(const QUuid& nodeID) const;
 
     void kickNodeBySessionID(const QUuid& nodeID);
+    void muteNodeBySessionID(const QUuid& nodeID);
+    void requestUsernameFromSessionID(const QUuid& nodeID);
 
 public slots:
     void reset();
@@ -92,6 +100,8 @@ public slots:
 
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
+    void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
+
 #if (PR_BUILD || DEV_BUILD)
     void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
 #endif
@@ -100,7 +110,9 @@ signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
     void ignoredNode(const QUuid& nodeID);
-    
+    void ignoreRadiusEnabledChanged(bool isIgnored);
+    void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
+
 private slots:
     void stopKeepalivePingTimer();
     void sendPendingDSPathQuery();
@@ -144,6 +156,9 @@ private:
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
+
+    void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
+    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };
 
 #if (PR_BUILD || DEV_BUILD)
     bool _shouldSendNewerVersion { false };

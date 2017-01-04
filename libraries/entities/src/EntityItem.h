@@ -48,6 +48,7 @@ class btCollisionShape;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
+using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
 
 
 namespace render {
@@ -90,7 +91,15 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
 
     /// returns true if something changed
+    // This function calls setSubClass properties and detects if any property changes value.
+    // If something changed then the "somethingChangedNotification" calls happens
     virtual bool setProperties(const EntityItemProperties& properties);
+
+    // Set properties for sub class so they can add their own properties
+    // it does nothing in the root class
+    // This function is called by setProperties which then can detects if any property changes value in the SubClass (see aboe comment on setProperties)
+    virtual bool setSubClassProperties(const EntityItemProperties& properties) { return false; }
+
     // Update properties with empty parent id and globalized/absolute values (applying offset), and apply (non-empty) log template to args id, name-or-type, parent id.
     void globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate = QString(), const glm::vec3& offset = glm::vec3(0.0f)) const;
 
@@ -120,10 +129,10 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const;
+                                                        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData) const;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -447,7 +456,13 @@ public:
     virtual void setProxyWindow(QWindow* proxyWindow) {}
     virtual QObject* getEventHandler() { return nullptr; }
 
+    bool isFading() const { return _isFading; }
+    float getFadingRatio() const { return (isFading() ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f); }
+
     virtual void emitScriptEvent(const QVariant& message) {}
+
+    QUuid getLastEditedBy() const { return _lastEditedBy; }
+    void setLastEditedBy(QUuid value) { _lastEditedBy = value; }
 
 protected:
 
@@ -464,6 +479,7 @@ protected:
                             // and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
     quint64 _lastEdited; // last official local or remote edit time
+    QUuid _lastEditedBy; // id of last editor
     quint64 _lastBroadcast; // the last time we sent an edit packet about this entity
 
     quint64 _lastEditedFromRemote; // last time we received and edit from the server

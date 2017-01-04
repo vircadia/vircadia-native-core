@@ -67,14 +67,14 @@ void StagePropertyGroup::merge(const StagePropertyGroup& other) {
 
 
 void StagePropertyGroup::debugDump() const {
-    qDebug() << "   StagePropertyGroup: ---------------------------------------------";
-    qDebug() << "     _sunModelEnabled:" << _sunModelEnabled;
-    qDebug() << "            _latitude:" << _latitude;
-    qDebug() << "           _longitude:" << _longitude;
-    qDebug() << "            _altitude:" << _altitude;
-    qDebug() << "                 _day:" << _day;
-    qDebug() << "                _hour:" << _hour;
-    qDebug() << "    _automaticHourDay:" << _automaticHourDay;
+    qCDebug(entities) << "   StagePropertyGroup: ---------------------------------------------";
+    qCDebug(entities) << "     _sunModelEnabled:" << _sunModelEnabled;
+    qCDebug(entities) << "            _latitude:" << _latitude;
+    qCDebug(entities) << "           _longitude:" << _longitude;
+    qCDebug(entities) << "            _altitude:" << _altitude;
+    qCDebug(entities) << "                 _day:" << _day;
+    qCDebug(entities) << "                _hour:" << _hour;
+    qCDebug(entities) << "    _automaticHourDay:" << _automaticHourDay;
 }
 
 void StagePropertyGroup::listChangedProperties(QList<QString>& out) {
@@ -211,7 +211,7 @@ EntityPropertyFlags StagePropertyGroup::getEntityProperties(EncodeBitstreamParam
 }
     
 void StagePropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
+                                EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                 EntityPropertyFlags& requestedProperties,
                                 EntityPropertyFlags& propertyFlags,
                                 EntityPropertyFlags& propertiesDidntFit,

@@ -26,7 +26,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
     << PacketType::OctreeDataNack << PacketType::EntityEditNack
     << PacketType::DomainListRequest << PacketType::StopNode
-    << PacketType::DomainDisconnectRequest << PacketType::NodeKickRequest;
+    << PacketType::DomainDisconnectRequest << PacketType::UsernameFromIDRequest
+    << PacketType::NodeKickRequest << PacketType::NodeMuteRequest;
 
 const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment
@@ -38,21 +39,21 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
     << PacketType::ICEServerHeartbeatACK << PacketType::ICEPing << PacketType::ICEPingReply
     << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
-    << PacketType::DomainServerRemovedNode;
+    << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply;
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::PermissionsGrid);
+            return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_ARROW_ACTION;
+            return VERSION_ENTITIES_LAST_EDITED_BY;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerJoints);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SessionDisplayName);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:
@@ -66,7 +67,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
-            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions);
+            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasMachineFingerprint);
 
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
@@ -77,7 +78,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
-            return static_cast<PacketVersion>(AudioVersion::TerminatingStreamStats);
+            return static_cast<PacketVersion>(AudioVersion::SpaceBubbleChanges);
 
         default:
             return 17;

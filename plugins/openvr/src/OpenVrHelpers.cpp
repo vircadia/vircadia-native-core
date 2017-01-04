@@ -60,6 +60,12 @@ bool isOculusPresent() {
     return result;
 }
 
+bool oculusViaOpenVR() {
+    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+    static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+    return enableDebugOpenVR && isOculusPresent() && vr::VR_IsHmdPresent();
+}
+
 bool openVrSupported() {
     static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
     static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
@@ -357,14 +363,14 @@ void showMinSpecWarning() {
     vrOverlay->ShowOverlay(minSpecFailedOverlay);
 
     QTimer* timer = new QTimer(&miniApp);
-    timer->setInterval(FAILED_MIN_SPEC_UPDATE_INTERVAL_MS);
+    timer->setInterval(FAILED_MIN_SPEC_UPDATE_INTERVAL_MS); // Qt::CoarseTimer acceptable, we don't need this to be frame rate accurate
     QObject::connect(timer, &QTimer::timeout, [&] {
         vr::TrackedDevicePose_t vrPoses[vr::k_unMaxTrackedDeviceCount];
         vrSystem->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseSeated, 0, vrPoses, vr::k_unMaxTrackedDeviceCount);
         auto headPose = toGlm(vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
         auto overlayPose = toOpenVr(headPose * glm::translate(glm::mat4(), vec3(0, 0, -1)));
         vrOverlay->SetOverlayTransformAbsolute(minSpecFailedOverlay, vr::TrackingUniverseSeated, &overlayPose);
-        
+
         vr::VREvent_t event;
         while (vrSystem->PollNextEvent(&event, sizeof(event))) {
             switch (event.eventType) {
@@ -399,7 +405,7 @@ bool checkMinSpecImpl() {
         return true;
     }
 
-    // If we have at least 5 cores, pass
+    // If we have at least MIN_CORES_SPEC cores, pass
     auto coreCount = QThread::idealThreadCount();
     if (coreCount >= MIN_CORES_SPEC) {
         return true;

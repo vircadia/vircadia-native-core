@@ -7,6 +7,9 @@
 //
 #pragma once
 
+
+#include <QtCore/QLoggingCategory>
+
 #include <OVR_CAPI_GL.h>
 #include <GLMHelpers.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -14,11 +17,18 @@
 
 #include <controllers/Forward.h>
 
+Q_DECLARE_LOGGING_CATEGORY(displayplugins)
+Q_DECLARE_LOGGING_CATEGORY(oculus)
+
 void logWarning(const char* what);
 void logCritical(const char* what);
 bool oculusAvailable();
 ovrSession acquireOculusSession();
 void releaseOculusSession();
+
+void handleOVREvents();
+bool quitRequested();
+bool reorientRequested();
 
 // Convenience method for looping over each eye with a lambda
 template <typename Function>

@@ -27,6 +27,7 @@
 #include "Model.h"
 
 #include "RenderUtilsLogging.h"
+#include <Trace.h>
 
 using namespace std;
 
@@ -233,17 +234,19 @@ void Model::updateRenderItems() {
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
-                if (!data.hasStartedFade() && data._model && data._model->isLoaded() && data._model->getGeometry()->areTexturesLoaded()) {
-                    data.startFade();
-                }
-                // Ensure the model geometry was not reset between frames
-                if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
-                    // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                    data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
+                if (data._model && data._model->isLoaded()) {
+                    if (!data.hasStartedFade() && data._model->getGeometry()->areTexturesLoaded()) {
+                        data.startFade();
+                    }
+                    // Ensure the model geometry was not reset between frames
+                    if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
+                        // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+                        data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
 
-                    // update the model transform and bounding box for this render item.
-                    const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                    data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                        // update the model transform and bounding box for this render item.
+                        const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+                        data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                    }
                 }
             });
         }
@@ -280,7 +283,8 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(render, __FUNCTION__);
+    PerformanceTimer perfTimer("Model::updateGeometry");
     bool needFullUpdate = false;
 
     if (!isLoaded()) {
@@ -474,7 +478,7 @@ bool Model::convexHullContains(glm::vec3 point) {
 // entity-scripts to call.  I think it would be best to do the picking once-per-frame (in cpu, or gpu if possible)
 // and then the calls use the most recent such result.
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(render, __FUNCTION__);
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
@@ -612,6 +616,22 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
             pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
         }
         foreach (auto item, _collisionRenderItems.keys()) {
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+    }
+}
+
+
+void Model::setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene) {
+    if (_isLayeredInFront != layered) {
+        _isLayeredInFront = layered;
+
+        render::PendingChanges pendingChanges;
+        foreach(auto item, _modelMeshRenderItems.keys()) {
+            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
+        }
+        foreach(auto item, _collisionRenderItems.keys()) {
             pendingChanges.resetItem(item, _collisionRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
@@ -848,6 +868,12 @@ void Model::setTextures(const QVariantMap& textures) {
         _needsUpdateTextures = true;
         _needsFixupInScene = true;
         _renderGeometry->setTextures(textures);
+    } else {
+        // FIXME(Huffman): Disconnect previously connected lambdas so we don't set textures multiple
+        // after the geometry has finished loading.
+        connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, [this, textures]() {
+            _renderGeometry->setTextures(textures);
+        });
     }
 }
 
@@ -967,7 +993,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 void Blender::run() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     QVector<glm::vec3> vertices, normals;
     if (_model) {
         int offset = 0;
@@ -1088,7 +1114,8 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(simulation, __FUNCTION__);
+    PerformanceTimer perfTimer("Model::simulate");
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
@@ -1133,7 +1160,8 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     }
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
-    glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+    static const glm::mat4 zeroScale(
+        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -1143,11 +1171,17 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
-
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+#if GLM_ARCH & GLM_ARCH_SSE2
+            glm::mat4 temp, out, inverseBindMatrix = cluster.inverseBindMatrix;
+            glm_mat4_mul((glm_vec4*)&modelToWorld, (glm_vec4*)&jointMatrix, (glm_vec4*)&temp);
+            glm_mat4_mul((glm_vec4*)&temp, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
+            state.clusterMatrices[j] = out;
+#else 
             state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+#endif
 
             // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
             if (!_cauterizeBoneSet.empty()) {
@@ -1284,7 +1318,7 @@ void Model::createVisibleRenderItemSet() {
 
     // all of our mesh vectors must match in size
     if ((int)meshes.size() != _meshStates.size()) {
-        qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
+        qCDebug(renderlogging) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
 

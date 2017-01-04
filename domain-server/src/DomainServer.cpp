@@ -43,6 +43,8 @@
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
+#include <Trace.h>
+#include <StatTracker.h>
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -73,17 +75,13 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 {
     parseCommandLine();
 
+    DependencyManager::set<tracing::Tracer>();
+    DependencyManager::set<StatTracker>();
+
     LogUtils::init();
     Setting::init();
 
-    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    setOrganizationDomain("highfidelity.io");
-    setApplicationName("domain-server");
-    setApplicationVersion(BuildInfo::VERSION);
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-
     qDebug() << "Setting up domain-server";
-
     qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qDebug() << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;
@@ -158,6 +156,42 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 
     qDebug() << "domain-server is running";
+    static const QString AC_SUBNET_WHITELIST_SETTING_PATH = "security.ac_subnet_whitelist";
+
+    static const Subnet LOCALHOST { QHostAddress("127.0.0.1"), 32 };
+    _acSubnetWhitelist = { LOCALHOST };
+
+    auto whitelist = _settingsManager.valueOrDefaultValueForKeyPath(AC_SUBNET_WHITELIST_SETTING_PATH).toStringList();
+    for (auto& subnet : whitelist) {
+        auto netmaskParts = subnet.trimmed().split("/");
+
+        if (netmaskParts.size() > 2) {
+            qDebug() << "Ignoring subnet in whitelist, malformed: " << subnet;
+            continue;
+        }
+
+        // The default netmask is 32 if one has not been specified, which will
+        // match only the ip provided.
+        int netmask = 32;
+
+        if (netmaskParts.size() == 2) {
+            bool ok;
+            netmask = netmaskParts[1].toInt(&ok);
+            if (!ok) {
+                qDebug() << "Ignoring subnet in whitelist, bad netmask: " << subnet;
+                continue;
+            }
+        }
+
+        auto ip = QHostAddress(netmaskParts[0]);
+
+        if (!ip.isNull()) {
+            qDebug() << "Adding AC whitelist subnet: " << subnet << " -> " << (ip.toString() + "/" + QString::number(netmask));
+            _acSubnetWhitelist.push_back({ ip , netmask });
+        } else {
+            qDebug() << "Ignoring subnet in whitelist, invalid ip portion: " << subnet;
+        }
+    }
 }
 
 void DomainServer::parseCommandLine() {
@@ -498,6 +532,7 @@ void DomainServer::setupNodeListAndAssignments() {
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
     packetReceiver.registerListener(PacketType::NodeKickRequest, &_settingsManager, "processNodeKickRequestPacket");
+    packetReceiver.registerListener(PacketType::UsernameFromIDRequest, &_settingsManager, "processUsernameFromIDRequestPacket");
     
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
@@ -807,7 +842,14 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     
     // update the NodeInterestSet in case there have been any changes
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
-    nodeData->setNodeInterestSet(nodeRequestData.interestList.toSet());
+
+    // guard against patched agents asking to hear about other agents
+    auto safeInterestSet = nodeRequestData.interestList.toSet();
+    if (sendingNode->getType() == NodeType::Agent) {
+        safeInterestSet.remove(NodeType::Agent);
+    }
+
+    nodeData->setNodeInterestSet(safeInterestSet);
 
     // update the connecting hostname in case it has changed
     nodeData->setPlaceName(nodeRequestData.placeName);
@@ -914,7 +956,8 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
             limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
-                if (otherNode->getUUID() != node->getUUID() && nodeInterestSet.contains(otherNode->getType())) {
+                if (otherNode->getUUID() != node->getUUID()
+                    && nodeInterestSet.contains(otherNode->getType())) {
                     
                     // since we're about to add a node to the packet we start a segment
                     domainListPackets->startSegment();
@@ -1000,6 +1043,21 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
 void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage> message) {
     // construct the requested assignment from the packet data
     Assignment requestAssignment(*message);
+
+    auto senderAddr = message->getSenderSockAddr().getAddress();
+
+    auto isHostAddressInSubnet = [&senderAddr](const Subnet& mask) -> bool {
+        return senderAddr.isInSubnet(mask);
+    };
+
+    auto it = find_if(_acSubnetWhitelist.begin(), _acSubnetWhitelist.end(), isHostAddressInSubnet);
+    if (it == _acSubnetWhitelist.end()) {
+        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
+            "Received an assignment connect request from a disallowed ip address: [^ ]+");
+        qDebug() << "Received an assignment connect request from a disallowed ip address:"
+            << senderAddr.toString();
+        return;
+    }
 
     // Suppress these for Assignment::AgentType to once per 5 seconds
     static QElapsedTimer noisyMessageTimer;

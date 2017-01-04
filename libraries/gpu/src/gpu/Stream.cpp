@@ -12,6 +12,8 @@
 #include "Stream.h"
 
 #include <algorithm> //min max and more
+#include <sstream>
+#include <iomanip>
 
 using namespace gpu;
 
@@ -39,9 +41,21 @@ const ElementArray& getDefaultElements() {
     return defaultElements;
 }
 
+std::string Stream::Attribute::getKey() const {
+    std::stringstream skey;
+
+    skey << std::hex;
+    skey << std::setw(8) << std::setfill('0') << (uint32)((((uint32)_slot) << 24) | (((uint32)_channel) << 16) | ((uint32)_element.getRaw()));
+    skey << _offset;
+    skey << _frequency;
+    return skey.str();
+}
+
 void Stream::Format::evaluateCache() {
+    _key.clear();
     _channels.clear();
     _elementTotalSize = 0;
+
     for(AttributeMap::iterator it = _attributes.begin(); it != _attributes.end(); it++) {
         Attribute& attrib = (*it).second;
         ChannelInfo& channel = _channels[attrib._channel];
@@ -49,6 +63,8 @@ void Stream::Format::evaluateCache() {
         channel._stride = std::max(channel._stride, attrib.getSize() + attrib._offset);
         channel._netSize += attrib.getSize();
         _elementTotalSize += attrib.getSize();
+
+        _key += attrib.getKey();
     }
 }
 

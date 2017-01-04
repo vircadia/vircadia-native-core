@@ -24,6 +24,7 @@
 
 #include "AddressManager.h"
 #include "NodeList.h"
+#include "NetworkingConstants.h"
 #include "NetworkLogging.h"
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
@@ -104,7 +105,7 @@ QUrl AddressManager::currentFacingShareableAddress() const {
 
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        handleUrl(currentAddressHandle.get().toString(), LookupTrigger::StartupFromSettings);
+        handleUrl(currentAddressHandle.get(), LookupTrigger::StartupFromSettings);
     } else {
         handleUrl(lookupString, LookupTrigger::StartupFromSettings);
     }
@@ -748,6 +749,14 @@ void AddressManager::copyAddress() {
 
 void AddressManager::copyPath() {
     QApplication::clipboard()->setText(currentPath());
+}
+
+QString AddressManager::getDomainId() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
+}
+
+const QUrl AddressManager::getMetaverseServerUrl() const {
+    return NetworkingConstants::METAVERSE_SERVER_URL;
 }
 
 void AddressManager::handleShareableNameAPIResponse(QNetworkReply& requestReply) {

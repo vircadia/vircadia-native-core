@@ -57,6 +57,8 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
+    static float getNumJointsProcessedPerSecond();
+
     explicit Avatar(RigPointer rig = nullptr);
     ~Avatar();
 
@@ -119,6 +121,7 @@ public:
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     void setShowDisplayName(bool showDisplayName);
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) override { }; // no-op
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
@@ -188,6 +191,10 @@ public slots:
 
 protected:
     friend class AvatarManager;
+
+    virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
+    QString _empty{};
+    virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
 
     void setMotionState(AvatarMotionState* motionState);
 

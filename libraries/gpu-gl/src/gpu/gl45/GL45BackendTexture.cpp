@@ -61,7 +61,6 @@ static std::vector<uvec3> getPageDimensionsForFormat(const TextureTypeFormat& ty
         for (GLint i = 0; i < count; ++i) {
             result[i] = uvec3(x[i], y[i], z[i]);
         }
-        qCDebug(gpugl45logging) << "Got " << count << " page sizes";
     }
 
     {
@@ -91,7 +90,6 @@ SparseInfo::SparseInfo(GL45Texture& texture)
 void SparseInfo::maybeMakeSparse() {
     // Don't enable sparse for objects with explicitly managed mip levels
     if (!texture._gpuObject.isAutogenerateMips()) {
-        qCDebug(gpugl45logging) << "Don't enable sparse texture for explicitly generated mipmaps on texture " << texture._source.c_str();
         return;
     }
 
@@ -285,11 +283,6 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 }
 
 GL45Texture::~GL45Texture() {
-    // External textures cycle very quickly, so don't spam the log with messages about them.
-    if (!_gpuObject.getUsage().isExternal()) {
-        qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
-    }
-
     // Remove this texture from the candidate list of derezzable textures
     if (_transferrable) {
         auto mipLevels = usedMipLevels();
@@ -350,9 +343,6 @@ void GL45Texture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GL45Texture::generateMips() const {
-    if (_transferrable) {
-        qCDebug(gpugl45logging) << "Generating mipmaps for " << _source.c_str();
-    }
     glGenerateTextureMipmap(_id);
     (void)CHECK_GL_ERROR();
 }
@@ -408,9 +398,13 @@ bool GL45Texture::continueTransfer() {
                     glTextureSubImage2D(_id, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
                 } else if (GL_TEXTURE_CUBE_MAP == _target) {
                     // DSA ARB does not work on AMD, so use EXT
-                    // glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
-                    auto target = CUBE_FACE_LAYOUT[face];
-                    glTextureSubImage2DEXT(_id, target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                    // unless EXT is not available on the driver
+                    if (glTextureSubImage2DEXT) {
+                        auto target = CUBE_FACE_LAYOUT[face];
+                        glTextureSubImage2DEXT(_id, target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                    } else {
+                        glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
+                    }
                 } else {
                     Q_ASSERT(false);
                 }
@@ -593,7 +587,6 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     syncSampler();
     updateSize();
 
-
     // Re-insert into the texture-by-mips map if appropriate
     mipLevels = usedMipLevels();
     if (mipLevels > 1 && (!_sparseInfo.sparse || _minMip < _sparseInfo.maxSparseLevel)) {
@@ -628,18 +621,15 @@ void GL45Backend::derezTextures() const {
 
     Lock lock(texturesByMipCountsMutex);
     if (texturesByMipCounts.empty()) {
-        qCDebug(gpugl45logging) << "No available textures to derez";
+        // No available textures to derez
         return;
     }
 
     auto mipLevel = texturesByMipCounts.rbegin()->first;
     if (mipLevel <= 1) {
-        qCDebug(gpugl45logging) << "Max mip levels " << mipLevel;
+        // No mips available to remove
         return;
     }
-
-    qCDebug(gpugl45logging) << "Allowed texture memory " << Texture::getAllowedGPUMemoryUsage();
-    qCDebug(gpugl45logging) << "Used texture memory " << (Context::getTextureGPUMemoryUsage() - Context::getTextureGPUFramebufferMemoryUsage());
 
     GL45Texture* targetTexture = nullptr;
     {
@@ -649,5 +639,4 @@ void GL45Backend::derezTextures() const {
     }
     lock.unlock();
     targetTexture->derez();
-    qCDebug(gpugl45logging) << "New Used texture memory " << (Context::getTextureGPUMemoryUsage() - Context::getTextureGPUFramebufferMemoryUsage());
 }

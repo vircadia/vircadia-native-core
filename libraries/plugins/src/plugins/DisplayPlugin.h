@@ -16,6 +16,7 @@
 #include <QtCore/QSize>
 #include <QtCore/QPoint>
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QJsonObject>
 
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -188,10 +189,15 @@ public:
     virtual float renderRate() const { return -1.0f; }
     // Rate at which we present to the display device
     virtual float presentRate() const { return -1.0f; }
+    // Rate at which old frames are presented to the device display
+    virtual float stutterRate() const { return -1.0f; }
     // Rate at which new frames are being presented to the display device
     virtual float newFramePresentRate() const { return -1.0f; }
     // Rate at which rendered frames are being skipped
     virtual float droppedFrameRate() const { return -1.0f; }
+    
+    // Hardware specific stats
+    virtual QJsonObject getHardwareStats() const { return QJsonObject(); }
 
     uint32_t presentCount() const { return _presentedFrameIndex; }
     // Time since last call to incrementPresentCount (only valid if DEBUG_PAINT_DELAY is defined)
@@ -203,7 +209,8 @@ public:
 
 
 signals:
-    void recommendedFramebufferSizeChanged(const QSize & size);
+    void recommendedFramebufferSizeChanged(const QSize& size);
+    void resetSensorsRequested();
 
 protected:
     void incrementPresentCount();

@@ -31,7 +31,7 @@
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount { 0 };
 // Don't allow more than 100 concurrent web views
-static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 100;
+static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 20;
 // If a web-view hasn't been rendered for 30 seconds, de-allocate the framebuffer
 static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 
@@ -46,7 +46,7 @@ EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID,
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID) :
     WebEntityItem(entityItemID) {
-    qDebug() << "Created web entity " << getID();
+    qCDebug(entities) << "Created web entity " << getID();
 
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
@@ -57,7 +57,7 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
     destroyWebSurface();
-    qDebug() << "Destroyed web entity " << getID();
+    qCDebug(entities) << "Destroyed web entity " << getID();
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_geometryId);
@@ -69,8 +69,6 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
         qWarning() << "Too many concurrent web views to create new view";
         return false;
     }
-    qDebug() << "Building web surface";
-
     QString javaScriptToInject;
     QFile webChannelFile(":qtwebchannel/qwebchannel.js");
     QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
@@ -85,12 +83,15 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
         qCWarning(entitiesrenderer) << "unable to find qwebchannel.js or createGlobalEventBridge.js";
     }
 
-    ++_currentWebCount;
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     if (!currentContext) {
         return false;
     }
+
+    ++_currentWebCount;
+    qCDebug(entities) << "Building web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
+
     QSurface * currentSurface = currentContext->surface();
 
     auto deleter = [](OffscreenQmlSurface* webSurface) {
@@ -246,7 +247,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
     if (_sourceUrl != value) {
-        qDebug() << "Setting web entity source URL to " << value;
+        qCDebug(entities) << "Setting web entity source URL to " << value;
         _sourceUrl = value;
         if (_webSurface) {
             AbstractViewStateInterface::instance()->postLambdaEvent([this] {
@@ -325,8 +326,6 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         touchEvent->setTouchPoints(touchPoints);
         touchEvent->setTouchPointStates(touchPointState);
 
-        _lastTouchEvent = *touchEvent;
-
         QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
     }
 }
@@ -356,6 +355,8 @@ void RenderableWebEntityItem::destroyWebSurface() {
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
         _webSurface.reset();
+
+        qCDebug(entities) << "Delete web surface: " << getID() << ", #" << _currentWebCount << ", url = " << _sourceUrl;
     }
 }
 

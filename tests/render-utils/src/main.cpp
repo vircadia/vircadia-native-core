@@ -152,7 +152,6 @@ protected:
 
 //static const wchar_t* EXAMPLE_TEXT = L"Hello";
 //static const wchar_t* EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
-static const glm::uvec2 QUAD_OFFSET(10, 10);
 
 void testShaderBuild(const char* vs_src, const char * fs_src) {
     auto vs = gpu::Shader::createVertex(std::string(vs_src));
@@ -202,7 +201,7 @@ int main(int argc, char** argv) {
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     QTimer timer;
-    timer.setInterval(1);
+    timer.setInterval(1); // Qt::CoarseTimer acceptable
     app.connect(&timer, &QTimer::timeout, &app, [&] {
         window.draw();
     });

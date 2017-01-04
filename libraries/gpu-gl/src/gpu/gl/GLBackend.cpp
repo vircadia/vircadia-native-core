@@ -23,12 +23,14 @@
 #include "nvToolsExt.h"
 #endif
 
+#include <shared/GlobalAppProperties.h>
 #include <GPUIdent.h>
 #include <gl/QOpenGLContextWrapper.h>
 #include <QtCore/QProcessEnvironment>
 
 #include "GLTexture.h"
 #include "GLShader.h"
+
 using namespace gpu;
 using namespace gpu::gl;
 
@@ -36,7 +38,6 @@ static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
 static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 static GLBackend* INSTANCE{ nullptr };
-static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 
 BackendPointer GLBackend::createBackend() {
     // The ATI memory info extension only exposes 'free memory' so we want to force it to 
@@ -60,7 +61,7 @@ BackendPointer GLBackend::createBackend() {
 
     INSTANCE = result.get();
     void* voidInstance = &(*result);
-    qApp->setProperty(GL_BACKEND_PROPERTY_NAME, QVariant::fromValue(voidInstance));
+    qApp->setProperty(hifi::properties::gl::BACKEND, QVariant::fromValue(voidInstance));
 
     gl::GLTexture::initTextureTransferHelper();
     return result;
@@ -68,7 +69,7 @@ BackendPointer GLBackend::createBackend() {
 
 GLBackend& getBackend() {
     if (!INSTANCE) {
-        INSTANCE = static_cast<GLBackend*>(qApp->property(GL_BACKEND_PROPERTY_NAME).value<void*>());
+        INSTANCE = static_cast<GLBackend*>(qApp->property(hifi::properties::gl::BACKEND).value<void*>());
     }
     return *INSTANCE;
 }
@@ -199,7 +200,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
     _inRenderTransferPass = true;
     { // Sync all the buffers
-        PROFILE_RANGE("syncGPUBuffer");
+        PROFILE_RANGE(render_gpu_gl, "syncGPUBuffer");
 
         for (auto& cached : batch._buffers._items) {
             if (cached._data) {
@@ -209,7 +210,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync all the buffers
-        PROFILE_RANGE("syncCPUTransform");
+        PROFILE_RANGE(render_gpu_gl, "syncCPUTransform");
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
 
@@ -241,7 +242,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync the transform buffers
-        PROFILE_RANGE("syncGPUTransform");
+        PROFILE_RANGE(render_gpu_gl, "syncGPUTransform");
         transferTransformState(batch);
     }
 
@@ -303,15 +304,24 @@ void GLBackend::render(const Batch& batch) {
     }
     
     {
-        PROFILE_RANGE("Transfer");
+        PROFILE_RANGE(render_gpu_gl, "Transfer");
         renderPassTransfer(batch);
     }
 
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    if (_stereo._enable) {
+        glEnable(GL_CLIP_DISTANCE0);
+    }
+#endif
     {
-        PROFILE_RANGE(_stereo._enable ? "Render Stereo" : "Render");
+        PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
-
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    if (_stereo._enable) {
+        glDisable(GL_CLIP_DISTANCE0);
+    }
+#endif
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
 }
@@ -326,13 +336,24 @@ void GLBackend::syncCache() {
     glEnable(GL_LINE_SMOOTH);
 }
 
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
 void GLBackend::setupStereoSide(int side) {
     ivec4 vp = _transform._viewport;
     vp.z /= 2;
     glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
 
+
+#ifdef GPU_STEREO_CAMERA_BUFFER
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
+    glVertexAttribI1i(14, side);
+#endif
+#else
     _transform.bindCurrentCamera(side);
+#endif
+
 }
+#else
+#endif
 
 void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
     resetStages();
@@ -385,8 +406,11 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
 
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
-// #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo());
+#ifdef GPU_STEREO_CAMERA_BUFFER
+#define GET_UNIFORM_LOCATION(shaderUniformLoc) ((_pipeline._programShader) ? _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo()) : -1)
+#else
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
+#endif
 
 void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {

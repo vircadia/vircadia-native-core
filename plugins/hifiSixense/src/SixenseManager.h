@@ -28,8 +28,8 @@ class SixenseManager : public InputPlugin {
 public:
     // Plugin functions
     virtual bool isSupported() const override;
-    virtual const QString& getName() const override { return NAME; }
-    virtual const QString& getID() const override { return HYDRA_ID_STRING; }
+    virtual const QString getName() const override { return NAME; }
+    virtual const QString getID() const override { return HYDRA_ID_STRING; }
 
     // Sixense always seems to initialize even if the hydras are not present. Is there
     // a way we can properly detect whether the hydras are present?
@@ -92,8 +92,8 @@ private:
 
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
-    static const QString NAME;
-    static const QString HYDRA_ID_STRING;
+    static const char* NAME;
+    static const char* HYDRA_ID_STRING;
 
     static bool _sixenseLoaded;
 };

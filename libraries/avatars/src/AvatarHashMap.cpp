@@ -13,6 +13,7 @@
 
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
+#include <PerfStat.h>
 #include <SharedUtil.h>
 
 #include "AvatarLogging.h"
@@ -98,6 +99,7 @@ AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) {
 }
 
 void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    PerformanceTimer perfTimer("receiveAvatar");
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (message->getBytesLeftToRead()) {
@@ -131,6 +133,18 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 
     // make sure this isn't for an ignored avatar
     auto nodeList = DependencyManager::get<NodeList>();
+    static auto EMPTY = QUuid();
+
+    {
+        QReadLocker locker(&_hashLock);
+        auto me = _avatarHash.find(EMPTY);
+        if ((me != _avatarHash.end()) && (identity.uuid == me.value()->getSessionUUID())) {
+            // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
+            // identity packet for ourself (such as when we are assigned a sessionDisplayName by the mixer upon joining),
+            // we make things match here.
+            identity.uuid = EMPTY;
+        }
+    }
     if (!nodeList->isIgnoringNode(identity.uuid)) {
         // mesh URL for a UUID, find avatar in our list
         auto avatar = newOrExistingAvatar(identity.uuid, sendingNode);
@@ -141,21 +155,24 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // read the node id
     QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-    removeAvatar(sessionUUID);
+
+    KillAvatarReason reason;
+    message->readPrimitive(&reason);
+    removeAvatar(sessionUUID, reason);
 }
 
-void AvatarHashMap::removeAvatar(const QUuid& sessionUUID) {
+void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
     QWriteLocker locker(&_hashLock);
 
     auto removedAvatar = _avatarHash.take(sessionUUID);
 
     if (removedAvatar) {
-        handleRemovedAvatar(removedAvatar);
+        handleRemovedAvatar(removedAvatar, removalReason);
     }
 }
 
-void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
-    qDebug() << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
+void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
+    qCDebug(avatars) << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
         << "from AvatarHashMap";
     emit avatarRemovedEvent(removedAvatar->getSessionUUID());
 }

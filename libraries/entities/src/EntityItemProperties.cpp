@@ -147,15 +147,15 @@ QString getCollisionGroupAsString(uint8_t group) {
 }
 
 uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
-    if (0 == name.compare("dynamic")) {
+    if (0 == name.compare(QString("dynamic"))) {
         return USER_COLLISION_GROUP_DYNAMIC;
-    } else if (0 == name.compare("static")) {
+    } else if (0 == name.compare(QString("static"))) {
         return USER_COLLISION_GROUP_STATIC;
-    } else if (0 == name.compare("kinematic")) {
+    } else if (0 == name.compare(QString("kinematic"))) {
         return USER_COLLISION_GROUP_KINEMATIC;
-    } else if (0 == name.compare("myAvatar")) {
+    } else if (0 == name.compare(QString("myAvatar"))) {
         return USER_COLLISION_GROUP_MY_AVATAR;
-    } else if (0 == name.compare("otherAvatar")) {
+    } else if (0 == name.compare(QString("otherAvatar"))) {
         return USER_COLLISION_GROUP_OTHER_AVATAR;
     }
     return 0;
@@ -227,6 +227,7 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
+    CHECK_PROPERTY_CHANGE(PROP_LAST_EDITED_BY, lastEditedBy);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
     CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
@@ -368,6 +369,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
 
+    properties.setProperty("lastEdited", convertScriptValue(engine, _lastEdited));
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
     if (!skipDefaults) {
@@ -611,6 +614,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
         setType(typeScriptValue.toVariant().toString());
     }
 
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(position, glmVec3, setPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, glmVec3, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, glmQuat, setRotation);
@@ -750,6 +754,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 }
 
 void EntityItemProperties::merge(const EntityItemProperties& other) {
+    COPY_PROPERTY_IF_CHANGED(lastEditedBy);
     COPY_PROPERTY_IF_CHANGED(position);
     COPY_PROPERTY_IF_CHANGED(dimensions);
     COPY_PROPERTY_IF_CHANGED(rotation);
@@ -1667,6 +1672,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 }
 
 void EntityItemProperties::markAllChanged() {
+    _lastEditedByChanged = true;
     _simulationOwnerChanged = true;
     _positionChanged = true;
     _dimensionsChanged = true;

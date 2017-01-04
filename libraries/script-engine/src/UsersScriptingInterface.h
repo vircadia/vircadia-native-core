@@ -16,6 +16,9 @@
 
 #include <DependencyManager.h>
 
+/**jsdoc
+* @namespace Users
+*/
 class UsersScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -26,13 +29,82 @@ public:
     UsersScriptingInterface();
 
 public slots:
+
+    /**jsdoc
+    * Ignore another user.
+    * @function Users.ignore
+    * @param {nodeID} nodeID The node or session ID of the user you want to ignore.
+    */
     void ignore(const QUuid& nodeID);
+
+    /**jsdoc
+    * Kick another user.
+    * @function Users.kick
+    * @param {nodeID} nodeID The node or session ID of the user you want to kick.
+    */
     void kick(const QUuid& nodeID);
 
+    /**jsdoc
+    * Mute another user.
+    * @function Users.mute
+    * @param {nodeID} nodeID The node or session ID of the user you want to mute.
+    */
+    void mute(const QUuid& nodeID);
+
+    /**jsdoc
+    * Returns a string containing the username associated with the given Avatar UUID
+    * @function Users.getUsernameFromID
+    * @param {nodeID} nodeID The node or session ID of the user whose username you want.
+    */
+    void requestUsernameFromID(const QUuid& nodeID);
+
+    /**jsdoc
+    * Returns `true` if the DomainServer will allow this Node/Avatar to make kick
+    * @function Users.getCanKick
+    * @return {bool} `true` if the client can kick other users, `false` if not.
+    */
     bool getCanKick();
+
+    /**jsdoc
+    * Toggle the state of the ignore in radius feature
+    * @function Users.toggleIgnoreRadius
+    */
+    void toggleIgnoreRadius();
+
+    /**jsdoc
+    * Enables the ignore radius feature.
+    * @function Users.enableIgnoreRadius
+    */
+    void enableIgnoreRadius();
+
+    /**jsdoc
+    * Disables the ignore radius feature.
+    * @function Users.disableIgnoreRadius
+    */
+    void disableIgnoreRadius();
+
+    /**jsdoc
+    * Returns `true` if the ignore in radius feature is enabled
+    * @function Users.getIgnoreRadiusEnabled
+    * @return {bool} `true` if the ignore in radius feature is enabled, `false` if not.
+    */
+    bool getIgnoreRadiusEnabled();
 
 signals:
     void canKickChanged(bool canKick);
+    void ignoreRadiusEnabledChanged(bool isEnabled);
+
+    /**jsdoc
+    * Notifies scripts that another user has entered the ignore radius
+    * @function Users.enteredIgnoreRadius
+    */
+    void enteredIgnoreRadius();
+
+    /**jsdoc
+    * Notifies scripts of the username and machine fingerprint associated with a UUID.
+    * @function Users.usernameFromIDReply
+    */
+    void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
 };
 
 

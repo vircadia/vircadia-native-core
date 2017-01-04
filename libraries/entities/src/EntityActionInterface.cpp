@@ -104,7 +104,7 @@ EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeS
         return ACTION_TYPE_TRAVEL_ORIENTED;
     }
 
-    qDebug() << "Warning -- EntityActionInterface::actionTypeFromString got unknown action-type name" << actionTypeString;
+    qCDebug(entities) << "Warning -- EntityActionInterface::actionTypeFromString got unknown action-type name" << actionTypeString;
     return ACTION_TYPE_NONE;
 }
 
@@ -129,7 +129,7 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
-            qDebug() << objectName << "requires argument:" << argumentName;
+            qCDebug(entities) << objectName << "requires argument:" << argumentName;
         }
         ok = false;
         return glm::vec3(0.0f);
@@ -137,14 +137,14 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
 
     QVariant resultV = arguments[argumentName];
     if (resultV.type() != (QVariant::Type) QMetaType::QVariantMap) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map";
+        qCDebug(entities) << objectName << "argument" << argumentName << "must be a map";
         ok = false;
         return glm::vec3(0.0f);
     }
 
     QVariantMap resultVM = resultV.toMap();
     if (!resultVM.contains("x") || !resultVM.contains("y") || !resultVM.contains("z")) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map with keys: x, y, z";
+        qCDebug(entities) << objectName << "argument" << argumentName << "must be a map with keys: x, y, z";
         ok = false;
         return glm::vec3(0.0f);
     }
@@ -160,7 +160,7 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
     float y = yV.toFloat(&yOk);
     float z = zV.toFloat(&zOk);
     if (!xOk || !yOk || !zOk) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map with keys: x, y, and z of type float.";
+        qCDebug(entities) << objectName << "argument" << argumentName << "must be a map with keys: x, y, and z of type float.";
         ok = false;
         return glm::vec3(0.0f);
     }
@@ -178,7 +178,7 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
-            qDebug() << objectName << "requires argument:" << argumentName;
+            qCDebug(entities) << objectName << "requires argument:" << argumentName;
         }
         ok = false;
         return glm::quat();
@@ -186,14 +186,14 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
 
     QVariant resultV = arguments[argumentName];
     if (resultV.type() != (QVariant::Type) QMetaType::QVariantMap) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map, not" << resultV.typeName();
+        qCDebug(entities) << objectName << "argument" << argumentName << "must be a map, not" << resultV.typeName();
         ok = false;
         return glm::quat();
     }
 
     QVariantMap resultVM = resultV.toMap();
     if (!resultVM.contains("x") || !resultVM.contains("y") || !resultVM.contains("z") || !resultVM.contains("w")) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map with keys: x, y, z, and w";
+        qCDebug(entities) << objectName << "argument" << argumentName << "must be a map with keys: x, y, z, and w";
         ok = false;
         return glm::quat();
     }
@@ -212,7 +212,7 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
     float z = zV.toFloat(&zOk);
     float w = wV.toFloat(&wOk);
     if (!xOk || !yOk || !zOk || !wOk) {
-        qDebug() << objectName << "argument" << argumentName
+        qCDebug(entities) << objectName << "argument" << argumentName
                  << "must be a map with keys: x, y, z, and w of type float.";
         ok = false;
         return glm::quat();
@@ -231,7 +231,7 @@ float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMa
                                                   QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
-            qDebug() << objectName << "requires argument:" << argumentName;
+            qCDebug(entities) << objectName << "requires argument:" << argumentName;
         }
         ok = false;
         return 0.0f;
@@ -253,7 +253,7 @@ int EntityActionInterface::extractIntegerArgument(QString objectName, QVariantMa
                                                   QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
-            qDebug() << objectName << "requires argument:" << argumentName;
+            qCDebug(entities) << objectName << "requires argument:" << argumentName;
         }
         ok = false;
         return 0.0f;
@@ -275,7 +275,7 @@ QString EntityActionInterface::extractStringArgument(QString objectName, QVarian
                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
-            qDebug() << objectName << "requires argument:" << argumentName;
+            qCDebug(entities) << objectName << "requires argument:" << argumentName;
         }
         ok = false;
         return "";
@@ -287,7 +287,7 @@ bool EntityActionInterface::extractBooleanArgument(QString objectName, QVariantM
                                                    QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
-            qDebug() << objectName << "requires argument:" << argumentName;
+            qCDebug(entities) << objectName << "requires argument:" << argumentName;
         }
         ok = false;
         return false;

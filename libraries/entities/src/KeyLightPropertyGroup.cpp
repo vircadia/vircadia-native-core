@@ -60,12 +60,12 @@ void KeyLightPropertyGroup::merge(const KeyLightPropertyGroup& other) {
 
 
 void KeyLightPropertyGroup::debugDump() const {
-    qDebug() << "   KeyLightPropertyGroup: ---------------------------------------------";
-    qDebug() << "        color:" << getColor(); // << "," << getColor()[1] << "," << getColor()[2];
-    qDebug() << "        intensity:" << getIntensity();
-    qDebug() << "        direction:" << getDirection();
-    qDebug() << "        ambientIntensity:" << getAmbientIntensity();
-    qDebug() << "        ambientURL:" << getAmbientURL();
+    qCDebug(entities) << "   KeyLightPropertyGroup: ---------------------------------------------";
+    qCDebug(entities) << "        color:" << getColor(); // << "," << getColor()[1] << "," << getColor()[2];
+    qCDebug(entities) << "        intensity:" << getIntensity();
+    qCDebug(entities) << "        direction:" << getDirection();
+    qCDebug(entities) << "        ambientIntensity:" << getAmbientIntensity();
+    qCDebug(entities) << "        ambientURL:" << getAmbientURL();
 }
 
 void KeyLightPropertyGroup::listChangedProperties(QList<QString>& out) {
@@ -186,7 +186,7 @@ EntityPropertyFlags KeyLightPropertyGroup::getEntityProperties(EncodeBitstreamPa
 }
     
 void KeyLightPropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
+                                EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                 EntityPropertyFlags& requestedProperties,
                                 EntityPropertyFlags& propertyFlags,
                                 EntityPropertyFlags& propertiesDidntFit,

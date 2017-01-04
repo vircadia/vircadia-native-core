@@ -32,6 +32,36 @@ ScriptsModel& getScriptsModel() {
     return scriptsModel;
 }
 
+void ScriptEngines::onPrintedMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit printedMessage(message, scriptName);
+}
+
+void ScriptEngines::onErrorMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit errorMessage(message, scriptName);
+}
+
+void ScriptEngines::onWarningMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit warningMessage(message, scriptName);
+}
+
+void ScriptEngines::onInfoMessage(const QString& message) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit infoMessage(message, scriptName);
+}
+
+void ScriptEngines::onErrorLoadingScript(const QString& url) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+    emit errorLoadingScript(url, scriptName);
+}
+
 ScriptEngines::ScriptEngines()
     : _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
 {
@@ -283,43 +313,6 @@ void ScriptEngines::loadScripts() {
 
     // loads all saved scripts
     Settings settings;
-
-
-    // START of backward compatibility code
-    // This following if statement is only meant to update the settings file still using the old setting key.
-    // If you read that comment and it has been more than a couple months since it was merged,
-    // then by all means, feel free to remove it.
-    if (!settings.childGroups().contains(SETTINGS_KEY)) {
-        qWarning() << "Detected old script settings config, loading from previous location";
-        const QString oldKey = "Settings";
-
-        // Load old scripts array from settings
-        int size = settings.beginReadArray(oldKey);
-        for (int i = 0; i < size; ++i) {
-            settings.setArrayIndex(i);
-            QString string = settings.value("script").toString();
-            if (!string.isEmpty()) {
-                loadScript(string);
-            }
-        }
-        settings.endArray();
-
-        // Cleanup old scripts array from settings
-        settings.beginWriteArray(oldKey);
-        for (int i = 0; i < size; ++i) {
-            settings.setArrayIndex(i);
-            settings.remove("");
-        }
-        settings.endArray();
-        settings.beginGroup(oldKey);
-        settings.remove("size");
-        settings.endGroup();
-
-        return;
-    }
-    // END of backward compatibility code
-
-
     int size = settings.beginReadArray(SETTINGS_KEY);
     for (int i = 0; i < size; ++i) {
         settings.setArrayIndex(i);

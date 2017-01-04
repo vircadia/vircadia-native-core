@@ -74,9 +74,12 @@ public:
     void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
     void addIgnoredNode(const QUuid& otherNodeID);
     bool isIgnoringNodeWithID(const QUuid& nodeID) const { return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
+    void parseIgnoreRadiusRequestMessage(QSharedPointer<ReceivedMessage> message);
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
+
+    bool isIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled; }
 
 private:
     // privatize copy and assignment operator to disallow Node copying
@@ -94,6 +97,8 @@ private:
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
+
+    std::atomic_bool _ignoreRadiusEnabled;
 };
 
 Q_DECLARE_METATYPE(Node*)

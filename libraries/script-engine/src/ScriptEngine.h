@@ -174,6 +174,10 @@ public:
 
     void setEmitScriptUpdatesFunction(std::function<bool()> func) { _emitScriptUpdates = func; }
 
+    void scriptErrorMessage(const QString& message);
+    void scriptWarningMessage(const QString& message);
+    void scriptInfoMessage(const QString& message);
+
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
     void updateMemoryCost(const qint64&);
@@ -187,6 +191,8 @@ signals:
     void cleanupMenuItem(const QString& menuItemString);
     void printedMessage(const QString& message);
     void errorMessage(const QString& message);
+    void warningMessage(const QString& message);
+    void infoMessage(const QString& message);
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
     void loadScript(const QString& scriptName, bool isUserLoaded);
@@ -212,6 +218,7 @@ protected:
     void init();
 
     bool evaluatePending() const { return _evaluatesPending > 0; }
+    quint64 getTimersRemainingTime();
     void timerFired();
     void stopAllTimers();
     void stopAllTimersForEntityScript(const EntityItemID& entityID);
@@ -245,6 +252,9 @@ protected:
 
     std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
 
+    std::recursive_mutex _lock;
+
+    std::chrono::microseconds _totalTimerExecution { 0 };
 };
 
 #endif // hifi_ScriptEngine_h

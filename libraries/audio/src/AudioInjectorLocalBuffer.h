@@ -30,7 +30,6 @@ public:
 
     void setShouldLoop(bool shouldLoop) { _shouldLoop = shouldLoop; }
     void setCurrentOffset(int currentOffset) { _currentOffset = currentOffset; }
-    void setVolume(float volume) { _volume = glm::clamp(volume, 0.0f, 1.0f); }
 
 private:
     qint64 recursiveReadFromFront(char* data, qint64 maxSize);
@@ -40,7 +39,6 @@ private:
     bool _isStopped;
 
     int _currentOffset;
-    float _volume;
 };
 
 #endif // hifi_AudioInjectorLocalBuffer_h

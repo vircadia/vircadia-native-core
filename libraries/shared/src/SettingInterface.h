@@ -20,14 +20,11 @@
 namespace Setting {
     class Manager;
 
-    void preInit();
     void init();
     void cleanupSettings();
 
     class Interface {
     public:
-        static const QString FIRST_RUN;
-
         const QString& getKey() const { return _key; }
         bool isSet() const { return _isSet; } 
 
