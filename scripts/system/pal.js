@@ -332,6 +332,13 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
+function clearIgnoredInQMLAndRefreshPAL() {
+    pal.sendToQml({ method: 'clearIgnored' });
+    removeOverlays();
+    populateUserList();
+}
+Window.domainChanged.connect(clearIgnoredInQMLAndRefreshPAL);
+Window.domainConnectionRefused.connect(clearIgnoredInQMLAndRefreshPAL);
 
 //
 // Cleanup.
@@ -342,6 +349,8 @@ Script.scriptEnding.connect(function () {
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
+    Window.domainChanged.disconnect(clearIgnoredInQMLAndRefreshPAL);
+    Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndRefreshPAL);
     off();
 });
 

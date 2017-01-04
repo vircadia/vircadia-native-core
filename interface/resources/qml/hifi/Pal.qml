@@ -42,7 +42,6 @@ Item {
     property int actionButtonWidth: 75
     property int nameCardWidth: width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
-    // FIXME: Need to determine & handle when this list gets reset.
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
@@ -477,6 +476,9 @@ Item {
                     }
                 }
             }
+            break;
+        case 'clearIgnored': 
+            ignored = ({});
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
