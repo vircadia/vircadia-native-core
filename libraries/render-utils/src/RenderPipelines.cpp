@@ -222,9 +222,14 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
 void initForwardPipelines(render::ShapePlumber& plumber) {
     // Vertex shaders
     auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
+    auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
 
     // Pixel shaders
     auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
+    auto modelUnlitPixel = gpu::Shader::createPixel(std::string(model_unlit_frag));
+    auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
+    auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(model_specular_map_frag));
+    auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_frag));
 
     using Key = render::ShapeKey;
     auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
@@ -232,7 +237,20 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     addPipeline(
         Key::Builder(),
         modelVertex, modelPixel);
-    }
+    addPipeline(
+        Key::Builder().withUnlit(),
+        modelVertex, modelUnlitPixel);
+    addPipeline(
+        Key::Builder().withTangents(),
+        modelNormalMapVertex, modelNormalMapPixel);
+    addPipeline(
+        Key::Builder().withSpecular(),
+        modelVertex, modelSpecularMapPixel);
+    addPipeline(
+        Key::Builder().withTangents().withSpecular(),
+        modelNormalMapVertex, modelNormalSpecularMapPixel);
+
+}
 
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel) {
