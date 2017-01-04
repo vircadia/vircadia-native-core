@@ -332,15 +332,14 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
-function clearIgnoredInQMLAndRefreshPAL() {
+function clearIgnoredInQMLAndClosePAL() {
     pal.sendToQml({ method: 'clearIgnored' });
     if (pal.visible) {
-        removeOverlays();
-        Script.setTimeout(populateUserList, 200); // Short delay before populating the PAL to allow the HashMap to populate
+        onClicked(); // Close the PAL
     }
 }
-Window.domainChanged.connect(clearIgnoredInQMLAndRefreshPAL);
-Window.domainConnectionRefused.connect(clearIgnoredInQMLAndRefreshPAL);
+Window.domainChanged.connect(clearIgnoredInQMLAndClosePAL);
+Window.domainConnectionRefused.connect(clearIgnoredInQMLAndClosePAL);
 
 //
 // Cleanup.
@@ -351,8 +350,8 @@ Script.scriptEnding.connect(function () {
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-    Window.domainChanged.disconnect(clearIgnoredInQMLAndRefreshPAL);
-    Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndRefreshPAL);
+    Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
+    Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
     off();
 });
 

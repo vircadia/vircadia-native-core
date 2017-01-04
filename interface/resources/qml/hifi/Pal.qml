@@ -478,7 +478,7 @@ Item {
             }
             break;
         case 'clearIgnored': 
-            ignored = ({});
+            ignored = {};
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
