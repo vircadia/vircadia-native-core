@@ -223,6 +223,8 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     // Vertex shaders
     auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
     auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
+    auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
+    auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
 
     // Pixel shaders
     auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
@@ -249,7 +251,19 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     addPipeline(
         Key::Builder().withTangents().withSpecular(),
         modelNormalMapVertex, modelNormalSpecularMapPixel);
-
+    // Skinned
+    addPipeline(
+        Key::Builder().withSkinned(),
+        skinModelVertex, modelPixel);
+    addPipeline(
+        Key::Builder().withSkinned().withTangents(),
+        skinModelNormalMapVertex, modelNormalMapPixel);
+    addPipeline(
+        Key::Builder().withSkinned().withSpecular(),
+        skinModelVertex, modelSpecularMapPixel);
+    addPipeline(
+        Key::Builder().withSkinned().withTangents().withSpecular(),
+        skinModelNormalMapVertex, modelNormalSpecularMapPixel);
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,
