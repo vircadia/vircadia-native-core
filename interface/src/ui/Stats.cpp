@@ -125,6 +125,8 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(framerate, qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
         auto displayPlugin = qApp->getActiveDisplayPlugin();
+        auto stats = displayPlugin->getHardwareStats();
+        STAT_UPDATE(appdropped, stats["app_dropped_frame_count"].toInt());
         STAT_UPDATE(renderrate, displayPlugin->renderRate());
         STAT_UPDATE(presentrate, displayPlugin->presentRate());
         STAT_UPDATE(presentnewrate, displayPlugin->newFramePresentRate());
