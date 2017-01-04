@@ -35,6 +35,7 @@ Row {
     property int usernameTextHeight: 12
     property real audioLevel: 0.0
 
+    /* User image commented out for now - will probably be re-introduced later.
     Column {
         id: avatarImage
         // Size
@@ -48,10 +49,11 @@ Row {
             height: parent.height
         }
     }
+    */
     Column {
         id: textContainer
         // Size
-        width: parent.width - avatarImage.width - parent.anchors.leftMargin - parent.anchors.rightMargin - parent.spacing
+        width: parent.width - /*avatarImage.width - */parent.anchors.leftMargin - parent.anchors.rightMargin - parent.spacing
         height: contentHeight
 
         // DisplayName Text
