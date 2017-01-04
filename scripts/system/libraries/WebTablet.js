@@ -10,6 +10,7 @@
 
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
+Script.include(Script.resolvePath("../libraries/controllers.js"));
 var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
@@ -20,18 +21,20 @@ var TABLET_URL = "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx";
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
-function calcSpawnInfo() {
-    var front;
+function calcSpawnInfo(hand) {
     var pitchBackRotation = Quat.angleAxis(20.0, X_AXIS);
     if (HMD.active) {
-        front = Quat.getFront(HMD.orientation);
-        var yawOnlyRotation = Quat.angleAxis(Math.atan2(front.x, front.z) * RAD_TO_DEG, Y_AXIS);
+        var handController = getControllerWorldLocation(hand, false);
+        var front = Quat.getFront(handController.orientation);
+        var up = Quat.getUp(handController.orientation);
+        var frontOffset = Vec3.sum(handController.position, Vec3.multiply(0.4, up));
+        var finalOffset = Vec3.sum(frontOffset, Vec3.multiply(-0.3, front));
         return {
-            position: Vec3.sum(Vec3.sum(HMD.position, Vec3.multiply(0.6, front)), Vec3.multiply(-0.5, Y_AXIS)),
-            rotation: Quat.multiply(yawOnlyRotation, pitchBackRotation)
+            position: finalOffset,
+            rotation: Quat.lookAt(finalOffset, HMD.position, Y_AXIS) 
         };
     } else {
-        front = Quat.getFront(MyAvatar.orientation);
+        var front = Quat.getFront(MyAvatar.orientation);
         return {
             position: Vec3.sum(Vec3.sum(MyAvatar.position, Vec3.multiply(0.6, front)), {x: 0, y: 0.6, z: 0}),
             rotation: Quat.multiply(MyAvatar.orientation, pitchBackRotation)
@@ -40,7 +43,7 @@ function calcSpawnInfo() {
 }
 
 // ctor
-WebTablet = function (url, width, dpi, location, clientOnly) {
+WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     var _this = this;
     var ASPECT = 4.0 / 3.0;
@@ -51,7 +54,7 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
     var DPI = dpi || DEFAULT_DPI;
     var SENSOR_TO_ROOM_MATRIX = -2;
 
-    var spawnInfo = calcSpawnInfo();
+    var spawnInfo = calcSpawnInfo(hand);
     var tabletEntityPosition = spawnInfo.position;
     var tabletEntityRotation = spawnInfo.rotation;
 
@@ -67,14 +70,8 @@ WebTablet = function (url, width, dpi, location, clientOnly) {
         parentJointIndex: SENSOR_TO_ROOM_MATRIX
     }
 
-    if (location) {
-        tabletProperties.localPosition = location.localPosition;
-        tabletProperties.localRotation = location.localRotation;
-    } else {
-        var spawnInfo = calcSpawnInfo();
-        tabletProperties.position = spawnInfo.position;
-        tabletProperties.rotation = spawnInfo.rotation;
-    }
+    tabletProperties.position = spawnInfo.position;
+    tabletProperties.rotation = spawnInfo.rotation;
 
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 

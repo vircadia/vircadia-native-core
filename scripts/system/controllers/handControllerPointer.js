@@ -437,12 +437,14 @@ clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.Conte
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
     if (clicked) {
         activeHudPoint2d(Controller.Standard.RightHand);
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.RightHand);
     }
     wantsMenu = clicked;
 });
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
     if (clicked) {
         activeHudPoint2d(Controller.Standard.LeftHand);
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
     }
     wantsMenu = clicked;
 });
