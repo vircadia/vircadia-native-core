@@ -29,10 +29,10 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
     }
 }
 
-void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot) {
+void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet(tabletId));
-    if (tablet) {
-        tablet->setQmlTabletRoot(qmlTabletRoot);
+    if (tablet && qmlOffscreenSurface) {
+        tablet->setQmlTabletRoot(qmlTabletRoot, qmlOffscreenSurface);
     } else {
         qCWarning(scriptengine) << "TabletScriptingInterface::setupTablet() bad tablet object";
     }
@@ -72,10 +72,12 @@ static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* 
     buttonProxy->setQmlButton(qobject_cast<QQuickItem*>(qmlButton));
 }
 
-void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot) {
+void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     std::lock_guard<std::mutex> guard(_mutex);
+    _qmlOffscreenSurface = qmlOffscreenSurface;
     _qmlTabletRoot = qmlTabletRoot;
-    if (_qmlTabletRoot) {
+    if (_qmlTabletRoot && _qmlOffscreenSurface) {
+        QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
         gotoHomeScreen();
     } else {
         removeButtonsFromHomeScreen();
@@ -147,6 +149,12 @@ void TabletProxy::updateAudioBar(const double micLevel) {
         qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
     } else {
         QMetaObject::invokeMethod(tablet, "setMicLevel", Qt::AutoConnection, Q_ARG(QVariant, QVariant(micLevel)));
+    }
+}
+
+void TabletProxy::emitScriptEvent(QVariant msg) {
+    if (_qmlOffscreenSurface) {
+        QMetaObject::invokeMethod(_qmlOffscreenSurface, "emitScriptEvent", Qt::AutoConnection, Q_ARG(QVariant, msg));
     }
 }
 
