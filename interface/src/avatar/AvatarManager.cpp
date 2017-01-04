@@ -82,7 +82,11 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
-    connect(nodeList.data(), "ignoredNode", this, "removeAvatar");
+    connect(nodeList.data(), &NodeList::ignoredNode, this, [=](const QUuid& nodeID, bool enabled) {
+        if (enabled) {
+            removeAvatar(nodeID);
+        }
+    });
 }
 
 AvatarManager::~AvatarManager() {
@@ -159,6 +163,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             removeAvatar(avatarIterator.key());
             ++avatarIterator;
         } else {
+            avatar->ensureInScene(avatar);
             avatar->simulate(deltaTime);
             ++avatarIterator;
 
@@ -219,16 +224,7 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     auto newAvatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
     auto rawRenderableAvatar = std::static_pointer_cast<Avatar>(newAvatar);
 
-    render::ScenePointer scene = qApp->getMain3DScene();
-    if (scene) {
-        render::PendingChanges pendingChanges;
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
-            rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
-        }
-        scene->enqueuePendingChanges(pendingChanges);
-    } else {
-        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
-    }
+    rawRenderableAvatar->addToScene(rawRenderableAvatar);
 
     return newAvatar;
 }

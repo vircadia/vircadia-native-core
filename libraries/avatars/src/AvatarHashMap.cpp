@@ -112,7 +112,7 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> mess
         // make sure this isn't our own avatar data or for a previously ignored node
         auto nodeList = DependencyManager::get<NodeList>();
 
-        if (sessionUUID != _lastOwnerSessionUUID && !nodeList->isIgnoringNode(sessionUUID)) {
+        if (sessionUUID != _lastOwnerSessionUUID && (!nodeList->isIgnoringNode(sessionUUID) || nodeList->getRequestsDomainListData())) {
             auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
 
             // have the matching (or new) avatar parse the data from the packet
@@ -145,7 +145,7 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
             identity.uuid = EMPTY;
         }
     }
-    if (!nodeList->isIgnoringNode(identity.uuid)) {
+    if (!nodeList->isIgnoringNode(identity.uuid) || nodeList->getRequestsDomainListData()) {
         // mesh URL for a UUID, find avatar in our list
         auto avatar = newOrExistingAvatar(identity.uuid, sendingNode);
         avatar->processAvatarIdentity(identity);

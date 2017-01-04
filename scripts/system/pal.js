@@ -189,10 +189,14 @@ function populateUserList() {
             // Request the username from the given UUID
             Users.requestUsernameFromID(id);
         }
-        data.push(avatarPalDatum);
-        if (id) { // No overlay for ourself.
-            addAvatarNode(id);
+        // Request personal mute status and ignore status
+        // from NodeList (as long as we're not requesting it for our own ID)
+        if (id) {
+            avatarPalDatum['personalMute'] = Users.getPersonalMuteStatus(id);
+            avatarPalDatum['ignore'] = Users.getIgnoreStatus(id);
+            addAvatarNode(id); // No overlay for ourselves
         }
+        data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
     pal.sendToQml({method: 'users', params: data});
@@ -311,9 +315,11 @@ function off() {
     }
     triggerMapping.disable(); // It's ok if we disable twice.
     removeOverlays();
+    Users.requestsDomainListData = false;
 }
 function onClicked() {
     if (!pal.visible) {
+        Users.requestsDomainListData = true;
         populateUserList();
         pal.raise();
         isWired = true;
@@ -385,6 +391,14 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
+function clearIgnoredInQMLAndClosePAL() {
+    pal.sendToQml({ method: 'clearIgnored' });
+    if (pal.visible) {
+        onClicked(); // Close the PAL
+    }
+}
+Window.domainChanged.connect(clearIgnoredInQMLAndClosePAL);
+Window.domainConnectionRefused.connect(clearIgnoredInQMLAndClosePAL);
 
 //
 // Cleanup.
@@ -395,6 +409,8 @@ Script.scriptEnding.connect(function () {
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
+    Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
+    Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
     off();
 });
 
