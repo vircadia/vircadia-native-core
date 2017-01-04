@@ -5,10 +5,15 @@ Item {
     id: tablet
     objectName: "tablet"
 
-    property double miclevel: 0.8
+    property double micLevel: 0.8
 
     width: parent.width
     height: parent.height
+
+    // called by C++ code to keep audio bar updated
+    function setMicLevel(newMicLevel) {
+        tablet.micLevel = newMicLevel;
+    }
 
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
@@ -101,7 +106,7 @@ Item {
                 }
                 Rectangle {
                     id: audioBarMask
-                    width: parent.width * tablet.miclevel
+                    width: parent.width * tablet.micLevel
                     color: "#333333"
                     radius: 5
                     anchors.bottom: parent.bottom
@@ -183,7 +188,7 @@ Item {
 
             PropertyChanges {
                 target: tablet
-                miclevel: 0
+                micLevel: 0
             }
         }
     ]

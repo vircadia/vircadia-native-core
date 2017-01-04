@@ -55,4 +55,39 @@
     Script.update.connect(updateShowTablet);
     // Script.setInterval(updateShowTablet, 1000);
 
+    // Initialise variables used to calculate audio level
+    var accumulatedLevel = 0.0;
+    // Note: Might have to tweak the following two based on the rate we're getting the data
+    var AVERAGING_RATIO = 0.05;
+    var MIC_LEVEL_UPDATE_INTERVAL_MS = 100;
+
+    // Calculate microphone level with the same scaling equation (log scale, exponentially averaged) in AvatarInputs and pal.js
+    function getMicLevel() {
+        var LOUDNESS_FLOOR = 11.0;
+        var LOUDNESS_SCALE = 2.8 / 5.0;
+        var LOG2 = Math.log(2.0);
+        var micLevel = 0.0;
+        accumulatedLevel = AVERAGING_RATIO * accumulatedLevel + (1 - AVERAGING_RATIO) * (MyAvatar.audioLoudness);
+        // Convert to log base 2
+        var logLevel = Math.log(accumulatedLevel + 1) / LOG2;
+        
+        if (logLevel <= LOUDNESS_FLOOR) {
+            micLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
+        } else {
+            micLevel = (logLevel - (LOUDNESS_FLOOR - 1.0)) * LOUDNESS_SCALE;
+        }
+        if (micLevel > 1.0) {
+            micLevel = 1.0;
+        }
+        return micLevel;
+    }
+
+    Script.setInterval(function() {
+       if (tabletShown) {
+            var currentMicLevel = getMicLevel();
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");      
+            tablet.updateAudioBar(currentMicLevel);
+        }
+    }, MIC_LEVEL_UPDATE_INTERVAL_MS);
+
 }()); // END LOCAL_SCOPE
