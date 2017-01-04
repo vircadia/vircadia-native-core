@@ -14,10 +14,10 @@ Script.include(Script.resolvePath("../libraries/controllers.js"));
 var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
-var DEFAULT_DPI = 30;
-var DEFAULT_WIDTH = 0.5;
+var DEFAULT_DPI = 32;
+var DEFAULT_WIDTH = 0.43;
 
-var TABLET_URL = "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx";
+var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-x.fbx";
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -48,7 +48,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     var _this = this;
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
-    var TABLET_HEIGHT_SCALE = 640 / 680;  //  Screen size of tablet entity isn't quite the desired aspect.
+    var TABLET_HEIGHT_SCALE = 650 / 680;  //  Screen size of tablet entity isn't quite the desired aspect.
     var HEIGHT = WIDTH * ASPECT * TABLET_HEIGHT_SCALE;
     var DEPTH = 0.025;
     var DPI = dpi || DEFAULT_DPI;
@@ -93,7 +93,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         parentJointIndex: -1
     });
 
-    var HOME_BUTTON_Y_OFFSET = -0.32;
+    var HOME_BUTTON_Y_OFFSET = -0.25;
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
         type: "Sphere",
