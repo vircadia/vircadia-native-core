@@ -15,16 +15,15 @@
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-function muteURL() {
-    return "icons/tablet-icons/" + (AudioDevice.getMuted() ? "mic-a.svg" : "mic-i.svg"); 
-}
 var button = tablet.addButton({
     icon: "icons/tablet-icons/mic-a.svg",
-    text: "MUTE"
+    text: "MUTE",
+    activeIcon: "icons/tablet-icons/mic-i.svg",
+    activeText: "UNMUTE"
 });
 
 function onMuteToggled() {
-    button.editProperties({icon: muteURL()});
+    button.editProperties({isActive: AudioDevice.getMuted()});
 }
 onMuteToggled();
 function onClicked(){
