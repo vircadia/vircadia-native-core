@@ -222,23 +222,30 @@ getControllerWorldLocation = function (handController, doOffset) {
             setEntityCustomData('grabbableKey', this.entityID, data);
 
             this.initString();
+
+            var self = this;
+            this.intervalID = Script.setInterval(function() { self.update(); }, 11);
         },
-        continueEquip: function(entityID, args) {
-            this.deltaTime = checkInterval();
+        update: function(entityID) {
+            var self = this;
+            self.deltaTime = checkInterval();
             //debounce during debugging -- maybe we're updating too fast?
             if (USE_DEBOUNCE === true) {
-                this.sinceLastUpdate = this.sinceLastUpdate + this.deltaTime;
+                self.sinceLastUpdate = self.sinceLastUpdate + self.deltaTime;
 
-                if (this.sinceLastUpdate > 60) {
-                    this.sinceLastUpdate = 0;
+                if (self.sinceLastUpdate > 60) {
+                    self.sinceLastUpdate = 0;
                 } else {
                     return;
                 }
             }
 
-            this.checkStringHand();
+            self.checkStringHand();
         },
         releaseEquip: function(entityID, args) {
+            //Script.update.disconnect(this, this.update);
+            Script.clearInterval(this.intervalID);
+
             Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
 
             this.stringDrawn = false;
