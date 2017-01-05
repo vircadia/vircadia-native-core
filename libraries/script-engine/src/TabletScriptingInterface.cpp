@@ -10,7 +10,17 @@
 
 #include <QtCore/QThread>
 
+#include <AudioInjector.h>
+#include <PathUtils.h>
 #include "ScriptEngineLogging.h"
+
+TabletScriptingInterface::TabletScriptingInterface() {
+    qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
+}
+
+TabletScriptingInterface::~TabletScriptingInterface() {
+    qDebug() << "Shutting down TabletScriptingInterface";
+}
 
 QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
 
@@ -31,7 +41,7 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
 
 void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet(tabletId));
-    if (tablet && qmlOffscreenSurface) {
+    if (tablet) {
         tablet->setQmlTabletRoot(qmlTabletRoot, qmlOffscreenSurface);
     } else {
         qCWarning(scriptengine) << "TabletScriptingInterface::setupTablet() bad tablet object";
@@ -155,6 +165,10 @@ void TabletProxy::updateAudioBar(const double micLevel) {
     }
 }
 
+void TabletProxy::updateTabletPosition(glm::vec3 tabletPosition) {
+    _position.set(tabletPosition);
+}
+
 void TabletProxy::emitScriptEvent(QVariant msg) {
     if (_qmlOffscreenSurface) {
         QMetaObject::invokeMethod(_qmlOffscreenSurface, "emitScriptEvent", Qt::AutoConnection, Q_ARG(QVariant, msg));
@@ -233,4 +247,46 @@ void TabletButtonProxy::editProperties(QVariantMap properties) {
     }
 }
 
+//
+// SoundEffect
+//
+
+SoundEffect::~SoundEffect() {
+    if (_sound) {
+        _sound->deleteLater();
+    }
+    if (_injector) {
+        _injector->deleteLater();
+    }
+}
+
+QUrl SoundEffect::getSource() const {
+    return _url;
+}
+
+void SoundEffect::setSource(QUrl url) {
+    _url = url;
+    _sound = DependencyManager::get<SoundCache>()->getSound(_url);
+}
+
+void SoundEffect::play() {
+    auto tsi = DependencyManager::get<TabletScriptingInterface>();
+    if (tsi) {
+        TabletProxy* tablet = qobject_cast<TabletProxy*>(tsi->getTablet("com.highfidelity.interface.tablet.system"));
+        if (tablet) {
+            AudioInjectorOptions options;
+            options.position = tablet->getPosition();
+            options.localOnly = true;
+            if (_injector) {
+                _injector->setOptions(options);
+                _injector->restart();
+            } else {
+                QByteArray samples = _sound->getByteArray();
+                _injector = AudioInjector::playSound(samples, options);
+            }
+        }
+    }
+}
+
 #include "TabletScriptingInterface.moc"
+

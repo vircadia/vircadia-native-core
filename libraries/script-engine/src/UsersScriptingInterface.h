@@ -37,7 +37,7 @@ public slots:
     * @param {nodeID} nodeID The node or session ID of the user you want to ignore.
     * @param {bool} enable True for ignored; false for un-ignored.
     */
-    void ignore(const QUuid& nodeID, bool ignoreEnabled);
+    void ignore(const QUuid& nodeID, bool ignoreEnabled = true);
 
     /**jsdoc
     * Gets a bool containing whether you have ignored the given Avatar UUID.
@@ -52,7 +52,7 @@ public slots:
     * @param {nodeID} nodeID The node or session ID of the user you want to mute.
     * @param {bool} enable True for enabled; false for disabled.
     */
-    void personalMute(const QUuid& nodeID, bool muteEnabled);
+    void personalMute(const QUuid& nodeID, bool muteEnabled = true);
 
     /**jsdoc
     * Requests a bool containing whether you have personally muted the given Avatar UUID.

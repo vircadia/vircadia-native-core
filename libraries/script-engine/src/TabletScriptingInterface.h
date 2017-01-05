@@ -10,6 +10,7 @@
 #define hifi_TabletScriptingInterface_h
 
 #include <mutex>
+#include <atomic>
 
 #include <QObject>
 #include <QVariant>
@@ -17,11 +18,17 @@
 #include <QQuickItem>
 #include <QUuid>
 
-#include <DependencyManager.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
+#include <DependencyManager.h>
+#include <SoundCache.h>
+#include <ThreadSafeValueCache.h>
 
 class TabletProxy;
 class TabletButtonProxy;
+class AudioInjector;
 
 /**jsdoc
  * @namespace Tablet
@@ -29,6 +36,9 @@ class TabletButtonProxy;
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
+    TabletScriptingInterface();
+    virtual ~TabletScriptingInterface();
+
     /**jsdoc
      * Creates or retruns a new TabletProxy and returns it.
      * @function Tablet.getTablet
@@ -85,11 +95,22 @@ public:
     Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
 
     /**jsdoc
-     * @function TabletProxy#updateAudioBar
      * Updates the audio bar in tablet to reflect latest mic level
+     * @function TabletProxy#updateAudioBar
      * @param micLevel {double} mic level value between 0 and 1
      */
     Q_INVOKABLE void updateAudioBar(const double micLevel);
+
+
+    /**jsdoc
+     * Updates the tablet's position in world space.  This is necessary for the tablet
+     * to emit audio with the correct spatialization.
+     * @function TabletProxy#updateTabletPosition
+     * @param position {vec3} tablet position in world space.
+     */
+    Q_INVOKABLE void updateTabletPosition(glm::vec3 tabletPosition);
+
+    glm::vec3 getPosition() const { return _position.get(); }
 
     QString getName() const { return _name; }
 
@@ -120,6 +141,7 @@ protected:
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
+    ThreadSafeValueCache<glm::vec3> _position;
 };
 
 /**jsdoc
@@ -167,5 +189,25 @@ protected:
     QQuickItem* _qmlButton { nullptr };
     QVariantMap _properties;
 };
+
+
+// Exposed to qml only, not java script
+class SoundEffect : public QQuickItem {
+    Q_OBJECT
+    Q_PROPERTY(QUrl source READ getSource WRITE setSource)
+public:
+
+    virtual ~SoundEffect();
+
+    QUrl getSource() const;
+    void setSource(QUrl url);
+
+    Q_INVOKABLE void play();
+protected:
+    QUrl _url;
+    SharedSoundPointer _sound;
+    AudioInjector* _injector { nullptr };
+};
+
 
 #endif // hifi_TabletScriptingInterface_h

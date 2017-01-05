@@ -48,8 +48,11 @@
     function updateShowTablet() {
         if (tabletShown) {
             var currentMicLevel = getMicLevel();
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");      
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.updateAudioBar(currentMicLevel);
+            if (UIWebTablet) {
+               tablet.updateTabletPosition(UIWebTablet.getPosition());
+            }
         }
 
         if (HMD.showTablet && !tabletShown) {
@@ -83,7 +86,7 @@
         accumulatedLevel = AVERAGING_RATIO * accumulatedLevel + (1 - AVERAGING_RATIO) * (MyAvatar.audioLoudness);
         // Convert to log base 2
         var logLevel = Math.log(accumulatedLevel + 1) / LOG2;
-        
+
         if (logLevel <= LOUDNESS_FLOOR) {
             micLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
         } else {
@@ -94,6 +97,4 @@
         }
         return micLevel;
     }
-
-
 }()); // END LOCAL_SCOPE
