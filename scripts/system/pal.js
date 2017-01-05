@@ -44,11 +44,11 @@ ExtendedOverlay.prototype.editOverlay = function (properties) { // change displa
 
 // hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed 
 // something, will revisit as this is sorta horrible.
-const UNSELECTED_TEXTURES = {"idle-D": "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png",
-                             "idle-E": "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"
+const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
+                             "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
 };
-const SELECTED_TEXTURES = { "idle-D": "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png",
-                            "idle-E": "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"
+const SELECTED_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
+                            "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
 };
 
 const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
@@ -197,7 +197,7 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
 function addAvatarNode(id) {
     var selected = ExtendedOverlay.isSelected(id);
     return new ExtendedOverlay(id, "model", { 
-        url: "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx",
+        url: Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx"),
         textures: textures(selected)
     }, selected, true);
 }
