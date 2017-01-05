@@ -3,6 +3,7 @@ var ENTITY_LIST_HTML_URL = Script.resolvePath('../html/entityList.html');
 EntityListTool = function(opts) {
     var that = {};
 
+
     var url = ENTITY_LIST_HTML_URL;
     var webView = new OverlayWebWindow({
         title: 'Entity List',  source: url,  toolWindow: true   
@@ -98,7 +99,6 @@ EntityListTool = function(opts) {
         webView.emitScriptEvent(JSON.stringify(data));
     }
 
-
     webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
         if (data.type == "selectionUpdate") {
@@ -121,9 +121,19 @@ EntityListTool = function(opts) {
                 MyAvatar.position = selectionManager.worldPosition;
             }
         } else if (data.type == "pal") {
-            print("fixme got pal");
-            if (selectionManager.hasSelection()) {
-                print('fixme selection', JSON.stringify(selectionManager.selections));
+            var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
+            selectionManager.selections.forEach(function (id) {
+                var lastEditedBy = Entities.getEntityProperties(id, 'lastEditedBy').lastEditedBy;
+                if (lastEditedBy) {
+                    sessionIds[lastEditedBy] = true;
+                }
+            });
+            var dedupped = Object.keys(sessionIds);
+            if (!dedupped.length) {
+                Window.alert('There were no recent users of the ' + selectionManager.selections.length + ' selected objects.');
+            } else {
+                // No need to subscribe if we're just sending.
+                Messages.sendMessage('com.highfidelity.pal', JSON.stringify({method: 'select', params: dedupped}), 'local');
             }
         } else if (data.type == "delete") {
             deleteSelectedEntities();

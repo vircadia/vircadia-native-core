@@ -257,6 +257,27 @@ function removeOverlays() {
 }
 
 //
+// Message from other scripts, such as edit.js
+//
+var CHANNEL = 'com.highfidelity.pal';
+function receiveMessage(channel, messageString, senderID) {
+    if ((channel !== CHANNEL) ||
+        (senderID !== MyAvatar.sessionUUID)) {
+        return;
+    }
+    var message = JSON.parse(messageString);
+    switch (message.method) {
+    case 'select':
+        print('fixme processing', message.params);
+        break;
+    default:
+        print('Unrecognized PAL message', messageString);
+    }
+}
+Messages.subscribe(CHANNEL);
+Messages.messageReceived.connect(receiveMessage);
+
+//
 // Clicks.
 //
 function handleClick(pickRay) {
@@ -412,6 +433,8 @@ Script.scriptEnding.connect(function () {
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
+    Messages.unsubscribe(CHANNEL);
+    Messages.messageReceived.disconnect(receiveMessage);
     off();
 });
 
