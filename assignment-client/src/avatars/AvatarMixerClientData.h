@@ -101,6 +101,8 @@ public:
     void incrementAvatarOutOfView() { _recentOtherAvatarsOutOfView++; }
     const QString& getBaseDisplayName() { return _baseDisplayName; }
     void setBaseDisplayName(const QString& baseDisplayName) { _baseDisplayName = baseDisplayName; }
+    bool getRequestsDomainListData() { return _requestsDomainListData; }
+    void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
     quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
         quint64 result = 0;
@@ -142,6 +144,7 @@ private:
     int _recentOtherAvatarsInView { 0 };
     int _recentOtherAvatarsOutOfView { 0 };
     QString _baseDisplayName{}; // The santized key used in determinging unique sessionDisplayName, so that we can remove from dictionary.
+    bool _requestsDomainListData { false };
 };
 
 #endif // hifi_AvatarMixerClientData_h

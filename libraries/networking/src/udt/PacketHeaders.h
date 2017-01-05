@@ -104,7 +104,8 @@ public:
         UsernameFromIDRequest,
         UsernameFromIDReply,
         ViewFrustum,
-        LAST_PACKET_TYPE = ViewFrustum
+        RequestsDomainListData,
+        LAST_PACKET_TYPE = RequestsDomainListData
     };
 };
 
@@ -208,6 +209,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     HandControllerJoints,
     HasKillAvatarReason,
     SessionDisplayName,
+    Unignore,
     VariableAvatarData
 };
 
@@ -243,6 +245,7 @@ enum class AudioVersion : PacketVersion {
     Exactly10msAudioPackets,
     TerminatingStreamStats,
     SpaceBubbleChanges,
+    HasPersonalMute,
 };
 
 #endif // hifi_PacketHeaders_h

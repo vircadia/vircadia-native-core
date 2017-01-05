@@ -1137,6 +1137,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _settingsTimer.moveToThread(&_settingsThread);
     _settingsTimer.setSingleShot(false);
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
+    _settingsThread.setPriority(QThread::LowestPriority);
     _settingsThread.start();
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {

@@ -50,6 +50,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
@@ -108,6 +109,13 @@ void AvatarMixer::broadcastAvatarData() {
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
 
+    // only send extra avatar data (avatars out of view, ignored) every Nth AvatarData frame
+    // Extra avatar data will be sent (AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND/EXTRA_AVATAR_DATA_FRAME_RATIO) times
+    // per second.
+    // This value should be a power of two for performance purposes, as the mixer performs a modulo operation every frame
+    // to determine whether the extra data should be sent.
+    const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16; 
+    
     // NOTE: The following code calculates the _performanceThrottlingRatio based on how much the avatar-mixer was
     // able to sleep. This will eventually be used to ask for an additional avatar-mixer to help out. Currently the value
     // is unused as it is assumed this should not be hit before the avatar-mixer hits the desired bandwidth limit per client.
@@ -205,6 +213,15 @@ void AvatarMixer::broadcastAvatarData() {
             // use the data rate specifically for avatar data for FRD adjustment checks
             float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
 
+            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that are not in the view frustrum
+            bool getsOutOfView = nodeData->getRequestsDomainListData();
+
+            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that they've ignored
+            bool getsIgnoredByMe = getsOutOfView;
+            
+            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
+            bool getsAnyIgnored = getsIgnoredByMe && node->getCanKick();
+
             // Check if it is time to adjust what we send this client based on the observed
             // bandwidth to this node. We do this once a second, which is also the window for
             // the bandwidth reported by node->getOutboundBandwidth();
@@ -275,14 +292,14 @@ void AvatarMixer::broadcastAvatarData() {
                     // or that has ignored the viewing node
                     if (!otherNode->getLinkedData()
                         || otherNode->getUUID() == node->getUUID()
-                        || node->isIgnoringNodeWithID(otherNode->getUUID())
-                        || otherNode->isIgnoringNodeWithID(node->getUUID())) {
+                        || (node->isIgnoringNodeWithID(otherNode->getUUID()) && !getsIgnoredByMe)
+                        || (otherNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
                         return false;
                     } else {
                         AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
                         // Check to see if the space bubble is enabled
-                        if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
+                        if ((node->isIgnoreRadiusEnabled() && !getsIgnoredByMe) || (otherNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
                             // Define the minimum bubble size
                             static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
                             // Define the scale of the box for the current node
@@ -333,7 +350,6 @@ void AvatarMixer::broadcastAvatarData() {
                         && (forceSend
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
-
                         sendIdentityPacket(otherNodeData, node);
                     }
 
@@ -349,6 +365,7 @@ void AvatarMixer::broadcastAvatarData() {
                     maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
 
                     if (distanceToAvatar != 0.0f
+                        && !getsOutOfView
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
                     }
@@ -380,15 +397,21 @@ void AvatarMixer::broadcastAvatarData() {
                     nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
                                                              otherNodeData->getLastReceivedSequenceNumber());
 
-                    // start a new segment in the PacketList for this avatar
-                    avatarPacketList->startSegment();
-
                     // determine if avatar is in view, to determine how much data to include...
                     glm::vec3 otherNodeBoxScale = (otherNodeData->getPosition() - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
                     AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+                    bool isInView = nodeData->otherAvatarInView(otherNodeBox);
+
+                    // this throttles the extra data to only be sent every Nth message
+                    if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
+                        return;
+                    }
+
+                    // start a new segment in the PacketList for this avatar
+                    avatarPacketList->startSegment();
 
                     AvatarData::AvatarDataDetail detail;
-                    if (!nodeData->otherAvatarInView(otherNodeBox)) {
+                    if (!isInView && !getsOutOfView) {
                         detail = AvatarData::MinimumData;
                         nodeData->incrementAvatarOutOfView();
                     } else {
@@ -527,6 +550,20 @@ void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> messag
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
         if (nodeData != nullptr) {
             nodeData->readViewFrustumPacket(message->getMessage());
+        }
+    }
+}
+
+void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->getOrCreateLinkedData(senderNode);
+
+    if (senderNode->getLinkedData()) {
+        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            bool isRequesting;
+            message->readPrimitive(&isRequesting);
+            nodeData->setRequestsDomainListData(isRequesting);
         }
     }
 }
