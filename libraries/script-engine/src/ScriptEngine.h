@@ -252,6 +252,8 @@ protected:
     std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
 
     std::recursive_mutex _lock;
+
+    std::chrono::microseconds _totalTimerExecution { 0 };
 };
 
 #endif // hifi_ScriptEngine_h

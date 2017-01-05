@@ -426,7 +426,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     // a timer with a small interval is used to get better performance.
     QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &OffscreenQmlSurface::onAboutToQuit);
-    _updateTimer.setInterval(MIN_TIMER_MS);
+    _updateTimer.setTimerType(Qt::PreciseTimer);
+    _updateTimer.setInterval(MIN_TIMER_MS); // 5ms, Qt::PreciseTimer required
     _updateTimer.start();
 
     auto rootContext = getRootContext();

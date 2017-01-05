@@ -363,7 +363,7 @@ void showMinSpecWarning() {
     vrOverlay->ShowOverlay(minSpecFailedOverlay);
 
     QTimer* timer = new QTimer(&miniApp);
-    timer->setInterval(FAILED_MIN_SPEC_UPDATE_INTERVAL_MS);
+    timer->setInterval(FAILED_MIN_SPEC_UPDATE_INTERVAL_MS); // Qt::CoarseTimer acceptable, we don't need this to be frame rate accurate
     QObject::connect(timer, &QTimer::timeout, [&] {
         vr::TrackedDevicePose_t vrPoses[vr::k_unMaxTrackedDeviceCount];
         vrSystem->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseSeated, 0, vrPoses, vr::k_unMaxTrackedDeviceCount);

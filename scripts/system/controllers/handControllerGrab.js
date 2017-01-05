@@ -195,6 +195,8 @@ var STATE_OVERLAY_TOUCHING = 8;
 var holdEnabled = true;
 var nearGrabEnabled = true;
 var farGrabEnabled = true;
+var myAvatarScalingEnabled = true;
+var objectScalingEnabled = true;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -816,7 +818,6 @@ function MyController(hand) {
     };
 
     this.update = function(deltaTime, timestamp) {
-
         this.updateSmoothedTrigger();
 
         //  If both trigger and grip buttons squeezed and nothing is held, rescale my avatar!
@@ -2141,7 +2142,6 @@ function MyController(hand) {
     };
 
     this.nearGrabbing = function(deltaTime, timestamp) {
-
         this.grabPointSphereOff();
 
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
@@ -2314,6 +2314,10 @@ function MyController(hand) {
     };
 
     this.maybeScale = function(props) {
+        if (!objectScalingEnabled) {
+            return;
+        }
+
         if (!this.shouldScale) {
             //  If both secondary triggers squeezed, and the non-holding hand is empty, start scaling
             if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed() && this.getOtherHandController().state === STATE_OFF) {
@@ -2333,6 +2337,10 @@ function MyController(hand) {
     }
 
     this.maybeScaleMyAvatar = function() {
+        if (!myAvatarScalingEnabled) {
+            return;
+        }
+
         if (!this.shouldScale) {
             //  If both secondary triggers squeezed, start scaling
             if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed()) {
@@ -3018,6 +3026,14 @@ var handleHandMessages = function(channel, message, sender) {
                 print("farGrabEnabled: ", data.farGrabEnabled);
                 farGrabEnabled = data.farGrabEnabled;
             }
+            if (data.myAvatarScalingEnabled !== undefined) {
+                print("myAvatarScalingEnabled: ", data.myAvatarScalingEnabled);
+                myAvatarScalingEnabled = data.myAvatarScalingEnabled;
+            }
+            if (data.objectScalingEnabled !== undefined) {
+                print("objectScalingEnabled: ", data.objectScalingEnabled);
+                objectScalingEnabled = data.objectScalingEnabled;
+            }
         } else if (channel === 'Hifi-Hand-Grab') {
             try {
                 data = JSON.parse(message);
@@ -3066,9 +3082,65 @@ var handleHandMessages = function(channel, message, sender) {
 
 Messages.messageReceived.connect(handleHandMessages);
 
-var BASIC_TIMER_INTERVAL_MS = 20; // 20ms = 50hz good enough
+var TARGET_UPDATE_HZ = 50; // 50hz good enough (no change in logic)
+var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ; 
+var lastInterval = Date.now();
+
+var intervalCount = 0;
+var totalDelta = 0;
+var totalVariance = 0;
+var highVarianceCount = 0;
+var veryhighVarianceCount = 0;
+var updateTotalWork = 0;
+
+var UPDATE_PERFORMANCE_DEBUGGING = false;
+    
 var updateIntervalTimer = Script.setInterval(function(){
-    update(BASIC_TIMER_INTERVAL_MS / 1000);
+
+    intervalCount++;
+    var thisInterval = Date.now();
+    var deltaTimeMsec = thisInterval - lastInterval;
+    var deltaTime = deltaTimeMsec / 1000;
+    lastInterval = thisInterval;
+
+    totalDelta += deltaTimeMsec;
+
+    var variance = Math.abs(deltaTimeMsec - BASIC_TIMER_INTERVAL_MS);
+    totalVariance += variance;
+
+    if (variance > 1) {
+        highVarianceCount++;
+    }
+
+    if (variance > 5) {
+        veryhighVarianceCount++;
+    }
+
+    // will call update for both hands
+    var preWork = Date.now();
+    update(deltaTime);
+    var postWork = Date.now();
+    var workDelta = postWork - preWork;
+    updateTotalWork += workDelta;
+
+    if (intervalCount == 100) {
+
+        if (UPDATE_PERFORMANCE_DEBUGGING) {
+    		print("handControllerGrab.js -- For " + intervalCount + " samples average= " + totalDelta/intervalCount + " ms" 
+                     + " average variance:" + totalVariance/intervalCount + " ms"
+                     + " high variance count:" + highVarianceCount + " [ " + (highVarianceCount/intervalCount) * 100 + "% ] "
+                     + " VERY high variance count:" + veryhighVarianceCount + " [ " + (veryhighVarianceCount/intervalCount) * 100 + "% ] "
+                     + " average work:" + updateTotalWork/intervalCount + " ms");
+        }
+
+        intervalCount = 0;
+        totalDelta = 0;
+        totalVariance = 0;
+        highVarianceCount = 0;
+        veryhighVarianceCount = 0;
+        updateTotalWork = 0;
+    }
+
 }, BASIC_TIMER_INTERVAL_MS);
 
 function cleanup() {

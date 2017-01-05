@@ -41,12 +41,12 @@ DomainHandler::DomainHandler(QObject* parent) :
     
     // setup a timeout for failure on settings requests
     static const int DOMAIN_SETTINGS_TIMEOUT_MS = 5000;
-    _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS);
+    _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS); // 5s, Qt::CoarseTimer acceptable
     connect(&_settingsTimer, &QTimer::timeout, this, &DomainHandler::settingsReceiveFail);
 
     // setup the API refresh timer for auto connection information refresh from API when failing to connect
     const int API_REFRESH_TIMEOUT_MSEC = 2500;
-    _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC);
+    _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC); // 2.5s, Qt::CoarseTimer acceptable
 
     auto addressManager = DependencyManager::get<AddressManager>();
     connect(&_apiRefreshTimer, &QTimer::timeout, addressManager.data(), &AddressManager::refreshPreviousLookup);

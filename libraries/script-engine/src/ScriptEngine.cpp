@@ -800,7 +800,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         _registeredHandlers[entityID] = RegisteredEventHandlers();
     }
     CallbackList& handlersForEvent = _registeredHandlers[entityID][eventName];
-    CallbackData handlerData = {handler, currentEntityIdentifier, currentSandboxURL};
+    CallbackData handlerData = { handler, currentEntityIdentifier, currentSandboxURL };
     handlersForEvent << handlerData; // Note that the same handler can be added many times. See removeEntityEventHandler().
 }
 
@@ -878,24 +878,41 @@ void ScriptEngine::run() {
         // Throttle to SCRIPT_FPS
         // We'd like to try to keep the script at a solid SCRIPT_FPS update rate. And so we will 
         // calculate a sleepUntil to be the time from our start time until the original target
-        // sleepUntil for this frame.
-        const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
-        clock::time_point targetSleepUntil(startTime + thisFrame++ * FRAME_DURATION);
+        // sleepUntil for this frame. This approach will allow us to "catch up" in the event 
+        // that some of our script udpates/frames take a little bit longer than the target average 
+        // to execute.
+        // NOTE: if we go to variable SCRIPT_FPS, then we will need to reconsider this approach
+        const std::chrono::microseconds TARGET_SCRIPT_FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
+        clock::time_point targetSleepUntil(startTime + (thisFrame++ * TARGET_SCRIPT_FRAME_DURATION));
 
-        // However, if our sleepUntil is not at least our average update time into the future
-        // it means our script is taking too long in it's updates, and we want to punish the
-        // script a little bit. So we will force the sleepUntil to be at least our averageUpdate
-        // time into the future.
+        // However, if our sleepUntil is not at least our average update and timer execution time 
+        // into the future it means our script is taking too long in its updates, and we want to 
+        // punish the script a little bit. So we will force the sleepUntil to be at least our 
+        // averageUpdate + averageTimerPerFrame time into the future.
         auto averageUpdate = totalUpdates / thisFrame;
-        auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageUpdate);
+        auto averageTimerPerFrame = _totalTimerExecution / thisFrame;
+        auto averageTimerAndUpdate = averageUpdate + averageTimerPerFrame;
+        auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageTimerAndUpdate);
 
         // We don't want to actually sleep for too long, because it causes our scripts to hang 
         // on shutdown and stop... so we want to loop and sleep until we've spent our time in 
         // purgatory, constantly checking to see if our script was asked to end
+        bool processedEvents = false;
         while (!_isFinished && clock::now() < sleepUntil) {
+
             QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
-            auto thisSleepUntil = std::min(sleepUntil, clock::now() + FRAME_DURATION);
-            std::this_thread::sleep_until(thisSleepUntil);
+            processedEvents = true;
+
+            // If after processing events, we're past due, exit asap
+            if (clock::now() >= sleepUntil) {
+                break;
+            }
+
+            // We only want to sleep a small amount so that any pending events (like timers or invokeMethod events)
+            // will be able to process quickly.
+            static const int SMALL_SLEEP_AMOUNT = 100;
+            auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
+            std::this_thread::sleep_until(smallSleepUntil);
         }
 
 #ifdef SCRIPT_DELAY_DEBUG
@@ -919,7 +936,10 @@ void ScriptEngine::run() {
             break;
         }
 
-        QCoreApplication::processEvents();
+        // Only call this if we didn't processEvents as part of waiting for next frame
+        if (!processedEvents) {
+            QCoreApplication::processEvents();
+        }
 
         if (_isFinished) {
             break;
@@ -992,6 +1012,7 @@ void ScriptEngine::stopAllTimers() {
         stopTimer(timer);
     }
 }
+
 void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
      // We could maintain a separate map of entityID => QTimer, but someone will have to prove to me that it's worth the complexity. -HRS
     QVector<QTimer*> toDelete;
@@ -1077,7 +1098,12 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
+        auto preTimer = p_high_resolution_clock::now();
         callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
+        auto postTimer = p_high_resolution_clock::now();
+        auto elapsed = (postTimer - preTimer);
+        _totalTimerExecution += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
+
     }
 }
 
@@ -1087,12 +1113,18 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     QTimer* newTimer = new QTimer(this);
     newTimer->setSingleShot(isSingleShot);
 
+    // The default timer type is not very accurate below about 200ms http://doc.qt.io/qt-5/qt.html#TimerType-enum
+    static const int MIN_TIMEOUT_FOR_COARSE_TIMER = 200;
+    if (intervalMS < MIN_TIMEOUT_FOR_COARSE_TIMER) {
+        newTimer->setTimerType(Qt::PreciseTimer);
+    }
+
     connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
 
-    CallbackData timerData = {function, currentEntityIdentifier, currentSandboxURL};
+    CallbackData timerData = {function, currentEntityIdentifier, currentSandboxURL };
     _timerFunctionMap.insert(newTimer, timerData);
 
     newTimer->start(intervalMS);

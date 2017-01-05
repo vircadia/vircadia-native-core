@@ -91,7 +91,7 @@ void DiskCacheEditor::makeDialog() {
 
     static const int REFRESH_INTERVAL = 100; // msec
     _refreshTimer = new QTimer(_dialog);
-    _refreshTimer->setInterval(REFRESH_INTERVAL);
+    _refreshTimer->setInterval(REFRESH_INTERVAL); // Qt::CoarseTimer acceptable, no need for real time accuracy
     _refreshTimer->setSingleShot(false);
     QObject::connect(_refreshTimer.data(), &QTimer::timeout, this, &DiskCacheEditor::refresh);
     _refreshTimer->start();

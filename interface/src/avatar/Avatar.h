@@ -178,6 +178,8 @@ public:
     glm::vec3 getUncachedRightPalmPosition() const;
     glm::quat getUncachedRightPalmRotation() const;
 
+    Q_INVOKABLE void setShouldDie();
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -254,6 +256,9 @@ protected:
     ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
+    void addToScene(AvatarSharedPointer self);
+    void ensureInScene(AvatarSharedPointer self);
+
 private:
     int _leftPointerGeometryID { 0 };
     int _rightPointerGeometryID { 0 };
@@ -262,6 +267,7 @@ private:
     bool _shouldAnimate { true };
     bool _shouldSkipRender { false };
     bool _isLookAtTarget { false };
+    bool _inScene { false };
 
     float getBoundingRadius() const;
 

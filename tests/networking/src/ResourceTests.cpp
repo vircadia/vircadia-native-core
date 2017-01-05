@@ -46,7 +46,7 @@ void ResourceTests::downloadFirst() {
     const int timeout = 1000;
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(timeout);
+    timer.setInterval(timeout); // 1s, Qt::CoarseTimer acceptable
     timer.setSingleShot(true);
 
     connect(resource.data(), &Resource::loaded, &loop, &QEventLoop::quit);
@@ -69,7 +69,7 @@ void ResourceTests::downloadAgain() {
     const int timeout = 1000;
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(timeout);
+    timer.setInterval(timeout); // 1s, Qt::CoarseTimer acceptable
     timer.setSingleShot(true);
 
     connect(resource.data(), &Resource::loaded, &loop, &QEventLoop::quit);
