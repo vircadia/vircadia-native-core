@@ -196,8 +196,10 @@ var STATE_NEAR_GRABBING = 3;
 var STATE_NEAR_TRIGGER = 4;
 var STATE_FAR_TRIGGER = 5;
 var STATE_HOLD = 6;
-var STATE_ENTITY_TOUCHING = 7;
-var STATE_OVERLAY_TOUCHING = 8;
+var STATE_ENTITY_STYLUS_TOUCHING = 7;
+var STATE_ENTITY_LASER_TOUCHING = 8;
+var STATE_OVERLAY_STYLUS_TOUCHING = 9;
+var STATE_OVERLAY_LASER_TOUCHING = 10;
 
 var holdEnabled = true;
 var nearGrabEnabled = true;
@@ -257,13 +259,25 @@ CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
     enterMethod: "farTriggerEnter",
     updateMethod: "farTrigger"
 };
-CONTROLLER_STATE_MACHINE[STATE_ENTITY_TOUCHING] = {
+CONTROLLER_STATE_MACHINE[STATE_ENTITY_STYLUS_TOUCHING] = {
     name: "entityTouching",
     enterMethod: "entityTouchingEnter",
     exitMethod: "entityTouchingExit",
     updateMethod: "entityTouching"
 };
-CONTROLLER_STATE_MACHINE[STATE_OVERLAY_TOUCHING] = {
+CONTROLLER_STATE_MACHINE[STATE_ENTITY_LASER_TOUCHING] = {
+    name: "entityTouching",
+    enterMethod: "entityTouchingEnter",
+    exitMethod: "entityTouchingExit",
+    updateMethod: "entityTouching"
+};
+CONTROLLER_STATE_MACHINE[STATE_OVERLAY_STYLUS_TOUCHING] = {
+    name: "overlayTouching",
+    enterMethod: "overlayTouchingEnter",
+    exitMethod: "overlayTouchingExit",
+    updateMethod: "overlayTouching"
+};
+CONTROLLER_STATE_MACHINE[STATE_OVERLAY_LASER_TOUCHING] = {
     name: "overlayTouching",
     enterMethod: "overlayTouchingEnter",
     exitMethod: "overlayTouchingExit",
@@ -1723,10 +1737,13 @@ function MyController(hand) {
             }
 
             // send mouse events for button highlights and tooltips.
-            if (this.hand == mostRecentSearchingHand || (this.hand !== mostRecentSearchingHand &&
-                                                         this.getOtherHandController().state !== STATE_SEARCHING &&
-                                                         this.getOtherHandController().state !== STATE_ENTITY_TOUCHING &&
-                                                         this.getOtherHandController().state !== STATE_OVERLAY_TOUCHING)) {
+            if (this.hand == mostRecentSearchingHand ||
+                (this.hand !== mostRecentSearchingHand &&
+                 this.getOtherHandController().state !== STATE_SEARCHING &&
+                 this.getOtherHandController().state !== STATE_ENTITY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_ENTITY_LASER_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_OVERLAY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_OVERLAY_LASER_TOUCHING)) {
 
                 // most recently searching hand has priority over other hand, for the purposes of button highlighting.
                 pointerEvent = {
@@ -1745,7 +1762,7 @@ function MyController(hand) {
 
 
             this.grabbedEntity = entity;
-            this.setState(STATE_ENTITY_TOUCHING, "begin touching entity '" + name + "'");
+            this.setState(STATE_ENTITY_STYLUS_TOUCHING, "begin touching entity '" + name + "'");
             return true;
 
         } else if (this.hoverEntity) {
@@ -1784,10 +1801,13 @@ function MyController(hand) {
             }
 
             // Send mouse events for button highlights and tooltips.
-            if (this.hand == mostRecentSearchingHand || (this.hand !== mostRecentSearchingHand &&
-                                                         this.getOtherHandController().state !== STATE_SEARCHING &&
-                                                         this.getOtherHandController().state !== STATE_ENTITY_TOUCHING &&
-                                                         this.getOtherHandController().state !== STATE_OVERLAY_TOUCHING)) {
+            if (this.hand == mostRecentSearchingHand ||
+                (this.hand !== mostRecentSearchingHand &&
+                 this.getOtherHandController().state !== STATE_SEARCHING &&
+                 this.getOtherHandController().state !== STATE_ENTITY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_ENTITY_LASER_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_OVERLAY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_OVERLAY_LASER_TOUCHING)) {
 
                 // most recently searching hand has priority over other hand, for the purposes of button highlighting.
                 pointerEvent = {
@@ -1805,7 +1825,7 @@ function MyController(hand) {
             }
 
             this.grabbedOverlay = overlay;
-            this.setState(STATE_OVERLAY_TOUCHING, "begin touching overlay '" + overlay + "'");
+            this.setState(STATE_OVERLAY_STYLUS_TOUCHING, "begin touching overlay '" + overlay + "'");
             return true;
 
         } else if (this.hoverOverlay) {
@@ -1845,10 +1865,13 @@ function MyController(hand) {
             }
 
             // send mouse events for button highlights and tooltips.
-            if (this.hand == mostRecentSearchingHand || (this.hand !== mostRecentSearchingHand &&
-                                                         this.getOtherHandController().state !== STATE_SEARCHING &&
-                                                         this.getOtherHandController().state !== STATE_ENTITY_TOUCHING &&
-                                                         this.getOtherHandController().state !== STATE_OVERLAY_TOUCHING)) {
+            if (this.hand == mostRecentSearchingHand ||
+                (this.hand !== mostRecentSearchingHand &&
+                 this.getOtherHandController().state !== STATE_SEARCHING &&
+                 this.getOtherHandController().state !== STATE_ENTITY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_ENTITY_LASER_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_OVERLAY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_OVERLAY_LASER_TOUCHING)) {
 
                 // most recently searching hand has priority over other hand, for the purposes of button highlighting.
                 pointerEvent = {
@@ -1867,7 +1890,7 @@ function MyController(hand) {
 
             if (this.triggerSmoothedGrab() && (!isEditing() || name == "WebTablet Web")) {
                 this.grabbedEntity = entity;
-                this.setState(STATE_ENTITY_TOUCHING, "begin touching entity '" + name + "'");
+                this.setState(STATE_ENTITY_LASER_TOUCHING, "begin touching entity '" + name + "'");
                 return true;
             }
         } else if (this.hoverEntity) {
@@ -1908,10 +1931,13 @@ function MyController(hand) {
             }
 
             // Send mouse events for button highlights and tooltips.
-            if (this.hand == mostRecentSearchingHand || (this.hand !== mostRecentSearchingHand &&
-                                                         this.getOtherHandController().state !== STATE_SEARCHING &&
-                                                         this.getOtherHandController().state !== STATE_ENTITY_TOUCHING &&
-                                                         this.getOtherHandController().state !== STATE_OVERLAY_TOUCHING)) {
+            if (this.hand == mostRecentSearchingHand ||
+                (this.hand !== mostRecentSearchingHand &&
+                 this.getOtherHandController().state !== STATE_SEARCHING &&
+                 this.getOtherHandController().state !== STATE_ENTITY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_ENTITY_LASER_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_OVERLAY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_OVERLAY_LASER_TOUCHING)) {
 
                 // most recently searching hand has priority over other hand, for the purposes of button highlighting.
                 pointerEvent = {
@@ -1930,7 +1956,7 @@ function MyController(hand) {
 
             if (this.triggerSmoothedGrab() && !isEditing()) {
                 this.grabbedOverlay = overlay;
-                this.setState(STATE_OVERLAY_TOUCHING, "begin touching overlay '" + overlay + "'");
+                this.setState(STATE_OVERLAY_LASER_TOUCHING, "begin touching overlay '" + overlay + "'");
                 return true;
             }
 
@@ -2711,7 +2737,7 @@ function MyController(hand) {
                                                      getControllerWorldLocation(this.handToController(), true));
         if (intersectInfo) {
 
-            if (intersectInfo.distance > WEB_TOUCH_DISTANCE) {
+            if (this.state == STATE_ENTITY_STYLUS_TOUCHING && intersectInfo.distance > WEB_TOUCH_DISTANCE) {
                 this.setState(STATE_OFF, "pulled away from web entity");
                 return;
             }
@@ -2811,7 +2837,7 @@ function MyController(hand) {
             handLaserIntersectOverlay(this.grabbedOverlay, getControllerWorldLocation(this.handToController(), true));
         if (intersectInfo) {
 
-            if (intersectInfo.distance > WEB_TOUCH_DISTANCE) {
+            if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && intersectInfo.distance > WEB_TOUCH_DISTANCE) {
                 this.setState(STATE_OFF, "pulled away from overlay");
                 return;
             }
