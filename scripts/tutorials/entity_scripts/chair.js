@@ -16,15 +16,16 @@
     var UPDATE_INTERVAL_MSECS = 1000;       //  Update the spring/object at 45Hz
     var SETTINGS_INTERVAL_MSECS = 1000;     //  Periodically check user data for updates 
     var DEFAULT_SIT_DISTANCE = 1.0;         //  How strong/stiff is the spring?  
-    var HYSTERESIS = 1.2;
+    var HYSTERESIS = 1.1;
 
+    var sitTarget = { x: 0, y: 0, z: 0 };   //  Offset where your butt should go relative
+                                            //  to the object's center.
     var SITTING = 0;
-    var LEAVING = 1; 
-    var STANDING = 2;
+    var STANDING = 1;
 
     var state = STANDING;
     var sitDistance = DEFAULT_SIT_DISTANCE;
-    var standDistance = DEFAULT_SIT_DISTANCE / 3;
+
     var entity;
     var props;
     var checkTimer = false;
@@ -48,7 +49,8 @@
         closest = true;
         AvatarList.getAvatarIdentifiers().forEach(function(avatarSessionUUID) {
             var avatar = AvatarList.getAvatar(avatarSessionUUID);
-            if (Vec3.distance(avatar.position, position) < distance) {
+            if (avatarSessionUUID && Vec3.distance(avatar.position, position) < distance) {
+                debugPrint("Seat Occupied!");
                 closest = false;
             } 
         });
@@ -78,7 +80,7 @@
     function moveToSeat(position, rotation) {
         var eulers = Quat.safeEulerAngles(MyAvatar.orientation);
         eulers.y = Quat.safeEulerAngles(rotation).y;
-        MyAvatar.position = position;
+        MyAvatar.position = Vec3.sum(position, Vec3.multiplyQbyV(props.rotation, sitTarget));
         MyAvatar.orientation = Quat.fromPitchYawRollDegrees(eulers.x, eulers.y, eulers.z);
     }
 
@@ -95,34 +97,39 @@
         props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
         // First, check if the entity is far enough away to not need to do anything with it
         var howFar = howFarAway(props.position);
-        if ((state === STANDING) && (howFar < sitDistance) && isSeatOpen(props.position, standDistance)) {
+        if ((state === STANDING) && (howFar < sitDistance) && isSeatOpen(props.position, sitDistance)) {
             moveToSeat(props.position, props.rotation);
             //MyAvatar.characterControllerEnabled = true;
             enterSitPose();
             state = SITTING;
-            debugPrint("Sitting");
-        } else if ((state === SITTING) && (howFar > standDistance)) {
+            debugPrint("Sitting from being close");
+        } else if ((state === SITTING) && (howFar > sitDistance * HYSTERESIS)) {
             leaveSitPose();
-            state = LEAVING;
-            MyAvatar.characterControllerEnabled = true;
-            debugPrint("Leaving");
-        } else if ((state === LEAVING) && (howFar > sitDistance * HYSTERESIS)) {
             state = STANDING;
+            MyAvatar.characterControllerEnabled = true;
             debugPrint("Standing");
-        }
+        } 
     }
 
     this.clickDownOnEntity = function(entityID, mouseEvent) { 
         //  If entity is clicked, jump to seat
         
         props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
-        if ((state === STANDING) && isSeatOpen(props.position, standDistance)) {
+        if ((state === STANDING) && isSeatOpen(props.position, sitDistance)) {
             moveToSeat(props.position, props.rotation);
             //MyAvatar.characterControllerEnabled = false;
             enterSitPose();
             state = SITTING;
-            debugPrint("Sitting");
+            debugPrint("Sitting from mouse click");
         }
+    }
+
+    this.startFarTrigger = function() {
+            moveToSeat(props.position, props.rotation);
+            //MyAvatar.characterControllerEnabled = false;
+            enterSitPose();
+            state = SITTING;
+            debugPrint("Sitting from far trigger");
     }
 
     this.checkSettings = function() {
@@ -135,14 +142,24 @@
                 }
                 sitDistance = data.sitDistance;
             }
-            if (data.standDistance) {
-                if (!(standDistance === data.standDistance)) {
-                    debugPrint("Read new stand distance: " + data.standDistance); 
+            if (data.sitTarget) {
+                if (data.sitTarget.y && (data.sitTarget.y != sitTarget.y)) {
+                    debugPrint("Read new sitTarget.y: " + data.sitTarget.y); 
+                    sitTarget.y = data.sitTarget.y;
                 }
-                standDistance = data.standDistance;
+                if (data.sitTarget.x && (data.sitTarget.x != sitTarget.x)) {
+                    debugPrint("Read new sitTarget.x: " + data.sitTarget.x); 
+                    sitTarget.x = data.sitTarget.x;
+                }
+                if (data.sitTarget.z && (data.sitTarget.z != sitTarget.z)) {
+                    debugPrint("Read new sitTarget.z: " + data.sitTarget.z); 
+                    sitTarget.z = data.sitTarget.z;
+                }
             }
         }
     }
+
+
 
     this.unload = function(entityID) { 
         debugPrint("chair unload");
