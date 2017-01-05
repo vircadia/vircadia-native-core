@@ -55,8 +55,22 @@ var baseEnemyProperties = {
     })
 }
 
+// The high score is stored as the text on a text entity
+function getHighScoreFromDisplay(entityID) {
+    var highScore = parseInt(Entities.getEntityProperties(entityID, 'text').text);
+    if (highScore === NaN) {
+        return -1;
+    }
+    return highScore;
+}
+function setHighScoreOnDisplay(entityID, highScore) {
+    Entities.editEntity(entityID, {
+        text: highScore
+    });
+}
 
-function GameManager(rootPosition, gatePosition, roofPosition, spawnPositions, startButtonID, waveDisplayID, scoreDisplayID, livesDisplayID) {
+
+function GameManager(rootPosition, gatePosition, roofPosition, spawnPositions, startButtonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID) {
     this.gameState = GAME_STATES.IDLE;
 
     this.rootPosition = rootPosition;
@@ -67,6 +81,7 @@ function GameManager(rootPosition, gatePosition, roofPosition, spawnPositions, s
     this.waveDisplayID = waveDisplayID;
     this.scoreDisplayID = scoreDisplayID;
     this.livesDisplayID = livesDisplayID;
+    this.highScoreDisplayID = highScoreDisplayID;
 
     // Gameplay state
     this.waveNumber = 0;
@@ -274,6 +289,13 @@ GameManager.prototype = {
 
         this.gameState = GAME_STATES.GAME_OVER;
         print("GAME OVER");
+
+
+        // Update high score
+        var highScore = getHighScoreFromDisplay(this.highScoreDisplayID);
+        if (this.score > highScore) {
+            setHighScoreOnDisplay(this.score);
+        }
 
         // Cleanup
         Script.clearTimeout(this.nextWaveTimer);
@@ -522,9 +544,44 @@ function createLocalGame() {
     });
     entityIDs.push(livesDisplayID);
 
+    const highScoreDisplayID = Entities.addEntity({
+        type: "Text",
+        name: "WG.HighScore",
+        position: Vec3.sum(rootPosition, {
+            x: 0,
+            y: 3,
+            z: 10
+        }),
+        "backgroundColor": {
+            "blue": 255,
+            "green": 255,
+            "red": 255
+        },
+        "lineHeight": 1,
+        "rotation": {
+            "w": -4.3711388286737929e-08,
+            "x": 0,
+            "y": -1,
+            "z": 0
+        },
+        "dimensions": {
+            "x": 10,
+            "y": 1.7218999862670898,
+            "z": 0.0099999997764825821
+        },
+        "text": "0",
+        "textColor": {
+            "blue": 0,
+            "green": 0,
+            "red": 0
+        },
+    });
+    entityIDs.push(highScoreDisplayID);
+
+
 
     var goalPositionFront = Vec3.sum(goalPosition, { x: 0, y: 0, z: BASES_SIZE / 2 });
-    return new GameManager(rootPosition, goalPositionFront, roofPosition, spawnPositions, buttonID, waveDisplayID, scoreDisplayID, livesDisplayID);
+    return new GameManager(rootPosition, goalPositionFront, roofPosition, spawnPositions, buttonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID);
 }
 
 function createACGame() {
