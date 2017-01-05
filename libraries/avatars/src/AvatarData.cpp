@@ -52,7 +52,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 static const int AUDIO_LOUDNESS_RADIX = 2;
-static const int MODEL_OFFSET_RADIX = 6;
+//static const int MODEL_OFFSET_RADIX = 6;
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
@@ -215,7 +215,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     QByteArray avatarDataByteArray(udt::MAX_PACKET_SIZE, 0);
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
-    unsigned char* packetStateFlagsAt = startPosition;
+    //unsigned char* packetStateFlagsAt = startPosition;
 
     // psuedo code....
     //   - determine which sections will be included
@@ -607,7 +607,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     int avatarDataSize = destinationBuffer - startPosition;
     //qDebug() << "avatarDataSize:" << avatarDataSize;
-    return avatarDataByteArray.left(destinationBuffer - startPosition);
+    return avatarDataByteArray.left(avatarDataSize);
 }
 
 void AvatarData::doneEncoding(bool cullSmallChanges) {
