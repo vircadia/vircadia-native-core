@@ -19,8 +19,16 @@ Script.include("/~/system/libraries/controllers.js");
 // Overlays.
 //
 var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
-function ExtendedOverlay(key, type, properties, selected) { // A wrapper around overlays to store the key it is associated with.
+
+function ExtendedOverlay(key, type, properties, selected, hasSphere) { // A wrapper around overlays to store the key it is associated with.
     overlays[key] = this;
+    if (hasSphere) {
+        var sphereKey = key + "-s";
+        this.sphere = new ExtendedOverlay(sphereKey, "sphere", {drawInFront: true, solid: true, alpha: 0.8, color: color(selected)}, false, false);
+        print("created sphere " + this.sphere.key);
+    } else {
+        this.sphere = undefined;
+    }
     this.key = key;
     this.selected = selected || false; // not undefined
     this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
@@ -34,14 +42,35 @@ ExtendedOverlay.prototype.deleteOverlay = function () { // remove display and da
 ExtendedOverlay.prototype.editOverlay = function (properties) { // change display of this overlay
     Overlays.editOverlay(this.activeOverlay, properties);
 };
-const UNSELECTED_COLOR = {red: 20, green: 250, blue: 20};
-const SELECTED_COLOR = {red: 250, green: 20, blue: 20};
-function color(selected) { return selected ? SELECTED_COLOR : UNSELECTED_COLOR; }
+
+// hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed 
+// something, will revisit as this is sorta horrible.
+const UNSELECTED_TEXTURES = {"idle-D": "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png",
+                             "idle-E": "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"
+};
+const SELECTED_TEXTURES = { "idle-D": "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png",
+                            "idle-E": "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"
+};
+
+const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
+const SELECTED_COLOR = {red: 0xf3, green: 0x91, blue: 0x29};
+
+function color(selected) {
+    return selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+}
+
+function textures(selected) {
+    return selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
+}
+
 ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
-    this.editOverlay({color: color(selected)});
+    this.editOverlay({textures: textures(selected)});
+    if (this.sphere) {
+        this.sphere.editOverlay({color: color(selected)});
+    }
     this.selected = selected;
 };
 // Class methods:
@@ -167,12 +196,10 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
 //
 function addAvatarNode(id) {
     var selected = ExtendedOverlay.isSelected(id);
-    return new ExtendedOverlay(id, "sphere", { // 3d so we don't go cross-eyed looking at it, but on top of everything
-        solid: true,
-        alpha: 0.8,
-        color: color(selected),
-        drawInFront: true
-    }, selected);
+    return new ExtendedOverlay(id, "model", { 
+        url: "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/models/Avatar-Overlay-v1.fbx",
+        textures: textures(selected)
+    }, selected, true);
 }
 function populateUserList() {
     var data = [];
@@ -227,6 +254,7 @@ function updateOverlays() {
         if (!id) {
             return; // don't update ourself
         }
+        
         var overlay = ExtendedOverlay.get(id);
         if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
             print('Adding non-PAL avatar node', id);
@@ -234,16 +262,29 @@ function updateOverlays() {
         }
         var avatar = AvatarList.getAvatar(id);
         var target = avatar.position;
+        
+        // now adjust target to be slightly in front
+        target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(eye), -0.1));
+        
         var distance = Vec3.distance(target, eye);
         overlay.ping = pingPong;
         overlay.editOverlay({
             position: target,
-            dimensions: 0.05 * distance // constant apparent size
+            scale: 0.15 * distance, // constant apparent size
+            rotation: Camera.orientation
         });
+        if (overlay.sphere) {
+            overlay.sphere.ping = pingPong;
+            overlay.sphere.editOverlay({
+                position: target, 
+                dimensions: 0.025 * distance 
+            });
+        }
     });
     pingPong = !pingPong;
     ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
         if (overlay.ping === pingPong) {
+            print("deleting " + overlay.key);
             overlay.deleteOverlay();
         }
     });
