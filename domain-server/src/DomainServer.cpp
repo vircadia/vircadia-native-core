@@ -808,9 +808,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     for (Assignment::Type defaultedType = Assignment::AudioMixerType;
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
-        if (!excludedTypes.contains(defaultedType)
-            && defaultedType != Assignment::UNUSED_1
-            && defaultedType != Assignment::AgentType) {
+        if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
             
             if (defaultedType == Assignment::AssetServerType) {
                 // Make sure the asset-server is enabled before adding it here.

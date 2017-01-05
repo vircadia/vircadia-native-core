@@ -137,7 +137,7 @@ void AssetServer::completeSetup() {
             cleanupUnmappedFiles();
         }
 
-        nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+        nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
     } else {
         qCritical() << "Asset Server assignment will not continue because mapping file could not be loaded.";
         setFinished(true);

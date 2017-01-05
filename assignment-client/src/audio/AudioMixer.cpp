@@ -398,7 +398,7 @@ void AudioMixer::start() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // prepare the NodeList
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
     nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     // parse out any AudioMixer settings

@@ -54,7 +54,6 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
-    _entityEditSender(),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES) {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
@@ -144,7 +143,7 @@ void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
     _receivedAudioStream.clearBuffer();
 }
 
-const QString AGENT_LOGGING_NAME = "agent";
+static const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
 

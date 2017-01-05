@@ -14,14 +14,19 @@
 
 #include <QtCore/QObject>
 
+#include <EntityEditPacketSender.h>
+#include <plugins/CodecPlugin.h>
 #include <ThreadedAssignment.h>
 
+#include "MixedAudioStream.h"
 
 class EntityScriptServer : public ThreadedAssignment {
     Q_OBJECT
 
 public:
     EntityScriptServer(ReceivedMessage& message);
+
+    virtual void aboutToFinish() override;
 
 public slots:
     void run() override;
@@ -30,14 +35,22 @@ public slots:
     void sendStatsPacket() override;
 
 private slots:
-    void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
-    
+    void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
+
 private:
+    void negotiateAudioFormat();
+    void selectAudioFormat(const QString& selectedCodecName);
 
+    EntityEditPacketSender _entityEditSender;
 
+    QString _selectedCodecName;
+    CodecPluginPointer _codec;
+    Encoder* _encoder { nullptr };
+    MixedAudioStream _receivedAudioStream;
+    float _lastReceivedAudioLoudness;
 };
 
 #endif // hifi_EntityScriptServer_h

@@ -83,5 +83,6 @@ void MessagesMixer::sendStatsPacket() {
 
 void MessagesMixer::run() {
     ThreadedAssignment::commonInit(MESSAGES_MIXER_LOGGING_NAME, NodeType::MessagesMixer);
-    DependencyManager::get<NodeList>()->addNodeTypeToInterestSet(NodeType::Agent);
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
 }

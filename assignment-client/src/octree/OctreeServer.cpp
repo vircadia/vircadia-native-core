@@ -1136,8 +1136,8 @@ void OctreeServer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
     
     // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-    
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
     packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
