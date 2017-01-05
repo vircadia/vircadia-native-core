@@ -427,14 +427,20 @@ Item {
             sortModel();
             break;
         case 'select':
-            var sessionId = message.params[0];
+            var sessionIds = message.params[0];
             var selected = message.params[1];
-            var userIndex = findSessionIndex(sessionId);
-            if (selected) {
-                table.selection.clear(); // for now, no multi-select
-                table.selection.select(userIndex);
+            var userIndex = findSessionIndex(sessionIds[0]);
+            if (sessionIds.length > 1) {
+                console.log('FIXME NEEDS MODAL: Only one user can be selected at a time.');
+            } else if (userIndex < 0) {
+                console.log('FIXME NEEEDS MODAL: The last editor has left.');
             } else {
-                table.selection.deselect(userIndex);
+                if (selected) {
+                    table.selection.clear(); // for now, no multi-select
+                    table.selection.select(userIndex);
+                } else {
+                    table.selection.deselect(userIndex);
+                }
             }
             break;
         // Received an "updateUsername()" request from the JS
