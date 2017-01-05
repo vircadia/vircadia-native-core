@@ -264,20 +264,20 @@ function updateOverlays() {
         var target = avatar.position;
         
         // now adjust target to be slightly in front
-        target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(eye), -0.1));
+        target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(eye), -0.2));
         
         var distance = Vec3.distance(target, eye);
         overlay.ping = pingPong;
         overlay.editOverlay({
             position: target,
-            scale: 0.15 * distance, // constant apparent size
+            scale: 0.2 * distance, // constant apparent size
             rotation: Camera.orientation
         });
         if (overlay.sphere) {
             overlay.sphere.ping = pingPong;
             overlay.sphere.editOverlay({
                 position: target, 
-                dimensions: 0.025 * distance 
+                dimensions: 0.032 * distance 
             });
         }
     });
