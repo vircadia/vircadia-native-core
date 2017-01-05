@@ -311,6 +311,11 @@ Item {
         visible: iAmAdmin
         color: hifi.colors.lightGrayText
     }
+    function letterbox(message) {
+        letterboxMessage.text = message;
+        letterboxMessage.visible = true
+
+    }
     // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
         color: hifi.colors.tableBackgroundLight
@@ -334,7 +339,9 @@ Item {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: namesPopup.visible = true
+            onClicked: letterbox("Bold names in the list are Avatar Display Names.\n" +
+                                 "If a Display Name isn't set, a unique Session Display Name is assigned." +
+                                 "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present.")
             onEntered: helpText.color = hifi.colors.baseGrayHighlight
             onExited: helpText.color = hifi.colors.darkGray
         }
@@ -363,23 +370,14 @@ Item {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: adminPopup.visible = true
+            onClicked: letterbox('Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
+                                 "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page.)")
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
     }
-    // Explanitory popup upon clicking "[?]" next to "NAMES"
     LetterboxMessage {
-        id: namesPopup
-        text: "Bold names in the list are Avatar Display Names.\n" +
-            "If a Display Name isn't set, a unique Session Display Name is assigned." +
-            "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present."
-    }
-    // Explanitory popup upon clicking "[?]" next to "ADMIN"
-    LetterboxMessage {
-        id: adminPopup
-        text: "Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n" +
-            "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page."
+        id: letterboxMessage
     }
 
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
@@ -420,9 +418,9 @@ Item {
             var selected = message.params[1];
             var userIndex = findSessionIndex(sessionIds[0]);
             if (sessionIds.length > 1) {
-                console.log('FIXME NEEDS MODAL: Only one user can be selected at a time.');
+                letterbox('Only one user can be selected at a time.');
             } else if (userIndex < 0) {
-                console.log('FIXME NEEEDS MODAL: The last editor has left.');
+                letterbox('The last editor is not among this list of users.');
             } else {
                 if (selected) {
                     table.selection.clear(); // for now, no multi-select
