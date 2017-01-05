@@ -97,6 +97,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
         type: "Sphere",
+        collisionless: true,
         localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: 0},
         dimensions: {x: 0.05, y: 0.05, z: 0.05},
         parentID: this.tabletEntityID,
