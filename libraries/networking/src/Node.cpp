@@ -81,17 +81,24 @@ void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
-void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {    
+void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {
+    bool addToIgnore;
+    message->readPrimitive(&addToIgnore);
     while (message->getBytesLeftToRead()) {
         // parse out the UUID being ignored from the packet
         QUuid ignoredUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-        addIgnoredNode(ignoredUUID);
+        if (addToIgnore) {
+            addIgnoredNode(ignoredUUID);
+        } else {
+            removeIgnoredNode(ignoredUUID);
+        }
     }
 }
 
 void Node::addIgnoredNode(const QUuid& otherNodeID) {
     if (!otherNodeID.isNull() && otherNodeID != _uuid) {
+        QReadLocker lock { &_ignoredNodeIDSetLock };
         qCDebug(networking) << "Adding" << uuidStringWithoutCurlyBraces(otherNodeID) << "to ignore set for"
         << uuidStringWithoutCurlyBraces(_uuid);
 
@@ -99,6 +106,20 @@ void Node::addIgnoredNode(const QUuid& otherNodeID) {
         _ignoredNodeIDSet.insert(otherNodeID);
     } else {
         qCWarning(networking) << "Node::addIgnoredNode called with null ID or ID of ignoring node.";
+    }
+}
+
+void Node::removeIgnoredNode(const QUuid& otherNodeID) {
+    if (!otherNodeID.isNull() && otherNodeID != _uuid) {
+        // insert/find are read locked concurrently. unsafe_erase is not concurrent, and needs a write lock.
+        QWriteLocker lock { &_ignoredNodeIDSetLock };
+        qCDebug(networking) << "Removing" << uuidStringWithoutCurlyBraces(otherNodeID) << "from ignore set for"
+        << uuidStringWithoutCurlyBraces(_uuid);
+
+        // remove the session UUID from the set of ignored ones for this listening node
+        _ignoredNodeIDSet.unsafe_erase(otherNodeID);
+    } else {
+        qCWarning(networking) << "Node::removeIgnoredNode called with null ID or ID of ignoring node.";
     }
 }
 
