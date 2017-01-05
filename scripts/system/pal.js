@@ -24,7 +24,7 @@ function ExtendedOverlay(key, type, properties, selected, hasSphere) { // A wrap
     overlays[key] = this;
     if (hasSphere) {
         var sphereKey = key + "-s";
-        this.sphere = new ExtendedOverlay(sphereKey, "sphere", {drawInFront: true, solid: true, alpha: 0.8, color: color(selected)}, false, false);
+        this.sphere = new ExtendedOverlay(sphereKey, "sphere", {drawInFront: true, solid: true, alpha: 0.6, color: color(selected)}, false, false);
     } else {
         this.sphere = undefined;
     }
@@ -66,6 +66,7 @@ ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
+    
     this.editOverlay({textures: textures(selected)});
     if (this.sphere) {
         this.sphere.editOverlay({color: color(selected)});
@@ -261,11 +262,17 @@ function updateOverlays() {
         }
         var avatar = AvatarList.getAvatar(id);
         var target = avatar.position;
-        
-        // now adjust target to be slightly in front
-        target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(eye), -0.2));
-        
         var distance = Vec3.distance(target, eye);
+        
+        // get diff between target and eye (a vector pointing to the eye from avatar position)
+        var diff = Vec3.subtract(target, eye);
+        
+        // now, add a small bit of that difference to target
+        target = Vec3.sum(target, Vec3.multiply(Vec3.normalize(diff), 0.2));
+
+        // now bump it up a bit (TODO: scale this to the avatar height)
+        target.y = target.y + 0.2;
+
         overlay.ping = pingPong;
         overlay.editOverlay({
             position: target,
