@@ -74,6 +74,9 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                         teleport: {
                             defaultTextureURL: BASE_URL + "Oculus-Labels-L.fbx/Oculus-Labels-L.fbm/Teleport.png"
                         },
+                        both_triggers: {
+                            defaultTextureURL: BASE_URL + "Oculus-Labels-L.fbx/Oculus-Labels-L.fbm/Grip-Trigger.png"
+                        },
                     }
                 },
 
@@ -212,7 +215,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     modelURL: BASE_URL + "Oculus-Labels-R.fbx",
                     naturalPosition: { x: 0.009739525616168976, y: -0.0017818436026573181, z: 0.016794726252555847 },
 
-                    textureName: "Texture",
+                    textureName: "blank",
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
@@ -229,6 +232,9 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                         },
                         teleport: {
                             defaultTextureURL: BASE_URL + "Oculus-Labels-R.fbx/Oculus-Labels-R.fbm/Teleport.png"
+                        },
+                        both_triggers: {
+                            defaultTextureURL: BASE_URL + "Oculus-Labels-R.fbx/Oculus-Labels-R.fbm/Grip-Trigger.png"
                         },
                     }
                 },
