@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Agent.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
@@ -46,7 +48,6 @@
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
 
-#include "Agent.h"
 #include "AvatarAudioTimer.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
