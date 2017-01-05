@@ -120,6 +120,11 @@ EntityListTool = function(opts) {
             if (selectionManager.hasSelection()) {
                 MyAvatar.position = selectionManager.worldPosition;
             }
+        } else if (data.type == "pal") {
+            print("fixme got pal");
+            if (selectionManager.hasSelection()) {
+                print('fixme selection', JSON.stringify(selectionManager.selections));
+            }
         } else if (data.type == "delete") {
             deleteSelectedEntities();
         } else if (data.type == "toggleLocked") {
