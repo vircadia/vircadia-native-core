@@ -66,7 +66,7 @@ var WEB_TOUCH_SPHERE_RADIUS = 0.017;
 var WEB_STYLUS_COLOR = { red: 0, green: 240, blue: 0 };
 var WEB_STYLUS_TIP_COLOR = { red: 0, green: 0, blue: 240 };
 var WEB_STYLUS_ALPHA = 1.0;
-var WEB_DISPLAY_STYLUS_DISTANCE = 1.0;
+var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
 var WEB_TOUCH_DISTANCE = 0.2;
 
 //
@@ -265,24 +265,15 @@ CONTROLLER_STATE_MACHINE[STATE_ENTITY_STYLUS_TOUCHING] = {
     exitMethod: "entityTouchingExit",
     updateMethod: "entityTouching"
 };
-CONTROLLER_STATE_MACHINE[STATE_ENTITY_LASER_TOUCHING] = {
-    name: "entityTouching",
-    enterMethod: "entityTouchingEnter",
-    exitMethod: "entityTouchingExit",
-    updateMethod: "entityTouching"
-};
+CONTROLLER_STATE_MACHINE[STATE_ENTITY_LASER_TOUCHING] = CONTROLLER_STATE_MACHINE[STATE_ENTITY_STYLUS_TOUCHING];
 CONTROLLER_STATE_MACHINE[STATE_OVERLAY_STYLUS_TOUCHING] = {
     name: "overlayTouching",
     enterMethod: "overlayTouchingEnter",
     exitMethod: "overlayTouchingExit",
     updateMethod: "overlayTouching"
 };
-CONTROLLER_STATE_MACHINE[STATE_OVERLAY_LASER_TOUCHING] = {
-    name: "overlayTouching",
-    enterMethod: "overlayTouchingEnter",
-    exitMethod: "overlayTouchingExit",
-    updateMethod: "overlayTouching"
-};
+CONTROLLER_STATE_MACHINE[STATE_OVERLAY_LASER_TOUCHING] = CONTROLLER_STATE_MACHINE[STATE_OVERLAY_STYLUS_TOUCHING];
+
 
 function distanceBetweenPointAndEntityBoundingBox(point, entityProps) {
     var entityXform = new Xform(entityProps.rotation, entityProps.position);
@@ -1234,30 +1225,30 @@ function MyController(hand) {
             this.grabPointSphereOff();
         }
 
-        var rayPickInfo = this.calcRayPickInfo(this.hand);
-        if (rayPickInfo.overlayID && rayPickInfo.distance < WEB_DISPLAY_STYLUS_DISTANCE) {
-            this.showStylus();
-            this.hideStylusCounter = 0;
-        } else if (rayPickInfo.entityID &&
-                   rayPickInfo.properties.type == "Web" &&
-                   rayPickInfo.distance < WEB_DISPLAY_STYLUS_DISTANCE) {
-            this.showStylus();
-            this.hideStylusCounter = 0;
-        } else {
-            this.hideStylusCounter++;
-            if (this.hideStylusCounter > 10) {
-                this.hideStylus();
+        // see if the hand is near a tablet or web-entity
+        candidateEntities = Entities.findEntities(worldHandPosition, WEB_DISPLAY_STYLUS_DISTANCE);
+        var nearWeb = false;
+        for (var i = 0; i < candidateEntities.length; i++) {
+            var props = entityPropertiesCache.getProps(candidateEntities[i]);
+            if (props.type == "Web" || this.isTablet(props)) {
+                nearWeb = true;
+                break;
             }
-            return;
         }
 
-        if (rayPickInfo.distance < WEB_TOUCH_DISTANCE) {
-            if (this.handleStylusOnWebEntity(rayPickInfo)) {
-                return;
+        if (nearWeb) {
+            this.showStylus();
+            var rayPickInfo = this.calcRayPickInfo(this.hand);
+            if (rayPickInfo.distance < WEB_TOUCH_DISTANCE) {
+                if (this.handleStylusOnWebEntity(rayPickInfo)) {
+                    return;
+                }
+                if (this.handleStylusOnWebOverlay(rayPickInfo)) {
+                    return;
+                }
             }
-            if (this.handleStylusOnWebOverlay(rayPickInfo)) {
-                return;
-            }
+        } else {
+            this.hideStylus();
         }
     };
 
@@ -1666,8 +1657,13 @@ function MyController(hand) {
             }
         }
 
-        if (this.handleLaserOnWebEntity(rayPickInfo)) {
-            return;
+        if (rayPickInfo.distance >= WEB_TOUCH_DISTANCE) {
+            if (this.handleLaserOnWebEntity(rayPickInfo)) {
+                return;
+            }
+            if (this.handleLaserOnWebOverlay(rayPickInfo)) {
+                return;
+            }
         }
 
         if (rayPickInfo.entityID) {
@@ -1692,10 +1688,6 @@ function MyController(hand) {
             }
         }
 
-        if (this.handleLaserOnWebOverlay(rayPickInfo)) {
-            return;
-        }
-
         this.updateEquipHaptics(potentialEquipHotspot, handPosition);
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
@@ -1708,6 +1700,13 @@ function MyController(hand) {
             this.searchIndicatorOn(rayPickInfo.searchRay);
         }
         Reticle.setVisible(false);
+    };
+
+    this.isTablet = function (props) {
+        if (props.name == "WebTablet Tablet") { // XXX what's a better way to know this?
+            return true;
+        }
+        return false;
     };
 
     this.handleStylusOnWebEntity = function (rayPickInfo) {
@@ -1844,7 +1843,8 @@ function MyController(hand) {
         var pointerEvent;
         if (rayPickInfo.entityID && Entities.wantsHandControllerPointerEvents(rayPickInfo.entityID)) {
             var entity = rayPickInfo.entityID;
-            var name = entityPropertiesCache.getProps(entity).name;
+            var props = entityPropertiesCache.getProps(entity);
+            var name = props.name;
 
             if (Entities.keyboardFocusEntity != entity) {
                 Overlays.keyboardFocusOverlay = 0;
@@ -1888,7 +1888,7 @@ function MyController(hand) {
                 Entities.sendHoverOverEntity(entity, pointerEvent);
             }
 
-            if (this.triggerSmoothedGrab() && (!isEditing() || name == "WebTablet Web")) {
+            if (this.triggerSmoothedGrab() && (!isEditing() || this.isTablet(props))) {
                 this.grabbedEntity = entity;
                 this.setState(STATE_ENTITY_LASER_TOUCHING, "begin touching entity '" + name + "'");
                 return true;
@@ -2831,6 +2831,11 @@ function MyController(hand) {
 
     this.overlayTouching = function (dt) {
         this.touchingEnterTimer += dt;
+
+        if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && this.triggerSmoothedSqueezed()) {
+            this.setState(STATE_OFF, "trigger squeezed");
+            return;
+        }
 
         // Test for intersection between controller laser and Web overlay plane.
         var intersectInfo =
