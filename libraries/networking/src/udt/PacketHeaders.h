@@ -246,6 +246,7 @@ enum class AudioVersion : PacketVersion {
     TerminatingStreamStats,
     SpaceBubbleChanges,
     HasPersonalMute,
+    HighDynamicRangeVolume,
 };
 
 #endif // hifi_PacketHeaders_h

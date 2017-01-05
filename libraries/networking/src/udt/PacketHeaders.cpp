@@ -78,7 +78,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
-            return static_cast<PacketVersion>(AudioVersion::SpaceBubbleChanges);
+            return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
 
         default:
             return 17;
