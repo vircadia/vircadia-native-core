@@ -25,6 +25,7 @@
 #include "AudioLogging.h"
 #include "SoundCache.h"
 #include "AudioSRC.h"
+#include "AudioHelpers.h"
 
 int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
 
@@ -187,7 +188,7 @@ bool AudioInjector::injectLocally() {
     return success;
 }
 
-const uchar MAX_INJECTOR_VOLUME = 0xFF;
+const uchar MAX_INJECTOR_VOLUME = packFloatGainToByte(1.0f);
 static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
 static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
@@ -333,7 +334,7 @@ int64_t AudioInjector::injectNextFrame() {
     _currentPacket->writePrimitive(_options.position);
     _currentPacket->writePrimitive(_options.orientation);
 
-    quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
+    quint8 volume = packFloatGainToByte(_options.volume);
     _currentPacket->seek(volumeOptionOffset);
     _currentPacket->writePrimitive(volume);
 

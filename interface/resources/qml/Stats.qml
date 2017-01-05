@@ -80,6 +80,10 @@ Item {
                         text: "Avatar Simrate: " + root.avatarSimrate
                     }
                     StatText {
+                        text: "Missed Frame Count: " + root.appdropped;
+                        visible: root.appdropped > 0;
+                    }
+                    StatText {
                         text: "Packets In/Out: " + root.packetInCount + "/" + root.packetOutCount
                     }
                     StatText {
