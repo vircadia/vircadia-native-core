@@ -20,6 +20,7 @@
 
 #include <controllers/Input.h>
 #include <controllers/Pose.h>
+#include <shared/GlobalAppProperties.h>
 #include <NumericalConstants.h>
 
 Q_LOGGING_CATEGORY(displayplugins, "hifi.plugins.display")
@@ -91,14 +92,16 @@ ovrSession acquireOculusSession() {
             logWarning("Failed to initialize Oculus SDK");
             return session;
         }
-           
+
 #ifdef OCULUS_APP_ID
-        if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
-            // we were unable to initialize the platform for entitlement check - fail the check
-            _quitRequested = true;
-        } else {
-            qCDebug(oculus) << "Performing Oculus Platform entitlement check";
-            ovr_Entitlement_GetIsViewerEntitled();
+        if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
+            if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
+                // we were unable to initialize the platform for entitlement check - fail the check
+                _quitRequested = true;
+            } else {
+                qCDebug(oculus) << "Performing Oculus Platform entitlement check";
+                ovr_Entitlement_GetIsViewerEntitled();
+            }
         }
 #endif
 
