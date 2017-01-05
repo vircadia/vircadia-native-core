@@ -25,7 +25,6 @@ function ExtendedOverlay(key, type, properties, selected, hasSphere) { // A wrap
     if (hasSphere) {
         var sphereKey = key + "-s";
         this.sphere = new ExtendedOverlay(sphereKey, "sphere", {drawInFront: true, solid: true, alpha: 0.8, color: color(selected)}, false, false);
-        print("created sphere " + this.sphere.key);
     } else {
         this.sphere = undefined;
     }
@@ -284,7 +283,6 @@ function updateOverlays() {
     pingPong = !pingPong;
     ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
         if (overlay.ping === pingPong) {
-            print("deleting " + overlay.key);
             overlay.deleteOverlay();
         }
     });
