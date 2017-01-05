@@ -104,6 +104,7 @@ Item {
         border.width: 2
         // "ADMIN" text
         RalewaySemiBold {
+            id: adminTabText
             text: "ADMIN"
             // Text size
             size: hifi.fontSizes.tableHeading + 2
@@ -325,7 +326,7 @@ Item {
         visible: iAmAdmin
         color: hifi.colors.lightGrayText
     }
-    // This Rectangle refers to the [?] popup button
+    // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
         color: hifi.colors.tableBackgroundLight
         width: 20
@@ -353,7 +354,36 @@ Item {
             onExited: helpText.color = hifi.colors.darkGray
         }
     }
-    // Explanitory popup upon clicking "[?]"
+    // This Rectangle refers to the [?] popup button next to "ADMIN"
+    Rectangle {
+        visible: iAmAdmin
+        color: adminTab.color
+        width: 20
+        height: 28
+        anchors.right: adminTab.right
+        anchors.rightMargin: 31
+        anchors.top: adminTab.top
+        anchors.topMargin: 2
+        RalewayRegular {
+            id: adminHelpText
+            text: "[?]"
+            size: hifi.fontSizes.tableHeading + 2
+            font.capitalization: Font.AllUppercase
+            color: hifi.colors.redHighlight
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            anchors.fill: parent
+        }
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            hoverEnabled: true
+            onClicked: adminPopup.visible = true
+            onEntered: adminHelpText.color = "#94132e"
+            onExited: adminHelpText.color = hifi.colors.redHighlight
+        }
+    }
+    // Explanitory popup upon clicking "[?]" next to "NAMES"
     Item {
         visible: false
         id: namesPopup
@@ -389,6 +419,44 @@ Item {
             acceptedButtons: Qt.LeftButton
             onClicked: {
                 namesPopup.visible = false
+            }
+        }
+    }
+    // Explanitory popup upon clicking "[?]" next to "ADMIN"
+    Item {
+        visible: false
+        id: adminPopup
+        anchors.fill: pal
+        Rectangle {
+            anchors.fill: parent
+            color: "black"
+            opacity: 0.5
+            radius: hifi.dimensions.borderRadius
+        }
+        Rectangle {
+            width: Math.max(parent.width * 0.75, 400)
+            height: adminPopupText.contentHeight*1.5
+            anchors.centerIn: parent
+            radius: hifi.dimensions.borderRadius
+            color: "white"
+            FiraSansSemiBold {
+                id: adminPopupText
+                text: 'Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "MUTE" button on their HUD.\n\n' +
+                    'Banning a user will remove them from this domain and prevent them from returning. You can unban users from your domain's configuration page.'
+                size: hifi.fontSizes.textFieldInput
+                color: hifi.colors.darkGray
+                horizontalAlignment: Text.AlignHCenter
+                anchors.fill: parent
+                anchors.leftMargin: 15
+                anchors.rightMargin: 15
+                wrapMode: Text.WordWrap
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            onClicked: {
+                adminPopup.visible = false
             }
         }
     }
