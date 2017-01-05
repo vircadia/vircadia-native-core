@@ -58,7 +58,7 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
 static const char* TABLET_SOURCE_URL = "Tablet.qml";
 static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
 static const char* LOADER_SOURCE_PROPERTY_NAME = "LoaderSource";
-static const char* VRMENU_SOURCE_URL = "VrMenuView.qml";
+static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
     ;
@@ -101,9 +101,8 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
 void TabletProxy::gotoMenuScreen() {
     if (_qmlTabletRoot) {
         _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, TABLET_SOURCE_URL);
-        auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto rootMenu = offscreenUi->getRootMenu();
+        //auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+        //QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()));
         QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
     }
 }
@@ -200,7 +199,23 @@ void TabletProxy::addButtonsToHomeScreen() {
 }
 
 void TabletProxy::addButtonsToMenuScreen() {
-    
+    if (!_qmlTabletRoot) {
+        return;
+    }
+
+    auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+    if (!loader) {
+        return;
+    }
+
+    QQuickItem* VrMenu = loader->findChild<QQuickItem*>("VrMenu");
+    if (!VrMenu) {
+        qDebug() << "----------> could not find vr menu";
+        return;
+    }
+
+    QString name = "Menu";
+    QVariant returnedValue;
 }
 
 void TabletProxy::removeButtonsFromHomeScreen() {
