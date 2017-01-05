@@ -1,4 +1,5 @@
 import QtQuick 2.0
+import Hifi 1.0
 
 Item {
     id: tabletRoot
@@ -11,6 +12,15 @@ Item {
 
     function loadWebUrl(url) {
         loader.item.url = url;
+    }
+
+    SoundEffect {
+        id: buttonClickSound
+        source: "../../../sounds/button-click.wav"
+    }
+
+    function playButtonClickSound() {
+        buttonClickSound.play();
     }
 
     Loader {

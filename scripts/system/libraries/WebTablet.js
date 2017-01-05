@@ -171,3 +171,8 @@ WebTablet.unpickle = function (string) {
     tablet.__proto__ = WebTablet.prototype;
     return tablet;
 };
+
+WebTablet.prototype.getPosition = function () {
+    return Overlays.getProperty(this.webOverlayID, "position");
+}
+
