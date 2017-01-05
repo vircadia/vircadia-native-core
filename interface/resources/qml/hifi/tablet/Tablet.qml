@@ -40,6 +40,9 @@ Item {
             button[key] = properties[key];
         });
 
+        // pass a reference to the tabletRoot object to the button.
+        button.tabletRoot = parent.parent;
+
         return button;
     }
 

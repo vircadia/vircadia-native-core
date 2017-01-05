@@ -11,6 +11,7 @@ Item {
     property bool isActive: false
     property bool inDebugMode: false
     property bool isEntered: false
+    property var tabletRoot;
     width: 129
     height: 129
 
@@ -118,6 +119,9 @@ Item {
                 }
             }
             tabletButton.clicked();
+            if (tabletRoot) {
+                tabletRoot.playButtonClickSound();
+            }
         }
         onEntered: {
             console.log("Tablet Button Hovered!");
