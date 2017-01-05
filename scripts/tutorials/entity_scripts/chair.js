@@ -99,7 +99,6 @@
         var howFar = howFarAway(props.position);
         if ((state === STANDING) && (howFar < sitDistance) && isSeatOpen(props.position, sitDistance)) {
             moveToSeat(props.position, props.rotation);
-            //MyAvatar.characterControllerEnabled = true;
             enterSitPose();
             state = SITTING;
             debugPrint("Sitting from being close");
@@ -117,7 +116,6 @@
         props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
         if ((state === STANDING) && isSeatOpen(props.position, sitDistance)) {
             moveToSeat(props.position, props.rotation);
-            //MyAvatar.characterControllerEnabled = false;
             enterSitPose();
             state = SITTING;
             debugPrint("Sitting from mouse click");
@@ -125,11 +123,12 @@
     }
 
     this.startFarTrigger = function() {
+        if ((state === STANDING) && isSeatOpen(props.position, sitDistance)) {
             moveToSeat(props.position, props.rotation);
-            //MyAvatar.characterControllerEnabled = false;
             enterSitPose();
             state = SITTING;
             debugPrint("Sitting from far trigger");
+        }
     }
 
     this.checkSettings = function() {
