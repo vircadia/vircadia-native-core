@@ -95,7 +95,7 @@ Item {
         readonly property color tableRowDarkEven: "#1c1c1c"  // Equivalent to "#a6181818" over #404040 background
         readonly property color tableBackgroundLight: tableRowLightEven
         readonly property color tableBackgroundDark: tableRowDarkEven
-        readonly property color tableScrollHandleLight: tableRowLightOdd
+        readonly property color tableScrollHandleLight: "#8F8F8F"
         readonly property color tableScrollHandleDark: "#707070"
         readonly property color tableScrollBackgroundLight: tableRowLightEven
         readonly property color tableScrollBackgroundDark: "#323232"
