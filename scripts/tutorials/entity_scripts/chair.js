@@ -13,9 +13,9 @@
 
 (function(){ 
     
-    var UPDATE_INTERVAL_MSECS = 1000;       //  Update the spring/object at 45Hz
+    var CHECK_INTERVAL_MSECS = 250;         //  When sitting, check for need to stand up
     var SETTINGS_INTERVAL_MSECS = 1000;     //  Periodically check user data for updates 
-    var DEFAULT_SIT_DISTANCE = 1.0;         //  How strong/stiff is the spring?  
+    var DEFAULT_SIT_DISTANCE = 1.0;         //  How far away from the chair can you sit?
     var HYSTERESIS = 1.1;
 
     var sitTarget = { x: 0, y: 0, z: 0 };   //  Offset where your butt should go relative
@@ -70,6 +70,7 @@
         rot = Quat.safeEulerAngles(MyAvatar.getJointRotation("LeftLeg"));
         MyAvatar.setJointData("LeftLeg", Quat.fromPitchYawRollDegrees(LOWER_LEG_ANGLE, rot.y, rot.z), MyAvatar.getJointTranslation("LeftLeg"));
     }
+
     function leaveSitPose() {
          MyAvatar.clearJointData("RightUpLeg");
          MyAvatar.clearJointData("LeftUpLeg");
@@ -77,11 +78,14 @@
          MyAvatar.clearJointData("LeftLeg");
     }
 
-    function moveToSeat(position, rotation) {
+    function sitDown(position, rotation) {
         var eulers = Quat.safeEulerAngles(MyAvatar.orientation);
         eulers.y = Quat.safeEulerAngles(rotation).y;
         MyAvatar.position = Vec3.sum(position, Vec3.multiplyQbyV(props.rotation, sitTarget));
         MyAvatar.orientation = Quat.fromPitchYawRollDegrees(eulers.x, eulers.y, eulers.z);
+
+        enterSitPose();
+        state = SITTING;
     }
 
     this.preload = function(entityID) { 
@@ -89,23 +93,18 @@
         debugPrint("chair preload");
         entity = entityID;
         _this = this;
-        checkTimer = Script.setInterval(this.maybeSitOrStand, UPDATE_INTERVAL_MSECS);
         settingsTimer = Script.setInterval(this.checkSettings, SETTINGS_INTERVAL_MSECS);
     }; 
 
-    this.maybeSitOrStand = function() {
+    this.maybeStand = function() {
         props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
         // First, check if the entity is far enough away to not need to do anything with it
         var howFar = howFarAway(props.position);
-        if ((state === STANDING) && (howFar < sitDistance) && isSeatOpen(props.position, sitDistance)) {
-            moveToSeat(props.position, props.rotation);
-            enterSitPose();
-            state = SITTING;
-            debugPrint("Sitting from being close");
-        } else if ((state === SITTING) && (howFar > sitDistance * HYSTERESIS)) {
+        if ((state === SITTING) && (howFar > sitDistance * HYSTERESIS)) {
             leaveSitPose();
+            Script.clearInterval(checkTimer);
+            checkTimer = null;
             state = STANDING;
-            MyAvatar.characterControllerEnabled = true;
             debugPrint("Standing");
         } 
     }
@@ -114,9 +113,8 @@
         //  If entity is clicked, sit
         props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
         if ((state === STANDING) && isSeatOpen(props.position, sitDistance)) {
-            moveToSeat(props.position, props.rotation);
-            enterSitPose();
-            state = SITTING;
+            sitDown(props.position, props.rotation);
+            checkTimer = Script.setInterval(this.maybeStand, CHECK_INTERVAL_MSECS);
             debugPrint("Sitting from mouse click");
         }
     }
@@ -125,9 +123,8 @@
         //  If entity is far clicked, sit
         props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
         if ((state === STANDING) && isSeatOpen(props.position, sitDistance)) {
-            moveToSeat(props.position, props.rotation);
-            enterSitPose();
-            state = SITTING;
+            sitDown(props.position, props.rotation);
+            checkTimer = Script.setInterval(this.maybeStand, CHECK_INTERVAL_MSECS);
             debugPrint("Sitting from far trigger");
         }
     }
@@ -158,8 +155,6 @@
             }
         }
     }
-
-
 
     this.unload = function(entityID) { 
         debugPrint("chair unload");
