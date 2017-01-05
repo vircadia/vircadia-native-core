@@ -399,20 +399,10 @@ getControllerWorldLocation = function (handController, doOffset) {
             });
         },
 
-        getLocalLineVectors: function() {
-            var topVector = Vec3.subtract(this.arrowRearPosition, this.topStringPosition);
-            var bottomVector = Vec3.subtract(this.bottomStringPosition, this.topStringPosition);
-            return [topVector, bottomVector];
-        },
-
         getControllerLocation: function (controllerHand) {
             var standardControllerValue =
                 (controllerHand === "right") ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
             return getControllerWorldLocation(standardControllerValue, true);
-            var pose = Controller.getPoseValue(standardControllerValue);
-            var orientation = Quat.multiply(MyAvatar.orientation, pose.rotation);
-            var position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
-            return {position: position, orientation: orientation};
         },
 
         checkStringHand: function() {
@@ -452,8 +442,8 @@ getControllerWorldLocation = function (handController, doOffset) {
                     this.pullBackDistance = 0;
                     this.state = STATE_ARROW_GRABBED;
                 } else {
-                    this.updateString();
                     this.updateArrowPositionInNotch(false, false);
+                    this.updateString();
                 }
             }
             if (this.state === STATE_ARROW_GRABBED) {
@@ -464,8 +454,8 @@ getControllerWorldLocation = function (handController, doOffset) {
                     // they've grabbed the arrow and pulled it
                     this.state = STATE_ARROW_GRABBED_AND_PULLED;
                 } else {
-                    this.updateString();
                     this.updateArrowPositionInNotch(false, true);
+                    this.updateString();
                 }
             }
             if (this.state === STATE_ARROW_GRABBED_AND_PULLED) {
@@ -479,19 +469,10 @@ getControllerWorldLocation = function (handController, doOffset) {
                     this.state = STATE_IDLE;
                     this.resetStringToIdlePosition();
                 } else {
-                    this.updateString();
                     this.updateArrowPositionInNotch(false, true);
+                    this.updateString();
                 }
             }
-        },
-
-        setArrowRearPosition: function(arrowPosition, arrowRotation) {
-            var frontVector = Quat.getFront(arrowRotation);
-            var frontOffset = Vec3.multiply(frontVector, -ARROW_TIP_OFFSET);
-            var arrorRearPosition = Vec3.sum(arrowPosition, frontOffset);
-            this.arrowRearPosition = arrorRearPosition;
-            return arrorRearPosition;
-
         },
 
         getNotchPosition: function(bowProperties) {
@@ -526,20 +507,14 @@ getControllerWorldLocation = function (handController, doOffset) {
                 pullBackDistance = DRAW_STRING_MAX_DRAW;
             }
 
-            // //pull the arrow back a bit
-            // var pullBackOffset = Vec3.multiply(handToNotch, -pullBackDistance);
-            // var arrowPosition = Vec3.sum(notchPosition, pullBackOffset);
-
-            // // // move it forward a bit
-            // var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
-            // var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
-
-            //we draw strings to the rear of the arrow
-            // this.setArrowRearPosition(finalArrowPosition, arrowRotation);
-
             var halfArrowVec = Vec3.multiply(Vec3.normalize(handToNotch), ARROW_DIMENSIONS.z / 2.0);
             var arrowPosition = Vec3.sum(stringHandPosition, halfArrowVec);
-            this.setArrowRearPosition(arrowPosition, arrowRotation);
+
+            // Set arrow rear position
+            var frontVector = Quat.getFront(arrowRotation);
+            var frontOffset = Vec3.multiply(frontVector, -ARROW_TIP_OFFSET);
+            var arrorRearPosition = Vec3.sum(arrowPosition, frontOffset);
+            this.arrowRearPosition = arrorRearPosition;
 
             //if we're not shooting, we're updating the arrow's orientation
             if (shouldReleaseArrow !== true) {
