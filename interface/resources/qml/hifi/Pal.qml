@@ -441,8 +441,8 @@ Item {
             color: "white"
             FiraSansSemiBold {
                 id: adminPopupText
-                text: 'Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "MUTE" button on their HUD.\n\n' +
-                    "Banning a user will remove them from this domain and prevent them from returning. You can unban users from your domain's configuration page."
+                text: 'Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
+                    "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page."
                 size: hifi.fontSizes.textFieldInput
                 color: hifi.colors.darkGray
                 horizontalAlignment: Text.AlignHCenter
