@@ -34,7 +34,7 @@
 
     var _this;
     
-    var WANT_DEBUG = true;
+    var WANT_DEBUG = false;
     function debugPrint(string) {
         if (WANT_DEBUG) {
             print(string);
