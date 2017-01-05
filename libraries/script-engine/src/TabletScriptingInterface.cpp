@@ -166,7 +166,7 @@ void TabletProxy::updateAudioBar(const double micLevel) {
 }
 
 void TabletProxy::updateTabletPosition(glm::vec3 tabletPosition) {
-    _position.store(tabletPosition);
+    _position.set(tabletPosition);
 }
 
 void TabletProxy::emitScriptEvent(QVariant msg) {

@@ -24,7 +24,7 @@
 
 #include <DependencyManager.h>
 #include <SoundCache.h>
-
+#include <ThreadSafeValueCache.h>
 
 class TabletProxy;
 class TabletButtonProxy;
@@ -110,7 +110,7 @@ public:
      */
     Q_INVOKABLE void updateTabletPosition(glm::vec3 tabletPosition);
 
-    glm::vec3 getPosition() const { return _position; }
+    glm::vec3 getPosition() const { return _position.get(); }
 
     QString getName() const { return _name; }
 
@@ -141,7 +141,7 @@ protected:
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
-    std::atomic<glm::vec3> _position;
+    ThreadSafeValueCache<glm::vec3> _position;
 };
 
 /**jsdoc
