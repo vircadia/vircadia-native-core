@@ -111,8 +111,7 @@
     }
 
     this.clickDownOnEntity = function(entityID, mouseEvent) { 
-        //  If entity is clicked, jump to seat
-        
+        //  If entity is clicked, sit
         props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
         if ((state === STANDING) && isSeatOpen(props.position, sitDistance)) {
             moveToSeat(props.position, props.rotation);
@@ -123,6 +122,8 @@
     }
 
     this.startFarTrigger = function() {
+        //  If entity is far clicked, sit
+        props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
         if ((state === STANDING) && isSeatOpen(props.position, sitDistance)) {
             moveToSeat(props.position, props.rotation);
             enterSitPose();
