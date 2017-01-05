@@ -46,6 +46,12 @@
     }
 
     function updateShowTablet() {
+        if (tabletShown) {
+            var currentMicLevel = getMicLevel();
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");      
+            tablet.updateAudioBar(currentMicLevel);
+        }
+
         if (HMD.showTablet && !tabletShown) {
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
@@ -60,8 +66,7 @@
     Messages.subscribe("toggleHand");
     Messages.messageReceived.connect(toggleHand);
 
-    Script.update.connect(updateShowTablet);
-    // Script.setInterval(updateShowTablet, 1000);
+    Script.setInterval(updateShowTablet, 100);
 
     // Initialise variables used to calculate audio level
     var accumulatedLevel = 0.0;
@@ -90,12 +95,5 @@
         return micLevel;
     }
 
-    Script.setInterval(function() {
-       if (tabletShown) {
-            var currentMicLevel = getMicLevel();
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");      
-            tablet.updateAudioBar(currentMicLevel);
-        }
-    }, MIC_LEVEL_UPDATE_INTERVAL_MS);
 
 }()); // END LOCAL_SCOPE
