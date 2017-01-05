@@ -24,6 +24,8 @@ public:
     virtual QJsonObject getHardwareStats() const;
 
 protected:
+    QThread::Priority getPresentPriority() override { return QThread::TimeCriticalPriority; }
+
     bool internalActivate() override;
     void hmdPresent() override;
     bool isHmdMounted() const override;

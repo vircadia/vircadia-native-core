@@ -14,6 +14,7 @@
 #include <memory>
 #include <queue>
 
+#include <QtCore/QThread>
 #include <QtCore/QTimer>
 #include <QtGui/QImage>
 
@@ -80,6 +81,7 @@ protected:
 
     void updateCompositeFramebuffer();
 
+    virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
     virtual void compositeScene();
     virtual void compositeOverlay();

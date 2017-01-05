@@ -165,6 +165,7 @@ public:
 
                         if (newPlugin) {
                             bool hasVsync = true;
+                            QThread::setPriority(newPlugin->getPresentPriority());
                             bool wantVsync = newPlugin->wantVsync();
                             _context->makeCurrent();
 #if defined(Q_OS_WIN)
