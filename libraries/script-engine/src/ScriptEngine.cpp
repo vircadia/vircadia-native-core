@@ -911,19 +911,11 @@ void ScriptEngine::run() {
                 break;
             }
 
-            // determine how long before the next timer should fire, we'd ideally like to sleep just
-            // that long, so the next processEvents() will allow the timers to fire on time.
-            const std::chrono::microseconds minTimerTimeRemaining(USECS_PER_MSEC * getTimersRemainingTime());
-
-            // However, if we haven't yet slept at least as long as our average timer per frame, then we will 
-            // punish the timers to at least wait as long as the average run time of the timers.
-            auto untilTimer = std::max(minTimerTimeRemaining, averageTimerPerFrame);
-
-            // choose the closest time point, our 
-            auto remainingSleepUntil = std::chrono::duration_cast<std::chrono::microseconds>(sleepUntil - clock::now());
-            auto closestUntil = std::min(remainingSleepUntil, untilTimer);
-            auto thisSleepUntil = std::min(sleepUntil, clock::now() + closestUntil);
-            std::this_thread::sleep_until(thisSleepUntil);
+            // We only want to sleep a small amount so that any pending events (like timers or invokeMethod events)
+            // will be able to process quickly.
+            static const int SMALL_SLEEP_AMOUNT = 100;
+            auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
+            std::this_thread::sleep_until(smallSleepUntil);
         }
 
 #ifdef SCRIPT_DELAY_DEBUG
@@ -1013,21 +1005,6 @@ void ScriptEngine::run() {
     emit doneRunning();
 }
 
-quint64 ScriptEngine::getTimersRemainingTime() {
-    quint64 minimumTime = USECS_PER_SECOND; // anything larger than this can be ignored
-    QMutableHashIterator<QTimer*, CallbackData> i(_timerFunctionMap);
-    while (i.hasNext()) {
-        i.next();
-        QTimer* timer = i.key();
-        int remainingTime = timer->remainingTime();
-        if (remainingTime >= 0) {
-            minimumTime = std::min((quint64)remainingTime, minimumTime);
-        }
-    }
-    return minimumTime;
-}
-
-
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
 // we want to only call it in our own run "shutdown" processing.
 void ScriptEngine::stopAllTimers() {
@@ -1038,6 +1015,7 @@ void ScriptEngine::stopAllTimers() {
         stopTimer(timer);
     }
 }
+
 void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
      // We could maintain a separate map of entityID => QTimer, but someone will have to prove to me that it's worth the complexity. -HRS
     QVector<QTimer*> toDelete;

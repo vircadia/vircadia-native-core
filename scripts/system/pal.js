@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true, forin: true*/
-/*globals Script, AvatarList, Camera, Overlays, OverlayWindow, Toolbars, Vec3, Quat, Controller, print, getControllerWorldLocation */
+/*globals Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, OverlayWindow, Toolbars, Vec3, Quat, Controller, print, getControllerWorldLocation */
 //
 // pal.js
 //
@@ -48,7 +48,7 @@ ExtendedOverlay.prototype.select = function (selected) {
 var selectedIds = [];
 ExtendedOverlay.isSelected = function (id) {
     return -1 !== selectedIds.indexOf(id);
-}
+};
 ExtendedOverlay.get = function (key) { // answer the extended overlay data object associated with the given avatar identifier
     return overlays[key];
 };
@@ -73,6 +73,46 @@ ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the on
     });
 };
 
+
+//
+// Similar, for entities
+//
+function HighlightedEntity(id, entityProperties) {
+    this.id = id;
+    this.overlay = Overlays.addOverlay('cube', {
+        position: entityProperties.position,
+        rotation: entityProperties.rotation,
+        dimensions: entityProperties.dimensions,
+        solid: false,
+        color: {
+            red: 0xF3,
+            green: 0x91,
+            blue: 0x29
+        },
+        lineWidth: 1.0,
+        ignoreRayIntersection: true,
+        drawInFront: true
+    });
+    HighlightedEntity.overlays.push(this);
+}
+HighlightedEntity.overlays = [];
+HighlightedEntity.clearOverlays = function clearHighlightedEntities() {
+    HighlightedEntity.overlays.forEach(function (highlighted) {
+        Overlays.deleteOverlay(highlighted.overlay);
+    });
+    HighlightedEntity.overlays = [];
+};
+HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
+    HighlightedEntity.overlays.forEach(function (highlighted) {
+        var properties = Entities.getEntityProperties(highlighted.id, ['position', 'rotation', 'dimensions']);
+        Overlays.editOverlay(highlighted.overlay, {
+            position: properties.position,
+            rotation: properties.rotation,
+            dimensions: properties.dimensions
+        });
+    });
+};
+
 //
 // The qml window and communications.
 //
@@ -93,6 +133,25 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
             var selected = ExtendedOverlay.isSelected(id);
             overlay.select(selected);
         });
+
+        HighlightedEntity.clearOverlays();
+        if (selectedIds.length) {
+            Entities.findEntitiesInFrustum(Camera.frustum).forEach(function (id) {
+                // Because lastEditedBy is per session, the vast majority of entities won't match,
+                // so it would probably be worth reducing marshalling costs by asking for just we need.
+                // However, providing property name(s) is advisory and some additional properties are
+                // included anyway. As it turns out, asking for 'lastEditedBy' gives 'position', 'rotation',
+                // and 'dimensions', too, so we might as well make use of them instead of making a second
+                // getEntityProperties call.
+                // It would be nice if we could harden this against future changes by specifying all
+                // and only these four in an array, but see
+                // https://highfidelity.fogbugz.com/f/cases/2728/Entities-getEntityProperties-id-lastEditedBy-name-lastEditedBy-doesn-t-work
+                var properties = Entities.getEntityProperties(id, 'lastEditedBy');
+                if (ExtendedOverlay.isSelected(properties.lastEditedBy)) {
+                    new HighlightedEntity(id, properties);
+                }
+            });
+        }
         break;
     case 'refresh':
         removeOverlays();
@@ -117,7 +176,6 @@ function addAvatarNode(id) {
 }
 function populateUserList() {
     var data = [];
-    var counter = 1;
     AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
         var avatarPalDatum = {
@@ -132,10 +190,14 @@ function populateUserList() {
             // Request the username from the given UUID
             Users.requestUsernameFromID(id);
         }
-        data.push(avatarPalDatum);
-        if (id) { // No overlay for ourself.
-            addAvatarNode(id);
+        // Request personal mute status and ignore status
+        // from NodeList (as long as we're not requesting it for our own ID)
+        if (id) {
+            avatarPalDatum['personalMute'] = Users.getPersonalMuteStatus(id);
+            avatarPalDatum['ignore'] = Users.getIgnoreStatus(id);
+            addAvatarNode(id); // No overlay for ourselves
         }
+        data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
     pal.sendToQml({method: 'users', params: data});
@@ -147,7 +209,7 @@ function usernameFromIDReply(id, username, machineFingerprint) {
     // If the ID we've received is our ID...
     if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username]
+        data = ['', username];
     } else {
         // Set the data to contain the ID and the username (if we have one)
         // or fingerprint (if we don't have a username) string.
@@ -186,9 +248,11 @@ function updateOverlays() {
         }
     });
     // We could re-populateUserList if anything added or removed, but not for now.
+    HighlightedEntity.updateOverlays();
 }
 function removeOverlays() {
     selectedIds = [];
+    HighlightedEntity.clearOverlays();
     ExtendedOverlay.some(function (overlay) { overlay.deleteOverlay(); });
 }
 
@@ -252,9 +316,11 @@ function off() {
     }
     triggerMapping.disable(); // It's ok if we disable twice.
     removeOverlays();
+    Users.requestsDomainListData = false;
 }
 function onClicked() {
     if (!pal.visible) {
+        Users.requestsDomainListData = true;
         populateUserList();
         pal.raise();
         isWired = true;
@@ -267,7 +333,7 @@ function onClicked() {
     pal.setVisible(!pal.visible);
 }
 
-var AVERAGING_RATIO = 0.05
+var AVERAGING_RATIO = 0.05;
 var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
@@ -282,12 +348,12 @@ function getAudioLevel(id) {
     var audioLevel = 0.0;
 
     // we will do exponential moving average by taking some the last loudness and averaging
-    accumulatedLevels[id] = AVERAGING_RATIO * (accumulatedLevels[id] || 0 ) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
-    
+    accumulatedLevels[id] = AVERAGING_RATIO * (accumulatedLevels[id] || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+
     // add 1 to insure we don't go log() and hit -infinity.  Math.log is
     // natural log, so to get log base 2, just divide by ln(2).
     var logLevel = Math.log(accumulatedLevels[id] + 1) / LOG2;
-    
+
     if (logLevel <= LOUDNESS_FLOOR) {
         audioLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
     } else {
@@ -309,7 +375,7 @@ Script.setInterval(function () {
             var level = getAudioLevel(id);
             // qml didn't like an object with null/empty string for a key, so...
             var userId = id || 0;
-            param[userId]= level;
+            param[userId] = level;
         });
         pal.sendToQml({method: 'updateAudioLevel', params: param});
     }
@@ -326,6 +392,14 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
+function clearIgnoredInQMLAndClosePAL() {
+    pal.sendToQml({ method: 'clearIgnored' });
+    if (pal.visible) {
+        onClicked(); // Close the PAL
+    }
+}
+Window.domainChanged.connect(clearIgnoredInQMLAndClosePAL);
+Window.domainConnectionRefused.connect(clearIgnoredInQMLAndClosePAL);
 
 //
 // Cleanup.
@@ -336,6 +410,8 @@ Script.scriptEnding.connect(function () {
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
+    Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
+    Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
     off();
 });
 
