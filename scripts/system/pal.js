@@ -85,12 +85,13 @@ function HighlightedEntity(id, entityProperties) {
         dimensions: entityProperties.dimensions,
         solid: false,
         color: {
-            red: 255,
-            green: 0,
-            blue: 0
+            red: 0xF3,
+            green: 0x91,
+            blue: 0x29
         },
         lineWidth: 1.0,
-        ignoreRayIntersection: true
+        ignoreRayIntersection: true,
+        drawInFront: true
     });
     HighlightedEntity.overlays.push(this);
 }
