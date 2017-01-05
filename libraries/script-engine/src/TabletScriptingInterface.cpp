@@ -29,10 +29,10 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
     }
 }
 
-void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot) {
+void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet(tabletId));
-    if (tablet) {
-        tablet->setQmlTabletRoot(qmlTabletRoot);
+    if (tablet && qmlOffscreenSurface) {
+        tablet->setQmlTabletRoot(qmlTabletRoot, qmlOffscreenSurface);
     } else {
         qCWarning(scriptengine) << "TabletScriptingInterface::setupTablet() bad tablet object";
     }
@@ -44,7 +44,7 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
 
 static const char* TABLET_SOURCE_URL = "Tablet.qml";
 static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
-static const char* LOADER_SOURCE_PROPERTY_NAME = "loaderSource";
+static const char* LOADER_SOURCE_PROPERTY_NAME = "LoaderSource";
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
     ;
@@ -72,10 +72,12 @@ static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* 
     buttonProxy->setQmlButton(qobject_cast<QQuickItem*>(qmlButton));
 }
 
-void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot) {
+void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     std::lock_guard<std::mutex> guard(_mutex);
+    _qmlOffscreenSurface = qmlOffscreenSurface;
     _qmlTabletRoot = qmlTabletRoot;
-    if (_qmlTabletRoot) {
+    if (_qmlTabletRoot && _qmlOffscreenSurface) {
+        QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
         gotoHomeScreen();
     } else {
         removeButtonsFromHomeScreen();
@@ -86,8 +88,10 @@ void TabletProxy::gotoHomeScreen() {
     if (_qmlTabletRoot) {
         QString tabletSource = _qmlTabletRoot->property(LOADER_SOURCE_PROPERTY_NAME).toString();
         if (tabletSource != TABLET_SOURCE_URL) {
+            _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, TABLET_SOURCE_URL);
+            auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
-            addButtonsToHomeScreen();
         }
     }
 }
@@ -97,6 +101,7 @@ void TabletProxy::gotoWebScreen(const QString& url) {
         removeButtonsFromHomeScreen();
         QString tabletSource = _qmlTabletRoot->property(LOADER_SOURCE_PROPERTY_NAME).toString();
         if (tabletSource != WEB_VIEW_SOURCE_URL) {
+            _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, WEB_VIEW_SOURCE_URL);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
             // TABLET_UI_HACK: TODO: addEventBridge to tablet....
         }
@@ -150,6 +155,12 @@ void TabletProxy::updateAudioBar(const double micLevel) {
     }
 }
 
+void TabletProxy::emitScriptEvent(QVariant msg) {
+    if (_qmlOffscreenSurface) {
+        QMetaObject::invokeMethod(_qmlOffscreenSurface, "emitScriptEvent", Qt::AutoConnection, Q_ARG(QVariant, msg));
+    }
+}
+
 void TabletProxy::addButtonsToHomeScreen() {
     auto tablet = getQmlTablet();
     if (!tablet) {
@@ -160,6 +171,8 @@ void TabletProxy::addButtonsToHomeScreen() {
     for (auto& buttonProxy : _tabletButtonProxies) {
         addButtonProxyToQmlTablet(tablet, buttonProxy.data());
     }
+     auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+     QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
 }
 
 void TabletProxy::removeButtonsFromHomeScreen() {
