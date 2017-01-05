@@ -866,7 +866,8 @@ function MyController(hand) {
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             var oldStateName = stateToName(this.state);
             var newStateName = stateToName(newState);
-            print("STATE (" + this.hand + "): " + newStateName + " <-- " + oldStateName + ", reason = " + reason);
+            print("STATE (" + this.hand + "): " + this.state + "-" + newStateName +
+                  " <-- " + oldStateName + ", reason = " + reason);
         }
 
         // exit the old state
@@ -1231,7 +1232,7 @@ function MyController(hand) {
         var nearWeb = false;
         for (var i = 0; i < candidateEntities.length; i++) {
             var props = entityPropertiesCache.getProps(candidateEntities[i]);
-            if (props.type == "Web" || this.isTablet(props)) {
+            if (props && (props.type == "Web" || this.isTablet(props))) {
                 nearWeb = true;
                 break;
             }
@@ -2740,6 +2741,11 @@ function MyController(hand) {
 
         entityPropertiesCache.addEntity(this.grabbedEntity);
 
+        if (this.state == STATE_ENTITY_LASER_TOUCHING && !this.triggerSmoothedGrab()) {
+            this.setState(STATE_OFF, "released trigger");
+            return;
+        }
+
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectEntity(this.grabbedEntity,
                                                      getControllerWorldLocation(this.handToController(), true));
@@ -2842,6 +2848,11 @@ function MyController(hand) {
 
         if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && this.triggerSmoothedSqueezed()) {
             this.setState(STATE_OFF, "trigger squeezed");
+            return;
+        }
+
+        if (this.state == STATE_OVERLAY_LASER_TOUCHING && !this.triggerSmoothedGrab()) {
+            this.setState(STATE_OFF, "released trigger");
             return;
         }
 
@@ -3387,11 +3398,13 @@ var updateIntervalTimer = Script.setInterval(function(){
     if (intervalCount == 100) {
 
         if (UPDATE_PERFORMANCE_DEBUGGING) {
-    		print("handControllerGrab.js -- For " + intervalCount + " samples average= " + totalDelta/intervalCount + " ms" 
-                     + " average variance:" + totalVariance/intervalCount + " ms"
-                     + " high variance count:" + highVarianceCount + " [ " + (highVarianceCount/intervalCount) * 100 + "% ] "
-                     + " VERY high variance count:" + veryhighVarianceCount + " [ " + (veryhighVarianceCount/intervalCount) * 100 + "% ] "
-                     + " average work:" + updateTotalWork/intervalCount + " ms");
+            print("handControllerGrab.js -- For " + intervalCount + " samples average= " +
+                  totalDelta/intervalCount + " ms" +
+                  " average variance:" + totalVariance/intervalCount + " ms" +
+                  " high variance count:" + highVarianceCount + " [ " + (highVarianceCount/intervalCount) * 100 + "% ] " +
+                  " VERY high variance count:" + veryhighVarianceCount +
+                  " [ " + (veryhighVarianceCount/intervalCount) * 100 + "% ] " +
+                  " average work:" + updateTotalWork/intervalCount + " ms");
         }
 
         intervalCount = 0;
