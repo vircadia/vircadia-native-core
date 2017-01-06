@@ -11,7 +11,7 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// FIXME when we make this a defaultScript: (function() { // BEGIN LOCAL_SCOPE
+(function() { // BEGIN LOCAL_SCOPE
 
 Script.include("/~/system/libraries/controllers.js");
 
@@ -91,7 +91,7 @@ function HighlightedEntity(id, entityProperties) {
         },
         lineWidth: 1.0,
         ignoreRayIntersection: true,
-        drawInFront: true
+        drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
     });
     HighlightedEntity.overlays.push(this);
 }
@@ -443,4 +443,4 @@ Script.scriptEnding.connect(function () {
 });
 
 
-// FIXME: }()); // END LOCAL_SCOPE
+}()); // END LOCAL_SCOPE
