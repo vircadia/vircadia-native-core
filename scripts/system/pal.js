@@ -281,7 +281,7 @@ function updateOverlays() {
         var diff = Vec3.subtract(target, eye);
         
         // move a bit in front, towards the camera
-        target = Vec3.sum(target, Vec3.multiply(Vec3.normalize(diff), offset));
+        target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(diff), offset));
 
         // now bump it up a bit
         target.y = target.y + offset;
