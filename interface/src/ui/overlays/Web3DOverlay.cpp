@@ -355,6 +355,11 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
     if (dpi.isValid()) {
         _dpi = dpi.toFloat();
     }
+
+    auto showKeyboardFocusHighlight = properties["showKeyboardFocusHighlight"];
+    if (showKeyboardFocusHighlight.isValid()) {
+        _showKeyboardFocusHighlight = showKeyboardFocusHighlight.toBool;
+    }
 }
 
 QVariant Web3DOverlay::getProperty(const QString& property) {
@@ -369,6 +374,9 @@ QVariant Web3DOverlay::getProperty(const QString& property) {
     }
     if (property == "dpi") {
         return _dpi;
+    }
+    if (property == "showKeyboardFocusHighlight") {
+        return _showKeyboardFocusHighlight;
     }
     return Billboard3DOverlay::getProperty(property);
 }
