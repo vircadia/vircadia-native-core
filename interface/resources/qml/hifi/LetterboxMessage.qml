@@ -15,6 +15,7 @@ import "../styles-uit"
 
 Item {
     property alias text: popupText.text
+    property real radius: hifi.dimensions.borderRadius
     visible: false
     id: letterbox
     anchors.fill: parent
@@ -22,13 +23,13 @@ Item {
         anchors.fill: parent
         color: "black"
         opacity: 0.5
-        radius: hifi.dimensions.borderRadius
+        radius: radius
     }
     Rectangle {
         width: Math.max(parent.width * 0.75, 400)
         height: popupText.contentHeight*1.5
         anchors.centerIn: parent
-        radius: hifi.dimensions.borderRadius
+        radius: radius
         color: "white"
         FiraSansSemiBold {
             id: popupText

@@ -3,7 +3,6 @@ var ENTITY_LIST_HTML_URL = Script.resolvePath('../html/entityList.html');
 EntityListTool = function(opts) {
     var that = {};
 
-
     var url = ENTITY_LIST_HTML_URL;
     var webView = new OverlayWebWindow({
         title: 'Entity List',  source: url,  toolWindow: true   
