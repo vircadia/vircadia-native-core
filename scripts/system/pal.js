@@ -23,7 +23,7 @@ const SELECTED_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar
 const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 const SELECTED_COLOR = {red: 0xf3, green: 0x91, blue: 0x29};
 
-// FIXME when we make this a defaultScript: (function() { // BEGIN LOCAL_SCOPE
+(function() { // BEGIN LOCAL_SCOPE
 
 Script.include("/~/system/libraries/controllers.js");
 
@@ -124,7 +124,7 @@ function HighlightedEntity(id, entityProperties) {
         },
         lineWidth: 1.0,
         ignoreRayIntersection: true,
-        drawInFront: true
+        drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
     });
     HighlightedEntity.overlays.push(this);
 }
@@ -475,4 +475,4 @@ Script.scriptEnding.connect(function () {
 });
 
 
-// FIXME: }()); // END LOCAL_SCOPE
+}()); // END LOCAL_SCOPE
