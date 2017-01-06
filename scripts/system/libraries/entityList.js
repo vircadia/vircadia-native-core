@@ -129,7 +129,9 @@ EntityListTool = function(opts) {
                 }
             });
             var dedupped = Object.keys(sessionIds);
-            if (!dedupped.length) {
+            if (!selectionManager.selections.length) {
+                Window.alert('No objects selected.');
+            } else if (!dedupped.length) {
                 Window.alert('There were no recent users of the ' + selectionManager.selections.length + ' selected objects.');
             } else {
                 // No need to subscribe if we're just sending.
