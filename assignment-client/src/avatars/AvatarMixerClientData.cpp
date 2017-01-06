@@ -21,6 +21,7 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     message.readPrimitive(&_lastReceivedSequenceNumber);
     
     // compute the offset to the data payload
+    //qDebug() << __FUNCTION__ "about to call parseDataFromBuffer() for:" << getNodeID();
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
 

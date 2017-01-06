@@ -116,6 +116,11 @@ const char AVATARDATA_FLAGS_MINIMUM = 0;
 using smallFloat = uint16_t; // a compressed float with less precision, user defined radix
 
 namespace AvatarDataPacket {
+
+    // NOTE: every time AvatarData is sent from mixer to client, it also includes the GUIID for the session
+    // this is 16bytes of data at 45hz that's 5.76kbps
+    // it might be nice to use a dictionary to compress that
+
     // Packet State Flags - we store the details about the existence of other records in this bitset:
     // AvatarGlobalPosition, Avatar Faceshift, eye tracking, and existence of
     using HasFlags = uint16_t;
@@ -686,8 +691,6 @@ protected:
     quint64 _globalPositionChanged { 0 };
     quint64 _avatarDimensionsChanged { 0 };
     quint64 _avatarScaleChanged { 0 };
-    quint64 _lookAtChanged { 0 };
-    quint64 _audioLoudnessChanged { 0 };
     quint64 _sensorToWorldMatrixChanged { 0 };
     quint64 _additionalFlagsChanged { 0 };
     quint64 _parentChanged { 0 };

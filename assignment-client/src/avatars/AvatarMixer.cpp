@@ -424,8 +424,10 @@ void AvatarMixer::broadcastAvatarData() {
 
                     //qDebug() << "about to write data for:" << otherNode->getUUID();
                     quint64 lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
-                    qDebug() << "about to write data for:" << otherNode->getUUID() << "last encoded at:" << lastEncodeForOther;
-                    numAvatarDataBytes += avatarPacketList->write(otherAvatar.toByteArray(detail, lastEncodeForOther));
+                    //qDebug() << "about to call toByteArray() for:" << otherNode->getUUID() << "last encoded at:" << lastEncodeForOther;
+                    auto bytes = otherAvatar.toByteArray(detail, lastEncodeForOther);
+                    //qDebug() << "about to call avatarPacketList->write() for:" << otherNode->getUUID() << " bytes:" << bytes.size();
+                    numAvatarDataBytes += avatarPacketList->write(bytes);
 
                     avatarPacketList->endSegment();
             });

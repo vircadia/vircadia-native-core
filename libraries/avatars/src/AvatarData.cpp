@@ -131,8 +131,11 @@ float AvatarData::getTargetScale() const {
 }
 
 void AvatarData::setTargetScale(float targetScale) {
-    _targetScale = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
-    _scaleChanged = usecTimestampNow();
+    auto newValue = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    if (_targetScale != newValue) {
+        _targetScale = newValue;
+        _scaleChanged = usecTimestampNow();
+    }
 }
 
 void AvatarData::setTargetScaleVerbose(float targetScale) {
@@ -181,7 +184,7 @@ bool AvatarData::sensorToWorldMatrixChangedSince(quint64 time) {
 }
 
 bool AvatarData::additionalFlagsChangedSince(quint64 time) {
-    return true; // FIXME!
+    return _additionalFlagsChanged >= time;
 }
 
 bool AvatarData::parentInfoChangedSince(quint64 time) {
@@ -201,11 +204,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         _lastToByteArray = usecTimestampNow();
     }
 
-    bool cullSmallChanges = (dataDetail == CullSmallData);
+    // FIXME - the other "delta" sending seems to work ok, but this culling small data seems to cause
+    // problems in the sending of joint data... hand waving is awkward
+    bool cullSmallChanges = false; // (dataDetail == CullSmallData);
     bool sendAll = (dataDetail == SendAllData);
     bool sendMinimum = (dataDetail == MinimumData);
 
-    sendAll = true;
+    //sendAll = true; // FIXME -- hack-o-rama
 
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
@@ -284,7 +289,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
     bool hasJointData = sendAll || !sendMinimum;
 
-    //qDebug() << __FUNCTION__ << "sendAll:" << sendAll;
+    /*
+    qDebug() << __FUNCTION__ << "sendAll:" << sendAll 
+        << "sendMinimum:" << sendMinimum
+        << "hasJointData:" << hasJointData
+        << "cullSmallChanges:" << cullSmallChanges;
+        */
+
     //qDebug() << "hasAvatarGlobalPosition:" << hasAvatarGlobalPosition;
     //qDebug() << "hasAvatarOrientation:" << hasAvatarOrientation;
 
@@ -431,7 +442,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
-        ////qDebug() << "hasAdditionalFlags _keyState:" << _keyState;
+        //qDebug() << "hasAdditionalFlags _keyState:" << _keyState;
         //qDebug() << "hasAdditionalFlags _handState:" << _handState;
         //qDebug() << "hasAdditionalFlags _isFaceTrackerConnected:" << _headData->_isFaceTrackerConnected;
         //qDebug() << "hasAdditionalFlags _isEyeTrackerConnected:" << _headData->_isEyeTrackerConnected;
@@ -476,7 +487,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         int numJoints = _jointData.size();
         *destinationBuffer++ = (uint8_t)numJoints;
 
-        qDebug() << "hasJointData numJoints:" << numJoints;
+        //qDebug() << "hasJointData numJoints:" << numJoints;
 
         unsigned char* validityPosition = destinationBuffer;
         unsigned char validity = 0;
@@ -688,10 +699,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     memcpy(&packetStateFlags, sourceBuffer, sizeof(packetStateFlags));
     sourceBuffer += sizeof(packetStateFlags);
 
-    //qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags;
-    //qDebug() << "buffer size:" << buffer.size();
-
-
+    //qDebug() << __FUNCTION__ << "packetStateFlags:" << packetStateFlags << "buffer size:" << buffer.size();
 
     #define HAS_FLAG(B,F) ((B & F) == F)
 
@@ -714,8 +722,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     if (hasAvatarGlobalPosition) {
         PACKET_READ_CHECK(AvatarGlobalPosition, sizeof(AvatarDataPacket::AvatarGlobalPosition));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarGlobalPosition*>(sourceBuffer);
-        _globalPosition = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]);
-        _globalPositionChanged = usecTimestampNow();
+        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]);
+        if (_globalPosition != newValue) {
+            _globalPosition = newValue;
+            _globalPositionChanged = usecTimestampNow();
+        }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         //qDebug() << "hasAvatarGlobalPosition _globalPosition:" << _globalPosition;
     }
@@ -738,10 +749,12 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     if (hasAvatarDimensions) {
         PACKET_READ_CHECK(AvatarDimensions, sizeof(AvatarDataPacket::AvatarDimensions));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarDimensions*>(sourceBuffer);
-
+        auto newValue = glm::vec3(data->avatarDimensions[0], data->avatarDimensions[1], data->avatarDimensions[2]);
         // FIXME - this is suspicious looking!
-        _globalBoundingBoxCorner = glm::vec3(data->avatarDimensions[0], data->avatarDimensions[1], data->avatarDimensions[2]);
-        _avatarDimensionsChanged = usecTimestampNow();
+        if (_globalBoundingBoxCorner != newValue) {
+            _globalBoundingBoxCorner = newValue;
+            _avatarDimensionsChanged = usecTimestampNow();
+        }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarDimensions);
         //qDebug() << "hasAvatarDimensions _globalBoundingBoxCorner:" << _globalBoundingBoxCorner;
     }
@@ -828,19 +841,22 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&data->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
         glm::vec3 sensorToWorldTrans(data->sensorToWorldTrans[0], data->sensorToWorldTrans[1], data->sensorToWorldTrans[2]);
         glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
-        _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
-        _sensorToWorldMatrixChanged = usecTimestampNow();
+        if (_sensorToWorldMatrixCache.get() != sensorToWorldMatrix) {
+            _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
+            _sensorToWorldMatrixChanged = usecTimestampNow();
+        }
         sourceBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
         //qDebug() << "hasSensorToWorldMatrix sensorToWorldMatrix:" << sensorToWorldMatrix;
     }
 
     if (hasAdditionalFlags) {
+        //qDebug() << "hasAdditionalFlags...";
         PACKET_READ_CHECK(AdditionalFlags, sizeof(AvatarDataPacket::AdditionalFlags));
         auto data = reinterpret_cast<const AvatarDataPacket::AdditionalFlags*>(sourceBuffer);
         uint8_t bitItems = data->flags;
 
         // key state, stored as a semi-nibble in the bitItems
-        _keyState = (KeyState)getSemiNibbleAt(bitItems, KEY_STATE_START_BIT);
+        auto newKeyState = (KeyState)getSemiNibbleAt(bitItems, KEY_STATE_START_BIT);
 
         // hand state, stored as a semi-nibble plus a bit in the bitItems
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
@@ -849,22 +865,28 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         //     |x,x|H0,H1|x,x,x|H2|
         //     +---+-----+-----+--+
         // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
-        _handState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
+        auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
+        auto newFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        auto newEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
 
-        _headData->_isFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-        _headData->_isEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
+        bool keyStateChanged = (_keyState != newKeyState);
+        bool handStateChanged = (_handState != newHandState);
+        bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
+        bool eyeStateChanged = (_headData->_isEyeTrackerConnected != newEyeTrackerConnected);
+        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged;
 
-        //qDebug() << "hasAdditionalFlags _keyState:" << _keyState;
-        //qDebug() << "hasAdditionalFlags _handState:" << _handState;
-        //qDebug() << "hasAdditionalFlags _isFaceTrackerConnected:" << _headData->_isFaceTrackerConnected;
-        //qDebug() << "hasAdditionalFlags _isEyeTrackerConnected:" << _headData->_isEyeTrackerConnected;
+        _keyState = newKeyState;
+        _handState = newHandState;
+        _headData->_isFaceTrackerConnected = newFaceTrackerConnected;
+        _headData->_isEyeTrackerConnected = newEyeTrackerConnected;
 
-        //qDebug() << "hasAdditionalFlags bitItems:" << bitItems;
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
-        _additionalFlagsChanged = usecTimestampNow();
+        if (somethingChanged) {        
+            _additionalFlagsChanged = usecTimestampNow();
+        }
     }
 
     // FIXME -- make sure to handle the existance of a parent vs a change in the parent...
@@ -875,10 +897,14 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::ParentInfo);
 
         QByteArray byteArray((const char*)parentInfo->parentUUID, NUM_BYTES_RFC4122_UUID);
-        _parentID = QUuid::fromRfc4122(byteArray);
-        _parentJointIndex = parentInfo->parentJointIndex;
-        //qDebug() << "hasParentInfo _parentID:" << _parentID;
-        _parentChanged = usecTimestampNow();
+
+        auto newParentID = QUuid::fromRfc4122(byteArray);
+
+        if ((_parentID != newParentID) || (_parentJointIndex = parentInfo->parentJointIndex)) {
+            _parentID = newParentID;
+            _parentJointIndex = parentInfo->parentJointIndex;
+            _parentChanged = usecTimestampNow();
+        }
 
     } else {
         // FIXME - this aint totally right, for switching to parent/no-parent
@@ -907,7 +933,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     if (hasJointData) {
         PACKET_READ_CHECK(NumJoints, sizeof(uint8_t));
         int numJoints = *sourceBuffer++;
-        //qDebug() << "....hasJointData numJoints:" << numJoints;
+        //qDebug() << __FUNCTION__ << "....hasJointData numJoints:" << numJoints;
 
         const int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
         PACKET_READ_CHECK(JointRotationValidityBits, bytesOfValidity);
@@ -981,7 +1007,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
         }
 
-#ifdef WANT_DEBUG
+#if 0 //def WANT_DEBUG
         if (numValidJointRotations > 15) {
             qCDebug(avatars) << "RECEIVING -- rotations:" << numValidJointRotations
                 << "translations:" << numValidJointTranslations
