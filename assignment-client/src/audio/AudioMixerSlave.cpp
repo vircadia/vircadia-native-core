@@ -214,7 +214,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
         bool getsAnyIgnored = nodeData->getRequestsDomainListData() && node->getCanKick();
 
         if (otherData
-            && !node->isIgnoringNodeWithID(otherNode->getUUID())
+            && (!node->isIgnoringNodeWithID(otherNode->getUUID()) || (otherData->getRequestsDomainListData() && otherNode->getCanKick()))
             && (!otherNode->isIgnoringNodeWithID(node->getUUID()) || getsAnyIgnored))  {
 
             // check to see if we're ignoring in radius
@@ -256,7 +256,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
                 auto otherNodeStream = streamPair.second;
                 bool isSelfWithEcho = ((*otherNode == *node) && (otherNodeStream->shouldLoopbackForNode()));
                 // Add all audio streams that should be added to the mix
-                if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius && getsAnyIgnored)) {
+                if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius)) {
                     addStreamToMix(*nodeData, otherNode->getUUID(), *nodeAudioStream, *otherNodeStream);
                 }
             }
