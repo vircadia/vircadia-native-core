@@ -1,9 +1,11 @@
 print("============= Script Starting =============");
 
-var BEGIN_BUILDING_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/letTheGamesBegin.wav"));
+var BEGIN_BUILDING_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/gameOn.wav"));
 var GAME_OVER_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/gameOver.wav"));
 var WAVE_COMPLETE_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/waveComplete.wav"));
 var EXPLOSION_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/explosion.wav"));
+var TARGET_HIT_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/targetHit.wav"));
+var ESCAPE_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/escape.wav"));
 
 Script.include('utils.js');
 Script.include('shortbow.js?' + Date.now());
@@ -30,6 +32,7 @@ function spawnTemplate(templateName, overrides) {
         print("ERROR, unknown template name:", templateName);
         return null;
     }
+    print("Spawning: ", templateName);
     var properties = mergeObjects(overrides, template);
     return Entities.addEntity(properties);
 }
@@ -60,8 +63,8 @@ for (var i = 0; i < TEMPLATES.length; ++i) {
         var urlParts = template.modelURL.split("/");
         var filename = urlParts[urlParts.length - 1];
         var newURL = Script.resolvePath("assets/" + filename);
-        template.modelURL = newURL;
         print("Updated url", template.modelURL, "to", newURL);
+        template.modelURL = newURL;
     }
 }
 
@@ -183,6 +186,7 @@ function setHighScoreOnDisplay(entityID, highScore) {
 function GameManager(rootPosition, gatePosition, bowPositions, spawnPositions, startButtonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID) {
     this.gameState = GAME_STATES.IDLE;
 
+    this.bowPositions = bowPositions;
     this.rootPosition = rootPosition;
     this.spawnPositions = spawnPositions;
     this.gatePosition = gatePosition;
@@ -206,40 +210,6 @@ function GameManager(rootPosition, gatePosition, bowPositions, spawnPositions, s
 
 
 
-    // Spawn bows
-    for (var i = 0; i < bowPositions.length; ++i) {
-        const bowPosition = bowPositions[i];
-        Vec3.print("Creating bow: ", bowPosition);
-        this.bowIDs.push(Entities.addEntity({
-            position: bowPosition,
-            "collisionsWillMove": 1,
-            "compoundShapeURL": Script.resolvePath("bow/bow_collision_hull.obj"),
-            "created": "2016-09-01T23:57:55Z",
-            "dimensions": {
-                "x": 0.039999999105930328,
-                "y": 1.2999999523162842,
-                "z": 0.20000000298023224
-            },
-            "dynamic": 1,
-            "gravity": {
-                "x": 0,
-                "y": -1,
-                "z": 0
-            },
-            "modelURL": Script.resolvePath("bow/bow-deadly.fbx"),
-            "name": "WG.Hifi-Bow",
-            "rotation": {
-                "w": 0.9718012809753418,
-                "x": 0.15440607070922852,
-                "y": -0.10469216108322144,
-                "z": -0.14418250322341919
-            },
-            "script": Script.resolvePath("bow/bow.js"),
-            "shapeType": "compound",
-            "type": "Model",
-            "userData": "{\"grabbableKey\":{\"grabbable\":true},\"wearable\":{\"joints\":{\"RightHand\":[{\"x\":0.0813,\"y\":0.0452,\"z\":0.0095},{\"x\":-0.3946,\"y\":-0.6604,\"z\":0.4748,\"w\":-0.4275}],\"LeftHand\":[{\"x\":-0.0881,\"y\":0.0259,\"z\":0.0159},{\"x\":0.4427,\"y\":-0.6519,\"z\":0.4592,\"w\":0.4099}]}}}"
-        }));
-    }
 }
 GameManager.prototype = {
     cleanup: function() {
@@ -266,10 +236,46 @@ GameManager.prototype = {
 
         Entities.editEntity(this.startButtonID, { visible: false });
 
+
+        // Spawn bows
+        for (var i = 0; i < this.bowPositions.length; ++i) {
+            const bowPosition = this.bowPositions[i];
+            Vec3.print("Creating bow: ", bowPosition);
+            this.bowIDs.push(Entities.addEntity({
+                position: bowPosition,
+                "collisionsWillMove": 1,
+                "compoundShapeURL": Script.resolvePath("bow/bow_collision_hull.obj"),
+                "created": "2016-09-01T23:57:55Z",
+                "dimensions": {
+                    "x": 0.039999999105930328,
+                    "y": 1.2999999523162842,
+                    "z": 0.20000000298023224
+                },
+                "dynamic": 1,
+                "gravity": {
+                    "x": 0,
+                    "y": -1,
+                    "z": 0
+                },
+                "modelURL": Script.resolvePath("bow/bow-deadly.fbx"),
+                "name": "WG.Hifi-Bow",
+                "rotation": {
+                    "w": 0.9718012809753418,
+                    "x": 0.15440607070922852,
+                    "y": -0.10469216108322144,
+                    "z": -0.14418250322341919
+                },
+                "script": Script.resolvePath("bow/bow.js"),
+                "shapeType": "compound",
+                "type": "Model",
+                "userData": "{\"grabbableKey\":{\"grabbable\":true},\"wearable\":{\"joints\":{\"RightHand\":[{\"x\":0.0813,\"y\":0.0452,\"z\":0.0095},{\"x\":-0.3946,\"y\":-0.6604,\"z\":0.4748,\"w\":-0.4275}],\"LeftHand\":[{\"x\":-0.0881,\"y\":0.0259,\"z\":0.0159},{\"x\":0.4427,\"y\":-0.6519,\"z\":0.4592,\"w\":0.4099}]}}}"
+            }));
+        }
+
         // Initialize game state
         this.waveNumber = 0;
         this.setScore(0);
-        this.setLivesLeft(20);
+        this.setLivesLeft(6);
 
         this.nextWaveTimer = Script.setTimeout(this.startNextWave.bind(this), 100);
         this.spawnEnemyTimers = [];
@@ -333,10 +339,13 @@ GameManager.prototype = {
             Script.clearInterval(this.checkEnemyPositionsTimer);
             this.checkEnemyPositionsTimer = null;
 
-            Audio.playSound(WAVE_COMPLETE_SOUND, {
-                volume: 1.0,
-                position: this.rootPosition
-            });
+            // Play after 1.5s to let other sounds finish playing
+            Script.setTimeout(function() {
+                Audio.playSound(WAVE_COMPLETE_SOUND, {
+                    volume: 1.0,
+                    position: this.rootPosition
+                });
+            }, 1500);
         }
     },
     setLivesLeft: function(lives) {
@@ -380,6 +389,10 @@ GameManager.prototype = {
                 this.enemyIDs.splice(i, 1);
                 this.setLivesLeft(this.livesLeft - 1);
                 this.numberOfEntitiesLeftForWave--;
+                Audio.playSound(ESCAPE_SOUND, {
+                    volume: 1.0,
+                    position: this.rootPosition
+                });
                 enemiesEscaped = true;
             }
         }
@@ -395,10 +408,12 @@ GameManager.prototype = {
             return;
         }
 
-        Audio.playSound(GAME_OVER_SOUND, {
-            volume: 1.0,
-            position: this.rootPosition
-        });
+        Script.setTimeout(function() {
+            Audio.playSound(GAME_OVER_SOUND, {
+                volume: 1.0,
+                position: this.rootPosition
+            });
+        }, 1500);
 
         //Entities.editEntity(this.livesDisplayID, { text: "GAME OVER" });
 
@@ -457,9 +472,10 @@ GameManager.prototype = {
         var idx = this.enemyIDs.indexOf(entityID);
         if (idx >= 0) {
             this.enemyIDs.splice(idx, 1);
-            Audio.playSound(EXPLOSION_SOUND, {
+            Audio.playSound(TARGET_HIT_SOUND, {
                 volume: 1.0,
-                position: position
+                //position: position,
+                position: this.rootPosition,
             });
 
             this.numberOfEntitiesLeftForWave--;
