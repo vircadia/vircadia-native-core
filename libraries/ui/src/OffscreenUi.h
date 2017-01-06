@@ -50,7 +50,7 @@ public:
 
     // Setting pinned to true will hide all overlay elements on the desktop that don't have a pinned flag
     void setPinned(bool pinned = true);
-
+    
     void togglePinned();
     void setConstrainToolbarToCenterX(bool constrained);
 
@@ -59,7 +59,7 @@ public:
     QObject* getFlags();
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
-
+    QObject* getRootMenu();
     enum Icon {
         ICON_NONE = 0,
         ICON_QUESTION,

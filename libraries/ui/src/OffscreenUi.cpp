@@ -524,6 +524,10 @@ QQuickItem* OffscreenUi::getDesktop() {
     return _desktop;
 }
 
+QObject* OffscreenUi::getRootMenu() {
+    return getRootItem()->findChild<QObject*>("rootMenu");
+}
+
 QQuickItem* OffscreenUi::getToolWindow() {
     return _toolWindow;
 }
