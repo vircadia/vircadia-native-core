@@ -11,6 +11,18 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed 
+// something, will revisit as this is sorta horrible.
+const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
+                             "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
+};
+const SELECTED_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
+                            "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
+};
+
+const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
+const SELECTED_COLOR = {red: 0xf3, green: 0x91, blue: 0x29};
+
 // FIXME when we make this a defaultScript: (function() { // BEGIN LOCAL_SCOPE
 
 Script.include("/~/system/libraries/controllers.js");
@@ -20,13 +32,17 @@ Script.include("/~/system/libraries/controllers.js");
 //
 var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
 
-function ExtendedOverlay(key, type, properties, selected, hasSphere) { // A wrapper around overlays to store the key it is associated with.
+function ExtendedOverlay(key, type, properties, selected, hasModel) { // A wrapper around overlays to store the key it is associated with.
     overlays[key] = this;
-    if (hasSphere) {
-        var sphereKey = key + "-s";
-        this.sphere = new ExtendedOverlay(sphereKey, "sphere", {drawInFront: true, solid: true, alpha: 0.8, color: color(selected)}, false, false);
+    if (hasModel) {
+        var modelKey = key + "-m";
+        this.model = new ExtendedOverlay(modelKey, "model", {
+            url: Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx"),
+            textures: textures(selected),
+            ignoreRayIntersection: true
+        }, false, false);
     } else {
-        this.sphere = undefined;
+        this.model = undefined;
     }
     this.key = key;
     this.selected = selected || false; // not undefined
@@ -42,18 +58,6 @@ ExtendedOverlay.prototype.editOverlay = function (properties) { // change displa
     Overlays.editOverlay(this.activeOverlay, properties);
 };
 
-// hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed 
-// something, will revisit as this is sorta horrible.
-const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
-                             "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
-};
-const SELECTED_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
-                            "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
-};
-
-const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
-const SELECTED_COLOR = {red: 0xf3, green: 0x91, blue: 0x29};
-
 function color(selected) {
     return selected ? SELECTED_COLOR : UNSELECTED_COLOR;
 }
@@ -67,9 +71,9 @@ ExtendedOverlay.prototype.select = function (selected) {
         return;
     }
     
-    this.editOverlay({textures: textures(selected)});
-    if (this.sphere) {
-        this.sphere.editOverlay({color: color(selected)});
+    this.editOverlay({color: color(selected)});
+    if (this.model) {
+        this.model.editOverlay({textures: textures(selected)});
     }
     this.selected = selected;
 };
@@ -196,10 +200,12 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
 //
 function addAvatarNode(id) {
     var selected = ExtendedOverlay.isSelected(id);
-    return new ExtendedOverlay(id, "model", { 
-        url: Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx"),
-        textures: textures(selected)
-    }, selected, true);
+    return new ExtendedOverlay(id, "sphere", { 
+         drawInFront: true, 
+         solid: true, 
+         alpha: 0.8, 
+         color: color(selected), 
+         ignoreRayIntersection: false}, selected, true);
 }
 function populateUserList() {
     var data = [];
@@ -274,23 +280,23 @@ function updateOverlays() {
         // get diff between target and eye (a vector pointing to the eye from avatar position)
         var diff = Vec3.subtract(target, eye);
         
-        // move a bit in front, towards the camera (TODO: scale this based on height?)
+        // move a bit in front, towards the camera
         target = Vec3.sum(target, Vec3.multiply(Vec3.normalize(diff), offset));
-       
+
         // now bump it up a bit
         target.y = target.y + offset;
 
         overlay.ping = pingPong;
         overlay.editOverlay({
             position: target,
-            scale: 0.2 * distance, // constant apparent size
-            rotation: Camera.orientation
+            dimensions: 0.032 * distance 
         });
-        if (overlay.sphere) {
-            overlay.sphere.ping = pingPong;
-            overlay.sphere.editOverlay({
+        if (overlay.model) {
+            overlay.model.ping = pingPong;
+            overlay.model.editOverlay({
                 position: target, 
-                dimensions: 0.032 * distance 
+                scale: 0.2 * distance, // constant apparent size
+                rotation: Camera.orientation
             });
         }
     });
