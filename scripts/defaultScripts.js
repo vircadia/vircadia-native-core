@@ -20,7 +20,7 @@ var DEFAULT_SCRIPTS = [
     "system/hmd.js",
     "system/marketplaces/marketplace.js",
     "system/edit.js",
-    "system/mod.js",
+    "system/pal.js", //"system/mod.js", // older UX, if you prefer
     "system/selectAudioDevice.js",
     "system/notifications.js",
     "system/controllers/controllerDisplayManager.js",
