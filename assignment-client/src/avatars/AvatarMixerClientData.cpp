@@ -57,6 +57,15 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
     }
 }
 
+void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other) {
+    if (isRadiusIgnoring(other)) {
+        _radiusIgnoredOthers.erase(other);
+        auto exitingSpaceBubblePacket = NLPacket::create(PacketType::ExitingSpaceBubble, NUM_BYTES_RFC4122_UUID);
+        exitingSpaceBubblePacket->write(other.toRfc4122());
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(*exitingSpaceBubblePacket, *self);
+    }
+}
+
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
     _currentViewFrustum.fromByteArray(message);
 }

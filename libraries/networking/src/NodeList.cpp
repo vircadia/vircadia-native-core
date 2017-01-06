@@ -238,6 +238,10 @@ void NodeList::reset() {
 
     _numNoReplyDomainCheckIns = 0;
 
+    // lock and clear our set of radius ignored IDs
+    _radiusIgnoredSetLock.lockForWrite();
+    _radiusIgnoredNodeIDs.clear();
+    _radiusIgnoredSetLock.unlock();
     // lock and clear our set of ignored IDs
     _ignoredSetLock.lockForWrite();
     _ignoredNodeIDs.clear();
@@ -779,6 +783,22 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
     auto ignorePacket = NLPacket::create(PacketType::RadiusIgnoreRequest, sizeof(bool) + sizeof(float), true);
     ignorePacket->writePrimitive(_ignoreRadiusEnabled.get());
     sendPacket(std::move(ignorePacket), *destinationNode);
+}
+
+void NodeList::radiusIgnoreNodeBySessionID(const QUuid& nodeID, bool radiusIgnoreEnabled) {
+    if (radiusIgnoreEnabled) {
+        QReadLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // read lock for insert
+        // add this nodeID to our set of ignored IDs
+        _radiusIgnoredNodeIDs.insert(nodeID);
+    } else {
+        QWriteLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // write lock for unsafe_erase
+        _radiusIgnoredNodeIDs.unsafe_erase(nodeID);
+    }
+}
+
+bool NodeList::isRadiusIgnoringNode(const QUuid& nodeID) const {
+    QReadLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // read lock for reading
+    return _radiusIgnoredNodeIDs.find(nodeID) != _radiusIgnoredNodeIDs.cend();
 }
 
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
