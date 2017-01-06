@@ -209,8 +209,13 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
         // and that it isn't being ignored by our listening node
         // and that it isn't ignoring our listening node
         AudioMixerClientData* otherData = static_cast<AudioMixerClientData*>(otherNode->getLinkedData());
+
+        // When this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
+        bool getsAnyIgnored = nodeData->getRequestsDomainListData() && node->getCanKick();
+
         if (otherData
-            && !node->isIgnoringNodeWithID(otherNode->getUUID()) && !otherNode->isIgnoringNodeWithID(node->getUUID()))  {
+            && !node->isIgnoringNodeWithID(otherNode->getUUID())
+            && (!otherNode->isIgnoringNodeWithID(node->getUUID()) || getsAnyIgnored))  {
 
             // check to see if we're ignoring in radius
             bool insideIgnoreRadius = false;
@@ -219,7 +224,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
                 // We'll always be inside the radius in that case.
                 insideIgnoreRadius = true;
             // Check to see if the space bubble is enabled
-            } else if ((node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) && (*otherNode != *node)) {
+            } else if ((node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled())) {
                 // Define the minimum bubble size
                 static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
                 AudioMixerClientData* nodeData = reinterpret_cast<AudioMixerClientData*>(node->getLinkedData());
@@ -251,7 +256,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
                 auto otherNodeStream = streamPair.second;
                 bool isSelfWithEcho = ((*otherNode == *node) && (otherNodeStream->shouldLoopbackForNode()));
                 // Add all audio streams that should be added to the mix
-                if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius)) {
+                if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius && getsAnyIgnored)) {
                     addStreamToMix(*nodeData, otherNode->getUUID(), *nodeAudioStream, *otherNodeStream);
                 }
             }

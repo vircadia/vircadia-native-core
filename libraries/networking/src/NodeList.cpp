@@ -1040,12 +1040,12 @@ void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> messag
 }
 
 void NodeList::setRequestsDomainListData(bool isRequesting) {
-    // Tell the avatar mixer whether I want to receive any additional data to which I might be entitled
+    // Tell the avatar mixer and audio mixer whether I want to receive any additional data to which I might be entitled
     if (_requestsDomainListData == isRequesting) {
         return;
     }
     eachMatchingNode([](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::AvatarMixer;
+        return (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer);
     }, [this, isRequesting](const SharedNodePointer& destinationNode) {
         auto packet = NLPacket::create(PacketType::RequestsDomainListData, sizeof(bool), true); // reliable
         packet->writePrimitive(isRequesting);

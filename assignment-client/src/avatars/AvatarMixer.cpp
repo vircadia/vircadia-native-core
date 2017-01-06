@@ -326,7 +326,7 @@ void AvatarMixer::broadcastAvatarData() {
                             // Perform the collision check between the two bounding boxes
                             if (nodeBox.touches(otherNodeBox)) {
                                 nodeData->ignoreOther(node, otherNode);
-                                return getsIgnoredByMe || getsAnyIgnored;
+                                return getsAnyIgnored;
                             }
                         }
                         // Not close enough to ignore

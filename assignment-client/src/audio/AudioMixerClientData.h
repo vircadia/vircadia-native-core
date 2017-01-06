@@ -92,6 +92,8 @@ public:
     glm::vec3 getPosition() { return getAvatarAudioStream() ? getAvatarAudioStream()->getPosition() : glm::vec3(0); }
     glm::vec3 getAvatarBoundingBoxCorner() { return getAvatarAudioStream() ? getAvatarAudioStream()->getAvatarBoundingBoxCorner() : glm::vec3(0); }
     glm::vec3 getAvatarBoundingBoxScale() { return getAvatarAudioStream() ? getAvatarAudioStream()->getAvatarBoundingBoxScale() : glm::vec3(0); }
+    bool getRequestsDomainListData() { return _requestsDomainListData; }
+    void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
@@ -122,6 +124,7 @@ private:
     bool _shouldFlushEncoder { false };
 
     bool _shouldMuteClient { false };
+    bool _requestsDomainListData { false };
 };
 
 #endif // hifi_AudioMixerClientData_h

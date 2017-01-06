@@ -257,6 +257,8 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+    }
+    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == YourAvatarEnteredTheirBubble) {
         DependencyManager::get<NodeList>()->radiusIgnoreNodeBySessionID(avatar->getSessionUUID(), true);
     }
     _avatarFades.push_back(removedAvatar);

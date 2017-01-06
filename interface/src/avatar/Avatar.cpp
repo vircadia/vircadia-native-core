@@ -1339,9 +1339,10 @@ void Avatar::addToScene(AvatarSharedPointer myHandle) {
     render::ScenePointer scene = qApp->getMain3DScene();
     if (scene) {
         render::PendingChanges pendingChanges;
+        auto nodelist = DependencyManager::get<NodeList>();
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()
-            && !DependencyManager::get<NodeList>()->isIgnoringNode(getSessionUUID())
-            && !DependencyManager::get<NodeList>()->isRadiusIgnoringNode(getSessionUUID())) {
+            && !nodelist->isIgnoringNode(getSessionUUID())
+            && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
             addToScene(myHandle, scene, pendingChanges);
         }
         scene->enqueuePendingChanges(pendingChanges);
