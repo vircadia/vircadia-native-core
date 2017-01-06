@@ -24,7 +24,6 @@
 
 #include <DependencyManager.h>
 #include <SoundCache.h>
-#include <ThreadSafeValueCache.h>
 
 class TabletProxy;
 class TabletButtonProxy;
@@ -101,17 +100,6 @@ public:
      */
     Q_INVOKABLE void updateAudioBar(const double micLevel);
 
-
-    /**jsdoc
-     * Updates the tablet's position in world space.  This is necessary for the tablet
-     * to emit audio with the correct spatialization.
-     * @function TabletProxy#updateTabletPosition
-     * @param position {vec3} tablet position in world space.
-     */
-    Q_INVOKABLE void updateTabletPosition(glm::vec3 tabletPosition);
-
-    glm::vec3 getPosition() const { return _position.get(); }
-
     QString getName() const { return _name; }
 
     /**jsdoc
@@ -141,7 +129,6 @@ protected:
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
-    ThreadSafeValueCache<glm::vec3> _position;
 };
 
 /**jsdoc
@@ -202,7 +189,7 @@ public:
     QUrl getSource() const;
     void setSource(QUrl url);
 
-    Q_INVOKABLE void play();
+    Q_INVOKABLE void play(QVariant position);
 protected:
     QUrl _url;
     SharedSoundPointer _sound;

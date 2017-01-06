@@ -271,6 +271,7 @@ void RenderableWebEntityItem::loadSourceURL() {
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
         }
     }
+    _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
 }
 
 
@@ -403,6 +404,12 @@ void RenderableWebEntityItem::destroyWebSurface() {
 }
 
 void RenderableWebEntityItem::update(const quint64& now) {
+
+    if (_webSurface) {
+        // update globalPosition
+        _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+    }
+
     auto interval = now - _lastRenderTime;
     if (interval > MAX_NO_RENDER_INTERVAL) {
         destroyWebSurface();
