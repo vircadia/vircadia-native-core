@@ -11,21 +11,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* TODO:
-
-   prototype:
-   - only show kick/mute when canKick
-   - margins everywhere
-   - column head centering
-   - column head font
-   - proper button .svg on toolbar
-
-   mvp:
-   - Show all participants, including ignored, and populate initial ignore/mute status.
-   - If name is elided, hover should scroll name left so the full name can be read.
-   
- */
-
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "../styles-uit"
@@ -326,6 +311,11 @@ Item {
         visible: iAmAdmin
         color: hifi.colors.lightGrayText
     }
+    function letterbox(message) {
+        letterboxMessage.text = message;
+        letterboxMessage.visible = true
+
+    }
     // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
         color: hifi.colors.tableBackgroundLight
@@ -349,7 +339,9 @@ Item {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: namesPopup.visible = true
+            onClicked: letterbox("Bold names in the list are Avatar Display Names.\n" +
+                                 "If a Display Name isn't set, a unique Session Display Name is assigned." +
+                                 "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present.")
             onEntered: helpText.color = hifi.colors.baseGrayHighlight
             onExited: helpText.color = hifi.colors.darkGray
         }
@@ -378,87 +370,14 @@ Item {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: adminPopup.visible = true
+            onClicked: letterbox('Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
+                                 "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page.)")
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
     }
-    // Explanitory popup upon clicking "[?]" next to "NAMES"
-    Item {
-        visible: false
-        id: namesPopup
-        anchors.fill: pal
-        Rectangle {
-            anchors.fill: parent
-            color: "black"
-            opacity: 0.5
-            radius: hifi.dimensions.borderRadius
-        }
-        Rectangle {
-            width: Math.max(parent.width * 0.75, 400)
-            height: popupText.contentHeight*1.5
-            anchors.centerIn: parent
-            radius: hifi.dimensions.borderRadius
-            color: "white"
-            FiraSansSemiBold {
-                id: popupText
-                text: "Bold names in the list are Avatar Display Names.\n" +
-                    "If a Display Name isn't set, a unique Session Display Name is assigned." +
-                    "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present."
-                size: hifi.fontSizes.textFieldInput
-                color: hifi.colors.darkGray
-                horizontalAlignment: Text.AlignHCenter
-                anchors.fill: parent
-                anchors.leftMargin: 15
-                anchors.rightMargin: 15
-                wrapMode: Text.WordWrap
-            }
-        }
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton
-            onClicked: {
-                namesPopup.visible = false
-            }
-        }
-    }
-    // Explanitory popup upon clicking "[?]" next to "ADMIN"
-    Item {
-        visible: false
-        id: adminPopup
-        anchors.fill: pal
-        Rectangle {
-            anchors.fill: parent
-            color: "black"
-            opacity: 0.5
-            radius: hifi.dimensions.borderRadius
-        }
-        Rectangle {
-            width: Math.max(parent.width * 0.75, 400)
-            height: adminPopupText.contentHeight*1.5
-            anchors.centerIn: parent
-            radius: hifi.dimensions.borderRadius
-            color: "white"
-            FiraSansSemiBold {
-                id: adminPopupText
-                text: 'Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
-                    "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page."
-                size: hifi.fontSizes.textFieldInput
-                color: hifi.colors.darkGray
-                horizontalAlignment: Text.AlignHCenter
-                anchors.fill: parent
-                anchors.leftMargin: 15
-                anchors.rightMargin: 15
-                wrapMode: Text.WordWrap
-            }
-        }
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton
-            onClicked: {
-                adminPopup.visible = false
-            }
-        }
+    LetterboxMessage {
+        id: letterboxMessage
     }
 
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
@@ -495,14 +414,20 @@ Item {
             sortModel();
             break;
         case 'select':
-            var sessionId = message.params[0];
+            var sessionIds = message.params[0];
             var selected = message.params[1];
-            var userIndex = findSessionIndex(sessionId);
-            if (selected) {
-                table.selection.clear(); // for now, no multi-select
-                table.selection.select(userIndex);
+            var userIndex = findSessionIndex(sessionIds[0]);
+            if (sessionIds.length > 1) {
+                letterbox('Only one user can be selected at a time.');
+            } else if (userIndex < 0) {
+                letterbox('The last editor is not among this list of users.');
             } else {
-                table.selection.deselect(userIndex);
+                if (selected) {
+                    table.selection.clear(); // for now, no multi-select
+                    table.selection.select(userIndex);
+                } else {
+                    table.selection.deselect(userIndex);
+                }
             }
             break;
         // Received an "updateUsername()" request from the JS
