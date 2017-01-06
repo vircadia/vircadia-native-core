@@ -11,7 +11,19 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// FIXME when we make this a defaultScript: (function() { // BEGIN LOCAL_SCOPE
+// hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed 
+// something, will revisit as this is sorta horrible.
+const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
+                             "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
+};
+const SELECTED_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
+                            "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
+};
+
+const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
+const SELECTED_COLOR = {red: 0xf3, green: 0x91, blue: 0x29};
+
+(function() { // BEGIN LOCAL_SCOPE
 
 Script.include("/~/system/libraries/controllers.js");
 
@@ -19,8 +31,19 @@ Script.include("/~/system/libraries/controllers.js");
 // Overlays.
 //
 var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
-function ExtendedOverlay(key, type, properties, selected) { // A wrapper around overlays to store the key it is associated with.
+
+function ExtendedOverlay(key, type, properties, selected, hasModel) { // A wrapper around overlays to store the key it is associated with.
     overlays[key] = this;
+    if (hasModel) {
+        var modelKey = key + "-m";
+        this.model = new ExtendedOverlay(modelKey, "model", {
+            url: Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx"),
+            textures: textures(selected),
+            ignoreRayIntersection: true
+        }, false, false);
+    } else {
+        this.model = undefined;
+    }
     this.key = key;
     this.selected = selected || false; // not undefined
     this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
@@ -34,14 +57,24 @@ ExtendedOverlay.prototype.deleteOverlay = function () { // remove display and da
 ExtendedOverlay.prototype.editOverlay = function (properties) { // change display of this overlay
     Overlays.editOverlay(this.activeOverlay, properties);
 };
-const UNSELECTED_COLOR = {red: 20, green: 250, blue: 20};
-const SELECTED_COLOR = {red: 250, green: 20, blue: 20};
-function color(selected) { return selected ? SELECTED_COLOR : UNSELECTED_COLOR; }
+
+function color(selected) {
+    return selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+}
+
+function textures(selected) {
+    return selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
+}
+
 ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
+    
     this.editOverlay({color: color(selected)});
+    if (this.model) {
+        this.model.editOverlay({textures: textures(selected)});
+    }
     this.selected = selected;
 };
 // Class methods:
@@ -91,7 +124,7 @@ function HighlightedEntity(id, entityProperties) {
         },
         lineWidth: 1.0,
         ignoreRayIntersection: true,
-        drawInFront: true
+        drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
     });
     HighlightedEntity.overlays.push(this);
 }
@@ -167,12 +200,12 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
 //
 function addAvatarNode(id) {
     var selected = ExtendedOverlay.isSelected(id);
-    return new ExtendedOverlay(id, "sphere", { // 3d so we don't go cross-eyed looking at it, but on top of everything
-        solid: true,
-        alpha: 0.8,
-        color: color(selected),
-        drawInFront: true
-    }, selected);
+    return new ExtendedOverlay(id, "sphere", { 
+         drawInFront: true, 
+         solid: true, 
+         alpha: 0.8, 
+         color: color(selected), 
+         ignoreRayIntersection: false}, selected, true);
 }
 function populateUserList() {
     var data = [];
@@ -227,6 +260,7 @@ function updateOverlays() {
         if (!id) {
             return; // don't update ourself
         }
+        
         var overlay = ExtendedOverlay.get(id);
         if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
             print('Adding non-PAL avatar node', id);
@@ -235,11 +269,36 @@ function updateOverlays() {
         var avatar = AvatarList.getAvatar(id);
         var target = avatar.position;
         var distance = Vec3.distance(target, eye);
+        var offset = 0.2;
+        
+        // base offset on 1/2 distance from hips to head if we can
+        var headIndex = avatar.getJointIndex("Head");
+        if (headIndex > 0) {
+            offset = avatar.getAbsoluteJointTranslationInObjectFrame(headIndex).y / 2;
+        }
+
+        // get diff between target and eye (a vector pointing to the eye from avatar position)
+        var diff = Vec3.subtract(target, eye);
+        
+        // move a bit in front, towards the camera
+        target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(diff), offset));
+
+        // now bump it up a bit
+        target.y = target.y + offset;
+
         overlay.ping = pingPong;
         overlay.editOverlay({
             position: target,
-            dimensions: 0.05 * distance // constant apparent size
+            dimensions: 0.032 * distance 
         });
+        if (overlay.model) {
+            overlay.model.ping = pingPong;
+            overlay.model.editOverlay({
+                position: target, 
+                scale: 0.2 * distance, // constant apparent size
+                rotation: Camera.orientation
+            });
+        }
     });
     pingPong = !pingPong;
     ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
@@ -262,7 +321,7 @@ function removeOverlays() {
 function handleClick(pickRay) {
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         // Don't select directly. Tell qml, who will give us back a list of ids.
-        var message = {method: 'select', params: [overlay.key, !overlay.selected]};
+        var message = {method: 'select', params: [[overlay.key], !overlay.selected]};
         pal.sendToQml(message);
         return true;
     });
@@ -332,6 +391,31 @@ function onClicked() {
     }
     pal.setVisible(!pal.visible);
 }
+
+//
+// Message from other scripts, such as edit.js
+//
+var CHANNEL = 'com.highfidelity.pal';
+function receiveMessage(channel, messageString, senderID) {
+    if ((channel !== CHANNEL) ||
+        (senderID !== MyAvatar.sessionUUID)) {
+        return;
+    }
+    var message = JSON.parse(messageString);
+    switch (message.method) {
+    case 'select':
+        if (!pal.visible) {
+            onClicked();
+        }
+        pal.sendToQml(message); // Accepts objects, not just strings.
+        break;
+    default:
+        print('Unrecognized PAL message', messageString);
+    }
+}
+Messages.subscribe(CHANNEL);
+Messages.messageReceived.connect(receiveMessage);
+
 
 var AVERAGING_RATIO = 0.05;
 var LOUDNESS_FLOOR = 11.0;
@@ -412,8 +496,10 @@ Script.scriptEnding.connect(function () {
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
+    Messages.unsubscribe(CHANNEL);
+    Messages.messageReceived.disconnect(receiveMessage);
     off();
 });
 
 
-// FIXME: }()); // END LOCAL_SCOPE
+}()); // END LOCAL_SCOPE

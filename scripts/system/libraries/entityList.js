@@ -98,7 +98,6 @@ EntityListTool = function(opts) {
         webView.emitScriptEvent(JSON.stringify(data));
     }
 
-
     webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
         if (data.type == "selectionUpdate") {
@@ -119,6 +118,23 @@ EntityListTool = function(opts) {
         } else if (data.type == "teleport") {
             if (selectionManager.hasSelection()) {
                 MyAvatar.position = selectionManager.worldPosition;
+            }
+        } else if (data.type == "pal") {
+            var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
+            selectionManager.selections.forEach(function (id) {
+                var lastEditedBy = Entities.getEntityProperties(id, 'lastEditedBy').lastEditedBy;
+                if (lastEditedBy) {
+                    sessionIds[lastEditedBy] = true;
+                }
+            });
+            var dedupped = Object.keys(sessionIds);
+            if (!selectionManager.selections.length) {
+                Window.alert('No objects selected.');
+            } else if (!dedupped.length) {
+                Window.alert('There were no recent users of the ' + selectionManager.selections.length + ' selected objects.');
+            } else {
+                // No need to subscribe if we're just sending.
+                Messages.sendMessage('com.highfidelity.pal', JSON.stringify({method: 'select', params: [dedupped, true]}), 'local');
             }
         } else if (data.type == "delete") {
             deleteSelectedEntities();
