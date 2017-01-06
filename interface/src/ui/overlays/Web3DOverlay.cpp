@@ -107,15 +107,10 @@ Web3DOverlay::~Web3DOverlay() {
 }
 
 void Web3DOverlay::update(float deltatime) {
-    // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
-    // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
-    /*
-    if (usecTimestampNow() > _transformExpiry) {
-        Transform transform = getTransform();
-        applyTransformTo(transform);
-        setTransform(transform);
+    if (_webSurface) {
+        // update globalPosition
+        _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
-    */
 }
 
 void Web3DOverlay::loadSourceURL() {
@@ -141,6 +136,7 @@ void Web3DOverlay::loadSourceURL() {
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
         }
     }
+    _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
 }
 
 void Web3DOverlay::render(RenderArgs* args) {

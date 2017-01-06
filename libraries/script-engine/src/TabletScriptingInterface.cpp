@@ -12,6 +12,7 @@
 
 #include <AudioInjector.h>
 #include <PathUtils.h>
+#include <RegisteredMetaTypes.h>
 #include "ScriptEngineLogging.h"
 
 TabletScriptingInterface::TabletScriptingInterface() {
@@ -165,10 +166,6 @@ void TabletProxy::updateAudioBar(const double micLevel) {
     }
 }
 
-void TabletProxy::updateTabletPosition(glm::vec3 tabletPosition) {
-    _position.set(tabletPosition);
-}
-
 void TabletProxy::emitScriptEvent(QVariant msg) {
     if (_qmlOffscreenSurface) {
         QMetaObject::invokeMethod(_qmlOffscreenSurface, "emitScriptEvent", Qt::AutoConnection, Q_ARG(QVariant, msg));
@@ -269,13 +266,13 @@ void SoundEffect::setSource(QUrl url) {
     _sound = DependencyManager::get<SoundCache>()->getSound(_url);
 }
 
-void SoundEffect::play() {
+void SoundEffect::play(QVariant position) {
     auto tsi = DependencyManager::get<TabletScriptingInterface>();
     if (tsi) {
         TabletProxy* tablet = qobject_cast<TabletProxy*>(tsi->getTablet("com.highfidelity.interface.tablet.system"));
         if (tablet) {
             AudioInjectorOptions options;
-            options.position = tablet->getPosition();
+            options.position = vec3FromVariant(position);
             options.localOnly = true;
             if (_injector) {
                 _injector->setOptions(options);

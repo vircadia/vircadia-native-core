@@ -20,7 +20,7 @@ Item {
     }
 
     function playButtonClickSound() {
-        buttonClickSound.play();
+        buttonClickSound.play(globalPosition);
     }
 
     Loader {

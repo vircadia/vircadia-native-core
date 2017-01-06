@@ -50,9 +50,6 @@
             var currentMicLevel = getMicLevel();
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.updateAudioBar(currentMicLevel);
-            if (UIWebTablet) {
-               tablet.updateTabletPosition(UIWebTablet.getPosition());
-            }
         }
 
         if (HMD.showTablet && !tabletShown) {
