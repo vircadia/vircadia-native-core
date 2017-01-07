@@ -19,9 +19,13 @@ const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avata
 const SELECTED_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
                             "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
 };
+const HOVER_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png"),
+                         "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png")
+};
 
 const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
-const SELECTED_COLOR = {red: 0xf3, green: 0x91, blue: 0x29};
+const SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
+const HOVER_COLOR = {red: 0xFF, green: 0xFF, blue: 0xFF}; // white for now
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -46,6 +50,7 @@ function ExtendedOverlay(key, type, properties, selected, hasModel) { // A wrapp
     }
     this.key = key;
     this.selected = selected || false; // not undefined
+    this.hovering = false;
     this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
 }
 // Instance methods:
@@ -58,20 +63,38 @@ ExtendedOverlay.prototype.editOverlay = function (properties) { // change displa
     Overlays.editOverlay(this.activeOverlay, properties);
 };
 
-function color(selected) {
-    return selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+function color(selected, hovering) {
+    
+    return hovering ? HOVER_COLOR : selected ? SELECTED_COLOR : UNSELECTED_COLOR;
 }
 
-function textures(selected) {
-    return selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
+function textures(selected, hovering) {
+    return hovering ? HOVER_TEXTURES : selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
 }
-
+// so we don't have to traverse the overlays to get the last one
+var lastHoveringId = 0;
+ExtendedOverlay.prototype.hover = function (hovering) {
+    if (this.key === lastHoveringId) {
+        if (hovering) {
+            return;
+        } else {
+            lastHoveringId = 0;
+        }
+    } 
+    this.editOverlay({color: color(this.selected, hovering)});
+    if (this.model) {
+        this.model.editOverlay({textures: textures(this.selected, hovering)});
+    }
+    if (hovering) {
+        lastHoveringId = this.key;
+    }
+}
 ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
     
-    this.editOverlay({color: color(selected)});
+    this.editOverlay({color: color(selected, this.hovering)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
     }
@@ -93,9 +116,12 @@ ExtendedOverlay.some = function (iterator) { // Bails early as soon as iterator 
         }
     }
 };
-ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the one overlay intersected by pickRay, if any.
+ExtendedOverlay.applyPickRay = function (pickRay, cb, noHit) { // cb(overlay) on the one overlay intersected by pickRay, if any.
     var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
     if (!pickedOverlay.intersects) {
+        if (noHit) {
+            return noHit();
+        }
         return;
     }
     ExtendedOverlay.some(function (overlay) { // See if pickedOverlay is one of ours.
@@ -311,6 +337,7 @@ function updateOverlays() {
 }
 function removeOverlays() {
     selectedIds = [];
+    lastHoveringId = 0;
     HighlightedEntity.clearOverlays();
     ExtendedOverlay.some(function (overlay) { overlay.deleteOverlay(); });
 }
@@ -331,6 +358,16 @@ function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
         return;
     }
     handleClick(Camera.computePickRay(mousePressEvent.x, mousePressEvent.y));
+}
+function handleMouseMoveEvent(event) {
+    // find out which overlay (if any) is over the mouse position
+    // var overlayAtPoint = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    var hit = ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+        overlay.hover(true);
+    }, function () {
+        ExtendedOverlay.some(function (overlay) { overlay.hover(false); });
+    });
 }
 // We get mouseMoveEvents from the handControllers, via handControllerPointer.
 // But we don't get mousePressEvents.
@@ -371,6 +408,7 @@ function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
         Script.update.disconnect(updateOverlays);
         Controller.mousePressEvent.disconnect(handleMouseEvent);
+        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         isWired = false;
     }
     triggerMapping.disable(); // It's ok if we disable twice.
@@ -385,6 +423,7 @@ function onClicked() {
         isWired = true;
         Script.update.connect(updateOverlays);
         Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
         triggerMapping.enable();
     } else {
         off();
