@@ -905,7 +905,8 @@ void ScriptEngine::run() {
         // that some of our script udpates/frames take a little bit longer than the target average 
         // to execute.
         // NOTE: if we go to variable SCRIPT_FPS, then we will need to reconsider this approach
-        const std::chrono::microseconds TARGET_SCRIPT_FRAME_DURATION(static_cast<int64_t>(USECS_PER_SECOND / _getTargetUpdateRate()) + 1);
+        //const std::chrono::microseconds TARGET_SCRIPT_FRAME_DURATION(static_cast<int64_t>(USECS_PER_SECOND / _getTargetUpdateRate()) + 1);
+        const std::chrono::microseconds TARGET_SCRIPT_FRAME_DURATION(static_cast<int64_t>(USECS_PER_SECOND / 75.0f) + 1);
         clock::time_point targetSleepUntil(startTime + (thisFrame++ * TARGET_SCRIPT_FRAME_DURATION));
 
         // However, if our sleepUntil is not at least our average update and timer execution time 

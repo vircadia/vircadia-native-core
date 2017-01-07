@@ -25,7 +25,7 @@ var userData = {
     }
 }
 
-Entities.addEntity({
+var id = Entities.addEntity({
     position: MyAvatar.position,
     "collisionsWillMove": 1,
     "compoundShapeURL": Script.resolvePath("bow_collision_hull.obj"),
@@ -55,3 +55,4 @@ Entities.addEntity({
     "userData": JSON.stringify(userData),
     lifetime: 600
 });
+print("Created bow:", id);

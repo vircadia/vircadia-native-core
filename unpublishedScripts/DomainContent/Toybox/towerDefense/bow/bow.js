@@ -170,7 +170,6 @@ getControllerWorldLocation = function (handController, doOffset) {
     const STATE_IDLE = 0;
     const STATE_ARROW_KNOCKED = 1;
     const STATE_ARROW_GRABBED = 2;
-    const STATE_ARROW_GRABBED_AND_PULLED = 3;
 
     Bow.prototype = {
         topString: null,
@@ -196,6 +195,7 @@ getControllerWorldLocation = function (handController, doOffset) {
             this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
             var userData = Entities.getEntityProperties(this.entityID, ["userData"]).userData;
+            print(userData);
             this.userData = JSON.parse(userData);
             this.stringID = null;
         },
@@ -420,59 +420,63 @@ getControllerWorldLocation = function (handController, doOffset) {
 
                 this.resetStringToIdlePosition();
                 //this.deleteStrings();
-                if (pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE - NEAR_TO_RELAXED_SCHMITT) && !this.backHandBusy) {
+                if (this.triggerValue >= DRAW_STRING_THRESHOLD && pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE - NEAR_TO_RELAXED_SCHMITT) && !this.backHandBusy) {
                     //the first time aiming the arrow
+                    var handToDisable = (this.hand === 'right' ? 'left' : 'right');
+                    this.state = STATE_ARROW_GRABBED;
+                }
+            }
+            //if (this.state === STATE_ARROW_KNOCKED) {
+
+            //    if (pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
+            //        // delete the unpulled arrow
+            //        Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
+            //        this.state = STATE_IDLE;
+            //    } else if (this.triggerValue >= DRAW_STRING_THRESHOLD) {
+            //        // they've grabbed the arrow
+            //        this.pullBackDistance = 0;
+            //        this.state = STATE_ARROW_GRABBED;
+            //    }
+            //}
+            if (this.state === STATE_ARROW_GRABBED) {
+                if (!this.arrow) {
                     var handToDisable = (this.hand === 'right' ? 'left' : 'right');
                     Messages.sendLocalMessage('Hifi-Hand-Disabler', handToDisable);
                     this.arrow = this.createArrow();
                     this.playStringPullSound();
-                    this.state = STATE_ARROW_KNOCKED;
                 }
-            }
-            if (this.state === STATE_ARROW_KNOCKED) {
 
-                if (pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
-                    // delete the unpulled arrow
-                    Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
-                    Entities.deleteEntity(this.arrow);
-                    this.arrow = null;
-                    this.state = STATE_IDLE;
-                } else if (this.triggerValue >= DRAW_STRING_THRESHOLD) {
-                    // they've grabbed the arrow
-                    this.pullBackDistance = 0;
-                    this.state = STATE_ARROW_GRABBED;
-                } else {
-                    this.updateArrowPositionInNotch(false, false);
-                    this.updateString();
-                }
-            }
-            if (this.state === STATE_ARROW_GRABBED) {
                 if (this.triggerValue < DRAW_STRING_THRESHOLD) {
                     // they let go without pulling
-                    this.state = STATE_ARROW_KNOCKED;
-                } else if (pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
-                    // they've grabbed the arrow and pulled it
-                    this.state = STATE_ARROW_GRABBED_AND_PULLED;
+                    if (pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
+                        // The arrow has been pulled far enough back that we can release it
+                        Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
+                        this.updateArrowPositionInNotch(true, true);
+                        this.arrow = null;
+                        this.state = STATE_IDLE;
+                        this.resetStringToIdlePosition();
+                    } else {
+                        // The arrow has not been pulled far enough back so we just remove the arrow
+                        Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
+                        Entities.deleteEntity(this.arrow);
+                        this.arrow = null;
+                        this.state = STATE_IDLE;
+                        this.resetStringToIdlePosition();
+                    }
                 } else {
                     this.updateArrowPositionInNotch(false, true);
                     this.updateString();
                 }
             }
-            if (this.state === STATE_ARROW_GRABBED_AND_PULLED) {
-                if (pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
-                    // they unpulled without firing
-                    this.state = STATE_ARROW_GRABBED;
-                } else if (this.triggerValue < DRAW_STRING_THRESHOLD) {
-                    // they've fired the arrow
-                    Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
-                    this.updateArrowPositionInNotch(true, true);
-                    this.state = STATE_IDLE;
-                    this.resetStringToIdlePosition();
-                } else {
-                    this.updateArrowPositionInNotch(false, true);
-                    this.updateString();
-                }
-            }
+            //if (this.state === STATE_ARROW_GRABBED_AND_PULLED) {
+            //    if (pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
+            //        // they unpulled without firing
+            //        this.state = STATE_ARROW_GRABBED;
+            //    } else {
+            //        this.updateArrowPositionInNotch(false, true);
+            //        this.updateString();
+            //    }
+            //}
         },
 
         getNotchPosition: function(bowProperties) {
@@ -506,9 +510,17 @@ getControllerWorldLocation = function (handController, doOffset) {
             if (pullBackDistance > DRAW_STRING_MAX_DRAW) {
                 pullBackDistance = DRAW_STRING_MAX_DRAW;
             }
-
+            
+            var handToNotchDistance = Vec3.length(handToNotch);
+            var stringToNotchDistance = Math.max(0.2, Math.min(ARROW_DIMENSIONS.z - 0.1, handToNotchDistance));
             var halfArrowVec = Vec3.multiply(Vec3.normalize(handToNotch), ARROW_DIMENSIONS.z / 2.0);
-            var arrowPosition = Vec3.sum(stringHandPosition, halfArrowVec);
+            var offset = Vec3.subtract(notchPosition, Vec3.multiply(Vec3.normalize(handToNotch), stringToNotchDistance - ARROW_DIMENSIONS.z / 2.0));
+            if (Vec3.length(handToNotch) > 0.2) {
+                var arrowPosition = Vec3.subtract(notchPosition, halfArrowVec);
+            } else {
+                var arrowPosition = Vec3.sum(stringHandPosition, halfArrowVec);
+            }
+            var arrowPosition = offset;
 
             // Set arrow rear position
             var frontVector = Quat.getFront(arrowRotation);

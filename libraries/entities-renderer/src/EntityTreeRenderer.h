@@ -101,6 +101,8 @@ public:
 
     std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _layeredZones.getZone(); }
 
+    QSharedPointer<ScriptEngine> getEntitiesScriptEngine() const { return _entitiesScriptEngine; }
+
 signals:
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
