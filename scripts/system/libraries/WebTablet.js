@@ -22,7 +22,8 @@ var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
 function calcSpawnInfo(hand) {
-    if (HMD.active && hand > 0) {
+    var noHands = -1;
+    if (HMD.active && hand != noHands) {
         var handController = getControllerWorldLocation(hand, false);
         var front = Quat.getFront(handController.orientation);
         var up = Quat.getUp(handController.orientation);
@@ -34,7 +35,7 @@ function calcSpawnInfo(hand) {
         };
     } else {
         var front = Quat.getFront(MyAvatar.orientation);
-        var finalPosition = Vec3.sum(Vec3.sum(MyAvatar.position, Vec3.multiply(0.6, front)), {x: 0, y: 0.6, z: 0})
+        var finalPosition = Vec3.sum(Vec3.sum(MyAvatar.position, Vec3.multiply(0.6, front)), {x: 0, y: 0.6, z: 0});
         return {
             position: finalPosition,
             rotation: Quat.lookAt(finalPosition, MyAvatar.getHeadPosition(), Y_AXIS)
@@ -118,13 +119,13 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.gotoHomeScreen();
         }
-    }
+    };
 
     this.state = "idle";
 
     this.getRoot = function() {
         return Entities.getWebViewRoot(_this.webEntityID);
-    }
+    };
 
     this.getLocation = function() {
         return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
@@ -157,12 +158,12 @@ WebTablet.prototype.pickle = function () {
 WebTablet.prototype.register = function() {
     Messages.subscribe("home");
     Messages.messageReceived.connect(this.receive);
-}
+};
 
 WebTablet.prototype.unregister = function() {
     Messages.unsubscribe("home");
     Messages.messageReceived.disconnect(this.receive);
-}
+};
 
 WebTablet.unpickle = function (string) {
     if (!string) {
@@ -175,4 +176,4 @@ WebTablet.unpickle = function (string) {
 
 WebTablet.prototype.getPosition = function () {
     return Overlays.getProperty(this.webOverlayID, "position");
-}
+};
