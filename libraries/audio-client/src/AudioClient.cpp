@@ -1177,11 +1177,6 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
         _mixBuffer[i] = (float)decodedSamples[i] * (1/32768.0f);
     }
         
-    // mix in active injectors
-    if (getActiveLocalAudioInjectors().size() > 0) {
-        mixLocalAudioInjectors(_mixBuffer);
-    }
-
     // apply stereo reverb
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
     if (hasReverb) {
