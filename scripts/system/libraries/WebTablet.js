@@ -22,7 +22,7 @@ var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
 function calcSpawnInfo(hand) {
-    if (HMD.active && hand) {
+    if (HMD.active && hand > 0) {
         var handController = getControllerWorldLocation(hand, false);
         var front = Quat.getFront(handController.orientation);
         var up = Quat.getUp(handController.orientation);

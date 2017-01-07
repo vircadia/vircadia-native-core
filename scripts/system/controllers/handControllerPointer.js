@@ -469,6 +469,7 @@ clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (cl
 clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
         activeHudPoint2dGamePad();
+        Messages.sendLocalMessage("toggleHand", -1);
       }
 
       wantsMenu = clicked;
@@ -480,6 +481,7 @@ clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(func
     // We don't want the system code to always do this for us, because, e.g., we do not want to get a mouseMove
     // after the Left/RightSecondaryThumb gives us a context menu. Only from the mouse.
     Script.setTimeout(function () {
+        Messages.sendLocalMessage("toggleHand", -1);
         Reticle.setPosition(Reticle.position);
     }, 0);
 });
