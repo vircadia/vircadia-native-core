@@ -68,6 +68,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
@@ -218,6 +219,20 @@ void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, 
                 listenerClientData->removeHRTFForStream(sendingNode->getUUID());
             }
         });
+    }
+}
+
+void AudioMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->getOrCreateLinkedData(senderNode);
+
+    if (senderNode->getLinkedData()) {
+        AudioMixerClientData* nodeData = dynamic_cast<AudioMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            bool isRequesting;
+            message->readPrimitive(&isRequesting);
+            nodeData->setRequestsDomainListData(isRequesting);
+        }
     }
 }
 
