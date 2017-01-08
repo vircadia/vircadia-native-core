@@ -1172,7 +1172,7 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
     outputBuffer.resize(_outputFrameSize * AudioConstants::SAMPLE_SIZE);
     int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
 
-    // convert network audio to float
+    // convert network audio (int16_t) to mix audio (float)
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
         _mixBuffer[i] = (float)decodedSamples[i] * (1/32768.0f);
     }
@@ -1184,16 +1184,16 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
         _listenerReverb.render(_mixBuffer, _mixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     }
 
+    // convert mix audio (float) to network audio (int16_t)
+    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+        _scratchBuffer[i] = (int16_t)(_mixBuffer[i] * 32768.0f);
+    }
+
+    // resample to output sample rate
     if (_networkToOutputResampler) {
-
-        // resample to output sample rate
-        _audioLimiter.render(_mixBuffer, _scratchBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
         _networkToOutputResampler->render(_scratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
     } else {
-
-        // no resampling needed
-        _audioLimiter.render(_mixBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        memcpy(outputBuffer.data(), _scratchBuffer, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
     }
 }
 
