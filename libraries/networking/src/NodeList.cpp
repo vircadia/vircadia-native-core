@@ -238,6 +238,10 @@ void NodeList::reset() {
 
     _numNoReplyDomainCheckIns = 0;
 
+    // lock and clear our set of radius ignored IDs
+    _radiusIgnoredSetLock.lockForWrite();
+    _radiusIgnoredNodeIDs.clear();
+    _radiusIgnoredSetLock.unlock();
     // lock and clear our set of ignored IDs
     _ignoredSetLock.lockForWrite();
     _ignoredNodeIDs.clear();
@@ -781,6 +785,22 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
     sendPacket(std::move(ignorePacket), *destinationNode);
 }
 
+void NodeList::radiusIgnoreNodeBySessionID(const QUuid& nodeID, bool radiusIgnoreEnabled) {
+    if (radiusIgnoreEnabled) {
+        QReadLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // read lock for insert
+        // add this nodeID to our set of ignored IDs
+        _radiusIgnoredNodeIDs.insert(nodeID);
+    } else {
+        QWriteLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // write lock for unsafe_erase
+        _radiusIgnoredNodeIDs.unsafe_erase(nodeID);
+    }
+}
+
+bool NodeList::isRadiusIgnoringNode(const QUuid& nodeID) const {
+    QReadLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // read lock for reading
+    return _radiusIgnoredNodeIDs.find(nodeID) != _radiusIgnoredNodeIDs.cend();
+}
+
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
@@ -1020,12 +1040,12 @@ void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> messag
 }
 
 void NodeList::setRequestsDomainListData(bool isRequesting) {
-    // Tell the avatar mixer whether I want to receive any additional data to which I might be entitled
+    // Tell the avatar mixer and audio mixer whether I want to receive any additional data to which I might be entitled
     if (_requestsDomainListData == isRequesting) {
         return;
     }
     eachMatchingNode([](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::AvatarMixer;
+        return (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer);
     }, [this, isRequesting](const SharedNodePointer& destinationNode) {
         auto packet = NLPacket::create(PacketType::RequestsDomainListData, sizeof(bool), true); // reliable
         packet->writePrimitive(isRequesting);

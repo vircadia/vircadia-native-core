@@ -76,6 +76,8 @@ public:
     void toggleIgnoreRadius() { ignoreNodesInRadius(!getIgnoreRadiusEnabled()); }
     void enableIgnoreRadius() { ignoreNodesInRadius(true); }
     void disableIgnoreRadius() { ignoreNodesInRadius(false); }
+    void radiusIgnoreNodeBySessionID(const QUuid& nodeID, bool radiusIgnoreEnabled);
+    bool isRadiusIgnoringNode(const QUuid& other) const;
     void ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled);
     bool isIgnoringNode(const QUuid& nodeID) const;
     void personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled);
@@ -159,6 +161,8 @@ private:
     QTimer _keepAlivePingTimer;
     bool _requestsDomainListData;
 
+    mutable QReadWriteLock _radiusIgnoredSetLock;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _radiusIgnoredNodeIDs;
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
     mutable QReadWriteLock _personalMutedSetLock;
