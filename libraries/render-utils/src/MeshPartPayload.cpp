@@ -140,8 +140,8 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, _drawMaterial->getSchemaBuffer());
     batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::TEXMAPARRAY, _drawMaterial->getTexMapArrayBuffer());
 
-    auto materialKey = _drawMaterial->getKey();
-    auto textureMaps = _drawMaterial->getTextureMaps();
+    const auto& materialKey = _drawMaterial->getKey();
+    const auto& textureMaps = _drawMaterial->getTextureMaps();
 
     int numUnlit = 0;
     if (materialKey.isUnlit()) {
@@ -150,9 +150,9 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Albedo
     if (materialKey.isAlbedoMap()) {
-        auto albedoMap = textureMaps[model::MaterialKey::ALBEDO_MAP];
-        if (albedoMap && albedoMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, albedoMap->getTextureView());
+        auto itr = textureMaps.find(model::MaterialKey::ALBEDO_MAP);
+        if (itr != textureMaps.end() && itr->second->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getGrayTexture());
         }
@@ -162,9 +162,9 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Roughness map
     if (materialKey.isRoughnessMap()) {
-        auto roughnessMap = textureMaps[model::MaterialKey::ROUGHNESS_MAP];
-        if (roughnessMap && roughnessMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, roughnessMap->getTextureView());
+        auto itr = textureMaps.find(model::MaterialKey::ROUGHNESS_MAP);
+        if (itr != textureMaps.end() && itr->second->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
 
             // texcoord are assumed to be the same has albedo
         } else {
@@ -176,9 +176,9 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Normal map
     if (materialKey.isNormalMap()) {
-        auto normalMap = textureMaps[model::MaterialKey::NORMAL_MAP];
-        if (normalMap && normalMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, normalMap->getTextureView());
+        auto itr = textureMaps.find(model::MaterialKey::NORMAL_MAP);
+        if (itr != textureMaps.end() && itr->second->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
 
             // texcoord are assumed to be the same has albedo
         } else {
@@ -190,9 +190,9 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Metallic map
     if (materialKey.isMetallicMap()) {
-        auto specularMap = textureMaps[model::MaterialKey::METALLIC_MAP];
-        if (specularMap && specularMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, specularMap->getTextureView());
+        auto itr = textureMaps.find(model::MaterialKey::METALLIC_MAP);
+        if (itr != textureMaps.end() && itr->second->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
 
             // texcoord are assumed to be the same has albedo
         } else {
@@ -204,9 +204,9 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Occlusion map
     if (materialKey.isOcclusionMap()) {
-        auto specularMap = textureMaps[model::MaterialKey::OCCLUSION_MAP];
-        if (specularMap && specularMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, specularMap->getTextureView());
+        auto itr = textureMaps.find(model::MaterialKey::OCCLUSION_MAP);
+        if (itr != textureMaps.end() && itr->second->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
 
             // texcoord are assumed to be the same has albedo
         } else {
@@ -218,9 +218,9 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Scattering map
     if (materialKey.isScatteringMap()) {
-        auto scatteringMap = textureMaps[model::MaterialKey::SCATTERING_MAP];
-        if (scatteringMap && scatteringMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, scatteringMap->getTextureView());
+        auto itr = textureMaps.find(model::MaterialKey::SCATTERING_MAP);
+        if (itr != textureMaps.end() && itr->second->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
 
             // texcoord are assumed to be the same has albedo
         } else {
@@ -232,18 +232,18 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
-        auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
+        auto itr = textureMaps.find(model::MaterialKey::LIGHTMAP_MAP);
 
-        if (lightmapMap && lightmapMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, lightmapMap->getTextureView());
+        if (itr != textureMaps.end() && itr->second->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
         }
     } else if (materialKey.isEmissiveMap()) {
-        auto emissiveMap = textureMaps[model::MaterialKey::EMISSIVE_MAP];
+        auto itr = textureMaps.find(model::MaterialKey::EMISSIVE_MAP);
 
-        if (emissiveMap && emissiveMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, emissiveMap->getTextureView());
+        if (itr != textureMaps.end() && itr->second->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
         }
