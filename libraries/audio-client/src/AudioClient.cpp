@@ -1561,22 +1561,44 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // restrict samplesRequested to the size of our mix/scratch buffers
     samplesRequested = std::min(samplesRequested, _audio->_limitPeriod);
 
-    int samplesPopped;
-    int bytesWritten;
+    int16_t* scratchBuffer = _audio->_limitScratchBuffer;
+    float* mixBuffer = _audio->_limitMixBuffer;
 
-    if ((samplesPopped = _receivedAudioStream.popSamples(samplesRequested, false)) > 0) {
-        qCDebug(audiostream, "Read %d samples from buffer (%d available)", samplesPopped, _receivedAudioStream.getSamplesAvailable());
+    int networkSamplesPopped;
+    if ((networkSamplesPopped = _receivedAudioStream.popSamples(samplesRequested, false)) > 0) {
+        qCDebug(audiostream, "Read %d samples from buffer (%d available)", networkSamplesPopped, _receivedAudioStream.getSamplesAvailable());
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
+        lastPopOutput.readSamples(scratchBuffer, networkSamplesPopped);
 
-        int16_t* scratchBuffer = _audio->_limitScratchBuffer;
-        lastPopOutput.readSamples(scratchBuffer, samplesPopped);
-
-        float* mixBuffer = _audio->_limitMixBuffer;
-        for (int i = 0; i < samplesPopped; i++) {
+        // convert to mix buffer (float)
+        for (int i = 0; i < networkSamplesPopped; i++) {
             mixBuffer[i] = (float)scratchBuffer[i] * (1/32768.0f);
         }
 
-        int framesPopped = samplesPopped / AudioConstants::STEREO;
+        samplesRequested = networkSamplesPopped;
+    }
+
+    int injectorSamplesPopped;
+    if ((injectorSamplesPopped = _localInjectorsBuffer.readSamples(scratchBuffer, samplesRequested)) > 0) {
+        qCDebug(audiostream, "Read %d samples from injectors (%d available)", injectorSamplesPopped, _localInjectorsBuffer.samplesAvailable());
+
+        if (networkSamplesPopped == 0) {
+            // convert to mix buffer (float)
+            for (int i = 0; i < injectorSamplesPopped; i++) {
+                mixBuffer[i] = (float)scratchBuffer[i] * (1/32768.0f);
+            }
+        } else {
+            // add to mix buffer (float)
+            for (int i = 0; i < injectorSamplesPopped; i++) {
+                mixBuffer[i] += (float)scratchBuffer[i] * (1/32768.0f);
+            }
+        }
+    }
+
+    int samplesPopped = std::max(networkSamplesPopped, networkSamplesPopped);
+    int framesPopped = samplesPopped / AudioConstants::STEREO;
+    int bytesWritten;
+    if (samplesPopped > 0) {
         if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
             // limit the audio
             _audio->_audioLimiter.render(mixBuffer, (int16_t*)data, framesPopped);
