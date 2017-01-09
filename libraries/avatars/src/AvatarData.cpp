@@ -220,7 +220,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     QByteArray avatarDataByteArray(udt::MAX_PACKET_SIZE, 0);
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
-    //unsigned char* packetStateFlagsAt = startPosition;
 
     // psuedo code....
     //   - determine which sections will be included
@@ -228,6 +227,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     //   - include each section in order
 
     // FIXME - things to consider
+    //
+    //   - cullSmallChanges is broken... needs to be repaired... <<<<<<<<<<<<<<< top issue
+    //
     //   - how to dry up this code?
     //
     //   - the sections below are basically little repeats of each other, where they
@@ -239,41 +241,30 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     //   - also, we could determine the "hasXXX" flags in the little sections,
     //     and then set the actual flag values AFTER the rest are done...
     //
-    //   - this toByteArray() side-effects the AvatarData, is that safe? in particular
-    //     is it possible we'll call toByteArray() and then NOT actually use the result?
+    // FIXME -
+    //
+    //    BUG -- if you enter a space bubble, and then back away, the avatar has wrong orientation until "send all" happens... 
+    //      this is an iFrame issue... what to do about that?
+    //
+    //
 
     // TODO -
     //      typical --  1jd 0ft 0p 1af 1stw 0loud 1look 0s 0o 1d 1lp 1gp
     //
-    // 1) make the dimensions really be dimensions instead of corner - 12bytes - 4.3kbps
-    // 2) determine if local position really only matters for parent - 12bytes - 4.3kbps
-    // 3) AdditionalFlags - only send if changed - 1byte - 0.36 kpbs
-    // 4) SensorToWorld - should we only send this for avatars with attachments?? - 20bytes - 7.2kbps
+    // 1) make the dimensions really be dimensions instead of corner              - 12 bytes - 4.32 kbps (when moving)
+    // 2) determine if local position really only matters for parent              - 12 bytes - 4.32 kbps (when moving and/or not parented)
+    // 3) SensorToWorld - should we only send this for avatars with attachments?? - 20 bytes - 7.20 kbps
+    // 4) AudioLoudness - use Ken's 8bit encoding                                 -  1 byte  - 0.36 kpbs (when speaking)
+    // 5) GUIID for the session change to 2byte index                   (savings) - 14 bytes - 5.04 kbps
     //
-    //  ----- Subtotal -- non-joint savings --- 16.2kbps ---  ~12% savings?
+    //  ----- Subtotal -- non-joint savings --- ~21.2 kbps ---  ~12.8% savings?
     // 
+    // 5) Joints... use more aggressive quantization and/or culling for more distance between avatars
+    //
     // Joints --
     //    63 rotations   * 6 bytes = 136kbps
     //    3 translations * 6 bytes = 6.48kbps
     //
-    // FIXME
-    //    - if you enter a space bubble, and then back away, the avatar has wrong orientation until "send all" happens... 
-    //      this is an iFrame issue... what to do about that?
-    //
-    //    - probably - if the avatar was out of view, then came in view, it would also not correctly do an iFrame
-    //
-    //    - in the AvatarMixer, there's a single AvatarData per connected avatar, that means that this
-    //      "last sent" strategy, actually won't work, because the serialization of the byte array will
-    //      iterate through a bunch of avatars in a loop, the first one will get the full data, then
-    //      the others will be partial.
-    //      we need some way of keeping track of what was sent the last time.
-
-    //  AvatarDataRegulator
-    //      .lastSent = time
-    //
-    //  hasAvatarGlobalPosition = (globalPositionChanged > lastSent) 
-    //  hasAvatarLocalPosition = (localPositionChanged > lastSent) 
-    //  ...
 
     bool hasAvatarGlobalPosition = true; // always include global position
     bool hasAvatarLocalPosition = sendAll || tranlationChangedSince(lastSentTime);
