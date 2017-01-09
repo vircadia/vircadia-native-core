@@ -84,8 +84,10 @@ public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, AudioClient* audio) :
-            _receivedAudioStream(receivedAudioStream), _audio(audio), _unfulfilledReads(0) {};
+        AudioOutputIODevice(AudioRingBuffer& localInjectorsBuffer, MixedProcessedAudioStream& receivedAudioStream,
+                AudioClient* audio) :
+            _localInjectorsBuffer(localInjectorsBuffer), _receivedAudioStream(receivedAudioStream),
+            _audio(audio), _unfulfilledReads(0) {}
 
         void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
         void stop() { close(); }
@@ -93,6 +95,7 @@ public:
         qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
+        AudioRingBuffer& _localInjectorsBuffer;
         MixedProcessedAudioStream& _receivedAudioStream;
         AudioClient* _audio;
         int _unfulfilledReads;
@@ -262,6 +265,7 @@ private:
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
     AudioRingBuffer _inputRingBuffer;
+    AudioRingBuffer _localInjectorsBuffer;
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
