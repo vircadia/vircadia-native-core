@@ -90,7 +90,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
         parentID: this.tabletEntityID,
-        parentJointIndex: -1
+        parentJointIndex: -1,
+        showKeyboardFocusHighlight: false
     });
 
     var HOME_BUTTON_Y_OFFSET = -0.25;
