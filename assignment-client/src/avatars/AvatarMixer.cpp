@@ -299,7 +299,7 @@ void AvatarMixer::broadcastAvatarData() {
                         AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
                         // Check to see if the space bubble is enabled
-                        if ((node->isIgnoreRadiusEnabled() && !getsIgnoredByMe) || (otherNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
+                        if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
                             // Define the minimum bubble size
                             static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
                             // Define the scale of the box for the current node
@@ -326,11 +326,11 @@ void AvatarMixer::broadcastAvatarData() {
                             // Perform the collision check between the two bounding boxes
                             if (nodeBox.touches(otherNodeBox)) {
                                 nodeData->ignoreOther(node, otherNode);
-                                return false;
+                                return getsAnyIgnored;
                             }
                         }
                         // Not close enough to ignore
-                        nodeData->removeFromRadiusIgnoringSet(otherNode->getUUID());
+                        nodeData->removeFromRadiusIgnoringSet(node, otherNode->getUUID());
                         return true;
                     }
                 },

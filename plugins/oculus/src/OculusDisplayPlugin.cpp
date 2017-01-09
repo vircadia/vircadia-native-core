@@ -31,6 +31,10 @@ OculusDisplayPlugin::OculusDisplayPlugin() {
 
 bool OculusDisplayPlugin::internalActivate() {
     bool result = Parent::internalActivate();
+    _longSubmits = 0;
+    _longRenders = 0;
+    _longFrames = 0;
+
     currentDebugMode = ovrPerfHud_Off;
     if (result && _session) {
         ovr_SetInt(_session, OVR_PERF_HUD_MODE, currentDebugMode);
@@ -112,35 +116,43 @@ void OculusDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
 }
 
+static const uint64_t FRAME_BUDGET = (11 * USECS_PER_MSEC);
+static const uint64_t FRAME_OVER_BUDGET = (15 * USECS_PER_MSEC);
+
 void OculusDisplayPlugin::hmdPresent() {
+    static uint64_t lastSubmitEnd = 0;
+
     if (!_customized) {
         return;
     }
 
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
-    int curIndex;
-    ovr_GetTextureSwapChainCurrentIndex(_session, _textureSwapChain, &curIndex);
-    GLuint curTexId;
-    ovr_GetTextureSwapChainBufferGL(_session, _textureSwapChain, curIndex, &curTexId);
+    {
+        PROFILE_RANGE_EX(render, "Oculus Blit", 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
+        int curIndex;
+        ovr_GetTextureSwapChainCurrentIndex(_session, _textureSwapChain, &curIndex);
+        GLuint curTexId;
+        ovr_GetTextureSwapChainBufferGL(_session, _textureSwapChain, curIndex, &curTexId);
 
-    // Manually bind the texture to the FBO
-    // FIXME we should have a way of wrapping raw GL ids in GPU objects without 
-    // taking ownership of the object
-    auto fbo = getGLBackend()->getFramebufferID(_outputFramebuffer);
-    glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, curTexId, 0);
-    render([&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setFramebuffer(_outputFramebuffer);
-        batch.setViewportTransform(ivec4(uvec2(), _outputFramebuffer->getSize()));
-        batch.setStateScissorRect(ivec4(uvec2(), _outputFramebuffer->getSize()));
-        batch.resetViewTransform();
-        batch.setProjectionTransform(mat4());
-        batch.setPipeline(_presentPipeline);
-        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    });
-    glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, 0, 0);
+        // Manually bind the texture to the FBO
+        // FIXME we should have a way of wrapping raw GL ids in GPU objects without 
+        // taking ownership of the object
+        auto fbo = getGLBackend()->getFramebufferID(_outputFramebuffer);
+        glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, curTexId, 0);
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.setFramebuffer(_outputFramebuffer);
+            batch.setViewportTransform(ivec4(uvec2(), _outputFramebuffer->getSize()));
+            batch.setStateScissorRect(ivec4(uvec2(), _outputFramebuffer->getSize()));
+            batch.resetViewTransform();
+            batch.setProjectionTransform(mat4());
+            batch.setPipeline(_presentPipeline);
+            batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+        glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, 0, 0);
+    }
 
     {
         auto result = ovr_CommitTextureSwapChain(_session, _textureSwapChain);
@@ -148,8 +160,33 @@ void OculusDisplayPlugin::hmdPresent() {
         _sceneLayer.SensorSampleTime = _currentPresentFrameInfo.sensorSampleTime;
         _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentPresentFrameInfo.renderPose);
         _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentPresentFrameInfo.renderPose);
+
+        auto submitStart = usecTimestampNow();
+        uint64_t nonSubmitInterval = 0;
+        if (lastSubmitEnd != 0) {
+            nonSubmitInterval = submitStart - lastSubmitEnd;
+            if (nonSubmitInterval > FRAME_BUDGET) {
+                ++_longRenders;
+            }
+        }
         ovrLayerHeader* layers = &_sceneLayer.Header;
-        result = ovr_SubmitFrame(_session, _currentFrame->frameIndex, &_viewScaleDesc, &layers, 1);
+        {
+            PROFILE_RANGE_EX(render, "Oculus Submit", 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
+            result = ovr_SubmitFrame(_session, _currentFrame->frameIndex, &_viewScaleDesc, &layers, 1);
+        }
+        lastSubmitEnd = usecTimestampNow();
+        if (nonSubmitInterval != 0) {
+            auto submitInterval = lastSubmitEnd - submitStart;
+            if (nonSubmitInterval < FRAME_BUDGET && submitInterval > FRAME_BUDGET) {
+                ++_longSubmits;
+            }
+            if ((nonSubmitInterval + submitInterval) > FRAME_OVER_BUDGET) {
+                ++_longFrames;
+            }
+        }
+
+
+
         if (!OVR_SUCCESS(result)) {
             logWarning("Failed to present");
         }
@@ -168,6 +205,7 @@ void OculusDisplayPlugin::hmdPresent() {
         _appDroppedFrames.store(appDroppedFrames);
         _compositorDroppedFrames.store(compositorDroppedFrames);
     }
+
     _presentRate.increment();
 }
 
@@ -176,6 +214,9 @@ QJsonObject OculusDisplayPlugin::getHardwareStats() const {
     QJsonObject hardwareStats;
     hardwareStats["app_dropped_frame_count"] = _appDroppedFrames.load();
     hardwareStats["compositor_dropped_frame_count"] = _compositorDroppedFrames.load();
+    hardwareStats["long_render_count"] = _longRenders.load();
+    hardwareStats["long_submit_count"] = _longSubmits.load();
+    hardwareStats["long_frame_count"] = _longFrames.load();
     return hardwareStats;
 }
 

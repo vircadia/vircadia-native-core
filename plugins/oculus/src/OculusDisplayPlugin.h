@@ -24,6 +24,8 @@ public:
     virtual QJsonObject getHardwareStats() const;
 
 protected:
+    QThread::Priority getPresentPriority() override { return QThread::TimeCriticalPriority; }
+
     bool internalActivate() override;
     void hmdPresent() override;
     bool isHmdMounted() const override;
@@ -39,5 +41,8 @@ private:
 
     std::atomic_int _compositorDroppedFrames;
     std::atomic_int _appDroppedFrames;
+    std::atomic_int _longSubmits;
+    std::atomic_int _longRenders;
+    std::atomic_int _longFrames;
 };
 
