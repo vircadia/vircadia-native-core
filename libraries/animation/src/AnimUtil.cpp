@@ -20,16 +20,16 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
         const AnimPose& bPose = b[i];
 
         // adjust signs if necessary
-        const glm::quat& q1 = aPose.rot;
-        glm::quat q2 = bPose.rot;
+        const glm::quat& q1 = aPose.rot();
+        glm::quat q2 = bPose.rot();
         float dot = glm::dot(q1, q2);
         if (dot < 0.0f) {
             q2 = -q2;
         }
 
-        result[i].scale = lerp(aPose.scale, bPose.scale, alpha);
-        result[i].rot = glm::normalize(glm::lerp(aPose.rot, q2, alpha));
-        result[i].trans = lerp(aPose.trans, bPose.trans, alpha);
+        result[i].scale() = lerp(aPose.scale(), bPose.scale(), alpha);
+        result[i].rot() = glm::normalize(glm::lerp(aPose.rot(), q2, alpha));
+        result[i].trans() = lerp(aPose.trans(), bPose.trans(), alpha);
     }
 }
 
