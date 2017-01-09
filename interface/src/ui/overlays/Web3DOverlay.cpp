@@ -359,7 +359,7 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
 
     auto showKeyboardFocusHighlight = properties["showKeyboardFocusHighlight"];
     if (showKeyboardFocusHighlight.isValid()) {
-        _showKeyboardFocusHighlight = showKeyboardFocusHighlight.toBool;
+        _showKeyboardFocusHighlight = showKeyboardFocusHighlight.toBool();
     }
 }
 
