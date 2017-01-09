@@ -91,7 +91,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         alpha: 1.0,
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
-        showKeyboardFocusHighlight: false
+        showKeyboardFocusHighlight: true
     });
 
     var HOME_BUTTON_Y_OFFSET = -0.25;
