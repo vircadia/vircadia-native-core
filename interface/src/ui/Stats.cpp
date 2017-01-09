@@ -127,12 +127,18 @@ void Stats::updateStats(bool force) {
         auto displayPlugin = qApp->getActiveDisplayPlugin();
         auto stats = displayPlugin->getHardwareStats();
         STAT_UPDATE(appdropped, stats["app_dropped_frame_count"].toInt());
+        STAT_UPDATE(longrenders, stats["long_render_count"].toInt());
+        STAT_UPDATE(longsubmits, stats["long_submit_count"].toInt());
+        STAT_UPDATE(longframes, stats["long_frame_count"].toInt());
         STAT_UPDATE(renderrate, displayPlugin->renderRate());
         STAT_UPDATE(presentrate, displayPlugin->presentRate());
         STAT_UPDATE(presentnewrate, displayPlugin->newFramePresentRate());
         STAT_UPDATE(presentdroprate, displayPlugin->droppedFrameRate());
         STAT_UPDATE(stutterrate, displayPlugin->stutterRate());
     } else {
+        STAT_UPDATE(appdropped, -1);
+        STAT_UPDATE(longrenders, -1);
+        STAT_UPDATE(longsubmits, -1);
         STAT_UPDATE(presentrate, -1);
         STAT_UPDATE(presentnewrate, -1);
         STAT_UPDATE(presentdroprate, -1);

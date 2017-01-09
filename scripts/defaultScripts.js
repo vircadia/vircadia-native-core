@@ -18,7 +18,7 @@ var DEFAULT_SCRIPTS = [
     "system/mute.js",
     "system/goto.js",
     "system/hmd.js",
-    "system/marketplaces/marketplace.js",
+    "system/marketplaces/marketplaces.js",
     "system/edit.js",
     "system/pal.js", //"system/mod.js", // older UX, if you prefer
     "system/selectAudioDevice.js",

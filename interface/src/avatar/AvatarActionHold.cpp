@@ -503,8 +503,8 @@ void AvatarActionHold::lateAvatarUpdate(const AnimPose& prePhysicsRoomPose, cons
     // then transform it back into world uisng the postAvatarUpdate sensor-to-world matrix.
     AnimPose newWorldBodyPose = postAvatarUpdateRoomPose * prePhysicsRoomPose.inverse() * worldBodyPose;
 
-    worldTrans.setOrigin(glmToBullet(newWorldBodyPose.trans));
-    worldTrans.setRotation(glmToBullet(newWorldBodyPose.rot));
+    worldTrans.setOrigin(glmToBullet(newWorldBodyPose.trans()));
+    worldTrans.setRotation(glmToBullet(newWorldBodyPose.rot()));
     rigidBody->setWorldTransform(worldTrans);
 
     bool positionSuccess;

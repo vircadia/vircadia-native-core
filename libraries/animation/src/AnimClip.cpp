@@ -143,13 +143,13 @@ void AnimClip::copyFromNetworkAnim() {
                     postRot = animSkeleton.getPostRotationPose(animJoint);
                 } else {
                     // In order to support Blender, which does not have preRotation FBX support, we use the models defaultPose as the reference frame for the animations.
-                    preRot = AnimPose(glm::vec3(1.0f), _skeleton->getRelativeBindPose(skeletonJoint).rot, glm::vec3());
+                    preRot = AnimPose(glm::vec3(1.0f), _skeleton->getRelativeBindPose(skeletonJoint).rot(), glm::vec3());
                     postRot = AnimPose::identity;
                 }
 
                 // cancel out scale
-                preRot.scale = glm::vec3(1.0f);
-                postRot.scale = glm::vec3(1.0f);
+                preRot.scale() = glm::vec3(1.0f);
+                postRot.scale() = glm::vec3(1.0f);
 
                 AnimPose rot(glm::vec3(1.0f), fbxAnimRot, glm::vec3());
 
@@ -160,10 +160,10 @@ void AnimClip::copyFromNetworkAnim() {
                 float boneLengthScale = 1.0f;
                 const float EPSILON = 0.0001f;
                 if (fabsf(glm::length(fbxZeroTrans)) > EPSILON) {
-                    boneLengthScale = glm::length(relDefaultPose.trans) / glm::length(fbxZeroTrans);
+                    boneLengthScale = glm::length(relDefaultPose.trans()) / glm::length(fbxZeroTrans);
                 }
 
-                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans + boneLengthScale * (fbxAnimTrans - fbxZeroTrans));
+                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans() + boneLengthScale * (fbxAnimTrans - fbxZeroTrans));
 
                 _anim[frame][skeletonJoint] = trans * preRot * rot * postRot;
             }
