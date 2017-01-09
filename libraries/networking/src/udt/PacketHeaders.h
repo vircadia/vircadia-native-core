@@ -105,7 +105,8 @@ public:
         UsernameFromIDReply,
         ViewFrustum,
         RequestsDomainListData,
-        LAST_PACKET_TYPE = RequestsDomainListData
+        ExitingSpaceBubble,
+        LAST_PACKET_TYPE = ExitingSpaceBubble
     };
 };
 

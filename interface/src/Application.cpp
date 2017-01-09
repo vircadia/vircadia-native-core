@@ -6144,7 +6144,7 @@ void Application::loadScriptURLDialog() const {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(_glWidget, getLogger());
+        _logDialog = new LogDialog(nullptr, getLogger());
     }
 
     if (_logDialog->isVisible()) {

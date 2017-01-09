@@ -355,7 +355,7 @@ function removeOverlays() {
 function handleClick(pickRay) {
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         // Don't select directly. Tell qml, who will give us back a list of ids.
-        var message = {method: 'select', params: [overlay.key, !overlay.selected]};
+        var message = {method: 'select', params: [[overlay.key], !overlay.selected]};
         pal.sendToQml(message);
         return true;
     });
@@ -438,6 +438,31 @@ function onClicked() {
     pal.setVisible(!pal.visible);
 }
 
+//
+// Message from other scripts, such as edit.js
+//
+var CHANNEL = 'com.highfidelity.pal';
+function receiveMessage(channel, messageString, senderID) {
+    if ((channel !== CHANNEL) ||
+        (senderID !== MyAvatar.sessionUUID)) {
+        return;
+    }
+    var message = JSON.parse(messageString);
+    switch (message.method) {
+    case 'select':
+        if (!pal.visible) {
+            onClicked();
+        }
+        pal.sendToQml(message); // Accepts objects, not just strings.
+        break;
+    default:
+        print('Unrecognized PAL message', messageString);
+    }
+}
+Messages.subscribe(CHANNEL);
+Messages.messageReceived.connect(receiveMessage);
+
+
 var AVERAGING_RATIO = 0.05;
 var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
@@ -517,6 +542,8 @@ Script.scriptEnding.connect(function () {
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
+    Messages.unsubscribe(CHANNEL);
+    Messages.messageReceived.disconnect(receiveMessage);
     off();
 });
 
