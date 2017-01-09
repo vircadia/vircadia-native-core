@@ -86,6 +86,10 @@ ExtendedOverlay.prototype.hover = function (hovering) {
         this.model.editOverlay({textures: textures(this.selected, hovering)});
     }
     if (hovering) {
+        // un-hover the last hovering overlay
+        if (lastHoveringId && lastHoveringId != this.key) {
+            ExtendedOverlay.get(lastHoveringId).hover(false);
+        }
         lastHoveringId = this.key;
     }
 }
@@ -116,7 +120,10 @@ ExtendedOverlay.some = function (iterator) { // Bails early as soon as iterator 
         }
     }
 };
-ExtendedOverlay.applyPickRay = function (pickRay, cb, noHit) { // cb(overlay) on the one overlay intersected by pickRay, if any.
+
+// hit(overlay) on the one overlay intersected by pickRay, if any.
+// noHit() if no ExtendedOverlay was intersected (helps with hover)
+ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) { // cb(overlay) on the one overlay intersected by pickRay, if any.
     var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
     if (!pickedOverlay.intersects) {
         if (noHit) {
@@ -126,7 +133,7 @@ ExtendedOverlay.applyPickRay = function (pickRay, cb, noHit) { // cb(overlay) on
     }
     ExtendedOverlay.some(function (overlay) { // See if pickedOverlay is one of ours.
         if ((overlay.activeOverlay) === pickedOverlay.overlayID) {
-            cb(overlay);
+            hit(overlay);
             return true;
         }
     });
@@ -363,7 +370,7 @@ function handleMouseMoveEvent(event) {
     // find out which overlay (if any) is over the mouse position
     // var overlayAtPoint = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     var pickRay = Camera.computePickRay(event.x, event.y);
-    var hit = ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+    ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         overlay.hover(true);
     }, function () {
         ExtendedOverlay.some(function (overlay) { overlay.hover(false); });
