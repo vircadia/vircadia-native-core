@@ -65,6 +65,8 @@ getControllerWorldLocation = function (handController, doOffset) {
             valid: valid};
 };
 
+
+
 //
 //
 //
@@ -83,63 +85,77 @@ getControllerWorldLocation = function (handController, doOffset) {
 
 /*global Script, Controller, SoundCache, Entities, getEntityCustomData, setEntityCustomData, MyAvatar, Vec3, Quat, Messages */
 
+
+function getControllerLocation(controllerHand) {
+    var standardControllerValue =
+        (controllerHand === "right") ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+    return getControllerWorldLocation(standardControllerValue, true);
+};
+
 (function() {
 
     Script.include("/~/system/libraries/utils.js");
 
-    var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
+    const NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 
-    var NOTCH_ARROW_SOUND_URL = Script.resolvePath('notch.wav');
-    var SHOOT_ARROW_SOUND_URL = Script.resolvePath('String_release2.L.wav');
-    var STRING_PULL_SOUND_URL = Script.resolvePath('Bow_draw.1.L.wav');
-    var ARROW_HIT_SOUND_URL = Script.resolvePath('Arrow_impact1.L.wav');
+    const NOTCH_ARROW_SOUND_URL = Script.resolvePath('notch.wav');
+    const SHOOT_ARROW_SOUND_URL = Script.resolvePath('String_release2.L.wav');
+    const STRING_PULL_SOUND_URL = Script.resolvePath('Bow_draw.1.L.wav');
+    const ARROW_HIT_SOUND_URL = Script.resolvePath('Arrow_impact1.L.wav');
 
-    var ARROW_TIP_OFFSET = 0.47;
-    var ARROW_GRAVITY = {
-        x: 0,
-        y: -4.8,
-        z: 0
-    };
-
-    var ARROW_MODEL_URL = Script.resolvePath('arrow.fbx');
-
-    var ARROW_DIMENSIONS = {
+    const ARROW_MODEL_URL = Script.resolvePath('arrow.fbx');
+    const ARROW_DIMENSIONS = {
         x: 0.20,
         y: 0.19,
         z: 0.93
     };
 
-    var ARROW_LIFETIME = 15; // seconds
-    var ARROW_PARTICLE_LIFESPAN = 2; // seconds
+    const MIN_ARROW_DISTANCE_FROM_BOW_REST = 0.2;
+    const MAX_ARROW_DISTANCE_FROM_BOW_REST = ARROW_DIMENSIONS.z - 0.2;
+    const MIN_ARROW_DISTANCE_FROM_BOW_REST_TO_SHOOT = 0.2;
 
-    var TOP_NOTCH_OFFSET = 0.6;
-    var BOTTOM_NOTCH_OFFSET = 0.6;
+    const MIN_ARROW_SPEED = 3;
+    const MAX_ARROW_SPEED = 30;
 
-    var LINE_DIMENSIONS = {
+    const ARROW_TIP_OFFSET = 0.47;
+    const ARROW_GRAVITY = {
+        x: 0,
+        y: -4.8,
+        z: 0
+    };
+
+
+    const ARROW_LIFETIME = 15; // seconds
+    const ARROW_PARTICLE_LIFESPAN = 2; // seconds
+
+    const TOP_NOTCH_OFFSET = 0.6;
+    const BOTTOM_NOTCH_OFFSET = 0.6;
+
+    const LINE_DIMENSIONS = {
         x: 5,
         y: 5,
         z: 5
     };
 
-    var DRAW_STRING_THRESHOLD = 0.80;
-    var DRAW_STRING_PULL_DELTA_HAPTIC_PULSE = 0.09;
-    var DRAW_STRING_MAX_DRAW = 0.7;
-    var NEAR_TO_RELAXED_KNOCK_DISTANCE = 0.5; // if the hand is this close, rez the arrow
-    var NEAR_TO_RELAXED_SCHMITT = 0.05;
+    const DRAW_STRING_THRESHOLD = 0.80;
+    const DRAW_STRING_PULL_DELTA_HAPTIC_PULSE = 0.09;
+    const DRAW_STRING_MAX_DRAW = 0.7;
+    const NEAR_TO_RELAXED_KNOCK_DISTANCE = 0.5; // if the hand is this close, rez the arrow
+    const NEAR_TO_RELAXED_SCHMITT = 0.05;
 
-    var NOTCH_OFFSET_FORWARD = 0.08;
-    var NOTCH_OFFSET_UP = 0.035;
+    const NOTCH_OFFSET_FORWARD = 0.08;
+    const NOTCH_OFFSET_UP = 0.035;
 
-    var SHOT_SCALE = {
+    const SHOT_SCALE = {
         min1: 0,
         max1: 0.6,
         min2: 1,
         max2: 15
     };
 
-    var USE_DEBOUNCE = false;
+    const USE_DEBOUNCE = false;
 
-    var TRIGGER_CONTROLS = [
+    const TRIGGER_CONTROLS = [
         Controller.Standard.LT,
         Controller.Standard.RT,
     ];
@@ -168,8 +184,7 @@ getControllerWorldLocation = function (handController, doOffset) {
     const ARROW_NAME = 'Hifi-Arrow-projectile';
 
     const STATE_IDLE = 0;
-    const STATE_ARROW_KNOCKED = 1;
-    const STATE_ARROW_GRABBED = 2;
+    const STATE_ARROW_GRABBED = 1;
 
     Bow.prototype = {
         topString: null,
@@ -207,12 +222,9 @@ getControllerWorldLocation = function (handController, doOffset) {
 
         startEquip: function(entityID, args) {
             this.hand = args[0];
+            this.bowHand = args[0];
+            this.stringHand = this.bowHand === "right" ? "left" : "right";
 
-            if (this.hand === 'left') {
-                this.getStringHandPosition = function() { return _this.getControllerLocation("right").position; };
-            } else if (this.hand === 'right') {
-                this.getStringHandPosition = function() { return _this.getControllerLocation("left").position; };
-            }
             Entities.editEntity(_this.entityID, {
                 collidesWith: "",
             });
@@ -224,8 +236,30 @@ getControllerWorldLocation = function (handController, doOffset) {
             this.initString();
 
             var self = this;
-            this.intervalID = Script.setInterval(function() { self.update(); }, 11);
+            this.updateIntervalID = Script.setInterval(function() { self.update(); }, 11);
         },
+
+        getStringHandPosition: function() {
+            return getControllerLocation(this.stringHand).position;
+        },
+
+        releaseEquip: function(entityID, args) {
+            Script.clearInterval(this.updateIntervalID);
+            this.updateIntervalID = null;
+
+            Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
+
+            var data = getEntityCustomData('grabbableKey', this.entityID, {});
+            data.grabbable = true;
+            setEntityCustomData('grabbableKey', this.entityID, data);
+            Entities.deleteEntity(this.arrow);
+            this.resetStringToIdlePosition();
+            this.destroyArrow();
+            Entities.editEntity(_this.entityID, {
+                collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar"
+            });
+        },
+
         update: function(entityID) {
             var self = this;
             self.deltaTime = checkInterval();
@@ -240,25 +274,58 @@ getControllerWorldLocation = function (handController, doOffset) {
                 }
             }
 
-            self.checkStringHand();
-        },
-        releaseEquip: function(entityID, args) {
-            //Script.update.disconnect(this, this.update);
-            Script.clearInterval(this.intervalID);
+            //invert the hands because our string will be held with the opposite hand of the first one we pick up the bow with
+            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[(this.hand === 'left') ? 1 : 0]);
 
-            Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
+            this.bowProperties = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
+            var notchPosition = this.getNotchPosition(this.bowProperties);
+            var stringHandPosition = this.getStringHandPosition();
+            var handToNotch = Vec3.subtract(notchPosition, stringHandPosition);
+            var pullBackDistance = Vec3.length(handToNotch);
 
-            this.stringDrawn = false;
+            if (this.state === STATE_IDLE) {
+                this.pullBackDistance = 0;
 
-            var data = getEntityCustomData('grabbableKey', this.entityID, {});
-            data.grabbable = true;
-            setEntityCustomData('grabbableKey', this.entityID, data);
-            Entities.deleteEntity(this.arrow);
-            this.resetStringToIdlePosition();
-            this.destroyArrow();
-            Entities.editEntity(_this.entityID, {
-                collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar"
-            });
+                this.resetStringToIdlePosition();
+                //this.deleteStrings();
+                if (this.triggerValue >= DRAW_STRING_THRESHOLD && pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE - NEAR_TO_RELAXED_SCHMITT) && !this.backHandBusy) {
+                    //the first time aiming the arrow
+                    var handToDisable = (this.hand === 'right' ? 'left' : 'right');
+                    this.state = STATE_ARROW_GRABBED;
+                }
+            }
+
+            if (this.state === STATE_ARROW_GRABBED) {
+                if (!this.arrow) {
+                    var handToDisable = (this.hand === 'right' ? 'left' : 'right');
+                    Messages.sendLocalMessage('Hifi-Hand-Disabler', handToDisable);
+                    this.playArrowNotchSound();
+                    this.arrow = this.createArrow();
+                    this.playStringPullSound();
+                }
+
+                if (this.triggerValue < DRAW_STRING_THRESHOLD) {
+                    // they let go without pulling
+                    if (pullBackDistance >= (MIN_ARROW_DISTANCE_FROM_BOW_REST_TO_SHOOT + NEAR_TO_RELAXED_SCHMITT)) {
+                        // The arrow has been pulled far enough back that we can release it
+                        Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
+                        this.updateArrowPositionInNotch(true, true);
+                        this.arrow = null;
+                        this.state = STATE_IDLE;
+                        this.resetStringToIdlePosition();
+                    } else {
+                        // The arrow has not been pulled far enough back so we just remove the arrow
+                        Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
+                        Entities.deleteEntity(this.arrow);
+                        this.arrow = null;
+                        this.state = STATE_IDLE;
+                        this.resetStringToIdlePosition();
+                    }
+                } else {
+                    this.updateArrowPositionInNotch(false, true);
+                    this.updateString();
+                }
+            }
         },
 
         destroyArrow: function() {
@@ -344,6 +411,7 @@ getControllerWorldLocation = function (handController, doOffset) {
                     ignoreForCollisions: 1,
                     linePoints: [ { "x": 0, "y": 0, "z": 0 }, { "x": 0, "y": -1.2, "z": 0 } ],
                     lineWidth: 5,
+                    color: { red: 153, green: 102, blue: 51 },
                     name: STRING_NAME,
                     parentID: this.entityID,
                     localPosition: { "x": 0, "y": 0.6, "z": 0.1 },
@@ -399,86 +467,6 @@ getControllerWorldLocation = function (handController, doOffset) {
             });
         },
 
-        getControllerLocation: function (controllerHand) {
-            var standardControllerValue =
-                (controllerHand === "right") ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
-            return getControllerWorldLocation(standardControllerValue, true);
-        },
-
-        checkStringHand: function() {
-            //invert the hands because our string will be held with the opposite hand of the first one we pick up the bow with
-            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[(this.hand === 'left') ? 1 : 0]);
-
-            this.bowProperties = Entities.getEntityProperties(this.entityID);
-            var notchPosition = this.getNotchPosition(this.bowProperties);
-            var stringHandPosition = this.getStringHandPosition();
-            var handToNotch = Vec3.subtract(notchPosition, stringHandPosition);
-            var pullBackDistance = Vec3.length(handToNotch);
-
-            if (this.state === STATE_IDLE) {
-                this.pullBackDistance = 0;
-
-                this.resetStringToIdlePosition();
-                //this.deleteStrings();
-                if (this.triggerValue >= DRAW_STRING_THRESHOLD && pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE - NEAR_TO_RELAXED_SCHMITT) && !this.backHandBusy) {
-                    //the first time aiming the arrow
-                    var handToDisable = (this.hand === 'right' ? 'left' : 'right');
-                    this.state = STATE_ARROW_GRABBED;
-                }
-            }
-            //if (this.state === STATE_ARROW_KNOCKED) {
-
-            //    if (pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
-            //        // delete the unpulled arrow
-            //        Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
-            //        this.state = STATE_IDLE;
-            //    } else if (this.triggerValue >= DRAW_STRING_THRESHOLD) {
-            //        // they've grabbed the arrow
-            //        this.pullBackDistance = 0;
-            //        this.state = STATE_ARROW_GRABBED;
-            //    }
-            //}
-            if (this.state === STATE_ARROW_GRABBED) {
-                if (!this.arrow) {
-                    var handToDisable = (this.hand === 'right' ? 'left' : 'right');
-                    Messages.sendLocalMessage('Hifi-Hand-Disabler', handToDisable);
-                    this.arrow = this.createArrow();
-                    this.playStringPullSound();
-                }
-
-                if (this.triggerValue < DRAW_STRING_THRESHOLD) {
-                    // they let go without pulling
-                    if (pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
-                        // The arrow has been pulled far enough back that we can release it
-                        Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
-                        this.updateArrowPositionInNotch(true, true);
-                        this.arrow = null;
-                        this.state = STATE_IDLE;
-                        this.resetStringToIdlePosition();
-                    } else {
-                        // The arrow has not been pulled far enough back so we just remove the arrow
-                        Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
-                        Entities.deleteEntity(this.arrow);
-                        this.arrow = null;
-                        this.state = STATE_IDLE;
-                        this.resetStringToIdlePosition();
-                    }
-                } else {
-                    this.updateArrowPositionInNotch(false, true);
-                    this.updateString();
-                }
-            }
-            //if (this.state === STATE_ARROW_GRABBED_AND_PULLED) {
-            //    if (pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
-            //        // they unpulled without firing
-            //        this.state = STATE_ARROW_GRABBED;
-            //    } else {
-            //        this.updateArrowPositionInNotch(false, true);
-            //        this.updateString();
-            //    }
-            //}
-        },
-
         getNotchPosition: function(bowProperties) {
             var frontVector = Quat.getFront(bowProperties.rotation);
             var notchVectorForward = Vec3.multiply(frontVector, NOTCH_OFFSET_FORWARD);
@@ -510,16 +498,12 @@ getControllerWorldLocation = function (handController, doOffset) {
             if (pullBackDistance > DRAW_STRING_MAX_DRAW) {
                 pullBackDistance = DRAW_STRING_MAX_DRAW;
             }
-            
+
             var handToNotchDistance = Vec3.length(handToNotch);
-            var stringToNotchDistance = Math.max(0.2, Math.min(ARROW_DIMENSIONS.z - 0.1, handToNotchDistance));
+            var stringToNotchDistance = Math.max(MIN_ARROW_DISTANCE_FROM_BOW_REST, Math.min(MAX_ARROW_DISTANCE_FROM_BOW_REST, handToNotchDistance));
             var halfArrowVec = Vec3.multiply(Vec3.normalize(handToNotch), ARROW_DIMENSIONS.z / 2.0);
             var offset = Vec3.subtract(notchPosition, Vec3.multiply(Vec3.normalize(handToNotch), stringToNotchDistance - ARROW_DIMENSIONS.z / 2.0));
-            if (Vec3.length(handToNotch) > 0.2) {
-                var arrowPosition = Vec3.subtract(notchPosition, halfArrowVec);
-            } else {
-                var arrowPosition = Vec3.sum(stringHandPosition, halfArrowVec);
-            }
+
             var arrowPosition = offset;
 
             // Set arrow rear position
@@ -534,19 +518,16 @@ getControllerWorldLocation = function (handController, doOffset) {
                     position: arrowPosition,
                     rotation: arrowRotation
                 });
-            }
-
-            //shoot the arrow
-            if (shouldReleaseArrow === true) { // && pullBackDistance >= (NEAR_TO_RELAXED_KNOCK_DISTANCE + NEAR_TO_RELAXED_SCHMITT)) {
+            } else {
+                //shoot the arrow
                 var arrowAge = Entities.getEntityProperties(this.arrow, ["age"]).age;
 
                 //scale the shot strength by the distance you've pulled the arrow back and set its release velocity to be
                 // in the direction of the v
-                var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
+                var arrowForce = this.scaleArrowShotStrength(stringToNotchDistance);
                 var handToNotchNorm = Vec3.normalize(handToNotch);
 
                 var releaseVelocity = Vec3.multiply(handToNotchNorm, arrowForce);
-                // var releaseVelocity2 = Vec3.multiply()
 
                 //make the arrow physical, give it gravity, a lifetime, and set our velocity
                 var arrowProperties = {
@@ -556,7 +537,7 @@ getControllerWorldLocation = function (handController, doOffset) {
                     velocity: releaseVelocity,
                     parentID: NULL_UUID,
                     gravity: ARROW_GRAVITY,
-                    lifetime: ARROW_LIFETIME + arrowAge,
+                    lifetime: arrowAge + ARROW_LIFETIME,
                 };
 
                 // add a particle effect to make the arrow easier to see as it flies
@@ -617,11 +598,8 @@ getControllerWorldLocation = function (handController, doOffset) {
         },
 
         scaleArrowShotStrength: function(value) {
-            var min1 = SHOT_SCALE.min1;
-            var max1 = SHOT_SCALE.max1;
-            var min2 = SHOT_SCALE.min2;
-            var max2 = SHOT_SCALE.max2;
-            return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
+            var pct = (value - MIN_ARROW_DISTANCE_FROM_BOW_REST) / (MAX_ARROW_DISTANCE_FROM_BOW_REST - MIN_ARROW_DISTANCE_FROM_BOW_REST);
+            return MIN_ARROW_SPEED + (pct * (MAX_ARROW_SPEED - MIN_ARROW_SPEED)) ;
         },
 
         playStringPullSound: function() {
