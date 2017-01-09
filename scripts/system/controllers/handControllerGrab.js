@@ -19,9 +19,9 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-Script.include("../libraries/utils.js");
-Script.include("../libraries/Xform.js");
-Script.include("../libraries/controllers.js");
+Script.include("/~/system/libraries/utils.js");
+Script.include("/~/system/libraries/Xform.js");
+Script.include("/~/system/libraries/controllers.js");
 
 //
 // add lines where the hand ray picking is happening
