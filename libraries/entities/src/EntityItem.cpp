@@ -1308,7 +1308,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setActionData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, updateParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
 
@@ -1562,6 +1562,13 @@ void EntityItem::updatePosition(const glm::vec3& value) {
                 entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
             }
         });
+    }
+}
+
+void EntityItem::updateParentID(const QUuid& value) {
+    if (_parentID != value) {
+        setParentID(value);
+        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; // children are forced to be kinematic
     }
 }
 
