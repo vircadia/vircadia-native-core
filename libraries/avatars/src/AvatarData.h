@@ -56,6 +56,7 @@ typedef unsigned long long quint64;
 #include <Packed.h>
 #include <ThreadSafeValueCache.h>
 #include <SharedUtil.h>
+#include <shared/RateCounter.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -250,66 +251,6 @@ namespace AvatarDataPacket {
         SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
     };
     */
-
-    // OLD FORMAT....
-    PACKED_BEGIN struct AvatarInfo {
-        // FIXME - this has 8 unqiue items, we could use a simple header byte to indicate whether or not the fields 
-        // exist in the packet and have changed since last being sent.
-        float globalPosition[3];          // avatar's position
-                                                // FIXME - possible savings:
-                                                //    a) could be encoded as relative to last known position, most movements
-                                                //       will be withing a smaller radix
-                                                //    b) would still need an intermittent absolute value.
-
-        float position[3];                // skeletal model's position 
-                                                // FIXME - this used to account for a registration offset from the avatar's position
-                                                // to the position of the skeletal model/mesh. This relative offset doesn't change from
-                                                // frame to frame, instead only changes when the model changes, it could be moved to the
-                                                // identity packet and/or only included when it changes.
-                                                // if it's encoded relative to the globalPosition, it could be reduced to a smaller radix
-                                                //
-                                                // POTENTIAL SAVINGS - 12 bytes
-
-        float globalBoundingBoxCorner[3]; // global position of the lowest corner of the avatar's bounding box 
-                                                // FIXME - this would change less frequently if it was the dimensions of the bounding box
-                                                // instead of the corner.
-                                                //
-                                                // POTENTIAL SAVINGS - 12 bytes
-
-        uint16_t localOrientation[3];     // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
-        uint16_t scale;                   // (compressed) 'ratio' encoding uses sign bit as flag.
-                                                // FIXME - this doesn't change every frame
-                                                //
-                                                // POTENTIAL SAVINGS - 2 bytes
-
-        float lookAtPosition[3];          // world space position that eyes are focusing on.
-                                                // FIXME - unless the person has an eye tracker, this is simulated... 
-                                                //    a) maybe we can just have the client calculate this
-                                                //    b) at distance this will be hard to discern and can likely be 
-                                                //       descimated or dropped completely
-                                                //
-                                                // POTENTIAL SAVINGS - 12 bytes
-
-        uint16_t audioLoudness;           // current loundess of microphone
-                                                // FIXME - 
-                                                //    a) this could probably be decimated with a smaller radix <<< DONE
-                                                //    b) this doesn't change every frame
-                                                //
-                                                // POTENTIAL SAVINGS - 4-2 bytes
-
-        // FIXME - these 20 bytes are only used by viewers if my avatar has "attachments"
-        // we could save these bytes if no attachments are active.
-        //
-        // POTENTIAL SAVINGS - 20 bytes
-
-        uint8_t sensorToWorldQuat[6];     // 6 byte compressed quaternion part of sensor to world matrix
-        uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
-        float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
-                                                // FIXME - sensorToWorldTrans might be able to be better compressed if it was
-                                                // relative to the avatar position.
-        uint8_t flags;
-    } PACKED_END;
-    const size_t AVATAR_INFO_SIZE = 79;
 }
 
 static const float MAX_AVATAR_SCALE = 1000.0f;
@@ -594,6 +535,8 @@ public:
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
+    float getDataRate(const QString& rateName = QString(""));
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -696,7 +639,21 @@ protected:
     quint64 _parentChanged { 0 };
 
     quint64  _lastToByteArray { 0 }; // tracks the last time we did a toByteArray
-   
+
+    // Some rate data for incoming data
+    RateCounter<> _parseBufferRate;
+    RateCounter<> _globalPositionRate;
+    RateCounter<> _localPositionRate;
+    RateCounter<> _avatarDimensionRate;
+    RateCounter<> _avatarOrientationRate;
+    RateCounter<> _avatarScaleRate;
+    RateCounter<> _lookAtPositionRate;
+    RateCounter<> _audioLoudnessRate;
+    RateCounter<> _sensorToWorldRate;
+    RateCounter<> _additionalFlagsRate;
+    RateCounter<> _parentInfoRate;
+    RateCounter<> _faceTrackerRate;
+    RateCounter<> _jointDataRate;
 
     glm::vec3 _globalBoundingBoxCorner;
 
@@ -712,8 +669,6 @@ protected:
     ThreadSafeValueCache<glm::mat4> _controllerRightHandMatrixCache { glm::mat4() };
 
     int getFauxJointIndex(const QString& name) const;
-
-    AvatarDataPacket::AvatarInfo _lastAvatarInfo;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
