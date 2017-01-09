@@ -1386,6 +1386,12 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
         _loopbackOutputDevice = NULL;
         delete _loopbackAudioOutput;
         _loopbackAudioOutput = NULL;
+
+        delete[] _limitMixBuffer;
+        _limitMixBuffer = NULL;
+
+        delete[] _limitScratchBuffer;
+        _limitScratchBuffer = NULL;
     }
 
     if (_networkToOutputResampler) {
@@ -1435,6 +1441,12 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             Lock lock(_deviceMutex);
             _audioOutput->start(&_audioOutputIODevice);
             lock.unlock();
+
+            int periodSampleSize = _audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE;
+            // device callback is not restricted to periodSampleSize, so double the mix/scratch buffer sizes
+            _limitPeriod = periodSampleSize * 2;
+            _limitMixBuffer = new float[_limitPeriod];
+            _limitScratchBuffer = new int16_t[_limitPeriod];
 
             qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / AudioConstants::SAMPLE_SIZE / (float)deviceFrameSize <<
                 "requested bytes:" << requestedSize << "actual bytes:" << _audioOutput->bufferSize() <<
@@ -1545,6 +1557,8 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // samples requested from OUTPUT_CHANNEL_COUNT
     int deviceChannelCount = _audio->_outputFormat.channelCount();
     int samplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
+    // restrict samplesRequested to the size of our mix/scratch buffers
+    samplesRequested = std::min(samplesRequested, _audio->_limitPeriod);
 
     int samplesPopped;
     int bytesWritten;
@@ -1553,14 +1567,30 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         qCDebug(audiostream, "Read %d samples from buffer (%d available)", samplesPopped, _receivedAudioStream.getSamplesAvailable());
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
 
-        // if required, upmix or downmix to deviceChannelCount
-        if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
-            lastPopOutput.readSamples((int16_t*)data, samplesPopped);
-        } else if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
-            lastPopOutput.readSamplesWithUpmix((int16_t*)data, samplesPopped, deviceChannelCount - OUTPUT_CHANNEL_COUNT);
-        } else {
-            lastPopOutput.readSamplesWithDownmix((int16_t*)data, samplesPopped);
+        int16_t* scratchBuffer = _audio->_limitScratchBuffer;
+        lastPopOutput.readSamples(scratchBuffer, samplesPopped);
+
+        float* mixBuffer = _audio->_limitMixBuffer;
+        for (int i = 0; i < samplesPopped; i++) {
+            mixBuffer[i] = (float)scratchBuffer[i] * (1/32768.0f);
         }
+
+        int framesPopped = samplesPopped / AudioConstants::STEREO;
+        if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
+            // limit the audio
+            _audio->_audioLimiter.render(mixBuffer, (int16_t*)data, framesPopped);
+        } else {
+            _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
+
+            // upmix or downmix to deviceChannelCount
+            if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
+                int extraChannels = deviceChannelCount - OUTPUT_CHANNEL_COUNT;
+                channelUpmix(scratchBuffer, (int16_t*)data, samplesPopped, extraChannels);
+            } else {
+                channelDownmix(scratchBuffer, (int16_t*)data, samplesPopped);
+            }
+        }
+
         bytesWritten = (samplesPopped * AudioConstants::SAMPLE_SIZE) * deviceChannelCount / OUTPUT_CHANNEL_COUNT;
     } else {
         // nothing on network, don't grab anything from injectors, and just return 0s

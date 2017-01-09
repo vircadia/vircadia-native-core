@@ -300,6 +300,11 @@ private:
     // for local hrtf-ing
     float _mixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
+
+    // for limiting
+    int _limitPeriod { 0 };
+    float* _limitMixBuffer { NULL };
+    int16_t* _limitScratchBuffer { NULL };
     AudioLimiter _audioLimiter;
 
     // Adds Reverb
