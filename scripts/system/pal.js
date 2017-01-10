@@ -78,6 +78,7 @@ function textures(selected, hovering) {
 // so we don't have to traverse the overlays to get the last one
 var lastHoveringId = 0;
 ExtendedOverlay.prototype.hover = function (hovering) {
+    this.hovering = hovering;
     if (this.key === lastHoveringId) {
         if (hovering) {
             return;
