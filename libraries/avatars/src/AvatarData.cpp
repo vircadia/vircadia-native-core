@@ -678,8 +678,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     AvatarDataPacket::HasFlags packetStateFlags;
 
-    _parseBufferRate.increment();
-
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(buffer.data());
     const unsigned char* endPosition = startPosition + buffer.size();
     const unsigned char* sourceBuffer = startPosition;
@@ -709,6 +707,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     quint64 now = usecTimestampNow();
 
     if (hasAvatarGlobalPosition) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(AvatarGlobalPosition, sizeof(AvatarDataPacket::AvatarGlobalPosition));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarGlobalPosition*>(sourceBuffer);
         auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]);
@@ -719,10 +719,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         //qDebug() << "hasAvatarGlobalPosition _globalPosition:" << _globalPosition;
 
-        _globalPositionRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _globalPositionRate.increment(numBytesRead);
     }
 
     if (hasAvatarLocalPosition) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(AvatarLocalPosition, sizeof(AvatarDataPacket::AvatarLocalPosition));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarLocalPosition*>(sourceBuffer);
         glm::vec3 position = glm::vec3(data->localPosition[0], data->localPosition[1], data->localPosition[2]);
@@ -736,10 +739,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
         //qDebug() << "hasAvatarLocalPosition position:" << position;
 
-        _localPositionRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _localPositionRate.increment(numBytesRead);
     }
 
     if (hasAvatarDimensions) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(AvatarDimensions, sizeof(AvatarDataPacket::AvatarDimensions));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarDimensions*>(sourceBuffer);
         auto newValue = glm::vec3(data->avatarDimensions[0], data->avatarDimensions[1], data->avatarDimensions[2]);
@@ -751,10 +757,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarDimensions);
         //qDebug() << "hasAvatarDimensions _globalBoundingBoxCorner:" << _globalBoundingBoxCorner;
 
-        _avatarDimensionRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _avatarDimensionRate.increment(numBytesRead);
     }
 
     if (hasAvatarOrientation) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(AvatarOrientation, sizeof(AvatarDataPacket::AvatarOrientation));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarOrientation*>(sourceBuffer);
         float pitch, yaw, roll;
@@ -778,10 +787,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarOrientation);
         //qDebug() << "hasAvatarOrientation newOrientation:" << newOrientation;
 
-        _avatarOrientationRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _avatarOrientationRate.increment(numBytesRead);
     }
 
     if (hasAvatarScale) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(AvatarScale, sizeof(AvatarDataPacket::AvatarScale));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarScale*>(sourceBuffer);
         float scale;
@@ -796,10 +808,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarScale);
         //qDebug() << "hasAvatarOrientation scale:" << scale;
 
-        _avatarScaleRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _avatarScaleRate.increment(numBytesRead);
     }
 
     if (hasLookAtPosition) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(LookAtPosition, sizeof(AvatarDataPacket::LookAtPosition));
         auto data = reinterpret_cast<const AvatarDataPacket::LookAtPosition*>(sourceBuffer);
         glm::vec3 lookAt = glm::vec3(data->lookAtPosition[0], data->lookAtPosition[1], data->lookAtPosition[2]);
@@ -813,10 +828,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::LookAtPosition);
         //qDebug() << "hasLookAtPosition lookAt:" << lookAt;
 
-        _lookAtPositionRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _lookAtPositionRate.increment(numBytesRead);
     }
 
     if (hasAudioLoudness) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(AudioLoudness, sizeof(AvatarDataPacket::AudioLoudness));
         auto data = reinterpret_cast<const AvatarDataPacket::AudioLoudness*>(sourceBuffer);
         float audioLoudness;
@@ -832,10 +850,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AudioLoudness);
         //qDebug() << "hasAudioLoudness audioLoudness:" << audioLoudness;
 
-        _audioLoudnessRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _audioLoudnessRate.increment(numBytesRead);
     }
 
     if (hasSensorToWorldMatrix) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(SensorToWorldMatrix, sizeof(AvatarDataPacket::SensorToWorldMatrix));
         auto data = reinterpret_cast<const AvatarDataPacket::SensorToWorldMatrix*>(sourceBuffer);
         glm::quat sensorToWorldQuat;
@@ -851,11 +872,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
         //qDebug() << "hasSensorToWorldMatrix sensorToWorldMatrix:" << sensorToWorldMatrix;
 
-        _sensorToWorldRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _sensorToWorldRate.increment(numBytesRead);
     }
 
     if (hasAdditionalFlags) {
-        //qDebug() << "hasAdditionalFlags...";
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(AdditionalFlags, sizeof(AvatarDataPacket::AdditionalFlags));
         auto data = reinterpret_cast<const AvatarDataPacket::AdditionalFlags*>(sourceBuffer);
         uint8_t bitItems = data->flags;
@@ -892,12 +915,14 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         if (somethingChanged) {        
             _additionalFlagsChanged = usecTimestampNow();
         }
-        _additionalFlagsRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _additionalFlagsRate.increment(numBytesRead);
     }
 
     // FIXME -- make sure to handle the existance of a parent vs a change in the parent...
     //bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
     if (hasParentInfo) {
+        auto startSection = sourceBuffer;
         PACKET_READ_CHECK(ParentInfo, sizeof(AvatarDataPacket::ParentInfo));
         auto parentInfo = reinterpret_cast<const AvatarDataPacket::ParentInfo*>(sourceBuffer);
         sourceBuffer += sizeof(AvatarDataPacket::ParentInfo);
@@ -912,13 +937,16 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             _parentChanged = usecTimestampNow();
         }
 
-        _parentInfoRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _parentInfoRate.increment(numBytesRead);
     } else {
         // FIXME - this aint totally right, for switching to parent/no-parent
         _parentID = QUuid();
     }
 
     if (hasFaceTrackerInfo) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(FaceTrackerInfo, sizeof(AvatarDataPacket::FaceTrackerInfo));
         auto faceTrackerInfo = reinterpret_cast<const AvatarDataPacket::FaceTrackerInfo*>(sourceBuffer);
         sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
@@ -936,10 +964,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += coefficientsSize;
         //qDebug() << "hasFaceTrackerInfo numCoefficients:" << numCoefficients;
     
-        _faceTrackerRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _faceTrackerRate.increment(numBytesRead);
     }
 
     if (hasJointData) {
+        auto startSection = sourceBuffer;
+
         PACKET_READ_CHECK(NumJoints, sizeof(uint8_t));
         int numJoints = *sourceBuffer++;
         //qDebug() << __FUNCTION__ << "....hasJointData numJoints:" << numJoints;
@@ -1029,41 +1060,45 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         //qDebug() << "hasJointData numValidJointRotations:" << numValidJointRotations << "numValidJointTranslations:" << numValidJointTranslations;
 
-        _jointDataRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _jointDataRate.increment(numBytesRead);
     }
 
     int numBytesRead = sourceBuffer - startPosition;
     _averageBytesReceived.updateAverage(numBytesRead);
+
+    _parseBufferRate.increment(numBytesRead);
+
     return numBytesRead;
 }
 
 float AvatarData::getDataRate(const QString& rateName) {
     if (rateName == "") {
-        return _parseBufferRate.rate();
+        return _parseBufferRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "globalPosition") {
-        return _globalPositionRate.rate();
+        return _globalPositionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "localPosition") {
-        return _localPositionRate.rate();
+        return _localPositionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "avatarDimensions") {
-        return _avatarDimensionRate.rate();
+        return _avatarDimensionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "avatarOrientation") {
-        return _avatarOrientationRate.rate();
+        return _avatarOrientationRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "avatarScale") {
-        return _avatarScaleRate.rate();
+        return _avatarScaleRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "lookAtPosition") {
-        return _lookAtPositionRate.rate();
+        return _lookAtPositionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "audioLoudness") {
-        return _audioLoudnessRate.rate();
+        return _audioLoudnessRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "sensorToWorkMatrix") {
-        return _sensorToWorldRate.rate();
+        return _sensorToWorldRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "additionalFlags") {
-        return _additionalFlagsRate.rate();
+        return _additionalFlagsRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "parentInfo") {
-        return _parentInfoRate.rate();
+        return _parentInfoRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "faceTracker") {
-        return _faceTrackerRate.rate();
+        return _faceTrackerRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "jointData") {
-        return _jointDataRate.rate();
+        return _jointDataRate.rate() / BYTES_PER_KILOBIT;
     }
     return 0.0f;
 }
