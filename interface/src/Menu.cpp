@@ -160,7 +160,7 @@ Menu::Menu() {
         audioIO.data(), SLOT(toggleMute()));
 
     // Audio > Show Level Meter
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, true);
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, false);
 
 
     // Avatar menu ----------------------------------
