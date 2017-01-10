@@ -133,7 +133,7 @@ ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId 
 
 // hit(overlay) on the one overlay intersected by pickRay, if any.
 // noHit() if no ExtendedOverlay was intersected (helps with hover)
-ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) { // cb(overlay) on the one overlay intersected by pickRay, if any.
+ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) {
     var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
     if (!pickedOverlay.intersects) {
         if (noHit) {
@@ -377,6 +377,13 @@ function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
     }
     handleClick(Camera.computePickRay(mousePressEvent.x, mousePressEvent.y));
 }
+function handleMouseMove(pickRay) { // given the pickRay, just do the hover logic
+    ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+        overlay.hover(true);
+    }, function () {
+        ExtendedOverlay.unHover();
+    });
+}
 function handleMouseMoveEvent(event) { // find out which overlay (if any) is over the mouse position
     if (HMD.active) {
         var hand = whichHand();
@@ -431,14 +438,6 @@ function whichHand() {
 
     }
     return currentHandPressed;
-}
-
-function handleMouseMove(pickRay) { // given the pickRay, just do the hover logic
-    ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
-        overlay.hover(true);
-    }, function () {
-        ExtendedOverlay.unHover();
-    });
 }
 
 // We get mouseMoveEvents from the handControllers, via handControllerPointer.
