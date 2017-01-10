@@ -81,6 +81,7 @@ FramePointer Context::endFrame() {
 }
 
 void Context::executeBatch(Batch& batch) const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     batch.flush();
     _backend->render(batch);
 }
@@ -94,6 +95,8 @@ void Context::consumeFrameUpdates(const FramePointer& frame) const {
 }
 
 void Context::executeFrame(const FramePointer& frame) const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
+
     // Grab the stats at the around the frame and delta to have a consistent sampling
     ContextStats beginStats;
     getStats(beginStats);
