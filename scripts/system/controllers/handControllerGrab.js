@@ -1523,7 +1523,8 @@ function MyController(hand) {
         this.grabbedEntity = null;
         this.grabbedOverlay = null;
         this.isInitialGrab = false;
-        this.shouldResetParentOnRelease = false;
+        this.previousParentID = NULL_UUID;
+        this.previousParentJointIndex = -1;
         this.preparingHoldRelease = false;
 
         this.checkForStrayChildren();
@@ -1594,10 +1595,6 @@ function MyController(hand) {
                 //  If near something grabbable, grab it!
                 if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && nearGrabEnabled) {
                     this.setState(STATE_NEAR_GRABBING, "near grab '" + name + "'");
-                    var props = entityPropertiesCache.getProps(entity);
-                    this.shouldResetParentOnRelease = true;
-                    this.previousParentID = props.parentID;
-                    this.previousParentJointIndex = props.parentJointIndex;
                     return;
                 } else {
                     // potentialNearGrabEntity = entity;
@@ -2271,7 +2268,7 @@ function MyController(hand) {
         }
 
         var isPhysical = propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
-        if (isPhysical && this.state == STATE_NEAR_GRABBING) {
+        if (isPhysical && this.state == STATE_NEAR_GRABBING && grabbedProperties.parentID === NULL_UUID) {
             // grab entity via action
             if (!this.setupHoldAction()) {
                 return;
@@ -2304,6 +2301,15 @@ function MyController(hand) {
                 reparentProps.localRotation = this.offsetRotation;
             }
             Entities.editEntity(this.grabbedEntity, reparentProps);
+
+            this.previousParentID = grabbedProperties.parentID;
+            this.previousParentJointIndex = grabbedProperties.parentJointIndex;
+            if (grabbedProperties.parentID === MyAvatar.sessionUUID &&
+                this.getOtherHandController().state == STATE_NEAR_GRABBING) {
+                // one hand took it from the other
+                this.previousParentID = NULL_UUID;
+                this.previousParentJointIndex = -1;
+            }
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
@@ -2845,13 +2851,22 @@ function MyController(hand) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
-            }
-
-            if (this.shouldResetParentOnRelease) {
-                Entities.editEntity(this.grabbedEntity, {
-                    parentID: this.previousParentID,
-                    parentJointIndex: this.previousParentJointIndex
-                });
+            } else {
+                // no action, so it's a parenting grab
+                if (this.previousParentID === NULL_UUID) {
+                    Entities.editEntity(this.grabbedEntity, {
+                        parentID: this.previousParentID,
+                        parentJointIndex: this.previousParentJointIndex
+                    });
+                } else {
+                    // we're putting this back as a child of some other parent, so zero its velocity
+                    Entities.editEntity(this.grabbedEntity, {
+                        parentID: this.previousParentID,
+                        parentJointIndex: this.previousParentJointIndex,
+                        velocity: {x: 0, y: 0, z: 0},
+                        angularVelocity: {x: 0, y: 0, z: 0}
+                    });
+                }
             }
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
