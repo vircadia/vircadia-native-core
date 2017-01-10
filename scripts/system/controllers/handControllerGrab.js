@@ -1220,9 +1220,22 @@ function MyController(hand) {
                 if (this.handleStylusOnWebOverlay(rayPickInfo)) {
                     return;
                 }
+                this.handleStylusOnHomeButton(rayPickInfo);
             }
         } else {
             this.hideStylus();
+        }
+    };
+
+   this.handleStylusOnHomeButton = function(rayPickInfo) {
+        var pointerEvent;
+
+        if (rayPickInfo.entityID) {
+            var entity = rayPickInfo.entityID;
+            var name = entityPropertiesCache.getProps(entity).name;
+            if (name == "homeButton") {
+                Messages.sendLocalMessage("home", entity);
+            }
         }
     };
 
