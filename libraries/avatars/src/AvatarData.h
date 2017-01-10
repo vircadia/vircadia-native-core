@@ -177,9 +177,13 @@ namespace AvatarDataPacket {
     const size_t AVATAR_DIMENSIONS_SIZE = 12;
 
 
+    using SixByteQuat = uint8_t[6];
     PACKED_BEGIN struct AvatarOrientation {
-        smallFloat localOrientation[3];   // avatar's local euler angles (degrees, compressed) relative to the
-                                          // thing it's attached to, or world relative if not attached
+        //smallFloat localOrientation[3];   // avatar's local euler angles (degrees, compressed) relative to the
+                                            // thing it's attached to, or world relative if not attached
+
+        SixByteQuat avatarOrientation;      // encodeded and compressed by packOrientationQuatToSixBytes()
+
     } PACKED_END;
     const size_t AVATAR_ORIENTATION_SIZE = 6;
 

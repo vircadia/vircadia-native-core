@@ -313,13 +313,16 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     }
 
     if (hasAvatarOrientation) {
-        auto data = reinterpret_cast<AvatarDataPacket::AvatarOrientation*>(destinationBuffer);
         auto localOrientation = getLocalOrientation();
+        /*
+        auto data = reinterpret_cast<AvatarDataPacket::AvatarOrientation*>(destinationBuffer);
         glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(localOrientation));
         packFloatAngleToTwoByte((uint8_t*)(data->localOrientation + 0), bodyEulerAngles.y);
         packFloatAngleToTwoByte((uint8_t*)(data->localOrientation + 1), bodyEulerAngles.x);
         packFloatAngleToTwoByte((uint8_t*)(data->localOrientation + 2), bodyEulerAngles.z);
         destinationBuffer += sizeof(AvatarDataPacket::AvatarOrientation);
+        */
+        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
     }
 
     if (hasAvatarScale) {
@@ -704,6 +707,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto startSection = sourceBuffer;
 
         PACKET_READ_CHECK(AvatarOrientation, sizeof(AvatarDataPacket::AvatarOrientation));
+
+        /*
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarOrientation*>(sourceBuffer);
         float pitch, yaw, roll;
         unpackFloatAngleFromTwoByte(data->localOrientation + 0, &yaw);
@@ -715,15 +720,19 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return buffer.size();
         }
-
-        glm::quat currentOrientation = getLocalOrientation();
         glm::vec3 newEulerAngles(pitch, yaw, roll);
         glm::quat newOrientation = glm::quat(glm::radians(newEulerAngles));
+        sourceBuffer += sizeof(AvatarDataPacket::AvatarOrientation);
+        */
+
+        glm::quat newOrientation;
+        sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, newOrientation);
+
+        glm::quat currentOrientation = getLocalOrientation();
         if (currentOrientation != newOrientation) {
             _hasNewJointRotations = true;
             setLocalOrientation(newOrientation);
         }
-        sourceBuffer += sizeof(AvatarDataPacket::AvatarOrientation);
         int numBytesRead = sourceBuffer - startSection;
         _avatarOrientationRate.increment(numBytesRead);
     }
