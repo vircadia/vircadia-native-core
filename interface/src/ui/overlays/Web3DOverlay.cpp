@@ -50,7 +50,8 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     _url(Web3DOverlay->_url),
     _scriptURL(Web3DOverlay->_scriptURL),
     _dpi(Web3DOverlay->_dpi),
-    _resolution(Web3DOverlay->_resolution)
+    _resolution(Web3DOverlay->_resolution),
+    _showKeyboardFocusHighlight(Web3DOverlay->_showKeyboardFocusHighlight)
 {
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
@@ -351,6 +352,11 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
     if (dpi.isValid()) {
         _dpi = dpi.toFloat();
     }
+
+    auto showKeyboardFocusHighlight = properties["showKeyboardFocusHighlight"];
+    if (showKeyboardFocusHighlight.isValid()) {
+        _showKeyboardFocusHighlight = showKeyboardFocusHighlight.toBool();
+    }
 }
 
 QVariant Web3DOverlay::getProperty(const QString& property) {
@@ -365,6 +371,9 @@ QVariant Web3DOverlay::getProperty(const QString& property) {
     }
     if (property == "dpi") {
         return _dpi;
+    }
+    if (property == "showKeyboardFocusHighlight") {
+        return _showKeyboardFocusHighlight;
     }
     return Billboard3DOverlay::getProperty(property);
 }
