@@ -1235,8 +1235,6 @@ function MyController(hand) {
             var name = entityPropertiesCache.getProps(entity).name;
             if (name == "homeButton") {
                 Messages.sendLocalMessage("home", entity);
-                //this.grabbedEntity = entity;
-                //this.setState(STATE_ENTITY_STYLUS_TOUCHING, "begin touching entity '" + name + "'");
             }
         }
     };
