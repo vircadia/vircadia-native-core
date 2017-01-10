@@ -16,6 +16,7 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
+#include <QtCore/QDateTime>
 
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
@@ -106,6 +107,12 @@ void TraceEvent::writeJson(QTextStream& out) const {
 void Tracer::serialize(const QString& originalPath) {
 
     QString path = originalPath;
+
+    // Filter for specific tokens potentially present in the path:
+    auto now = QDateTime::currentDateTime();
+
+    path = path.replace("{DATE}", now.date().toString("yyyyMMdd"));
+    path = path.replace("{TIME}", now.time().toString("HHmm"));
 
     // If the filename is relative, turn it into an absolute path relative to the document directory.
     QFileInfo originalFileInfo(path);
