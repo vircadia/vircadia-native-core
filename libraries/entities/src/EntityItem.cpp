@@ -1780,7 +1780,6 @@ void EntityItem::updateCreated(uint64_t value) {
 }
 
 void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
-    // TODO: detect attachment status and adopt group of wearer
     if (_collisionless) {
         group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         mask = 0;
@@ -1794,10 +1793,14 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         }
 
         uint8_t userMask = getCollisionMask();
+        if (hasAncestorOfType(NestableType::Avatar)) {
+            userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
+        }
+
         if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
                 (bool)(userMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
             // asymmetric avatar collision mask bits
-            if (!getSimulatorID().isNull() && (!getSimulatorID().isNull()) && getSimulatorID() != Physics::getSessionUUID()) {
+            if (!getSimulatorID().isNull() && getSimulatorID() != Physics::getSessionUUID()) {
                 // someone else owns the simulation, so we toggle the avatar bits (swap interpretation)
                 userMask ^= USER_COLLISION_MASK_AVATARS | ~userMask;
             }
