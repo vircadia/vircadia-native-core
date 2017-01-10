@@ -63,9 +63,13 @@ ExtendedOverlay.prototype.editOverlay = function (properties) { // change displa
     Overlays.editOverlay(this.activeOverlay, properties);
 };
 
-function color(selected, hovering) {
-    
-    return hovering ? HOVER_COLOR : selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+function color(selected, hovering, level) {
+    var base = hovering ? HOVER_COLOR : selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+    function scale(component) {
+        var delta = 0xFF - component;
+        return component + (delta * level);
+    }
+    return {red: scale(base.red), green: scale(base.green), blue: scale(base.blue)};
 }
 
 function textures(selected, hovering) {
@@ -81,7 +85,7 @@ ExtendedOverlay.prototype.hover = function (hovering) {
             lastHoveringId = 0;
         }
     } 
-    this.editOverlay({color: color(this.selected, hovering)});
+    this.editOverlay({color: color(this.selected, hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(this.selected, hovering)});
     }
@@ -98,7 +102,7 @@ ExtendedOverlay.prototype.select = function (selected) {
         return;
     }
     
-    this.editOverlay({color: color(selected, this.hovering)});
+    this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
     }
@@ -242,7 +246,7 @@ function addAvatarNode(id) {
          drawInFront: true, 
          solid: true, 
          alpha: 0.8, 
-         color: color(selected), 
+         color: color(selected, false, 0.0),
          ignoreRayIntersection: false}, selected, true);
 }
 function populateUserList() {
@@ -326,6 +330,7 @@ function updateOverlays() {
 
         overlay.ping = pingPong;
         overlay.editOverlay({
+            color: color(ExtendedOverlay.isSelected(id), overlay.hovering, overlay.audioLevel),
             position: target,
             dimensions: 0.032 * distance 
         });
@@ -527,7 +532,7 @@ var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
 var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
-var accumulatedLevels = {};
+var myData = {}; // we're not includied in ExtendedOverlay.get.
 
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
@@ -535,13 +540,18 @@ function getAudioLevel(id) {
     // of updating (the latter for efficiency too).
     var avatar = AvatarList.getAvatar(id);
     var audioLevel = 0.0;
+    var data = id ? ExtendedOverlay.get(id) : myData;
+    if (!data) {
+        print('no data for', id);
+        return audioLevel;
+    }
 
     // we will do exponential moving average by taking some the last loudness and averaging
-    accumulatedLevels[id] = AVERAGING_RATIO * (accumulatedLevels[id] || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+    data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
 
     // add 1 to insure we don't go log() and hit -infinity.  Math.log is
     // natural log, so to get log base 2, just divide by ln(2).
-    var logLevel = Math.log(accumulatedLevels[id] + 1) / LOG2;
+    var logLevel = Math.log(data.accumulatedLevel + 1) / LOG2;
 
     if (logLevel <= LOUDNESS_FLOOR) {
         audioLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
@@ -551,6 +561,7 @@ function getAudioLevel(id) {
     if (audioLevel > 1.0) {
         audioLevel = 1;
     }
+    data.audioLevel = audioLevel;
     return audioLevel;
 }
 
@@ -560,7 +571,7 @@ function getAudioLevel(id) {
 Script.setInterval(function () {
     if (pal.visible) {
         var param = {};
-        AvatarList.getAvatarIdentifiers().sort().forEach(function (id) {
+        AvatarList.getAvatarIdentifiers().forEach(function (id) {
             var level = getAudioLevel(id);
             // qml didn't like an object with null/empty string for a key, so...
             var userId = id || 0;
