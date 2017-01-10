@@ -132,8 +132,6 @@ public:
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
-    QVector<AudioInjector*>& getActiveLocalAudioInjectors() { return _activeLocalAudioInjectors; }
-
     void checkDevices();
 
     static const float CALLBACK_ACCELERATOR_RATIO;
@@ -174,6 +172,7 @@ public slots:
 
     int setOutputBufferSize(int numFrames, bool persist = true);
 
+    void prepareLocalAudioInjectors();
     bool outputLocalInjector(AudioInjector* injector) override;
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
@@ -221,7 +220,7 @@ protected:
 
 private:
     void outputFormatChanged();
-    void mixLocalAudioInjectors(float* mixBuffer);
+    bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
 
@@ -304,6 +303,10 @@ private:
     // for network audio (used by network audio threads)
     float _networkMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
+
+    // for local audio (used by this thread only)
+    float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
 
     // for output audio (used by this thread only)
     int _outputPeriod { 0 };
