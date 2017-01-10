@@ -16,11 +16,11 @@ import "."
 Item {
     id: root
     anchors.fill: parent
-    objectName: "MouseMenuHandlerItem"
+    objectName: "tabletMenuHandlerItem"
 
     MouseArea {
         id: menuRoot;
-        objectName: "MouseMenuHandlerMouseArea"
+        objectName: "tabletMenuHandlerMouseArea"
         anchors.fill: parent
         enabled: d.topMenu !== null
         onClicked: {
@@ -34,7 +34,7 @@ Item {
         property var topMenu: null;
         property var modelMaker: Component { ListModel { } }
         property var menuViewMaker: Component {
-            VrMenuView {
+            TabletMenuView {
                 id: subMenu
                 onSelected: d.handleSelection(subMenu, currentItem, item)
             }
@@ -54,10 +54,11 @@ Item {
         }
 
         function toModel(items) {
-            var result = modelMaker.createObject(desktop);
+            var result = modelMaker.createObject(tabletMenu);
             for (var i = 0; i < items.length; ++i) {
                 var item = items[i];
                 if (!item.visible) continue;
+                console.log(item.title)
                 switch (item.type) {
                 case MenuItemType.Menu:
                     result.append({"name": item.title, "item": item})
@@ -82,7 +83,7 @@ Item {
                 topMenu.focus = true;
             } else {
                 topMenu = null;
-                offscreenFlags.navigationFocused = false;
+                //offscreenFlags.navigationFocused = false;
                 menuRoot.enabled = false;
             }
         }
@@ -91,7 +92,7 @@ Item {
             menuStack.push(newMenu);
             topMenu = newMenu;
             topMenu.focus = true;
-            offscreenFlags.navigationFocused = true;
+            //offscreenFlags.navigationFocused = true;
         }
 
         function clearMenus() {
@@ -118,12 +119,7 @@ Item {
         function buildMenu(items, targetPosition) {
             var model = toModel(items);
             // Menus must be childed to desktop for Z-ordering
-            var newMenu = menuViewMaker.createObject(desktop, { model: model, z: topMenu ? topMenu.z + 1 : desktop.zLevels.menu, isSubMenu: topMenu !== null });
-            if (targetPosition) {
-                newMenu.x = targetPosition.x
-                newMenu.y = targetPosition.y - newMenu.height / 3 * 1
-            }
-            clampMenuPosition(newMenu);
+            var newMenu = menuViewMaker.createObject(tabletMenu, { model: model, isSubMenu: topMenu !== null });
             pushMenu(newMenu);
             return newMenu;
         }
@@ -150,18 +146,10 @@ Item {
 
     }
 
-    function popup(parent, items, point) {
+    function popup(parent, items) {
         d.clearMenus();
         menuRoot.enabled = true;
         d.buildMenu(items, point);
-    }
-
-    function toggle(parent, items, point) {
-        if (d.topMenu) {
-            d.clearMenus();
-            return;
-        }
-        popup(parent, items, point);
     }
 
     function closeLastMenu() {

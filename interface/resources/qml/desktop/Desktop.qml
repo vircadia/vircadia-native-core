@@ -12,7 +12,6 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 
 import "../dialogs"
-import "../menus"
 import "../js/Utils.js" as Utils
 
 // This is our primary 'desktop' object to which all VR dialogs and windows are childed.
@@ -465,32 +464,7 @@ FocusScope {
     Component { id: fileDialogBuilder; FileDialog { } }
     function fileDialog(properties) {
         return fileDialogBuilder.createObject(desktop, properties);
-    }
-
-    MenuMouseHandler { id: menuPopperUpper }
-    function popupMenu(point) {
-        menuPopperUpper.popup(desktop, rootMenu.items, point);
-    }
-
-    function toggleMenu(point) {
-        menuPopperUpper.toggle(desktop, rootMenu.items, point);
-    }
-
-    Keys.onEscapePressed: {
-        if (menuPopperUpper.closeLastMenu()) {
-            event.accepted = true;
-            return;
-        }
-        event.accepted = false;
-    }
-
-    Keys.onLeftPressed: {
-        if (menuPopperUpper.closeLastMenu()) {
-            event.accepted = true;
-            return;
-        }
-        event.accepted = false;
-    }
+    } 
 
     function unfocusWindows() {
         // First find the active focus item, and unfocus it, all the way

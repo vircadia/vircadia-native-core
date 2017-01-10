@@ -65,6 +65,8 @@ public:
 
     void setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
+    Q_INVOKABLE void gotoMenuScreen();
+
     /**jsdoc
      * transition to the home screen
      * @function TabletProxy#gotoHomeScreen
@@ -120,6 +122,7 @@ signals:
 
 private slots:
     void addButtonsToHomeScreen();
+    void addButtonsToMenuScreen();
 protected:
     void removeButtonsFromHomeScreen();
     QQuickItem* getQmlTablet() const;
