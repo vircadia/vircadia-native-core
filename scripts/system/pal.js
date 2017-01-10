@@ -25,7 +25,7 @@ const HOVER_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Ov
 
 const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 const SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
-const HOVER_COLOR = {red: 0xFF, green: 0xFF, blue: 0xFF}; // white for now
+const HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
 
 (function() { // BEGIN LOCAL_SCOPE
 
