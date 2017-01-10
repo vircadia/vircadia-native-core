@@ -1794,7 +1794,8 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         }
 
         uint8_t userMask = getCollisionMask();
-        if (hasAncestorOfType(NestableType::Avatar)) {
+        QUuid parentID = getParentID();
+        if (!parentID.isNull() && parentID == Physics::getSessionUUID()) {
             userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
 
