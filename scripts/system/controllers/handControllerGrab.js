@@ -1363,7 +1363,10 @@ function MyController(hand) {
         var okToEquipFromOtherHand = ((this.getOtherHandController().state == STATE_NEAR_GRABBING ||
                                        this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
                                       this.getOtherHandController().grabbedEntity == hotspot.entityID);
-        var hasParent = !(props.parentID === NULL_UUID);
+        var hasParent = true;
+        if (props.parentID === NULL_UUID) {
+            hasParent = false;
+        }
         if ((hasParent || entityHasActions(hotspot.entityID)) && !okToEquipFromOtherHand) {
             if (debug) {
                 print("equip is skipping '" + props.name + "': grabbed by someone else");
@@ -1591,6 +1594,10 @@ function MyController(hand) {
                 //  If near something grabbable, grab it!
                 if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && nearGrabEnabled) {
                     this.setState(STATE_NEAR_GRABBING, "near grab '" + name + "'");
+                    var props = entityPropertiesCache.getProps(entity);
+                    this.shouldResetParentOnRelease = true;
+                    this.previousParentID = props.parentID;
+                    this.previousParentJointIndex = props.parentJointIndex;
                     return;
                 } else {
                     // potentialNearGrabEntity = entity;
@@ -2840,7 +2847,12 @@ function MyController(hand) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
             }
 
-            Entities.editEntity(this.grabbedEntity, { parentID: NULL_UUID }); // XXX
+            if (this.shouldResetParentOnRelease) {
+                Entities.editEntity(this.grabbedEntity, {
+                    parentID: this.previousParentID,
+                    parentJointIndex: this.previousParentJointIndex
+                });
+            }
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'release',
