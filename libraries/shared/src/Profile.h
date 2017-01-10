@@ -26,7 +26,7 @@ Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics)
 
 class Duration {
 public:
-    Duration(const QLoggingCategory& category, const QString& name, uint32_t argbColor = 0xff0000ff, uint64_t payload = 0, QVariantMap args = QVariantMap());
+    Duration(const QLoggingCategory& category, const QString& name, uint32_t argbColor = 0xff0000ff, uint64_t payload = 0, const QVariantMap& args = QVariantMap());
     ~Duration();
 
     static uint64_t beginRange(const QLoggingCategory& category, const char* name, uint32_t argbColor);

@@ -26,8 +26,8 @@ public:
 
     IKTarget() {}
 
-    const glm::vec3& getTranslation() const { return _pose.trans; }
-    const glm::quat& getRotation() const { return _pose.rot; }
+    const glm::vec3& getTranslation() const { return _pose.trans(); }
+    const glm::quat& getRotation() const { return _pose.rot(); }
     int getIndex() const { return _index; }
     Type getType() const { return _type; }
 
