@@ -4076,9 +4076,11 @@ void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
             }
             _lastAcceptedKeyPress = usecTimestampNow();
 
-            auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
-            const float OVERLAY_DEPTH = 0.0105f;
-            setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
+            if (overlay->getProperty("showKeyboardFocusHighlight").toBool()) {
+                auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
+                const float OVERLAY_DEPTH = 0.0105f;
+                setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
+            }
         }
     }
 }

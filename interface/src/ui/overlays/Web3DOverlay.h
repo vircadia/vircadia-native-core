@@ -68,6 +68,7 @@ private:
     float _dpi;
     vec2 _resolution{ 640, 480 };
     int _geometryId { 0 };
+    bool _showKeyboardFocusHighlight{ true };
 
     bool _pressed{ false };
     QTouchDevice _touchDevice;
