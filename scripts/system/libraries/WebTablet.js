@@ -7,15 +7,20 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
+
 var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
 var DEFAULT_DPI = 32;
 var DEFAULT_WIDTH = 0.43;
+var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
+var SENSOR_TO_ROOM_MATRIX = -2;
+var CAMERA_MATRIX = -7;
+var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 
 var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-x.fbx";
 // returns object with two fields:
@@ -48,16 +53,11 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     var _this = this;
     var ASPECT = 4.0 / 3.0;
-    var WIDTH = width || DEFAULT_WIDTH;
+    this.width = width || DEFAULT_WIDTH;
     var TABLET_HEIGHT_SCALE = 650 / 680;  //  Screen size of tablet entity isn't quite the desired aspect.
-    var HEIGHT = WIDTH * ASPECT * TABLET_HEIGHT_SCALE;
+    this.height = this.width * ASPECT * TABLET_HEIGHT_SCALE;
     var DEPTH = 0.025;
     var DPI = dpi || DEFAULT_DPI;
-    var SENSOR_TO_ROOM_MATRIX = -2;
-
-    var spawnInfo = calcSpawnInfo(hand);
-    var tabletEntityPosition = spawnInfo.position;
-    var tabletEntityRotation = spawnInfo.rotation;
 
     var tabletProperties = {
         name: "WebTablet Tablet",
@@ -66,13 +66,12 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
-        dimensions: {x: WIDTH, y: HEIGHT, z: DEPTH},
-        parentID: MyAvatar.sessionUUID,
-        parentJointIndex: SENSOR_TO_ROOM_MATRIX
-    }
+        dimensions: {x: this.width, y: this.height, z: DEPTH},
+        parentID: MyAvatar.sessionUUID
+    };
 
-    tabletProperties.position = spawnInfo.position;
-    tabletProperties.rotation = spawnInfo.rotation;
+    // compute position, rotation & parentJointIndex of the tablet
+    this.calculateTabletAttachmentProperties(hand, tabletProperties);
 
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
@@ -131,6 +130,9 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
     };
     this.clicked = false;
+
+    this.myOnHmdChanged = function () { _this.onHmdChanged(); };
+    HMD.displayModeChanged.connect(this.myOnHmdChanged);
 };
 
 WebTablet.prototype.setURL = function (url) {
@@ -149,6 +151,48 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
     Entities.deleteEntity(this.homeButtonEntity);
+    HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
+};
+
+// calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
+// with a bit of padding on the top and bottom.
+WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
+    var PADDING_FACTOR = 1.4;
+    var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
+    var dist = (PADDING_FACTOR * this.height) / (2 * Math.tan(fov / 2));
+    return {
+        position: Vec3.sum(Camera.position, Vec3.multiply(dist, Quat.getFront(Camera.orientation))),
+        rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
+    };
+};
+
+// compute position, rotation & parentJointIndex of the tablet
+WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, tabletProperties) {
+    if (HMD.active) {
+        // in HMD mode, the tablet should be relative to the sensor to world matrix.
+        tabletProperties.parentJointIndex = SENSOR_TO_ROOM_MATRIX;
+
+        // compute the appropriate position of the tablet, near the hand controller that was used to spawn it.
+        var spawnInfo = calcSpawnInfo(hand);
+        tabletProperties.position = spawnInfo.position;
+        tabletProperties.rotation = spawnInfo.rotation;
+    } else {
+        // in desktop mode, the tablet should be relative to the camera
+        tabletProperties.parentJointIndex = CAMERA_MATRIX;
+
+        // compute the appropriate postion of the tablet such that it fits in the center of the screen nicely.
+        var attitude = this.calculateWorldAttitudeRelativeToCamera();
+        tabletProperties.position = attitude.position;
+        tabletProperties.rotation = attitude.rotation;
+    }
+};
+
+WebTablet.prototype.onHmdChanged = function () {
+    var NO_HANDS = -1;
+    var tabletProperties = {};
+    // compute position, rotation & parentJointIndex of the tablet
+    this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+    Entities.editEntity(this.tabletEntityID, tabletProperties);
 };
 
 WebTablet.prototype.pickle = function () {
