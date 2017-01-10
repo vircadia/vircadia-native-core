@@ -1008,6 +1008,9 @@ int AvatarData::getFauxJointIndex(const QString& name) const {
     if (name == "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND") {
         return CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX;
     }
+    if (name == "_CAMERA_MATRIX") {
+        return CAMERA_MATRIX_INDEX;
+    }
     return -1;
 }
 
