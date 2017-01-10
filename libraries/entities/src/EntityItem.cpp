@@ -1794,8 +1794,11 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         }
 
         uint8_t userMask = getCollisionMask();
-        QUuid parentID = getParentID();
-        if (!parentID.isNull() && parentID == Physics::getSessionUUID()) {
+        // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
+        // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
+        // and holding it against your own avatar.
+        QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
+        if (!ancestorID.isNull() && ancestorID == Physics::getSessionUUID()) {
             userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
 

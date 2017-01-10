@@ -1029,6 +1029,20 @@ bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) const {
     return parent->hasAncestorOfType(nestableType);
 }
 
+const QUuid SpatiallyNestable::findAncestorOfType(NestableType nestableType) const {
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (!success || !parent) {
+        return QUuid();
+    }
+
+    if (parent->_nestableType == nestableType) {
+        return parent->getID();
+    }
+
+    return parent->findAncestorOfType(nestableType);
+}
+
 void SpatiallyNestable::getLocalTransformAndVelocities(
         Transform& transform,
         glm::vec3& velocity,
