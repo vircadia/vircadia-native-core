@@ -127,11 +127,19 @@ Item {
                     gradient: Gradient {
                         GradientStop {
                             position: 0
-                            color: "#00b8ff"
+                            color: "#2c8e72"
+                        }
+                        GradientStop {
+                            position: 0.9
+                            color: "#1fc6a6"
+                        }
+                        GradientStop {
+                            position: 0.91
+                            color: "#ea4c5f"
                         }
                         GradientStop {
                             position: 1
-                            color: "#ff2d73"
+                            color: "#ea4c5f"
                         }
                     }
                 }
