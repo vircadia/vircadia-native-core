@@ -524,6 +524,10 @@ QQuickItem* OffscreenUi::getDesktop() {
     return _desktop;
 }
 
+QObject* OffscreenUi::getRootMenu() {
+    return getRootItem()->findChild<QObject*>("rootMenu");
+}
+
 QQuickItem* OffscreenUi::getToolWindow() {
     return _toolWindow;
 }
@@ -531,11 +535,6 @@ QQuickItem* OffscreenUi::getToolWindow() {
 void OffscreenUi::unfocusWindows() {
     bool invokeResult = QMetaObject::invokeMethod(_desktop, "unfocusWindows");
     Q_ASSERT(invokeResult);
-}
-
-void OffscreenUi::toggleMenu(const QPoint& screenPosition) { // caller should already have mapped using getReticlePosition
-    emit showDesktop(); // we really only want to do this if you're showing the menu, but for now this works
-    QMetaObject::invokeMethod(_desktop, "toggleMenu", Q_ARG(QVariant, screenPosition));
 }
 
 

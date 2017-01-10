@@ -12,22 +12,22 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
+/* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
    Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset, setGrabCommunications,
    Menu */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
 
-Script.include("../libraries/utils.js");
-Script.include("../libraries/Xform.js");
-Script.include("../libraries/controllers.js");
+Script.include("/~/system/libraries/utils.js");
+Script.include("/~/system/libraries/Xform.js");
+Script.include("/~/system/libraries/controllers.js");
 
 //
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = false;
+var WANT_DEBUG_STATE = true;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 var FORCE_IGNORE_IK = false;
@@ -40,8 +40,6 @@ var SHOW_GRAB_POINT_SPHERE = false;
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
 var TRIGGER_OFF_VALUE = 0.1;
 var TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; //  Squeezed just enough to activate search or near grab
-
-var COLLIDE_WITH_AV_AFTER_RELEASE_DELAY = 0.25; // seconds
 
 var BUMPER_ON_VALUE = 0.5;
 
@@ -175,7 +173,6 @@ var GRABBABLE_PROPERTIES = [
 ];
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
-var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
 
 var DEFAULT_GRABBABLE_DATA = {
     disableReleaseVelocity: false
@@ -187,6 +184,15 @@ var blacklist = [];
 
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
+
+var holdEnabled = true;
+var nearGrabEnabled = true;
+var farGrabEnabled = true;
+var myAvatarScalingEnabled = true;
+var objectScalingEnabled = true;
+var mostRecentSearchingHand = RIGHT_HAND;
+var DEFAULT_SPHERE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx";
+var HARDWARE_MOUSE_ID = 0;  // Value reserved for hardware mouse.
 
 // states for the state machine
 var STATE_OFF = 0;
@@ -201,30 +207,7 @@ var STATE_ENTITY_LASER_TOUCHING = 8;
 var STATE_OVERLAY_STYLUS_TOUCHING = 9;
 var STATE_OVERLAY_LASER_TOUCHING = 10;
 
-var holdEnabled = true;
-var nearGrabEnabled = true;
-var farGrabEnabled = true;
-var myAvatarScalingEnabled = true;
-var objectScalingEnabled = true;
-
-// "collidesWith" is specified by comma-separated list of group names
-// the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
-var COLLIDES_WITH_WHILE_GRABBED = "dynamic,otherAvatar";
-
-var HEART_BEAT_INTERVAL = 5 * MSECS_PER_SEC;
-var HEART_BEAT_TIMEOUT = 15 * MSECS_PER_SEC;
-
-var delayedDeactivateFunc;
-var delayedDeactivateTimeout;
-var delayedDeactivateEntityID;
-
 var CONTROLLER_STATE_MACHINE = {};
-
-var mostRecentSearchingHand = RIGHT_HAND;
-
-var DEFAULT_SPHERE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx";
-
-var HARDWARE_MOUSE_ID = 0;  // Value reserved for hardware mouse.
 
 CONTROLLER_STATE_MACHINE[STATE_OFF] = {
     name: "off",
@@ -489,17 +472,6 @@ function storeAttachPointForHotspotInSettings(hotspot, hand, offsetPosition, off
     }
     joints[jointName] = [offsetPosition, offsetRotation];
     setAttachPointSettings(attachPointSettings);
-}
-
-function removeMyAvatarFromCollidesWith(origCollidesWith) {
-    var collidesWithSplit = origCollidesWith.split(",");
-    // remove myAvatar from the array
-    for (var i = collidesWithSplit.length - 1; i >= 0; i--) {
-        if (collidesWithSplit[i] === "myAvatar") {
-            collidesWithSplit.splice(i, 1);
-        }
-    }
-    return collidesWithSplit.join();
 }
 
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
@@ -1271,11 +1243,6 @@ function MyController(hand) {
         this.prevPotentialEquipHotspot = potentialEquipHotspot;
     };
 
-    this.heartBeatIsStale = function(data) {
-        var now = Date.now();
-        return data.heartBeat === undefined || now - data.heartBeat > HEART_BEAT_TIMEOUT;
-    };
-
     // Performs ray pick test from the hand controller into the world
     // @param {number} which hand to use, RIGHT_HAND or LEFT_HAND
     // @returns {object} returns object with two keys entityID and distance
@@ -1391,14 +1358,16 @@ function MyController(hand) {
 
     this.hotspotIsEquippable = function(hotspot) {
         var props = entityPropertiesCache.getProps(hotspot.entityID);
-        var grabProps = entityPropertiesCache.getGrabProps(hotspot.entityID);
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
-        var refCount = ("refCount" in grabProps) ? grabProps.refCount : 0;
         var okToEquipFromOtherHand = ((this.getOtherHandController().state == STATE_NEAR_GRABBING ||
-                this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
-            this.getOtherHandController().grabbedEntity == hotspot.entityID);
-        if (refCount > 0 && !this.heartBeatIsStale(grabProps) && !okToEquipFromOtherHand) {
+                                       this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
+                                      this.getOtherHandController().grabbedEntity == hotspot.entityID);
+        var hasParent = true;
+        if (props.parentID === NULL_UUID) {
+            hasParent = false;
+        }
+        if ((hasParent || entityHasActions(hotspot.entityID)) && !okToEquipFromOtherHand) {
             if (debug) {
                 print("equip is skipping '" + props.name + "': grabbed by someone else");
             }
@@ -1410,29 +1379,13 @@ function MyController(hand) {
 
     this.entityIsGrabbable = function(entityID) {
         var grabbableProps = entityPropertiesCache.getGrabbableProps(entityID);
-        var grabProps = entityPropertiesCache.getGrabProps(entityID);
         var props = entityPropertiesCache.getProps(entityID);
         if (!props) {
             return false;
         }
-        var physical = propsArePhysical(props);
-        var grabbable = false;
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
-        var refCount = ("refCount" in grabProps) ? grabProps.refCount : 0;
-
-        if (physical) {
-            // physical things default to grabbable
-            grabbable = true;
-        } else {
-            // non-physical things default to non-grabbable unless they are already grabbed
-            if (refCount > 0) {
-                grabbable = true;
-            } else {
-                grabbable = false;
-            }
-        }
-
-        if (grabbableProps.hasOwnProperty("grabbable") && refCount === 0) {
+        var grabbable = propsArePhysical(props);
+        if (grabbableProps.hasOwnProperty("grabbable")) {
             grabbable = grabbableProps.grabbable;
         }
 
@@ -1640,18 +1593,11 @@ function MyController(hand) {
             } else {
                 //  If near something grabbable, grab it!
                 if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && nearGrabEnabled) {
-                    var props = entityPropertiesCache.getProps(entity);
-                    var grabProps = entityPropertiesCache.getGrabProps(entity);
-                    var refCount = grabProps.refCount ? grabProps.refCount : 0;
-                    if (refCount >= 1) {
-                        // if another person is holding the object, remember to restore the
-                        // parent info, when we are finished grabbing it.
-                        this.shouldResetParentOnRelease = true;
-                        this.previousParentID = props.parentID;
-                        this.previousParentJointIndex = props.parentJointIndex;
-                    }
-
                     this.setState(STATE_NEAR_GRABBING, "near grab '" + name + "'");
+                    var props = entityPropertiesCache.getProps(entity);
+                    this.shouldResetParentOnRelease = true;
+                    this.previousParentID = props.parentID;
+                    this.previousParentJointIndex = props.parentJointIndex;
                     return;
                 } else {
                     // potentialNearGrabEntity = entity;
@@ -2039,7 +1985,6 @@ function MyController(hand) {
         this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
 
         if (this.actionID !== null) {
-            this.activateEntity(this.grabbedEntity, grabbedProperties, false, true);
             this.callEntityMethodOnGrabbed("startDistanceGrab");
         }
 
@@ -2063,11 +2008,10 @@ function MyController(hand) {
                 Entities.editEntity(this.grabbedEntity, { velocity: velocity });
             }
 
+            this.release();
             this.setState(STATE_OFF, "trigger released");
             return;
         }
-
-        this.heartBeat(this.grabbedEntity);
 
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldControllerPosition = controllerLocation.position;
@@ -2101,8 +2045,6 @@ function MyController(hand) {
             disableMoveWithHead: false
         };
 
-        var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
-
         //  Update radialVelocity
         var lastVelocity = Vec3.multiply(worldHandDelta, 1.0 / deltaObjectTime);
         var delta = Vec3.normalize(Vec3.subtract(grabbedProperties.position, worldControllerPosition));
@@ -2133,6 +2075,7 @@ function MyController(hand) {
         newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
 
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
+        var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
         if (handControllerData.disableMoveWithHead !== true) {
             // mix in head motion
             if (MOVE_WITH_HEAD) {
@@ -2280,12 +2223,10 @@ function MyController(hand) {
         }
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
-        this.activateEntity(this.grabbedEntity, grabbedProperties, false, false);
-
-        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
         if (FORCE_IGNORE_IK) {
             this.ignoreIK = true;
         } else {
+            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
             this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
         }
 
@@ -2372,17 +2313,9 @@ function MyController(hand) {
         }
 
         Entities.editEntity(this.grabbedEntity, {
-            velocity: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            angularVelocity: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            dynamic: false
+            velocity: { x: 0, y: 0, z: 0 },
+            angularVelocity: { x: 0, y: 0, z: 0 },
+            // dynamic: false
         });
 
         if (this.state == STATE_NEAR_GRABBING) {
@@ -2408,6 +2341,7 @@ function MyController(hand) {
 
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
             this.callEntityMethodOnGrabbed("releaseGrab");
+            this.release();
             this.setState(STATE_OFF, "trigger released");
             return;
         }
@@ -2425,8 +2359,8 @@ function MyController(hand) {
                 // we have an equipped object and the secondary trigger was released
                 // short-circuit the other checks and release it
                 this.preparingHoldRelease = false;
-
                 this.release();
+                this.setState(STATE_OFF, "equipping ended via secondary press");
                 return;
             }
 
@@ -2466,14 +2400,13 @@ function MyController(hand) {
             this.prevDropDetected = dropDetected;
         }
 
-        this.heartBeat(this.grabbedEntity);
-
         var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID",
                                                                       "position", "rotation", "dimensions",
                                                                       "registrationPoint"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" state
             this.callEntityMethodOnGrabbed("releaseGrab");
+            this.release();
             this.setState(STATE_OFF, "entity has no position property");
             return;
         }
@@ -2508,6 +2441,7 @@ function MyController(hand) {
                     } else { // this.state == STATE_HOLD
                         this.callEntityMethodOnGrabbed("releaseEquip");
                     }
+                    this.release();
                     this.setState(STATE_OFF, "held object too far away");
                     return;
                 }
@@ -2902,7 +2836,6 @@ function MyController(hand) {
     this.release = function() {
         this.turnOffVisualizations();
 
-        var noVelocity = false;
         if (this.grabbedEntity !== null) {
             if (this.state === STATE_HOLD) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
@@ -2910,26 +2843,16 @@ function MyController(hand) {
 
             //  Make a small release haptic pulse if we really were holding something
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-
-            // If this looks like the release after adjusting something still held in the other hand, print the position
-            // and rotation of the held thing to help content creators set the userData.
-            var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
-            this.printNewOffsets = (grabData.refCount > 1);
-
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
-                // sometimes we want things to stay right where they are when we let go.
-                var releaseVelocityData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-                if (releaseVelocityData.disableReleaseVelocity === true ||
-                    // this next line allowed both:
-                    // (1) far-grab, pull to self, near grab, then throw
-                    // (2) equip something physical and adjust it with a other-hand grab without the thing drifting
-                    grabData.refCount > 1) {
-                    noVelocity = true;
-                }
             }
 
-            this.deactivateEntity(this.grabbedEntity, noVelocity);
+            if (this.shouldResetParentOnRelease) {
+                Entities.editEntity(this.grabbedEntity, {
+                    parentID: this.previousParentID,
+                    parentJointIndex: this.previousParentJointIndex
+                });
+            }
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'release',
@@ -2953,96 +2876,6 @@ function MyController(hand) {
         this.grabPointSphereOff();
     };
 
-    this.heartBeat = function(entityID) {
-        var now = Date.now();
-        if (now - this.lastHeartBeat > HEART_BEAT_INTERVAL) {
-            var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
-            data.heartBeat = now;
-            setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
-            this.lastHeartBeat = now;
-        }
-    };
-
-    this.resetAbandonedGrab = function(entityID) {
-        print("cleaning up abandoned grab on " + entityID);
-        var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
-        data.refCount = 1;
-        setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
-        this.deactivateEntity(entityID, false);
-    };
-
-    this.activateEntity = function(entityID, grabbedProperties, wasLoaded, collideWithStatic) {
-        this.autoUnequipCounter = 0;
-
-        if (this.entityActivated) {
-            return;
-        }
-        this.entityActivated = true;
-
-        if (delayedDeactivateTimeout && delayedDeactivateEntityID == entityID) {
-            // we have a timeout waiting to set collisions with myAvatar back on (so that when something
-            // is thrown it doesn't collide with the avatar's capsule the moment it's released).  We've
-            // regrabbed the entity before the timeout fired, so cancel the timeout, run the function now
-            // and adjust the grabbedProperties.  This will make the saved set of properties (the ones that
-            // get re-instated after all the grabs have been released) be correct.
-            Script.clearTimeout(delayedDeactivateTimeout);
-            delayedDeactivateTimeout = null;
-            grabbedProperties.collidesWith = delayedDeactivateFunc();
-        }
-
-        var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
-        var now = Date.now();
-
-        if (wasLoaded) {
-            data.refCount = 1;
-        } else {
-            data.refCount = data.refCount ? data.refCount + 1 : 1;
-
-            // zero gravity and set ignoreForCollisions in a way that lets us put them back, after all grabs are done
-            if (data.refCount == 1) {
-                data.heartBeat = now;
-                this.lastHeartBeat = now;
-
-                this.isInitialGrab = true;
-                data.gravity = grabbedProperties.gravity;
-                data.collidesWith = grabbedProperties.collidesWith;
-                data.collisionless = grabbedProperties.collisionless;
-                data.dynamic = grabbedProperties.dynamic;
-                data.parentID = wasLoaded ? NULL_UUID : grabbedProperties.parentID;
-                data.parentJointIndex = grabbedProperties.parentJointIndex;
-
-                var whileHeldProperties = {
-                    gravity: { x: 0, y: 0, z: 0 },
-                    "collidesWith": collideWithStatic ?
-                        COLLIDES_WITH_WHILE_GRABBED + ",static" :
-                        COLLIDES_WITH_WHILE_GRABBED
-                };
-                Entities.editEntity(entityID, whileHeldProperties);
-            } else if (data.refCount > 1) {
-                if (this.heartBeatIsStale(data)) {
-                    // this entity has userData suggesting it is grabbed, but nobody is updating the hearbeat.
-                    // deactivate it before grabbing.
-                    this.resetAbandonedGrab(entityID);
-                    grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
-                    return this.activateEntity(entityID, grabbedProperties, wasLoaded, false);
-                }
-
-                this.isInitialGrab = false;
-                // if an object is being grabbed by more than one person (or the same person twice, but nevermind), switch
-                // the collision groups so that it wont collide with "other" avatars.  This avoids a situation where two
-                // people are holding something and one of them will be able (if the other releases at the right time) to
-                // bootstrap themselves with the held object.  This happens because the meaning of "otherAvatar" in
-                // the collision mask hinges on who the physics simulation owner is.
-                Entities.editEntity(entityID, {
-                    // "collidesWith": removeAvatarsFromCollidesWith(grabbedProperties.collidesWith)
-                    collisionless: true
-                });
-            }
-        }
-        setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
-        return data;
-    };
-
     this.checkForStrayChildren = function() {
         // sometimes things can get parented to a hand and this script is unaware.  Search for such entities and
         // unhook them.
@@ -3058,147 +2891,6 @@ function MyController(hand) {
                 parentID: NULL_UUID
             });
         });
-    };
-
-    this.delayedDeactivateEntity = function(entityID, collidesWith) {
-        // If, before the grab started, the held entity collided with myAvatar, we do the deactivation in
-        // two parts.  Most of it is done in deactivateEntity(), but the final collidesWith and refcount
-        // are delayed a bit.  This keeps thrown things from colliding with the avatar's capsule so often.
-        // The refcount is handled in this delayed fashion so things don't get confused if someone else
-        // grabs the entity before the timeout fires.
-        Entities.editEntity(entityID, {
-            collidesWith: collidesWith
-        });
-        var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
-        if (data && data.refCount) {
-            data.refCount = data.refCount - 1;
-            if (data.refCount < 1) {
-                data = null;
-            }
-        } else {
-            data = null;
-        }
-
-        setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
-    };
-
-    this.deactivateEntity = function(entityID, noVelocity, delayed) {
-        var deactiveProps;
-
-        if (!this.entityActivated) {
-            return;
-        }
-        this.entityActivated = false;
-
-        var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
-        var doDelayedDeactivate = false;
-        if (data && data.refCount) {
-            data.refCount = data.refCount - 1;
-            if (data.refCount < 1) {
-                deactiveProps = {
-                    gravity: data.gravity,
-                    // don't set collidesWith myAvatar back right away, because thrown things tend to bounce off the
-                    // avatar's capsule.
-                    collidesWith: removeMyAvatarFromCollidesWith(data.collidesWith),
-                    collisionless: data.collisionless,
-                    dynamic: data.dynamic,
-                    parentID: data.parentID,
-                    parentJointIndex: data.parentJointIndex
-                };
-
-                doDelayedDeactivate = (data.collidesWith.indexOf("myAvatar") >= 0);
-
-                if (doDelayedDeactivate) {
-                    var delayedCollidesWith = data.collidesWith;
-                    var delayedEntityID = entityID;
-                    delayedDeactivateFunc = function() {
-                        // set collidesWith back to original value a bit later than the rest
-                        delayedDeactivateTimeout = null;
-                        _this.delayedDeactivateEntity(delayedEntityID, delayedCollidesWith);
-                        return delayedCollidesWith;
-                    };
-                    delayedDeactivateTimeout =
-                        Script.setTimeout(delayedDeactivateFunc, COLLIDE_WITH_AV_AFTER_RELEASE_DELAY * MSECS_PER_SEC);
-                    delayedDeactivateEntityID = entityID;
-                }
-
-                // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
-                // it looks like the dropped thing should fall, give it a little velocity.
-                var props = Entities.getEntityProperties(entityID, ["parentID", "velocity", "dynamic", "shapeType"]);
-                var parentID = props.parentID;
-
-                if (!noVelocity &&
-                    parentID == MyAvatar.sessionUUID &&
-                    Vec3.length(data.gravity) > 0.0 &&
-                    data.dynamic &&
-                    data.parentID == NULL_UUID &&
-                    !data.collisionless) {
-                    deactiveProps.velocity = this.currentVelocity;
-                }
-                if (noVelocity) {
-                    deactiveProps.velocity = {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    };
-                    deactiveProps.angularVelocity = {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    };
-                }
-
-                Entities.editEntity(entityID, deactiveProps);
-                data = null;
-            } else if (this.shouldResetParentOnRelease) {
-                // we parent-grabbed this from another parent grab.  try to put it back where we found it.
-                deactiveProps = {
-                    parentID: this.previousParentID,
-                    parentJointIndex: this.previousParentJointIndex,
-                    velocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    },
-                    angularVelocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    }
-                };
-                Entities.editEntity(entityID, deactiveProps);
-
-                if (this.printNewOffsets) {
-                    var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
-                    if (grabbedProperties && grabbedProperties.localPosition && grabbedProperties.localRotation) {
-                        print((this.hand === RIGHT_HAND ? '"LeftHand"' : '"RightHand"') + ":" +
-                              '[{"x":' + grabbedProperties.localPosition.x + ', "y":' + grabbedProperties.localPosition.y +
-                              ', "z":' + grabbedProperties.localPosition.z + '}, {"x":' + grabbedProperties.localRotation.x +
-                              ', "y":' + grabbedProperties.localRotation.y + ', "z":' + grabbedProperties.localRotation.z +
-                              ', "w":' + grabbedProperties.localRotation.w + '}]');
-                    }
-                }
-            } else if (noVelocity) {
-                Entities.editEntity(entityID, {
-                    velocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    },
-                    angularVelocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    },
-                    dynamic: data.dynamic
-                });
-            }
-        } else {
-            data = null;
-        }
-        if (!doDelayedDeactivate) {
-            setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
-        }
     };
 
     this.getOtherHandController = function() {

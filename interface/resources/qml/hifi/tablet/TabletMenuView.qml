@@ -12,7 +12,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
-import "../styles-uit"
+import "../../styles-uit"
 
 FocusScope {
     id: root
@@ -38,8 +38,8 @@ FocusScope {
     ListView {
         id: listView
         x: 8; y: 8
-        width: 128
-        height: count * 32
+        width: parent.width
+        height: parent.height
         topMargin: hifi.dimensions.menuPadding.y
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
@@ -57,7 +57,7 @@ FocusScope {
             color: hifi.colors.white
         }
 
-        delegate: VrMenuItem {
+        delegate: TabletMenuItem {
             text: name
             source: item
             onImplicitHeightChanged: listView.recalcSize()
