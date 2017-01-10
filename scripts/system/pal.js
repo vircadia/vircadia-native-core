@@ -58,8 +58,13 @@ ExtendedOverlay.prototype.editOverlay = function (properties) { // change displa
     Overlays.editOverlay(this.activeOverlay, properties);
 };
 
-function color(selected) {
-    return selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+function color(selected, level) {
+    var base = selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+    function scale(component) {
+        var delta = 0xFF - component;
+        return component + (delta * level);
+    }
+    return {red: scale(base.red), green: scale(base.green), blue: scale(base.blue)};
 }
 
 function textures(selected) {
@@ -71,7 +76,7 @@ ExtendedOverlay.prototype.select = function (selected) {
         return;
     }
     
-    this.editOverlay({color: color(selected)});
+    this.editOverlay({color: color(selected, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
     }
@@ -204,7 +209,7 @@ function addAvatarNode(id) {
          drawInFront: true, 
          solid: true, 
          alpha: 0.8, 
-         color: color(selected), 
+         color: color(selected, 0.0),
          ignoreRayIntersection: false}, selected, true);
 }
 function populateUserList() {
@@ -288,6 +293,7 @@ function updateOverlays() {
 
         overlay.ping = pingPong;
         overlay.editOverlay({
+            color: color(ExtendedOverlay.isSelected(id), overlay.audioLevel),
             position: target,
             dimensions: 0.032 * distance 
         });
@@ -451,6 +457,7 @@ function getAudioLevel(id) {
     if (audioLevel > 1.0) {
         audioLevel = 1;
     }
+    data.audioLevel = audioLevel;
     return audioLevel;
 }
 
