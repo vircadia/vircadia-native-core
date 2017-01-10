@@ -120,6 +120,11 @@ ExtendedOverlay.some = function (iterator) { // Bails early as soon as iterator 
         }
     }
 };
+ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId (if any)
+    if (lastHoveringId) {
+        ExtendedOverlay.get(lastHoveringId).hover(false);
+    }
+};
 
 // hit(overlay) on the one overlay intersected by pickRay, if any.
 // noHit() if no ExtendedOverlay was intersected (helps with hover)
@@ -366,16 +371,70 @@ function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
     }
     handleClick(Camera.computePickRay(mousePressEvent.x, mousePressEvent.y));
 }
-function handleMouseMoveEvent(event) {
-    // find out which overlay (if any) is over the mouse position
-    // var overlayAtPoint = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-    var pickRay = Camera.computePickRay(event.x, event.y);
+function handleMouseMoveEvent(event) { // find out which overlay (if any) is over the mouse position
+    if (HMD.active) {
+        var hand = whichHand();
+        if (hand != 0) {
+            print("pick ray for " + hand);
+            pickRay = controllerComputePickRay(hand);
+        } else {
+            // nothing should hover, so
+            ExtendedOverlay.unHover();
+            return;
+        }
+    } else {
+        pickRay = Camera.computePickRay(event.x, event.y);
+    }
+    handleMouseMove(pickRay);
+}
+const TRIGGER_THRESHOLD = 0.85;
+// for some reason, I could not get trigger mappings for the LT and RT to fire.  So, since we can read the 
+// value of the RT and LT, and the messages come through as mouse moves, we have the hack below to figure out
+// which hand is being triggered, and compute the pick ray accordingly.
+//
+function isPressed(hand) { // helper to see if the hand passed in has the trigger pulled
+    var controller = (hand === Controller.Standard.RightHand ? Controller.Standard.RT : Controller.Standard.LT);
+    return Controller.getValue(controller) > TRIGGER_THRESHOLD;
+}
+// helpful globals
+var currentHandPressed = 0;
+var hands = [Controller.Standard.RightHand, Controller.Standard.LeftHand];
+
+function whichHand() { 
+    // for HMD, decide which hand is the "mouse". The 'logic' is to use the first one that
+    // is triggered, until that one is released.  There are interesting effects when both
+    // are held that this avoids.  Mapping the 2 triggers and their lasers to one mouse move
+    // message is a bit problematic, this mitigates some of it.
+    if (HMD.active) {
+        var pressed = {};
+        for (var i = 0; i<hands.length; i++) {
+            pressed[hands[i]] = isPressed(hands[i]);
+        }
+        if (currentHandPressed != 0 && pressed[currentHandPressed] === true) {
+            return currentHandPressed; // nothing changed
+        } else {
+            // so now just pick the first hand that is pressed.
+            for (var j=0; j<hands.length; j++) {
+                if (pressed[hands[j]]) {
+                    currentHandPressed = hands[j];
+                    return currentHandPressed;
+                }
+            }
+            currentHandPressed = 0;
+        }
+
+    }
+    return currentHandPressed;
+}
+
+function handleMouseMove(pickRay) { // given the pickRay, just do the hover logic
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         overlay.hover(true);
     }, function () {
-        ExtendedOverlay.some(function (overlay) { overlay.hover(false); });
+        ExtendedOverlay.unHover();
     });
 }
+
 // We get mouseMoveEvents from the handControllers, via handControllerPointer.
 // But we don't get mousePressEvents.
 var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
@@ -387,7 +446,7 @@ function controllerComputePickRay(hand) {
 }
 function makeClickHandler(hand) {
     return function (clicked) {
-        if (clicked > 0.85) {
+        if (clicked > TRIGGER_THRESHOLD) {
             var pickRay = controllerComputePickRay(hand);
             handleClick(pickRay);
         }
