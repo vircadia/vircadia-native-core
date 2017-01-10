@@ -537,9 +537,6 @@ void OffscreenUi::unfocusWindows() {
     Q_ASSERT(invokeResult);
 }
 
-void OffscreenUi::toggleMenu(const QPoint& screenPosition) { // caller should already have mapped using getReticlePosition
-}
-
 
 class FileDialogListener : public ModalDialogListener {
     Q_OBJECT

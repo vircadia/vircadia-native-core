@@ -484,7 +484,6 @@ private:
     static void dragEnterEvent(QDragEnterEvent* event);
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
-    void toggleMenuUnderReticle() const;
     void toggleTabletUI() const;
 
     MainWindow* _window;

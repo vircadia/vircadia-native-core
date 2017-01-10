@@ -12,7 +12,6 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 
 import "../dialogs"
-import "../menus"
 import "../js/Utils.js" as Utils
 
 // This is our primary 'desktop' object to which all VR dialogs and windows are childed.

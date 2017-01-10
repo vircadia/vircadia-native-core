@@ -45,7 +45,6 @@ public:
     bool navigationFocused();
     void setNavigationFocused(bool focused);
     void unfocusWindows();
-    void toggleMenu(const QPoint& screenCoordinates);
 
 
     // Setting pinned to true will hide all overlay elements on the desktop that don't have a pinned flag
