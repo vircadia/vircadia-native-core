@@ -1175,26 +1175,26 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
 
     // convert network audio (int16_t) to mix audio (float)
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-        _mixBuffer[i] = (float)decodedSamples[i] * (1/32768.0f);
+        _networkMixBuffer[i] = (float)decodedSamples[i] * (1/32768.0f);
     }
         
     // apply stereo reverb
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
     if (hasReverb) {
         updateReverbOptions();
-        _listenerReverb.render(_mixBuffer, _mixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        _listenerReverb.render(_networkMixBuffer, _networkMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     }
 
     // convert mix audio (float) to network audio (int16_t)
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-        _scratchBuffer[i] = (int16_t)(_mixBuffer[i] * 32768.0f);
+        _networkScratchBuffer[i] = (int16_t)(_networkMixBuffer[i] * 32768.0f);
     }
 
     // resample to output sample rate
     if (_networkToOutputResampler) {
-        _networkToOutputResampler->render(_scratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        _networkToOutputResampler->render(_networkScratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     } else {
-        memcpy(outputBuffer.data(), _scratchBuffer, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+        memcpy(outputBuffer.data(), _networkScratchBuffer, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
     }
 }
 
@@ -1388,11 +1388,11 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
         delete _loopbackAudioOutput;
         _loopbackAudioOutput = NULL;
 
-        delete[] _limitMixBuffer;
-        _limitMixBuffer = NULL;
+        delete _outputMixBuffer;
+        _outputMixBuffer = NULL;
 
-        delete[] _limitScratchBuffer;
-        _limitScratchBuffer = NULL;
+        delete _outputScratchBuffer;
+        _outputScratchBuffer = NULL;
     }
 
     if (_networkToOutputResampler) {
@@ -1445,9 +1445,9 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
             int periodSampleSize = _audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE;
             // device callback is not restricted to periodSampleSize, so double the mix/scratch buffer sizes
-            _limitPeriod = periodSampleSize * 2;
-            _limitMixBuffer = new float[_limitPeriod];
-            _limitScratchBuffer = new int16_t[_limitPeriod];
+            _outputPeriod = periodSampleSize * 2;
+            _outputMixBuffer = new float[_outputPeriod];
+            _outputScratchBuffer = new int16_t[_outputPeriod];
 
             qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / AudioConstants::SAMPLE_SIZE / (float)deviceFrameSize <<
                 "requested bytes:" << requestedSize << "actual bytes:" << _audioOutput->bufferSize() <<
@@ -1559,10 +1559,10 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     int deviceChannelCount = _audio->_outputFormat.channelCount();
     int samplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
     // restrict samplesRequested to the size of our mix/scratch buffers
-    samplesRequested = std::min(samplesRequested, _audio->_limitPeriod);
+    samplesRequested = std::min(samplesRequested, _audio->_outputPeriod);
 
-    int16_t* scratchBuffer = _audio->_limitScratchBuffer;
-    float* mixBuffer = _audio->_limitMixBuffer;
+    int16_t* scratchBuffer = _audio->_outputScratchBuffer;
+    float* mixBuffer = _audio->_outputMixBuffer;
 
     int networkSamplesPopped;
     if ((networkSamplesPopped = _receivedAudioStream.popSamples(samplesRequested, false)) > 0) {
