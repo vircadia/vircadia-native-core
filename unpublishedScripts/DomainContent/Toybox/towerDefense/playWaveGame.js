@@ -165,8 +165,47 @@ var baseEnemyProperties = {
     }),
 };
 
+// Encode a set of key-value pairs into a param string. Does NOT do any URL escaping.
+function encodeURLParams(params) {
+    var paramPairs = [];
+    for (var key in params) {
+        paramPairs.push(key + "=" + params[key]);
+    }
+    return paramPairs.join("&");
+}
 
-// The high score is stored as the text on a text entity
+function sendAndUpdateHighScore(highScoreDisplayID, entityID, score, wave, numPlayers) {
+    const URL = 'https://script.google.com/macros/s/AKfycbwbjCm9mGd1d5BzfAHmVT_XKmWyUYRkjCEqDOKm1368oM8nqWni/exec';
+    print("Sending high score");
+
+    const paramString = encodeURLParams({
+        entityID: entityID,
+        score: score,
+        wave: wave,
+        numPlayers: numPlayers
+    });
+
+    var req = new XMLHttpRequest();
+    req.onreadystatechange = function() {
+        print("ready state: ", req.readyState, req.status, req.readyState === req.DONE, req.response);
+        if (req.readyState === req.DONE && req.status === 200) {
+            print("Got response for high score: ", req.response);
+            var response = JSON.parse(req.responseText);
+            if (response.highScore !== undefined) {
+                Entities.editEntity(highScoreDisplayID, {
+                    text: response.highScore
+                });
+            }
+        }
+    };
+    req.open('GET', URL + "?" + paramString);
+    req.timeout = 10000;
+    req.send();
+}
+
+// The method of checking the local entity for the high score is currently disabled.
+// As of 1/9/2017 we don't have support for getting nearby entity data in server entity scripts,
+// so until then we have to rely on a remote source to store and retrieve that information.
 function getHighScoreFromDisplay(entityID) {
     var highScore = parseInt(Entities.getEntityProperties(entityID, 'text').text);
     print("High score is: ", entityID, highScore);
@@ -183,13 +222,14 @@ function setHighScoreOnDisplay(entityID, highScore) {
 }
 
 
-function GameManager(rootPosition, gatePosition, bowPositions, spawnPositions, startButtonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID) {
+function GameManager(rootPosition, gatePosition, bowPositions, spawnPositions, rootEntityID, startButtonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID) {
     this.gameState = GAME_STATES.IDLE;
 
     this.bowPositions = bowPositions;
     this.rootPosition = rootPosition;
     this.spawnPositions = spawnPositions;
     this.gatePosition = gatePosition;
+    this.rootEntityID = rootEntityID;
     this.startButtonID = startButtonID;
     this.waveDisplayID = waveDisplayID;
     this.scoreDisplayID = scoreDisplayID;
@@ -206,10 +246,7 @@ function GameManager(rootPosition, gatePosition, bowPositions, spawnPositions, s
     this.entityIDs = [];
     this.bowIDs = [];
 
-
-
-
-
+    sendAndUpdateHighScore(this.highScoreDisplayID, this.rootEntityID, this.score + 10, this.waveNumber, 1);
 }
 GameManager.prototype = {
     cleanup: function() {
@@ -254,7 +291,7 @@ GameManager.prototype = {
                 "dynamic": 1,
                 "gravity": {
                     "x": 0,
-                    "y": -1,
+                    "y": -9.8,
                     "z": 0
                 },
                 "modelURL": Script.resolvePath("bow/bow-deadly.fbx"),
@@ -422,12 +459,14 @@ GameManager.prototype = {
 
 
         // Update high score
-        var highScore = getHighScoreFromDisplay(this.highScoreDisplayID);
-        if (this.score > highScore) {
-            setHighScoreOnDisplay(this.highScoreDisplayID, this.score);
-        } else {
-            print("Score not higher", this.score, highScore);
-        }
+        sendAndUpdateHighScore(this.highScoreDisplayID, this.rootEntityID, this.score, this.waveNumber, 1);
+
+        //var highScore = getHighScoreFromDisplay(this.highScoreDisplayID);
+        //if (this.score > highScore) {
+        //    setHighScoreOnDisplay(this.highScoreDisplayID, this.score);
+        //} else {
+        //    print("Score not higher", this.score, highScore);
+        //}
 
 
         // Cleanup
@@ -578,7 +617,7 @@ function buildGame() {
     gameHasBeenBuilt = true;
 
     var goalPositionFront = Vec3.sum(goalPosition, { x: 0, y: 0, z: BASES_SIZE / 2 });
-    return new GameManager(rootPosition, goalPositionFront, bowPositions, spawnPositions, buttonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID);
+    return new GameManager(rootPosition, goalPositionFront, bowPositions, spawnPositions, platformID, buttonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID);
 }
 
 function createACGame() {
