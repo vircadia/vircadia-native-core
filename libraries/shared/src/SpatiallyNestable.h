@@ -163,7 +163,8 @@ public:
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
-    bool hasAncestorOfType(NestableType nestableType);
+    bool hasAncestorOfType(NestableType nestableType) const;
+    const QUuid findAncestorOfType(NestableType nestableType) const;
     SpatiallyNestablePointer getParentPointer(bool& success) const;
     static SpatiallyNestablePointer findByID(QUuid id, bool& success);
 
