@@ -107,7 +107,7 @@ public:
         RequestsDomainListData,
         ExitingSpaceBubble,
         PerAvatarGainSet,
-        LAST_PACKET_TYPE = ExitingSpaceBubble // FIXME!!!
+        LAST_PACKET_TYPE = PerAvatarGainSet
     };
 };
 
