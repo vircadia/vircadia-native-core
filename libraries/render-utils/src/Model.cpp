@@ -283,7 +283,7 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
-    PROFILE_RANGE(render, __FUNCTION__);
+    PROFILE_RANGE(render_detail, __FUNCTION__);
     PerformanceTimer perfTimer("Model::updateGeometry");
     bool needFullUpdate = false;
 
@@ -1114,7 +1114,7 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    PROFILE_RANGE(simulation, __FUNCTION__);
+    PROFILE_RANGE(simulation_detail, __FUNCTION__);
     PerformanceTimer perfTimer("Model::simulate");
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
