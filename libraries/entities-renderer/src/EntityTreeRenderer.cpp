@@ -1051,11 +1051,11 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     EntityItemPointer entityB = entityTree->findEntityByEntityItemID(idB);
     if ((bool)entityB && myNodeID == entityB->getSimulatorID()) {
         playEntityCollisionSound(entityB, collision);
-        emit collisionWithEntity(idB, idA, collision);
+        // since we're swapping A and B we need to send the inverted collision
+        Collision invertedCollision(collision);
+        invertedCollision.invert();
+        emit collisionWithEntity(idB, idA, invertedCollision);
         if (_entitiesScriptEngine) {
-            // since we're swapping A and B we need to send the inverted collision
-            Collision invertedCollision(collision);
-            invertedCollision.invert();
             _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, invertedCollision);
         }
     }
