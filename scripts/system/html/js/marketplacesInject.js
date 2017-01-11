@@ -132,10 +132,19 @@
 
             // Automatic download to High Fidelity.
             function startAutoDownload() {
+
+                // User must be able to write to Asset Server.
                 if (!canWriteAssets) {
                     console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
                     EventBridge.emitWebEvent(WARN_USER_NO_PERMISSIONS);
                     event.stopPropagation();
+                    return;
+                }
+
+                // User must be logged in.
+                var loginButton = $("#topnav a[href='/signup']");
+                if (loginButton.length > 0) {
+                    loginButton[0].click();
                     return;
                 }
 
