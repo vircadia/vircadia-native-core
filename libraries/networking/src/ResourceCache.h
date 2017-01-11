@@ -73,6 +73,7 @@ public:
     uint32_t getPendingRequestsCount() const;
     QList<QSharedPointer<Resource>> getLoadingRequests();
     QSharedPointer<Resource> getHighestPendingRequest();
+    uint32_t getLoadingRequestsCount() const;
 
 private:
     ResourceCacheSharedItems() = default;
@@ -240,6 +241,8 @@ public:
     static QList<QSharedPointer<Resource>> getLoadingRequests();
 
     static int getPendingRequestCount();
+
+    static int getLoadingRequestCount();
 
     ResourceCache(QObject* parent = nullptr);
     virtual ~ResourceCache();

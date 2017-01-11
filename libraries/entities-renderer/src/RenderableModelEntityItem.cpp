@@ -286,7 +286,7 @@ bool RenderableModelEntityItem::getAnimationFrame() {
 
                 resizeJointArrays();
                 if (_jointMapping.size() != _model->getJointStateCount()) {
-                    qDebug() << "RenderableModelEntityItem::getAnimationFrame -- joint count mismatch"
+                    qCDebug(entities) << "RenderableModelEntityItem::getAnimationFrame -- joint count mismatch"
                              << _jointMapping.size() << _model->getJointStateCount();
                     assert(false);
                     return false;
@@ -533,7 +533,8 @@ void RenderableModelEntityItem::update(const quint64& now) {
                 properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
                 auto extents = _model->getMeshExtents();
                 properties.setDimensions(extents.maximum - extents.minimum);
-                qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+                qCDebug(entitiesrenderer) << "Autoresizing" << (!getName().isEmpty() ? getName() : getModelURL()) 
+                    << "from mesh extents";
                 QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                         Qt::QueuedConnection,
                                         Q_ARG(QUuid, getEntityItemID()),

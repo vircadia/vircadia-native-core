@@ -25,13 +25,13 @@
 #endif
 
 
+#include <AvatarData.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
 #include <Rig.h>
 #include <SettingHandle.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
-#include <AvatarData.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -79,10 +79,15 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::ExitingSpaceBubble, this, "processExitingSpaceBubble");
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
-    connect(nodeList.data(), "ignoredNode", this, "removeAvatar");
+    connect(nodeList.data(), &NodeList::ignoredNode, this, [=](const QUuid& nodeID, bool enabled) {
+        if (enabled) {
+            removeAvatar(nodeID);
+        }
+    });
 }
 
 AvatarManager::~AvatarManager() {
@@ -124,6 +129,9 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     }
 }
 
+
+Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar");
+
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
@@ -143,6 +151,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatars
     auto hashCopy = getHashCopy();
 
+    uint64_t start = usecTimestampNow();
     AvatarHash::iterator avatarIterator = hashCopy.begin();
     while (avatarIterator != hashCopy.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
@@ -155,6 +164,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             removeAvatar(avatarIterator.key());
             ++avatarIterator;
         } else {
+            avatar->ensureInScene(avatar);
             avatar->simulate(deltaTime);
             ++avatarIterator;
 
@@ -165,6 +175,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
+
+    PROFILE_COUNTER(simulation_avatar, "NumAvatarsPerSec",
+            { { "NumAvatarsPerSec", (float)(size() * USECS_PER_SECOND) / (float)(usecTimestampNow() - start) } });
+    PROFILE_COUNTER(simulation_avatar, "NumJointsPerSec", { { "NumJointsPerSec", Avatar::getNumJointsProcessedPerSecond() } });
 }
 
 void AvatarManager::postUpdate(float deltaTime) {
@@ -211,16 +225,7 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     auto newAvatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
     auto rawRenderableAvatar = std::static_pointer_cast<Avatar>(newAvatar);
 
-    render::ScenePointer scene = qApp->getMain3DScene();
-    if (scene) {
-        render::PendingChanges pendingChanges;
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
-            rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
-        }
-        scene->enqueuePendingChanges(pendingChanges);
-    } else {
-        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
-    }
+    rawRenderableAvatar->addToScene(rawRenderableAvatar);
 
     return newAvatar;
 }
@@ -252,6 +257,9 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+    }
+    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == YourAvatarEnteredTheirBubble) {
+        DependencyManager::get<NodeList>()->radiusIgnoreNodeBySessionID(avatar->getSessionUUID(), true);
     }
     _avatarFades.push_back(removedAvatar);
 }

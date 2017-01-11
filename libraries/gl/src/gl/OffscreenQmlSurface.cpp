@@ -103,11 +103,14 @@ public:
     }
 
     void report() {
-        uint64_t now = usecTimestampNow();
-        if ((now - _lastReport) > USECS_PER_SECOND * 5) {
-            _lastReport = now;
-            qCDebug(glLogging) << "Current offscreen texture count " << _allTextureCount;
-            qCDebug(glLogging) << "Current offscreen active texture count " << _activeTextureCount;
+        if (randFloat() < 0.01f) {
+            PROFILE_COUNTER(render_qml_gl, "offscreenTextures", {
+                { "total", QVariant::fromValue(_allTextureCount.load()) },
+                { "active", QVariant::fromValue(_activeTextureCount.load()) },
+            });
+            PROFILE_COUNTER(render_qml_gl, "offscreenTextureMemory", {
+                { "value", QVariant::fromValue(_totalTextureUsage) }
+            });
         }
     }
 
@@ -189,7 +192,6 @@ private:
     std::unordered_map<GLuint, uvec2> _textureSizes;
     Mutex _mutex;
     std::list<OffscreenQmlSurface::TextureAndFence> _returnedTextures;
-    uint64_t _lastReport { 0 };
     size_t _totalTextureUsage { 0 };
 } offscreenTextures;
 
@@ -424,7 +426,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     // a timer with a small interval is used to get better performance.
     QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &OffscreenQmlSurface::onAboutToQuit);
-    _updateTimer.setInterval(MIN_TIMER_MS);
+    _updateTimer.setTimerType(Qt::PreciseTimer);
+    _updateTimer.setInterval(MIN_TIMER_MS); // 5ms, Qt::PreciseTimer required
     _updateTimer.start();
 
     auto rootContext = getRootContext();

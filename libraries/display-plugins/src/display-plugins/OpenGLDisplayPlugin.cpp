@@ -96,7 +96,7 @@ public:
             Lock lock(_mutex);
             _shutdown = true;
             _condition.wait(lock, [&] { return !_shutdown;  });
-            qDebug() << "Present thread shutdown";
+            qCDebug(displayPlugins) << "Present thread shutdown";
         }
     }
 
@@ -165,6 +165,7 @@ public:
 
                         if (newPlugin) {
                             bool hasVsync = true;
+                            QThread::setPriority(newPlugin->getPresentPriority());
                             bool wantVsync = newPlugin->wantVsync();
                             _context->makeCurrent();
 #if defined(Q_OS_WIN)

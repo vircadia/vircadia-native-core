@@ -71,6 +71,11 @@ QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() {
     return result;
 }
 
+uint32_t ResourceCacheSharedItems::getLoadingRequestsCount() const {
+    Lock lock(_mutex);
+    return _loadingRequests.size();
+}
+
 void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
     Lock lock(_mutex);
 
@@ -461,6 +466,10 @@ QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
 
 int ResourceCache::getPendingRequestCount() {
     return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount();
+}
+
+int ResourceCache::getLoadingRequestCount() {
+    return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequestsCount();
 }
 
 bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {

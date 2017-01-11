@@ -8,10 +8,13 @@
 
 #pragma once
 
-#include <QString>
-#include <QVariant>
-#include <QVariantMap>
+#include <QtCore/QString>
+#include <QtCore/QVariant>
+#include <QtCore/QSet>
+#include <QtCore/QVariantMap>
+
 #include <mutex>
+
 #include "DependencyManager.h"
 #include "Trace.h"
 
@@ -20,13 +23,16 @@ using EditStatFunction = std::function<QVariant(QVariant currentValue)>;
 class StatTracker : public Dependency {
 public:
     StatTracker();
-    QVariant getStat(QString name);
-    void editStat(QString name, EditStatFunction fn);
-    void incrementStat(QString name);
-    void decrementStat(QString name);
+    QVariant getStat(const QString& name);
+    void setStat(const QString& name, int value);
+    void updateStat(const QString& name, int mod);
+    void incrementStat(const QString& name);
+    void decrementStat(const QString& name);
 private:
-    std::mutex _statsLock;
-    QVariantMap _stats;
+    using Mutex = std::mutex;
+    using Lock = std::lock_guard<Mutex>;
+    Mutex _statsLock;
+    QHash<QString, int> _stats;
 };
 
 class CounterStat {

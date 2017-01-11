@@ -157,15 +157,15 @@ void Counter<K>::log() {
         }
     }
 
-    qDebug() << "Counts for" << _name;
+    qCDebug(shared) << "Counts for" << _name;
     for (const auto& entry : results) {
-        qDebug() << entry.first << '\t' << entry.second << "entries";
+        qCDebug(shared) << entry.first << '\t' << entry.second << "entries";
     }
     if (_logLevel == LogLevel::SUMMARY) return;
 
-    qDebug() << "Entries";
+    qCDebug(shared) << "Entries";
     for (const auto& entry : _map) {
-        qDebug() << entry.first << '\t' << entry.second;
+        qCDebug(shared) << entry.first << '\t' << entry.second;
     }
     if (_logLevel == LogLevel::DETAILED) return;
 }
@@ -208,7 +208,7 @@ void Tracker<K>::set(const K& k, const size_t& v) {
             it->second = v;
         } else {
             // Unordered entry for k; dump log and fail
-            qDebug() << "Badly ordered entry detected:" <<
+            qCDebug(shared) << "Badly ordered entry detected:" <<
                 k << _legend.at(it->second).c_str() << "->" << _legend.at(v).c_str();
             log();
             assert(false);
@@ -226,9 +226,9 @@ void Tracker<K>::log() {
         results.at(entry.second).push_back(entry.first);
     }
 
-    qDebug() << "Summary of" << _name;
+    qCDebug(shared) << "Summary of" << _name;
     for (auto i = 0; i < results.size(); ++i) {
-        qDebug() << _legend.at(i) << '\t' << results[i].size() << "entries";
+        qCDebug(shared) << _legend.at(i) << '\t' << results[i].size() << "entries";
     }
     if (_logLevel == LogLevel::SUMMARY) return;
 
@@ -236,16 +236,16 @@ void Tracker<K>::log() {
     for (const auto& entry : _duplicates) {
         size += entry.second.size();
     }
-    qDebug() << "Duplicates" << size << "entries";
+    qCDebug(shared) << "Duplicates" << size << "entries";
     // TODO: Add more detail to duplicate logging
     if (_logLevel <= LogLevel::DUPLICATES) return;
 
-    qDebug() << "Entries";
+    qCDebug(shared) << "Entries";
     // Don't log the terminal case
     for (auto i = 0; i < _max; ++i) {
-        qDebug() << "----" << _legend.at(i) << "----";
+        qCDebug(shared) << "----" << _legend.at(i) << "----";
         for (const auto& entry : results[i]) {
-            qDebug() << "\t" << entry;
+            qCDebug(shared) << "\t" << entry;
         }
     }
     if (_logLevel <= LogLevel::DETAILED) return;

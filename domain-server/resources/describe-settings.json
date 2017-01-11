@@ -900,6 +900,78 @@
               "default": false
             }
           ]
+        },
+        {
+          "name": "machine_fingerprint_permissions",
+          "type": "table",
+          "caption": "Permissions for Users with Machine Fingerprints",
+          "can_add_new_rows": true,
+          "groups": [
+            {
+              "label": "Machine Fingerprint",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide Machine Fingerprint Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users with specific Machine Fingerprints can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific Machine Fingerprints can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users with specific Machine Fingerprints can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users with specific Machine Fingerprints can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users with specific Machine Fingerprints can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users with specific Machine Fingerprints can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific Machine Fingerprint will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). Machine Fingerprint address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": ""
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
         }
       ]
     },

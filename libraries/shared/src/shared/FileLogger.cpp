@@ -20,6 +20,7 @@
 
 #include "../NumericalConstants.h"
 #include "../SharedUtil.h"
+#include "../SharedLogging.h"
 
 class FilePersistThread : public GenericQueueThread < QString > {
     Q_OBJECT
@@ -88,7 +89,7 @@ void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfR
         if (file.copy(newFileName)) {
             file.open(QIODevice::WriteOnly | QIODevice::Truncate);
             file.close();
-            qDebug() << "Rolled log file:" << newFileName;
+            qCDebug(shared) << "Rolled log file:" << newFileName;
 
             if (notifyListenersIfRolled) {
                 emit rollingLogFile(newFileName);

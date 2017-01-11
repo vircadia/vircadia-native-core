@@ -24,6 +24,7 @@ class UsersScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
     Q_PROPERTY(bool canKick READ getCanKick)
+    Q_PROPERTY(bool requestsDomainListData READ getRequestsDomainListData WRITE setRequestsDomainListData)
 
 public:
     UsersScriptingInterface();
@@ -34,8 +35,31 @@ public slots:
     * Ignore another user.
     * @function Users.ignore
     * @param {nodeID} nodeID The node or session ID of the user you want to ignore.
+    * @param {bool} enable True for ignored; false for un-ignored.
     */
-    void ignore(const QUuid& nodeID);
+    void ignore(const QUuid& nodeID, bool ignoreEnabled = true);
+
+    /**jsdoc
+    * Gets a bool containing whether you have ignored the given Avatar UUID.
+    * @function Users.getIgnoreStatus
+    * @param {nodeID} nodeID The node or session ID of the user whose ignore status you want.
+    */
+    bool getIgnoreStatus(const QUuid& nodeID);
+
+    /**jsdoc
+    * Mute another user for you and you only.
+    * @function Users.personalMute
+    * @param {nodeID} nodeID The node or session ID of the user you want to mute.
+    * @param {bool} enable True for enabled; false for disabled.
+    */
+    void personalMute(const QUuid& nodeID, bool muteEnabled = true);
+
+    /**jsdoc
+    * Requests a bool containing whether you have personally muted the given Avatar UUID.
+    * @function Users.requestPersonalMuteStatus
+    * @param {nodeID} nodeID The node or session ID of the user whose personal mute status you want.
+    */
+    bool getPersonalMuteStatus(const QUuid& nodeID);
 
     /**jsdoc
     * Kick another user.
@@ -45,11 +69,18 @@ public slots:
     void kick(const QUuid& nodeID);
 
     /**jsdoc
-    * Mute another user.
+    * Mute another user for everyone.
     * @function Users.mute
     * @param {nodeID} nodeID The node or session ID of the user you want to mute.
     */
     void mute(const QUuid& nodeID);
+
+    /**jsdoc
+    * Returns a string containing the username associated with the given Avatar UUID
+    * @function Users.getUsernameFromID
+    * @param {nodeID} nodeID The node or session ID of the user whose username you want.
+    */
+    void requestUsernameFromID(const QUuid& nodeID);
 
     /**jsdoc
     * Returns `true` if the DomainServer will allow this Node/Avatar to make kick
@@ -92,6 +123,17 @@ signals:
     * @function Users.enteredIgnoreRadius
     */
     void enteredIgnoreRadius();
+
+    /**jsdoc
+    * Notifies scripts of the username and machine fingerprint associated with a UUID.
+    * @function Users.usernameFromIDReply
+    */
+    void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
+
+private:
+    bool getRequestsDomainListData();
+    void setRequestsDomainListData(bool requests);
+    bool _requestsDomainListData;
 };
 
 

@@ -34,9 +34,9 @@ void SkyboxPropertyGroup::merge(const SkyboxPropertyGroup& other) {
 
 
 void SkyboxPropertyGroup::debugDump() const {
-    qDebug() << "   SkyboxPropertyGroup: ---------------------------------------------";
-    qDebug() << "       Color:" << getColor() << " has changed:" << colorChanged();
-    qDebug() << "       URL:" << getURL() << " has changed:" << urlChanged();
+    qCDebug(entities) << "   SkyboxPropertyGroup: ---------------------------------------------";
+    qCDebug(entities) << "       Color:" << getColor() << " has changed:" << colorChanged();
+    qCDebug(entities) << "       URL:" << getURL() << " has changed:" << urlChanged();
 }
 
 void SkyboxPropertyGroup::listChangedProperties(QList<QString>& out) {

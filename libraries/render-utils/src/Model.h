@@ -80,6 +80,7 @@ public:
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
+    void setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -97,6 +98,8 @@ public:
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
+
+    bool isLayeredInFront() const { return _isLayeredInFront; }
 
     void updateRenderItems();
     void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
@@ -412,6 +415,8 @@ protected:
     bool _hasCalculatedTextureInfo { false };
     int _renderInfoDrawCalls { 0 };
     int _renderInfoHasTransparent { false };
+
+    bool _isLayeredInFront { false };
 
 private:
     float _loadingPriority { 0.0f };

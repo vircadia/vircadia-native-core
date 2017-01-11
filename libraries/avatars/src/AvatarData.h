@@ -106,6 +106,11 @@ const char LEFT_HAND_POINTING_FLAG = 1;
 const char RIGHT_HAND_POINTING_FLAG = 2;
 const char IS_FINGER_POINTING_FLAG = 4;
 
+// AvatarData state flags - we store the details about the packet encoding in the first byte, 
+// before the "header" structure
+const char AVATARDATA_FLAGS_MINIMUM = 0;
+
+
 static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
 
@@ -171,6 +176,9 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
 
     Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
+    // sessionDisplayName is sanitized, defaulted version displayName that is defined by the AvatarMixer rather than by Interface clients.
+    // The result is unique among all avatars present at the time.
+    Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
 
@@ -201,7 +209,14 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    virtual QByteArray toByteArray(bool cullSmallChanges, bool sendAll);
+    typedef enum { 
+        MinimumData, 
+        CullSmallData,
+        IncludeSmallData,
+        SendAllData
+    } AvatarDataDetail;
+
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail);
     virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged
@@ -313,6 +328,7 @@ public:
         QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
+        QString sessionDisplayName;
         AvatarEntityMap avatarEntityData;
     };
 
@@ -325,9 +341,11 @@ public:
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
+    const QString& getSessionDisplayName() const { return _sessionDisplayName; }
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) { _sessionDisplayName = sessionDisplayName; };
 
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
@@ -390,6 +408,8 @@ public slots:
 
 protected:
     glm::vec3 _handPosition;
+    virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
+    virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
 
     // Body scale
     float _targetScale;
@@ -417,6 +437,7 @@ protected:
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
+    QString _sessionDisplayName { };
     const QUrl& cannonicalSkeletonModelURL(const QUrl& empty);
 
     float _displayNameTargetAlpha;

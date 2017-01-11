@@ -76,7 +76,7 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
         switch (request->getError()) {
             case MappingRequest::NoError:
                 // we have no error, we should have a resulting hash - use that to send of a request for that asset
-                qDebug() << "Got mapping for:" << path << "=>" << request->getHash();
+                qCDebug(networking) << "Got mapping for:" << path << "=>" << request->getHash();
 
                 requestHash(request->getHash());
 

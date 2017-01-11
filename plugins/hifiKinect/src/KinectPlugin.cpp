@@ -286,11 +286,8 @@ bool KinectPlugin::initializeDefaultSensor() {
     }
 
     if (!_kinectSensor || FAILED(hr)) {
-        qDebug() << "No ready Kinect found!";
         return false;
     }
-
-    qDebug() << "Kinect found WOOT!";
 
     return true;
 #else

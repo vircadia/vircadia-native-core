@@ -74,7 +74,9 @@ void Settings::endGroup() {
 }
 
 void Settings::setValue(const QString& name, const QVariant& value) {
-    _manager->setValue(name, value);
+    if (_manager->value(name) != value) {
+        _manager->setValue(name, value);
+    }
 }
 
 QVariant Settings::value(const QString& name, const QVariant& defaultValue) const {

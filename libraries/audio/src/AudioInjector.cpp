@@ -25,6 +25,7 @@
 #include "AudioLogging.h"
 #include "SoundCache.h"
 #include "AudioSRC.h"
+#include "AudioHelpers.h"
 
 int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
 
@@ -187,7 +188,7 @@ bool AudioInjector::injectLocally() {
     return success;
 }
 
-const uchar MAX_INJECTOR_VOLUME = 0xFF;
+const uchar MAX_INJECTOR_VOLUME = packFloatGainToByte(1.0f);
 static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
 static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
@@ -208,7 +209,7 @@ qint64 writeStringToStream(const QString& string, QDataStream& stream) {
 
 int64_t AudioInjector::injectNextFrame() {
     if (stateHas(AudioInjectorState::NetworkInjectionFinished)) {
-        qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
+        qCDebug(audio)  << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
 
@@ -231,7 +232,7 @@ int64_t AudioInjector::injectNextFrame() {
             auto numSamples = static_cast<int>(_audioData.size() / sampleSize);
             auto targetSize = numSamples * sampleSize;
             if (targetSize != _audioData.size()) {
-                qDebug() << "Resizing audio that doesn't end at multiple of sample size, resizing from "
+                qCDebug(audio)  << "Resizing audio that doesn't end at multiple of sample size, resizing from "
                     << _audioData.size() << " to " << targetSize;
                 _audioData.resize(targetSize);
             }
@@ -297,7 +298,7 @@ int64_t AudioInjector::injectNextFrame() {
 
         } else {
             // no samples to inject, return immediately
-            qDebug() << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
+            qCDebug(audio)  << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
@@ -333,7 +334,7 @@ int64_t AudioInjector::injectNextFrame() {
     _currentPacket->writePrimitive(_options.position);
     _currentPacket->writePrimitive(_options.orientation);
 
-    quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
+    quint8 volume = packFloatGainToByte(_options.volume);
     _currentPacket->seek(volumeOptionOffset);
     _currentPacket->writePrimitive(volume);
 
@@ -388,7 +389,7 @@ int64_t AudioInjector::injectNextFrame() {
 
     if (currentFrameBasedOnElapsedTime - _nextFrame > MAX_ALLOWED_FRAMES_TO_FALL_BEHIND) {
         // If we are falling behind by more frames than our threshold, let's skip the frames ahead
-        qDebug() << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
+        qCDebug(audio)  << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
         _nextFrame = currentFrameBasedOnElapsedTime;
         _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData.size();
     }

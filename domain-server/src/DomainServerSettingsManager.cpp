@@ -444,6 +444,9 @@ void DomainServerSettingsManager::packPermissions() {
     // save settings for MAC addresses
     packPermissionsForMap("permissions", _macPermissions, MAC_PERMISSIONS_KEYPATH);
 
+    // save settings for Machine Fingerprint
+    packPermissionsForMap("permissions", _machineFingerprintPermissions, MACHINE_FINGERPRINT_PERMISSIONS_KEYPATH);
+
     // save settings for groups
     packPermissionsForMap("permissions", _groupPermissions, GROUP_PERMISSIONS_KEYPATH);
 
@@ -522,6 +525,18 @@ void DomainServerSettingsManager::unpackPermissions() {
             }
     });
 
+    needPack |= unpackPermissionsForKeypath(MACHINE_FINGERPRINT_PERMISSIONS_KEYPATH, &_machineFingerprintPermissions,
+        [&](NodePermissionsPointer perms){
+            // make sure that this permission row has valid machine fingerprint
+            if (QUuid(perms->getKey().first) == QUuid()) {
+                _machineFingerprintPermissions.remove(perms->getKey());
+
+                // we removed a row, so we'll need a re-pack
+                needPack = true;
+            }
+
+    });
+
 
     needPack |= unpackPermissionsForKeypath(GROUP_PERMISSIONS_KEYPATH, &_groupPermissions,
         [&](NodePermissionsPointer perms){
@@ -575,7 +590,9 @@ void DomainServerSettingsManager::unpackPermissions() {
     QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
     permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get()
                     << _groupPermissions.get() << _groupForbiddens.get()
-                    << _ipPermissions.get() << _macPermissions.get();
+                    << _ipPermissions.get() << _macPermissions.get() 
+                    << _machineFingerprintPermissions.get();
+
     foreach (auto permissionSet, permissionsSets) {
         QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(permissionSet);
         while (i.hasNext()) {
@@ -707,9 +724,10 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                         ipPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                     }
 
-                    // potentially remove connect permissions for the MAC address
+                    // potentially remove connect permissions for the MAC address and machine fingerprint
                     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
                     if (nodeData) {
+                        // mac address first
                         NodePermissionsKey macAddressKey(nodeData->getHardwareAddress(), 0);
 
                         bool hadMACPermissions = hasPermissionsForMAC(nodeData->getHardwareAddress());
@@ -720,6 +738,18 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                             newPermissions = true;
 
                             macPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                        }
+
+                        // now for machine fingerprint
+                        NodePermissionsKey machineFingerprintKey(nodeData->getMachineFingerprint().toString(), 0);
+                        
+                        bool hadFingerprintPermissions = hasPermissionsForMachineFingerprint(nodeData->getMachineFingerprint());
+                        
+                        auto fingerprintPermissions = _machineFingerprintPermissions[machineFingerprintKey];
+                        
+                        if (!hadFingerprintPermissions || fingerprintPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
+                            newPermissions = true;
+                            fingerprintPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                         }
                     }
                 }
@@ -745,6 +775,50 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
     } else {
         qWarning() << "Refusing to process a kick packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
         << "that does not have kick permissions.";
+    }
+}
+
+// This function processes the "Get Username from ID" request.
+void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    // Before we do any processing on this packet, make sure it comes from a node that is allowed to kick (is an admin)
+    if (sendingNode->getCanKick()) {
+        // From the packet, pull the UUID we're identifying
+        QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        if (!nodeUUID.isNull()) {
+            // First, make sure we actually have a node with this UUID
+            auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+            auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
+
+            // If we do have a matching node...
+            if (matchingNode) {
+                // It's time to figure out the username
+                QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
+
+                // Setup the packet
+                auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply);
+                usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
+                usernameFromIDReplyPacket->writeString(verifiedUsername);
+
+                // now put in the machine fingerprint
+                DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+                QUuid machineFingerprint = nodeData ? nodeData->getMachineFingerprint() : QUuid();
+                usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
+                
+                qDebug() << "Sending username" << verifiedUsername << "and machine fingerprint" << machineFingerprint << "associated with node" << nodeUUID;
+
+                // Ship it!
+                limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);
+            } else {
+                qWarning() << "Node username request received for unknown node. Refusing to process.";
+            }
+        } else {
+            qWarning() << "Node username request received for invalid node ID. Refusing to process.";
+        }
+
+    } else {
+        qWarning() << "Refusing to process a username request packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
+            << "that does not have kick permissions.";
     }
 }
 
@@ -789,6 +863,16 @@ NodePermissions DomainServerSettingsManager::getPermissionsForMAC(const QString&
     NodePermissionsKey macKey = NodePermissionsKey(macAddress, 0);
     if (_macPermissions.contains(macKey)) {
         return *(_macPermissions[macKey].get());
+    }
+    NodePermissions nullPermissions;
+    nullPermissions.setAll(false);
+    return nullPermissions;
+}
+
+NodePermissions DomainServerSettingsManager::getPermissionsForMachineFingerprint(const QUuid& machineFingerprint) const {
+    NodePermissionsKey fingerprintKey = NodePermissionsKey(machineFingerprint.toString(), 0);
+    if (_machineFingerprintPermissions.contains(fingerprintKey)) {
+        return *(_machineFingerprintPermissions[fingerprintKey].get());
     }
     NodePermissions nullPermissions;
     nullPermissions.setAll(false);

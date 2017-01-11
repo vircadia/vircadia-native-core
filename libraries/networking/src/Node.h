@@ -21,6 +21,7 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <QReadLocker>
 #include <UUIDHasher.h>
 
 #include <tbb/concurrent_unordered_set.h>
@@ -73,7 +74,8 @@ public:
 
     void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
     void addIgnoredNode(const QUuid& otherNodeID);
-    bool isIgnoringNodeWithID(const QUuid& nodeID) const { return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
+    void removeIgnoredNode(const QUuid& otherNodeID);
+    bool isIgnoringNodeWithID(const QUuid& nodeID) const { QReadLocker lock { &_ignoredNodeIDSetLock }; return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
     void parseIgnoreRadiusRequestMessage(QSharedPointer<ReceivedMessage> message);
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
@@ -97,6 +99,7 @@ private:
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
+    mutable QReadWriteLock _ignoredNodeIDSetLock;
 
     std::atomic_bool _ignoreRadiusEnabled;
 };

@@ -76,7 +76,7 @@ OriginalDesktop.Desktop {
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
 
         [ // Allocate the standard buttons in the correct order. They will get images, etc., via scripts.
-            "hmdToggle", "mute", "mod", "bubble", "help",
+            "hmdToggle", "mute", "pal", "bubble", "help",
             "hudToggle",
             "com.highfidelity.interface.system.editButton", "marketplace", "snapshot", "goto"
         ].forEach(function (name) {
@@ -100,21 +100,25 @@ OriginalDesktop.Desktop {
     // Accept a download through the webview
     property bool webViewProfileSetup: false
     property string currentUrl: ""
+    property string downloadUrl: ""
     property string adaptedPath: ""
     property string tempDir: ""
+    property bool autoAdd: false
 
     function initWebviewProfileHandlers(profile) {
         console.log("The webview url in desktop is: " + currentUrl);
+        downloadUrl = currentUrl;
         if (webViewProfileSetup) return;
         webViewProfileSetup = true;
 
         profile.downloadRequested.connect(function(download){
             console.log("Download start: " + download.state);
-            adaptedPath = File.convertUrlToPath(currentUrl);
+            adaptedPath = File.convertUrlToPath(downloadUrl);
             tempDir = File.getTempDir();
             console.log("Temp dir created: " + tempDir);
             download.path = tempDir + "/" + adaptedPath;
             console.log("Path where object should download: " + download.path);
+            console.log("Auto add: " + autoAdd);
             download.accept();
             if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
                 console.log("download failed to complete");
@@ -123,11 +127,16 @@ OriginalDesktop.Desktop {
 
         profile.downloadFinished.connect(function(download){
             if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-                File.runUnzip(download.path, currentUrl);
+                File.runUnzip(download.path, downloadUrl, autoAdd);
             } else {
                 console.log("The download was corrupted, state: " + download.state);
             }
+            autoAdd = false;
         })
+    }
+
+    function setAutoAdd(auto) {
+        autoAdd = auto;
     }
 
     // Create or fetch a toolbar with the given name

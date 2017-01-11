@@ -18,11 +18,28 @@ UsersScriptingInterface::UsersScriptingInterface() {
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &LimitedNodeList::canKickChanged, this, &UsersScriptingInterface::canKickChanged);
     connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &UsersScriptingInterface::ignoreRadiusEnabledChanged);
+    connect(nodeList.data(), &NodeList::usernameFromIDReply, this, &UsersScriptingInterface::usernameFromIDReply);
 }
 
-void UsersScriptingInterface::ignore(const QUuid& nodeID) {
+void UsersScriptingInterface::ignore(const QUuid& nodeID, bool ignoreEnabled) {
     // ask the NodeList to ignore this user (based on the session ID of their node)
-    DependencyManager::get<NodeList>()->ignoreNodeBySessionID(nodeID);
+    DependencyManager::get<NodeList>()->ignoreNodeBySessionID(nodeID, ignoreEnabled);
+}
+
+bool UsersScriptingInterface::getIgnoreStatus(const QUuid& nodeID) {
+    // ask the NodeList for the Ignore status associated with the given session ID
+    return DependencyManager::get<NodeList>()->isIgnoringNode(nodeID);
+}
+
+void UsersScriptingInterface::personalMute(const QUuid& nodeID, bool muteEnabled) {
+    // ask the NodeList to mute the user with the given session ID
+	// "Personal Mute" only applies one way and is not global
+    DependencyManager::get<NodeList>()->personalMuteNodeBySessionID(nodeID, muteEnabled);
+}
+
+bool UsersScriptingInterface::getPersonalMuteStatus(const QUuid& nodeID) {
+    // ask the NodeList for the Personal Mute status associated with the given session ID
+    return DependencyManager::get<NodeList>()->isPersonalMutingNode(nodeID);
 }
 
 void UsersScriptingInterface::kick(const QUuid& nodeID) {
@@ -33,6 +50,11 @@ void UsersScriptingInterface::kick(const QUuid& nodeID) {
 void UsersScriptingInterface::mute(const QUuid& nodeID) {
     // ask the NodeList to mute the user with the given session ID
     DependencyManager::get<NodeList>()->muteNodeBySessionID(nodeID);
+}
+
+void UsersScriptingInterface::requestUsernameFromID(const QUuid& nodeID) {
+    // ask the Domain Server via the NodeList for the username associated with the given session ID
+    DependencyManager::get<NodeList>()->requestUsernameFromSessionID(nodeID);
 }
 
 bool UsersScriptingInterface::getCanKick() {
@@ -54,4 +76,11 @@ void UsersScriptingInterface::disableIgnoreRadius() {
 
 bool UsersScriptingInterface::getIgnoreRadiusEnabled() {
     return DependencyManager::get<NodeList>()->getIgnoreRadiusEnabled();
+}
+
+bool UsersScriptingInterface::getRequestsDomainListData() {
+    return DependencyManager::get<NodeList>()->getRequestsDomainListData();
+}
+void UsersScriptingInterface::setRequestsDomainListData(bool isRequesting) {
+    DependencyManager::get<NodeList>()->setRequestsDomainListData(isRequesting);
 }

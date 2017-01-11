@@ -11,6 +11,10 @@
 
 #include "Billboard3DOverlay.h"
 
+#include <QTouchEvent>
+
+#include <PointerEvent.h>
+
 class OffscreenQmlSurface;
 
 class Web3DOverlay : public Billboard3DOverlay {
@@ -29,25 +33,51 @@ public:
 
     virtual void update(float deltatime) override;
 
+    QObject* getEventHandler();
+    void setProxyWindow(QWindow* proxyWindow);
+    void handlePointerEvent(const PointerEvent& event);
+
     // setters
     void setURL(const QString& url);
+    void setScriptURL(const QString& script);
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
+
+    glm::vec2 getSize();
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
         BoxFace& face, glm::vec3& surfaceNormal) override;
 
     virtual Web3DOverlay* createClone() const override;
 
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+
+signals:
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
+
 private:
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
     QString _url;
+    QString _scriptURL;
     float _dpi;
     vec2 _resolution{ 640, 480 };
     int _geometryId { 0 };
+
+    bool _pressed{ false };
+    QTouchDevice _touchDevice;
+
+    QMetaObject::Connection _mousePressConnection;
+    QMetaObject::Connection _mouseReleaseConnection;
+    QMetaObject::Connection _mouseMoveConnection;
+    QMetaObject::Connection _hoverLeaveConnection;
+
+    QMetaObject::Connection _emitScriptEventConnection;
+    QMetaObject::Connection _webEventReceivedConnection;
 };
 
 #endif // hifi_Web3DOverlay_h
