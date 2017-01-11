@@ -92,7 +92,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
     _cauterizeBones(false),
-    _pupilDilation(0.0f),
     _url(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
