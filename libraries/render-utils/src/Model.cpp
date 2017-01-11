@@ -295,6 +295,7 @@ bool Model::updateGeometry() {
 
     if (_rig->jointStatesEmpty() && getFBXGeometry().joints.size() > 0) {
         initJointStates();
+        assert(_meshStates.empty());
 
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
@@ -304,6 +305,9 @@ bool Model::updateGeometry() {
 
             _meshStates.append(state);
 
+            // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
+            // later in ModelMeshPayload, however the vast majority of meshes will not have them.
+            // TODO? make _blendedVertexBuffers a map instead of vector and only add for meshes with blendshapes?
             auto buffer = std::make_shared<gpu::Buffer>();
             if (!mesh.blendshapes.isEmpty()) {
                 buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
