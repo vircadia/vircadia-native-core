@@ -179,16 +179,12 @@ namespace AvatarDataPacket {
 
     using SixByteQuat = uint8_t[6];
     PACKED_BEGIN struct AvatarOrientation {
-        //smallFloat localOrientation[3];   // avatar's local euler angles (degrees, compressed) relative to the
-                                            // thing it's attached to, or world relative if not attached
-
         SixByteQuat avatarOrientation;      // encodeded and compressed by packOrientationQuatToSixBytes()
-
     } PACKED_END;
     const size_t AVATAR_ORIENTATION_SIZE = 6;
 
     PACKED_BEGIN struct AvatarScale {
-        smallFloat scale;                 // avatar's scale, (compressed) 'ratio' encoding uses sign bit as flag.
+        smallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte() 
     } PACKED_END;
     const size_t AVATAR_SCALE_SIZE = 2;
 
@@ -204,9 +200,9 @@ namespace AvatarDataPacket {
     const size_t LOOK_AT_POSITION_SIZE = 12;
 
     PACKED_BEGIN struct AudioLoudness {
-        smallFloat audioLoudness;         // current loudness of microphone, (compressed)
+        uint8_t audioLoudness;            // current loudness of microphone, compressed by packFloatGainToByte()
     } PACKED_END;
-    const size_t AUDIO_LOUDNESS_SIZE = 2;
+    const size_t AUDIO_LOUDNESS_SIZE = 1;
 
     PACKED_BEGIN struct SensorToWorldMatrix {
         // FIXME - these 20 bytes are only used by viewers if my avatar has "attachments"

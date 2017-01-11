@@ -35,6 +35,7 @@
 #include <UUID.h>
 #include <shared/JSONHelpers.h>
 #include <ShapeInfo.h>
+#include <AudioHelpers.h>
 
 #include "AvatarLogging.h"
 
@@ -314,14 +315,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarOrientation) {
         auto localOrientation = getLocalOrientation();
-        /*
-        auto data = reinterpret_cast<AvatarDataPacket::AvatarOrientation*>(destinationBuffer);
-        glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(localOrientation));
-        packFloatAngleToTwoByte((uint8_t*)(data->localOrientation + 0), bodyEulerAngles.y);
-        packFloatAngleToTwoByte((uint8_t*)(data->localOrientation + 1), bodyEulerAngles.x);
-        packFloatAngleToTwoByte((uint8_t*)(data->localOrientation + 2), bodyEulerAngles.z);
-        destinationBuffer += sizeof(AvatarDataPacket::AvatarOrientation);
-        */
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
     }
 
@@ -343,8 +336,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAudioLoudness) {
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
-        auto audioLoudness = glm::min(_headData->getAudioLoudness(), MAX_AUDIO_LOUDNESS);
-        packFloatScalarToSignedTwoByteFixed((uint8_t*)&data->audioLoudness, audioLoudness, AUDIO_LOUDNESS_RADIX);
+        data->audioLoudness = packFloatGainToByte(_headData->getAudioLoudness());
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
     }
 
@@ -705,29 +697,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     if (hasAvatarOrientation) {
         auto startSection = sourceBuffer;
-
         PACKET_READ_CHECK(AvatarOrientation, sizeof(AvatarDataPacket::AvatarOrientation));
-
-        /*
-        auto data = reinterpret_cast<const AvatarDataPacket::AvatarOrientation*>(sourceBuffer);
-        float pitch, yaw, roll;
-        unpackFloatAngleFromTwoByte(data->localOrientation + 0, &yaw);
-        unpackFloatAngleFromTwoByte(data->localOrientation + 1, &pitch);
-        unpackFloatAngleFromTwoByte(data->localOrientation + 2, &roll);
-        if (isNaN(yaw) || isNaN(pitch) || isNaN(roll)) {
-            if (shouldLogError(now)) {
-                qCWarning(avatars) << "Discard AvatarData packet: localOriention is NaN, uuid " << getSessionUUID();
-            }
-            return buffer.size();
-        }
-        glm::vec3 newEulerAngles(pitch, yaw, roll);
-        glm::quat newOrientation = glm::quat(glm::radians(newEulerAngles));
-        sourceBuffer += sizeof(AvatarDataPacket::AvatarOrientation);
-        */
-
         glm::quat newOrientation;
         sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, newOrientation);
-
         glm::quat currentOrientation = getLocalOrientation();
         if (currentOrientation != newOrientation) {
             _hasNewJointRotations = true;
@@ -779,8 +751,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(AudioLoudness, sizeof(AvatarDataPacket::AudioLoudness));
         auto data = reinterpret_cast<const AvatarDataPacket::AudioLoudness*>(sourceBuffer);
-        float audioLoudness;
-        unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&data->audioLoudness, &audioLoudness, AUDIO_LOUDNESS_RADIX);
+        float audioLoudness = unpackFloatGainFromByte(data->audioLoudness);
 
         if (isNaN(audioLoudness)) {
             if (shouldLogError(now)) {
