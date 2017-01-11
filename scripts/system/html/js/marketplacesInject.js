@@ -133,13 +133,68 @@
             // Automatic download to High Fidelity.
             function startAutoDownload() {
                 if (!canWriteAssets) {
-                    console.log("Clara.io FBX file download cancelled because no permissions to write to Asset Server");
+                    console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
                     EventBridge.emitWebEvent(WARN_USER_NO_PERMISSIONS);
                     event.stopPropagation();
                     return;
                 }
 
-                // TODO: Initiate download using Clara.io API.
+                // Obtain zip file to download for requested asset.
+                // Reference: https://clara.io/learn/sdk/api/export
+                var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGound=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
+                var uuid = location.href.match(/\/view\/([a-z0-9\-]*)/)[1];
+                var url = XMLHTTPREQUEST_URL.replace("{uuid}", uuid);
+
+                var xmlHttpRequest = new XMLHttpRequest();
+                var responseTextIndex = 0;
+                var statusMessage = "";
+                var zipFileURL = "";
+
+                xmlHttpRequest.onreadystatechange = function () {
+                    // Messages are appended to responseText; process the new one.
+                    var message = this.responseText.slice(responseTextIndex);
+
+                    if (message.slice(0, 5) === "data:") {
+                        var data = JSON.parse(message.slice(5));
+
+                        // Extract status message.
+                        if (data.hasOwnProperty("message") && data.message !== null) {
+                            statusMessage = data.message;
+                            console.log("Clara.io FBX: " + statusMessage);
+                        }
+
+                        // Extract zip file URL.
+                        if (data.hasOwnProperty("files") && data.files.length > 0) {
+                            zipFileURL = data.files[0].url;
+                        }
+                    }
+
+                    responseTextIndex = this.responseText.length;
+                };
+
+                // Note: onprogress doesn't have computable total length.
+
+                xmlHttpRequest.onload = function () {
+                    var HTTP_OK = 200;
+                    if (this.status !== HTTP_OK) {
+                        console.log("ERROR: Clara.io FBX: Zip file request terminated with " + this.status + " "
+                            + this.statusText);
+                        return;
+                    }
+
+                    if (zipFileURL == "") {
+                        console.log("ERROR: Clara.io FBX: Zip file URL not found");
+                        return;
+                    }
+
+                    EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + zipFileURL);
+                    console.log("Clara.io FBX: File download initiated for " + zipFileURL);
+                }
+
+                console.log("Clara.io FBX: Request zip file for " + uuid);
+                xmlHttpRequest.open("POST", url, true);
+                xmlHttpRequest.setRequestHeader("Accept", "text/event-stream");
+                xmlHttpRequest.send();
             }
         }
     }
