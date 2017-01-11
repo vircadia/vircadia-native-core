@@ -170,8 +170,6 @@ private:
     bool _wantScripts;
     QSharedPointer<ScriptEngine> _entitiesScriptEngine;
 
-    //static bool isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree, const EntityItemID& id);
-
     static void playEntityCollisionSound(EntityItemPointer entity, const Collision& collision);
 
     bool _lastPointerEventValid;

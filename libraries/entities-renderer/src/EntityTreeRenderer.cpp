@@ -956,39 +956,6 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
     }
 }
 
-/*
-bool EntityTreeRenderer::isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree,
-        const EntityItemID& id, const Collision& collision) {
-    // BUG: this method is poorly named.  It should be called like: isOwnerOfObjectOrOwnerOfOtherIfObjectIsUnowned()
-    EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
-    if (!entity) {
-        return false;
-    }
-    QUuid simulatorID = entity->getSimulatorID();
-    if (simulatorID.isNull()) {
-        // Can be null if it has never moved since being created or coming out of persistence.
-        // However, for there to be a collision, one of the two objects must be moving.
-        const EntityItemID& otherID = (id == collision.idA) ? collision.idB : collision.idA;
-        EntityItemPointer otherEntity = entityTree->findEntityByEntityItemID(otherID);
-        if (!otherEntity) {
-            return false;
-        }
-        simulatorID = otherEntity->getSimulatorID();
-    }
-
-    if (simulatorID.isNull() || (simulatorID != myNodeID)) {
-        return false;
-    }
-
-    return true;
-}
-
-bool EntityTreeRenderer::isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree, const EntityItemID& id) {
-    EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
-    return ((bool)entity && myNodeID == entity->getSimulatorID());
-}
-*/
-
 void EntityTreeRenderer::playEntityCollisionSound(EntityItemPointer entity, const Collision& collision) {
     assert((bool)entity);
     SharedSoundPointer collisionSound = entity->getCollisionSound();
