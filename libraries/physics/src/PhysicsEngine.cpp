@@ -270,7 +270,7 @@ void PhysicsEngine::stepSimulation() {
     }
 
     auto onSubStep = [this]() {
-        updateContactMap();
+        this->updateContactMap();
     };
 
     int numSubsteps = _dynamicsWorld->stepSimulationWithSubstepCallback(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS,
@@ -393,7 +393,6 @@ void PhysicsEngine::updateContactMap() {
 }
 
 const CollisionEvents& PhysicsEngine::getCollisionEvents() {
-    const uint32_t CONTINUE_EVENT_FILTER_FREQUENCY = 10;
     _collisionEvents.clear();
 
     // scan known contacts and trigger events
@@ -402,7 +401,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
     while (contactItr != _contactMap.end()) {
         ContactInfo& contact = contactItr->second;
         ContactEventType type = contact.computeType(_numContactFrames);
-        if (type != CONTACT_EVENT_TYPE_CONTINUE || _numSubsteps % CONTINUE_EVENT_FILTER_FREQUENCY == 0) {
+        if (type != CONTACT_EVENT_TYPE_CONTINUE || contact.readyForContinue(_numContactFrames)) {
             ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(contactItr->first._a);
             ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(contactItr->first._b);
 

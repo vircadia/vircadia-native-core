@@ -26,12 +26,14 @@ public:
     const btVector3& getPositionWorldOnB() const { return positionWorldOnB; }
     btVector3 getPositionWorldOnA() const { return positionWorldOnB + normalWorldOnB * distance; }
 
+    bool readyForContinue(uint32_t thisStep);
+
     btVector3 positionWorldOnB;
     btVector3 normalWorldOnB;
     btScalar distance;
 private:
     uint32_t _lastStep { 0 };
-    uint32_t _numChecks { 0 };
+    uint32_t _continueExpiry { 0 };
 };
 
 
