@@ -245,7 +245,7 @@ void Model::updateRenderItems() {
 
                         // update the model transform and bounding box for this render item.
                         const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                        data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                        data.updateTransformForSkinnedMesh(modelTransform, state.clusterMatrices);
                     }
                 }
             });
@@ -1167,7 +1167,6 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
 
-    glm::mat4 modelToWorld = glm::mat4_cast(modelOrientation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
@@ -1176,11 +1175,10 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
             auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
 #if GLM_ARCH & GLM_ARCH_SSE2
             glm::mat4 temp, out, inverseBindMatrix = cluster.inverseBindMatrix;
-            glm_mat4_mul((glm_vec4*)&modelToWorld, (glm_vec4*)&jointMatrix, (glm_vec4*)&temp);
             glm_mat4_mul((glm_vec4*)&temp, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
             state.clusterMatrices[j] = out;
-#else 
-            state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+#else
+            state.clusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
 #endif
 
             // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1188,7 +1186,7 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }
-                state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+                state.cauterizedClusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
             }
         }
 

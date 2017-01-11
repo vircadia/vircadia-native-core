@@ -56,13 +56,12 @@ public:
     model::Mesh::Part _drawPart;
 
     std::shared_ptr<const model::Material> _drawMaterial;
-    
+
     model::Box _localBound;
     Transform _drawTransform;
     Transform _transform;
-    Transform _offsetTransform;
     mutable model::Box _worldBound;
-    
+
     bool _hasColorAttrib = false;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
@@ -86,7 +85,7 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
+    void updateTransformForSkinnedMesh(const Transform& transform, const QVector<glm::mat4>& clusterMatrices);
 
     // Entity fade in
     void startFade();
