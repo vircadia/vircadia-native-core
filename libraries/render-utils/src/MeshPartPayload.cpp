@@ -562,7 +562,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         return;
     }
 
-
     // When an individual mesh parts like this finishes its fade, we will mark the Model as
     // having render items that need updating
     bool nextIsFading = _isFading ? isStillFading() : false;
@@ -585,8 +584,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     // Bind the model transform and the skinCLusterMatrices if needed
     bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
-    // TODO: maybe get rid of this call?
-   // _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
     bindTransform(batch, locations, canCauterize);
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed
