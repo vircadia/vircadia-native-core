@@ -400,14 +400,15 @@ function handleMouseMoveEvent(event) { // find out which overlay (if any) is ove
     }
     handleMouseMove(pickRay);
 }
-const TRIGGER_THRESHOLD = 0.85;
+const TRIGGER_CLICK_THRESHOLD = 0.85;
+const TRIGGER_PRESS_THRESHOLD = 0.05;
 // for some reason, I could not get trigger mappings for the LT and RT to fire.  So, since we can read the 
 // value of the RT and LT, and the messages come through as mouse moves, we have the hack below to figure out
 // which hand is being triggered, and compute the pick ray accordingly.
 //
 function isPressed(hand) { // helper to see if the hand passed in has the trigger pulled
     var controller = (hand === Controller.Standard.RightHand ? Controller.Standard.RT : Controller.Standard.LT);
-    return Controller.getValue(controller) > TRIGGER_THRESHOLD;
+    return Controller.getValue(controller) > TRIGGER_PRESS_THRESHOLD;
 }
 // helpful globals
 var currentHandPressed = 0;
@@ -451,7 +452,7 @@ function controllerComputePickRay(hand) {
 }
 function makeClickHandler(hand) {
     return function (clicked) {
-        if (clicked > TRIGGER_THRESHOLD) {
+        if (clicked > TRIGGER_CLICK_THRESHOLD) {
             var pickRay = controllerComputePickRay(hand);
             handleClick(pickRay);
         }
