@@ -69,6 +69,19 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
+class AudioInjectorsThread : public QThread {
+    Q_OBJECT
+
+public:
+    AudioInjectorsThread(AudioClient* audio) : _audio(audio) {}
+
+public slots :
+    void prepare();
+
+private:
+    AudioClient* _audio;
+};
+
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -295,20 +308,25 @@ private:
     AudioEffectOptions* _reverbOptions;
     AudioReverb _sourceReverb { AudioConstants::SAMPLE_RATE };
     AudioReverb _listenerReverb { AudioConstants::SAMPLE_RATE };
+    AudioReverb _localReverb { AudioConstants::SAMPLE_RATE };
 
     // possible streams needed for resample
     AudioSRC* _inputToNetworkResampler;
     AudioSRC* _networkToOutputResampler;
+    AudioSRC* _localToOutputResampler;
 
-    // for network audio (used by network audio threads)
+    // for network audio (used by network audio thread)
     float _networkMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
 
-    // for local audio (used by this thread only)
+    // for local audio (used by audio injectors thread)
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
+    int16_t* _localOutputScratchBuffer { NULL };
+    AudioInjectorsThread _localAudioThread;
+    Mutex _localAudioMutex;
 
-    // for output audio (used by this thread only)
+    // for output audio (used by this thread)
     int _outputPeriod { 0 };
     float* _outputMixBuffer { NULL };
     int16_t* _outputScratchBuffer { NULL };
