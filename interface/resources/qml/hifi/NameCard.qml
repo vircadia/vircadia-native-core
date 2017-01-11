@@ -10,6 +10,7 @@
 //
 
 import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
 import "../styles-uit"
 
@@ -27,12 +28,14 @@ Row {
     }
 
     // Properties
-    property int contentHeight: 50
+    property int contentHeight: isMyCard ? 50 : 70
+    property string uuid: ""
     property string displayName: ""
     property string userName: ""
     property int displayTextHeight: 18
     property int usernameTextHeight: 12
     property real audioLevel: 0.0
+    property bool isMyCard: false
 
     /* User image commented out for now - will probably be re-introduced later.
     Column {
@@ -138,5 +141,33 @@ Row {
                 }
             }
         }
+
+        // Per-Avatar Gain Slider Spacer
+        Item {
+            width: parent.width
+            height: 4
+            visible: !isMyCard
+        }
+        // Per-Avatar Gain Slider 
+        Slider {
+            id: gainSlider
+            visible: !isMyCard
+            width: parent.width
+            height: 16
+            value: 1.0
+            minimumValue: 0.0
+            maximumValue: 1.5
+            stepSize: 0.1
+            updateValueWhileDragging: false
+            onValueChanged: updateGainFromQML(uuid, value)
+        }
+    }
+
+    function updateGainFromQML(avatarUuid, gainValue) {
+        var data = {
+            sessionId: avatarUuid,
+            gain: (Math.exp(gainValue) - 1) / (Math.E - 1)
+        };
+        pal.sendToScript({method: 'updateGain', params: data});
     }
 }

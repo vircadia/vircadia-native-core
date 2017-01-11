@@ -65,6 +65,7 @@ Rectangle {
             displayName: myData.displayName
             userName: myData.userName
             audioLevel: myData.audioLevel
+            isMyCard: true
             // Size
             width: nameCardWidth
             height: parent.height
@@ -206,6 +207,7 @@ Rectangle {
                 userName: model && model.userName
                 audioLevel: model && model.audioLevel
                 visible: !isCheckBox && !isButton
+                uuid: model && model.sessionId
                 // Size
                 width: nameCardWidth
                 height: parent.height

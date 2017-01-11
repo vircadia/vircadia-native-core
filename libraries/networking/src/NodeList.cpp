@@ -951,6 +951,29 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
     }
 }
 
+void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
+    // cannot set gain of yourself or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+        if (audioMixer) {
+            // setup the packet
+            auto setAvatarGainPacket = NLPacket::create(PacketType::PerAvatarGainSet, NUM_BYTES_RFC4122_UUID + sizeof(float), true);
+            
+            // write the node ID to the packet
+            setAvatarGainPacket->write(nodeID.toRfc4122());
+            setAvatarGainPacket->writePrimitive((gain < 5.0f ? gain : 5.0f));
+
+            qCDebug(networking) << "Sending Set Avatar Gain packet UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
+
+            sendPacket(std::move(setAvatarGainPacket), *audioMixer);
+        } else {
+            qWarning() << "Couldn't find audio mixer to send set gain request";
+        }
+    } else {
+        qWarning() << "NodeList::setAvatarGain called with an invalid ID or an ID which matches the current session ID:" << nodeID;
+    }
+}
+
 void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)

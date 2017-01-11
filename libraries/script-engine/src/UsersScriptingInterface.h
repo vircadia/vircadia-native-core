@@ -62,6 +62,14 @@ public slots:
     bool getPersonalMuteStatus(const QUuid& nodeID);
 
     /**jsdoc
+    * Sets an avatar's gain for you and you only.
+    * @function Users.setAvatarGain
+    * @param {nodeID} nodeID The node or session ID of the user whose gain you want to modify.
+    * @param {float} gain The gain of the avatar you'd like to set.
+    */
+    void setAvatarGain(const QUuid& nodeID, float gain);
+
+    /**jsdoc
     * Kick another user.
     * @function Users.kick
     * @param {nodeID} nodeID The node or session ID of the user you want to kick.

@@ -233,6 +233,10 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
         removeOverlays();
         populateUserList();
         break;
+    case 'updateGain':
+        data = message.params;
+        Users.setAvatarGain(data['sessionId'], data['gain']);
+        break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }

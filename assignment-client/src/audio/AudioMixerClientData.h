@@ -95,6 +95,10 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
+    float getPerAvatarGain(const QUuid& avatarID) { return (_perAvatarGain.count(avatarID) ? _perAvatarGain.at(avatarID) : 1.0f); }
+    void setPerAvatarGain(const QUuid& avatarID, float gain) { _perAvatarGain[avatarID] = gain; }
+    void removePerAvatarGain(const QUuid& avatarID) { _perAvatarGain.erase(avatarID); }
+
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 
@@ -125,6 +129,8 @@ private:
 
     bool _shouldMuteClient { false };
     bool _requestsDomainListData { false };
+
+    std::unordered_map<QUuid, float> _perAvatarGain;
 };
 
 #endif // hifi_AudioMixerClientData_h
