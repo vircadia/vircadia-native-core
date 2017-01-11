@@ -384,12 +384,16 @@ function handleMouseMove(pickRay) { // given the pickRay, just do the hover logi
         ExtendedOverlay.unHover();
     });
 }
+
+// handy global to keep track of which hand is the mouse (if any)
+var currentHandPressed = 0;
+const TRIGGER_CLICK_THRESHOLD = 0.85;
+const TRIGGER_PRESS_THRESHOLD = 0.05;
+
 function handleMouseMoveEvent(event) { // find out which overlay (if any) is over the mouse position
     if (HMD.active) {
-        var hand = whichHand();
-        if (hand != 0) {
-            print("pick ray for " + hand);
-            pickRay = controllerComputePickRay(hand);
+        if (currentHandPressed != 0) {
+            pickRay = controllerComputePickRay(currentHandPressed);
         } else {
             // nothing should hover, so
             ExtendedOverlay.unHover();
@@ -400,50 +404,27 @@ function handleMouseMoveEvent(event) { // find out which overlay (if any) is ove
     }
     handleMouseMove(pickRay);
 }
-const TRIGGER_CLICK_THRESHOLD = 0.85;
-const TRIGGER_PRESS_THRESHOLD = 0.05;
-// for some reason, I could not get trigger mappings for the LT and RT to fire.  So, since we can read the 
-// value of the RT and LT, and the messages come through as mouse moves, we have the hack below to figure out
-// which hand is being triggered, and compute the pick ray accordingly.
-//
-function isPressed(hand) { // helper to see if the hand passed in has the trigger pulled
-    var controller = (hand === Controller.Standard.RightHand ? Controller.Standard.RT : Controller.Standard.LT);
-    return Controller.getValue(controller) > TRIGGER_PRESS_THRESHOLD;
-}
-// helpful globals
-var currentHandPressed = 0;
-var hands = [Controller.Standard.RightHand, Controller.Standard.LeftHand];
-
-function whichHand() { 
-    // for HMD, decide which hand is the "mouse". The 'logic' is to use the first one that
-    // is triggered, until that one is released.  There are interesting effects when both
-    // are held that this avoids.  Mapping the 2 triggers and their lasers to one mouse move
-    // message is a bit problematic, this mitigates some of it.
-    if (HMD.active) {
-        var pressed = {};
-        for (var i = 0; i<hands.length; i++) {
-            pressed[hands[i]] = isPressed(hands[i]);
-        }
-        if (currentHandPressed != 0 && pressed[currentHandPressed] === true) {
-            return currentHandPressed; // nothing changed
-        } else {
-            // so now just pick the first hand that is pressed.
-            for (var j=0; j<hands.length; j++) {
-                if (pressed[hands[j]]) {
-                    currentHandPressed = hands[j];
-                    return currentHandPressed;
-                }
-            }
-            currentHandPressed = 0;
-        }
-
+function handleTriggerPressed(hand, value) {
+    // The idea is if you press one trigger, it is the one 
+    // we will consider the mouse.  Even if the other is pressed,
+    // we ignore it until this one is no longer pressed.
+    isPressed = value > TRIGGER_PRESS_THRESHOLD;
+    if (currentHandPressed == 0) {
+        currentHandPressed = isPressed ? hand : 0;
+        return;
     }
-    return currentHandPressed;
+    if (currentHandPressed == hand) { 
+        currentHandPressed = isPressed ? hand : 0;
+        return;
+    } 
+    // otherwise, the other hand is still triggered
+    // so do nothing.
 }
 
 // We get mouseMoveEvents from the handControllers, via handControllerPointer.
 // But we don't get mousePressEvents.
 var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+var triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
 function controllerComputePickRay(hand) {
     var controllerPose = getControllerWorldLocation(hand, true);
     if (controllerPose.valid) {
@@ -458,9 +439,15 @@ function makeClickHandler(hand) {
         }
     };
 }
+function makePressHandler(hand) {
+    return function (value) {
+        handleTriggerPressed(hand, value);
+    }
+}
 triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
 triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
-
+triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
+triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
 //
 // Manage the connection between the button and the window.
 //
@@ -484,6 +471,7 @@ function off() {
         isWired = false;
     }
     triggerMapping.disable(); // It's ok if we disable twice.
+    triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
 }
@@ -497,6 +485,7 @@ function onClicked() {
         Controller.mousePressEvent.connect(handleMouseEvent);
         Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
         triggerMapping.enable();
+        triggerPressMapping.enable();
     } else {
         off();
     }
