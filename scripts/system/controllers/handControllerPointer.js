@@ -20,9 +20,6 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
-var systemLaserOn = false;
-
-
 Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
@@ -124,12 +121,6 @@ function ignoreMouseActivity() {
     if (!Reticle.allowMouseCapture) {
         return true;
     }
-
-    // if the lasers are on, then reticle/mouse should be hidden and we can ignore it for seeking or depth updating
-    if (systemLaserOn) {
-        return true;
-    }
-
     var pos = Reticle.position;
     if (!pos || (pos.x == -1 && pos.y == -1)) {
         return true;
@@ -270,12 +261,6 @@ var ONE_MINUS_WEIGHTING = 1 - WEIGHTING;
 var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 20;
 function isShakingMouse() { // True if the person is waving the mouse around trying to find it.
     var now = Date.now(), mouse = Reticle.position, isShaking = false;
-
-    // if the lasers are on, then we ignore mouse shaking
-    if (systemLaserOn) {
-        return false;
-    }
-
     if (lastIntegration && (lastIntegration !== now)) {
         var velocity = Vec3.length(Vec3.subtract(mouse, lastMouse)) / (now - lastIntegration);
         averageMouseVelocity = (ONE_MINUS_WEIGHTING * averageMouseVelocity) + (WEIGHTING * velocity);
@@ -290,14 +275,9 @@ function isShakingMouse() { // True if the person is waving the mouse around try
 var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.1;
 function updateSeeking(doNotStartSeeking) {
-    // if the lasers are on, then we never do seeking
-    if (systemLaserOn) {
-        isSeeking = false;
-        return;
-    }
-
     if (!doNotStartSeeking && (!Reticle.visible || isShakingMouse())) {
         if (!isSeeking) {
+            print('Start seeking mouse.');
             isSeeking = true;
         }
     } // e.g., if we're about to turn it on with first movement.
@@ -307,6 +287,7 @@ function updateSeeking(doNotStartSeeking) {
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
     if (!lookAt2D) { // If this happens, something has gone terribly wrong.
+        print('Cannot seek without lookAt position');
         isSeeking = false;
         return; // E.g., if parallel to location in HUD
     }
@@ -322,6 +303,7 @@ function updateSeeking(doNotStartSeeking) {
     }
     var okX = !updateDimension('x'), okY = !updateDimension('y'); // Evaluate both. Don't short-circuit.
     if (okX && okY) {
+        print('Finished seeking mouse');
         isSeeking = false;
     } else {
         Reticle.setPosition(copy); // Not setReticlePosition
@@ -340,7 +322,7 @@ function updateMouseActivity(isClick) {
         return;
     } // Bug: mouse clicks should keep going. Just not hand controller clicks
     handControllerLockOut.update(now);
-    Reticle.visible = !systemLaserOn;
+    Reticle.visible = true;
 }
 function expireMouseCursor(now) {
     if (!isPointingAtOverlay() && mouseCursorActivity.expired(now)) {
@@ -492,6 +474,7 @@ var LASER_ALPHA = 0.5;
 var LASER_SEARCH_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: LASER_ALPHA};
 var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: LASER_ALPHA};
 var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
+var systemLaserOn = false;
 function clearSystemLaser() {
     if (!systemLaserOn) {
         return;
