@@ -24,8 +24,8 @@ Rectangle {
     // Style
     color: "#E3E3E3"
     // Properties
-    property int myCardHeight: 70
-    property int rowHeight: 70
+    property int myCardHeight: 90
+    property int rowHeight: 90
     property int actionButtonWidth: 75
     property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
@@ -51,7 +51,7 @@ Rectangle {
         id: myInfo
         // Size
         width: palContainer.width
-        height: myCardHeight + 20
+        height: myCardHeight
         // Style
         color: pal.color
         // Anchors

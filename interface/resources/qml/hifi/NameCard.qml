@@ -11,6 +11,7 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 import "../styles-uit"
 
@@ -28,7 +29,7 @@ Row {
     }
 
     // Properties
-    property int contentHeight: isMyCard ? 50 : 70
+    property int contentHeight: 70
     property string uuid: ""
     property string displayName: ""
     property string userName: ""
@@ -153,13 +154,27 @@ Row {
             id: gainSlider
             visible: !isMyCard
             width: parent.width
-            height: 16
+            height: 18
             value: 1.0
             minimumValue: 0.0
             maximumValue: 1.5
             stepSize: 0.1
             updateValueWhileDragging: false
             onValueChanged: updateGainFromQML(uuid, value)
+            style: SliderStyle {
+                groove: Rectangle {
+                    color: "#dbdbdb"
+                    implicitWidth: gainSlider.width
+                    implicitHeight: 4
+                    radius: 2
+                }
+                handle: Rectangle {
+                    anchors.centerIn: parent
+                    color: (control.pressed || control.hovered) ? "#00b4ef" : "#8F8F8F"
+                    implicitWidth: 10
+                    implicitHeight: 18
+                }
+            }
         }
     }
 
