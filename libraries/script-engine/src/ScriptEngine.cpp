@@ -67,6 +67,8 @@
 #include "MIDIEvent.h"
 
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
+static const QScriptEngine::QObjectWrapOptions DEFAULT_QOBJECT_WRAP_OPTIONS =
+                QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects;
 
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
@@ -95,7 +97,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
 }
 
 QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
-    return engine->newQObject(in);
+    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
 }
 
 void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
@@ -106,7 +108,7 @@ Q_DECLARE_METATYPE(controller::InputController*)
 //static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
 
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::InputController* const &in) {
-    return engine->newQObject(in);
+    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
 }
 
 void inputControllerFromScriptValue(const QScriptValue &object, controller::InputController* &out) {
@@ -460,7 +462,8 @@ static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine, const
 
     auto object = engine->newQObject(
         const_cast<ScriptableResourceRawPtr>(resource),
-        QScriptEngine::ScriptOwnership);
+        QScriptEngine::ScriptOwnership,
+        DEFAULT_QOBJECT_WRAP_OPTIONS);
     return object;
 }
 
@@ -479,7 +482,8 @@ static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
         state->setProperty(metaEnum.key(i), metaEnum.value(i));
     }
 
-    auto prototypeState = engine->newQObject(state, QScriptEngine::QtOwnership, QScriptEngine::ExcludeSlots | QScriptEngine::ExcludeSuperClassMethods);
+    auto prototypeState = engine->newQObject(state, QScriptEngine::QtOwnership,
+       QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeSlots | QScriptEngine::ExcludeSuperClassMethods);
     prototype.setProperty("State", prototypeState);
 
     return prototype;
@@ -614,7 +618,7 @@ void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
 
     if (!globalObject().property(name).isValid()) {
         if (object) {
-            QScriptValue value = newQObject(object);
+            QScriptValue value = newQObject(object, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
             globalObject().setProperty(name, value);
         } else {
             globalObject().setProperty(name, QScriptValue());

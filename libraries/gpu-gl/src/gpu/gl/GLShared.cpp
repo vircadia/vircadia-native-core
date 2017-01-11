@@ -17,6 +17,7 @@
 
 Q_LOGGING_CATEGORY(gpugllogging, "hifi.gpu.gl")
 Q_LOGGING_CATEGORY(trace_render_gpu_gl, "trace.render.gpu.gl")
+Q_LOGGING_CATEGORY(trace_render_gpu_gl_detail, "trace.render.gpu.gl.detail")
 
 namespace gpu { namespace gl {
 

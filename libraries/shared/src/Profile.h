@@ -13,16 +13,22 @@
 #include "Trace.h"
 #include "SharedUtil.h"
 
+// When profiling something that may happen many times per frame, use a xxx_detail category so that they may easily be filtered out of trace results
 Q_DECLARE_LOGGING_CATEGORY(trace_app)
+Q_DECLARE_LOGGING_CATEGORY(trace_app_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_network)
 Q_DECLARE_LOGGING_CATEGORY(trace_render)
+Q_DECLARE_LOGGING_CATEGORY(trace_render_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu)
 Q_DECLARE_LOGGING_CATEGORY(trace_resource)
 Q_DECLARE_LOGGING_CATEGORY(trace_resource_parse)
 Q_DECLARE_LOGGING_CATEGORY(trace_resource_network)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation)
+Q_DECLARE_LOGGING_CATEGORY(trace_simulation_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_animation)
+Q_DECLARE_LOGGING_CATEGORY(trace_simulation_animation_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics)
+Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics_detail)
 
 class Duration {
 public:
@@ -69,6 +75,7 @@ inline void counter(const QLoggingCategory& category, const QString& name, const
 #define PROFILE_RANGE_END(category, rangeId) Duration::endRange(trace_##category(), rangeId)
 #define PROFILE_ASYNC_BEGIN(category, name, id, ...) asyncBegin(trace_##category(), name, id, ##__VA_ARGS__);
 #define PROFILE_ASYNC_END(category, name, id, ...) asyncEnd(trace_##category(), name, id, ##__VA_ARGS__);
+#define PROFILE_COUNTER_IF_CHANGED(category, name, type, value) { static type lastValue = 0; type newValue = value;  if (newValue != lastValue) { counter(trace_##category(), name, { { name, newValue }}); lastValue = newValue; } }
 #define PROFILE_COUNTER(category, name, ...) counter(trace_##category(), name, ##__VA_ARGS__);
 #define PROFILE_INSTANT(category, name, ...) instant(trace_##category(), name, ##__VA_ARGS__);
 
