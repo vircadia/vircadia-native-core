@@ -20,6 +20,10 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
+var activeTrigger;
+function isLaserOn() {
+    return activeTrigger.partial();
+}
 Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
@@ -275,7 +279,7 @@ function isShakingMouse() { // True if the person is waving the mouse around try
 var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.1;
 function updateSeeking(doNotStartSeeking) {
-    if (!doNotStartSeeking && (!Reticle.visible || isShakingMouse())) {
+    if (!doNotStartSeeking && !isLaserOn() && (!Reticle.visible || isShakingMouse())) {
         if (!isSeeking) {
             print('Start seeking mouse.');
             isSeeking = true;
@@ -374,7 +378,7 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 
 var leftTrigger = new Trigger('left');
 var rightTrigger = new Trigger('right');
-var activeTrigger = rightTrigger;
+activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
 var LEFT_HUD_LASER = 1;
 var RIGHT_HUD_LASER = 2;
