@@ -1108,18 +1108,23 @@ void AudioClient::prepareLocalAudioInjectors() {
                 _localScratchBuffer[i] = (int16_t)(_localMixBuffer[i] * 32768.0f);
             }
 
-            // resample to output sample rate
-            int samples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
-            int16_t* scratchBuffer = _localScratchBuffer;
+            int samples;
             if (_networkToOutputResampler) {
+                // resample to output sample rate
                 int frames = _networkToOutputResampler->render(_localScratchBuffer, _outputScratchBuffer,
                         AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+                // write to local injectors' ring buffer
                 samples = frames * AudioConstants::STEREO;
-                scratchBuffer = _outputScratchBuffer;
+                _localInjectorsBuffer.writeSamples(_outputScratchBuffer, samples);
+
+            } else {
+                // write to local injectors' ring buffer
+                samples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
+                _localInjectorsBuffer.writeSamples(_localScratchBuffer,
+                    AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
             }
 
-            // write to local injectors' ring buffer
-            _localInjectorsBuffer.writeSamples(scratchBuffer, samples);
             samplesNeeded -= samples;
         }
     }
@@ -1235,16 +1240,20 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
         _listenerReverb.render(_networkMixBuffer, _networkMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     }
 
-    // convert mix audio (float) to network audio (int16_t)
-    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-        _networkScratchBuffer[i] = (int16_t)(_networkMixBuffer[i] * 32768.0f);
-    }
-
-    // resample to output sample rate
     if (_networkToOutputResampler) {
+        // convert mix audio (float) to network audio (int16_t)
+        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+            _networkScratchBuffer[i] = (int16_t)(_networkMixBuffer[i] * 32768.0f);
+        }
+
+        // resample to output sample rate
         _networkToOutputResampler->render(_networkScratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
     } else {
-        memcpy(outputBuffer.data(), _networkScratchBuffer, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+        // convert mix audio (float) to network audio (int16_t)
+        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+            outputSamples[i] = (int16_t)(_networkMixBuffer[i] * 32768.0f);
+        }
     }
 }
 
