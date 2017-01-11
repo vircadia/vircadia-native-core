@@ -89,6 +89,7 @@
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <OffscreenUi.h>
+#include <gl/OffscreenQmlSurfaceCache.h>
 #include <gl/OffscreenGLCanvas.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -512,6 +513,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceParentFinder>();
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     DependencyManager::set<CompositorHelper>();
+    DependencyManager::set<OffscreenQmlSurfaceCache>();
     return previousSessionCrashed;
 }
 
@@ -2003,6 +2005,10 @@ void Application::initializeUi() {
             showCursor(compositorHelper->getAllowMouseCapture() ? Qt::BlankCursor : Qt::ArrowCursor);
         }
     });
+
+    // Pre-create a couple of Web3D overlays to speed up tablet UI
+    auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
 void Application::paintGL() {
