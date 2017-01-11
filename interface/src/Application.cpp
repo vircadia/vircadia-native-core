@@ -194,8 +194,9 @@ static QTimer pingTimer;
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
-// For processing on QThreadPool, target 2 less than the ideal number of threads, leaving
-// 2 logical cores available for time sensitive tasks.
+// For processing on QThreadPool, we target a number of threads after reserving some 
+// based on how many are being consumed by the application and the display plugin.  However,
+// we will never drop below the 'min' value
 static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
@@ -3309,15 +3310,15 @@ void Application::idle(float nsecsElapsed) {
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
 
-    PROFILE_COUNTER(app, "fps", { { "fps", _frameCounter.rate() } });
-    PROFILE_COUNTER(app, "downloads", {
-        { "current", ResourceCache::getLoadingRequests().length() },
-        { "pending", ResourceCache::getPendingRequestCount() }
-    });
-    PROFILE_COUNTER(app, "processing", {
-        { "current", DependencyManager::get<StatTracker>()->getStat("Processing") },
-        { "pending", DependencyManager::get<StatTracker>()->getStat("PendingProcessing") }
-    });
+    auto displayPlugin = getActiveDisplayPlugin();
+    if (displayPlugin) {
+        PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
+    }
+    PROFILE_COUNTER_IF_CHANGED(app, "fps", float, _frameCounter.rate());
+    PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", int, ResourceCache::getLoadingRequests().length());
+    PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", int, ResourceCache::getPendingRequestCount());
+    PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
+    PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
 
     PROFILE_RANGE(app, __FUNCTION__);
 

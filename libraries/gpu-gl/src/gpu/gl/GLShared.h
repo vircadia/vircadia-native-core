@@ -16,6 +16,7 @@
 
 Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl)
+Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl_detail)
 
 namespace gpu { namespace gl { 
 
