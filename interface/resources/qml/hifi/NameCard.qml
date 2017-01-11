@@ -166,7 +166,7 @@ Row {
     function updateGainFromQML(avatarUuid, gainValue) {
         var data = {
             sessionId: avatarUuid,
-            gain: (Math.exp(gainValue) - 1) / (Math.E - 1)
+            gain: (Math.pow(20, gainValue) - 1) / (20 - 1)
         };
         pal.sendToScript({method: 'updateGain', params: data});
     }

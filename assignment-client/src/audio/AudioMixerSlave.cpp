@@ -296,7 +296,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
     float distance = glm::max(glm::length(relativePosition), EPSILON);
 
     // figure out the gain for this source at the listener
-    float gain = gainForSource(listeningNodeStream, streamToAdd, relativePosition, isEcho) + (perAvatarGain - 1.0f);
+    float gain = gainForSource(listeningNodeStream, streamToAdd, relativePosition, isEcho) * perAvatarGain;
 
     // figure out the azimuth to this source at the listener
     float azimuth = isEcho ? 0.0f : azimuthForSource(listeningNodeStream, listeningNodeStream, relativePosition);
