@@ -222,19 +222,11 @@ void Model::updateRenderItems() {
         Transform scaledModelTransform(modelTransform);
         scaledModelTransform.setScale(scale);
 
-        Transform modelMeshOffset;
-        if (self->isLoaded()) {
-            // includes model offset and unitScale.
-            modelMeshOffset = Transform(self->_rig->getGeometryToRigTransform());
-        } else {
-            modelMeshOffset.postTranslate(self->_offset);
-        }
-
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
-            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
+            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](ModelMeshPartPayload& data) {
                 if (data._model && data._model->isLoaded()) {
                     if (!data.hasStartedFade() && data._model->getGeometry()->areTexturesLoaded()) {
                         data.startFade();
@@ -242,7 +234,7 @@ void Model::updateRenderItems() {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
                         // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                        data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
+                        data._model->updateClusterMatrices();
 
                         // update the model transform and bounding box for this render item.
                         const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
@@ -1157,7 +1149,7 @@ void Model::simulateInternal(float deltaTime) {
 }
 
 // virtual
-void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) {
+void Model::updateClusterMatrices() {
     PerformanceTimer perfTimer("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
