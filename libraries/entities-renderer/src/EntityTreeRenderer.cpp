@@ -1045,8 +1045,6 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
 
     // trigger scripted collision sounds and events for locally owned objects
-    // BUG! scripts don't get the final COLLISION_EVENT_TYPE_END event in a timely manner because
-    // by the time it gets here the object has been deactivated and local ownership is relenquished.
     EntityItemPointer entityA = entityTree->findEntityByEntityItemID(idA);
     if ((bool)entityA && myNodeID == entityA->getSimulatorID()) {
         playEntityCollisionSound(entityA, collision);
