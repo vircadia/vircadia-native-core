@@ -46,6 +46,7 @@
 #include <Transform.h>
 
 #include "PositionalAudioStream.h"
+#include "AudioHelpers.h"
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 
@@ -842,36 +843,6 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-static void channelUpmix(int16_t* source, int16_t* dest, int numSamples, int numExtraChannels) {
-
-    for (int i = 0; i < numSamples/2; i++) {
-
-        // read 2 samples
-        int16_t left = *source++;
-        int16_t right = *source++;
-
-        // write 2 + N samples
-        *dest++ = left;
-        *dest++ = right;
-        for (int n = 0; n < numExtraChannels; n++) {
-            *dest++ = 0;
-        }
-    }
-}
-
-static void channelDownmix(int16_t* source, int16_t* dest, int numSamples) {
-
-    for (int i = 0; i < numSamples/2; i++) {
-
-        // read 2 samples
-        int16_t left = *source++;
-        int16_t right = *source++;
-
-        // write 1 sample
-        *dest++ = (int16_t)((left + right) / 2);
-    }
-}
-
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
@@ -1103,10 +1074,7 @@ void AudioClient::prepareLocalAudioInjectors() {
                 _listenerReverb.render(_localMixBuffer, _localMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
             }
 
-            // convert mix audio (float) to network audio (int16_t)
-            for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-                _localScratchBuffer[i] = (int16_t)(_localMixBuffer[i] * 32768.0f);
-            }
+            convertToScratch(_localScratchBuffer, _localMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
 
             int samples;
             if (_networkToOutputResampler) {
@@ -1228,10 +1196,7 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
     outputBuffer.resize(_outputFrameSize * AudioConstants::SAMPLE_SIZE);
     int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
 
-    // convert network audio (int16_t) to mix audio (float)
-    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-        _networkMixBuffer[i] = (float)decodedSamples[i] * (1/32768.0f);
-    }
+    convertToMix(_networkMixBuffer, decodedSamples, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
         
     // apply stereo reverb
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
@@ -1241,19 +1206,13 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
     }
 
     if (_networkToOutputResampler) {
-        // convert mix audio (float) to network audio (int16_t)
-        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-            _networkScratchBuffer[i] = (int16_t)(_networkMixBuffer[i] * 32768.0f);
-        }
+        convertToScratch(_networkScratchBuffer, _networkMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
 
         // resample to output sample rate
         _networkToOutputResampler->render(_networkScratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
     } else {
-        // convert mix audio (float) to network audio (int16_t)
-        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-            outputSamples[i] = (int16_t)(_networkMixBuffer[i] * 32768.0f);
-        }
+        convertToScratch(outputSamples, _networkMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
     }
 }
 
@@ -1630,10 +1589,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples(scratchBuffer, networkSamplesPopped);
 
-        // convert to mix buffer (float)
-        for (int i = 0; i < networkSamplesPopped; i++) {
-            mixBuffer[i] = (float)scratchBuffer[i] * (1/32768.0f);
-        }
+        convertToMix(mixBuffer, scratchBuffer, networkSamplesPopped);
 
         samplesRequested = networkSamplesPopped;
     }
@@ -1643,10 +1599,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsBuffer.samplesAvailable(), samplesRequested);
 
         if (networkSamplesPopped == 0) {
-            // convert to mix buffer (float)
-            for (int i = 0; i < injectorSamplesPopped; i++) {
-                mixBuffer[i] = (float)scratchBuffer[i] * (1/32768.0f);
-            }
+            convertToMix(mixBuffer, scratchBuffer, injectorSamplesPopped);
         } else {
             // add to mix buffer (float)
             for (int i = 0; i < injectorSamplesPopped; i++) {
