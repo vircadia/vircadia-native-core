@@ -1658,7 +1658,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // prepare injectors for the next callback
     QMetaObject::invokeMethod(_audio, "prepareLocalAudioInjectors", Qt::QueuedConnection);
 
-    int samplesPopped = std::max(networkSamplesPopped, networkSamplesPopped);
+    int samplesPopped = std::max(networkSamplesPopped, injectorSamplesPopped);
     int framesPopped = samplesPopped / AudioConstants::STEREO;
     int bytesWritten;
     if (samplesPopped > 0) {
