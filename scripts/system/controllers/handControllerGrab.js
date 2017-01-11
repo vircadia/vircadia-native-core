@@ -2728,13 +2728,17 @@ function MyController(hand) {
             var POINTER_PRESS_TO_MOVE_DELAY = 0.15; // seconds
             var POINTER_PRESS_TO_MOVE_DEADSPOT_ANGLE = 0.05; // radians ~ 3 degrees
             if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
-                angleBetween(pointerEvent.direction, this.touchingEnterPointerEvent.direction) > POINTER_PRESS_TO_MOVE_DEADSPOT_ANGLE) {
+                angleBetween(pointerEvent.direction,
+                             this.touchingEnterPointerEvent.direction) > POINTER_PRESS_TO_MOVE_DEADSPOT_ANGLE) {
                 Entities.sendMouseMoveOnEntity(this.grabbedEntity, pointerEvent);
                 Entities.sendHoldingClickOnEntity(this.grabbedEntity, pointerEvent);
                 this.deadspotExpired = true;
             }
 
             this.intersectionDistance = intersectInfo.distance;
+            if (this.state == STATE_ENTITY_LASER_TOUCHING) {
+                this.searchIndicatorOn(intersectInfo.searchRay);
+            }
             Reticle.setVisible(false);
         } else {
             this.setState(STATE_OFF, "grabbed entity was destroyed");
@@ -2845,6 +2849,9 @@ function MyController(hand) {
             }
 
             this.intersectionDistance = intersectInfo.distance;
+            if (this.state == STATE_OVERLAY_LASER_TOUCHING) {
+                this.searchIndicatorOn(intersectInfo.searchRay);
+            }
             Reticle.setVisible(false);
         } else {
             this.setState(STATE_OFF, "grabbed overlay was destroyed");
