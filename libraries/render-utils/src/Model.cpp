@@ -216,9 +216,11 @@ void Model::updateRenderItems() {
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         Transform modelTransform;
-        modelTransform.setScale(scale);
         modelTransform.setTranslation(self->_translation);
         modelTransform.setRotation(self->_rotation);
+
+        Transform scaledModelTransform(modelTransform);
+        scaledModelTransform.setScale(scale);
 
         Transform modelMeshOffset;
         if (self->isLoaded()) {
@@ -254,9 +256,9 @@ void Model::updateRenderItems() {
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
         foreach (auto itemID, self->_collisionRenderItems.keys()) {
-            pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
+            pendingChanges.updateItem<MeshPartPayload>(itemID, [scaledModelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
-                data.updateTransform(modelTransform, collisionMeshOffset);
+                data.updateTransform(scaledModelTransform, collisionMeshOffset);
             });
         }
 
