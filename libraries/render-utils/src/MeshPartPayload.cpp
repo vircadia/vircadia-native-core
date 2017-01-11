@@ -372,7 +372,7 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transf
 
         _worldBound.transform(transform);
         if (clusterMatrices.size() == 1) {
-            _transform.worldTransform(Transform(clusterMatrices[0]));
+            _transform = _transform.worldTransform(Transform(clusterMatrices[0]));
         }
     }
 }
@@ -586,7 +586,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     // Bind the model transform and the skinCLusterMatrices if needed
     bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
     // TODO: maybe get rid of this call?
-    _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
+   // _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
     bindTransform(batch, locations, canCauterize);
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed
