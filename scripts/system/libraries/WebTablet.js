@@ -26,17 +26,18 @@ var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
-function calcSpawnInfo(hand) {
+function calcSpawnInfo(hand, height) {
     var noHands = -1;
     if (HMD.active && hand != noHands) {
         var handController = getControllerWorldLocation(hand, false);
-        var front = Quat.getFront(handController.orientation);
-        var up = Quat.getUp(handController.orientation);
-        var frontOffset = Vec3.sum(handController.position, Vec3.multiply(0.4, up));
-        var finalOffset = Vec3.sum(frontOffset, Vec3.multiply(-0.3, front));
+        var controllerPosition  = handController.position;
+        var originalOrientation = Quat.lookAt(controllerPosition, HMD.position, Y_AXIS);
+        var yDisplacement = (height/2) + 0.2;
+        var tabletOffset = Vec3.multiplyQbyV(Quat.lookAt(controllerPosition, HMD.position, Y_AXIS), {x: 0, y: yDisplacement, z: -0.2});
+        var finalPosition = Vec3.sum(controllerPosition, tabletOffset);
         return {
-            position: finalOffset,
-            rotation: Quat.lookAt(finalOffset, HMD.position, Y_AXIS)
+            position: finalPosition,
+            rotation: Quat.lookAt(finalPosition, HMD.position, Y_AXIS)
         };
     } else {
         var front = Quat.getFront(MyAvatar.orientation);
@@ -174,7 +175,7 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, tablet
         tabletProperties.parentJointIndex = SENSOR_TO_ROOM_MATRIX;
 
         // compute the appropriate position of the tablet, near the hand controller that was used to spawn it.
-        var spawnInfo = calcSpawnInfo(hand);
+        var spawnInfo = calcSpawnInfo(hand, this.height);
         tabletProperties.position = spawnInfo.position;
         tabletProperties.rotation = spawnInfo.rotation;
     } else {
