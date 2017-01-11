@@ -155,7 +155,7 @@ Row {
             visible: !isMyCard
             width: parent.width
             height: 18
-            value: 1.0
+            value: pal.gain[uuid] ? pal.gain[uuid] : 1.0
             minimumValue: 0.0
             maximumValue: 1.5
             stepSize: 0.1
@@ -179,6 +179,7 @@ Row {
     }
 
     function updateGainFromQML(avatarUuid, gainValue) {
+        pal.gain[avatarUuid] = gainValue;
         var data = {
             sessionId: avatarUuid,
             gain: (Math.pow(20, gainValue) - 1) / (20 - 1)

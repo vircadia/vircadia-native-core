@@ -586,14 +586,14 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
-function clearIgnoredInQMLAndClosePAL() {
-    pal.sendToQml({ method: 'clearIgnored' });
+function clearLocalQMLDataAndClosePAL() {
+    pal.sendToQml({ method: 'clearLocalQMLData' });
     if (pal.visible) {
         onClicked(); // Close the PAL
     }
 }
-Window.domainChanged.connect(clearIgnoredInQMLAndClosePAL);
-Window.domainConnectionRefused.connect(clearIgnoredInQMLAndClosePAL);
+Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
+Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
 
 //
 // Cleanup.
@@ -604,8 +604,8 @@ Script.scriptEnding.connect(function () {
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-    Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
-    Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
+    Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
+    Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.unsubscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
     off();

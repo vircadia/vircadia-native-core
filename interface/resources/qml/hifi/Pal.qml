@@ -32,6 +32,7 @@ Rectangle {
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
+    property var gain: ({}); // Keep a local list of per-avatar gain. Far faster than keeping this data on the server.
 
     // This is the container for the PAL
     Rectangle {
@@ -494,8 +495,9 @@ Rectangle {
                 }
             }
             break;
-        case 'clearIgnored': 
+        case 'clearLocalQMLData': 
             ignored = {};
+            gain = {};
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
