@@ -1617,7 +1617,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
     int networkSamplesPopped;
     if ((networkSamplesPopped = _receivedAudioStream.popSamples(samplesRequested, false)) > 0) {
-        qCDebug(audiostream, "Read %d samples from buffer (%d available)", networkSamplesPopped, _receivedAudioStream.getSamplesAvailable());
+        qCDebug(audiostream, "Read %d samples from buffer (%d available, %d requested)", networkSamplesPopped, _receivedAudioStream.getSamplesAvailable(), samplesRequested);
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples(scratchBuffer, networkSamplesPopped);
 
@@ -1631,7 +1631,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
     int injectorSamplesPopped;
     if ((injectorSamplesPopped = _localInjectorsBuffer.readSamples(scratchBuffer, samplesRequested)) > 0) {
-        qCDebug(audiostream, "Read %d samples from injectors (%d available)", injectorSamplesPopped, _localInjectorsBuffer.samplesAvailable());
+        qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsBuffer.samplesAvailable(), samplesRequested);
 
         if (networkSamplesPopped == 0) {
             // convert to mix buffer (float)
