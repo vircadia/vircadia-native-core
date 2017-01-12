@@ -280,10 +280,7 @@ var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.1;
 function updateSeeking(doNotStartSeeking) {
     if (!doNotStartSeeking && !isLaserOn() && (!Reticle.visible || isShakingMouse())) {
-        if (!isSeeking) {
-            print('Start seeking mouse.');
-            isSeeking = true;
-        }
+        isSeeking = true;
     } // e.g., if we're about to turn it on with first movement.
     if (!isSeeking) {
         return;
@@ -291,7 +288,6 @@ function updateSeeking(doNotStartSeeking) {
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
     if (!lookAt2D) { // If this happens, something has gone terribly wrong.
-        print('Cannot seek without lookAt position');
         isSeeking = false;
         return; // E.g., if parallel to location in HUD
     }
@@ -307,7 +303,6 @@ function updateSeeking(doNotStartSeeking) {
     }
     var okX = !updateDimension('x'), okY = !updateDimension('y'); // Evaluate both. Don't short-circuit.
     if (okX && okY) {
-        print('Finished seeking mouse');
         isSeeking = false;
     } else {
         Reticle.setPosition(copy); // Not setReticlePosition
