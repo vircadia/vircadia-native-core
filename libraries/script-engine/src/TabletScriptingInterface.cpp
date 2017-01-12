@@ -53,7 +53,6 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
 
 static const char* TABLET_SOURCE_URL = "Tablet.qml";
 static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
-static const char* LOADER_SOURCE_PROPERTY_NAME = "LoaderSource";
 static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
