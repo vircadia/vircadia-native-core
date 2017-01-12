@@ -27,6 +27,7 @@
 #include <gpu/Batch.h>
 #include <render/Scene.h>
 #include <Transform.h>
+#include <SpatiallyNestable.h>
 
 #include "GeometryCache.h"
 #include "TextureCache.h"
@@ -203,9 +204,12 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
+    void setSpatiallyNestableOverride(SpatiallyNestablePointer ptr);
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
+
+    Transform getTransform() const;
 
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
@@ -288,6 +292,9 @@ protected:
     glm::vec3 _translation;
     glm::quat _rotation;
     glm::vec3 _scale;
+
+    SpatiallyNestableWeakPointer _spatiallyNestableOverride;
+
     glm::vec3 _offset;
 
     static float FAKE_DIMENSION_PLACEHOLDER;
