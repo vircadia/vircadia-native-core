@@ -482,7 +482,6 @@ function clearSystemLaser() {
     HMD.disableExtraLaser();
     systemLaserOn = false;
     weMovedReticle = true;
-    Reticle.position = { x: -1, y: -1 };
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
