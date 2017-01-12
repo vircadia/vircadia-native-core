@@ -163,9 +163,9 @@
                 // Reference: https://clara.io/learn/sdk/api/export
 
                 //var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
-                // 12 Jan 21017: Remove "&centerScene=true" option because it causes the Clara.io site to not generate zip files
-                // for some models (e.g., "Julia" and "Ur Draug").
-                var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
+                // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to 
+                // be successful in generating zip files.
+                var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?fbxUnit=Meter&fbxVersion=5&fbxEmbedTextures=true&imageFormat=WebGL";
 
                 var uuid = location.href.match(/\/view\/([a-z0-9\-]*)/)[1];
                 var url = XMLHTTPREQUEST_URL.replace("{uuid}", uuid);
