@@ -58,93 +58,38 @@ var marketplaceWebTablet;
 // To keep things consistent, we pickle the tablet data in Settings, and kill any existing such on restart and domain change.
 var persistenceKey = "io.highfidelity.lastDomainTablet";
 
-function shouldShowWebTablet() {
-    var rightPose = Controller.getPoseValue(Controller.Standard.RightHand);
-    var leftPose = Controller.getPoseValue(Controller.Standard.LeftHand);
-    var hasHydra = !!Controller.Hardware.Hydra;
-    return HMD.active && (leftPose.valid || rightPose.valid || hasHydra);
-}
-
 function showMarketplace() {
-    if (shouldShowWebTablet()) {
-        updateButtonState(true);
-        marketplaceWebTablet = new WebTablet(MARKETPLACE_URL_INITIAL, null, null, true);
-        Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
-        marketplaceWebTablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
-        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (message) {
-            if (message === GOTO_DIRECTORY) {
-                marketplaceWebTablet.setURL(MARKETPLACES_URL);
-            }
-            if (message === QUERY_CAN_WRITE_ASSETS) {
-                marketplaceWebTablet.getOverlayObject().emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
-            }
-            if (message === WARN_USER_NO_PERMISSIONS) {
-                Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
-            }
-        });
-    } else {
-        marketplaceWindow.setURL(MARKETPLACE_URL_INITIAL);
-        marketplaceWindow.setVisible(true);
-    }
-
-    marketplaceVisible = true;
+    tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL);
     UserActivityLogger.openedMarketplace();
-}
 
-function hideTablet(tablet) {
-    if (!tablet) {
-        return;
-    }
-    updateButtonState(false);
-    tablet.destroy();
-    marketplaceWebTablet = null;
-    Settings.setValue(persistenceKey, "");
+    // FIXME - the code to support the following is not yet implented
+    /*tablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL); 
+    tablet.webEventRecieved.connect(function (message) {
+       if (message === GOTO_DIRECTORY) {
+           tablet.gotoWebScreen(MATKETPLACES_URL);
+       }
+
+      if (message === QUERY_CAN_WRITE_ASSESTS) {
+          tablet.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
+      }
+      
+      if (message === WARN_USER_NO_PERMISSIONS) {
+          Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
+      }
+
+    });*/
 }
-function clearOldTablet() { // If there was a tablet from previous domain or session, kill it and let it be recreated
-    var tablet = WebTablet.unpickle(Settings.getValue(persistenceKey, ""));
-    hideTablet(tablet);
-}
-function hideMarketplace() {
-    if (marketplaceWindow.visible) {
-        marketplaceWindow.setVisible(false);
-        marketplaceWindow.setURL("about:blank");
-    } else if (marketplaceWebTablet) {
-        hideTablet(marketplaceWebTablet);
-    }
-    marketplaceVisible = false;
-}
-marketplaceWindow.closed.connect(function () {
-    marketplaceWindow.setURL("about:blank");
-});
 
 function toggleMarketplace() {
-    if (marketplaceVisible) {
-        hideMarketplace();
-    } else {
-        showMarketplace();
-    }
+    showMarketplace();
 }
 
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-var browseExamplesButton = toolBar.addButton({
-    imageURL: toolIconUrl + "market.svg",
-    objectName: "marketplace",
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 3,
-    alpha: 0.9
+var browseExamplesButton = tablet.addButton({
+    icon: "icons/tablet-icons/market-i.svg",
+    text: "MARKET"
 });
-
-function updateButtonState(visible) {
-    browseExamplesButton.writeProperty('buttonState', visible ? 0 : 1);
-    browseExamplesButton.writeProperty('defaultState', visible ? 0 : 1);
-    browseExamplesButton.writeProperty('hoverState', visible ? 2 : 3);
-}
-function onMarketplaceWindowVisibilityChanged() {
-    updateButtonState(marketplaceWindow.visible);
-    marketplaceVisible = marketplaceWindow.visible;
-}
 
 function onCanWriteAssetsChanged() {
     var message = CAN_WRITE_ASSETS + " " + Entities.canWriteAssets();
@@ -161,16 +106,11 @@ function onClick() {
 }
 
 browseExamplesButton.clicked.connect(onClick);
-marketplaceWindow.visibleChanged.connect(onMarketplaceWindowVisibilityChanged);
 Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
-clearOldTablet(); // Run once at startup, in case there's anything laying around from a crash.
-// We could also optionally do something like Window.domainChanged.connect(function () {Script.setTimeout(clearOldTablet, 2000)}),
-// but the HUD version stays around, so lets do the same.
-
 Script.scriptEnding.connect(function () {
-    toolBar.removeButton("marketplace");
     browseExamplesButton.clicked.disconnect(onClick);
+    tablet.removeButton(browseExamplesButton);
     marketplaceWindow.visibleChanged.disconnect(onMarketplaceWindowVisibilityChanged);
     Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
 });

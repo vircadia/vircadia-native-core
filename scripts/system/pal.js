@@ -361,16 +361,11 @@ triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Cont
 //
 // Manage the connection between the button and the window.
 //
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-var buttonName = "pal";
-var button = toolBar.addButton({
-    objectName: buttonName,
-    imageURL: Script.resolvePath("assets/images/tools/people.svg"),
-    visible: true,
-    hoverState: 2,
-    defaultState: 1,
-    buttonState: 1,
-    alpha: 0.9
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var buttonName = "PAL";
+var button = tablet.addButton({
+    text: buttonName,
+    icon: "icons/tablet-icons/people-i.svg"
 });
 var isWired = false;
 function off() {
@@ -502,7 +497,7 @@ Window.domainConnectionRefused.connect(clearIgnoredInQMLAndClosePAL);
 //
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
-    toolBar.removeButton(buttonName);
+    tablet.removeButton(buttonName);
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
