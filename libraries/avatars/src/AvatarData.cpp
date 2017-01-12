@@ -52,7 +52,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 static const int AUDIO_LOUDNESS_RADIX = 2;
-static const float AUDIO_LOUDNESS_SCALE = 20.0f;
+static const float AUDIO_LOUDNESS_SCALE = 4.0f;
 //static const int MODEL_OFFSET_RADIX = 6;
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
@@ -234,10 +234,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     // TODO -
     //      typical --  1jd 0ft 0p 1af 1stw 0loud 1look 0s 0o 1d 1lp 1gp
     //
+    // 4) AudioLoudness - 8bit encoding, clamp to 1000 and / 4.0f                 -  1 byte  - 0.36 kpbs (when speaking)
+    //
+    //
     // 1) make the dimensions really be dimensions instead of corner              - 12 bytes - 4.32 kbps (when moving)
     // 2) determine if local position really only matters for parent              - 12 bytes - 4.32 kbps (when moving and/or not parented)
     // 3) SensorToWorld - should we only send this for avatars with attachments?? - 20 bytes - 7.20 kbps
-    // 4) AudioLoudness - use Ken's 8bit encoding                                 -  1 byte  - 0.36 kpbs (when speaking)
     // 5) GUIID for the session change to 2byte index                   (savings) - 14 bytes - 5.04 kbps
     //
     //  ----- Subtotal -- non-joint savings --- ~21.2 kbps ---  ~12.8% savings?
@@ -337,8 +339,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasAudioLoudness) {
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
         
-        auto audioLoudness = glm::min(_headData->getAudioLoudness(), MAX_AUDIO_LOUDNESS) / AUDIO_LOUDNESS_SCALE;
-        destinationBuffer += packFloatScalarToSignedOneByteFixed((uint8_t*)&data->audioLoudness, audioLoudness, AUDIO_LOUDNESS_RADIX);
+        data->audioLoudness = glm::min(_headData->getAudioLoudness(), MAX_AUDIO_LOUDNESS) / AUDIO_LOUDNESS_SCALE;
+        destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
     }
 
     if (hasSensorToWorldMatrix) {
@@ -753,8 +755,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         PACKET_READ_CHECK(AudioLoudness, sizeof(AvatarDataPacket::AudioLoudness));
         auto data = reinterpret_cast<const AvatarDataPacket::AudioLoudness*>(sourceBuffer);
         float audioLoudness;
-        sourceBuffer += unpackFloatScalarFromSignedOneByteFixed(&data->audioLoudness, &audioLoudness, AUDIO_LOUDNESS_RADIX);
-        audioLoudness *= AUDIO_LOUDNESS_SCALE;
+        audioLoudness = data->audioLoudness * AUDIO_LOUDNESS_SCALE;
+        sourceBuffer += sizeof(AvatarDataPacket::AudioLoudness);
 
         if (isNaN(audioLoudness)) {
             if (shouldLogError(now)) {
