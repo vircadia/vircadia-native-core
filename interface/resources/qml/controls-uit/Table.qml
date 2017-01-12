@@ -109,7 +109,7 @@ TableView {
 
         handle: Item {
             id: scrollbarHandle
-            implicitWidth: 6
+            implicitWidth: 9
             Rectangle {
                 anchors {
                     fill: parent
@@ -124,7 +124,7 @@ TableView {
         }
 
         scrollBarBackground: Item {
-            implicitWidth: 9
+            implicitWidth: 12
             Rectangle {
                 anchors {
                     fill: parent

@@ -16,7 +16,6 @@ import "../styles-uit"
 
 Original.CheckBox {
     id: checkBox
-    HifiConstants { id: hifi }
 
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
