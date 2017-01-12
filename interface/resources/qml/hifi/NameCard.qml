@@ -55,12 +55,82 @@ Item {
         width: parent.width - /*avatarImage.width - parent.spacing - */parent.anchors.leftMargin - parent.anchors.rightMargin
         height: childrenRect.height
         anchors.verticalCenter: parent.verticalCenter
-        // DisplayName Text
+
+        // DisplayName field for my card
+        Rectangle {
+            id: myDisplayName
+            visible: isMyCard
+            color: "#C5C5C5"
+            anchors.left: parent.left
+            anchors.leftMargin: -10
+            width: parent.width + 70
+            height: 35
+            TextInput {
+                id: myDisplayNameText
+                // Properties
+                text: thisNameCard.displayName
+                autoScroll: false
+                maximumLength: 64
+                width: parent.width
+                height: parent.height
+                wrapMode: TextInput.Wrap
+                // Anchors
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                // Text Positioning
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+                // Style
+                color: hifi.colors.darkGray
+                FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+                font.family: firaSansSemiBold.name
+                font.pointSize: thisNameCard.displayTextHeight
+                // Signals
+                onEditingFinished: {
+                    console.log("New displayName: ", text)
+                }
+            }
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                hoverEnabled: true
+                propagateComposedEvents: true
+                onClicked: {
+                    myDisplayNameText.selectAll();
+                    myDisplayNameText.focus = true;
+                }
+                onEntered: myDisplayName.color = hifi.colors.lightGrayText
+                onExited: myDisplayName.color = "#C5C5C5"
+            }
+            // Edit pencil glyph
+            HiFiGlyphs {
+                text: hifi.glyphs.edit
+                // Size
+                size: thisNameCard.displayTextHeight
+                // Anchors
+                anchors.right: parent.right
+                anchors.rightMargin: size/2
+                anchors.verticalCenter: parent.verticalCenter
+                // Style
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                color: hifi.colors.baseGray
+            }
+        }
+        // Spacer for DisplayName for my card
+        Rectangle {
+            width: myDisplayName.width
+            height: 5
+            visible: isMyCard
+            opacity: 0
+        }
+        // DisplayName Text for others' cards
         FiraSansSemiBold {
             id: displayNameText
             // Properties
             text: thisNameCard.displayName
             elide: Text.ElideRight
+            visible: !isMyCard
             // Size
             width: parent.width
             // Anchors
