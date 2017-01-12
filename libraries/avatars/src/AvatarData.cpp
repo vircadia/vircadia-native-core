@@ -35,7 +35,6 @@
 #include <UUID.h>
 #include <shared/JSONHelpers.h>
 #include <ShapeInfo.h>
-#include <AudioHelpers.h>
 
 #include "AvatarLogging.h"
 
@@ -53,6 +52,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 static const int AUDIO_LOUDNESS_RADIX = 2;
+static const float AUDIO_LOUDNESS_SCALE = 10.0f;
 //static const int MODEL_OFFSET_RADIX = 6;
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
@@ -336,8 +336,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAudioLoudness) {
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
-        data->audioLoudness = packFloatGainToByte(_headData->getAudioLoudness());
-        destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
+        
+        auto audioLoudness = glm::min(_headData->getAudioLoudness(), MAX_AUDIO_LOUDNESS) / AUDIO_LOUDNESS_SCALE;
+        destinationBuffer += packFloatScalarToSignedOneByteFixed((uint8_t*)&data->audioLoudness, audioLoudness, AUDIO_LOUDNESS_RADIX);
     }
 
     if (hasSensorToWorldMatrix) {
@@ -751,7 +752,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(AudioLoudness, sizeof(AvatarDataPacket::AudioLoudness));
         auto data = reinterpret_cast<const AvatarDataPacket::AudioLoudness*>(sourceBuffer);
-        float audioLoudness = unpackFloatGainFromByte(data->audioLoudness);
+        float audioLoudness;
+        sourceBuffer += unpackFloatScalarFromSignedOneByteFixed(&data->audioLoudness, &audioLoudness, AUDIO_LOUDNESS_RADIX);
+        audioLoudness *= AUDIO_LOUDNESS_SCALE;
 
         if (isNaN(audioLoudness)) {
             if (shouldLogError(now)) {
@@ -760,7 +763,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             return buffer.size();
         }
         _headData->setAudioLoudness(audioLoudness);
-        sourceBuffer += sizeof(AvatarDataPacket::AudioLoudness);
+        qDebug() << "audioLoudness:" << audioLoudness;
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
     }
