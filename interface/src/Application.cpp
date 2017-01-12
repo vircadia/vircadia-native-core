@@ -5642,18 +5642,18 @@ void Application::showAssetServerWidget(QString filePath) {
 }
 
 void Application::addAssetToWorldFromURL(QString url) {
-    qInfo(interfaceapp) << "Download asset and add to world from" << url;
+    qInfo(interfaceapp) << "Download model and add to world from" << url;
 
     QString filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
-        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+        qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
         addAssetToWorldError(filename, errorInfo);
         return;
     }
 
-    addAssetToWorldInfo(filename, "Downloading asset file " + filename + ".");
+    addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
     auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
@@ -5668,7 +5668,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
 
     if (result == ResourceRequest::Success) {
-        qInfo(interfaceapp) << "Downloaded asset from" << url;
+        qInfo(interfaceapp) << "Downloaded model from" << url;
         QTemporaryDir temporaryDir;
         temporaryDir.setAutoRemove(false);
         if (temporaryDir.isValid()) {
@@ -5720,7 +5720,7 @@ void Application::addAssetToWorld(QString filePath) {
     // Test repeated because possibly different code paths.
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
-        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+        qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
         addAssetToWorldError(filename, errorInfo);
         return;
     }
@@ -5741,7 +5741,7 @@ void Application::addAssetToWorldWithNewMapping(QString filePath, QString mappin
         } else if (result != GetMappingRequest::NoError) {
             QString errorInfo = "Could not map asset name: "
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
-            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else if (copy < MAX_COPY_COUNT - 1) {
             if (copy > 0) {
@@ -5753,7 +5753,7 @@ void Application::addAssetToWorldWithNewMapping(QString filePath, QString mappin
         } else {
             QString errorInfo = "Too many copies of asset name: " 
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
-            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         }
         request->deleteLater();
@@ -5767,8 +5767,8 @@ void Application::addAssetToWorldUpload(QString filePath, QString mapping) {
     auto upload = DependencyManager::get<AssetClient>()->createUpload(filePath);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
-            QString errorInfo = "Could not upload asset to the Asset Server.";
-            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            QString errorInfo = "Could not upload model to the Asset Server.";
+            qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             addAssetToWorldSetMapping(filePath, mapping, hash);
@@ -5793,7 +5793,7 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
     connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
         if (request->getError() != SetMappingRequest::NoError) {
             QString errorInfo = "Could not set asset mapping.";
-            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             addAssetToWorldAddEntity(filePath, mapping);
@@ -5820,8 +5820,8 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     // on. But FBX dimensions may be in cm, so we monitor for the dimension change and rescale again if warranted.
     
     if (entityID == QUuid()) {
-        QString errorInfo = "Could not add asset " + mapping + " to world.";
-        qWarning(interfaceapp) << "Could not add asset to world: " + errorInfo;
+        QString errorInfo = "Could not add model " + mapping + " to world.";
+        qWarning(interfaceapp) << "Could not add model to world: " + errorInfo;
         addAssetToWorldError(filenameFromPath(filePath), errorInfo);
     } else {
         // Monitor when asset is rendered in world so that can resize if necessary.
@@ -5864,7 +5864,7 @@ void Application::addAssetToWorldCheckModelSize() {
             auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y,
                 MAXIMUM_DIMENSION / dimensions.z));
             dimensions *= scale;
-            qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
+            qInfo(interfaceapp) << "Model" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
             doResize = true;
 
             item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity; advance to next.
@@ -5879,7 +5879,7 @@ void Application::addAssetToWorldCheckModelSize() {
                 // Rescale all dimensions.
                 const glm::vec3 UNIT_DIMENSIONS = glm::vec3(1.0f, 1.0f, 1.0f);
                 dimensions = UNIT_DIMENSIONS;
-                qInfo(interfaceapp) << "Asset" << name << "auto-resize timed out; resized to " << dimensions;
+                qInfo(interfaceapp) << "Model" << name << "auto-resize timed out; resized to " << dimensions;
                 doResize = true;
 
                 item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity; advance to next.
@@ -5932,7 +5932,7 @@ void Application::addAssetToWorldInfo(QString modelName, QString infoText) {
     if (!_addAssetToWorldErrorTimer.isActive()) {
         if (!_addAssetToWorldMessageBox) {
             _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
-                "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+                "Downloading Model", "", QMessageBox::NoButton, QMessageBox::NoButton);
             connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
         }
 
@@ -5997,7 +5997,6 @@ void Application::addAssetToWorldInfoTimeout() {
     }
 }
 
-
 void Application::addAssetToWorldError(QString modelName, QString errorText) {
     // Displays the most recent error message for a few seconds.
 
@@ -6016,7 +6015,7 @@ void Application::addAssetToWorldError(QString modelName, QString errorText) {
 
     if (!_addAssetToWorldMessageBox) {
         _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
-            "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+            "Downloading Model", "", QMessageBox::NoButton, QMessageBox::NoButton);
         connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
     }
 
