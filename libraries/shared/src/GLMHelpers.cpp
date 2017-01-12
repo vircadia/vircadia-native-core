@@ -83,14 +83,14 @@ int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, flo
 
 // Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
 int packFloatScalarToSignedOneByteFixed(unsigned char* buffer, float scalar, int radix) {
-    int8_t outVal = (int8_t)(scalar * (float)(1 << radix));
-    memcpy(buffer, &outVal, sizeof(uint16_t));
+    uint8_t outVal = (uint8_t)(scalar * (float)(1 << radix));
+    memcpy(buffer, &outVal, sizeof(uint8_t));
     return sizeof(outVal);
 }
 
-int unpackFloatScalarFromSignedOneByteFixed(const int8_t* byteFixedPointer, float* destinationPointer, int radix) {
+int unpackFloatScalarFromSignedOneByteFixed(const uint8_t* byteFixedPointer, float* destinationPointer, int radix) {
     *destinationPointer = *byteFixedPointer / (float)(1 << radix);
-    return sizeof(int8_t);
+    return sizeof(uint8_t);
 }
 
 int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix) {

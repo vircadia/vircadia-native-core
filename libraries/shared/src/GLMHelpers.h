@@ -126,7 +126,7 @@ int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int
 int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, float* destinationPointer, int radix);
 
 // Allows sending of fixed-point numbers: radix 1 makes 7.1 number, radix 4 makes 4.4 number, etc
-int unpackFloatScalarFromSignedOneByteFixed(const int8_t* byteFixedPointer, float* destinationPointer, int radix);
+int unpackFloatScalarFromSignedOneByteFixed(const uint8_t* byteFixedPointer, float* destinationPointer, int radix);
 int packFloatScalarToSignedOneByteFixed(unsigned char* buffer, float scalar, int radix);
 
 // A convenience for sending vec3's as fixed-point floats
