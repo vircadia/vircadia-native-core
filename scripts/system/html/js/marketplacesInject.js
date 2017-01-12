@@ -138,6 +138,12 @@
             // Automatic download to High Fidelity.
             function startAutoDownload() {
 
+                // One file request at a time.
+                if (isDownloading) {
+                    console.log("WARNIKNG: Clara.io FBX: Prepare only one download at a time");
+                    return;
+                }
+
                 // User must be able to write to Asset Server.
                 if (!canWriteAssets) {
                     console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
