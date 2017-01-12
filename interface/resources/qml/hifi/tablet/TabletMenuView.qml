@@ -37,9 +37,10 @@ FocusScope {
 
     ListView {
         id: listView
-        x: 8; y: 8
-        width: parent.width
-        height: parent.height
+        x: 0
+        y: 0
+        width: 480
+        height: 720
         topMargin: hifi.dimensions.menuPadding.y
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
