@@ -80,10 +80,10 @@
 
         // Add button links.
         $('#exploreClaraMarketplace').on('click', function () {
-            window.location = "https://clara.io/library?gameCheck=true&public=true"
+            window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = "http://www.highfidelity.com/marketplace"
+            window.location = "http://www.highfidelity.com/marketplace";
         });
     }
 
@@ -218,7 +218,7 @@
                     responseTextIndex = this.responseText.length;
                 };
 
-                // Note: onprogress doesn't have computable total length.
+                // Note: onprogress doesn't have computable total length so can't use it to determine % complete.
 
                 xmlHttpRequest.onload = function () {
                     var statusMessage = "";
@@ -236,7 +236,7 @@
                     }
 
                     if (zipFileURL.slice(-4) !== ".zip") {
-                        statusMessage = "Error creating zip file for download";
+                        statusMessage = "Error creating zip file for download.";
                         console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
                         EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
                         return;
