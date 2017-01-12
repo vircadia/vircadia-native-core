@@ -11,6 +11,7 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var SNAPSHOT_DELAY = 500; // 500ms
+var FINISH_SOUND_DELAY = 350;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var resetOverlays;
 var reticleVisible;
@@ -119,8 +120,11 @@ function onClicked() {
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
-        Window.takeSnapshot(false, true, 1.91);
-    }, SNAPSHOT_DELAY);
+        HMD.closeTablet();
+        Script.setTimeout(function () {
+            Window.takeSnapshot(false, true, 1.91);
+        }, SNAPSHOT_DELAY);
+    }, FINISH_SOUND_DELAY);
 }
 
 function isDomainOpen(id) {

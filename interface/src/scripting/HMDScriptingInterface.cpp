@@ -77,6 +77,10 @@ bool HMDScriptingInterface::shouldShowHandControllers() const {
     return _showHandControllersCount > 0;
 }
 
+void  HMDScriptingInterface::closeTablet() {
+    _showTablet = false;
+}
+
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();
