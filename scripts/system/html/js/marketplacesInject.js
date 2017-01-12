@@ -14,12 +14,16 @@
 
     // Event bridge messages.
     var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
+    var CLARA_IO_STATUS = "CLARA.IO STATUS";
+    var CLARA_IO_CANCEL_DOWNLOAD = "CLARA.IO CANCEL DOWNLOAD";
+    var CLARA_IO_CANCELLED_DOWNLOAD = "CLARA.IO CANCELLED DOWNLOAD";
     var GOTO_DIRECTORY = "GOTO_DIRECTORY";
     var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
     var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
     var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
 
     var canWriteAssets = false;
+    var xmlHttpRequest = null;
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -154,7 +158,7 @@
                 var uuid = location.href.match(/\/view\/([a-z0-9\-]*)/)[1];
                 var url = XMLHTTPREQUEST_URL.replace("{uuid}", uuid);
 
-                var xmlHttpRequest = new XMLHttpRequest();
+                xmlHttpRequest = new XMLHttpRequest();
                 var responseTextIndex = 0;
                 var statusMessage = "";
                 var zipFileURL = "";
@@ -170,6 +174,7 @@
                         if (data.hasOwnProperty("message") && data.message !== null) {
                             statusMessage = data.message;
                             console.log("Clara.io FBX: " + statusMessage);
+                            EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
                         }
 
                         // Extract zip file URL.
@@ -186,21 +191,28 @@
                 xmlHttpRequest.onload = function () {
                     var HTTP_OK = 200;
                     if (this.status !== HTTP_OK) {
-                        console.log("ERROR: Clara.io FBX: Zip file request terminated with " + this.status + " "
-                            + this.statusText);
+                        statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
+                        console.log("ERROR: Clara.io FBX: " + statusMessage);
+                        EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
                         return;
                     }
 
-                    if (zipFileURL == "") {
-                        console.log("ERROR: Clara.io FBX: Zip file URL not found");
+                    if (zipFileURL === "") {
+                        statusMessage = "Download file URL not provided";
+                        console.log("ERROR: Clara.io FBX: " + statusMessage);
+                        EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
                         return;
                     }
 
                     EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + zipFileURL);
                     console.log("Clara.io FBX: File download initiated for " + zipFileURL);
+
+                    xmlHttpRequest = null;
                 }
 
                 console.log("Clara.io FBX: Request zip file for " + uuid);
+                EventBridge.emitWebEvent(CLARA_IO_STATUS + " Initiating download");
+
                 xmlHttpRequest.open("POST", url, true);
                 xmlHttpRequest.setRequestHeader("Accept", "text/event-stream");
                 xmlHttpRequest.send();
@@ -248,11 +260,24 @@
         EventBridge.emitWebEvent(QUERY_CAN_WRITE_ASSETS);
     }
 
+    function cancelClaraDownload() {
+        if (xmlHttpRequest) {
+            xmlHttpRequest.abort();
+            xmlHttpRequest = null;
+            console.log("Clara.io FBX: File download cancelled");
+            EventBridge.emitWebEvent(CLARA_IO_CANCELLED_DOWNLOAD);
+        }
+    }
+
     function onLoad() {
 
         EventBridge.scriptEventReceived.connect(function (message) {
             if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
                 canWriteAssets = message.slice(-4) === "true";
+            }
+
+            if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
+                cancelClaraDownload();
             }
         });
 
