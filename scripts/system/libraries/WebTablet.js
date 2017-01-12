@@ -102,7 +102,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         type: "Model",
         modelURL: HOME_BUTTON_URL,
         collisionless: true,
-        localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: 0},
+        localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: -0.01},
         parentID: this.tabletEntityID,
         script: Script.resolvePath("../tablet-ui/HomeButton.js")
         }, clientOnly);

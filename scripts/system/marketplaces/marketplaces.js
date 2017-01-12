@@ -60,8 +60,11 @@ var persistenceKey = "io.highfidelity.lastDomainTablet";
 
 function showMarketplace() {
     tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL);
-    tablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
-    tablet.webEventRecieved(function (message) {
+    UserActivityLogger.openedMarketplace();
+
+    // FIXME - the code to support the following is not yet implented
+    /*tablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL); 
+    tablet.webEventRecieved.connect(function (message) {
        if (message === GOTO_DIRECTORY) {
            tablet.gotoWebScreen(MATKETPLACES_URL);
        }
@@ -74,8 +77,7 @@ function showMarketplace() {
           Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
       }
 
-    });  
-    UserActivityLogger.openedMarketplace();
+    });*/
 }
 
 function toggleMarketplace() {
@@ -86,7 +88,7 @@ var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 var browseExamplesButton = tablet.addButton({
     icon: "icons/tablet-icons/market-i.svg",
-    text: "MARKETPLACE"
+    text: "MARKET"
 });
 
 function onCanWriteAssetsChanged() {
