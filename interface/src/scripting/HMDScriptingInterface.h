@@ -72,6 +72,8 @@ public:
     // rotate the overlay UI sphere so that it is centered about the the current HMD position and orientation
     Q_INVOKABLE void centerUI();
 
+    Q_INVOKABLE void closeTablet();
+
 signals:
     bool shouldShowHandControllersChanged();
 
