@@ -37,7 +37,7 @@ int SoftAttachmentModel::getJointIndexOverride(int i) const {
 
 // virtual
 // use the _rigOverride matrices instead of the Model::_rig
-void SoftAttachmentModel::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) {
+void SoftAttachmentModel::updateClusterMatrices() {
     if (!_needsUpdateClusterMatrices) {
         return;
     }
@@ -45,7 +45,6 @@ void SoftAttachmentModel::updateClusterMatrices(glm::vec3 modelPosition, glm::qu
 
     const FBXGeometry& geometry = getFBXGeometry();
 
-    glm::mat4 modelToWorld = glm::mat4_cast(modelOrientation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
@@ -53,7 +52,7 @@ void SoftAttachmentModel::updateClusterMatrices(glm::vec3 modelPosition, glm::qu
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
 
-            // TODO: cache these look ups as an optimization
+            // TODO: cache these look-ups as an optimization
             int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);
             glm::mat4 jointMatrix;
             if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride->getJointStateCount()) {
@@ -61,7 +60,13 @@ void SoftAttachmentModel::updateClusterMatrices(glm::vec3 modelPosition, glm::qu
             } else {
                 jointMatrix = _rig->getJointTransform(cluster.jointIndex);
             }
-            state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+#if GLM_ARCH & GLM_ARCH_SSE2
+            glm::mat4 out, inverseBindMatrix = cluster.inverseBindMatrix;
+            glm_mat4_mul((glm_vec4*)&jointMatrix, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
+            state.clusterMatrices[j] = out;
+#else
+            state.clusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
+#endif
         }
 
         // Once computed the cluster matrices, update the buffer(s)

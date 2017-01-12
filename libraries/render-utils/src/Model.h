@@ -126,7 +126,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    virtual void updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation);
+    virtual void updateClusterMatrices();
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
@@ -251,9 +251,6 @@ signals:
 protected:
     bool addedToScene() const { return _addedToScene; }
 
-    void setPupilDilation(float dilation) { _pupilDilation = dilation; }
-    float getPupilDilation() const { return _pupilDilation; }
-
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
@@ -347,7 +344,6 @@ protected:
     void deleteGeometry();
     void initJointTransforms();
 
-    float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
