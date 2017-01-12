@@ -38,7 +38,7 @@ var id = Entities.addEntity({
     "dynamic": 1,
     "gravity": {
         "x": 0,
-        "y": -1,
+        "y": -9.8,
         "z": 0
     },
     "modelURL": Script.resolvePath("bow-deadly.fbx"),
@@ -52,7 +52,8 @@ var id = Entities.addEntity({
     "script": Script.resolvePath("bow.js") + "?" + Date.now(),
     "shapeType": "compound",
     "type": "Model",
-    "userData": JSON.stringify(userData),
+    //"userData": JSON.stringify(userData),
+    "userData": "{\"grabbableKey\":{\"grabbable\":true},\"wearable\":{\"joints\":{\"RightHand\":[{\"x\":0.0813,\"y\":0.0452,\"z\":0.0095},{\"x\":-0.3946,\"y\":-0.6604,\"z\":0.4748,\"w\":-0.4275}],\"LeftHand\":[{\"x\":-0.0881,\"y\":0.0259,\"z\":0.0159},{\"x\":0.4427,\"y\":-0.6519,\"z\":0.4592,\"w\":0.4099}]}}}"
     lifetime: 600
 });
 print("Created bow:", id);

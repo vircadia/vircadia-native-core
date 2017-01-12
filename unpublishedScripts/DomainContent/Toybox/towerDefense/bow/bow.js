@@ -120,7 +120,7 @@ function getControllerLocation(controllerHand) {
     const ARROW_TIP_OFFSET = 0.47;
     const ARROW_GRAVITY = {
         x: 0,
-        y: -4.8,
+        y: -9.8,
         z: 0
     };
 
