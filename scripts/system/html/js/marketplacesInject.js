@@ -180,6 +180,9 @@
                         // Extract zip file URL.
                         if (data.hasOwnProperty("files") && data.files.length > 0) {
                             zipFileURL = data.files[0].url;
+                            if (zipFileURL.slice(-4) !== ".zip") {
+                                console.log(JSON.stringify(data));  // Data for debugging.
+                            }
                         }
                     }
 
@@ -197,9 +200,9 @@
                         return;
                     }
 
-                    if (zipFileURL === "") {
-                        statusMessage = "Download file URL not provided";
-                        console.log("ERROR: Clara.io FBX: " + statusMessage);
+                    if (zipFileURL.slice(-4) !== ".zip") {
+                        statusMessage = "Error creating zip file for download";
+                        console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
                         EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
                         return;
                     }
