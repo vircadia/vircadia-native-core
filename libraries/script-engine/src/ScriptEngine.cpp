@@ -168,7 +168,8 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
     return false;
 }
 
-ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString) :
+ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const QString& fileNameString) :
+    _context(context),
     _scriptContents(scriptContents),
     _timerFunctionMap(),
     _fileNameString(fileNameString),
@@ -181,6 +182,22 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     });
     
     setProcessEventsInterval(MSECS_PER_SECOND);
+}
+
+QString ScriptEngine::getContext() const {
+    switch (_context) {
+        case CLIENT_SCRIPT:
+            return "client";
+        case ENTITY_CLIENT_SCRIPT:
+            return "entity_client";
+        case ENTITY_SERVER_SCRIPT:
+            return "entity_server";
+        case AGENT_SCRIPT:
+            return "agent";
+        default:
+            return "unknown";
+    }
+    return "unknown";
 }
 
 ScriptEngine::~ScriptEngine() {

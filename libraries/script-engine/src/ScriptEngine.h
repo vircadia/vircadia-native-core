@@ -72,8 +72,17 @@ public:
 
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
     Q_OBJECT
+    Q_PROPERTY(QString context READ getContext)
 public:
-    ScriptEngine(const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString(""));
+
+    enum Context {
+        CLIENT_SCRIPT,
+        ENTITY_CLIENT_SCRIPT,
+        ENTITY_SERVER_SCRIPT,
+        AGENT_SCRIPT
+    };
+
+    ScriptEngine(Context context, const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString(""));
     ~ScriptEngine();
 
     /// run the script in a dedicated thread. This will have the side effect of evalulating
@@ -123,6 +132,12 @@ public:
     /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed
     /// to scripts. we may not need this to be invokable
     void loadURL(const QUrl& scriptURL, bool reload);
+
+    Q_INVOKABLE QString getContext() const;
+    Q_INVOKABLE bool isClientScript() const { return _context == CLIENT_SCRIPT; }
+    Q_INVOKABLE bool isEntityClientScript() const { return _context == ENTITY_CLIENT_SCRIPT; }
+    Q_INVOKABLE bool isEntityServerScript() const { return _context == ENTITY_SERVER_SCRIPT; }
+    Q_INVOKABLE bool isAgentScript() const { return _context == AGENT_SCRIPT; }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are intended to be public interfaces available to scripts
@@ -229,6 +244,8 @@ protected:
     QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
     void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
+
+    Context _context;
 
     QString _scriptContents;
     QString _parentURL;
