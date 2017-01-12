@@ -806,7 +806,8 @@ function MyController(hand) {
         this.updateSmoothedTrigger();
 
         //  If both trigger and grip buttons squeezed and nothing is held, rescale my avatar!
-        if (this.hand === RIGHT_HAND && this.state === STATE_SEARCHING && this.getOtherHandController().state === STATE_SEARCHING) {
+        if (this.hand === RIGHT_HAND && this.state === STATE_SEARCHING &&
+            this.getOtherHandController().state === STATE_SEARCHING) {
             this.maybeScaleMyAvatar();
         }
 
@@ -2005,19 +2006,24 @@ function MyController(hand) {
         this.previousRoomControllerPosition = roomControllerPosition;
     };
 
-    this.distanceHolding = function(deltaTime, timestamp) {
-
-        if (!this.triggerClicked) {
-            this.callEntityMethodOnGrabbed("releaseGrab");
-
-            // if we distance hold something and keep it very still before releasing it, it ends up
-            // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
-            var velocity = Entities.getEntityProperties(this.grabbedEntity, ["velocity"]).velocity;
+    this.ensureDynamic = function() {
+        // if we distance hold something and keep it very still before releasing it, it ends up
+        // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["velocity", "dynamic"]);
+        if (props.dynamic) {
+            var velocity = props.velocity;
             if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
                 velocity = { x: 0.0, y: 0.2, z:0.0 };
                 Entities.editEntity(this.grabbedEntity, { velocity: velocity });
             }
+        }
+    }
 
+    this.distanceHolding = function(deltaTime, timestamp) {
+
+        if (!this.triggerClicked) {
+            this.callEntityMethodOnGrabbed("releaseGrab");
+            this.ensureDynamic();
             this.release();
             this.setState(STATE_OFF, "trigger released");
             return;
@@ -2867,17 +2873,19 @@ function MyController(hand) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
             }
 
-            //  Make a small release haptic pulse if we really were holding something
+            // Make a small release haptic pulse if we really were holding something
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
             } else {
                 // no action, so it's a parenting grab
                 if (this.previousParentID === NULL_UUID) {
+                    var velocity = Entities.getEntityProperties(this.grabbedEntity, ["velocity"]).velocity;
                     Entities.editEntity(this.grabbedEntity, {
                         parentID: this.previousParentID,
                         parentJointIndex: this.previousParentJointIndex
                     });
+                    this.ensureDynamic();
                 } else {
                     // we're putting this back as a child of some other parent, so zero its velocity
                     Entities.editEntity(this.grabbedEntity, {
