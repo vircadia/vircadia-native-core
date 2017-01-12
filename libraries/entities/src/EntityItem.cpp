@@ -1794,12 +1794,27 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         }
 
         uint8_t userMask = getCollisionMask();
-        // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
-        // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
-        // and holding it against your own avatar.
-        QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
-        if (!ancestorID.isNull() && ancestorID == Physics::getSessionUUID()) {
-            userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
+        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
+            // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
+            // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
+            // and holding it against your own avatar.
+            QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
+            if (!ancestorID.isNull() && ancestorID == Physics::getSessionUUID()) {
+                userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
+            }
+        }
+        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
+            // also, don't bootstrap our own avatar with a hold action
+            QList<EntityActionPointer> holdActions = getActionsOfType(ACTION_TYPE_HOLD);
+            QList<EntityActionPointer>::const_iterator i = holdActions.begin();
+            while (i != holdActions.end()) {
+                EntityActionPointer action = *i;
+                if (action->isMine()) {
+                    userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
+                    break;
+                }
+                i++;
+            }
         }
 
         if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
@@ -1904,6 +1919,7 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityAct
     if (success) {
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
     }
@@ -1926,6 +1942,7 @@ bool EntityItem::updateAction(EntitySimulationPointer simulation, const QUuid& a
             action->setIsMine(true);
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         } else {
             qCDebug(entities) << "EntityItem::updateAction failed";
         }
@@ -1963,6 +1980,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         setActionDataNeedsTransmit(true);
         return success;
     }
@@ -1983,6 +2001,7 @@ bool EntityItem::clearActions(EntitySimulationPointer simulation) {
         _actionsToRemove.clear();
         _allActionsDataCache.clear();
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
     });
     return true;
 }
@@ -2189,7 +2208,7 @@ bool EntityItem::shouldSuppressLocationEdits() const {
     return false;
 }
 
-QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) {
+QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) const {
     QList<EntityActionPointer> result;
 
     QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();

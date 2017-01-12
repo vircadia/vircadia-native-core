@@ -416,7 +416,7 @@ public:
     const QUuid& getSourceUUID() const { return _sourceUUID; }
     bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
 
-    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
+    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet) const;
 
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
