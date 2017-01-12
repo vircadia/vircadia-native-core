@@ -172,29 +172,46 @@
 
                 xmlHttpRequest = new XMLHttpRequest();
                 var responseTextIndex = 0;
-                var statusMessage = "";
                 var zipFileURL = "";
 
                 xmlHttpRequest.onreadystatechange = function () {
-                    // Messages are appended to responseText; process the new one.
+                    // Messages are appended to responseText; process the new ones.
                     var message = this.responseText.slice(responseTextIndex);
+                    var statusMessage = "";
 
-                    if (isDownloading && message.slice(0, 5) === "data:") {  // Ignore messages in flight after finished/cancelled.
-                        var data = JSON.parse(message.slice(5));
+                    if (isDownloading) {  // Ignore messages in flight after finished/cancelled.
+                        var lines = message.split(/[\n\r]+/);
 
-                        // Extract status message.
-                        if (data.hasOwnProperty("message") && data.message !== null) {
-                            statusMessage = data.message;
-                            console.log("Clara.io FBX: " + statusMessage);
-                            EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
+                        for (var i = 0, length = lines.length; i < length; i++) {
+                            if (lines[i].slice(0, 5) === "data:") {
+                                // Parse line.
+                                var data;
+                                try {
+                                    data = JSON.parse(lines[i].slice(5));
+                                }
+                                catch (e) {
+                                    data = {};
+                                }
+
+                                // Extract status message.
+                                if (data.hasOwnProperty("message") && data.message !== null) {
+                                    statusMessage = data.message;
+                                    console.log("Clara.io FBX: " + statusMessage);
+                                }
+
+                                // Extract zip file URL.
+                                if (data.hasOwnProperty("files") && data.files.length > 0) {
+                                    zipFileURL = data.files[0].url;
+                                    if (zipFileURL.slice(-4) !== ".zip") {
+                                        console.log(JSON.stringify(data));  // Data for debugging.
+                                    }
+                                }
+                            }
                         }
 
-                        // Extract zip file URL.
-                        if (data.hasOwnProperty("files") && data.files.length > 0) {
-                            zipFileURL = data.files[0].url;
-                            if (zipFileURL.slice(-4) !== ".zip") {
-                                console.log(JSON.stringify(data));  // Data for debugging.
-                            }
+                        if (statusMessage !== "") {
+                            // Update the UI with the most recent status message.
+                            EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
                         }
                     }
 
@@ -204,6 +221,7 @@
                 // Note: onprogress doesn't have computable total length.
 
                 xmlHttpRequest.onload = function () {
+                    var statusMessage = "";
 
                     if (!isDownloading) {
                         return;
