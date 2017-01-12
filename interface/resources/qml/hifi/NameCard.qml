@@ -67,6 +67,8 @@ Row {
             size: thisNameCard.displayTextHeight
             // Text Positioning
             verticalAlignment: Text.AlignVCenter
+            // Style
+            color: hifi.colors.darkGray
         }
 
         // UserName Text
@@ -82,6 +84,8 @@ Row {
             size: thisNameCard.usernameTextHeight
             // Text Positioning
             verticalAlignment: Text.AlignVCenter
+            // Style
+            color: hifi.colors.baseGray
         }
 
         // Spacer
@@ -104,7 +108,7 @@ Row {
                 // Anchors
                 anchors.fill: parent
                 // Style
-                color: "#dbdbdb" // Very appropriate hex value here
+                color: "#c5c5c5"
                 radius: parent.radius
             }
             // Rectangle for the VU meter audio level
@@ -113,7 +117,7 @@ Row {
                 // Size
                 width: (thisNameCard.audioLevel) * parent.width
                 // Style
-                color: "#dbdbdb" // Very appropriate hex value here
+                color: "#c5c5c5"
                 radius: parent.radius
                 // Anchors
                 anchors.bottom: parent.bottom

@@ -16,29 +16,46 @@ import QtQuick.Controls 1.4
 import "../styles-uit"
 import "../controls-uit" as HifiControls
 
-Item {
+Rectangle {
     id: pal
     // Size
     width: parent.width
     height: parent.height
+    // Style
+    color: "#E3E3E3"
     // Properties
     property int myCardHeight: 70
     property int rowHeight: 70
     property int actionButtonWidth: 75
-    property int nameCardWidth: width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4
+    property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
 
+    // This is the container for the PAL
+    Rectangle {
+        id: palContainer
+        // Size
+        width: pal.width - 50
+        height: pal.height - 50
+        // Style
+        color: pal.color
+        // Anchors
+        anchors.centerIn: pal
+        // Properties
+        radius: hifi.dimensions.borderRadius
+
     // This contains the current user's NameCard and will contain other information in the future
     Rectangle {
         id: myInfo
         // Size
-        width: pal.width
+        width: palContainer.width
         height: myCardHeight + 20
+        // Style
+        color: pal.color
         // Anchors
-        anchors.top: pal.top
+        anchors.top: palContainer.top
         // Properties
         radius: hifi.dimensions.borderRadius
         // This NameCard refers to the current user's NameCard (the one above the table)
@@ -57,15 +74,15 @@ Item {
     }
     // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
     Rectangle {
-        color: "#FFFFFF"
-        width: pal.width
+        color: pal.color
+        width: palContainer.width
         height: 10
         anchors.top: myInfo.bottom
         anchors.left: parent.left
     }
     Rectangle {
-        color: "#FFFFFF"
-        width: pal.width
+        color: pal.color
+        width: palContainer.width
         height: 10
         anchors.bottom: table.top
         anchors.left: parent.left
@@ -74,7 +91,7 @@ Item {
     Rectangle {
         id: adminTab
         // Size
-        width: actionButtonWidth * 2 + 2
+        width: 2*actionButtonWidth + hifi.dimensions.scrollbarBackgroundWidth + 2
         height: 40
         // Anchors
         anchors.bottom: myInfo.bottom
@@ -98,6 +115,7 @@ Item {
             anchors.topMargin: 8
             anchors.left: parent.left
             anchors.right: parent.right
+            anchors.rightMargin: hifi.dimensions.scrollbarBackgroundWidth
             // Style
             font.capitalization: Font.AllUppercase
             color: hifi.colors.redHighlight
@@ -110,8 +128,8 @@ Item {
     HifiControls.Table {
         id: table
         // Size
-        height: pal.height - myInfo.height - 4
-        width: pal.width - 4
+        height: palContainer.height - myInfo.height - 4
+        width: palContainer.width - 4
         // Anchors
         anchors.left: parent.left
         anchors.top: myInfo.bottom
@@ -154,6 +172,8 @@ Item {
         TableViewColumn {
             visible: iAmAdmin
             role: "kick"
+            // The hacky spaces used to center text over the button, since I don't know how to apply a margin
+            // to column header text.
             title: "BAN"
             width: actionButtonWidth
             movable: false
@@ -168,7 +188,7 @@ Item {
             // Size
             height: rowHeight
             color: styleData.selected
-                   ? "#afafaf"
+                   ? hifi.colors.orangeHighlight
                    : styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd
         }
 
@@ -353,7 +373,7 @@ Item {
         width: 20
         height: 28
         anchors.right: adminTab.right
-        anchors.rightMargin: 31
+        anchors.rightMargin: 31 + hifi.dimensions.scrollbarBackgroundWidth
         anchors.top: adminTab.top
         anchors.topMargin: 2
         RalewayRegular {
@@ -378,6 +398,7 @@ Item {
     }
     LetterboxMessage {
         id: letterboxMessage
+    }
     }
 
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
