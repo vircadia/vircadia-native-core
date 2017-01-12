@@ -28,14 +28,17 @@
 #include <RegisteredMetaTypes.h>
 #include <TabletScriptingInterface.h>
 #include <TextureCache.h>
+#include <AbstractViewStateInterface.h>
+#include <gl/OffscreenQmlSurface.h>
+#include <gl/OffscreenQmlSurfaceCache.h>
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
 static const float METERS_TO_INCHES = 39.3701f;
 static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
-QString const Web3DOverlay::TYPE = "web3d";
-
+const QString Web3DOverlay::TYPE = "web3d";
+const QString Web3DOverlay::QML = "Web3DOverlay.qml";
 Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
@@ -98,8 +101,9 @@ Web3DOverlay::~Web3DOverlay() {
         // is no longer valid
         auto webSurface = _webSurface;
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
-            webSurface->deleteLater();
+            DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, webSurface);
         });
+        _webSurface.reset();
     }
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
@@ -148,20 +152,15 @@ void Web3DOverlay::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
-        auto deleter = [](OffscreenQmlSurface* webSurface) {
-            AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
-                webSurface->deleteLater();
-            });
-        };
-        _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
+        _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(QML);
+        _webSurface->setMaxFps(10);
         // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
         // and the current rendering load)
-        _webSurface->setMaxFps(10);
-        _webSurface->create(currentContext);
-
         loadSourceURL();
-
+        _webSurface->resume();
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
+        _webSurface->getRootItem()->setProperty("url", _url);
+        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
         currentContext->makeCurrent(currentSurface);
 
         auto forwardPointerEvent = [=](unsigned int overlayID, const PointerEvent& event) {

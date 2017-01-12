@@ -92,7 +92,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
     _cauterizeBones(false),
-    _pupilDilation(0.0f),
     _url(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
@@ -234,19 +233,11 @@ void Model::updateRenderItems() {
 
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-        Transform modelMeshOffset;
-        if (self->isLoaded()) {
-            // includes model offset and unitScale.
-            modelMeshOffset = Transform(self->_rig->getGeometryToRigTransform());
-        } else {
-            modelMeshOffset.postTranslate(self->_offset);
-        }
-
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
-            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
+            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
                 if (data._model && data._model->isLoaded()) {
                     if (!data.hasStartedFade() && data._model->getGeometry()->areTexturesLoaded()) {
                         data.startFade();
@@ -256,11 +247,11 @@ void Model::updateRenderItems() {
                         Transform modelTransform = data._model->getTransform();
 
                         // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                        data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
+                        data._model->updateClusterMatrices();
 
                         // update the model transform and bounding box for this render item.
                         const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                        data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                        data.updateTransformForSkinnedMesh(modelTransform, state.clusterMatrices);
                     }
                 }
             });
@@ -311,6 +302,7 @@ bool Model::updateGeometry() {
 
     if (_rig->jointStatesEmpty() && getFBXGeometry().joints.size() > 0) {
         initJointStates();
+        assert(_meshStates.empty());
 
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
@@ -320,6 +312,9 @@ bool Model::updateGeometry() {
 
             _meshStates.append(state);
 
+            // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
+            // later in ModelMeshPayload, however the vast majority of meshes will not have them.
+            // TODO? make _blendedVertexBuffers a map instead of vector and only add for meshes with blendshapes?
             auto buffer = std::make_shared<gpu::Buffer>();
             if (!mesh.blendshapes.isEmpty()) {
                 buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
@@ -1168,7 +1163,7 @@ void Model::simulateInternal(float deltaTime) {
 }
 
 // virtual
-void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) {
+void Model::updateClusterMatrices() {
     PerformanceTimer perfTimer("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
@@ -1183,7 +1178,6 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
 
-    glm::mat4 modelToWorld = glm::mat4_cast(modelOrientation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
@@ -1191,12 +1185,11 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
 #if GLM_ARCH & GLM_ARCH_SSE2
-            glm::mat4 temp, out, inverseBindMatrix = cluster.inverseBindMatrix;
-            glm_mat4_mul((glm_vec4*)&modelToWorld, (glm_vec4*)&jointMatrix, (glm_vec4*)&temp);
-            glm_mat4_mul((glm_vec4*)&temp, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
+            glm::mat4 out, inverseBindMatrix = cluster.inverseBindMatrix;
+            glm_mat4_mul((glm_vec4*)&jointMatrix, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
             state.clusterMatrices[j] = out;
-#else 
-            state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+#else
+            state.clusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
 #endif
 
             // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1204,7 +1197,13 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }
-                state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+#if GLM_ARCH & GLM_ARCH_SSE2
+                glm::mat4 out, inverseBindMatrix = cluster.inverseBindMatrix;
+                glm_mat4_mul((glm_vec4*)&jointMatrix, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
+                state.cauterizedClusterMatrices[j] = out;
+#else
+                state.cauterizedClusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
+#endif
             }
         }
 
