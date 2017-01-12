@@ -24,6 +24,7 @@
 
     var canWriteAssets = false;
     var xmlHttpRequest = null;
+    var isDownloading = false;  // Explicitly track download request status.
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -172,7 +173,7 @@
                     // Messages are appended to responseText; process the new one.
                     var message = this.responseText.slice(responseTextIndex);
 
-                    if (message.slice(0, 5) === "data:") {
+                    if (isDownloading && message.slice(0, 5) === "data:") {  // Ignore messages in flight after finished/cancelled.
                         var data = JSON.parse(message.slice(5));
 
                         // Extract status message.
@@ -197,6 +198,11 @@
                 // Note: onprogress doesn't have computable total length.
 
                 xmlHttpRequest.onload = function () {
+
+                    if (!isDownloading) {
+                        return;
+                    }
+
                     var HTTP_OK = 200;
                     if (this.status !== HTTP_OK) {
                         statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
@@ -216,7 +222,10 @@
                     console.log("Clara.io FBX: File download initiated for " + zipFileURL);
 
                     xmlHttpRequest = null;
+                    isDownloading = false;
                 }
+
+                isDownloading = true;
 
                 console.log("Clara.io FBX: Request zip file for " + uuid);
                 EventBridge.emitWebEvent(CLARA_IO_STATUS + " Initiating download");
@@ -269,6 +278,8 @@
     }
 
     function cancelClaraDownload() {
+        isDownloading = false;
+
         if (xmlHttpRequest) {
             xmlHttpRequest.abort();
             xmlHttpRequest = null;
