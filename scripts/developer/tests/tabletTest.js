@@ -15,6 +15,14 @@ var button = tablet.addButton({
     text: "BAM!!!"
 });
 
+var TEST_BUTTON_COUNT = 10;
+for (var i = 0; i < TEST_BUTTON_COUNT; i++) {
+    tablet.addButton({
+        text: "TEST_" + i,
+        inDebugMode: true
+    });
+}
+
 // change the name and isActive state every second...
 var names = ["BAM!", "BAM!!", "BAM!!!", "BAM!!!!"];
 var nameIndex = 0;

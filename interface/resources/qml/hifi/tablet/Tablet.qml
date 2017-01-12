@@ -170,19 +170,28 @@ Item {
         anchors.top: bgTopBar.bottom
         anchors.topMargin: 0
 
-        Flow {
-            id: flowMain
-            spacing: 16
-            anchors.right: parent.right
-            anchors.rightMargin: 30
-            anchors.left: parent.left
-            anchors.leftMargin: 30
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 30
-            anchors.top: parent.top
-            anchors.topMargin: 30
+        Flickable {
+            id: flickable
+            width: parent.width
+            height: parent.height
+            contentWidth: parent.width
+            contentHeight: flowMain.childrenRect.height + flowMain.anchors.topMargin + flowMain.anchors.bottomMargin + flowMain.spacing
+            clip: true
+            Flow {
+                id: flowMain
+                spacing: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 30
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 30
+                anchors.top: parent.top
+                anchors.topMargin: 30
+            }
         }
     }
+
     states: [
         State {
             name: "muted state"
