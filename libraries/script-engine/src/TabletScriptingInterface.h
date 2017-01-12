@@ -36,7 +36,6 @@ class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
     TabletScriptingInterface();
-    virtual ~TabletScriptingInterface();
 
     /**jsdoc
      * Creates or retruns a new TabletProxy and returns it.
@@ -132,6 +131,9 @@ protected:
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
+
+    enum class State { Uninitialized, Home, Web, Menu };
+    State _state { State::Uninitialized };
 };
 
 /**jsdoc
