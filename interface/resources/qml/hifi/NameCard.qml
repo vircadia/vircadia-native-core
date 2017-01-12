@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
@@ -135,10 +136,9 @@ Row {
                 start: Qt.point(0, 0)
                 end: Qt.point(parent.width, 0)
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#2c8e72" }
-                    GradientStop { position: 0.9; color: "#1fc6a6" }
-                    GradientStop { position: 0.91; color: "#ea4c5f" }
-                    GradientStop { position: 1.0; color: "#ea4c5f" }
+                    GradientStop { position: 0.05; color: "#00CFEF" }
+                    GradientStop { position: 0.5; color: "#9450A5" }
+                    GradientStop { position: 0.95; color: "#EA4C5F" }
                 }
             }
         }
