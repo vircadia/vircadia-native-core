@@ -23,6 +23,7 @@ var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 
 var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-x.fbx";
+var HOME_BUTTON_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-home-button.fbx";
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -98,10 +99,10 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     var HOME_BUTTON_Y_OFFSET = -0.25;
     this.homeButtonEntity = Entities.addEntity({
         name: "homeButton",
-        type: "Sphere",
+        type: "Model",
+        modelURL: HOME_BUTTON_URL,
         collisionless: true,
         localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: 0},
-        dimensions: {x: 0.05, y: 0.05, z: 0.05},
         parentID: this.tabletEntityID,
         script: Script.resolvePath("../tablet-ui/HomeButton.js")
         }, clientOnly);
@@ -110,13 +111,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonEntity == senderID) {
-            if (_this.clicked) {
-               Entities.editEntity(_this.homeButtonEntity, {color: {red: 0, green: 255, blue: 255}});
-               _this.clicked = false;
-            } else {
-               Entities.editEntity(_this.homeButtonEntity, {color: {red: 255, green: 255, blue: 0}});
-               _this.clicked = true;
-            }
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.gotoHomeScreen();
         }

@@ -38,7 +38,7 @@
             defaultTab = "gamepad";
         }
         var queryParameters = "handControllerName=" + handControllerName + "&defaultTab=" + defaultTab;
-        tablet.gotoWebScreen(HELP_URL + "?" + queryParameters);
+        Menu.triggerOption('Help...');
     }
 
     button.clicked.connect(onClicked);
