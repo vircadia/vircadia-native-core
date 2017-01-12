@@ -571,12 +571,6 @@ function update() {
     Reticle.visible = false;
 }
 
-var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
-var updateIntervalTimer = Script.setInterval(function(){
-    update();
-}, BASIC_TIMER_INTERVAL);
-
-
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
 function checkSettings() {
@@ -586,9 +580,10 @@ function checkSettings() {
 checkSettings();
 
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
+Script.update.connect(update);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
-    Script.clearInterval(updateIntervalTimer);
+    Script.update.disconnect(update);
     OffscreenFlags.navigationFocusDisabled = false;
 });
 
