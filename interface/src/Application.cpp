@@ -3298,6 +3298,66 @@ bool Application::shouldPaint(float nsecsElapsed) {
     return true;
 }
 
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#include <TCHAR.h>
+#include <pdh.h>
+#pragma comment(lib, "pdh.lib")
+
+static ULARGE_INTEGER lastCPU, lastSysCPU, lastUserCPU;
+static int numProcessors;
+static HANDLE self;
+static PDH_HQUERY cpuQuery;
+static PDH_HCOUNTER cpuTotal;
+
+void initCpuUsage() {
+    SYSTEM_INFO sysInfo;
+    FILETIME ftime, fsys, fuser;
+
+    GetSystemInfo(&sysInfo);
+    numProcessors = sysInfo.dwNumberOfProcessors;
+
+    GetSystemTimeAsFileTime(&ftime);
+    memcpy(&lastCPU, &ftime, sizeof(FILETIME));
+
+    self = GetCurrentProcess();
+    GetProcessTimes(self, &ftime, &ftime, &fsys, &fuser);
+    memcpy(&lastSysCPU, &fsys, sizeof(FILETIME));
+    memcpy(&lastUserCPU, &fuser, sizeof(FILETIME));
+
+    PdhOpenQuery(NULL, NULL, &cpuQuery);
+    PdhAddCounter(cpuQuery, "\\Processor(_Total)\\% Processor Time", NULL, &cpuTotal);
+    PdhCollectQueryData(cpuQuery);
+}
+
+void getCpuUsage(vec3& systemAndUser) {
+    FILETIME ftime, fsys, fuser;
+    ULARGE_INTEGER now, sys, user;
+
+    GetSystemTimeAsFileTime(&ftime);
+    memcpy(&now, &ftime, sizeof(FILETIME));
+
+    GetProcessTimes(self, &ftime, &ftime, &fsys, &fuser);
+    memcpy(&sys, &fsys, sizeof(FILETIME));
+    memcpy(&user, &fuser, sizeof(FILETIME));
+    systemAndUser.x = (sys.QuadPart - lastSysCPU.QuadPart);
+    systemAndUser.y = (user.QuadPart - lastUserCPU.QuadPart);
+    systemAndUser /= (float)(now.QuadPart - lastCPU.QuadPart);
+    systemAndUser /= (float)numProcessors;
+    systemAndUser *= 100.0f;
+    lastCPU = now;
+    lastUserCPU = user;
+    lastSysCPU = sys;
+
+    PDH_FMT_COUNTERVALUE counterVal;
+    PdhCollectQueryData(cpuQuery);
+    PdhGetFormattedCounterValue(cpuTotal, PDH_FMT_DOUBLE, NULL, &counterVal);
+    systemAndUser.z = (float)counterVal.doubleValue;
+}
+
+#endif
+
+
 void Application::idle(float nsecsElapsed) {
     PerformanceTimer perfTimer("idle");
 
@@ -3314,6 +3374,18 @@ void Application::idle(float nsecsElapsed) {
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
 
+#ifdef Q_OS_WIN
+    static std::once_flag once;
+    std::call_once(once, [] {
+        initCpuUsage(); 
+    });
+
+    vec3 kernelUserAndSystem;
+    getCpuUsage(kernelUserAndSystem);
+    PROFILE_COUNTER(app, "cpuProcess", { { "system", kernelUserAndSystem.x }, { "user", kernelUserAndSystem.y } });
+    PROFILE_COUNTER(app, "cpuSystem", { { "system", kernelUserAndSystem.z } });
+#endif
+
     auto displayPlugin = getActiveDisplayPlugin();
     if (displayPlugin) {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
@@ -3323,6 +3395,9 @@ void Application::idle(float nsecsElapsed) {
     PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", int, ResourceCache::getPendingRequestCount());
     PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
+
+
+
 
     PROFILE_RANGE(app, __FUNCTION__);
 
