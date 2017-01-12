@@ -21,10 +21,6 @@ TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
 }
 
-TabletScriptingInterface::~TabletScriptingInterface() {
-    qDebug() << "Shutting down TabletScriptingInterface";
-}
-
 QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
 
     std::lock_guard<std::mutex> guard(_mutex);
@@ -95,38 +91,40 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
         gotoHomeScreen();
     } else {
         removeButtonsFromHomeScreen();
+        _state = State::Uninitialized;
     }
 }
 
 void TabletProxy::gotoMenuScreen() {
     if (_qmlTabletRoot) {
-        _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, VRMENU_SOURCE_URL);
-        auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-        QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()));
-        QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
+        if (_state != State::Menu) {
+            auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()));
+            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
+            _state = State::Menu;
+        }
     }
 }
 
 void TabletProxy::gotoHomeScreen() {
     if (_qmlTabletRoot) {
-        QString tabletSource = _qmlTabletRoot->property(LOADER_SOURCE_PROPERTY_NAME).toString();
-        if (tabletSource != TABLET_SOURCE_URL) {
-            _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, TABLET_SOURCE_URL);
+        if (_state != State::Home) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
+            _state = State::Home;
         }
     }
 }
 
 void TabletProxy::gotoWebScreen(const QString& url) {
     if (_qmlTabletRoot) {
-        removeButtonsFromHomeScreen();
-        QString tabletSource = _qmlTabletRoot->property(LOADER_SOURCE_PROPERTY_NAME).toString();
-        if (tabletSource != WEB_VIEW_SOURCE_URL) {
-            _qmlTabletRoot->setProperty(LOADER_SOURCE_PROPERTY_NAME, WEB_VIEW_SOURCE_URL);
+        if (_state == State::Home) {
+            removeButtonsFromHomeScreen();
+        }
+        if (_state != State::Web) {
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
-            // TABLET_UI_HACK: TODO: addEventBridge to tablet....
+            _state = State::Web;
         }
         QMetaObject::invokeMethod(_qmlTabletRoot, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)));
     }
