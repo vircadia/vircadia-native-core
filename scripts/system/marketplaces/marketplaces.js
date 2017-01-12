@@ -15,8 +15,7 @@ Script.include("../libraries/WebTablet.js");
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 
-//var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
-var MARKETPLACE_URL = "https://clara.io/library?gameCheck=true&public=true";
+var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
 var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
