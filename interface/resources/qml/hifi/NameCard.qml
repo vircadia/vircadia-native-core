@@ -155,10 +155,10 @@ Row {
             visible: !isMyCard
             width: parent.width
             height: 18
-            value: pal.gain[uuid] ? pal.gain[uuid] : 1.0
-            minimumValue: 0.0
-            maximumValue: 1.5
-            stepSize: 0.1
+            value: pal.gainSliderValueDB[uuid] ? pal.gainSliderValueDB[uuid] : 0.0
+            minimumValue: -60.0
+            maximumValue: 20.0
+            stepSize: 2
             updateValueWhileDragging: false
             onValueChanged: updateGainFromQML(uuid, value)
             style: SliderStyle {
@@ -167,6 +167,12 @@ Row {
                     implicitWidth: gainSlider.width
                     implicitHeight: 4
                     radius: 2
+                    MouseArea {
+                        anchors.fill: parent
+                        onDoubleClicked: {
+                            gainSlider.value = 0.0
+                        }
+                    }
                 }
                 handle: Rectangle {
                     anchors.centerIn: parent
@@ -178,12 +184,14 @@ Row {
         }
     }
 
-    function updateGainFromQML(avatarUuid, gainValue) {
-        pal.gain[avatarUuid] = gainValue;
-        var data = {
-            sessionId: avatarUuid,
-            gain: (Math.pow(20, gainValue) - 1) / (20 - 1)
-        };
-        pal.sendToScript({method: 'updateGain', params: data});
+    function updateGainFromQML(avatarUuid, sliderValue) {
+        if (pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
+            pal.gainSliderValueDB[avatarUuid] = sliderValue;
+            var data = {
+                sessionId: avatarUuid,
+                gain: sliderValue
+            };
+            pal.sendToScript({method: 'updateGain', params: data});
+        }
     }
 }

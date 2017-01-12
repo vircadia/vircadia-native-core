@@ -252,13 +252,12 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
 
             // Enumerate the audio streams attached to the otherNode
             auto streamsCopy = otherData->getAudioStreams();
-            float thisAvatarGain = nodeData->getPerAvatarGain(otherNode->getUUID());
             for (auto& streamPair : streamsCopy) {
                 auto otherNodeStream = streamPair.second;
                 bool isSelfWithEcho = ((*otherNode == *node) && (otherNodeStream->shouldLoopbackForNode()));
                 // Add all audio streams that should be added to the mix
                 if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius)) {
-                    addStreamToMix(*nodeData, otherNode->getUUID(), *nodeAudioStream, *otherNodeStream, thisAvatarGain);
+                    addStreamToMix(*nodeData, otherNode->getUUID(), *nodeAudioStream, *otherNodeStream);
                 }
             }
         }
@@ -279,7 +278,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
 }
 
 void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
-        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd, float perAvatarGain) {
+        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
     // to reduce artifacts we calculate the gain and azimuth for every source for this listener
     // even if we are not going to end up mixing in this source
 
@@ -296,7 +295,7 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
     float distance = glm::max(glm::length(relativePosition), EPSILON);
 
     // figure out the gain for this source at the listener
-    float gain = gainForSource(listeningNodeStream, streamToAdd, relativePosition, isEcho) * perAvatarGain;
+    float gain = gainForSource(listeningNodeStream, streamToAdd, relativePosition, isEcho);
 
     // figure out the azimuth to this source at the listener
     float azimuth = isEcho ? 0.0f : azimuthForSource(listeningNodeStream, listeningNodeStream, relativePosition);

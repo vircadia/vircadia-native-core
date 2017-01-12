@@ -26,6 +26,7 @@
 #include "AccountManager.h"
 #include "AddressManager.h"
 #include "Assignment.h"
+#include "AudioHelpers.h"
 #include "HifiSockAddr.h"
 #include "FingerprintUtils.h"
 
@@ -961,7 +962,8 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
             
             // write the node ID to the packet
             setAvatarGainPacket->write(nodeID.toRfc4122());
-            setAvatarGainPacket->writePrimitive((gain < 5.0f ? gain : 5.0f));
+            // We need to convert the gain in dB (from the script) to an amplitude before packing it.
+            setAvatarGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.0206f)));
 
             qCDebug(networking) << "Sending Set Avatar Gain packet UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
 

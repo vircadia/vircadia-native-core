@@ -28,6 +28,7 @@
 #include <StDev.h>
 #include <UUID.h>
 
+#include "AudioHelpers.h"
 #include "AudioRingBuffer.h"
 #include "AudioMixerClientData.h"
 #include "AvatarAudioStream.h"
@@ -188,7 +189,6 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
             QUuid killedUUID = killedNode->getUUID();
-            clientData->removePerAvatarGain(killedUUID);
             clientData->removeHRTFsForNode(killedUUID);
         }
     });
@@ -246,11 +246,14 @@ void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> p
 void AudioMixer::handlePerAvatarGainSetDataPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
     if (clientData) {
+        QUuid listeningNodeUUID = sendingNode->getUUID();
         // parse the UUID from the packet
-        QUuid ignoredUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-        float gain;
-        packet->readPrimitive(&gain);
-        clientData->setPerAvatarGain(ignoredUUID, gain);
+        QUuid audioSourceUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+        uint8_t packedGain;
+        packet->readPrimitive(&packedGain);
+        float gain = unpackFloatGainFromByte(packedGain);
+        clientData->hrtfForStream(audioSourceUUID, QUuid()).setGainAdjustment(gain);
+        qDebug() << "Setting gain adjustment for hrtf[" << listeningNodeUUID << "][" << audioSourceUUID << "] to " << gain;
     }
 }
 

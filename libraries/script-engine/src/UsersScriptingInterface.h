@@ -63,9 +63,10 @@ public slots:
 
     /**jsdoc
     * Sets an avatar's gain for you and you only.
+    * Units are Decibels (dB)
     * @function Users.setAvatarGain
     * @param {nodeID} nodeID The node or session ID of the user whose gain you want to modify.
-    * @param {float} gain The gain of the avatar you'd like to set.
+    * @param {float} gain The gain of the avatar you'd like to set. Units are dB.
     */
     void setAvatarGain(const QUuid& nodeID, float gain);
 

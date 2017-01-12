@@ -43,7 +43,7 @@ private:
     bool prepareMix(const SharedNodePointer& node);
     // add a stream to the mix
     void addStreamToMix(AudioMixerClientData& listenerData, const QUuid& streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer, float perAvatarGain);
+            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
 
     float gainForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
             const glm::vec3& relativePosition, bool isEcho);
