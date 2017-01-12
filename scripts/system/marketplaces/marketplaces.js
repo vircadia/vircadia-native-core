@@ -48,13 +48,25 @@ var marketplaceWindow = new OverlayWebWindow({
 });
 marketplaceWindow.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
 
-marketplaceWindow.webEventReceived.connect(function (message) {
+function onWebEventReceived(message) {
     if (message === GOTO_DIRECTORY) {
-        marketplaceWindow.setURL(MARKETPLACES_URL);
+        var url = MARKETPLACES_URL;
+        if (marketplaceWindow.visible) {
+            marketplaceWindow.setURL(url);
+        }
+        if (marketplaceWebTablet) {
+            marketplaceWebTablet.setURL(url);
+        }
         return;
     }
     if (message === QUERY_CAN_WRITE_ASSETS) {
-        marketplaceWindow.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
+        var canWriteAssets = CAN_WRITE_ASSETS + " " + Entities.canWriteAssets();
+        if (marketplaceWindow.visible) {
+            marketplaceWindow.emitScriptEvent(canWriteAssets);
+        }
+        if (marketplaceWebTablet) {
+            marketplaceWebTablet.getOverlayObject().emitScriptEvent(canWriteAssets);
+        }
         return;
     }
     if (message === WARN_USER_NO_PERMISSIONS) {
@@ -87,7 +99,9 @@ marketplaceWindow.webEventReceived.connect(function (message) {
     if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
         isDownloadBeingCancelled = false;
     }
-});
+}
+
+marketplaceWindow.webEventReceived.connect(onWebEventReceived);
 
 function onMessageBoxClosed(id, button) {
     if (id === messageBox && button === CANCEL_BUTTON) {
@@ -122,17 +136,7 @@ function showMarketplace() {
         marketplaceWebTablet = new WebTablet(MARKETPLACE_URL_INITIAL, null, null, true);
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
         marketplaceWebTablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
-        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (message) {
-            if (message === GOTO_DIRECTORY) {
-                marketplaceWebTablet.setURL(MARKETPLACES_URL);
-            }
-            if (message === QUERY_CAN_WRITE_ASSETS) {
-                marketplaceWebTablet.getOverlayObject().emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
-            }
-            if (message === WARN_USER_NO_PERMISSIONS) {
-                Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
-            }
-        });
+        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(onWebEventReceived);
     } else {
         marketplaceWindow.setURL(MARKETPLACE_URL_INITIAL);
         marketplaceWindow.setVisible(true);
