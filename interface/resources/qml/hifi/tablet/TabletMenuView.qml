@@ -11,6 +11,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
+import QtGraphicalEffects 1.0
 
 import "../../styles-uit"
 
@@ -47,6 +48,40 @@ FocusScope {
         anchors.leftMargin: 0
         anchors.topMargin: 0
         anchors.top: parent.top
+
+        Image {
+            id: menuRootIcon
+            width: 40
+            height: 40
+            source: "../../../icons/tablet-icons/menu-i.svg"
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 15
+
+            MouseArea {
+                anchors.fill: parent
+                // TODO: navigate back to top level menu
+                onClicked: iconColorOverlay.color = "#1fc6a6"
+            }
+        }
+
+        ColorOverlay {
+            id: iconColorOverlay
+            anchors.fill: menuRootIcon
+            source: menuRootIcon
+            color: "#ffffff"
+        }
+
+        RalewayBold {
+            id: breadcrumbText
+            text: "MENU"
+            size: 18
+            color: "#ffffff"
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: menuRootIcon.right
+            anchors.leftMargin: 15
+        }
+
     }
 
     Rectangle {
