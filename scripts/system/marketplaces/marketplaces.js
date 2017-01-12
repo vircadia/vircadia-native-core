@@ -89,7 +89,7 @@ function onWebEventReceived(message) {
     }
 
     if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
-        if (messageBox) {
+        if (messageBox !== null) {
             Window.closeMessageBox(messageBox);
             messageBox = null;
         }
