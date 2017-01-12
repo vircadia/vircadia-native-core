@@ -27,12 +27,36 @@ FocusScope {
     HifiConstants { id: hifi }
 
     Rectangle {
+        id: bgNavBar
+        height: 90
+        z: 1
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: "#2b2b2b"
+            }
+
+            GradientStop {
+                position: 1
+                color: "#1e1e1e"
+            }
+        }
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+        anchors.topMargin: 0
+        anchors.top: parent.top
+    }
+
+    Rectangle {
         id: background
         anchors.fill: listView
         radius: hifi.dimensions.borderRadius
         border.width: hifi.dimensions.borderWidth
         border.color: hifi.colors.lightGrayText80
-        color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
+        color: hifi.colors.faintGray
+        //color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
     }
 
     ListView {
@@ -41,7 +65,8 @@ FocusScope {
         y: 0
         width: 480
         height: 720
-        topMargin: hifi.dimensions.menuPadding.y
+
+        topMargin: hifi.dimensions.menuPadding.y + 90
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
         onCountChanged: recalcSize();
