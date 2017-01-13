@@ -591,6 +591,7 @@ function loaded() {
         var elScriptURL = document.getElementById("property-script-url");
         var elScriptTimestamp = document.getElementById("property-script-timestamp");
         var elReloadScriptButton = document.getElementById("reload-script-button");
+        var elServerScripts = document.getElementById("property-server-scripts");
         var elUserData = document.getElementById("property-user-data");
         var elClearUserData = document.getElementById("userdata-clear");
         var elSaveUserData = document.getElementById("userdata-save");
@@ -847,6 +848,7 @@ function loaded() {
                         elLifetime.value = properties.lifetime;
                         elScriptURL.value = properties.script;
                         elScriptTimestamp.value = properties.scriptTimestamp;
+                        elServerScripts.value = properties.serverScripts;
 
                         var json = null;
                         try {
@@ -1143,6 +1145,7 @@ function loaded() {
         elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
         elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
         elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
+        elServerScripts.addEventListener('change', createEmitTextPropertyUpdateFunction('serverScripts'));
 
         elClearUserData.addEventListener("click", function() {
             deleteJSONEditor();
