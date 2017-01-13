@@ -60,6 +60,19 @@ WindowScriptingInterface::WindowScriptingInterface() {
     });
 }
 
+WindowScriptingInterface::~WindowScriptingInterface() {
+    QHashIterator<int, QQuickItem*> i(_messageBoxes);
+    while (i.hasNext()) {
+        i.next();
+        auto messageBox = i.value();
+        disconnect(messageBox);
+        messageBox->setVisible(false);
+        messageBox->deleteLater();
+    }
+
+    _messageBoxes.clear();
+}
+
 QScriptValue WindowScriptingInterface::hasFocus() {
     return qApp->hasFocus();
 }
@@ -209,4 +222,63 @@ void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& hr
 
 bool WindowScriptingInterface::isPhysicsEnabled() {
     return qApp->isPhysicsEnabled();
+}
+
+int WindowScriptingInterface::openMessageBox(QString title, QString text, int buttons, int defaultButton) {
+    if (QThread::currentThread() != thread()) {
+        int result;
+        QMetaObject::invokeMethod(this, "openMessageBox", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(int, result),
+            Q_ARG(QString, title),
+            Q_ARG(QString, text),
+            Q_ARG(int, buttons),
+            Q_ARG(int, defaultButton));
+        return result;
+    }
+
+    return createMessageBox(title, text, buttons, defaultButton);
+}
+
+int WindowScriptingInterface::createMessageBox(QString title, QString text, int buttons, int defaultButton) {
+    auto messageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text, 
+        static_cast<QFlags<QMessageBox::StandardButton>>(buttons), static_cast<QMessageBox::StandardButton>(defaultButton));
+    connect(messageBox, SIGNAL(selected(int)), this, SLOT(onMessageBoxSelected(int)));
+
+    _lastMessageBoxID += 1;
+    _messageBoxes.insert(_lastMessageBoxID, messageBox);
+
+    return _lastMessageBoxID;
+}
+
+void WindowScriptingInterface::updateMessageBox(int id, QString title, QString text, int buttons, int defaultButton) {
+    auto messageBox = _messageBoxes.value(id);
+    if (messageBox) {
+        messageBox->setProperty("title", title);
+        messageBox->setProperty("text", text);
+        messageBox->setProperty("buttons", buttons);
+        messageBox->setProperty("defaultButton", defaultButton);
+    }
+}
+
+void WindowScriptingInterface::closeMessageBox(int id) {
+    auto messageBox = _messageBoxes.value(id);
+    if (messageBox) {
+        disconnect(messageBox);
+        messageBox->setVisible(false);
+        messageBox->deleteLater();
+        _messageBoxes.remove(id);
+    }
+}
+
+void WindowScriptingInterface::onMessageBoxSelected(int button) {
+    auto messageBox = qobject_cast<QQuickItem*>(sender());
+    auto keys = _messageBoxes.keys(messageBox);
+    if (keys.length() > 0) {
+        auto id = keys[0];  // Should be just one message box.
+        emit messageBoxClosed(id, button);
+        disconnect(messageBox);
+        messageBox->setVisible(false);
+        messageBox->deleteLater();
+        _messageBoxes.remove(id);
+    }
 }
