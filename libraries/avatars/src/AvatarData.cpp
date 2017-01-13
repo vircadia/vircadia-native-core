@@ -233,39 +233,40 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     //
 
     // TODO -
-    //      typical --  1jd 0ft 0p 1af 1stw 0loud 1look 0s 0o 1d 1lp 1gp
     //
-    // 2) determine if local position really only matters for parent              - 12 bytes - 4.32 kbps (when moving and/or not parented)
-    // 3) SensorToWorld - should we only send this for avatars with attachments?? - 20 bytes - 7.20 kbps
-    // 5) GUIID for the session change to 2byte index                   (savings) - 14 bytes - 5.04 kbps
-    //
-    //  ----- Subtotal -- non-joint savings --- ~21.2 kbps ---  ~12.8% savings?
-    // 
-    // 5) Joints... use more aggressive quantization and/or culling for more distance between avatars
+    // 1) Joints... use more aggressive quantization and/or culling for more distance between avatars
+    // 2) SensorToWorld - should we only send this for avatars with attachments?? - 20 bytes - 7.20 kbps
+    // 3) GUIID for the session change to 2byte index                   (savings) - 14 bytes - 5.04 kbps
     //
     // Joints --
     //    63 rotations   * 6 bytes = 136kbps
     //    3 translations * 6 bytes = 6.48kbps
     //
 
-    bool hasAvatarGlobalPosition = true; // always include global position
-    bool hasAvatarLocalPosition = sendAll || tranlationChangedSince(lastSentTime);
-    bool hasAvatarOrientation = sendAll || rotationChangedSince(lastSentTime);
+    auto localPosition = getLocalPosition();
+    auto parentID = getParentID();
 
+    bool hasAvatarGlobalPosition = true; // always include global position
+    bool hasAvatarOrientation = sendAll || rotationChangedSince(lastSentTime);
     bool hasAvatarBoundingBox = sendAll || avatarBoundingBoxChangedSince(lastSentTime);
     bool hasAvatarScale = sendAll || avatarScaleChangedSince(lastSentTime);
     bool hasLookAtPosition = sendAll || lookAtPositionChangedSince(lastSentTime);
     bool hasAudioLoudness = sendAll || audioLoudnessChangedSince(lastSentTime);
     bool hasSensorToWorldMatrix = sendAll || sensorToWorldMatrixChangedSince(lastSentTime);
     bool hasAdditionalFlags = sendAll || additionalFlagsChangedSince(lastSentTime);
+
+    // local position, and parent info only apply to avatars that are parented. The local position
+    // and the parent info can change independently though, so we track their "changed since"
+    // separately
     bool hasParentInfo = hasParent() && (sendAll || parentInfoChangedSince(lastSentTime));
+    bool hasAvatarLocalPosition = hasParent() && (sendAll || tranlationChangedSince(lastSentTime));
+
     bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
     bool hasJointData = sendAll || !sendMinimum;
 
     // Leading flags, to indicate how much data is actually included in the packet...
     AvatarDataPacket::HasFlags packetStateFlags =
             (hasAvatarGlobalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION : 0)
-          | (hasAvatarLocalPosition  ? AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION : 0)
           | (hasAvatarBoundingBox    ? AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX : 0)
           | (hasAvatarOrientation    ? AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION : 0)
           | (hasAvatarScale          ? AvatarDataPacket::PACKET_HAS_AVATAR_SCALE : 0)
@@ -274,6 +275,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
           | (hasSensorToWorldMatrix  ? AvatarDataPacket::PACKET_HAS_SENSOR_TO_WORLD_MATRIX : 0)
           | (hasAdditionalFlags      ? AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS : 0)
           | (hasParentInfo           ? AvatarDataPacket::PACKET_HAS_PARENT_INFO : 0)
+          | (hasAvatarLocalPosition  ? AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION : 0)
           | (hasFaceTrackerInfo      ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
           | (hasJointData            ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0);
 
@@ -286,19 +288,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         data->globalPosition[1] = _globalPosition.y;
         data->globalPosition[2] = _globalPosition.z;
         destinationBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
-    }
-
-    // FIXME - I was told by tony this was "skeletal model position"-- but it seems to be 
-    // SpatiallyNestable::getLocalPosition() ... which AFAICT is almost always the same as
-    // the global position (unless presumably you're on a parent)... we might be able to
-    // include this in the parent info record
-    if (hasAvatarLocalPosition) {
-        auto data = reinterpret_cast<AvatarDataPacket::AvatarLocalPosition*>(destinationBuffer);
-        auto localPosition = getLocalPosition();
-        data->localPosition[0] = localPosition.x;
-        data->localPosition[1] = localPosition.y;
-        data->localPosition[2] = localPosition.z;
-        destinationBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
     }
 
     if (hasAvatarBoundingBox) {
@@ -354,8 +343,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
     }
 
-    QUuid parentID = getParentID();
-
     if (hasAdditionalFlags) {
         auto data = reinterpret_cast<AvatarDataPacket::AdditionalFlags*>(destinationBuffer);
 
@@ -383,6 +370,15 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
+    }
+
+    if (hasAvatarLocalPosition) {
+        auto data = reinterpret_cast<AvatarDataPacket::AvatarLocalPosition*>(destinationBuffer);
+        auto localPosition = getLocalPosition();
+        data->localPosition[0] = localPosition.x;
+        data->localPosition[1] = localPosition.y;
+        data->localPosition[2] = localPosition.z;
+        destinationBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
     }
 
     if (hasParentInfo) {
@@ -633,7 +629,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     #define HAS_FLAG(B,F) ((B & F) == F)
 
     bool hasAvatarGlobalPosition = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION);
-    bool hasAvatarLocalPosition  = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION);
     bool hasAvatarBoundingBox    = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX);
     bool hasAvatarOrientation    = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION);
     bool hasAvatarScale          = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_SCALE);
@@ -642,6 +637,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     bool hasSensorToWorldMatrix  = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_SENSOR_TO_WORLD_MATRIX);
     bool hasAdditionalFlags      = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS);
     bool hasParentInfo           = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_PARENT_INFO);
+    bool hasAvatarLocalPosition  = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION);
     bool hasFaceTrackerInfo      = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO);
     bool hasJointData            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DATA);
 
@@ -661,24 +657,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _globalPositionRate.increment(numBytesRead);
-    }
 
-    if (hasAvatarLocalPosition) {
-        auto startSection = sourceBuffer;
-
-        PACKET_READ_CHECK(AvatarLocalPosition, sizeof(AvatarDataPacket::AvatarLocalPosition));
-        auto data = reinterpret_cast<const AvatarDataPacket::AvatarLocalPosition*>(sourceBuffer);
-        glm::vec3 position = glm::vec3(data->localPosition[0], data->localPosition[1], data->localPosition[2]);
-        if (isNaN(position)) {
-            if (shouldLogError(now)) {
-                qCWarning(avatars) << "Discard AvatarData packet: position NaN, uuid " << getSessionUUID();
-            }
-            return buffer.size();
+        // if we don't have a parent, make sure to also set our local position
+        if (!hasParent()) {
+            setLocalPosition(newValue);
         }
-        setLocalPosition(position);
-        sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
-        int numBytesRead = sourceBuffer - startSection;
-        _localPositionRate.increment(numBytesRead);
     }
 
     if (hasAvatarBoundingBox) {
@@ -861,6 +844,25 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     } else {
         // FIXME - this aint totally right, for switching to parent/no-parent
         _parentID = QUuid();
+    }
+
+    if (hasAvatarLocalPosition) {
+        assert(hasParent()); // we shouldn't have local position unless we have a parent
+        auto startSection = sourceBuffer;
+
+        PACKET_READ_CHECK(AvatarLocalPosition, sizeof(AvatarDataPacket::AvatarLocalPosition));
+        auto data = reinterpret_cast<const AvatarDataPacket::AvatarLocalPosition*>(sourceBuffer);
+        glm::vec3 position = glm::vec3(data->localPosition[0], data->localPosition[1], data->localPosition[2]);
+        if (isNaN(position)) {
+            if (shouldLogError(now)) {
+                qCWarning(avatars) << "Discard AvatarData packet: position NaN, uuid " << getSessionUUID();
+            }
+            return buffer.size();
+        }
+        setLocalPosition(position);
+        sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
+        int numBytesRead = sourceBuffer - startSection;
+        _localPositionRate.increment(numBytesRead);
     }
 
     if (hasFaceTrackerInfo) {

@@ -126,15 +126,15 @@ namespace AvatarDataPacket {
     // AvatarGlobalPosition, Avatar Faceshift, eye tracking, and existence of
     using HasFlags = uint16_t;
     const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION = 1U << 0;
-    const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 1; // FIXME - can this be in the PARENT_INFO??
-    const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX    = 1U << 2;
-    const HasFlags PACKET_HAS_AVATAR_ORIENTATION     = 1U << 3;
-    const HasFlags PACKET_HAS_AVATAR_SCALE           = 1U << 4;
-    const HasFlags PACKET_HAS_LOOK_AT_POSITION       = 1U << 5;
-    const HasFlags PACKET_HAS_AUDIO_LOUDNESS         = 1U << 6;
-    const HasFlags PACKET_HAS_SENSOR_TO_WORLD_MATRIX = 1U << 7;
-    const HasFlags PACKET_HAS_ADDITIONAL_FLAGS       = 1U << 8;
-    const HasFlags PACKET_HAS_PARENT_INFO            = 1U << 9;
+    const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX    = 1U << 1;
+    const HasFlags PACKET_HAS_AVATAR_ORIENTATION     = 1U << 2;
+    const HasFlags PACKET_HAS_AVATAR_SCALE           = 1U << 3;
+    const HasFlags PACKET_HAS_LOOK_AT_POSITION       = 1U << 4;
+    const HasFlags PACKET_HAS_AUDIO_LOUDNESS         = 1U << 5;
+    const HasFlags PACKET_HAS_SENSOR_TO_WORLD_MATRIX = 1U << 6;
+    const HasFlags PACKET_HAS_ADDITIONAL_FLAGS       = 1U << 7;
+    const HasFlags PACKET_HAS_PARENT_INFO            = 1U << 8;
+    const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 9;
     const HasFlags PACKET_HAS_FACE_TRACKER_INFO      = 1U << 10;
     const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
 
@@ -142,18 +142,6 @@ namespace AvatarDataPacket {
 
     PACKED_BEGIN struct Header {
         HasFlags packetHasFlags;        // state flags, indicated which additional records are included in the packet
-                                        //    bit 0  - has AvatarGlobalPosition
-                                        //    bit 1  - has AvatarLocalPosition
-                                        //    bit 2  - has AvatarBoundingBox
-                                        //    bit 3  - has AvatarOrientation
-                                        //    bit 4  - has AvatarScale
-                                        //    bit 5  - has LookAtPosition
-                                        //    bit 6  - has AudioLoudness
-                                        //    bit 7  - has SensorToWorldMatrix
-                                        //    bit 8  - has AdditionalFlags
-                                        //    bit 9  - has ParentInfo
-                                        //    bit 10 - has FaceTrackerInfo
-                                        //    bit 11 - has JointData
     } PACKED_END;
     const size_t HEADER_SIZE = 2;
 
@@ -161,13 +149,6 @@ namespace AvatarDataPacket {
         float globalPosition[3];          // avatar's position
     } PACKED_END;
     const size_t AVATAR_GLOBAL_POSITION_SIZE = 12;
-
-    PACKED_BEGIN struct AvatarLocalPosition {
-        float localPosition[3];             // this appears to be the avatar local position?? 
-                                            // this is a reduced precision radix
-                                            // FIXME - could this be changed into compressed floats?
-    } PACKED_END;
-    const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
 
     PACKED_BEGIN struct AvatarBoundingBox {
         float avatarDimensions[3];        // avatar's bounding box in world space units, but relative to the position.
@@ -230,6 +211,13 @@ namespace AvatarDataPacket {
         uint16_t parentJointIndex;
     } PACKED_END;
     const size_t PARENT_INFO_SIZE = 18;
+
+    // will only ever be included if the avatar has a parent but can change independent of changes to parent info
+    // and so we keep it a separate record
+    PACKED_BEGIN struct AvatarLocalPosition {
+        float localPosition[3];           // parent frame translation of the avatar
+    } PACKED_END;
+    const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
 
     // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
