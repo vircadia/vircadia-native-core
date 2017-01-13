@@ -14,7 +14,9 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QString>
+#include <QtQuick/QQuickItem>
 #include <QtScript/QScriptValue>
+#include <QtWidgets/QMessageBox>
 
 class CustomPromptResult {
 public:
@@ -35,6 +37,7 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int y READ getY)
 public:
     WindowScriptingInterface();
+    ~WindowScriptingInterface();
     int getInnerWidth();
     int getInnerHeight();
     int getX();
@@ -56,6 +59,13 @@ public slots:
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));
     bool isPhysicsEnabled();
 
+    int openMessageBox(QString title, QString text, int buttons, int defaultButton);
+    void updateMessageBox(int id, QString title, QString text, int buttons, int defaultButton);
+    void closeMessageBox(int id);
+
+private slots:
+    void onMessageBoxSelected(int button);
+
 signals:
     void domainChanged(const QString& domainHostname);
     void svoImportRequested(const QString& url);
@@ -64,9 +74,15 @@ signals:
     void snapshotShared(const QString& error);
     void processingGif();
 
+    void messageBoxClosed(int id, int button);
+
 private:
     QString getPreviousBrowseLocation() const;
     void setPreviousBrowseLocation(const QString& location);
+
+    int createMessageBox(QString title, QString text, int buttons, int defaultButton);
+    QHash<int, QQuickItem*> _messageBoxes;
+    int _lastMessageBoxID{ -1 };
 };
 
 #endif // hifi_WindowScriptingInterface_h
