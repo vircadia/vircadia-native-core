@@ -22,10 +22,21 @@ var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplaces
 
 // Event bridge messages.
 var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
+var CLARA_IO_STATUS = "CLARA.IO STATUS";
+var CLARA_IO_CANCEL_DOWNLOAD = "CLARA.IO CANCEL DOWNLOAD";
+var CLARA_IO_CANCELLED_DOWNLOAD = "CLARA.IO CANCELLED DOWNLOAD";
 var GOTO_DIRECTORY = "GOTO_DIRECTORY";
 var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
 var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
 var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
+
+var CLARA_DOWNLOAD_TITLE = "Preparing Download";
+var messageBox = null;
+var isDownloadBeingCancelled = false;
+
+var CANCEL_BUTTON = 4194304;  // QMessageBox::Cancel
+var NO_BUTTON = 0;  // QMessageBox::NoButton
+
 var NO_PERMISSIONS_ERROR_MESSAGE = "Cannot download model because you can't write to \nthe domain's Asset Server.";
 
 var marketplaceWindow = new OverlayWebWindow({
@@ -36,17 +47,71 @@ var marketplaceWindow = new OverlayWebWindow({
     visible: false
 });
 marketplaceWindow.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
-marketplaceWindow.webEventReceived.connect(function (message) {
+
+function onWebEventReceived(message) {
     if (message === GOTO_DIRECTORY) {
-        marketplaceWindow.setURL(MARKETPLACES_URL);
+        var url = MARKETPLACES_URL;
+        if (marketplaceWindow.visible) {
+            marketplaceWindow.setURL(url);
+        }
+        if (marketplaceWebTablet) {
+            marketplaceWebTablet.setURL(url);
+        }
+        return;
     }
     if (message === QUERY_CAN_WRITE_ASSETS) {
-        marketplaceWindow.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
+        var canWriteAssets = CAN_WRITE_ASSETS + " " + Entities.canWriteAssets();
+        if (marketplaceWindow.visible) {
+            marketplaceWindow.emitScriptEvent(canWriteAssets);
+        }
+        if (marketplaceWebTablet) {
+            marketplaceWebTablet.getOverlayObject().emitScriptEvent(canWriteAssets);
+        }
+        return;
     }
     if (message === WARN_USER_NO_PERMISSIONS) {
         Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
+        return;
     }
-});
+
+    if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
+        if (isDownloadBeingCancelled) {
+            return;
+        }
+
+        var text = message.slice(CLARA_IO_STATUS.length);
+        if (messageBox === null) {
+            messageBox = Window.openMessageBox(CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
+        } else {
+            Window.updateMessageBox(messageBox, CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
+        }
+        return;
+    }
+
+    if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
+        if (messageBox !== null) {
+            Window.closeMessageBox(messageBox);
+            messageBox = null;
+        }
+        return;
+    }
+
+    if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
+        isDownloadBeingCancelled = false;
+    }
+}
+
+marketplaceWindow.webEventReceived.connect(onWebEventReceived);
+
+function onMessageBoxClosed(id, button) {
+    if (id === messageBox && button === CANCEL_BUTTON) {
+        isDownloadBeingCancelled = true;
+        messageBox = null;
+        marketplaceWindow.emitScriptEvent(CLARA_IO_CANCEL_DOWNLOAD);
+    }
+}
+
+Window.messageBoxClosed.connect(onMessageBoxClosed);
 
 var toolHeight = 50;
 var toolWidth = 50;
@@ -71,17 +136,7 @@ function showMarketplace() {
         marketplaceWebTablet = new WebTablet(MARKETPLACE_URL_INITIAL, null, null, true);
         Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
         marketplaceWebTablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
-        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(function (message) {
-            if (message === GOTO_DIRECTORY) {
-                marketplaceWebTablet.setURL(MARKETPLACES_URL);
-            }
-            if (message === QUERY_CAN_WRITE_ASSETS) {
-                marketplaceWebTablet.getOverlayObject().emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
-            }
-            if (message === WARN_USER_NO_PERMISSIONS) {
-                Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
-            }
-        });
+        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(onWebEventReceived);
     } else {
         marketplaceWindow.setURL(MARKETPLACE_URL_INITIAL);
         marketplaceWindow.setVisible(true);
