@@ -32,15 +32,18 @@ FocusScope {
         radius: hifi.dimensions.borderRadius
         border.width: hifi.dimensions.borderWidth
         border.color: hifi.colors.lightGrayText80
-        color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
+        color: hifi.colors.faintGray
+        //color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
     }
 
     ListView {
         id: listView
-        x: 8; y: 8
-        width: parent.width
-        height: parent.height
-        topMargin: hifi.dimensions.menuPadding.y
+        x: 0
+        y: 0
+        width: 480
+        height: 720
+
+        topMargin: hifi.dimensions.menuPadding.y + 90
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
         onCountChanged: recalcSize();
