@@ -64,7 +64,7 @@ Item {
 
         RalewayBold {
             id: breadcrumbText
-            text: "MENU"
+            text: "Menu"
             size: 18
             color: "#ffffff"
             anchors.verticalCenter: parent.verticalCenter
