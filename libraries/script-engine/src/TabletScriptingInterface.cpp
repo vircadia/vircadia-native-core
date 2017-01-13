@@ -286,7 +286,8 @@ SoundEffect::~SoundEffect() {
         _sound->deleteLater();
     }
     if (_injector) {
-        _injector->deleteLater();
+         // stop will cause the AudioInjector to delete itself.
+        _injector->stop();
     }
 }
 
