@@ -65,6 +65,8 @@ Item {
             anchors.leftMargin: -10
             width: parent.width + 70
             height: 35
+            border.color: hifi.colors.blueHighlight
+            border.width: 0
             TextInput {
                 id: myDisplayNameText
                 // Properties
@@ -86,6 +88,8 @@ Item {
                 // Signals
                 onEditingFinished: {
                     pal.sendToScript({method: 'displayNameUpdate', params: text})
+                    focus = false
+                    myDisplayName.border.width = 0
                 }
             }
             MouseArea {
@@ -93,8 +97,9 @@ Item {
                 acceptedButtons: Qt.LeftButton
                 hoverEnabled: true
                 onClicked: {
+                    myDisplayName.border.width = 3
                     myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
-                    myDisplayNameText.focus = true;
+                    myDisplayNameText.focus = true
                 }
                 onDoubleClicked: {
                     myDisplayNameText.selectAll();
@@ -106,12 +111,12 @@ Item {
             // Edit pencil glyph
             HiFiGlyphs {
                 id: editGlyph
-                text: hifi.glyphs.edit
+                text: hifi.glyphs.editPencil
                 // Size
-                size: thisNameCard.displayTextHeight
+                size: thisNameCard.displayTextHeight*1.5
                 // Anchors
                 anchors.right: parent.right
-                anchors.rightMargin: size/2
+                anchors.rightMargin: 5
                 anchors.verticalCenter: parent.verticalCenter
                 // Style
                 horizontalAlignment: Text.AlignHCenter

@@ -1094,6 +1094,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
+    DependencyManager::get<NodeList>()->killNodeWithUUID(getSessionUUID());
 
     qCDebug(avatars) << "Changing display name for avatar to" << displayName;
 }
