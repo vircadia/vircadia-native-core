@@ -69,17 +69,15 @@ Item {
                 id: myDisplayNameText
                 // Properties
                 text: thisNameCard.displayName
-                autoScroll: false
                 maximumLength: 64
-                width: parent.width
-                height: parent.height
-                wrapMode: TextInput.Wrap
+                clip: true
                 // Anchors
                 anchors.fill: parent
                 anchors.leftMargin: 10
+                anchors.rightMargin: editGlyph.implicitWidth + editGlyph.anchors.rightMargin
                 // Text Positioning
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: TextInput.AlignVCenter
+                horizontalAlignment: TextInput.AlignLeft
                 // Style
                 color: hifi.colors.darkGray
                 FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
@@ -87,15 +85,18 @@ Item {
                 font.pointSize: thisNameCard.displayTextHeight
                 // Signals
                 onEditingFinished: {
-                    console.log("New displayName: ", text)
+                    pal.sendToScript({method: 'displayNameUpdate', params: text})
                 }
             }
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
                 hoverEnabled: true
-                propagateComposedEvents: true
                 onClicked: {
+                    myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
+                    myDisplayNameText.focus = true;
+                }
+                onDoubleClicked: {
                     myDisplayNameText.selectAll();
                     myDisplayNameText.focus = true;
                 }
@@ -104,6 +105,7 @@ Item {
             }
             // Edit pencil glyph
             HiFiGlyphs {
+                id: editGlyph
                 text: hifi.glyphs.edit
                 // Size
                 size: thisNameCard.displayTextHeight
