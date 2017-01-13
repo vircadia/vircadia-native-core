@@ -51,22 +51,12 @@ marketplaceWindow.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
 function onWebEventReceived(message) {
     if (message === GOTO_DIRECTORY) {
         var url = MARKETPLACES_URL;
-        if (marketplaceWindow.visible) {
-            marketplaceWindow.setURL(url);
-        }
-        if (marketplaceWebTablet) {
-            marketplaceWebTablet.setURL(url);
-        }
+        marketplaceWindow.setURL(url);
         return;
     }
     if (message === QUERY_CAN_WRITE_ASSETS) {
         var canWriteAssets = CAN_WRITE_ASSETS + " " + Entities.canWriteAssets();
-        if (marketplaceWindow.visible) {
-            marketplaceWindow.emitScriptEvent(canWriteAssets);
-        }
-        if (marketplaceWebTablet) {
-            marketplaceWebTablet.getOverlayObject().emitScriptEvent(canWriteAssets);
-        }
+        marketplaceWindow.emitScriptEvent(canWriteAssets);
         return;
     }
     if (message === WARN_USER_NO_PERMISSIONS) {
@@ -124,16 +114,17 @@ var marketplaceWebTablet;
 var persistenceKey = "io.highfidelity.lastDomainTablet";
 
 function showMarketplace() {
-    if (shouldShowWebTablet()) {
-        updateButtonState(true);
-        marketplaceWebTablet = new WebTablet(MARKETPLACE_URL_INITIAL, null, null, true);
-        Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
-        marketplaceWebTablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
-        marketplaceWebTablet.getOverlayObject().webEventReceived.connect(onWebEventReceived);
-    } else {
-        marketplaceWindow.setURL(MARKETPLACE_URL_INITIAL);
-        marketplaceWindow.setVisible(true);
-    }
+    tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL);
+    // if (shouldShowWebTablet()) {
+    //     updateButtonState(true);
+    //     marketplaceWebTablet = new WebTablet(MARKETPLACE_URL_INITIAL, null, null, true);
+    //     Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
+    //     marketplaceWebTablet.setScriptURL(MARKETPLACES_INJECT_SCRIPT_URL);
+    //     marketplaceWebTablet.getOverlayObject().webEventReceived.connect(onWebEventReceived);
+    // } else {
+    //     marketplaceWindow.setURL(MARKETPLACE_URL_INITIAL);
+    //     marketplaceWindow.setVisible(true);
+    // }
 
     marketplaceVisible = true;
     UserActivityLogger.openedMarketplace();
