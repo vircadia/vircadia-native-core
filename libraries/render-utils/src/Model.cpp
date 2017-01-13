@@ -247,6 +247,7 @@ void Model::updateRenderItems() {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
                         Transform modelTransform = data._model->getTransform();
+                        modelTransform.setScale(glm::vec3(1.0f));
 
                         // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
                         data._model->updateClusterMatrices();
