@@ -3,6 +3,7 @@ import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
 import QtQml 2.2
 import "."
+import "../../styles-uit"
 
 Item {
     id: tabletMenu
@@ -49,7 +50,7 @@ Item {
 
             MouseArea {
                 anchors.fill: parent
-                // navigate back to top level menu
+                // navigate back to root level menu
                 onClicked: buildMenu();
             }
         }
@@ -59,6 +60,21 @@ Item {
             anchors.fill: menuRootIcon
             source: menuRootIcon
             color: "#ffffff"
+        }
+
+        RalewayBold {
+            id: breadcrumbText
+            text: "MENU"
+            size: 18
+            color: "#ffffff"
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: menuRootIcon.right
+            anchors.leftMargin: 15
+            MouseArea {
+                anchors.fill: parent
+                // navigate back to parent level menu
+                onClicked: menuPopperUpper.closeLastMenu();
+            }
         }
     }
 
