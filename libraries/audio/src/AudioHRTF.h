@@ -44,6 +44,11 @@ public:
     //
     void renderSilent(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames);
 
+    //
+    // HRTF local gain adjustment
+    //
+    void setGainAdjustment(float gain) { _gainAdjust = HRTF_GAIN * gain; };
+
 private:
     AudioHRTF(const AudioHRTF&) = delete;
     AudioHRTF& operator=(const AudioHRTF&) = delete;
@@ -72,6 +77,9 @@ private:
     float _azimuthState = 0.0f;
     float _distanceState = 0.0f;
     float _gainState = 0.0f;
+
+    // global and local gain adjustment
+    float _gainAdjust = HRTF_GAIN;
 
     bool _silentState = false;
 };

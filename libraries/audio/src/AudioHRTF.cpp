@@ -392,8 +392,8 @@ static void crossfade_4x2(float* src, float* dst, const float* win, int numFrame
 // linear interpolation with gain
 static void interpolate(float* dst, const float* src0, const float* src1, float frac, float gain) {
 
-    __m128 f0 = _mm_set1_ps(HRTF_GAIN * gain * (1.0f - frac));
-    __m128 f1 = _mm_set1_ps(HRTF_GAIN * gain * frac);
+    __m128 f0 = _mm_set1_ps(gain * (1.0f - frac));
+    __m128 f1 = _mm_set1_ps(gain * frac);
 
     assert(HRTF_TAPS % 4 == 0);
 
@@ -860,6 +860,9 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
     ALIGN32 float bqCoef[5][8];                             // 4-channel (interleaved)
     ALIGN32 float bqBuffer[4 * HRTF_BLOCK];                 // 4-channel (interleaved)
     int delay[4];                                           // 4-channel (interleaved)
+
+    // apply global and local gain adjustment
+    gain *= _gainAdjust;
 
     // to avoid polluting the cache, old filters are recomputed instead of stored
     setFilters(firCoef, bqCoef, delay, index, _azimuthState, _distanceState, _gainState, L0);

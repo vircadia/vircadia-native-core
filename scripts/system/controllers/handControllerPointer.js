@@ -20,9 +20,10 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
-var systemLaserOn = false;
-
-
+var activeTrigger;
+function isLaserOn() {
+    return activeTrigger.partial();
+}
 Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
@@ -124,12 +125,6 @@ function ignoreMouseActivity() {
     if (!Reticle.allowMouseCapture) {
         return true;
     }
-
-    // if the lasers are on, then reticle/mouse should be hidden and we can ignore it for seeking or depth updating
-    if (systemLaserOn) {
-        return true;
-    }
-
     var pos = Reticle.position;
     if (!pos || (pos.x == -1 && pos.y == -1)) {
         return true;
@@ -270,12 +265,6 @@ var ONE_MINUS_WEIGHTING = 1 - WEIGHTING;
 var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 20;
 function isShakingMouse() { // True if the person is waving the mouse around trying to find it.
     var now = Date.now(), mouse = Reticle.position, isShaking = false;
-
-    // if the lasers are on, then we ignore mouse shaking
-    if (systemLaserOn) {
-        return false;
-    }
-
     if (lastIntegration && (lastIntegration !== now)) {
         var velocity = Vec3.length(Vec3.subtract(mouse, lastMouse)) / (now - lastIntegration);
         averageMouseVelocity = (ONE_MINUS_WEIGHTING * averageMouseVelocity) + (WEIGHTING * velocity);
@@ -290,16 +279,8 @@ function isShakingMouse() { // True if the person is waving the mouse around try
 var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.1;
 function updateSeeking(doNotStartSeeking) {
-    // if the lasers are on, then we never do seeking
-    if (systemLaserOn) {
-        isSeeking = false;
-        return;
-    }
-
-    if (!doNotStartSeeking && (!Reticle.visible || isShakingMouse())) {
-        if (!isSeeking) {
-            isSeeking = true;
-        }
+    if (!doNotStartSeeking && !isLaserOn() && (!Reticle.visible || isShakingMouse())) {
+        isSeeking = true;
     } // e.g., if we're about to turn it on with first movement.
     if (!isSeeking) {
         return;
@@ -340,7 +321,7 @@ function updateMouseActivity(isClick) {
         return;
     } // Bug: mouse clicks should keep going. Just not hand controller clicks
     handControllerLockOut.update(now);
-    Reticle.visible = !systemLaserOn;
+    Reticle.visible = true;
 }
 function expireMouseCursor(now) {
     if (!isPointingAtOverlay() && mouseCursorActivity.expired(now)) {
@@ -392,7 +373,7 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 
 var leftTrigger = new Trigger('left');
 var rightTrigger = new Trigger('right');
-var activeTrigger = rightTrigger;
+activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
 var LEFT_HUD_LASER = 1;
 var RIGHT_HUD_LASER = 2;
@@ -498,6 +479,7 @@ var LASER_ALPHA = 0.5;
 var LASER_SEARCH_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: LASER_ALPHA};
 var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: LASER_ALPHA};
 var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
+var systemLaserOn = false;
 function clearSystemLaser() {
     if (!systemLaserOn) {
         return;
@@ -506,7 +488,6 @@ function clearSystemLaser() {
     HMD.disableExtraLaser();
     systemLaserOn = false;
     weMovedReticle = true;
-    Reticle.position = { x: -1, y: -1 };
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
@@ -590,12 +571,6 @@ function update() {
     Reticle.visible = false;
 }
 
-var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
-var updateIntervalTimer = Script.setInterval(function(){
-    update();
-}, BASIC_TIMER_INTERVAL);
-
-
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
 function checkSettings() {
@@ -605,9 +580,10 @@ function checkSettings() {
 checkSettings();
 
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
+Script.update.connect(update);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
-    Script.clearInterval(updateIntervalTimer);
+    Script.update.disconnect(update);
     OffscreenFlags.navigationFocusDisabled = false;
 });
 

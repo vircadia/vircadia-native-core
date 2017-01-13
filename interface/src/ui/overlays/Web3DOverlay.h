@@ -21,6 +21,7 @@ class Web3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
 
 public:
+    static const QString QML;
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }
 
@@ -28,6 +29,7 @@ public:
     Web3DOverlay(const Web3DOverlay* Web3DOverlay);
     virtual ~Web3DOverlay();
 
+    QString pickURL();
     void loadSourceURL();
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
