@@ -142,7 +142,9 @@ void Model::setSpatiallyNestableOverride(SpatiallyNestablePointer override) {
 Transform Model::getTransform() const {
     SpatiallyNestablePointer spatiallyNestableOverride = _spatiallyNestableOverride.lock();
     if (spatiallyNestableOverride) {
-        return spatiallyNestableOverride->getTransform();
+        Transform transform = spatiallyNestableOverride->getTransform();
+        transform.setScale(getScale());
+        return transform;
     } else {
         Transform transform;
         transform.setScale(getScale());
