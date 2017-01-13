@@ -142,16 +142,19 @@ void Model::setSpatiallyNestableOverride(SpatiallyNestablePointer override) {
 Transform Model::getTransform() const {
     SpatiallyNestablePointer spatiallyNestableOverride = _spatiallyNestableOverride.lock();
     if (spatiallyNestableOverride) {
-        Transform transform = spatiallyNestableOverride->getTransform();
-        transform.setScale(getScale());
-        return transform;
-    } else {
-        Transform transform;
-        transform.setScale(getScale());
-        transform.setTranslation(getTranslation());
-        transform.setRotation(getRotation());
-        return transform;
+        bool success;
+        Transform transform = spatiallyNestableOverride->getTransform(success);
+        if (success) {
+            transform.setScale(getScale());
+            return transform;
+        }
     }
+
+    Transform transform;
+    transform.setScale(getScale());
+    transform.setTranslation(getTranslation());
+    transform.setRotation(getRotation());
+    return transform;
 }
 
 void Model::setScale(const glm::vec3& scale) {
