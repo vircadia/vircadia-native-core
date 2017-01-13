@@ -100,7 +100,7 @@ function updateOverlays() {
             var text = " All: " + AvatarManager.getAvatarDataRate(avatarID).toFixed(2) + "\n"
                        +" GP: " + AvatarManager.getAvatarDataRate(avatarID,"globalPosition").toFixed(2) + "\n"
                        +" LP: " + AvatarManager.getAvatarDataRate(avatarID,"localPosition").toFixed(2) + "\n"
-                       +" AD: " + AvatarManager.getAvatarDataRate(avatarID,"avatarDimensions").toFixed(2) + "\n"
+                       +" BB: " + AvatarManager.getAvatarDataRate(avatarID,"avatarBoundingBox").toFixed(2) + "\n"
                        +" AO: " + AvatarManager.getAvatarDataRate(avatarID,"avatarOrientation").toFixed(2) + "\n"
                        +" AS: " + AvatarManager.getAvatarDataRate(avatarID,"avatarScale").toFixed(2) + "\n"
                        +" LA: "  + AvatarManager.getAvatarDataRate(avatarID,"lookAtPosition").toFixed(2) + "\n"

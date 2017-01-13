@@ -82,7 +82,7 @@ AvatarData::AvatarData() :
     ASSERT(sizeof(AvatarDataPacket::Header) == AvatarDataPacket::HEADER_SIZE);
     ASSERT(sizeof(AvatarDataPacket::AvatarGlobalPosition) == AvatarDataPacket::AVATAR_GLOBAL_POSITION_SIZE);
     ASSERT(sizeof(AvatarDataPacket::AvatarLocalPosition) == AvatarDataPacket::AVATAR_LOCAL_POSITION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarDimensions) == AvatarDataPacket::AVATAR_DIMENSIONS_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::AvatarBoundingBox) == AvatarDataPacket::AVATAR_BOUNDING_BOX_SIZE);
     ASSERT(sizeof(AvatarDataPacket::AvatarOrientation) == AvatarDataPacket::AVATAR_ORIENTATION_SIZE);
     ASSERT(sizeof(AvatarDataPacket::AvatarScale) == AvatarDataPacket::AVATAR_SCALE_SIZE);
     ASSERT(sizeof(AvatarDataPacket::LookAtPosition) == AvatarDataPacket::LOOK_AT_POSITION_SIZE);
@@ -161,8 +161,8 @@ void AvatarData::lazyInitHeadData() {
 }
 
 
-bool AvatarData::avatarDimensionsChangedSince(quint64 time) {
-    return _avatarDimensionsChanged >= time;
+bool AvatarData::avatarBoundingBoxChangedSince(quint64 time) {
+    return _avatarBoundingBoxChanged >= time;
 }
 
 bool AvatarData::avatarScaleChangedSince(quint64 time) {
@@ -235,7 +235,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     // TODO -
     //      typical --  1jd 0ft 0p 1af 1stw 0loud 1look 0s 0o 1d 1lp 1gp
     //
-    // 1) make the dimensions really be dimensions instead of corner              - 12 bytes - 4.32 kbps (when moving)
     // 2) determine if local position really only matters for parent              - 12 bytes - 4.32 kbps (when moving and/or not parented)
     // 3) SensorToWorld - should we only send this for avatars with attachments?? - 20 bytes - 7.20 kbps
     // 5) GUIID for the session change to 2byte index                   (savings) - 14 bytes - 5.04 kbps
@@ -253,7 +252,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool hasAvatarLocalPosition = sendAll || tranlationChangedSince(lastSentTime);
     bool hasAvatarOrientation = sendAll || rotationChangedSince(lastSentTime);
 
-    bool hasAvatarDimensions = sendAll || avatarDimensionsChangedSince(lastSentTime);
+    bool hasAvatarBoundingBox = sendAll || avatarBoundingBoxChangedSince(lastSentTime);
     bool hasAvatarScale = sendAll || avatarScaleChangedSince(lastSentTime);
     bool hasLookAtPosition = sendAll || lookAtPositionChangedSince(lastSentTime);
     bool hasAudioLoudness = sendAll || audioLoudnessChangedSince(lastSentTime);
@@ -267,7 +266,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     AvatarDataPacket::HasFlags packetStateFlags =
             (hasAvatarGlobalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION : 0)
           | (hasAvatarLocalPosition  ? AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION : 0)
-          | (hasAvatarDimensions     ? AvatarDataPacket::PACKET_HAS_AVATAR_DIMENSIONS : 0)
+          | (hasAvatarBoundingBox    ? AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX : 0)
           | (hasAvatarOrientation    ? AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION : 0)
           | (hasAvatarScale          ? AvatarDataPacket::PACKET_HAS_AVATAR_SCALE : 0)
           | (hasLookAtPosition       ? AvatarDataPacket::PACKET_HAS_LOOK_AT_POSITION : 0)
@@ -302,15 +301,18 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
     }
 
-    if (hasAvatarDimensions) {
-        auto data = reinterpret_cast<AvatarDataPacket::AvatarDimensions*>(destinationBuffer);
+    if (hasAvatarBoundingBox) {
+        auto data = reinterpret_cast<AvatarDataPacket::AvatarBoundingBox*>(destinationBuffer);
 
-        // FIXME - make this just dimensions!!!
-        auto avatarDimensions = getPosition() - _globalBoundingBoxCorner;
-        data->avatarDimensions[0] = avatarDimensions.x;
-        data->avatarDimensions[1] = avatarDimensions.y;
-        data->avatarDimensions[2] = avatarDimensions.z;
-        destinationBuffer += sizeof(AvatarDataPacket::AvatarDimensions);
+        data->avatarDimensions[0] = _globalBoundingBoxDimensions.x;
+        data->avatarDimensions[1] = _globalBoundingBoxDimensions.y;
+        data->avatarDimensions[2] = _globalBoundingBoxDimensions.z;
+
+        data->boundOriginOffset[0] = _globalBoundingBoxOffset.x;
+        data->boundOriginOffset[1] = _globalBoundingBoxOffset.y;
+        data->boundOriginOffset[2] = _globalBoundingBoxOffset.z;
+
+        destinationBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
     }
 
     if (hasAvatarOrientation) {
@@ -632,7 +634,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     bool hasAvatarGlobalPosition = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION);
     bool hasAvatarLocalPosition  = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION);
-    bool hasAvatarDimensions     = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_DIMENSIONS);
+    bool hasAvatarBoundingBox    = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX);
     bool hasAvatarOrientation    = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION);
     bool hasAvatarScale          = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_SCALE);
     bool hasLookAtPosition       = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_LOOK_AT_POSITION);
@@ -679,20 +681,27 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _localPositionRate.increment(numBytesRead);
     }
 
-    if (hasAvatarDimensions) {
+    if (hasAvatarBoundingBox) {
         auto startSection = sourceBuffer;
 
-        PACKET_READ_CHECK(AvatarDimensions, sizeof(AvatarDataPacket::AvatarDimensions));
-        auto data = reinterpret_cast<const AvatarDataPacket::AvatarDimensions*>(sourceBuffer);
-        auto newValue = glm::vec3(data->avatarDimensions[0], data->avatarDimensions[1], data->avatarDimensions[2]);
-        // FIXME - this is suspicious looking!
-        if (_globalBoundingBoxCorner != newValue) {
-            _globalBoundingBoxCorner = newValue;
-            _avatarDimensionsChanged = usecTimestampNow();
+        PACKET_READ_CHECK(AvatarBoundingBox, sizeof(AvatarDataPacket::AvatarBoundingBox));
+        auto data = reinterpret_cast<const AvatarDataPacket::AvatarBoundingBox*>(sourceBuffer);
+        auto newDimensions = glm::vec3(data->avatarDimensions[0], data->avatarDimensions[1], data->avatarDimensions[2]);
+        auto newOffset = glm::vec3(data->boundOriginOffset[0], data->boundOriginOffset[1], data->boundOriginOffset[2]);
+
+
+        if (_globalBoundingBoxDimensions != newDimensions) {
+            _globalBoundingBoxDimensions = newDimensions;
+            _avatarBoundingBoxChanged = usecTimestampNow();
         }
-        sourceBuffer += sizeof(AvatarDataPacket::AvatarDimensions);
+        if (_globalBoundingBoxOffset != newOffset) {
+            _globalBoundingBoxOffset = newOffset;
+            _avatarBoundingBoxChanged = usecTimestampNow();
+        }
+
+        sourceBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
         int numBytesRead = sourceBuffer - startSection;
-        _avatarDimensionRate.increment(numBytesRead);
+        _avatarBoundingBoxRate.increment(numBytesRead);
     }
 
     if (hasAvatarOrientation) {
@@ -762,7 +771,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             return buffer.size();
         }
         _headData->setAudioLoudness(audioLoudness);
-        qDebug() << "audioLoudness:" << audioLoudness;
+        //qDebug() << "audioLoudness:" << audioLoudness;
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
     }
@@ -985,8 +994,8 @@ float AvatarData::getDataRate(const QString& rateName) {
         return _globalPositionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "localPosition") {
         return _localPositionRate.rate() / BYTES_PER_KILOBIT;
-    } else if (rateName == "avatarDimensions") {
-        return _avatarDimensionRate.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "avatarBoundingBox") {
+        return _avatarBoundingBoxRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "avatarOrientation") {
         return _avatarOrientationRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "avatarScale") {

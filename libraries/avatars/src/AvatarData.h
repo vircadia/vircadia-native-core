@@ -127,7 +127,7 @@ namespace AvatarDataPacket {
     using HasFlags = uint16_t;
     const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION = 1U << 0;
     const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 1; // FIXME - can this be in the PARENT_INFO??
-    const HasFlags PACKET_HAS_AVATAR_DIMENSIONS      = 1U << 2;
+    const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX    = 1U << 2;
     const HasFlags PACKET_HAS_AVATAR_ORIENTATION     = 1U << 3;
     const HasFlags PACKET_HAS_AVATAR_SCALE           = 1U << 4;
     const HasFlags PACKET_HAS_LOOK_AT_POSITION       = 1U << 5;
@@ -144,7 +144,7 @@ namespace AvatarDataPacket {
         HasFlags packetHasFlags;        // state flags, indicated which additional records are included in the packet
                                         //    bit 0  - has AvatarGlobalPosition
                                         //    bit 1  - has AvatarLocalPosition
-                                        //    bit 2  - has AvatarDimensions
+                                        //    bit 2  - has AvatarBoundingBox
                                         //    bit 3  - has AvatarOrientation
                                         //    bit 4  - has AvatarScale
                                         //    bit 5  - has LookAtPosition
@@ -164,17 +164,16 @@ namespace AvatarDataPacket {
 
     PACKED_BEGIN struct AvatarLocalPosition {
         float localPosition[3];             // this appears to be the avatar local position?? 
-                                          // this is a reduced precision radix
-                                          // FIXME - could this be changed into compressed floats?
+                                            // this is a reduced precision radix
+                                            // FIXME - could this be changed into compressed floats?
     } PACKED_END;
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
 
-    PACKED_BEGIN struct AvatarDimensions {
-        float avatarDimensions[3];        // avatar's bounding box in world space units, but relative to the 
-                                          // position. Assumed to be centered around the world position
-                                          // FIXME - could this be changed into compressed floats?
+    PACKED_BEGIN struct AvatarBoundingBox {
+        float avatarDimensions[3];        // avatar's bounding box in world space units, but relative to the position.
+        float boundOriginOffset[3];       // offset from the position of the avatar to the origin of the bounding box
     } PACKED_END;
-    const size_t AVATAR_DIMENSIONS_SIZE = 12;
+    const size_t AVATAR_BOUNDING_BOX_SIZE = 24;
 
 
     using SixByteQuat = uint8_t[6];
@@ -525,7 +524,7 @@ public:
     void fromJson(const QJsonObject& json);
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
-    glm::vec3 getGlobalBoundingBoxCorner() { return _globalBoundingBoxCorner; }
+    glm::vec3 getGlobalBoundingBoxCorner() { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
@@ -558,7 +557,7 @@ public slots:
 protected:
     void lazyInitHeadData();
 
-    bool avatarDimensionsChangedSince(quint64 time);
+    bool avatarBoundingBoxChangedSince(quint64 time);
     bool avatarScaleChangedSince(quint64 time);
     bool lookAtPositionChangedSince(quint64 time);
     bool audioLoudnessChangedSince(quint64 time);
@@ -634,7 +633,7 @@ protected:
 
 
     quint64 _globalPositionChanged { 0 };
-    quint64 _avatarDimensionsChanged { 0 };
+    quint64 _avatarBoundingBoxChanged { 0 };
     quint64 _avatarScaleChanged { 0 };
     quint64 _sensorToWorldMatrixChanged { 0 };
     quint64 _additionalFlagsChanged { 0 };
@@ -646,7 +645,7 @@ protected:
     RateCounter<> _parseBufferRate;
     RateCounter<> _globalPositionRate;
     RateCounter<> _localPositionRate;
-    RateCounter<> _avatarDimensionRate;
+    RateCounter<> _avatarBoundingBoxRate;
     RateCounter<> _avatarOrientationRate;
     RateCounter<> _avatarScaleRate;
     RateCounter<> _lookAtPositionRate;
@@ -657,7 +656,8 @@ protected:
     RateCounter<> _faceTrackerRate;
     RateCounter<> _jointDataRate;
 
-    glm::vec3 _globalBoundingBoxCorner;
+    glm::vec3 _globalBoundingBoxDimensions;
+    glm::vec3 _globalBoundingBoxOffset;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
