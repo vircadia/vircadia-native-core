@@ -50,6 +50,9 @@ Item {
 
             MouseArea {
                 anchors.fill: parent
+                hoverEnabled: true
+                onEntered: iconColorOverlay.color = "#1fc6a6";
+                onExited: iconColorOverlay.color = "#ffffff";
                 // navigate back to root level menu
                 onClicked: buildMenu();
             }
@@ -72,6 +75,9 @@ Item {
             anchors.leftMargin: 15
             MouseArea {
                 anchors.fill: parent
+                hoverEnabled: true
+                onEntered: breadcrumbText.color = "#1fc6a6";
+                onExited: breadcrumbText.color = "#ffffff";
                 // navigate back to parent level menu
                 onClicked: menuPopperUpper.closeLastMenu();
             }

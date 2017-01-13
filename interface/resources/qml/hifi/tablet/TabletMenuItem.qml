@@ -31,7 +31,7 @@ Item {
         // FIXME: Should use radio buttons if source.exclusiveGroup.
         anchors {
             left: parent.left
-            leftMargin: hifi.dimensions.menuPadding.x
+            leftMargin: hifi.dimensions.menuPadding.x + 15
             top: label.top
             topMargin: 0
         }
