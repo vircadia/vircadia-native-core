@@ -81,7 +81,14 @@ Item {
             if (menuStack.length) {
                 topMenu = menuStack[menuStack.length - 1];
                 topMenu.focus = true;
+                // show current menu level on nav bar
+                if (topMenu.objectName === "") {
+                    breadcrumbText.text = "Menu";
+                } else {
+                    breadcrumbText.text = topMenu.objectName;
+                }
             } else {
+                breadcrumbText.text = "Menu";
                 topMenu = null;
                 //offscreenFlags.navigationFocused = false;
                 menuRoot.enabled = false;
@@ -133,6 +140,8 @@ Item {
                 case MenuItemType.Menu:
                     var target = Qt.vector2d(topMenu.x, topMenu.y).plus(Qt.vector2d(selectedItem.x + 96, selectedItem.y));
                     buildMenu(item.items, target).objectName = item.title;
+                    // show current menu level on nav bar
+                    breadcrumbText.text = item.title;
                     break;
 
                 case MenuItemType.Item:
