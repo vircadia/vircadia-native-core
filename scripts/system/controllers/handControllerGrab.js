@@ -1157,6 +1157,8 @@ function MyController(hand) {
 
     this.off = function(deltaTime, timestamp) {
 
+        this.checkForStrayChildren();
+
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.waitForTriggerRelease = false;
         }
@@ -1229,8 +1231,6 @@ function MyController(hand) {
     };
 
    this.handleStylusOnHomeButton = function(rayPickInfo) {
-        var pointerEvent;
-
         if (rayPickInfo.entityID) {
             var entity = rayPickInfo.entityID;
             var name = entityPropertiesCache.getProps(entity).name;
@@ -2017,7 +2017,7 @@ function MyController(hand) {
                 Entities.editEntity(this.grabbedEntity, { velocity: velocity });
             }
         }
-    }
+    };
 
     this.distanceHolding = function(deltaTime, timestamp) {
 
@@ -2232,12 +2232,6 @@ function MyController(hand) {
             this.grabbedEntity = saveGrabbedID;
         }
 
-        var otherHandController = this.getOtherHandController();
-        if (otherHandController.grabbedEntity == this.grabbedEntity &&
-            (otherHandController.state == STATE_NEAR_GRABBING || otherHandController.state == STATE_DISTANCE_HOLDING)) {
-            otherHandController.setState(STATE_OFF, "other hand grabbed this entity");
-        }
-
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         if (FORCE_IGNORE_IK) {
             this.ignoreIK = true;
@@ -2323,12 +2317,6 @@ function MyController(hand) {
 
             this.previousParentID = grabbedProperties.parentID;
             this.previousParentJointIndex = grabbedProperties.parentJointIndex;
-            if (grabbedProperties.parentID === MyAvatar.sessionUUID &&
-                this.getOtherHandController().state == STATE_NEAR_GRABBING) {
-                // one hand took it from the other
-                this.previousParentID = NULL_UUID;
-                this.previousParentJointIndex = -1;
-            }
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
@@ -2425,7 +2413,7 @@ function MyController(hand) {
             this.prevDropDetected = dropDetected;
         }
 
-        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID",
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "parentJointIndex",
                                                                       "position", "rotation", "dimensions",
                                                                       "registrationPoint"]);
         if (!props.position) {
@@ -2433,6 +2421,16 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.release();
             this.setState(STATE_OFF, "entity has no position property");
+            return;
+        }
+
+        if (this.state == STATE_NEAR_GRABBING && this.actionID === null && !this.thisHandIsParent(props)) {
+            // someone took it from us or otherwise edited the parentID.  end the grab.  We don't do this
+            // for equipped things so that they can be adjusted while equipped.
+            this.callEntityMethodOnGrabbed("releaseGrab");
+            this.grabbedEntity = null;
+            this.release();
+            this.setState(STATE_OFF, "someone took it");
             return;
         }
 
@@ -2880,7 +2878,6 @@ function MyController(hand) {
             } else {
                 // no action, so it's a parenting grab
                 if (this.previousParentID === NULL_UUID) {
-                    var velocity = Entities.getEntityProperties(this.grabbedEntity, ["velocity"]).velocity;
                     Entities.editEntity(this.grabbedEntity, {
                         parentID: this.previousParentID,
                         parentJointIndex: this.previousParentJointIndex
@@ -2919,7 +2916,28 @@ function MyController(hand) {
         this.grabPointSphereOff();
     };
 
+    this.thisHandIsParent = function(props) {
+        if (props.parentID != MyAvatar.sessionUUID) {
+            return false;
+        }
+
+        var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+        if (props.parentJointIndex == handJointIndex) {
+            return true;
+        }
+
+        var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                          "_CONTROLLER_RIGHTHAND" :
+                                                          "_CONTROLLER_LEFTHAND");
+        if (props.parentJointIndex == controllerJointIndex) {
+            return true;
+        }
+
+        return false;
+    };
+
     this.checkForStrayChildren = function() {
+        var _this = this;
         // sometimes things can get parented to a hand and this script is unaware.  Search for such entities and
         // unhook them.
         var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
@@ -2927,7 +2945,7 @@ function MyController(hand) {
         var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
                                                           "_CONTROLLER_RIGHTHAND" :
                                                           "_CONTROLLER_LEFTHAND");
-        children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
+        children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
         children.forEach(function(childID) {
             print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
             Entities.editEntity(childID, {
