@@ -118,6 +118,19 @@ void Web3DOverlay::update(float deltatime) {
     }
 }
 
+QString Web3DOverlay::pickURL() {
+    QUrl sourceUrl(_url);
+    if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
+        _url.toLower().endsWith(".htm") || _url.toLower().endsWith(".html")) {
+
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        return "Web3DOverlay.qml";
+    } else {
+        return QUrl::fromLocalFile(PathUtils::resourcesPath()).toString() + "/" + _url;
+    }
+}
+
+
 void Web3DOverlay::loadSourceURL() {
 
     QUrl sourceUrl(_url);
@@ -152,7 +165,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
-        _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(QML);
+        _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(pickURL());
         _webSurface->setMaxFps(10);
         // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
         // and the current rendering load)
