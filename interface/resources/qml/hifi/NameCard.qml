@@ -20,16 +20,13 @@ Row {
     // Spacing
     spacing: 10
     // Anchors
-    anchors.top: parent.top
     anchors {
-        topMargin: (parent.height - contentHeight)/2
-        bottomMargin: (parent.height - contentHeight)/2
+        verticalCenter: parent.verticalCenter
         leftMargin: 10
         rightMargin: 10
     }
 
     // Properties
-    property int contentHeight: 70
     property string uuid: ""
     property string displayName: ""
     property string userName: ""
@@ -42,7 +39,7 @@ Row {
     Column {
         id: avatarImage
         // Size
-        height: contentHeight
+        height: parent.height
         width: height
         Image {
             id: userImage
@@ -56,9 +53,8 @@ Row {
     Column {
         id: textContainer
         // Size
-        width: parent.width - /*avatarImage.width - */parent.anchors.leftMargin - parent.anchors.rightMargin - parent.spacing
-        height: contentHeight
-
+        width: parent.width - /*avatarImage.width - parent.spacing - */parent.anchors.leftMargin - parent.anchors.rightMargin
+        anchors.verticalCenter: parent.verticalCenter
         // DisplayName Text
         FiraSansSemiBold {
             id: displayNameText
@@ -94,7 +90,7 @@ Row {
 
         // Spacer
         Item {
-            height: 4
+            height: 3
             width: parent.width
         }
 
@@ -146,7 +142,7 @@ Row {
         // Per-Avatar Gain Slider Spacer
         Item {
             width: parent.width
-            height: 4
+            height: 3
             visible: !isMyCard
         }
         // Per-Avatar Gain Slider 
@@ -159,20 +155,31 @@ Row {
             minimumValue: -60.0
             maximumValue: 20.0
             stepSize: 2
-            updateValueWhileDragging: false
+            updateValueWhileDragging: true
             onValueChanged: updateGainFromQML(uuid, value)
+            MouseArea {
+                anchors.fill: parent
+                onWheel: {
+                    // Do nothing.
+                }
+                onDoubleClicked: {
+                    gainSlider.value = 0.0
+                }
+                onPressed: {
+                    // Pass through to Slider
+                    mouse.accepted = false
+                }
+                onReleased: {
+                    // Pass through to Slider
+                    mouse.accepted = false
+                }
+            }
             style: SliderStyle {
                 groove: Rectangle {
                     color: "#dbdbdb"
                     implicitWidth: gainSlider.width
                     implicitHeight: 4
                     radius: 2
-                    MouseArea {
-                        anchors.fill: parent
-                        onDoubleClicked: {
-                            gainSlider.value = 0.0
-                        }
-                    }
                 }
                 handle: Rectangle {
                     anchors.centerIn: parent
