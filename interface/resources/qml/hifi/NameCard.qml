@@ -34,6 +34,7 @@ Row {
     property int usernameTextHeight: 12
     property real audioLevel: 0.0
     property bool isMyCard: false
+    property bool selected: false
 
     /* User image commented out for now - will probably be re-introduced later.
     Column {
@@ -143,12 +144,12 @@ Row {
         Item {
             width: parent.width
             height: 3
-            visible: !isMyCard
+            visible: !isMyCard && selected
         }
         // Per-Avatar Gain Slider 
         Slider {
             id: gainSlider
-            visible: !isMyCard
+            visible: !isMyCard && selected
             width: parent.width
             height: 18
             value: pal.gainSliderValueDB[uuid] ? pal.gainSliderValueDB[uuid] : 0.0

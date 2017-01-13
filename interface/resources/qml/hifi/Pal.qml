@@ -25,7 +25,7 @@ Rectangle {
     color: "#E3E3E3"
     // Properties
     property int myCardHeight: 90
-    property int rowHeight: 80
+    property int rowHeight: 70
     property int actionButtonWidth: 75
     property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
@@ -190,7 +190,7 @@ Rectangle {
         // This Rectangle refers to each Row in the table.
         rowDelegate: Rectangle { // The only way I know to specify a row height.
             // Size
-            height: rowHeight
+            height: rowHeight + (styleData.selected ? 20 : 0)
             color: styleData.selected
                    ? hifi.colors.orangeHighlight
                    : styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd
@@ -211,6 +211,7 @@ Rectangle {
                 audioLevel: model && model.audioLevel
                 visible: !isCheckBox && !isButton
                 uuid: model && model.sessionId
+                selected: styleData.selected
                 // Size
                 width: nameCardWidth
                 height: parent.height
