@@ -65,6 +65,7 @@ public:
 
     void setEntityMaxTmpLifetime(float maxTmpEntityLifetime) { _maxTmpEntityLifetime = maxTmpEntityLifetime; }
     void setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist);
+    void setEntityEditFilter(const QString& entityEditFilter) { _entityEditFilter = entityEditFilter; }
 
     /// Implements our type specific root element factory
     virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;
@@ -235,6 +236,7 @@ public:
     virtual quint64 getAverageUpdateTime() const override { return _totalUpdates == 0 ? 0 : _totalUpdateTime / _totalUpdates; }
     virtual quint64 getAverageCreateTime() const override { return _totalCreates == 0 ? 0 : _totalCreateTime / _totalCreates; }
     virtual quint64 getAverageLoggingTime() const override { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
+    virtual quint64 getAverageFilterTime() const override { return _totalEditMessages == 0 ? 0 : _totalFilterTime / _totalEditMessages; }
 
     void trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead);
     quint64 getAverageEditDeltas() const
@@ -260,6 +262,8 @@ public:
     void deleteDescendantsOfAvatar(QUuid avatarID);
 
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
+
+    void initEntityEditFilterEngine();
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
@@ -327,6 +331,7 @@ protected:
     quint64 _totalUpdateTime = 0;
     quint64 _totalCreateTime = 0;
     quint64 _totalLoggingTime = 0;
+    quint64 _totalFilterTime = 0;
 
     // these performance statistics are only used in the client
     void resetClientEditStats();
@@ -345,6 +350,13 @@ protected:
     QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
+
+    bool filterProperties(const EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged);
+    QString _entityEditFilter;
+    bool _hasEntityEditFilter{ false };
+    QScriptEngine _entityEditFilterEngine;
+    QScriptValue _entityEditFilterFunction;
+    QScriptValue _nullObjectForFilter;
 
     QStringList _entityScriptSourceWhitelist;
 };

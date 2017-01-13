@@ -285,6 +285,12 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     } else {
         tree->setEntityScriptSourceWhitelist("");
     }
+
+    QString entityEditFilter;
+    if (readOptionString("entityEditFilter", settingsSectionObject, entityEditFilter)) {
+        tree->setEntityEditFilter(entityEditFilter);
+    }
+    tree->initEntityEditFilterEngine(); // whether supplied or not.
 }
 
 void EntityServer::nodeAdded(SharedNodePointer node) {

@@ -918,6 +918,31 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
+void EntityTree::initEntityEditFilterEngine() {
+    _entityEditFilterEngine.evaluate(_entityEditFilter);
+    auto global = _entityEditFilterEngine.globalObject();
+    _entityEditFilterFunction = global.property("filter");
+    _hasEntityEditFilter = _entityEditFilterFunction.isFunction();
+}
+
+bool EntityTree::filterProperties(const EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
+    if (!_hasEntityEditFilter) {
+        propertiesOut = propertiesIn;
+        wasChanged = false; // not changed
+        return true; // allowed
+    }
+    QScriptValue inputValues = propertiesIn.copyToScriptValue(&_entityEditFilterEngine, false);
+    QScriptValueList args;
+    args << inputValues;
+
+    QScriptValue result = _entityEditFilterEngine.newObject();
+    result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
+
+    propertiesOut.copyFromScriptValue(result, false);
+    wasChanged = result.equals(inputValues); // not changed
+    return result.isObject(); // filters should return null or false to completely reject edit or add
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -941,6 +966,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startLookup = 0, endLookup = 0;
             quint64 startUpdate = 0, endUpdate = 0;
             quint64 startCreate = 0, endCreate = 0;
+            quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
 
             const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
@@ -1000,6 +1026,21 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
+
+                startFilter = usecTimestampNow();
+                QScriptValue originalValues = properties.copyToScriptValue(&_entityEditFilterEngine, true);
+                bool wasChanged = false;
+                bool allowed = filterProperties(properties, properties, wasChanged);
+                QScriptValue filteredResult = properties.copyToScriptValue(&_entityEditFilterEngine, true);
+                if (wasChanged) {
+                    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
+                        properties.setLastEdited(usecTimestampNow());
+                    }
+                    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                }
+                qDebug() << "FIXME changed/allowed" << wasChanged << allowed;
+                endFilter = usecTimestampNow();
+
                 // search for the entity by EntityItemID
                 startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
@@ -1077,6 +1118,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             _totalUpdateTime += endUpdate - startUpdate;
             _totalCreateTime += endCreate - startCreate;
             _totalLoggingTime += endLogging - startLogging;
+            _totalFilterTime += endFilter - startFilter;
 
             break;
         }
