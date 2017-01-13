@@ -1569,13 +1569,19 @@ var PropertiesTool = function (opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
-            } else if (data.action === "reloadScript") {
+            } else if (data.action === "reloadClientScripts") {
                 if (selectionManager.hasSelection()) {
                     var timestamp = Date.now();
                     for (i = 0; i < selectionManager.selections.length; i++) {
                         Entities.editEntity(selectionManager.selections[i], {
                             scriptTimestamp: timestamp
                         });
+                    }
+                }
+            } else if (data.action === "reloadServerScripts") {
+                if (selectionManager.hasSelection()) {
+                    for (i = 0; i < selectionManager.selections.length; i++) {
+                        Entities.reloadServerScripts(selectionManager.selections[i]);
                     }
                 }
             }

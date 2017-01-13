@@ -590,8 +590,9 @@ function loaded() {
         var elLifetime = document.getElementById("property-lifetime");
         var elScriptURL = document.getElementById("property-script-url");
         var elScriptTimestamp = document.getElementById("property-script-timestamp");
-        var elReloadScriptButton = document.getElementById("reload-script-button");
+        var elReloadScriptsButton = document.getElementById("reload-script-button");
         var elServerScripts = document.getElementById("property-server-scripts");
+        var elReloadServerScriptsButton = document.getElementById("reload-server-scripts-button");
         var elUserData = document.getElementById("property-user-data");
         var elClearUserData = document.getElementById("userdata-clear");
         var elSaveUserData = document.getElementById("userdata-save");
@@ -1398,12 +1399,19 @@ function loaded() {
                 percentage: parseInt(elRescaleDimensionsPct.value),
             }));
         });
-        elReloadScriptButton.addEventListener("click", function() {
+        elReloadScriptsButton.addEventListener("click", function() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
-                action: "reloadScript"
+                action: "reloadClientScripts"
             }));
         });
+        elReloadServerScriptsButton.addEventListener("click", function() {
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "action",
+                action: "reloadServerScripts"
+            }));
+        });
+
 
         window.onblur = function() {
             // Fake a change event
