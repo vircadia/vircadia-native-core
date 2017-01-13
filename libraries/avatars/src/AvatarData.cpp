@@ -338,7 +338,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAudioLoudness) {
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
-        data->audioLoudness = packFloatGainToByte(_headData->getAudioLoudness() * (1 / AUDIO_LOUDNESS_SCALE));
+        data->audioLoudness = packFloatGainToByte(_headData->getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
     }
 
@@ -771,7 +771,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             return buffer.size();
         }
         _headData->setAudioLoudness(audioLoudness);
-        //qDebug() << "audioLoudness:" << audioLoudness;
+        qDebug() << "audioLoudness:" << audioLoudness;
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
     }
