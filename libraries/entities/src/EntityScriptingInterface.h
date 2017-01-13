@@ -210,6 +210,8 @@ public slots:
     /// order to return an accurate result
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
 
+    Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
+
     Q_INVOKABLE void setLightsArePickable(bool value);
     Q_INVOKABLE bool getLightsArePickable() const;
 

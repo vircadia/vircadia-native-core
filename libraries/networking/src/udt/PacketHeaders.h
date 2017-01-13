@@ -107,7 +107,8 @@ public:
         RequestsDomainListData,
         ExitingSpaceBubble,
         PerAvatarGainSet,
-        LAST_PACKET_TYPE = PerAvatarGainSet
+        ReloadEntityServerScript,
+        LAST_PACKET_TYPE = ReloadEntityServerScript
     };
 };
 
