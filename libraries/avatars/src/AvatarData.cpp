@@ -761,7 +761,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         PACKET_READ_CHECK(AudioLoudness, sizeof(AvatarDataPacket::AudioLoudness));
         auto data = reinterpret_cast<const AvatarDataPacket::AudioLoudness*>(sourceBuffer);
         float audioLoudness;
-        audioLoudness = unpackFloatGainFromByte(data->audioLoudness * AUDIO_LOUDNESS_SCALE);
+        audioLoudness = unpackFloatGainFromByte(data->audioLoudness) * AUDIO_LOUDNESS_SCALE;
         sourceBuffer += sizeof(AvatarDataPacket::AudioLoudness);
 
         if (isNaN(audioLoudness)) {
@@ -771,7 +771,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             return buffer.size();
         }
         _headData->setAudioLoudness(audioLoudness);
-        qDebug() << "audioLoudness:" << audioLoudness;
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
     }
