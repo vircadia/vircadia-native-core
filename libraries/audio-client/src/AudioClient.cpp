@@ -424,35 +424,25 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     adjustedAudioFormat = desiredAudioFormat;
 
     //
-    // Attempt the device sample rate in decreasing order of preference.
+    // Attempt the device sample rate and channel count in decreasing order of preference.
     //
-    if (audioDevice.supportedSampleRates().contains(48000)) {
-        adjustedAudioFormat.setSampleRate(48000);
-    } else if (audioDevice.supportedSampleRates().contains(44100)) {
-        adjustedAudioFormat.setSampleRate(44100);
-    } else if (audioDevice.supportedSampleRates().contains(32000)) {
-        adjustedAudioFormat.setSampleRate(32000);
-    } else if (audioDevice.supportedSampleRates().contains(24000)) {
-        adjustedAudioFormat.setSampleRate(24000);
-    } else if (audioDevice.supportedSampleRates().contains(16000)) {
-        adjustedAudioFormat.setSampleRate(16000);
-    } else if (audioDevice.supportedSampleRates().contains(96000)) {
-        adjustedAudioFormat.setSampleRate(96000);
-    } else if (audioDevice.supportedSampleRates().contains(192000)) {
-        adjustedAudioFormat.setSampleRate(192000);
-    } else if (audioDevice.supportedSampleRates().contains(88200)) {
-        adjustedAudioFormat.setSampleRate(88200);
-    } else if (audioDevice.supportedSampleRates().contains(176400)) {
-        adjustedAudioFormat.setSampleRate(176400);
+    const int sampleRates[] = { 48000, 44100, 32000, 24000, 16000, 96000, 192000, 88200, 176400 };
+    const int inputChannels[] = { 1, 2, 4, 6, 8 };  // prefer mono
+    const int outputChannels[] = { 2, 4, 6, 8, 1 }; // prefer stereo, downmix as last resort
+
+    for (int channelCount : (desiredAudioFormat.channelCount() == 1 ? inputChannels : outputChannels)) {
+        for (int sampleRate : sampleRates) {
+
+            adjustedAudioFormat.setChannelCount(channelCount);
+            adjustedAudioFormat.setSampleRate(sampleRate);
+
+            if (audioDevice.isFormatSupported(adjustedAudioFormat)) {
+                return true;
+            }
+        }
     }
 
-    if (adjustedAudioFormat != desiredAudioFormat) {
-        // return the nearest in case it needs 2 channels
-        adjustedAudioFormat = audioDevice.nearestFormat(adjustedAudioFormat);
-        return true;
-    } else {
-        return false;
-    }
+    return false;   // a supported format could not be found
 }
 
 bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationSamples, unsigned int numSourceSamples,
