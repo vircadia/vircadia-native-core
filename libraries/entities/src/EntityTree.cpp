@@ -931,7 +931,7 @@ bool EntityTree::filterProperties(const EntityItemProperties& propertiesIn, Enti
         wasChanged = false; // not changed
         return true; // allowed
     }
-    QScriptValue inputValues = propertiesIn.copyToScriptValue(&_entityEditFilterEngine, false);
+    QScriptValue inputValues = propertiesIn.copyToScriptValue(&_entityEditFilterEngine, true, true);
     QScriptValueList args;
     args << inputValues;
 
@@ -940,6 +940,7 @@ bool EntityTree::filterProperties(const EntityItemProperties& propertiesIn, Enti
 
     propertiesOut.copyFromScriptValue(result, false);
     wasChanged = result.equals(inputValues); // not changed
+    qDebug() << "result" << propertiesOut << result.toVariant() << wasChanged;
     return result.isObject(); // filters should return null or false to completely reject edit or add
 }
 
@@ -1028,17 +1029,17 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             if (validEditPacket) {
 
                 startFilter = usecTimestampNow();
-                QScriptValue originalValues = properties.copyToScriptValue(&_entityEditFilterEngine, true);
                 bool wasChanged = false;
                 bool allowed = filterProperties(properties, properties, wasChanged);
-                QScriptValue filteredResult = properties.copyToScriptValue(&_entityEditFilterEngine, true);
-                if (wasChanged) {
+                if (!allowed) {
+                    properties = EntityItemProperties(); // Maybe other behavior
+                } else if (wasChanged) {
                     if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
                         properties.setLastEdited(usecTimestampNow());
                     }
                     properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
                 }
-                qDebug() << "FIXME changed/allowed" << wasChanged << allowed;
+                qDebug() << "filtered:" << properties;
                 endFilter = usecTimestampNow();
 
                 // search for the entity by EntityItemID

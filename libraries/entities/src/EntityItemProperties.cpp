@@ -346,11 +346,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     return changedProperties;
 }
 
-QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const {
+QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUknownCreateTime) const {
     QScriptValue properties = engine->newObject();
     EntityItemProperties defaultEntityProperties;
 
-    if (_created == UNKNOWN_CREATED_TIME) {
+    if (_created == UNKNOWN_CREATED_TIME && !allowUknownCreateTime) {
         // No entity properties can have been set so return without setting any default, zero property values.
         return properties;
     }
