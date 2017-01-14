@@ -77,7 +77,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
-    var WEB_ENTITY_Z_OFFSET = -0.01;
+    var WEB_ENTITY_Z_OFFSET = -0.0125;
     if (this.webOverlayID) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
