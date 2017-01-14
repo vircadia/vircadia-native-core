@@ -190,7 +190,7 @@ Rectangle {
         // This Rectangle refers to each Row in the table.
         rowDelegate: Rectangle { // The only way I know to specify a row height.
             // Size
-            height: rowHeight + (styleData.selected ? 20 : 0)
+            height: rowHeight
             color: styleData.selected
                    ? hifi.colors.orangeHighlight
                    : styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd
