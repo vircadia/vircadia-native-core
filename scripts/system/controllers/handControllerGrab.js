@@ -27,7 +27,7 @@ Script.include("/~/system/libraries/controllers.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = true;
+var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 var FORCE_IGNORE_IK = false;
@@ -211,7 +211,6 @@ var CONTROLLER_STATE_MACHINE = {};
 
 CONTROLLER_STATE_MACHINE[STATE_OFF] = {
     name: "off",
-    enterMethod: "offEnter",
     updateMethod: "off"
 };
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
@@ -953,7 +952,6 @@ function MyController(hand) {
         if (!MyAvatar.sessionUUID) {
             return;
         }
-        print("SHOW");
         var stylusTipProperties = {
             localPosition: Vec3.sum({ x: 0, y: WEB_TOUCH_DISTANCE - (WEB_TOUCH_SPHERE_RADIUS / 2.0), z: 0 },
                                     getGrabPointSphereOffset(this.handToController())),
@@ -995,7 +993,6 @@ function MyController(hand) {
         if (!this.stylus) {
             return;
         }
-        print("HIDE");
         Overlays.deleteOverlay(this.stylus);
         this.stylus = null;
         Overlays.deleteOverlay(this.stylusTip);
@@ -2645,10 +2642,6 @@ function MyController(hand) {
         this.callEntityMethodOnGrabbed("continueFarTrigger");
     };
 
-    this.offEnter = function() {
-        this.release();
-    };
-
     this.entityTouchingEnter = function() {
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectEntity(this.grabbedEntity,
@@ -2959,17 +2952,20 @@ function MyController(hand) {
                                                           "_CONTROLLER_LEFTHAND");
         children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
         children.forEach(function(childID) {
-            // we appear to be holding something and this script isn't in a state that would be holding something.
-            // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
-            // works around some problems that happen when more than one hand or avatar is passing something around.
-            print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
-            if (_this.previousParentID[childID]) {
-                Entities.editEntity(childID, {
-                    parentID: _this.previousParentID[childID],
-                    parentJointIndex: _this.previousParentJointIndex[childID]
-                });
-            } else {
-                Entities.editEntity(childID, { parentID: NULL_UUID });
+            if (childID !== _this.stylus) {
+                print(childID + " vs " + _this.stylus);
+                // we appear to be holding something and this script isn't in a state that would be holding something.
+                // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
+                // works around some problems that happen when more than one hand or avatar is passing something around.
+                print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
+                if (_this.previousParentID[childID]) {
+                    Entities.editEntity(childID, {
+                        parentID: _this.previousParentID[childID],
+                        parentJointIndex: _this.previousParentJointIndex[childID]
+                    });
+                } else {
+                    Entities.editEntity(childID, { parentID: NULL_UUID });
+                }
             }
         });
     };
