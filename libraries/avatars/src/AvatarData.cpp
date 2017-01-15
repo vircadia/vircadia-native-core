@@ -193,7 +193,17 @@ bool AvatarData::faceTrackerInfoChangedSince(quint64 time) {
     return true; // FIXME!
 }
 
-QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime) {
+float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) {
+    return AVATAR_MIN_ROTATION_DOT; // FIXME
+}
+
+float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition) {
+    return AVATAR_MIN_TRANSLATION; // FIXME
+}
+
+
+QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, QVector<JointData>& lastSentJointData,
+                                    bool distanceAdjust, glm::vec3 viewerPosition) {
 
     // if no timestamp was included, then assume the avatarData is single instance 
     // and is tracking its own last encoding time.
@@ -230,6 +240,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     //    BUG -- if you enter a space bubble, and then back away, the avatar has wrong orientation until "send all" happens... 
     //      this is an iFrame issue... what to do about that?
     //
+    //    BUG -- Resizing avatar seems to "take too long"... the avatar doesn't redraw at smaller size right away
+    //    BUG -- summoned avatars seem low?
     //
 
     // TODO -
@@ -242,8 +254,15 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     //    63 rotations   * 6 bytes = 136kbps
     //    3 translations * 6 bytes = 6.48kbps
     //
+    // How we need to handle joints:
+    //  1) need to track "_lastSentJointData" for each "viewer" so it can't be a member variable of the
+    //     AvatarData. instead it should be like lastSentTime where it's passed in. Store it in the node data
+    //     and in AvatarMixer pass it accordingly
+    //
+    //  2) we also want to know the "distance" to the viewer to adjust the relative tolerance for changes and
+    //     whether or not we actually want to do this distance adjust
+    //
 
-    auto localPosition = getLocalPosition();
     auto parentID = getParentID();
 
     bool hasAvatarGlobalPosition = true; // always include global position
@@ -426,14 +445,16 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         unsigned char* beforeRotations = destinationBuffer;
 #endif
 
-        _lastSentJointData.resize(_jointData.size());
+        lastSentJointData.resize(_jointData.size());
+
+        float minRotationDOT = !distanceAdjust ? AVATAR_MIN_ROTATION_DOT : getDistanceBasedMinRotationDOT(viewerPosition);
 
         for (int i = 0; i < _jointData.size(); i++) {
             const JointData& data = _jointData[i];
-            if (sendAll || _lastSentJointData[i].rotation != data.rotation) {
+            if (sendAll || lastSentJointData[i].rotation != data.rotation) {
                 if (sendAll ||
                     !cullSmallChanges ||
-                    fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
+                    fabsf(glm::dot(data.rotation, lastSentJointData[i].rotation)) <= minRotationDOT) {
                     if (data.rotationSet) {
                         validity |= (1 << validityBit);
 #if 1 //def WANT_DEBUG
@@ -475,13 +496,15 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         unsigned char* beforeTranslations = destinationBuffer;
 #endif
 
+        float minTranslation = !distanceAdjust ? AVATAR_MIN_TRANSLATION : getDistanceBasedMinTranslationDistance(viewerPosition);
+
         float maxTranslationDimension = 0.0;
         for (int i = 0; i < _jointData.size(); i++) {
             const JointData& data = _jointData[i];
-            if (sendAll || _lastSentJointData[i].translation != data.translation) {
+            if (sendAll || lastSentJointData[i].translation != data.translation) {
                 if (sendAll ||
                     !cullSmallChanges ||
-                    glm::distance(data.translation, _lastSentJointData[i].translation) > AVATAR_MIN_TRANSLATION) {
+                    glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation) {
                     if (data.translationSet) {
                         validity |= (1 << validityBit);
 #if 1 //def WANT_DEBUG
@@ -1508,7 +1531,13 @@ void AvatarData::sendAvatarDataPacket() {
 
     // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
     // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
-    QByteArray avatarByteArray = toByteArray((randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? SendAllData : CullSmallData);
+
+    auto dataDetail = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? SendAllData : CullSmallData;
+    quint64 lastSentTime = 0;
+    QVector<JointData>& lastSentJointData = _lastSentJointData;
+    bool distanceAdjust = false;
+    glm::vec3 viewerPosition(0);
+    QByteArray avatarByteArray = toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition);
 
     doneEncoding(true); // FIXME - doneEncoding() takes a bool for culling small changes, that's janky!
 

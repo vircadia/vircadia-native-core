@@ -347,7 +347,9 @@ public:
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime = 0);
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, QVector<JointData>& lastSentJointData,
+                                    bool distanceAdjust, glm::vec3 viewerPosition);
+
     virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged
@@ -526,6 +528,8 @@ public:
 
     float getDataRate(const QString& rateName = QString(""));
 
+    QVector<JointData>& getLastSentJointData() { return _lastSentJointData; }
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -544,6 +548,9 @@ public slots:
 
 protected:
     void lazyInitHeadData();
+
+    float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition);
+    float getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition);
 
     bool avatarBoundingBoxChangedSince(quint64 time);
     bool avatarScaleChangedSince(quint64 time);

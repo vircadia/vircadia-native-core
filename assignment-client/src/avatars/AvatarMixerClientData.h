@@ -113,6 +113,12 @@ public:
         return result;
     }
 
+    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) {
+        return _lastOtherAvatarSentJoints[otherAvatar];
+    }
+
+    
+
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
@@ -123,6 +129,7 @@ private:
     // this is a map of the last time we encoded an "other" avatar for
     // sending to "this" node
     std::unordered_map<QUuid, quint64> _lastOtherAvatarEncodeTime;
+    std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
 
     HRCTime _identityChangeTimestamp;
     bool _gotIdentity { false };
