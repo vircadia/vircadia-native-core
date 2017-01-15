@@ -735,6 +735,18 @@ function MyController(hand) {
     this.grabPointIntersectsEntity = false;
     this.stylus = null;
 
+    // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
+    // when more than one avatar does parenting grabs on things.  This script tries to work
+    // around this with two associative arrays: previousParentID and previousParentJointIndex.  If
+    // (1) avatar-A does a parenting grab on something, and then (2) avatar-B takes it, and (3) avatar-A
+    // releases it and then (4) avatar-B releases it, then avatar-B will set the parent back to
+    // avatar-A's hand.  Avatar-A is no longer grabbing it, so it will end up triggering avatar-A's
+    // checkForStrayChildren which will put it back to wherever it was when avatar-A initially grabbed it.
+    // this will work most of the time, unless avatar-A crashes or logs out while avatar-B is grabbing the
+    // entity.  This can also happen when a single avatar passes something from hand to hand.
+    this.previousParentID = {};
+    this.previousParentJointIndex = {};
+
     this.shouldScale = false;
 
     // handPosition is where the avatar's hand appears to be, in-world.
@@ -1537,8 +1549,6 @@ function MyController(hand) {
         this.grabbedEntity = null;
         this.grabbedOverlay = null;
         this.isInitialGrab = false;
-        this.previousParentID = NULL_UUID;
-        this.previousParentJointIndex = -1;
         this.preparingHoldRelease = false;
 
         this.checkForStrayChildren();
@@ -2274,10 +2284,6 @@ function MyController(hand) {
             var currentObjectPosition = grabbedProperties.position;
             var offset = Vec3.subtract(currentObjectPosition, handPosition);
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
-            if (this.temporaryPositionOffset) {
-                this.offsetPosition = this.temporaryPositionOffset;
-                // hasPresetPosition = true;
-            }
         }
 
         var isPhysical = propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
@@ -2315,8 +2321,14 @@ function MyController(hand) {
             }
             Entities.editEntity(this.grabbedEntity, reparentProps);
 
-            this.previousParentID = grabbedProperties.parentID;
-            this.previousParentJointIndex = grabbedProperties.parentJointIndex;
+            if (this.thisHandIsParent(grabbedProperties)) {
+                // this should never happen, but if it does, don't set previous parent to be this hand.
+                // this.previousParentID[this.grabbedEntity] = NULL;
+                // this.previousParentJointIndex[this.grabbedEntity] = -1;
+            } else {
+                this.previousParentID[this.grabbedEntity] = grabbedProperties.parentID;
+                this.previousParentJointIndex[this.grabbedEntity] = grabbedProperties.parentJointIndex;
+            }
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
@@ -2877,17 +2889,17 @@ function MyController(hand) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
             } else {
                 // no action, so it's a parenting grab
-                if (this.previousParentID === NULL_UUID) {
+                if (this.previousParentID[this.grabbedEntity] === NULL_UUID) {
                     Entities.editEntity(this.grabbedEntity, {
-                        parentID: this.previousParentID,
-                        parentJointIndex: this.previousParentJointIndex
+                        parentID: this.previousParentID[this.grabbedEntity],
+                        parentJointIndex: this.previousParentJointIndex[this.grabbedEntity]
                     });
                     this.ensureDynamic();
                 } else {
                     // we're putting this back as a child of some other parent, so zero its velocity
                     Entities.editEntity(this.grabbedEntity, {
-                        parentID: this.previousParentID,
-                        parentJointIndex: this.previousParentJointIndex,
+                        parentID: this.previousParentID[this.grabbedEntity],
+                        parentJointIndex: this.previousParentJointIndex[this.grabbedEntity],
                         velocity: {x: 0, y: 0, z: 0},
                         angularVelocity: {x: 0, y: 0, z: 0}
                     });
@@ -2947,10 +2959,18 @@ function MyController(hand) {
                                                           "_CONTROLLER_LEFTHAND");
         children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
         children.forEach(function(childID) {
+            // we appear to be holding something and this script isn't in a state that would be holding something.
+            // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
+            // works around some problems that happen when more than one hand or avatar is passing something around.
             print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
-            Entities.editEntity(childID, {
-                parentID: NULL_UUID
-            });
+            if (_this.previousParentID[childID]) {
+                Entities.editEntity(childID, {
+                    parentID: _this.previousParentID[childID],
+                    parentJointIndex: _this.previousParentJointIndex[childID]
+                });
+            } else {
+                Entities.editEntity(childID, { parentID: NULL_UUID });
+            }
         });
     };
 
@@ -3108,7 +3128,7 @@ var handleHandMessages = function(channel, message, sender) {
 Messages.messageReceived.connect(handleHandMessages);
 
 var TARGET_UPDATE_HZ = 50; // 50hz good enough (no change in logic)
-var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ; 
+var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 var lastInterval = Date.now();
 
 var intervalCount = 0;
@@ -3119,7 +3139,7 @@ var veryhighVarianceCount = 0;
 var updateTotalWork = 0;
 
 var UPDATE_PERFORMANCE_DEBUGGING = false;
-    
+
 var updateIntervalTimer = Script.setInterval(function(){
 
     intervalCount++;
