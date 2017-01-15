@@ -59,11 +59,17 @@ Item {
         readonly property color faintGray: "#e3e3e3"
         readonly property color primaryHighlight: "#00b4ef"
         readonly property color blueHighlight: "#00b4ef"
-        readonly property color blueAccent: "#1080b8"
-        readonly property color redHighlight: "#e2334d"
-        readonly property color redAccent: "#b70a37"
+        readonly property color blueAccent: "#0093C5"
+        readonly property color redHighlight: "#EA4C5F"
+        readonly property color redAccent: "#C62147"
         readonly property color greenHighlight: "#1ac567"
-        readonly property color greenShadow: "#2c8e72"
+        readonly property color greenShadow: "#359D85"
+        readonly property color orangeHighlight: "#FFC49C"
+        readonly property color orangeAccent: "#FF6309"
+        readonly property color indigoHighlight: "#C0D2FF"
+        readonly property color indigoAccent: "#9495FF"
+        readonly property color magentaHighlight: "#EF93D1"
+        readonly property color magentaAccent: "#A2277C"
         // Semitransparent
         readonly property color darkGray30: "#4d121212"
         readonly property color darkGray0: "#00121212"
@@ -95,9 +101,9 @@ Item {
         readonly property color tableRowDarkEven: "#1c1c1c"  // Equivalent to "#a6181818" over #404040 background
         readonly property color tableBackgroundLight: tableRowLightEven
         readonly property color tableBackgroundDark: tableRowDarkEven
-        readonly property color tableScrollHandleLight: "#8F8F8F"
+        readonly property color tableScrollHandleLight: "#DDDDDD"
         readonly property color tableScrollHandleDark: "#707070"
-        readonly property color tableScrollBackgroundLight: tableRowLightEven
+        readonly property color tableScrollBackgroundLight: tableRowLightOdd
         readonly property color tableScrollBackgroundDark: "#323232"
         readonly property color checkboxLightStart: "#ffffff"
         readonly property color checkboxLightFinish: "#afafaf"
@@ -151,6 +157,8 @@ Item {
         readonly property real controlLineHeight: 28  // Height of spinbox control on 1920 x 1080 monitor
         readonly property real controlInterlineHeight: 21  // 75% of controlLineHeight
         readonly property vector2d menuPadding: Qt.vector2d(14, 12)
+        readonly property real scrollbarBackgroundWidth: 18
+        readonly property real scrollbarHandleWidth: scrollbarBackgroundWidth - 2
     }
 
     Item {
