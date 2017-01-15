@@ -1336,11 +1336,11 @@ bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
         parent->forEachDescendant([&](SpatiallyNestablePointer descendant) {
             if(descendant->getID() == childID) {
                 isChild = true;
-                return; 
+                return;
             }
         });
     });
-    
+
     return isChild;
 }
 
@@ -1364,7 +1364,8 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& pare
             return;
         }
         parent->forEachChild([&](SpatiallyNestablePointer child) {
-            if (child->getParentJointIndex() == jointIndex) {
+            if (child->getParentJointIndex() == jointIndex &&
+                child->getNestableType() != NestableType::Overlay) {
                 result.push_back(child->getID());
             }
         });
