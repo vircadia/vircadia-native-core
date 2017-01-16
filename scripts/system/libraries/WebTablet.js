@@ -101,6 +101,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         name: "homeButton",
         type: "Model",
         modelURL: HOME_BUTTON_URL,
+        dimensions: { x: 0.04, y: 0.04, z: 0.02 },
         collisionless: true,
         localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: -0.01},
         parentID: this.tabletEntityID,
