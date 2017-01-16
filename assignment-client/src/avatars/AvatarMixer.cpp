@@ -262,9 +262,8 @@ void AvatarMixer::broadcastAvatarData() {
             // setup a PacketList for the avatarPackets
             auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
-            if (nodeData->getAvatarSessionDisplayNameMustChange()) { // ... but we have processed identity (with possible displayName).
+            if (nodeData->getAvatarSessionDisplayNameMustChange()) {
                 const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
-                // No sense guarding against very rare case of a node with no entry, as this will work without the guard and do one less lookup in the common case.
                 if (--_sessionDisplayNames[existingBaseDisplayName].second <= 0) {
                     _sessionDisplayNames.remove(existingBaseDisplayName);
                 }
@@ -286,7 +285,7 @@ void AvatarMixer::broadcastAvatarData() {
                 soFar.second++; // refcount
                 nodeData->flagIdentityChange();
                 nodeData->setAvatarSessionDisplayNameMustChange(false);
-                sendIdentityPacket(nodeData, node); // Tell new node about its sessionUUID. Others will find out below.
+                sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name. Others will find out below.
             }
 
             // this is an AGENT we have received head data from
@@ -590,7 +589,7 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             if (avatar.processAvatarIdentity(identity)) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
-                nodeData->setAvatarSessionDisplayNameMustChange();
+                nodeData->setAvatarSessionDisplayNameMustChange(true);
             }
         }
     }
