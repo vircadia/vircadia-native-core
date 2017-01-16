@@ -148,7 +148,6 @@
                 if (!canWriteAssets) {
                     console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
                     EventBridge.emitWebEvent(WARN_USER_NO_PERMISSIONS);
-                    event.stopPropagation();
                     return;
                 }
 
