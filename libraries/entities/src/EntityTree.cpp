@@ -932,6 +932,7 @@ bool EntityTree::filterProperties(const EntityItemProperties& propertiesIn, Enti
         return true; // allowed
     }
     QScriptValue inputValues = propertiesIn.copyToScriptValue(&_entityEditFilterEngine, true, true);
+    qDebug() << "input" << propertiesIn << inputValues.toVariant();
     QScriptValueList args;
     args << inputValues;
 
@@ -1032,8 +1033,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 bool wasChanged = false;
                 bool allowed = filterProperties(properties, properties, wasChanged);
                 if (!allowed) {
-                    properties = EntityItemProperties(); // Maybe other behavior
-                } else if (wasChanged) {
+                    properties = EntityItemProperties();
+                }
+                if (!allowed || wasChanged) {
                     if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
                         properties.setLastEdited(usecTimestampNow());
                     }
