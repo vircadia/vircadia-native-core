@@ -171,7 +171,8 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
     QVector<int> materials;
     QVector<int> textures;
     bool isMaterialPerPolygon = false;
-
+    static const QVariant BY_VERTICE = QByteArray("ByVertice");
+    static const QVariant INDEX_TO_DIRECT = QByteArray("IndexToDirect");
     foreach (const FBXNode& child, object.children) {
         if (child.name == "Vertices") {
             data.vertices = createVec3Vector(getDoubleVector(child));
@@ -189,10 +190,10 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 } else if (subdata.name == "NormalsIndex") {
                     data.normalIndices = getIntVector(subdata);
 
-                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == "ByVertice") {
+                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == BY_VERTICE) {
                     data.normalsByVertex = true;
                     
-                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == "IndexToDirect") {
+                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == INDEX_TO_DIRECT) {
                     indexToDirect = true;
                 }
             }
@@ -209,10 +210,10 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 } else if (subdata.name == "ColorsIndex") {
                     data.colorIndices = getIntVector(subdata);
 
-                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == "ByVertice") {
+                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == BY_VERTICE) {
                     data.colorsByVertex = true;
                     
-                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == "IndexToDirect") {
+                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == INDEX_TO_DIRECT) {
                     indexToDirect = true;
                 }
             }
@@ -298,11 +299,12 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 }
             }
         } else if (child.name == "LayerElementMaterial") {
+            static const QVariant BY_POLYGON = QByteArray("ByPolygon");
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
                 } else if (subdata.name == "MappingInformationType") {
-                    if (subdata.properties.at(0) == "ByPolygon")
+                    if (subdata.properties.at(0) == BY_POLYGON)
                         isMaterialPerPolygon = true;
                 } else {
                     isMaterialPerPolygon = false;
