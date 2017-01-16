@@ -109,6 +109,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
+        enabled: true
         onClicked: {
             console.log("Tablet Button Clicked!");
             if (tabletButton.inDebugMode) {

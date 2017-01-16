@@ -51,6 +51,10 @@ QQuickWindow* TabletScriptingInterface::getTabletWindow() {
     TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet("com.highfidelity.interface.tablet.system"));
     QObject* qmlSurface = tablet->getTabletSurface();
     OffscreenQmlSurface* surface = dynamic_cast<OffscreenQmlSurface*>(qmlSurface);
+
+    if (!surface) {
+        return nullptr;
+    }
     QQuickWindow* window = surface->getWindow();
     return window;
 }
@@ -212,6 +216,7 @@ void TabletProxy::addButtonsToHomeScreen() {
     }
      auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
      QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
+     QMetaObject::invokeMethod(_qmlTabletRoot, "forceFocus");
 }
 
 QObject* TabletProxy::getTabletSurface() {

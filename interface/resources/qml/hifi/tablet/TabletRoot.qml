@@ -5,6 +5,7 @@ Item {
     id: tabletRoot
     objectName: "tabletRoot"
     property var eventBridge;
+    property bool desktopRoot: true
 
     function loadSource(url) {
         loader.source = url;
@@ -22,6 +23,10 @@ Item {
 
     function playButtonClickSound() {
         buttonClickSound.play(globalPosition);
+    }
+
+    function forceFocus() {
+        loader.item.forceActiveFocus();
     }
 
     Loader {
@@ -44,8 +49,14 @@ Item {
                     }
                 });
             }
+            //loader.item.parent = tablxetRoot;
+            loader.item.forceActiveFocus();
+            offscreenFlags.navigationFocus = true;
+            console.log(loader.item.count);
+            console.log("Current focus item " + offscreenWindow.activeFocusItem);
         }
     }
+    Component.onDestruction: { offscreenFlags.navigationFocused = false; }
 
     width: 480
     height: 720

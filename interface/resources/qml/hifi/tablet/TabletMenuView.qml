@@ -111,12 +111,14 @@ FocusScope {
         function previousItem() { currentIndex = (currentIndex + count - 1) % count; }
         function nextItem() { currentIndex = (currentIndex + count + 1) % count; }
         function selectCurrentItem() { if (currentIndex != -1) root.selected(currentItem.source); }
+        function previousPage() {console.log("going to previous page"); }
 
         Keys.onUpPressed: previousItem();
         Keys.onDownPressed: nextItem();
         Keys.onSpacePressed: selectCurrentItem();
         Keys.onRightPressed: selectCurrentItem();
         Keys.onReturnPressed: selectCurrentItem();
+        Keys.onLeftPressed: previousPage();
     }
 }
 

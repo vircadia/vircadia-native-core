@@ -1,14 +1,18 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
 
-Item {
+FocusScope {
     id: tablet
     objectName: "tablet"
-
+    focus: true
+    enabled: true
     property double micLevel: 0.8
-
+    property int index: 0
+    property int count: flowMain.children.length
     width: parent.width
     height: parent.height
+
+    //property alias currentItem: flowMain.currentItem
 
     // called by C++ code to keep audio bar updated
     function setMicLevel(newMicLevel) {
@@ -42,7 +46,6 @@ Item {
 
         // pass a reference to the tabletRoot object to the button.
         button.tabletRoot = parent.parent;
-
         return button;
     }
 
@@ -179,6 +182,7 @@ Item {
             clip: true
             Flow {
                 id: flowMain
+                focus: true
                 spacing: 16
                 anchors.right: parent.right
                 anchors.rightMargin: 30
@@ -188,6 +192,50 @@ Item {
                 anchors.bottomMargin: 30
                 anchors.top: parent.top
                 anchors.topMargin: 30
+
+                function setCurrentItemState(state) {
+                    flowMain.children[index].state = state;
+                }
+                function nextItem() {
+                    setCurrentItemState("base state");
+                    index = (index + count + 1) % count;
+                    setCurrentItemState("hover state");
+                    console.log("next item at index: " + index);
+                }
+                
+                function previousItem() {
+                    setCurrentItemState("base state");
+                    index = (index + count - 1 ) % count;
+                    setCurrentItemState("hover state");
+                    console.log("previous item at index: " + index);
+                }
+                
+                function upItem() {
+                    setCurrentItemState("base state");
+                    index = (index + count - 3) % count;
+                    setCurrentItemState("hover state");
+                    console.log("up item at index: " + index);
+                }
+                
+                function downItem() {
+                    setCurrentItemState("base state");
+                    index = (index + count + 3) % count;
+                    setCurrentItemState("hover state");
+                    console.log("down item at index :" + index);
+                }
+
+                function selectItem() {
+                    flowMain.children[index].clicked();
+                    if(tabletRoot) {
+                        tabletRoot.playButtonClickSound();
+                    }
+                }
+
+                Keys.onRightPressed: nextItem();
+                Keys.onLeftPressed: previousItem();
+                Keys.onDownPressed: downItem();
+                Keys.onUpPressed: upItem();
+                Keys.onReturnPressed: selectItem();
             }
         }
     }

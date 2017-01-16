@@ -1037,7 +1037,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                     sendEvent(window, &event);
                     lastKey = key;
                 }
-            } else if (key != Qt::Key_unknown) {
+            } else if (key != Qt::Key_unknown && window) {
                 if (state) {
                     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
                     sendEvent(window, &event);

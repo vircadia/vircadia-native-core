@@ -5,7 +5,7 @@ import QtQml 2.2
 import "."
 import "../../styles-uit"
 
-Item {
+FocusScope {
     id: tabletMenu
     objectName: "tabletMenu"
 
