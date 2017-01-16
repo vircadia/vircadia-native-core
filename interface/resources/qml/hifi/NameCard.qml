@@ -28,7 +28,7 @@ Item {
     property string uuid: ""
     property string displayName: ""
     property string userName: ""
-    property int displayTextHeight: 18
+    property real displayNameTextPixelSize: 18
     property int usernameTextHeight: 12
     property real audioLevel: 0.0
     property bool isMyCard: false
@@ -68,7 +68,7 @@ Item {
             anchors.left: parent.left
             anchors.leftMargin: -10
             // Style
-            color: "#C5C5C5"
+            color: hifi.colors.textFieldLightBackground
             border.color: hifi.colors.blueHighlight
             border.width: 0
             TextInput {
@@ -77,23 +77,30 @@ Item {
                 text: thisNameCard.displayName
                 maximumLength: 64
                 clip: true
+                // Size
+                width: parent.width
+                height: parent.height
                 // Anchors
-                anchors.fill: parent
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
                 anchors.leftMargin: 10
                 anchors.rightMargin: editGlyph.implicitWidth + editGlyph.anchors.rightMargin
-                // Text Positioning
-                verticalAlignment: TextInput.AlignVCenter
-                horizontalAlignment: TextInput.AlignLeft
                 // Style
                 color: hifi.colors.darkGray
                 FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
                 font.family: firaSansSemiBold.name
-                font.pointSize: thisNameCard.displayTextHeight
+                font.pixelSize: displayNameTextPixelSize
+                selectionColor: hifi.colors.blueHighlight
+                selectedTextColor: "black"
+                // Text Positioning
+                verticalAlignment: TextInput.AlignVCenter
+                horizontalAlignment: TextInput.AlignLeft
                 // Signals
                 onEditingFinished: {
                     pal.sendToScript({method: 'displayNameUpdate', params: text})
                     focus = false
                     myDisplayName.border.width = 0
+                    color = hifi.colors.darkGray
                 }
             }
             MouseArea {
@@ -101,23 +108,24 @@ Item {
                 acceptedButtons: Qt.LeftButton
                 hoverEnabled: true
                 onClicked: {
-                    myDisplayName.border.width = 3
+                    myDisplayName.border.width = 1
                     myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
                     myDisplayNameText.focus = true
+                    myDisplayNameText.color = "black"
                 }
                 onDoubleClicked: {
                     myDisplayNameText.selectAll();
                     myDisplayNameText.focus = true;
                 }
                 onEntered: myDisplayName.color = hifi.colors.lightGrayText
-                onExited: myDisplayName.color = "#C5C5C5"
+                onExited: myDisplayName.color = hifi.colors.textFieldLightBackground
             }
             // Edit pencil glyph
             HiFiGlyphs {
                 id: editGlyph
                 text: hifi.glyphs.editPencil
-                // Size
-                size: thisNameCard.displayTextHeight*1.5
+                // Text Size
+                size: displayNameTextPixelSize*1.5
                 // Anchors
                 anchors.right: parent.right
                 anchors.rightMargin: 5
@@ -150,7 +158,7 @@ Item {
             // Anchors
             anchors.top: parent.top
             // Text Size
-            size: thisNameCard.displayTextHeight
+            size: displayNameTextPixelSize
             // Text Positioning
             verticalAlignment: Text.AlignVCenter
             // Style
@@ -189,7 +197,7 @@ Item {
         Rectangle {
             id: nameCardVUMeter
             // Size
-            width: isMyCard ? gainSlider.width : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
+            width: isMyCard ? myDisplayName.width - 20 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
             height: 8
             // Anchors
             anchors.top: spacer.bottom
