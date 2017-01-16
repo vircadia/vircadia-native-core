@@ -238,7 +238,7 @@ void Model::updateRenderItems() {
 
                         // update the model transform and bounding box for this render item.
                         const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                        data.updateTransformForSkinnedMesh(modelTransform, state.clusterMatrices);
+                        data.updateTransformForSkinnedMesh(modelTransform, state.clusterMatrices, state.cauterizedClusterMatrices);
                     }
                 }
             });

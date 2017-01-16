@@ -85,7 +85,9 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateTransformForSkinnedMesh(const Transform& transform, const QVector<glm::mat4>& clusterMatrices);
+    void updateTransformForSkinnedMesh(const Transform& transform,
+            const QVector<glm::mat4>& clusterMatrices,
+            const QVector<glm::mat4>& cauterizedClusterMatrices);
 
     // Entity fade in
     void startFade();
@@ -106,6 +108,7 @@ public:
 
     Model* _model;
 
+    Transform _cauterizedTransform;
     int _meshIndex;
     int _shapeID;
 
