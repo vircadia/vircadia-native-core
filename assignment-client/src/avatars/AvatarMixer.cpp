@@ -262,8 +262,13 @@ void AvatarMixer::broadcastAvatarData() {
             // setup a PacketList for the avatarPackets
             auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
-            if (avatar.getSessionDisplayName().isEmpty() &&  // We haven't set it yet...
-                nodeData->getReceivedIdentity()) { // ... but we have processed identity (with possible displayName).
+            if (nodeData->getAvatarSessionDisplayNameMustChange()) { // ... but we have processed identity (with possible displayName).
+                const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
+                // No sense guarding against very rare case of a node with no entry, as this will work without the guard and do one less lookup in the common case.
+                if (--_sessionDisplayNames[existingBaseDisplayName].second <= 0) {
+                    _sessionDisplayNames.remove(existingBaseDisplayName);
+                }
+
                 QString baseName = avatar.getDisplayName().trimmed();
                 const QRegularExpression curses{ "fuck|shit|damn|cock|cunt" }; // POC. We may eventually want something much more elaborate (subscription?).
                 baseName = baseName.replace(curses, "*"); // Replace rather than remove, so that people have a clue that the person's a jerk.
@@ -280,6 +285,7 @@ void AvatarMixer::broadcastAvatarData() {
                 highWater++;
                 soFar.second++; // refcount
                 nodeData->flagIdentityChange();
+                nodeData->setAvatarSessionDisplayNameMustChange(false);
                 sendIdentityPacket(nodeData, node); // Tell new node about its sessionUUID. Others will find out below.
             }
 
@@ -584,7 +590,7 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             if (avatar.processAvatarIdentity(identity)) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
-                nodeData->setReceivedIdentity();
+                nodeData->setAvatarSessionDisplayNameMustChange();
             }
         }
     }
