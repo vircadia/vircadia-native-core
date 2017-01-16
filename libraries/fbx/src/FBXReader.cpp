@@ -972,7 +972,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             static const QVariant EMISSIVE = QByteArray("Emissive");
                             static const QVariant AMBIENT_FACTOR = QByteArray("AmbientFactor");
                             static const QVariant SHININESS = QByteArray("Shininess");
-                            static const QVariant OPACITY = QByteArray("Shininess");
+                            static const QVariant OPACITY = QByteArray("Opacity");
                             static const QVariant MAYA_USE_NORMAL_MAP = QByteArray("Maya|use_normal_map");
                             static const QVariant MAYA_BASE_COLOR = QByteArray("Maya|base_color");
                             static const QVariant MAYA_USE_COLOR_MAP = QByteArray("Maya|use_color_map");
