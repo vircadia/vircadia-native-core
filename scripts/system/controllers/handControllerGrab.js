@@ -1028,6 +1028,10 @@ function MyController(hand) {
         }
         Overlays.deleteOverlay(this.stylus);
         this.stylus = null;
+        if (this.stylusTip) {
+            Overlays.deleteOverlay(this.stylusTip);
+            this.stylusTip = null;
+        }
     };
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
