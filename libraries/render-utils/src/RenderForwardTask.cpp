@@ -26,10 +26,16 @@
 
 #include <render/drawItemBounds_vert.h>
 #include <render/drawItemBounds_frag.h>
+#include "nop_frag.h"
 
 using namespace render;
+extern void initForwardPipelines(ShapePlumber& plumber);
 
 RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
+    // Prepare the ShapePipelines
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+    initForwardPipelines(*shapePlumber);
+
     // Extract opaques / transparents / lights / overlays
     const auto opaques = items[0];
     const auto transparents = items[1];
@@ -40,16 +46,19 @@ RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
+    addJob<Draw>("DrawOpaques", opaques, shapePlumber);
+    addJob<Stencil>("Stencil");
     addJob<DrawBackground>("DrawBackground", background);
 
-    // bounds do not draw on stencil buffer, so they must come last
+    // Bounds do not draw on stencil buffer, so they must come last
     addJob<DrawBounds>("DrawBounds", opaques);
 
     // Blit!
     addJob<Blit>("Blit", framebuffer);
 }
 
-void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
+void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        gpu::FramebufferPointer& framebuffer) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
@@ -89,6 +98,88 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
     framebuffer = _framebuffer;
 }
 
+void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& items) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        // Setup projection
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        batch.setModelTransform(Transform());
+
+        // Render items
+        renderStateSortShapes(sceneContext, renderContext, _shapePlumber, items, -1);
+    });
+    args->_batch = nullptr;
+}
+
+const gpu::PipelinePointer Stencil::getPipeline() {
+    if (!_stencilPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(nop_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram(*program);
+
+        auto state = std::make_shared<gpu::State>();
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        const gpu::int8 STENCIL_OPAQUE = 1;
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS,
+                    gpu::State::STENCIL_OP_REPLACE,
+                    gpu::State::STENCIL_OP_REPLACE,
+                    gpu::State::STENCIL_OP_KEEP));
+
+        _stencilPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _stencilPipeline;
+}
+
+void Stencil::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.enableStereo(false);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        batch.setPipeline(getPipeline());
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
+    args->_batch = nullptr;
+}
+
+void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& background) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.enableSkybox(true);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        // Setup projection
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        renderItems(sceneContext, renderContext, background);
+    });
+    args->_batch = nullptr;
+}
+
 const gpu::PipelinePointer DrawBounds::getPipeline() {
     if (!_boundsPipeline) {
         auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
@@ -112,7 +203,8 @@ const gpu::PipelinePointer DrawBounds::getPipeline() {
     return _boundsPipeline;
 }
 
-void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
+void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -141,27 +233,4 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
             batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
         }
     });
-}
-
-void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
-    RenderArgs* args = renderContext->args;
-
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-
-        batch.enableSkybox(true);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        // Setup projection
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        renderItems(sceneContext, renderContext, items);
-    });
-    args->_batch = nullptr;
 }

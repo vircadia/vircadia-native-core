@@ -25,26 +25,38 @@ public:
 
 class PrepareFramebuffer {
 public:
-    using JobModel = render::Job::ModelO<PrepareFramebuffer, gpu::FramebufferPointer>;
+    using Inputs = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelO<PrepareFramebuffer, Inputs>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+            gpu::FramebufferPointer& framebuffer);
 
 private:
     gpu::FramebufferPointer _framebuffer;
 };
 
-class DrawBounds {
+class Draw {
 public:
     using Inputs = render::ItemBounds;
-    using JobModel = render::Job::ModelI<DrawBounds, Inputs>;
+    using JobModel = render::Job::ModelI<Draw, Inputs>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& items);
+    Draw(const render::ShapePlumberPointer& shapePlumber) : _shapePlumber(shapePlumber) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+            const Inputs& items);
+
+private:
+    render::ShapePlumberPointer _shapePlumber;
+};
+
+class Stencil {
+public:
+    using JobModel = render::Job::Model<Stencil>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
 private:
     const gpu::PipelinePointer getPipeline();
-    gpu::PipelinePointer _boundsPipeline;
-    int _cornerLocation { -1 };
-    int _scaleLocation { -1 };
+    gpu::PipelinePointer _stencilPipeline;
 };
 
 class DrawBackground {
@@ -52,7 +64,29 @@ public:
     using Inputs = render::ItemBounds;
     using JobModel = render::Job::ModelI<DrawBackground, Inputs>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& background);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+            const Inputs& background);
+};
+
+class DrawBounds {
+public:
+    class Config : public render::JobConfig {
+    public:
+        Config() : JobConfig(false) {}
+    };
+
+    using Inputs = render::ItemBounds;
+    using JobModel = render::Job::ModelI<DrawBounds, Inputs, Config>;
+
+    void configure(const Config& configuration) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+            const Inputs& items);
+
+private:
+    const gpu::PipelinePointer getPipeline();
+    gpu::PipelinePointer _boundsPipeline;
+    int _cornerLocation { -1 };
+    int _scaleLocation { -1 };
 };
 
 #endif // hifi_RenderForwardTask_h
