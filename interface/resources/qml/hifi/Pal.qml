@@ -346,11 +346,6 @@ Rectangle {
         visible: iAmAdmin
         color: hifi.colors.lightGrayText
     }
-    function letterbox(message) {
-        letterboxMessage.text = message;
-        letterboxMessage.visible = true
-
-    }
     // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
         color: hifi.colors.tableBackgroundLight
@@ -410,9 +405,6 @@ Rectangle {
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
-    }
-    LetterboxMessage {
-        id: letterboxMessage
     }
     }
 

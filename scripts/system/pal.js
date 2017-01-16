@@ -243,7 +243,6 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
         }
         break;
     default:
-    default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
 });

@@ -60,11 +60,15 @@ Item {
         Rectangle {
             id: myDisplayName
             visible: isMyCard
-            color: "#C5C5C5"
-            anchors.left: parent.left
-            anchors.leftMargin: -10
+            // Size
             width: parent.width + 70
             height: 35
+            // Anchors
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.leftMargin: -10
+            // Style
+            color: "#C5C5C5"
             border.color: hifi.colors.blueHighlight
             border.width: 0
             TextInput {
@@ -126,7 +130,10 @@ Item {
         }
         // Spacer for DisplayName for my card
         Rectangle {
+            id: myDisplayNameSpacer
             width: myDisplayName.width
+            // Anchors
+            anchors.top: myDisplayName.bottom
             height: 5
             visible: isMyCard
             opacity: 0
@@ -160,7 +167,7 @@ Item {
             // Size
             width: parent.width
             // Anchors
-            anchors.top: displayNameText.bottom
+            anchors.top: isMyCard ? myDisplayNameSpacer.bottom : displayNameText.bottom
             // Text Size
             size: thisNameCard.usernameTextHeight
             // Text Positioning
@@ -182,7 +189,7 @@ Item {
         Rectangle {
             id: nameCardVUMeter
             // Size
-            width: ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
+            width: isMyCard ? gainSlider.width : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
             height: 8
             // Anchors
             anchors.top: spacer.bottom
