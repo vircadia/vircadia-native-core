@@ -740,7 +740,7 @@ function MyController(hand) {
     // (1) avatar-A does a parenting grab on something, and then (2) avatar-B takes it, and (3) avatar-A
     // releases it and then (4) avatar-B releases it, then avatar-B will set the parent back to
     // avatar-A's hand.  Avatar-A is no longer grabbing it, so it will end up triggering avatar-A's
-    // checkForStrayChildren which will put it back to wherever it was when avatar-A initially grabbed it.
+    // checkForUnexpectedChildren which will put it back to wherever it was when avatar-A initially grabbed it.
     // this will work most of the time, unless avatar-A crashes or logs out while avatar-B is grabbing the
     // entity.  This can also happen when a single avatar passes something from hand to hand.
     this.previousParentID = {};
@@ -945,7 +945,35 @@ function MyController(hand) {
         }
     };
 
-    this.showStylus = function() {
+    this.showModelStylus = function() {
+        if (this.stylus) {
+            return;
+        }
+        if (!MyAvatar.sessionUUID) {
+            return;
+        }
+
+        var stylusProperties = {
+            // url: Script.resourcesPath() + "meshes/tablet-stylus-skinny.fbx",
+            url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
+            localPosition: Vec3.sum({ x: 0.0, y: WEB_TOUCH_DISTANCE / 2.0, z: 0.0 },
+                                    getGrabPointSphereOffset(this.handToController())),
+            localRotation: { x: 0, y: 0, z: 0, w: 1 },
+            // dimensions: { x: 0.01, y: WEB_TOUCH_DISTANCE - WEB_TOUCH_SPHERE_RADIUS, z: 0.01 },
+            solid: true,
+            visible: true,
+            ignoreRayIntersection: true,
+            drawInFront: false,
+            parentID: MyAvatar.sessionUUID,
+            parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                     "_CONTROLLER_RIGHTHAND" :
+                                                     "_CONTROLLER_LEFTHAND")
+        };
+        this.stylus = Overlays.addOverlay("model", stylusProperties);
+    };
+
+
+    this.showPrimStylus = function() {
         if (this.stylus) {
             return;
         }
@@ -989,14 +1017,21 @@ function MyController(hand) {
         this.stylus = Overlays.addOverlay("cube", stylusProperties);
     };
 
+    this.showStylus = function() {
+        return this.showPrimStylus();
+        // return this.showModelStylus();
+    };
+
     this.hideStylus = function() {
         if (!this.stylus) {
             return;
         }
         Overlays.deleteOverlay(this.stylus);
         this.stylus = null;
-        Overlays.deleteOverlay(this.stylusTip);
-        this.stylusTip = null;
+        if (this.stylusTip) {
+            Overlays.deleteOverlay(this.stylusTip);
+            this.stylusTip = null;
+        }
     };
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
@@ -1166,7 +1201,7 @@ function MyController(hand) {
 
     this.off = function(deltaTime, timestamp) {
 
-        this.checkForStrayChildren();
+        this.checkForUnexpectedChildren();
 
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.waitForTriggerRelease = false;
@@ -1548,9 +1583,11 @@ function MyController(hand) {
         this.isInitialGrab = false;
         this.preparingHoldRelease = false;
 
-        this.checkForStrayChildren();
+        this.checkForUnexpectedChildren();
 
         if ((this.triggerSmoothedReleased() && this.secondaryReleased())) {
+            this.grabbedEntity = null;
+            this.release();
             this.setState(STATE_OFF, "trigger released");
             return;
         }
@@ -2941,7 +2978,7 @@ function MyController(hand) {
         return false;
     };
 
-    this.checkForStrayChildren = function() {
+    this.checkForUnexpectedChildren = function() {
         var _this = this;
         // sometimes things can get parented to a hand and this script is unaware.  Search for such entities and
         // unhook them.
