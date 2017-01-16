@@ -211,6 +211,7 @@ var CONTROLLER_STATE_MACHINE = {};
 
 CONTROLLER_STATE_MACHINE[STATE_OFF] = {
     name: "off",
+    enterMethod: "offEnter",
     updateMethod: "off"
 };
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
@@ -958,7 +959,8 @@ function MyController(hand) {
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
             localPosition: Vec3.sum({ x: 0.0, y: WEB_TOUCH_DISTANCE / 2.0, z: 0.0 },
                                     getGrabPointSphereOffset(this.handToController())),
-            localRotation: { x: 0, y: 0, z: 0, w: 1 },
+            // localRotation: { x: 0, y: 0, z: 0, w: 1 },
+            localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
             // dimensions: { x: 0.01, y: WEB_TOUCH_DISTANCE - WEB_TOUCH_SPHERE_RADIUS, z: 0.01 },
             solid: true,
             visible: true,
@@ -966,8 +968,8 @@ function MyController(hand) {
             drawInFront: false,
             parentID: MyAvatar.sessionUUID,
             parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                     "_CONTROLLER_RIGHTHAND" :
-                                                     "_CONTROLLER_LEFTHAND")
+                                                     "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                     "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
         };
         this.stylus = Overlays.addOverlay("model", stylusProperties);
     };
@@ -993,8 +995,8 @@ function MyController(hand) {
             drawInFront: false,
             parentID: MyAvatar.sessionUUID,
             parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                     "_CONTROLLER_RIGHTHAND" :
-                                                     "_CONTROLLER_LEFTHAND")
+                                                     "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                     "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
         };
         this.stylusTip = Overlays.addOverlay("sphere", stylusTipProperties);
 
@@ -1011,8 +1013,8 @@ function MyController(hand) {
             drawInFront: false,
             parentID: MyAvatar.sessionUUID,
             parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                     "_CONTROLLER_RIGHTHAND" :
-                                                     "_CONTROLLER_LEFTHAND")
+                                                     "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                     "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
         };
         this.stylus = Overlays.addOverlay("cube", stylusProperties);
     };
@@ -1587,7 +1589,6 @@ function MyController(hand) {
 
         if ((this.triggerSmoothedReleased() && this.secondaryReleased())) {
             this.grabbedEntity = null;
-            this.release();
             this.setState(STATE_OFF, "trigger released");
             return;
         }
@@ -2068,7 +2069,6 @@ function MyController(hand) {
         if (!this.triggerClicked) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.ensureDynamic();
-            this.release();
             this.setState(STATE_OFF, "trigger released");
             return;
         }
@@ -2400,7 +2400,6 @@ function MyController(hand) {
 
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
             this.callEntityMethodOnGrabbed("releaseGrab");
-            this.release();
             this.setState(STATE_OFF, "trigger released");
             return;
         }
@@ -2418,7 +2417,6 @@ function MyController(hand) {
                 // we have an equipped object and the secondary trigger was released
                 // short-circuit the other checks and release it
                 this.preparingHoldRelease = false;
-                this.release();
                 this.setState(STATE_OFF, "equipping ended via secondary press");
                 return;
             }
@@ -2465,7 +2463,6 @@ function MyController(hand) {
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" state
             this.callEntityMethodOnGrabbed("releaseGrab");
-            this.release();
             this.setState(STATE_OFF, "entity has no position property");
             return;
         }
@@ -2475,7 +2472,6 @@ function MyController(hand) {
             // for equipped things so that they can be adjusted while equipped.
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.grabbedEntity = null;
-            this.release();
             this.setState(STATE_OFF, "someone took it");
             return;
         }
@@ -2510,7 +2506,6 @@ function MyController(hand) {
                     } else { // this.state == STATE_HOLD
                         this.callEntityMethodOnGrabbed("releaseEquip");
                     }
-                    this.release();
                     this.setState(STATE_OFF, "held object too far away");
                     return;
                 }
@@ -2639,6 +2634,7 @@ function MyController(hand) {
     this.nearTrigger = function(deltaTime, timestamp) {
         if (this.triggerSmoothedReleased()) {
             this.callEntityMethodOnGrabbed("stopNearTrigger");
+            this.grabbedEntity = null;
             this.setState(STATE_OFF, "trigger released");
             return;
         }
@@ -2648,6 +2644,7 @@ function MyController(hand) {
     this.farTrigger = function(deltaTime, timestamp) {
         if (this.triggerSmoothedReleased()) {
             this.callEntityMethodOnGrabbed("stopFarTrigger");
+            this.grabbedEntity = null;
             this.setState(STATE_OFF, "trigger released");
             return;
         }
@@ -2664,6 +2661,7 @@ function MyController(hand) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {
                     this.callEntityMethodOnGrabbed("stopFarTrigger");
+                    this.grabbedEntity = null;
                     this.setState(STATE_OFF, "laser moved off of entity");
                     return;
                 }
@@ -2677,6 +2675,10 @@ function MyController(hand) {
         }
 
         this.callEntityMethodOnGrabbed("continueFarTrigger");
+    };
+
+    this.offEnter = function() {
+        this.release();
     };
 
     this.entityTouchingEnter = function() {
@@ -2741,6 +2743,7 @@ function MyController(hand) {
         entityPropertiesCache.addEntity(this.grabbedEntity);
 
         if (this.state == STATE_ENTITY_LASER_TOUCHING && !this.triggerSmoothedGrab()) {
+            this.grabbedEntity = null;
             this.setState(STATE_OFF, "released trigger");
             return;
         }
@@ -2751,6 +2754,7 @@ function MyController(hand) {
         if (intersectInfo) {
 
             if (this.state == STATE_ENTITY_STYLUS_TOUCHING && intersectInfo.distance > WEB_TOUCH_DISTANCE) {
+                this.grabbedEntity = null;
                 this.setState(STATE_OFF, "pulled away from web entity");
                 return;
             }
@@ -2787,6 +2791,7 @@ function MyController(hand) {
             }
             Reticle.setVisible(false);
         } else {
+            this.grabbedEntity = null;
             this.setState(STATE_OFF, "grabbed entity was destroyed");
             return;
         }
@@ -2850,11 +2855,13 @@ function MyController(hand) {
         this.touchingEnterTimer += dt;
 
         if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && this.triggerSmoothedSqueezed()) {
+            this.grabbedEntity = null;
             this.setState(STATE_OFF, "trigger squeezed");
             return;
         }
 
         if (this.state == STATE_OVERLAY_LASER_TOUCHING && !this.triggerSmoothedGrab()) {
+            this.grabbedEntity = null;
             this.setState(STATE_OFF, "released trigger");
             return;
         }
@@ -2865,6 +2872,7 @@ function MyController(hand) {
         if (intersectInfo) {
 
             if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && intersectInfo.distance > WEB_TOUCH_DISTANCE) {
+                this.grabbedEntity = null;
                 this.setState(STATE_OFF, "pulled away from overlay");
                 return;
             }
@@ -2900,6 +2908,7 @@ function MyController(hand) {
             }
             Reticle.setVisible(false);
         } else {
+            this.grabbedEntity = null;
             this.setState(STATE_OFF, "grabbed overlay was destroyed");
             return;
         }
@@ -2975,6 +2984,13 @@ function MyController(hand) {
             return true;
         }
 
+        var controllerCRJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                            "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                            "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+        if (props.parentJointIndex == controllerCRJointIndex) {
+            return true;
+        }
+
         return false;
     };
 
@@ -2982,12 +2998,21 @@ function MyController(hand) {
         var _this = this;
         // sometimes things can get parented to a hand and this script is unaware.  Search for such entities and
         // unhook them.
+
+        // find children of avatar's hand joint
         var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
         var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
+        // find children of faux controller joint
         var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
                                                           "_CONTROLLER_RIGHTHAND" :
                                                           "_CONTROLLER_LEFTHAND");
         children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
+        // find children of faux camera-relative controller joint
+        var controllerCRJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                            "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                            "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+        children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerCRJointIndex));
+
         children.forEach(function(childID) {
             if (childID !== _this.stylus) {
                 print(childID + " vs " + _this.stylus);
