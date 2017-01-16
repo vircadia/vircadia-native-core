@@ -90,7 +90,7 @@ Item {
             } else {
                 breadcrumbText.text = "Menu";
                 topMenu = null;
-                //offscreenFlags.navigationFocused = false;
+                offscreenFlags.navigationFocused = false;
                 menuRoot.enabled = false;
             }
         }
@@ -99,7 +99,7 @@ Item {
             menuStack.push(newMenu);
             topMenu = newMenu;
             topMenu.focus = true;
-            //offscreenFlags.navigationFocused = true;
+            offscreenFlags.navigationFocused = true;
         }
 
         function clearMenus() {

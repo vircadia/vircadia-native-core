@@ -151,6 +151,8 @@ void Web3DOverlay::loadSourceURL() {
 
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            auto flags = tabletScriptingInterface->getFlags();
+            _webSurface->getRootContext()->setContextProperty("offscreenFlags", flags);
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
         }
     }

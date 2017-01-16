@@ -47,6 +47,10 @@ public:
 
     void setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
+    QQuickWindow* getTabletWindow();
+
+    QObject* getFlags();
+
 protected:
     std::mutex _mutex;
     std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
@@ -111,6 +115,9 @@ public:
      * @param msg {object|string}
      */
     Q_INVOKABLE void emitScriptEvent(QVariant msg);
+
+
+    QObject* getTabletSurface();
 
 signals:
     /**jsdoc

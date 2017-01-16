@@ -47,6 +47,20 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
     }
 }
 
+QQuickWindow* TabletScriptingInterface::getTabletWindow() {
+    TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet("com.highfidelity.interface.tablet.system"));
+    QObject* qmlSurface = tablet->getTabletSurface();
+    OffscreenQmlSurface* surface = dynamic_cast<OffscreenQmlSurface*>(qmlSurface);
+    QQuickWindow* window = surface->getWindow();
+    return window;
+}
+
+QObject* TabletScriptingInterface::getFlags()
+{
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->getFlags();
+}
+
 //
 // TabletProxy
 //
@@ -198,6 +212,10 @@ void TabletProxy::addButtonsToHomeScreen() {
     }
      auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
      QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
+}
+
+QObject* TabletProxy::getTabletSurface() {
+    return _qmlOffscreenSurface;
 }
 
 void TabletProxy::addButtonsToMenuScreen() {
