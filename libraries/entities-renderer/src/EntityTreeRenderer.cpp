@@ -1044,7 +1044,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         emit collisionWithEntity(idA, idB, collision);
     }
 
-    if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
+    if (isCollisionOwner(myNodeID, entityTree, idB, collision)) {
         emit collisionWithEntity(idB, idA, collision);
     }
 }
