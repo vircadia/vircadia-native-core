@@ -34,7 +34,7 @@ public:
     virtual void updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
-    virtual void updateTransform(const Transform& transform, const Transform& offsetTransform);
+    void updateTransform(const Transform& transform, const Transform& offsetTransform);
 
     virtual void updateMaterial(model::MaterialPointer drawMaterial);
 
@@ -56,13 +56,12 @@ public:
     model::Mesh::Part _drawPart;
 
     std::shared_ptr<const model::Material> _drawMaterial;
-    
+
     model::Box _localBound;
     Transform _drawTransform;
     Transform _transform;
-    Transform _offsetTransform;
     mutable model::Box _worldBound;
-    
+
     bool _hasColorAttrib = false;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
@@ -86,7 +85,9 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
+    void updateTransformForSkinnedMesh(const Transform& transform,
+            const QVector<glm::mat4>& clusterMatrices,
+            const QVector<glm::mat4>& cauterizedClusterMatrices);
 
     // Entity fade in
     void startFade();
@@ -101,12 +102,13 @@ public:
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) const override;
-    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize) const override;
+    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize = true) const override;
 
     void initCache();
 
     Model* _model;
 
+    Transform _cauterizedTransform;
     int _meshIndex;
     int _shapeID;
 

@@ -41,5 +41,8 @@ private:
 
     std::atomic_int _compositorDroppedFrames;
     std::atomic_int _appDroppedFrames;
+    std::atomic_int _longSubmits;
+    std::atomic_int _longRenders;
+    std::atomic_int _longFrames;
 };
 

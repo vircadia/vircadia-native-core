@@ -43,31 +43,54 @@ template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
     position += sizeof(quint32) * 3;
 
     QVector<T> values;
-    const unsigned int DEFLATE_ENCODING = 1;
-    if (encoding == DEFLATE_ENCODING) {
-        // preface encoded data with uncompressed length
-        QByteArray compressed(sizeof(quint32) + compressedLength, 0);
-        *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
-        in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
-        position += compressedLength;
-        QByteArray uncompressed = qUncompress(compressed);
-        if (uncompressed.isEmpty()) { // answers empty byte array if corrupt
-            throw QString("corrupt fbx file");
+    if ((int)QSysInfo::ByteOrder == (int)in.byteOrder()) {
+        values.resize(arrayLength);
+        const unsigned int DEFLATE_ENCODING = 1;
+        QByteArray arrayData;
+        if (encoding == DEFLATE_ENCODING) {
+            // preface encoded data with uncompressed length
+            QByteArray compressed(sizeof(quint32) + compressedLength, 0);
+            *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
+            in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
+            position += compressedLength;
+            arrayData = qUncompress(compressed);
+            if (arrayData.isEmpty() || arrayData.size() != (sizeof(T) * arrayLength)) { // answers empty byte array if corrupt
+                throw QString("corrupt fbx file");
+            }
+        } else {
+            arrayData.resize(sizeof(T) * arrayLength);
+            position += sizeof(T) * arrayLength;
+            in.readRawData(arrayData.data(), arrayData.size());
         }
-        QDataStream uncompressedIn(uncompressed);
-        uncompressedIn.setByteOrder(QDataStream::LittleEndian);
-        uncompressedIn.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
-        for (quint32 i = 0; i < arrayLength; i++) {
-            T value;
-            uncompressedIn >> value;
-            values.append(value);
-        }
+        memcpy(&values[0], arrayData.constData(), arrayData.size());
     } else {
-        for (quint32 i = 0; i < arrayLength; i++) {
-            T value;
-            in >> value;
-            position += streamSize<T>();
-            values.append(value);
+        values.reserve(arrayLength);
+        const unsigned int DEFLATE_ENCODING = 1;
+        if (encoding == DEFLATE_ENCODING) {
+            // preface encoded data with uncompressed length
+            QByteArray compressed(sizeof(quint32) + compressedLength, 0);
+            *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
+            in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
+            position += compressedLength;
+            QByteArray uncompressed = qUncompress(compressed);
+            if (uncompressed.isEmpty()) { // answers empty byte array if corrupt
+                throw QString("corrupt fbx file");
+            }
+            QDataStream uncompressedIn(uncompressed);
+            uncompressedIn.setByteOrder(QDataStream::LittleEndian);
+            uncompressedIn.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
+            for (quint32 i = 0; i < arrayLength; i++) {
+                T value;
+                uncompressedIn >> value;
+                values.append(value);
+            }
+        } else {
+            for (quint32 i = 0; i < arrayLength; i++) {
+                T value;
+                in >> value;
+                position += streamSize<T>();
+                values.append(value);
+            }
         }
     }
     return QVariant::fromValue(values);

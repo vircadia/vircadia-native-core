@@ -65,6 +65,11 @@ public slots:
     */
     bool stopTracing(QString filename);
 
+    void startTraceEvent(QString name);
+
+    void endTraceEvent(QString name);
+
+
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
 };

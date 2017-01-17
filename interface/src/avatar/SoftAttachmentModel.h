@@ -31,7 +31,7 @@ public:
     ~SoftAttachmentModel();
 
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
-    virtual void updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) override;
+    virtual void updateClusterMatrices() override;
 
 protected:
     int getJointIndexOverride(int i) const;

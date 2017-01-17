@@ -168,7 +168,7 @@ static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius
     const uint32_t color = toRGBA(vecColor);
 
     AnimPose finalPose = rootPose * pose;
-    glm::vec3 base = rootPose * pose.trans;
+    glm::vec3 base = rootPose * pose.trans();
 
     glm::vec3 xRing[NUM_CIRCLE_SLICES + 1];  // one extra for last index.
     glm::vec3 yRing[NUM_CIRCLE_SLICES + 1];
@@ -245,7 +245,7 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose, const AnimPo
     AnimPose pose0 = rootPose * parentPose;
     AnimPose pose1 = rootPose * pose;
 
-    glm::vec3 boneAxisWorld = glm::normalize(pose1.trans - pose0.trans);
+    glm::vec3 boneAxisWorld = glm::normalize(pose1.trans() - pose0.trans());
     glm::vec3 boneAxis0 = glm::normalize(pose0.inverse().xformVector(boneAxisWorld));
     glm::vec3 boneAxis1 = glm::normalize(pose1.inverse().xformVector(boneAxisWorld));
 
@@ -255,7 +255,7 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose, const AnimPo
     const int NUM_BASE_CORNERS = 4;
 
     // make sure there's room between the two bones to draw a nice bone link.
-    if (glm::dot(boneTip - pose0.trans, boneAxisWorld) > glm::dot(boneBase - pose0.trans, boneAxisWorld)) {
+    if (glm::dot(boneTip - pose0.trans(), boneAxisWorld) > glm::dot(boneBase - pose0.trans(), boneAxisWorld)) {
 
         // there is room, so lets draw a nice bone
 
@@ -290,10 +290,10 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose, const AnimPo
         // just draw a line between the two bone centers.
         // We add the same line multiple times, so the vertex count is correct.
         for (int i = 0; i < NUM_BASE_CORNERS * 2; i++) {
-            v->pos = pose0.trans;
+            v->pos = pose0.trans();
             v->rgba = color;
             v++;
-            v->pos = pose1.trans;
+            v->pos = pose1.trans();
             v->rgba = color;
             v++;
         }
@@ -365,7 +365,7 @@ void AnimDebugDraw::update() {
             glm::vec4 color = std::get<3>(iter.second);
 
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                const float radius = BONE_RADIUS / (absPoses[i].scale.x * rootPose.scale.x);
+                const float radius = BONE_RADIUS / (absPoses[i].scale().x * rootPose.scale().x);
 
                 // draw bone
                 addBone(rootPose, absPoses[i], radius, color, v);

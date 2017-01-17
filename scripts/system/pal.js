@@ -19,9 +19,13 @@ const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avata
 const SELECTED_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
                             "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
 };
+const HOVER_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png"),
+                         "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png")
+};
 
 const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
-const SELECTED_COLOR = {red: 0xf3, green: 0x91, blue: 0x29};
+const SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
+const HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -46,6 +50,7 @@ function ExtendedOverlay(key, type, properties, selected, hasModel) { // A wrapp
     }
     this.key = key;
     this.selected = selected || false; // not undefined
+    this.hovering = false;
     this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
 }
 // Instance methods:
@@ -58,20 +63,47 @@ ExtendedOverlay.prototype.editOverlay = function (properties) { // change displa
     Overlays.editOverlay(this.activeOverlay, properties);
 };
 
-function color(selected) {
-    return selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+function color(selected, hovering, level) {
+    var base = hovering ? HOVER_COLOR : selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+    function scale(component) {
+        var delta = 0xFF - component;
+        return component + (delta * level);
+    }
+    return {red: scale(base.red), green: scale(base.green), blue: scale(base.blue)};
 }
 
-function textures(selected) {
-    return selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
+function textures(selected, hovering) {
+    return hovering ? HOVER_TEXTURES : selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
 }
-
+// so we don't have to traverse the overlays to get the last one
+var lastHoveringId = 0;
+ExtendedOverlay.prototype.hover = function (hovering) {
+    this.hovering = hovering;
+    if (this.key === lastHoveringId) {
+        if (hovering) {
+            return;
+        } else {
+            lastHoveringId = 0;
+        }
+    } 
+    this.editOverlay({color: color(this.selected, hovering, this.audioLevel)});
+    if (this.model) {
+        this.model.editOverlay({textures: textures(this.selected, hovering)});
+    }
+    if (hovering) {
+        // un-hover the last hovering overlay
+        if (lastHoveringId && lastHoveringId != this.key) {
+            ExtendedOverlay.get(lastHoveringId).hover(false);
+        }
+        lastHoveringId = this.key;
+    }
+}
 ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
     
-    this.editOverlay({color: color(selected)});
+    this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
     }
@@ -93,14 +125,25 @@ ExtendedOverlay.some = function (iterator) { // Bails early as soon as iterator 
         }
     }
 };
-ExtendedOverlay.applyPickRay = function (pickRay, cb) { // cb(overlay) on the one overlay intersected by pickRay, if any.
+ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId (if any)
+    if (lastHoveringId) {
+        ExtendedOverlay.get(lastHoveringId).hover(false);
+    }
+};
+
+// hit(overlay) on the one overlay intersected by pickRay, if any.
+// noHit() if no ExtendedOverlay was intersected (helps with hover)
+ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) {
     var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
     if (!pickedOverlay.intersects) {
+        if (noHit) {
+            return noHit();
+        }
         return;
     }
     ExtendedOverlay.some(function (overlay) { // See if pickedOverlay is one of ours.
         if ((overlay.activeOverlay) === pickedOverlay.overlayID) {
-            cb(overlay);
+            hit(overlay);
             return true;
         }
     });
@@ -204,7 +247,7 @@ function addAvatarNode(id) {
          drawInFront: true, 
          solid: true, 
          alpha: 0.8, 
-         color: color(selected), 
+         color: color(selected, false, 0.0),
          ignoreRayIntersection: false}, selected, true);
 }
 function populateUserList() {
@@ -288,6 +331,7 @@ function updateOverlays() {
 
         overlay.ping = pingPong;
         overlay.editOverlay({
+            color: color(ExtendedOverlay.isSelected(id), overlay.hovering, overlay.audioLevel),
             position: target,
             dimensions: 0.032 * distance 
         });
@@ -311,6 +355,7 @@ function updateOverlays() {
 }
 function removeOverlays() {
     selectedIds = [];
+    lastHoveringId = 0;
     HighlightedEntity.clearOverlays();
     ExtendedOverlay.some(function (overlay) { overlay.deleteOverlay(); });
 }
@@ -332,9 +377,54 @@ function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
     }
     handleClick(Camera.computePickRay(mousePressEvent.x, mousePressEvent.y));
 }
+function handleMouseMove(pickRay) { // given the pickRay, just do the hover logic
+    ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+        overlay.hover(true);
+    }, function () {
+        ExtendedOverlay.unHover();
+    });
+}
+
+// handy global to keep track of which hand is the mouse (if any)
+var currentHandPressed = 0;
+const TRIGGER_CLICK_THRESHOLD = 0.85;
+const TRIGGER_PRESS_THRESHOLD = 0.05;
+
+function handleMouseMoveEvent(event) { // find out which overlay (if any) is over the mouse position
+    if (HMD.active) {
+        if (currentHandPressed != 0) {
+            pickRay = controllerComputePickRay(currentHandPressed);
+        } else {
+            // nothing should hover, so
+            ExtendedOverlay.unHover();
+            return;
+        }
+    } else {
+        pickRay = Camera.computePickRay(event.x, event.y);
+    }
+    handleMouseMove(pickRay);
+}
+function handleTriggerPressed(hand, value) {
+    // The idea is if you press one trigger, it is the one 
+    // we will consider the mouse.  Even if the other is pressed,
+    // we ignore it until this one is no longer pressed.
+    isPressed = value > TRIGGER_PRESS_THRESHOLD;
+    if (currentHandPressed == 0) {
+        currentHandPressed = isPressed ? hand : 0;
+        return;
+    }
+    if (currentHandPressed == hand) { 
+        currentHandPressed = isPressed ? hand : 0;
+        return;
+    } 
+    // otherwise, the other hand is still triggered
+    // so do nothing.
+}
+
 // We get mouseMoveEvents from the handControllers, via handControllerPointer.
 // But we don't get mousePressEvents.
 var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+var triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
 function controllerComputePickRay(hand) {
     var controllerPose = getControllerWorldLocation(hand, true);
     if (controllerPose.valid) {
@@ -343,15 +433,21 @@ function controllerComputePickRay(hand) {
 }
 function makeClickHandler(hand) {
     return function (clicked) {
-        if (clicked > 0.85) {
+        if (clicked > TRIGGER_CLICK_THRESHOLD) {
             var pickRay = controllerComputePickRay(hand);
             handleClick(pickRay);
         }
     };
 }
+function makePressHandler(hand) {
+    return function (value) {
+        handleTriggerPressed(hand, value);
+    }
+}
 triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
 triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
-
+triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
+triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
 //
 // Manage the connection between the button and the window.
 //
@@ -371,9 +467,11 @@ function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
         Script.update.disconnect(updateOverlays);
         Controller.mousePressEvent.disconnect(handleMouseEvent);
+        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         isWired = false;
     }
     triggerMapping.disable(); // It's ok if we disable twice.
+    triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
 }
@@ -385,7 +483,9 @@ function onClicked() {
         isWired = true;
         Script.update.connect(updateOverlays);
         Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
         triggerMapping.enable();
+        triggerPressMapping.enable();
     } else {
         off();
     }
@@ -422,7 +522,7 @@ var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
 var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
-var accumulatedLevels = {};
+var myData = {}; // we're not includied in ExtendedOverlay.get.
 
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
@@ -430,13 +530,18 @@ function getAudioLevel(id) {
     // of updating (the latter for efficiency too).
     var avatar = AvatarList.getAvatar(id);
     var audioLevel = 0.0;
+    var data = id ? ExtendedOverlay.get(id) : myData;
+    if (!data) {
+        print('no data for', id);
+        return audioLevel;
+    }
 
     // we will do exponential moving average by taking some the last loudness and averaging
-    accumulatedLevels[id] = AVERAGING_RATIO * (accumulatedLevels[id] || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+    data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
 
     // add 1 to insure we don't go log() and hit -infinity.  Math.log is
     // natural log, so to get log base 2, just divide by ln(2).
-    var logLevel = Math.log(accumulatedLevels[id] + 1) / LOG2;
+    var logLevel = Math.log(data.accumulatedLevel + 1) / LOG2;
 
     if (logLevel <= LOUDNESS_FLOOR) {
         audioLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
@@ -446,6 +551,7 @@ function getAudioLevel(id) {
     if (audioLevel > 1.0) {
         audioLevel = 1;
     }
+    data.audioLevel = audioLevel;
     return audioLevel;
 }
 
@@ -455,7 +561,7 @@ function getAudioLevel(id) {
 Script.setInterval(function () {
     if (pal.visible) {
         var param = {};
-        AvatarList.getAvatarIdentifiers().sort().forEach(function (id) {
+        AvatarList.getAvatarIdentifiers().forEach(function (id) {
             var level = getAudioLevel(id);
             // qml didn't like an object with null/empty string for a key, so...
             var userId = id || 0;

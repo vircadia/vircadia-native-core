@@ -18,6 +18,8 @@
 
 #include "Application.h"
 
+Q_LOGGING_CATEGORY(trace_test, "trace.test")
+
 TestScriptingInterface* TestScriptingInterface::getInstance() {
     static TestScriptingInterface sharedInstance;
     return &sharedInstance;
@@ -125,3 +127,10 @@ bool TestScriptingInterface::waitForCondition(qint64 maxWaitMs, std::function<bo
     return condition();
 }
 
+void TestScriptingInterface::startTraceEvent(QString name) {
+    tracing::traceEvent(trace_test(), name, tracing::DurationBegin, "");
+}
+
+void TestScriptingInterface::endTraceEvent(QString name) {
+    tracing::traceEvent(trace_test(), name, tracing::DurationEnd);
+}

@@ -14,12 +14,17 @@
 
     // Event bridge messages.
     var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
+    var CLARA_IO_STATUS = "CLARA.IO STATUS";
+    var CLARA_IO_CANCEL_DOWNLOAD = "CLARA.IO CANCEL DOWNLOAD";
+    var CLARA_IO_CANCELLED_DOWNLOAD = "CLARA.IO CANCELLED DOWNLOAD";
     var GOTO_DIRECTORY = "GOTO_DIRECTORY";
     var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
     var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
     var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
 
     var canWriteAssets = false;
+    var xmlHttpRequest = null;
+    var isDownloading = false;  // Explicitly track download request status.
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -75,10 +80,10 @@
 
         // Add button links.
         $('#exploreClaraMarketplace').on('click', function () {
-            window.location = "https://clara.io/library?gameCheck=true&public=true"
+            window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = "http://www.highfidelity.com/marketplace"
+            window.location = "http://www.highfidelity.com/marketplace";
         });
     }
 
@@ -111,61 +116,147 @@
                 element.setAttribute("href", href + parameters);
             }
 
-            // Replace download options with a single, "Download to High Fidelity" option.
+            // Remove unwanted buttons and replace download options with a single "Download to High Fidelity" button.
             var buttons = $("a.embed-button").parent("div");
-            if (buttons.length > 0) {
-                var downloadFBX = buttons.find("a[data-extension=\'fbx\']")[0];
-                downloadFBX.addEventListener("click", startAutoDownload);
-                var firstButton = buttons.children(":first-child")[0];
-                buttons[0].insertBefore(downloadFBX, firstButton);
-                downloadFBX.setAttribute("class", "btn btn-primary download");
-                downloadFBX.innerHTML = "<i class=\'glyphicon glyphicon-download-alt\'></i> Download to High Fidelity";
-                buttons.children(":nth-child(2), .btn-group , .embed-button").each(function () { this.remove(); });
+            var downloadFBX;
+            if (buttons.find("div.btn-group").length > 0) {
+                buttons.children(".btn-primary, .btn-group , .embed-button").each(function () { this.remove(); });
+                if ($("#hifi-download-container").length === 0) {  // Button hasn't been moved already.
+                    downloadFBX = $('<a class="btn btn-primary"><i class=\'glyphicon glyphicon-download-alt\'></i> Download to High Fidelity</a>');
+                    buttons.prepend(downloadFBX);
+                    downloadFBX[0].addEventListener("click", startAutoDownload);
+                }
             }
 
             // Move the "Download to High Fidelity" button to be more visible on tablet.
             if ($("#hifi-download-container").length === 0 && window.innerWidth < 700) {
-                // Moving the button stops the Clara.io download from starting so instead, make a visual copy in the right place
-                // and wire its click event to click the original button.
                 var downloadContainer = $('<div id="hifi-download-container"></div>');
                 $(".top-title .col-sm-4").append(downloadContainer);
-                var downloadButton = $("a[data-extension=\'fbx\']").clone();
-                downloadButton[0].addEventListener("click", function () { downloadFBX.click(); });
-                downloadContainer.append(downloadButton);
-                downloadFBX.style.visibility = "hidden";
+                downloadContainer.append(downloadFBX);
             }
 
             // Automatic download to High Fidelity.
-            var downloadTimer;
-            function startAutoDownload(event) {
-                if (!canWriteAssets) {
-                    console.log("Clara.io FBX file download cancelled because no permissions to write to Asset Server");
-                    EventBridge.emitWebEvent(WARN_USER_NO_PERMISSIONS);
-                    event.stopPropagation();
+            function startAutoDownload() {
+
+                // One file request at a time.
+                if (isDownloading) {
+                    console.log("WARNIKNG: Clara.io FBX: Prepare only one download at a time");
+                    return;
                 }
 
-                window.scrollTo(0, 0);  // Scroll to top ready for history.back().
-                if (!downloadTimer) {
-                    downloadTimer = setInterval(autoDownload, 1000);
+                // User must be able to write to Asset Server.
+                if (!canWriteAssets) {
+                    console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
+                    EventBridge.emitWebEvent(WARN_USER_NO_PERMISSIONS);
+                    event.stopPropagation();
+                    return;
                 }
-            }
-            function autoDownload() {
-                if ($("div.download-body").length !== 0) {
-                    var downloadButton = $("div.download-body a.download-file");
-                    if (downloadButton.length > 0) {
-                        clearInterval(downloadTimer);
-                        downloadTimer = null;
-                        var href = downloadButton[0].href;
-                        EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + href);
-                        console.log("Clara.io FBX file download initiated for " + href);
-                        $("a.btn.cancel").click();
-                        history.back();  // Remove history item created by clicking "download".
-                    };
-                } else if ($("div#view-signup_login_dialog").length === 0) {
-                    // Don't stop checking for button if user is asked to log in.
-                    clearInterval(downloadTimer);
-                    downloadTimer = null;
+
+                // User must be logged in.
+                var loginButton = $("#topnav a[href='/signup']");
+                if (loginButton.length > 0) {
+                    loginButton[0].click();
+                    return;
                 }
+
+                // Obtain zip file to download for requested asset.
+                // Reference: https://clara.io/learn/sdk/api/export
+
+                //var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
+                // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to 
+                // be successful in generating zip files.
+                var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?fbxUnit=Meter&fbxVersion=5&fbxEmbedTextures=true&imageFormat=WebGL";
+
+                var uuid = location.href.match(/\/view\/([a-z0-9\-]*)/)[1];
+                var url = XMLHTTPREQUEST_URL.replace("{uuid}", uuid);
+
+                xmlHttpRequest = new XMLHttpRequest();
+                var responseTextIndex = 0;
+                var zipFileURL = "";
+
+                xmlHttpRequest.onreadystatechange = function () {
+                    // Messages are appended to responseText; process the new ones.
+                    var message = this.responseText.slice(responseTextIndex);
+                    var statusMessage = "";
+
+                    if (isDownloading) {  // Ignore messages in flight after finished/cancelled.
+                        var lines = message.split(/[\n\r]+/);
+
+                        for (var i = 0, length = lines.length; i < length; i++) {
+                            if (lines[i].slice(0, 5) === "data:") {
+                                // Parse line.
+                                var data;
+                                try {
+                                    data = JSON.parse(lines[i].slice(5));
+                                }
+                                catch (e) {
+                                    data = {};
+                                }
+
+                                // Extract status message.
+                                if (data.hasOwnProperty("message") && data.message !== null) {
+                                    statusMessage = data.message;
+                                    console.log("Clara.io FBX: " + statusMessage);
+                                }
+
+                                // Extract zip file URL.
+                                if (data.hasOwnProperty("files") && data.files.length > 0) {
+                                    zipFileURL = data.files[0].url;
+                                    if (zipFileURL.slice(-4) !== ".zip") {
+                                        console.log(JSON.stringify(data));  // Data for debugging.
+                                    }
+                                }
+                            }
+                        }
+
+                        if (statusMessage !== "") {
+                            // Update the UI with the most recent status message.
+                            EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
+                        }
+                    }
+
+                    responseTextIndex = this.responseText.length;
+                };
+
+                // Note: onprogress doesn't have computable total length so can't use it to determine % complete.
+
+                xmlHttpRequest.onload = function () {
+                    var statusMessage = "";
+
+                    if (!isDownloading) {
+                        return;
+                    }
+
+                    var HTTP_OK = 200;
+                    if (this.status !== HTTP_OK) {
+                        statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
+                        console.log("ERROR: Clara.io FBX: " + statusMessage);
+                        EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
+                        return;
+                    }
+
+                    if (zipFileURL.slice(-4) !== ".zip") {
+                        statusMessage = "Error creating zip file for download.";
+                        console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
+                        EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
+                        return;
+                    }
+
+                    EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + zipFileURL);
+                    console.log("Clara.io FBX: File download initiated for " + zipFileURL);
+
+                    xmlHttpRequest = null;
+                    isDownloading = false;
+                }
+
+                isDownloading = true;
+
+                console.log("Clara.io FBX: Request zip file for " + uuid);
+                EventBridge.emitWebEvent(CLARA_IO_STATUS + " Initiating download");
+
+                xmlHttpRequest.open("POST", url, true);
+                xmlHttpRequest.setRequestHeader("Accept", "text/event-stream");
+                xmlHttpRequest.send();
             }
         }
     }
@@ -210,11 +301,26 @@
         EventBridge.emitWebEvent(QUERY_CAN_WRITE_ASSETS);
     }
 
+    function cancelClaraDownload() {
+        isDownloading = false;
+
+        if (xmlHttpRequest) {
+            xmlHttpRequest.abort();
+            xmlHttpRequest = null;
+            console.log("Clara.io FBX: File download cancelled");
+            EventBridge.emitWebEvent(CLARA_IO_CANCELLED_DOWNLOAD);
+        }
+    }
+
     function onLoad() {
 
         EventBridge.scriptEventReceived.connect(function (message) {
             if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
                 canWriteAssets = message.slice(-4) === "true";
+            }
+
+            if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
+                cancelClaraDownload();
             }
         });
 

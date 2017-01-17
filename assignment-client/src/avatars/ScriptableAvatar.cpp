@@ -89,7 +89,7 @@ void ScriptableAvatar::update(float deltatime) {
                 int mapping = _bind->getGeometry().getJointIndex(name);
                 if (mapping != -1 && !_maskedJoints.contains(name)) {
                     // Eventually, this should probably deal with post rotations and translations, too.
-                    poses[mapping].rot = modelJoints[mapping].preRotation *
+                    poses[mapping].rot() = modelJoints[mapping].preRotation *
                         safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);;
                  }
             }
@@ -97,8 +97,8 @@ void ScriptableAvatar::update(float deltatime) {
             for (int i = 0; i < nJoints; i++) {
                 JointData& data = _jointData[i];
                 AnimPose& pose = poses[i];
-                if (data.rotation != pose.rot) {
-                    data.rotation = pose.rot;
+                if (data.rotation != pose.rot()) {
+                    data.rotation = pose.rot();
                     data.rotationSet = true;
                 }
             }
