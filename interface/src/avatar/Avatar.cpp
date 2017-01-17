@@ -928,7 +928,6 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             return controllerRightHandTransform.getRotation();
         }
         case CAMERA_MATRIX_INDEX: {
-            // XXX
             glm::quat rotation;
             _skeletonModel->getAbsoluteJointRotationInRigFrame(getJointIndex("head"), rotation);
             return rotation;
@@ -960,7 +959,6 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
             return controllerRightHandTransform.getTranslation();
         }
         case CAMERA_MATRIX_INDEX: {
-            // XXX
             glm::vec3 translation;
             _skeletonModel->getAbsoluteJointTranslationInRigFrame(getJointIndex("head"), translation);
             return translation;
