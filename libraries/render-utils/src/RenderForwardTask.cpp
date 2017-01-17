@@ -36,13 +36,15 @@ RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initForwardPipelines(*shapePlumber);
 
-    // Extract opaques / transparents / lights / overlays
-    const auto opaques = items[0];
-    const auto transparents = items[1];
-    const auto lights = items[2];
-    const auto overlayOpaques = items[3];
-    const auto overlayTransparents = items[4];
-    const auto background = items[5];
+    // Extract opaques / transparents / lights / metas / overlays / background
+    const auto opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+    const auto transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+    const auto lights = items[RenderFetchCullSortTask::LIGHT];
+    const auto metas = items[RenderFetchCullSortTask::META];
+    const auto overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+    const auto overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto background = items[RenderFetchCullSortTask::BACKGROUND];
+    const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
