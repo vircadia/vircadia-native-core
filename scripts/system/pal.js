@@ -593,6 +593,7 @@ function off() {
         Controller.mousePressEvent.disconnect(handleMouseEvent);
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         isWired = false;
+<<<<<<< HEAD
     }
     triggerMapping.disable(); // It's ok if we disable twice.
     triggerPressMapping.disable(); // see above
@@ -617,6 +618,32 @@ function onClicked() {
     } else {
         off();
     }
+=======
+    }
+    triggerMapping.disable(); // It's ok if we disable twice.
+    triggerPressMapping.disable(); // see above
+    removeOverlays();
+    Users.requestsDomainListData = false;
+    if (audioInterval) {
+        Script.clearInterval(audioInterval);
+    }
+}
+function onClicked() {
+    if (!pal.visible) {
+        Users.requestsDomainListData = true;
+        populateUserList();
+        pal.raise();
+        isWired = true;
+        Script.update.connect(updateOverlays);
+        Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+        triggerMapping.enable();
+        triggerPressMapping.enable();
+        createAudioInterval();
+    } else {
+        off();
+    }
+>>>>>>> b02a5f85ec6733b8c6cf5e3f19ce34ed8a375300
     pal.setVisible(!pal.visible);
 }
 
