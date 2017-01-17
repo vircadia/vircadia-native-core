@@ -979,7 +979,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         if (offscreenUi->navigationFocused()) {
-            qDebug() << "NavigationFocused";
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
             static int lastKey = Qt::Key_unknown;
@@ -1025,7 +1024,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
             auto window = tabletScriptingInterface->getTabletWindow();
             if (navAxis && window) {
-                qDebug() << "Sending input to qml";
                 if (lastKey != Qt::Key_unknown) {
                     QKeyEvent event(QEvent::KeyRelease, lastKey, Qt::NoModifier);
                     sendEvent(window, &event);

@@ -91,7 +91,6 @@ Item {
                 breadcrumbText.text = "Menu";
                 topMenu = null;
                 offscreenFlags.navigationFocused = false;
-                //menuRoot.enabled = false;
             }
         }
 
@@ -100,7 +99,6 @@ Item {
             topMenu = newMenu;
             topMenu.focus = true;
             offscreenFlags.navigationFocused = true;
-            console.log(offscreenWindow.activeFocusItem);
         }
 
         function clearMenus() {
@@ -160,7 +158,6 @@ Item {
 
     function popup(parent, items) {
         d.clearMenus();
-        //menuRoot.enabled = true;
         d.buildMenu(items, point);
     }
 

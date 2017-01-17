@@ -87,6 +87,10 @@ FocusScope {
         }
     }
 
+    function pop() {
+        menuPopperUpper.closeLastMenu();
+    }
+
     function setRootMenu(menu) {
         tabletMenu.rootMenu = menu
         buildMenu()

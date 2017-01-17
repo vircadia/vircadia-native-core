@@ -215,8 +215,9 @@ void TabletProxy::addButtonsToHomeScreen() {
         addButtonProxyToQmlTablet(tablet, buttonProxy.data());
     }
      auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-     QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
      QMetaObject::invokeMethod(_qmlTabletRoot, "forceFocus");
+     qDebug() << "----> INVOKEMETHOD";
+     QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
 }
 
 QObject* TabletProxy::getTabletSurface() {

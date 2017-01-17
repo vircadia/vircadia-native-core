@@ -3,16 +3,14 @@ import QtGraphicalEffects 1.0
 
 FocusScope {
     id: tablet
-    objectName: "tablet"
     focus: true
-    enabled: true
+    objectName: "tablet"
     property double micLevel: 0.8
-    property int index: 0
-    property int count: flowMain.children.length
+    property int rowIndex: 0
+    property int columnIndex: 0
+    property int count: (flowMain.children.length - 1)
     width: parent.width
     height: parent.height
-
-    //property alias currentItem: flowMain.currentItem
 
     // called by C++ code to keep audio bar updated
     function setMicLevel(newMicLevel) {
@@ -182,7 +180,6 @@ FocusScope {
             clip: true
             Flow {
                 id: flowMain
-                focus: true
                 spacing: 16
                 anchors.right: parent.right
                 anchors.rightMargin: 30
@@ -192,50 +189,6 @@ FocusScope {
                 anchors.bottomMargin: 30
                 anchors.top: parent.top
                 anchors.topMargin: 30
-
-                function setCurrentItemState(state) {
-                    flowMain.children[index].state = state;
-                }
-                function nextItem() {
-                    setCurrentItemState("base state");
-                    index = (index + count + 1) % count;
-                    setCurrentItemState("hover state");
-                    console.log("next item at index: " + index);
-                }
-                
-                function previousItem() {
-                    setCurrentItemState("base state");
-                    index = (index + count - 1 ) % count;
-                    setCurrentItemState("hover state");
-                    console.log("previous item at index: " + index);
-                }
-                
-                function upItem() {
-                    setCurrentItemState("base state");
-                    index = (index + count - 3) % count;
-                    setCurrentItemState("hover state");
-                    console.log("up item at index: " + index);
-                }
-                
-                function downItem() {
-                    setCurrentItemState("base state");
-                    index = (index + count + 3) % count;
-                    setCurrentItemState("hover state");
-                    console.log("down item at index :" + index);
-                }
-
-                function selectItem() {
-                    flowMain.children[index].clicked();
-                    if(tabletRoot) {
-                        tabletRoot.playButtonClickSound();
-                    }
-                }
-
-                Keys.onRightPressed: nextItem();
-                Keys.onLeftPressed: previousItem();
-                Keys.onDownPressed: downItem();
-                Keys.onUpPressed: upItem();
-                Keys.onReturnPressed: selectItem();
             }
         }
     }
@@ -260,5 +213,68 @@ FocusScope {
             }
         }
     ]
+
+    function setCurrentItemState(state) {
+        var index = rowIndex + columnIndex;
+
+        if (index >= 0 && index <= count ) {
+            flowMain.children[index].state = state;
+        }
+    }
+    function nextItem() {
+        setCurrentItemState("base state");
+
+        if((rowIndex + columnIndex) != count) {
+            columnIndex = (columnIndex + 3 + 1) % 3
+        };
+        setCurrentItemState("hover state");
+    }
+    
+    function previousItem() {
+        setCurrentItemState("base state");
+        var prevIndex = (columnIndex + 3 - 1) % 3;
+        if((rowIndex + prevIndex) <= count){
+            columnIndex = prevIndex;
+        }
+        setCurrentItemState("hover state");
+    }
+    
+    function upItem() {
+        setCurrentItemState("base state");
+        rowIndex = rowIndex - 3;
+        if (rowIndex < 0 ) {
+            rowIndex =  (count - (count % 3));
+            var index = rowIndex + columnIndex;
+            if(index  > count) {
+                rowIndex = rowIndex - 3;
+                console.log("index: " + (rowIndex +columnIndex));
+            }
+        }
+        console.log("row index: " + rowIndex);
+        setCurrentItemState("hover state");
+    }
+    
+    function downItem() {
+        setCurrentItemState("base state");
+        rowIndex = rowIndex + 3;
+        var index = rowIndex + columnIndex;
+        if (index  > count ) {
+            rowIndex = 0;
+        }
+        setCurrentItemState("hover state");
+    }
+
+    function selectItem() {
+        flowMain.children[rowIndex + columnIndex].clicked();
+        if (tabletRoot) {
+            tabletRoot.playButtonClickSound();
+        }
+    }
+
+    Keys.onRightPressed: nextItem();
+    Keys.onLeftPressed: previousItem();
+    Keys.onDownPressed: downItem();
+    Keys.onUpPressed: upItem();
+    Keys.onReturnPressed: selectItem();
 }
 

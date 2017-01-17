@@ -1,7 +1,7 @@
 import QtQuick 2.0
 import Hifi 1.0
 
-Item {
+FocusScope {
     id: tabletRoot
     objectName: "tabletRoot"
     property var eventBridge;
@@ -26,7 +26,11 @@ Item {
     }
 
     function forceFocus() {
+        console.log(loader.item.objectName);
+        offscreenWindow.requestActivate();
         loader.item.forceActiveFocus();
+        console.log("----------> adding focus");
+        console.log("------>Current foucs itrm: " + offscreenWindow.activeFocusItem);
     }
 
     Loader {

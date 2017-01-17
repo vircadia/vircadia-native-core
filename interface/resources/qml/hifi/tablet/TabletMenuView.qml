@@ -13,12 +13,12 @@ import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
 import "../../styles-uit"
-
+import "."
 FocusScope {
     id: root
     implicitHeight: background.height
     implicitWidth: background.width
-
+    
     property alias currentItem: listView.currentItem
     property alias model: listView.model
     property bool isSubMenu: false
@@ -111,7 +111,7 @@ FocusScope {
         function previousItem() { currentIndex = (currentIndex + count - 1) % count; }
         function nextItem() { currentIndex = (currentIndex + count + 1) % count; }
         function selectCurrentItem() { if (currentIndex != -1) root.selected(currentItem.source); }
-        function previousPage() {console.log("going to previous page"); }
+        function previousPage() { root.parent.pop();  }
 
         Keys.onUpPressed: previousItem();
         Keys.onDownPressed: nextItem();
