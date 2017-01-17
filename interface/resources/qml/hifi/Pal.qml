@@ -221,6 +221,7 @@ Rectangle {
                 visible: !isCheckBox && !isButton
                 uuid: model && model.sessionId
                 selected: styleData.selected
+                isAdmin: model && model.isAdmin
                 // Size
                 width: nameCardWidth
                 height: parent.height
@@ -465,6 +466,7 @@ Rectangle {
             var userId = message.params[0];
             // The text that goes in the userName field is the second parameter in the message.
             var userName = message.params[1];
+            var isAdmin = message.params[2];
             // If the userId is empty, we're updating "myData".
             if (!userId) {
                 myData.userName = userName;
@@ -476,6 +478,9 @@ Rectangle {
                     // Set the userName appropriately
                     userModel.setProperty(userIndex, "userName", userName);
                     userModelData[userIndex].userName = userName; // Defensive programming
+                    // Set the admin status appropriately
+                    userModel.setProperty(userIndex, "isAdmin", isAdmin);
+                    userModelData[userIndex].isAdmin = isAdmin; // Defensive programming
                 } else {
                     console.log("updateUsername() called with unknown UUID: ", userId);
                 }

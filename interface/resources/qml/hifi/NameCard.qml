@@ -33,6 +33,7 @@ Item {
     property real audioLevel: 0.0
     property bool isMyCard: false
     property bool selected: false
+    property bool isAdmin: false
 
     /* User image commented out for now - will probably be re-introduced later.
     Column {
@@ -139,32 +140,84 @@ Item {
             }
         }
         // Spacer for DisplayName for my card
-        Rectangle {
+        Item {
             id: myDisplayNameSpacer
-            width: myDisplayName.width
+            width: 1
+            height: 4
             // Anchors
             anchors.top: myDisplayName.bottom
-            height: 5
-            visible: isMyCard
-            opacity: 0
         }
-        // DisplayName Text for others' cards
-        FiraSansSemiBold {
-            id: displayNameText
-            // Properties
-            text: thisNameCard.displayName
-            elide: Text.ElideRight
+        // DisplayName container for others' cards
+        Item {
+            id: displayNameContainer
             visible: !isMyCard
             // Size
             width: parent.width
+            height: displayNameTextPixelSize + 4
             // Anchors
             anchors.top: parent.top
-            // Text Size
-            size: displayNameTextPixelSize
-            // Text Positioning
-            verticalAlignment: Text.AlignVCenter
-            // Style
-            color: hifi.colors.darkGray
+            anchors.left: parent.left
+            // DisplayName Text for others' cards
+            FiraSansSemiBold {
+                id: displayNameText
+                // Properties
+                text: thisNameCard.displayName
+                elide: Text.ElideRight
+                // Anchors
+                anchors.top: parent.top
+                anchors.left: parent.left
+                // Text Size
+                size: displayNameTextPixelSize
+                // Text Positioning
+                verticalAlignment: Text.AlignVCenter
+                // Style
+                color: hifi.colors.darkGray
+            }
+            // "ADMIN" label for other users' cards
+            RalewaySemiBold {
+                id: adminLabelText
+                text: "ADMIN"
+                // Text size
+                size: displayNameText.size - 4
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: displayNameText.right
+                anchors.leftMargin: 8
+                // Style
+                font.capitalization: Font.AllUppercase
+                color: hifi.colors.redHighlight
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignTop
+            }
+            // This Rectangle refers to the [?] popup button next to "ADMIN"
+            Item {
+                // Size
+                width: 20
+                height: displayNameText.height
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: adminLabelText.right
+                RalewayRegular {
+                    id: adminLabelQuestionMark
+                    text: "[?]"
+                    size: adminLabelText.size
+                    font.capitalization: Font.AllUppercase
+                    color: hifi.colors.redHighlight
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    anchors.fill: parent
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    hoverEnabled: true
+                    onClicked: letterbox('Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
+                                            "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page.)")
+                    onEntered: adminLabelQuestionMark.color = "#94132e"
+                    onExited: adminLabelQuestionMark.color = hifi.colors.redHighlight
+                }
+            }
         }
 
         // UserName Text
@@ -177,7 +230,7 @@ Item {
             // Size
             width: parent.width
             // Anchors
-            anchors.top: isMyCard ? myDisplayNameSpacer.bottom : displayNameText.bottom
+            anchors.top: isMyCard ? myDisplayNameSpacer.bottom : displayNameContainer.bottom
             // Text Size
             size: thisNameCard.usernameTextHeight
             // Text Positioning
@@ -188,7 +241,7 @@ Item {
 
         // Spacer
         Item {
-            id: spacer
+            id: userNameSpacer
             height: 4
             width: parent.width
             // Anchors
@@ -202,7 +255,7 @@ Item {
             width: isMyCard ? myDisplayName.width - 20 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
             height: 8
             // Anchors
-            anchors.top: spacer.bottom
+            anchors.top: userNameSpacer.bottom
             // Style
             radius: 4
             color: "#c5c5c5"

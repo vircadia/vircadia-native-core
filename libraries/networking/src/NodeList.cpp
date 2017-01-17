@@ -1068,10 +1068,12 @@ void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> messag
     QString username = message->readString();
     // read the machine fingerprint from the packet
     QString machineFingerprintString = (QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID))).toString();
+    bool isAdmin;
+    message->readPrimitive(&isAdmin);
 
     qCDebug(networking) << "Got username" << username << "and machine fingerprint" << machineFingerprintString << "for node" << nodeUUIDString;
 
-    emit usernameFromIDReply(nodeUUIDString, username, machineFingerprintString);
+    emit usernameFromIDReply(nodeUUIDString, username, machineFingerprintString, isAdmin);
 }
 
 void NodeList::setRequestsDomainListData(bool isRequesting) {
