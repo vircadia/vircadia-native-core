@@ -580,7 +580,10 @@ function onClicked() {
     }
     pal.setVisible(!pal.visible);
 }
-
+function avatarDisconnected(nodeID) {
+    // remove from the pal list
+    pal.sendToQml({method: 'avatarDisconnected', params: [nodeID]});
+}
 //
 // Button state.
 //
@@ -593,6 +596,8 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
+Users.avatarDisconnected.connect(avatarDisconnected);
+
 function clearLocalQMLDataAndClosePAL() {
     pal.sendToQml({ method: 'clearLocalQMLData' });
     if (pal.visible) {
@@ -615,6 +620,7 @@ Script.scriptEnding.connect(function () {
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.unsubscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
+    Users.avatarDisconnected.disconnect(avatarDisconnected);
     off();
 });
 

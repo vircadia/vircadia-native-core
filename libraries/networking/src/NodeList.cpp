@@ -847,6 +847,16 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     }
 }
 
+void NodeList::removeFromIgnoreMuteSets(const QUuid& nodeID) {
+    // don't remove yourself, or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        QWriteLocker ignoredSetLocker{ &_ignoredSetLock };
+        QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock };
+        _ignoredNodeIDs.unsafe_erase(nodeID);
+        _personalMutedNodeIDs.unsafe_erase(nodeID);
+    }
+}
+
 bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
     QReadLocker ignoredSetLocker{ &_ignoredSetLock };
     return _ignoredNodeIDs.find(nodeID) != _ignoredNodeIDs.cend();
