@@ -15,10 +15,10 @@
 #include <QtCore/QObject>
 
 #include <EntityEditPacketSender.h>
+#include <EntityTreeHeadlessViewer.h>
 #include <plugins/CodecPlugin.h>
+#include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
-
-#include "MixedAudioStream.h"
 
 class EntityScriptServer : public ThreadedAssignment {
     Q_OBJECT
@@ -38,19 +38,29 @@ private slots:
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
-    void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
 
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
 
+    void resetEntitiesScriptEngine();
+    void clear();
+    void shutdown();
+    void addingEntity(const EntityItemID& entityID);
+    void deletingEntity(const EntityItemID& entityID);
+    void entitySciptChanging(const EntityItemID& entityID, const bool reload);
+    void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
+
+    bool _shuttingDown { false };
+
+    static int _entitiesScriptEngineCount;
+    QSharedPointer<ScriptEngine> _entitiesScriptEngine;
     EntityEditPacketSender _entityEditSender;
+    EntityTreeHeadlessViewer _entityViewer;
 
     QString _selectedCodecName;
     CodecPluginPointer _codec;
     Encoder* _encoder { nullptr };
-    MixedAudioStream _receivedAudioStream;
-    float _lastReceivedAudioLoudness;
 };
 
 #endif // hifi_EntityScriptServer_h

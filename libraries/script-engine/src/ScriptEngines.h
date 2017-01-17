@@ -90,7 +90,6 @@ public slots:
 protected slots:
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
 
-
 protected:
     friend class ScriptEngine;
 
