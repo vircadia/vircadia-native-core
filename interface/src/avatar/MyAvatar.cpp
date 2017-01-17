@@ -2387,6 +2387,13 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
             return glmExtractRotation(result);
         }
+        case CAMERA_MATRIX_INDEX: {
+            bool success;
+            Transform avatarTransform;
+            Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+            glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+            return glmExtractRotation(invAvatarMat * qApp->getCamera()->getTransform());
+        }
         default: {
             return Avatar::getAbsoluteJointRotationInObjectFrame(index);
         }
@@ -2412,6 +2419,13 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
             glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
             glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
             return extractTranslation(result);
+        }
+        case CAMERA_MATRIX_INDEX: {
+            bool success;
+            Transform avatarTransform;
+            Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+            glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+            return extractTranslation(invAvatarMat * qApp->getCamera()->getTransform());
         }
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
