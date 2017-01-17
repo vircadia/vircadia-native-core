@@ -746,6 +746,7 @@ function MyController(hand) {
     // entity.  This can also happen when a single avatar passes something from hand to hand.
     this.previousParentID = {};
     this.previousParentJointIndex = {};
+    this.previouslyUnhooked = {};
 
     this.shouldScale = false;
 
@@ -2580,8 +2581,11 @@ function MyController(hand) {
 
         if (!this.shouldScale) {
             //  If both secondary triggers squeezed, and the non-holding hand is empty, start scaling
-            if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed() && this.getOtherHandController().state === STATE_OFF) {
-                this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+            if (this.secondarySqueezed() &&
+                this.getOtherHandController().secondarySqueezed() &&
+                this.getOtherHandController().state === STATE_OFF) {
+                this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(),
+                                                                      this.getOtherHandController().getHandPosition()));
                 this.scalingStartDimensions = props.dimensions;
                 this.shouldScale = true;
             }
@@ -2589,7 +2593,8 @@ function MyController(hand) {
             this.shouldScale = false;
         }
         if (this.shouldScale) {
-            var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+            var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(),
+                                                                   this.getOtherHandController().getHandPosition()));
             var currentRescale = scalingCurrentDistance / this.scalingStartDistance;
             var newDimensions = Vec3.multiply(currentRescale, this.scalingStartDimensions);
             Entities.editEntity(this.grabbedEntity, { dimensions: newDimensions });
@@ -2604,7 +2609,8 @@ function MyController(hand) {
         if (!this.shouldScale) {
             //  If both secondary triggers squeezed, start scaling
             if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed()) {
-                this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+                this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(),
+                                                                      this.getOtherHandController().getHandPosition()));
                 this.scalingStartAvatarScale = MyAvatar.scale;
                 this.shouldScale = true;
             }
@@ -2612,7 +2618,8 @@ function MyController(hand) {
             this.shouldScale = false;
         }
         if (this.shouldScale) {
-            var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(), this.getOtherHandController().getHandPosition()));
+            var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(),
+                                                                   this.getOtherHandController().getHandPosition()));
             var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;
             MyAvatar.scale = newAvatarScale;
         }
@@ -3021,10 +3028,23 @@ function MyController(hand) {
                 // works around some problems that happen when more than one hand or avatar is passing something around.
                 print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
                 if (_this.previousParentID[childID]) {
-                    Entities.editEntity(childID, {
-                        parentID: _this.previousParentID[childID],
-                        parentJointIndex: _this.previousParentJointIndex[childID]
-                    });
+                    var previousParentID = _this.previousParentID[childID];
+                    var previousParentJointIndex = _this.previousParentJointIndex[childID];
+
+                    // The main flaw with keeping track of previous parantage in individual scripts is:
+                    // (1) A grabs something (2) B takes it from A (3) A takes it from B (4) A releases it
+                    // now A and B will take turns passing it back to the other.  Detect this and stop the loop here...
+                    var UNHOOK_LOOP_DETECT_MS = 200;
+                    var now = Date.now();
+                    if (_this.previouslyUnhooked[childID]) {
+                        if (now - _this.previouslyUnhooked[childID] < UNHOOK_LOOP_DETECT_MS) {
+                            previousParentID = NULL_UUID;
+                            previousParentJointIndex = -1;
+                        }
+                    }
+                    _this.previouslyUnhooked[childID] = now;
+
+                    Entities.editEntity(childID, { parentID: previousParentID, parentJointIndex: previousParentJointIndex });
                 } else {
                     Entities.editEntity(childID, { parentID: NULL_UUID });
                 }
