@@ -359,8 +359,11 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const QVector<glm::mat4>& clusterMatrices) {
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform,
+        const QVector<glm::mat4>& clusterMatrices,
+        const QVector<glm::mat4>& cauterizedClusterMatrices) {
     _transform = transform;
+    _cauterizedTransform = transform;
 
     if (clusterMatrices.size() > 0) {
         _worldBound = AABox();
@@ -373,6 +376,11 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transf
         _worldBound.transform(transform);
         if (clusterMatrices.size() == 1) {
             _transform = _transform.worldTransform(Transform(clusterMatrices[0]));
+            if (cauterizedClusterMatrices.size() != 0) {
+                _cauterizedTransform = _cauterizedTransform.worldTransform(Transform(cauterizedClusterMatrices[0]));
+            } else {
+                _cauterizedTransform = _transform;
+            }
         }
     }
 }
@@ -527,9 +535,14 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
         } else {
             batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, state.clusterBuffer);
         }
+        batch.setModelTransform(_transform);
+    } else {
+        if (canCauterize && _model->getCauterizeBones()) {
+            batch.setModelTransform(_cauterizedTransform);
+        } else {
+            batch.setModelTransform(_transform);
+        }
     }
-
-    batch.setModelTransform(_transform);
 }
 
 void ModelMeshPartPayload::startFade() {

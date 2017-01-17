@@ -10,6 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <functional>
+
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
@@ -47,41 +49,17 @@
 
 
 using namespace render;
+using namespace std::placeholders;
 
-gpu::BufferView getDefaultMaterialBuffer() {
-    model::Material::Schema schema;
-    schema._albedo = vec3(1.0f);
-    schema._opacity = 1.0f;
-    schema._metallic = 0.1f;
-    schema._roughness = 0.9f;
-    return gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(model::Material::Schema), (const gpu::Byte*) &schema));
-}
+void initOverlay3DPipelines(ShapePlumber& plumber);
+void initDeferredPipelines(ShapePlumber& plumber);
+void initForwardPipelines(ShapePlumber& plumber);
 
-void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
-    // Set a default albedo map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-        DependencyManager::get<TextureCache>()->getWhiteTexture());
-    // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-        DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+void addPlumberPipeline(ShapePlumber& plumber,
+        const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel);
 
-    // Set a default material
-    if (pipeline.locations->materialBufferUnit >= 0) {
-        static const gpu::BufferView OPAQUE_SCHEMA_BUFFER = getDefaultMaterialBuffer();
-        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, OPAQUE_SCHEMA_BUFFER);
-    }
-}
-
-void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
-    batchSetter(pipeline, batch);
-    // Set the light
-    if (pipeline.locations->lightBufferUnit >= 0) {
-        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(batch,
-            pipeline.locations->lightBufferUnit,
-            pipeline.locations->lightAmbientBufferUnit,
-            pipeline.locations->lightAmbientMapUnit);
-    }
-}
+void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
+void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
 
 void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
@@ -130,50 +108,6 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
 }
 
 void initDeferredPipelines(render::ShapePlumber& plumber) {
-    using Key = render::ShapeKey;
-    using ShaderPointer = gpu::ShaderPointer;
-
-    auto addPipeline = [&plumber](const Key& key, const ShaderPointer& vertexShader, const ShaderPointer& pixelShader) {
-        // These keyvalues' pipelines will be added by this lamdba in addition to the key passed
-        assert(!key.isWireFrame());
-        assert(!key.isDepthBiased());
-        assert(key.isCullFace());
-
-        ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
-
-        for (int i = 0; i < 8; i++) {
-            bool isCulled = (i & 1);
-            bool isBiased = (i & 2);
-            bool isWireframed = (i & 4);
-
-            ShapeKey::Builder builder(key);
-            auto state = std::make_shared<gpu::State>();
-
-            // Depth test depends on transparency
-            state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
-            state->setBlendFunction(key.isTranslucent(),
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-            if (!isCulled) {
-                builder.withoutCullFace();
-            }
-            state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
-            if (isWireframed) {
-                builder.withWireframe();
-                state->setFillMode(gpu::State::FILL_LINE);
-            }
-            if (isBiased) {
-                builder.withDepthBias();
-                state->setDepthBias(1.0f);
-                state->setDepthBiasSlopeScale(1.0f);
-            }
-
-            plumber.addPipeline(builder.build(), program, state,
-                key.isTranslucent() ? &lightBatchSetter : &batchSetter);
-        }
-    };
-
     // Vertex shaders
     auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
     auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
@@ -198,6 +132,8 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto modelLightmapSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag));
     auto modelLightmapNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag));
 
+    using Key = render::ShapeKey;
+    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
     // TODO: Refactor this to use a filter
     // Opaques
     addPipeline(
@@ -281,5 +217,132 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     addPipeline(
         Key::Builder().withSkinned().withDepthOnly(),
         skinModelShadowVertex, modelShadowPixel);
+}
 
+void initForwardPipelines(render::ShapePlumber& plumber) {
+    // Vertex shaders
+    auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
+    auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
+    auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
+    auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
+
+    // Pixel shaders
+    auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
+    auto modelUnlitPixel = gpu::Shader::createPixel(std::string(model_unlit_frag));
+    auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
+    auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(model_specular_map_frag));
+    auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_frag));
+
+    using Key = render::ShapeKey;
+    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
+    // Opaques
+    addPipeline(
+        Key::Builder(),
+        modelVertex, modelPixel);
+    addPipeline(
+        Key::Builder().withUnlit(),
+        modelVertex, modelUnlitPixel);
+    addPipeline(
+        Key::Builder().withTangents(),
+        modelNormalMapVertex, modelNormalMapPixel);
+    addPipeline(
+        Key::Builder().withSpecular(),
+        modelVertex, modelSpecularMapPixel);
+    addPipeline(
+        Key::Builder().withTangents().withSpecular(),
+        modelNormalMapVertex, modelNormalSpecularMapPixel);
+    // Skinned
+    addPipeline(
+        Key::Builder().withSkinned(),
+        skinModelVertex, modelPixel);
+    addPipeline(
+        Key::Builder().withSkinned().withTangents(),
+        skinModelNormalMapVertex, modelNormalMapPixel);
+    addPipeline(
+        Key::Builder().withSkinned().withSpecular(),
+        skinModelVertex, modelSpecularMapPixel);
+    addPipeline(
+        Key::Builder().withSkinned().withTangents().withSpecular(),
+        skinModelNormalMapVertex, modelNormalSpecularMapPixel);
+}
+
+void addPlumberPipeline(ShapePlumber& plumber,
+        const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel) {
+    // These key-values' pipelines are added by this functor in addition to the key passed
+    assert(!key.isWireFrame());
+    assert(!key.isDepthBiased());
+    assert(key.isCullFace());
+
+    gpu::ShaderPointer program = gpu::Shader::createProgram(vertex, pixel);
+
+    for (int i = 0; i < 8; i++) {
+        bool isCulled = (i & 1);
+        bool isBiased = (i & 2);
+        bool isWireframed = (i & 4);
+
+        auto state = std::make_shared<gpu::State>();
+
+        // Depth test depends on transparency
+        state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
+        state->setBlendFunction(key.isTranslucent(),
+                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        ShapeKey::Builder builder(key);
+        if (!isCulled) {
+            builder.withoutCullFace();
+        }
+        state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
+        if (isWireframed) {
+            builder.withWireframe();
+            state->setFillMode(gpu::State::FILL_LINE);
+        }
+        if (isBiased) {
+            builder.withDepthBias();
+            state->setDepthBias(1.0f);
+            state->setDepthBiasSlopeScale(1.0f);
+        }
+
+        plumber.addPipeline(builder.build(), program, state,
+                key.isTranslucent() ? &lightBatchSetter : &batchSetter);
+    }
+}
+
+void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
+    // Set a default albedo map
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+        DependencyManager::get<TextureCache>()->getWhiteTexture());
+    // Set a default normal map
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+        DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+
+    // Set a default material
+    if (pipeline.locations->materialBufferUnit >= 0) {
+        // Create a default schema
+        static bool isMaterialSet = false;
+        static model::Material material;
+        if (!isMaterialSet) {
+            material.setAlbedo(vec3(1.0f));
+            material.setOpacity(1.0f);
+            material.setMetallic(0.1f);
+            material.setRoughness(0.9f);
+            isMaterialSet = true;
+        }
+
+        // Set a default schema
+        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, material.getSchemaBuffer());
+    }
+}
+
+void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
+    // Set the batch
+    batchSetter(pipeline, batch);
+
+    // Set the light
+    if (pipeline.locations->lightBufferUnit >= 0) {
+        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(batch,
+            pipeline.locations->lightBufferUnit,
+            pipeline.locations->lightAmbientBufferUnit,
+            pipeline.locations->lightAmbientMapUnit);
+    }
 }
