@@ -45,25 +45,25 @@
     var entity;
     var ambientSound;
     var center;
-    var soundPlaying;
+    var soundPlaying = false;
     var checkTimer = false;
     var _this;
 
     var COLOR_OFF = { red: 128, green: 128, blue: 128 };
     var COLOR_ON = { red: 255, green: 0, blue: 0 };
 
-    var WANT_DEBUG = true;
+    var WANT_DEBUG = false;
     function debugPrint(string) {
         if (WANT_DEBUG) {
             print("ambientSound | " + string);
         }
     }
 
-    var WANT_DEBUG_BROADCASTS = "ambientSound.js";
     var WANT_DEBUG_OVERLAY = false;
     var LINEHEIGHT = 0.1;
     // Optionally enable debug overlays using a Settings value
     WANT_DEBUG_OVERLAY = WANT_DEBUG_OVERLAY || /ambientSound/.test(Settings.getValue("WANT_DEBUG_OVERLAY"));
+    var WANT_DEBUG_BROADCASTS = WANT_DEBUG_OVERLAY && "ambientSound.js";
 
     this.updateSettings = function() {
         //  Check user data on the entity for any changes
@@ -95,10 +95,6 @@
                     return;
                 }
             }
-            /*if ("loop" in data && !(soundOptions.loop === data.loop)) {
-                soundOptions.loop = data.loop;
-                debugPrint("Read ambient loop state: " + soundOptions.loop);
-            }*/
         }
         if (!(soundURL === oldSoundURL) || (soundURL === "")) {
             if (soundURL) {
@@ -135,7 +131,6 @@
     }
 
     this.clickDownOnEntity = function(entityID, mouseEvent) {
-        print("click");
         if (mouseEvent.isPrimaryButton) {
             this._toggle("primary click");
         }
@@ -158,7 +153,7 @@
         var oldState = _debugState;
 
         if (WANT_DEBUG_BROADCASTS) {
-            Messages.sendMessage(WANT_DEBUG_BROADCASTS /*entity*/, JSON.stringify({ palName: MyAvatar.sessionDisplayName, soundName: soundName, hint: hint, scriptTimestamp: props.scriptTimestamp, oldState: oldState, newState: _debugState, age: props.age  }));
+            Messages.sendMessage(WANT_DEBUG_BROADCASTS, JSON.stringify({ palName: MyAvatar.sessionDisplayName, soundName: soundName, hint: hint, scriptTimestamp: props.scriptTimestamp, oldState: oldState, newState: _debugState, age: props.age  }));
         }
 
         this.cleanup();
@@ -218,7 +213,7 @@
             //  and might indicate a bug where an Entity can become unreachable without `unload` having been called..
             print("FIXME: ambientSound.js -- expected Entity unavailable!")
             if (WANT_DEBUG_BROADCASTS) {
-                Messages.sendMessage(WANT_DEBUG_BROADCASTS /*entity*/, JSON.stringify({ palName: MyAvatar.sessionDisplayName, soundName: soundName, hint: "FIXME: maybeUpdate", oldState: _debugState  }));
+                Messages.sendMessage(WANT_DEBUG_BROADCASTS, JSON.stringify({ palName: MyAvatar.sessionDisplayName, soundName: soundName, hint: "FIXME: maybeUpdate", oldState: _debugState  }));
             }
             return _this.cleanup();
         }
@@ -227,7 +222,7 @@
         var distance = Vec3.length(Vec3.subtract(MyAvatar.position, center));
         if (distance <= range) {
             var volume = (1.0 - distance / range) * maxVolume;
-            soundOptions.orientation = Quat.rotation;
+            soundOptions.orientation = rotation;
             soundOptions.volume = volume;
             if (!soundPlaying && ambientSound && ambientSound.downloaded) {
                 debugState("playing", "Starting ambient sound: " + soundName + " (duration: " + ambientSound.duration + ")");
@@ -249,7 +244,7 @@
         debugPrint("Ambient sound unload ");
         if (WANT_DEBUG_BROADCASTS) {
             var offset = ambientSound && (new Date - startTime)/1000 % ambientSound.duration;
-            Messages.sendMessage(WANT_DEBUG_BROADCASTS /*entity*/, JSON.stringify({ palName: MyAvatar.sessionDisplayName, soundName: soundName, hint: "unload", oldState: _debugState, offset: offset  }));
+            Messages.sendMessage(WANT_DEBUG_BROADCASTS, JSON.stringify({ palName: MyAvatar.sessionDisplayName, soundName: soundName, hint: "unload", oldState: _debugState, offset: offset  }));
         }
         if (WANT_DEBUG_OVERLAY) {
             _removeDebugOverlays();
@@ -290,8 +285,8 @@
         }
         updateDebugOverlay();
         if (WANT_DEBUG_BROADCASTS) {
-            // Broadcast state changes to an implicit entity channel, making  multi-user scenarios easier to verify from a single console
-            Messages.sendMessage(WANT_DEBUG_BROADCASTS /*entity*/, JSON.stringify({ palName: MyAvatar.sessionDisplayName, soundName: soundName, state: state }));
+            // Broadcast state changes to make multi-user scenarios easier to verify from a single console
+            Messages.sendMessage(WANT_DEBUG_BROADCASTS, JSON.stringify({ palName: MyAvatar.sessionDisplayName, soundName: soundName, state: state }));
         }
     }
 
