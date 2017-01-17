@@ -620,6 +620,7 @@ Script.scriptEnding.connect(function () {
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.unsubscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
+    Users.avatarDisconnected.disconnect(avatarDisconnected);
     off();
 });
 

@@ -263,7 +263,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     }
     if (removalReason == KillAvatarReason::AvatarDisconnected) {
         // remove from node sets, if present
-        DependencyManager::get<NodeList>()->maintainIgnoreMuteSets(avatar->getSessionUUID());
+        DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
     }
     _avatarFades.push_back(removedAvatar);

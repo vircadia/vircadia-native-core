@@ -847,8 +847,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     }
 }
 
-// removes this UUID from ignore and mute lists.  
-void NodeList::maintainIgnoreMuteSets(const QUuid& nodeID) {
+void NodeList::removeFromIgnoreMuteSets(const QUuid& nodeID) {
     // don't remove yourself, or nobody
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
         QWriteLocker ignoredSetLocker{ &_ignoredSetLock };

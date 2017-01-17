@@ -90,7 +90,7 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool isRequesting);
 
-    void maintainIgnoreMuteSets(const QUuid& nodeID);
+    void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
 public slots:
     void reset();
