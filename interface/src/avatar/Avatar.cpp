@@ -79,7 +79,7 @@ namespace render {
         if (avatarPtr->getSkeletonModel()) {
             auto metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
             subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
-            return metaSubItems.size();
+            return (uint32_t) metaSubItems.size();
         }
         return 0;
     }
