@@ -158,8 +158,6 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     auto engineName = QString("Entities %1").arg(++_entitiesScriptEngineCount);
     auto newEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, engineName));
 
-    newEngine->registerGlobalObject("EntityViewer", &_entityViewer);
-
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
 
