@@ -31,6 +31,11 @@
 #include "SendAssetTask.h"
 #include "UploadAssetTask.h"
 
+static const uint8_t MIN_CORES_FOR_MULTICORE = 4;
+static const uint8_t CPU_AFFINITY_COUNT_HIGH = 2;
+static const uint8_t CPU_AFFINITY_COUNT_LOW = 1;
+static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
+
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
 bool interfaceRunning() {
@@ -57,7 +62,7 @@ void updateConsumedCores() {
     wasInterfaceRunning = isInterfaceRunning;
     auto coreCount = std::thread::hardware_concurrency();
     if (isInterfaceRunning) {
-        coreCount = coreCount > 4 ? 2 : 1;
+        coreCount = coreCount > MIN_CORES_FOR_MULTICORE ? CPU_AFFINITY_COUNT_HIGH : CPU_AFFINITY_COUNT_LOW;
     } 
     qDebug() << "Setting max consumed cores to " << coreCount;
     setMaxCores(coreCount);
@@ -89,7 +94,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     connect(qApp, &QCoreApplication::aboutToQuit, [this, timerConnection] {
         disconnect(timerConnection);
     });
-    timer->setInterval(1000);
+    timer->setInterval(INTERFACE_RUNNING_CHECK_FREQUENCY_MS);
     timer->setTimerType(Qt::CoarseTimer);
     timer->start();
 #endif

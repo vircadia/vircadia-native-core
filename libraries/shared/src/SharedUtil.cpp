@@ -1040,7 +1040,7 @@ const std::vector<uint8_t>& getAvailableCores() {
         DWORD_PTR defaultProcessAffinity = 0, defaultSystemAffinity = 0;
         HANDLE process = GetCurrentProcess();
         GetProcessAffinityMask(process, &defaultProcessAffinity, &defaultSystemAffinity);
-        for (uint64_t i = 0; i < sizeof(DWORD_PTR) * 8; ++i) {
+        for (uint64_t i = 0; i < sizeof(DWORD_PTR) * BITS_IN_BYTE; ++i) {
             DWORD_PTR coreMask = 1;
             coreMask <<= i;
             if (0 != (defaultSystemAffinity & coreMask)) {
