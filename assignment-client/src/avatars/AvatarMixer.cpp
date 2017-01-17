@@ -280,12 +280,14 @@ void AvatarMixer::broadcastAvatarData() {
                 QPair<int, int>& soFar = _sessionDisplayNames[baseName]; // Inserts and answers 0, 0 if not already present, which is what we want.
                 int& highWater = soFar.first;
                 nodeData->setBaseDisplayName(baseName);
-                avatar.setSessionDisplayName((highWater > 0) ? baseName + "_" + QString::number(highWater) : baseName);
+                QString sessionDisplayName = (highWater > 0) ? baseName + "_" + QString::number(highWater) : baseName;
+                avatar.setSessionDisplayName(sessionDisplayName);
                 highWater++;
                 soFar.second++; // refcount
                 nodeData->flagIdentityChange();
                 nodeData->setAvatarSessionDisplayNameMustChange(false);
                 sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name. Others will find out below.
+                qDebug() << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
             }
 
             // this is an AGENT we have received head data from
