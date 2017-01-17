@@ -64,6 +64,10 @@ public slots:
     int getMaxPacketsPerSecond() const { return _maxPacketsPerSecond; }
 
     unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }
+    
+    // octree query adjustments
+    void setQueryUsesFrustum(bool queryUsesFrustum) { _octreeQuery.setUsesFrustum(queryUsesFrustum); }
+    void setQueryJSONParameters(QJsonObject queryJSONParameters) { _octreeQuery.setJSONParameters(queryJSONParameters); }
 
 private:
     JurisdictionListener* _jurisdictionListener = nullptr;

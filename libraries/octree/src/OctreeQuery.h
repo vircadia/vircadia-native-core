@@ -42,6 +42,8 @@ class OctreeQuery : public NodeData {
 public:
     OctreeQuery();
     virtual ~OctreeQuery() {}
+    
+    static const QString NON_DEFAULT_FILTER;
 
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(ReceivedMessage& message) override;
