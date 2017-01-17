@@ -5297,15 +5297,17 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
         // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
         // the local entities.
+        bool result = true;
         foreach (EntityItemPointer entity, entities) {
             if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
                 static QString repeatedMessage =
                     LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
                 qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
-                return false;
+                // don't break here because we want all the relevant entities to start their downloads
+                result = false;
             }
         }
-        return true;
+        return result;
     }
     return false;
 }
