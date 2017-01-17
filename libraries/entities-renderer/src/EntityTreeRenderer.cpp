@@ -104,13 +104,13 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
     _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, entitiesScriptEngineDeleter);
 
-    auto makeSlotForSignal = [&](QString name) {
+    auto makeSlotForSignal = [&](QString name) -> std::function<void(const EntityItemID&, const PointerEvent&)> {
         return [newEngine, name](const EntityItemID& entityItemID, const PointerEvent& event) {
             newEngine->callEntityScriptMethod(entityItemID, name, event);
         };
     };
 
-    auto makeSlotForSignalNoEvent = [&](QString name) {
+    auto makeSlotForSignalNoEvent = [&](QString name) -> std::function<void(const EntityItemID&)> {
         return [newEngine, name](const EntityItemID& entityItemID) {
             newEngine->callEntityScriptMethod(entityItemID, name);
         };
