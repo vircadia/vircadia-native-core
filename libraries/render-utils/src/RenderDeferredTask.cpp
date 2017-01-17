@@ -159,6 +159,11 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     
     // Debugging stages
     {
+
+
+        // Bounds do not draw on stencil buffer, so they must come last
+        addJob<DrawBounds>("DrawMetaBounds", metas);
+
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
