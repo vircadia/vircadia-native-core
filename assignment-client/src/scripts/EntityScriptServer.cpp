@@ -97,7 +97,7 @@ void EntityScriptServer::run() {
     auto tree = _entityViewer.getTree().get();
     connect(tree, &EntityTree::deletingEntity, this, &EntityScriptServer::deletingEntity, Qt::QueuedConnection);
     connect(tree, &EntityTree::addingEntity, this, &EntityScriptServer::addingEntity, Qt::QueuedConnection);
-    connect(tree, &EntityTree::entityScriptChanging, this, &EntityScriptServer::entitySciptChanging, Qt::QueuedConnection);
+    connect(tree, &EntityTree::entityScriptChanging, this, &EntityScriptServer::entityScriptChanging, Qt::QueuedConnection);
 }
 
 void EntityScriptServer::nodeActivated(SharedNodePointer activatedNode) {
@@ -222,7 +222,7 @@ void EntityScriptServer::deletingEntity(const EntityItemID& entityID) {
     }
 }
 
-void EntityScriptServer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
+void EntityScriptServer::entityScriptChanging(const EntityItemID& entityID, const bool reload) {
     if (_entityViewer.getTree() && !_shuttingDown) {
         _entitiesScriptEngine->unloadEntityScript(entityID);
         checkAndCallPreload(entityID, reload);

@@ -48,7 +48,7 @@ private:
     void shutdown();
     void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
-    void entitySciptChanging(const EntityItemID& entityID, const bool reload);
+    void entityScriptChanging(const EntityItemID& entityID, const bool reload);
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
 
     bool _shuttingDown { false };

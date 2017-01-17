@@ -196,7 +196,7 @@ void EntityTreeRenderer::init() {
     connect(entityTree.get(), &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
     connect(entityTree.get(), &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
     connect(entityTree.get(), &EntityTree::entityScriptChanging,
-            this, &EntityTreeRenderer::entitySciptChanging, Qt::QueuedConnection);
+            this, &EntityTreeRenderer::entityScriptChanging, Qt::QueuedConnection);
 }
 
 void EntityTreeRenderer::shutdown() {
@@ -923,7 +923,7 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 }
 
 
-void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
+void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         _entitiesScriptEngine->unloadEntityScript(entityID);
         checkAndCallPreload(entityID, reload);
