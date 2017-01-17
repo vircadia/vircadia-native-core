@@ -12,6 +12,8 @@
 
 #include "AssetServer.h"
 
+#include <thread>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
@@ -21,6 +23,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QString>
 
+#include <SharedUtil.h>
 #include <ServerPathUtils.h>
 
 #include "NetworkLogging.h"
@@ -29,6 +32,37 @@
 #include "UploadAssetTask.h"
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
+
+bool interfaceRunning() {
+    bool result = false;
+
+#ifdef Q_OS_WIN
+    QSharedMemory sharedMemory { getInterfaceSharedMemoryName() };
+    result = sharedMemory.attach(QSharedMemory::ReadOnly);
+    if (result) {
+        sharedMemory.detach();
+    }
+#endif
+    return result;
+}
+
+void updateConsumedCores() {
+    static bool wasInterfaceRunning = false;
+    bool isInterfaceRunning = interfaceRunning();
+    // If state is unchanged, return early
+    if (isInterfaceRunning == wasInterfaceRunning) {
+        return;
+    }
+
+    wasInterfaceRunning = isInterfaceRunning;
+    auto coreCount = std::thread::hardware_concurrency();
+    if (isInterfaceRunning) {
+        coreCount = coreCount > 4 ? 2 : 1;
+    } 
+    qDebug() << "Setting max consumed cores to " << coreCount;
+    setMaxCores(coreCount);
+}
+
 
 AssetServer::AssetServer(ReceivedMessage& message) :
     ThreadedAssignment(message),
@@ -45,6 +79,20 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
     packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
     packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
+    
+#ifdef Q_OS_WIN
+    updateConsumedCores();
+    QTimer* timer = new QTimer(this);
+    auto timerConnection = connect(timer, &QTimer::timeout, [] {
+        updateConsumedCores();
+    });
+    connect(qApp, &QCoreApplication::aboutToQuit, [this, timerConnection] {
+        disconnect(timerConnection);
+    });
+    timer->setInterval(1000);
+    timer->setTimerType(Qt::CoarseTimer);
+    timer->start();
+#endif
 }
 
 void AssetServer::run() {
