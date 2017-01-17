@@ -670,6 +670,26 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     return result;
 }
 
+bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
+    // Send packet to entity script server
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer entityScriptServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
+    if (entityScriptServer) {
+        auto id = entityID.toByteArray();
+        auto payloadSize = id.size();
+        auto packet = NLPacket::create(PacketType::ReloadEntityServerScript, payloadSize, true);
+        
+        packet->write(id);
+
+        if (nodeList->sendPacket(std::move(packet), *entityScriptServer) != -1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void EntityScriptingInterface::setLightsArePickable(bool value) {
     LightEntityItem::setLightsArePickable(value);
 }

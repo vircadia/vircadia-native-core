@@ -254,11 +254,14 @@ public:
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
 
-    const QString& getScript() const { return _script; }
+    const QString getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 
     quint64 getScriptTimestamp() const { return _scriptTimestamp; }
     void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
+
+    const QString getServerScripts() const { return _serverScripts; }
+    void setServerScripts(const QString& serverScripts) { _serverScripts = serverScripts; }
 
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& value);
@@ -510,6 +513,7 @@ protected:
     QString _script; /// the value of the script property
     QString _loadedScript; /// the value of _script when the last preload signal was sent
     quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+    QString _serverScripts;
 
     /// the value of _scriptTimestamp when the last preload signal was sent
     // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it
