@@ -855,7 +855,6 @@ void NodeList::maintainIgnoreMuteSets(const QUuid& nodeID) {
         QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock };
         _ignoredNodeIDs.unsafe_erase(nodeID);
         _personalMutedNodeIDs.unsafe_erase(nodeID);
-        qCDebug(networking) << "removed" << nodeID.toString() << "from ignore/mute sets (if present)";
     }
 }
 

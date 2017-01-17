@@ -582,7 +582,6 @@ function onClicked() {
 }
 function avatarDisconnected(nodeID) {
     // remove from the pal list
-    print("got avatarDisconnected for " + nodeID);
     pal.sendToQml({method: 'avatarDisconnected', params: [nodeID]});
 }
 //
