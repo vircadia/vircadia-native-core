@@ -499,8 +499,8 @@ void Agent::processAgentAvatar() {
     if (!_scriptEngine->isFinished() && _isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
-        AvatarData::AvatarDataDetail dataDetail = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? AvatarData::SendAllData : AvatarData::CullSmallData;
-        //AvatarData::AvatarDataDetail dataDetail = AvatarData::SendAllData;
+        //AvatarData::AvatarDataDetail dataDetail = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? AvatarData::SendAllData : AvatarData::CullSmallData;
+        AvatarData::AvatarDataDetail dataDetail = AvatarData::SendAllData;
         quint64 lastSentTime = 0;
         QVector<JointData>& lastSentJointData = scriptedAvatar->getLastSentJointData();
         bool distanceAdjust = false;

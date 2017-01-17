@@ -194,7 +194,18 @@ bool AvatarData::faceTrackerInfoChangedSince(quint64 time) {
 }
 
 float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) {
-    return AVATAR_MIN_ROTATION_DOT; // FIXME
+    auto distance = glm::distance(_globalPosition, viewerPosition);
+    //qDebug() << "_globalPosition:" << _globalPosition << "viewerPosition:" << viewerPosition << "distance:" << distance;
+    float result = ROTATION_90D_DOT; // assume worst
+    if (distance < 1.0f) {
+        result = AVATAR_MIN_ROTATION_DOT;
+    } else if (distance < 5.0f) {
+        result = ROTATION_15D_DOT;
+    } else if (distance < 10.0f) {
+        result = ROTATION_45D_DOT;
+    }
+    //qDebug() << __FUNCTION__ << "result:" << result;
+    return result;
 }
 
 float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition) {
@@ -241,7 +252,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     //      this is an iFrame issue... what to do about that?
     //
     //    BUG -- Resizing avatar seems to "take too long"... the avatar doesn't redraw at smaller size right away
-    //    BUG -- summoned avatars seem low?
     //
 
     // TODO -
@@ -448,13 +458,17 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         lastSentJointData.resize(_jointData.size());
 
         float minRotationDOT = !distanceAdjust ? AVATAR_MIN_ROTATION_DOT : getDistanceBasedMinRotationDOT(viewerPosition);
+        //qDebug() << "sendAll:" << sendAll << "cullSmallChanges:" << cullSmallChanges;
 
         for (int i = 0; i < _jointData.size(); i++) {
             const JointData& data = _jointData[i];
+            //qDebug() << "joint[" << i << "].dot:" << fabsf(glm::dot(data.rotation, lastSentJointData[i].rotation));
+
+
             if (sendAll || lastSentJointData[i].rotation != data.rotation) {
                 if (sendAll ||
                     !cullSmallChanges ||
-                    fabsf(glm::dot(data.rotation, lastSentJointData[i].rotation)) <= minRotationDOT) {
+                    fabsf(glm::dot(data.rotation, lastSentJointData[i].rotation)) > minRotationDOT) {
                     if (data.rotationSet) {
                         validity |= (1 << validityBit);
 #if 1 //def WANT_DEBUG
@@ -1484,6 +1498,9 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
 }
 
 void AvatarData::setJointMappingsFromNetworkReply() {
+
+    //qDebug() << __FUNCTION__ << "_skeletonModelURL:" << _skeletonModelURL;
+
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
 
     {
@@ -1577,6 +1594,9 @@ void AvatarData::updateJointMappings() {
     }
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
+
+        //qDebug() << __FUNCTION__ << "_skeletonModelURL:" << _skeletonModelURL;
+
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);

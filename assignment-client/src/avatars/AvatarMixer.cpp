@@ -416,7 +416,7 @@ void AvatarMixer::broadcastAvatarData() {
                         nodeData->incrementAvatarOutOfView();
                     } else {
                         detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
-                                        ? AvatarData::SendAllData : AvatarData::IncludeSmallData;
+                                        ? AvatarData::SendAllData : AvatarData::CullSmallData;
                         nodeData->incrementAvatarInView();
                     }
 
@@ -424,7 +424,7 @@ void AvatarMixer::broadcastAvatarData() {
                     auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
                     auto lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
                     bool distanceAdjust = true;
-                    glm::vec3 viewerPosition = otherAvatar.getPosition();
+                    glm::vec3 viewerPosition = nodeData->getPosition();
                     auto bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition);
                     numAvatarDataBytes += avatarPacketList->write(bytes);
 

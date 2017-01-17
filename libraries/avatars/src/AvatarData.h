@@ -258,6 +258,9 @@ const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02f;
 const float AVATAR_MIN_ROTATION_DOT = 0.9999999f;
 const float AVATAR_MIN_TRANSLATION = 0.0001f;
 
+const float ROTATION_15D_DOT = 0.9914449f;
+const float ROTATION_45D_DOT = 0.9238795f;
+const float ROTATION_90D_DOT = 0.7071068f;
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
