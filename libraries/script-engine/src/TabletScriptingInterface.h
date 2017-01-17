@@ -75,9 +75,11 @@ public:
     /**jsdoc
      * show the specified web url on the tablet.
      * @function TabletProxy#gotoWebScreen
-     * @param url {string}
+     * @param url {string} url of web page.
+     * @param [injectedJavaScriptUrl] {string} optional url to an additional JS script to inject into the web page.
      */
     Q_INVOKABLE void gotoWebScreen(const QString& url);
+    Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
 
     /**jsdoc
      * Creates a new button, adds it to this and returns it.

@@ -117,6 +117,10 @@ void TabletProxy::gotoHomeScreen() {
 }
 
 void TabletProxy::gotoWebScreen(const QString& url) {
+    gotoWebScreen(url, "");
+}
+
+void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl) {
     if (_qmlTabletRoot) {
         if (_state == State::Home) {
             removeButtonsFromHomeScreen();
@@ -125,7 +129,8 @@ void TabletProxy::gotoWebScreen(const QString& url) {
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
             _state = State::Web;
         }
-        QMetaObject::invokeMethod(_qmlTabletRoot, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)));
+        QMetaObject::invokeMethod(_qmlTabletRoot, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)),
+                                  Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
     }
 }
 
