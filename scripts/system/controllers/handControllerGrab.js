@@ -3082,7 +3082,7 @@ var handleHandMessages = function(channel, message, sender) {
 
 Messages.messageReceived.connect(handleHandMessages);
 
-var TARGET_UPDATE_HZ = 50; // 50hz good enough (no change in logic)
+var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
 var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ; 
 var lastInterval = Date.now();
 
@@ -3095,7 +3095,7 @@ var updateTotalWork = 0;
 
 var UPDATE_PERFORMANCE_DEBUGGING = false;
     
-var updateIntervalTimer = Script.setInterval(function(){
+function updateWrapper(){
 
     intervalCount++;
     var thisInterval = Date.now();
@@ -3141,11 +3141,12 @@ var updateIntervalTimer = Script.setInterval(function(){
         updateTotalWork = 0;
     }
 
-}, BASIC_TIMER_INTERVAL_MS);
+}
 
+Script.update.connect(updateWrapper);
 function cleanup() {
     Menu.removeMenuItem("Developer", "Show Grab Sphere");
-    Script.clearInterval(updateIntervalTimer);
+    Script.update.disconnect(updateWrapper);
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
