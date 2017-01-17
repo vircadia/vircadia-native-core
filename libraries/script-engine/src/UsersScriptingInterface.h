@@ -142,6 +142,7 @@ signals:
     /**jsdoc
      * Notifies scripts that a user has disconnected from the domain
      * @function Users.avatar.avatarDisconnected
+     * @param {nodeID} NodeID The session ID of the avatar that has disconnected
      */
     void avatarDisconnected(const QUuid& nodeID);
 
