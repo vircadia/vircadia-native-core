@@ -80,25 +80,22 @@
                 debugPrint("Read ambient disabled state: " + disabled);
                 if (disabled) {
                     this.cleanup();
-                    debugState("disabled");
                     return;
                 }
             }
         }
         if (!(soundURL === oldSoundURL) || (soundURL === "")) {
             if (soundURL) {
-                debugState("downloading", "Loading ambient sound into cache");
+                debugPrint("Loading ambient sound into cache");
                 // Use prefetch to detect URL loading errors
                 var resource = SoundCache.prefetch(soundURL);
                 function onStateChanged() {
                     if (resource.state === Resource.State.FINISHED) {
                         resource.stateChanged.disconnect(onStateChanged);
                         ambientSound = SoundCache.getSound(soundURL);
-                        debugState("idle");
                     } else if (resource.state === Resource.State.FAILED) {
                         resource.stateChanged.disconnect(onStateChanged);
                         debugPrint("Failed to download ambient sound: " + soundURL);
-                        debugState("error");
                     }
                 }
                 resource.stateChanged.connect(onStateChanged);
@@ -132,7 +129,6 @@
         data.disabled = !data.disabled;
 
         debugPrint(hint + " -- triggering ambient sound " + (data.disabled ? "OFF" : "ON") + " (" + soundURL + ")");
-        var oldState = _debugState;
 
         this.cleanup();
 
@@ -141,7 +137,6 @@
             userData: JSON.stringify(data),
             scriptTimestamp: Math.round(props.age * 1000)
         });
-        //this._updateColor(data.disabled);
     };
 
     this._updateColor = function(disabled) {
@@ -194,7 +189,7 @@
             soundOptions.orientation = rotation;
             soundOptions.volume = volume;
             if (!soundPlaying && ambientSound && ambientSound.downloaded) {
-                debugState("playing", "Starting ambient sound: " + soundURL + " (duration: " + ambientSound.duration + ")");
+                debugPrint("Starting ambient sound: " + soundURL + " (duration: " + ambientSound.duration + ")");
                 soundPlaying = Audio.playSound(ambientSound, soundOptions);
             } else if (soundPlaying && soundPlaying.playing) {
                 soundPlaying.setOptions(soundOptions);
@@ -202,7 +197,7 @@
         } else if (soundPlaying && soundPlaying.playing && (distance > range * HYSTERESIS_FRACTION)) {
             soundPlaying.stop();
             soundPlaying = false;
-            debugState("idle", "Out of range, stopping ambient sound: " + soundURL);
+            debugPrint("Out of range, stopping ambient sound: " + soundURL);
         }
     }
 
