@@ -26,6 +26,7 @@
 #include "AccountManager.h"
 #include "AddressManager.h"
 #include "Assignment.h"
+#include "AudioHelpers.h"
 #include "HifiSockAddr.h"
 #include "FingerprintUtils.h"
 
@@ -948,6 +949,30 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
         // also send them the current ignore radius state.
         sendIgnoreRadiusStateToNode(newNode);
+    }
+}
+
+void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
+    // cannot set gain of yourself or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+        if (audioMixer) {
+            // setup the packet
+            auto setAvatarGainPacket = NLPacket::create(PacketType::PerAvatarGainSet, NUM_BYTES_RFC4122_UUID + sizeof(float), true);
+            
+            // write the node ID to the packet
+            setAvatarGainPacket->write(nodeID.toRfc4122());
+            // We need to convert the gain in dB (from the script) to an amplitude before packing it.
+            setAvatarGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.0206f)));
+
+            qCDebug(networking) << "Sending Set Avatar Gain packet UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
+
+            sendPacket(std::move(setAvatarGainPacket), *audioMixer);
+        } else {
+            qWarning() << "Couldn't find audio mixer to send set gain request";
+        }
+    } else {
+        qWarning() << "NodeList::setAvatarGain called with an invalid ID or an ID which matches the current session ID:" << nodeID;
     }
 }
 

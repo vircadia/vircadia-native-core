@@ -82,6 +82,7 @@ public:
     bool isIgnoringNode(const QUuid& nodeID) const;
     void personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled);
     bool isPersonalMutingNode(const QUuid& nodeID) const;
+    void setAvatarGain(const QUuid& nodeID, float gain);
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);

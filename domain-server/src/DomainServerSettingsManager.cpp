@@ -780,12 +780,12 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 
 // This function processes the "Get Username from ID" request.
 void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    // Before we do any processing on this packet, make sure it comes from a node that is allowed to kick (is an admin)
-    if (sendingNode->getCanKick()) {
-        // From the packet, pull the UUID we're identifying
-        QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-        if (!nodeUUID.isNull()) {
+    // From the packet, pull the UUID we're identifying
+    QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    if (!nodeUUID.isNull()) {
+        // Before we do any processing on this packet, make sure it comes from a node that is allowed to kick (is an admin)
+        // OR from a node whose UUID matches the one in the packet
+        if (sendingNode->getCanKick() || nodeUUID == sendingNode->getUUID()) {
             // First, make sure we actually have a node with this UUID
             auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
             auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
@@ -813,12 +813,12 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
                 qWarning() << "Node username request received for unknown node. Refusing to process.";
             }
         } else {
-            qWarning() << "Node username request received for invalid node ID. Refusing to process.";
+            qWarning() << "Refusing to process a username request packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
+                << ". Either node doesn't have kick permissions or is requesting a username not from their UUID.";
         }
 
     } else {
-        qWarning() << "Refusing to process a username request packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
-            << "that does not have kick permissions.";
+        qWarning() << "Node username request received for invalid node ID. Refusing to process.";
     }
 }
 
