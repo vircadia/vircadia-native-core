@@ -75,7 +75,7 @@ Item {
                 id: myDisplayNameText
                 // Properties
                 text: thisNameCard.displayName
-                maximumLength: 64
+                maximumLength: 256
                 clip: true
                 // Size
                 width: parent.width
@@ -84,7 +84,8 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 10
-                anchors.rightMargin: editGlyph.implicitWidth + editGlyph.anchors.rightMargin
+                anchors.right: parent.right
+                anchors.rightMargin: editGlyph.width + editGlyph.anchors.rightMargin
                 // Style
                 color: hifi.colors.darkGray
                 FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
@@ -98,6 +99,7 @@ Item {
                 // Signals
                 onEditingFinished: {
                     pal.sendToScript({method: 'displayNameUpdate', params: text})
+                    cursorPosition = 0
                     focus = false
                     myDisplayName.border.width = 0
                     color = hifi.colors.darkGray
