@@ -49,6 +49,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
             return VERSION_ENTITIES_SERVER_SCRIPTS;
+        case PacketType::EntityQuery:
+            return VERSION_ENTITIES_JSON_FILTER;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
