@@ -2418,6 +2418,7 @@ function MyController(hand) {
                 // we have an equipped object and the secondary trigger was released
                 // short-circuit the other checks and release it
                 this.preparingHoldRelease = false;
+                this.callEntityMethodOnGrabbed("releaseEquip");
                 this.setState(STATE_OFF, "equipping ended via secondary press");
                 return;
             }
