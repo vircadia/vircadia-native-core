@@ -36,6 +36,8 @@ public:
     virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
+    
+    OctreeQuery& getOctreeQuery() { return _octreeQuery; }
 
     static int parseOctreeStats(QSharedPointer<ReceivedMessage> message, SharedNodePointer sourceNode);
     static void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
@@ -64,10 +66,6 @@ public slots:
     int getMaxPacketsPerSecond() const { return _maxPacketsPerSecond; }
 
     unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }
-    
-    // octree query adjustments
-    void setQueryUsesFrustum(bool queryUsesFrustum) { _octreeQuery.setUsesFrustum(queryUsesFrustum); }
-    void setQueryJSONParameters(QJsonObject queryJSONParameters) { _octreeQuery.setJSONParameters(queryJSONParameters); }
 
 private:
     JurisdictionListener* _jurisdictionListener = nullptr;
