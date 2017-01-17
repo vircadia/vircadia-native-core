@@ -261,6 +261,11 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == YourAvatarEnteredTheirBubble) {
         DependencyManager::get<NodeList>()->radiusIgnoreNodeBySessionID(avatar->getSessionUUID(), true);
     }
+    if (removalReason == KillAvatarReason::AvatarDisconnected) {
+        // remove from node sets, if present
+        DependencyManager::get<NodeList>()->maintainIgnoreMuteSets(avatar->getSessionUUID());
+        DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
+    }
     _avatarFades.push_back(removedAvatar);
 }
 

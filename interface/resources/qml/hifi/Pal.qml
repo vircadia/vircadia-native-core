@@ -502,6 +502,10 @@ Rectangle {
             ignored = {};
             gainSliderValueDB = {};
             break;
+        case 'avatarDisconnected':
+            var sessionID = message.params[0];
+            delete ignored[sessionID];
+            break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }

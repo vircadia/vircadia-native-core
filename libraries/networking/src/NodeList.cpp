@@ -847,6 +847,18 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     }
 }
 
+// removes this UUID from ignore and mute lists.  
+void NodeList::maintainIgnoreMuteSets(const QUuid& nodeID) {
+    // don't remove yourself, or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        QWriteLocker ignoredSetLocker{ &_ignoredSetLock };
+        QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock };
+        _ignoredNodeIDs.unsafe_erase(nodeID);
+        _personalMutedNodeIDs.unsafe_erase(nodeID);
+        qCDebug(networking) << "removed" << nodeID.toString() << "from ignore/mute sets (if present)";
+    }
+}
+
 bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
     QReadLocker ignoredSetLocker{ &_ignoredSetLock };
     return _ignoredNodeIDs.find(nodeID) != _ignoredNodeIDs.cend();
