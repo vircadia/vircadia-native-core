@@ -80,7 +80,8 @@ void TabletScriptingInterface::processMenuEvents(QObject* object, const QKeyEven
         case Qt::Key_Return:
             QMetaObject::invokeMethod(object, "selectCurrentItem");
             break;
-        defualt:
+
+        default:
             break;
     }
 }
@@ -106,7 +107,8 @@ void TabletScriptingInterface::processTabletEvents(QObject* object, const QKeyEv
         case Qt::Key_Return:
             QMetaObject::invokeMethod(object, "selectItem");
             break;
-        defualt:
+
+        default:
             break;
     }
 }
