@@ -312,10 +312,11 @@ Item {
         readonly property string error: "="
         readonly property string settings: "@"
         readonly property string trash: "{"
-        readonly property string objectGroup: "&#xe000;"
+        readonly property string objectGroup: "\ue000"
         readonly property string cm: "}"
         readonly property string msvg79: "~"
         readonly property string deg: "\\"
         readonly property string px: "|"
+        readonly property string editPencil: "\ue00d"
     }
 }

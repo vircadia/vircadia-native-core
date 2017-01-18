@@ -28,7 +28,7 @@ Item {
     property string uuid: ""
     property string displayName: ""
     property string userName: ""
-    property int displayTextHeight: 18
+    property real displayNameTextPixelSize: 18
     property int usernameTextHeight: 12
     property real audioLevel: 0.0
     property bool isMyCard: false
@@ -55,18 +55,112 @@ Item {
         width: parent.width - /*avatarImage.width - parent.spacing - */parent.anchors.leftMargin - parent.anchors.rightMargin
         height: childrenRect.height
         anchors.verticalCenter: parent.verticalCenter
-        // DisplayName Text
+
+        // DisplayName field for my card
+        Rectangle {
+            id: myDisplayName
+            visible: isMyCard
+            // Size
+            width: parent.width + 70
+            height: 35
+            // Anchors
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.leftMargin: -10
+            // Style
+            color: hifi.colors.textFieldLightBackground
+            border.color: hifi.colors.blueHighlight
+            border.width: 0
+            TextInput {
+                id: myDisplayNameText
+                // Properties
+                text: thisNameCard.displayName
+                maximumLength: 256
+                clip: true
+                // Size
+                width: parent.width
+                height: parent.height
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.right: parent.right
+                anchors.rightMargin: editGlyph.width + editGlyph.anchors.rightMargin
+                // Style
+                color: hifi.colors.darkGray
+                FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+                font.family: firaSansSemiBold.name
+                font.pixelSize: displayNameTextPixelSize
+                selectionColor: hifi.colors.blueHighlight
+                selectedTextColor: "black"
+                // Text Positioning
+                verticalAlignment: TextInput.AlignVCenter
+                horizontalAlignment: TextInput.AlignLeft
+                // Signals
+                onEditingFinished: {
+                    pal.sendToScript({method: 'displayNameUpdate', params: text})
+                    cursorPosition = 0
+                    focus = false
+                    myDisplayName.border.width = 0
+                    color = hifi.colors.darkGray
+                }
+            }
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                hoverEnabled: true
+                onClicked: {
+                    myDisplayName.border.width = 1
+                    myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
+                    myDisplayNameText.focus = true
+                    myDisplayNameText.color = "black"
+                }
+                onDoubleClicked: {
+                    myDisplayNameText.selectAll();
+                    myDisplayNameText.focus = true;
+                }
+                onEntered: myDisplayName.color = hifi.colors.lightGrayText
+                onExited: myDisplayName.color = hifi.colors.textFieldLightBackground
+            }
+            // Edit pencil glyph
+            HiFiGlyphs {
+                id: editGlyph
+                text: hifi.glyphs.editPencil
+                // Text Size
+                size: displayNameTextPixelSize*1.5
+                // Anchors
+                anchors.right: parent.right
+                anchors.rightMargin: 5
+                anchors.verticalCenter: parent.verticalCenter
+                // Style
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                color: hifi.colors.baseGray
+            }
+        }
+        // Spacer for DisplayName for my card
+        Rectangle {
+            id: myDisplayNameSpacer
+            width: myDisplayName.width
+            // Anchors
+            anchors.top: myDisplayName.bottom
+            height: 5
+            visible: isMyCard
+            opacity: 0
+        }
+        // DisplayName Text for others' cards
         FiraSansSemiBold {
             id: displayNameText
             // Properties
             text: thisNameCard.displayName
             elide: Text.ElideRight
+            visible: !isMyCard
             // Size
             width: parent.width
             // Anchors
             anchors.top: parent.top
             // Text Size
-            size: thisNameCard.displayTextHeight
+            size: displayNameTextPixelSize
             // Text Positioning
             verticalAlignment: Text.AlignVCenter
             // Style
@@ -83,7 +177,7 @@ Item {
             // Size
             width: parent.width
             // Anchors
-            anchors.top: displayNameText.bottom
+            anchors.top: isMyCard ? myDisplayNameSpacer.bottom : displayNameText.bottom
             // Text Size
             size: thisNameCard.usernameTextHeight
             // Text Positioning
@@ -105,7 +199,7 @@ Item {
         Rectangle {
             id: nameCardVUMeter
             // Size
-            width: ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
+            width: isMyCard ? myDisplayName.width - 20 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
             height: 8
             // Anchors
             anchors.top: spacer.bottom

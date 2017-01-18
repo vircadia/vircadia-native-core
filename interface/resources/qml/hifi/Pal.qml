@@ -35,6 +35,17 @@ Rectangle {
     // Keep a local list of per-avatar gainSliderValueDBs. Far faster than fetching this data from the server.
     // NOTE: if another script modifies the per-avatar gain, this value won't be accurate!
     property var gainSliderValueDB: ({});
+    
+    // The letterbox used for popup messages
+    LetterboxMessage {
+        id: letterboxMessage
+        z: 999 // Force the popup on top of everything else
+    }
+    function letterbox(message) {
+        letterboxMessage.text = message
+        letterboxMessage.visible = true
+        letterboxMessage.popupRadius = 0
+    }
 
     // This is the container for the PAL
     Rectangle {
@@ -176,8 +187,6 @@ Rectangle {
         TableViewColumn {
             visible: iAmAdmin
             role: "kick"
-            // The hacky spaces used to center text over the button, since I don't know how to apply a margin
-            // to column header text.
             title: "BAN"
             width: actionButtonWidth
             movable: false
@@ -337,11 +346,6 @@ Rectangle {
         visible: iAmAdmin
         color: hifi.colors.lightGrayText
     }
-    function letterbox(message) {
-        letterboxMessage.text = message;
-        letterboxMessage.visible = true
-
-    }
     // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
         color: hifi.colors.tableBackgroundLight
@@ -401,9 +405,6 @@ Rectangle {
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
-    }
-    LetterboxMessage {
-        id: letterboxMessage
     }
     }
 
@@ -501,6 +502,10 @@ Rectangle {
         case 'clearLocalQMLData': 
             ignored = {};
             gainSliderValueDB = {};
+            break;
+        case 'avatarDisconnected':
+            var sessionID = message.params[0];
+            delete ignored[sessionID];
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
