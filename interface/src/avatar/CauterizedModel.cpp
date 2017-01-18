@@ -49,16 +49,18 @@ void CauterizedModel::createCollisionRenderItemSet() {
 }
 
 bool CauterizedModel::updateGeometry() {
-    bool returnValue = Model::updateGeometry();
-    if (_rig->jointStatesEmpty() && getFBXGeometry().joints.size() > 0) {
-        const FBXGeometry& fbxGeometry = getFBXGeometry();
-        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
-            Model::MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
-            _cauterizeMeshStates.append(state);
+    bool needsFullUpdate = Model::updateGeometry();
+    if (needsFullUpdate) {
+        if (_rig->jointStatesEmpty() && getFBXGeometry().joints.size() > 0) {
+            const FBXGeometry& fbxGeometry = getFBXGeometry();
+            foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
+                Model::MeshState state;
+                state.clusterMatrices.resize(mesh.clusters.size());
+                _cauterizeMeshStates.append(state);
+            }
         }
     }
-	return returnValue;
+	return needsFullUpdate;
 }
 
 void CauterizedModel::updateClusterMatrices() {
