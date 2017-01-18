@@ -251,7 +251,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 }
 
-void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool canCauterize) const {
+void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     batch.setModelTransform(_drawTransform);
 }
 
@@ -265,7 +265,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
-    bindTransform(batch, locations);
+    bindTransform(batch, locations, args->_renderMode);
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
@@ -359,11 +359,8 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform,
-        const QVector<glm::mat4>& clusterMatrices,
-        const QVector<glm::mat4>& cauterizedClusterMatrices) {
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const QVector<glm::mat4>& clusterMatrices) {
     _transform = transform;
-    _cauterizedTransform = transform;
 
     if (clusterMatrices.size() > 0) {
         _worldBound = AABox();
@@ -372,16 +369,7 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transf
             clusterBound.transform(clusterMatrix);
             _worldBound += clusterBound;
         }
-
         _worldBound.transform(transform);
-        if (clusterMatrices.size() == 1) {
-            _transform = _transform.worldTransform(Transform(clusterMatrices[0]));
-            if (cauterizedClusterMatrices.size() != 0) {
-                _cauterizedTransform = _cauterizedTransform.worldTransform(Transform(cauterizedClusterMatrices[0]));
-            } else {
-                _cauterizedTransform = _transform;
-            }
-        }
     }
 }
 
@@ -525,24 +513,13 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool canCauterize) const {
+void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     // Still relying on the raw data from the model
-    const Model::MeshState& state = _model->_meshStates.at(_meshIndex);
-
+    const Model::MeshState& state = _model->getMeshState(_meshIndex);
     if (state.clusterBuffer) {
-        if (canCauterize && _model->getCauterizeBones()) {
-            batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, state.cauterizedClusterBuffer);
-        } else {
-            batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, state.clusterBuffer);
-        }
-        batch.setModelTransform(_transform);
-    } else {
-        if (canCauterize && _model->getCauterizeBones()) {
-            batch.setModelTransform(_cauterizedTransform);
-        } else {
-            batch.setModelTransform(_transform);
-        }
+        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, state.clusterBuffer);
     }
+    batch.setModelTransform(_transform);
 }
 
 void ModelMeshPartPayload::startFade() {
@@ -596,9 +573,8 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
-    bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
     _model->updateClusterMatrices();
-    bindTransform(batch, locations, canCauterize);
+    bindTransform(batch, locations, args->_renderMode);
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
@@ -621,4 +597,3 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
     }
 }
-

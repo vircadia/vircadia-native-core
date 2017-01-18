@@ -48,7 +48,7 @@ public:
     void drawCall(gpu::Batch& batch) const;
     virtual void bindMesh(gpu::Batch& batch) const;
     virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const;
-    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize = true) const;
+    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const;
 
     // Payload resource cached values
     std::shared_ptr<const model::Mesh> _drawMesh;
@@ -86,8 +86,7 @@ public:
 
     void notifyLocationChanged() override;
     void updateTransformForSkinnedMesh(const Transform& transform,
-            const QVector<glm::mat4>& clusterMatrices,
-            const QVector<glm::mat4>& cauterizedClusterMatrices);
+            const QVector<glm::mat4>& clusterMatrices);
 
     // Entity fade in
     void startFade();
@@ -102,13 +101,12 @@ public:
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) const override;
-    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize = true) const override;
+    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
     void initCache();
 
     Model* _model;
 
-    Transform _cauterizedTransform;
     int _meshIndex;
     int _shapeID;
 

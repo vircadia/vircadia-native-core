@@ -13,7 +13,7 @@
 #include "InterfaceLogging.h"
 
 SoftAttachmentModel::SoftAttachmentModel(RigPointer rig, QObject* parent, RigPointer rigOverride) :
-    Model(rig, parent),
+    CauterizedModel(rig, parent),
     _rigOverride(rigOverride) {
     assert(_rig);
     assert(_rigOverride);
@@ -38,6 +38,7 @@ int SoftAttachmentModel::getJointIndexOverride(int i) const {
 // virtual
 // use the _rigOverride matrices instead of the Model::_rig
 void SoftAttachmentModel::updateClusterMatrices() {
+    // adebug TODO: this needs work?
     if (!_needsUpdateClusterMatrices) {
         return;
     }
