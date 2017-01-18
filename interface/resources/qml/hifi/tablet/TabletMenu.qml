@@ -78,8 +78,11 @@ Item {
                 hoverEnabled: true
                 onEntered: breadcrumbText.color = "#1fc6a6";
                 onExited: breadcrumbText.color = "#ffffff";
-                // navigate back to parent level menu
-                onClicked: menuPopperUpper.closeLastMenu();
+                // navigate back to parent level menu if there is one
+                onClicked: 
+                    if (breadcrumbText.text !== "Menu) {
+                        menuPopperUpper.closeLastMenu();
+                    }
             }
         }
     }
