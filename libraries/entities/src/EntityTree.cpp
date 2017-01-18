@@ -394,6 +394,10 @@ void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, cons
     emit entityScriptChanging(entityItemID, reload);
 }
 
+void EntityTree::emitEntityServerScriptChanging(const EntityItemID& entityItemID, const bool reload) {
+    emit entityServerScriptChanging(entityItemID, reload);
+}
+
 void EntityTree::notifyNewCollisionSoundURL(const QString& newURL, const EntityItemID& entityID) {
     emit newCollisionSoundURL(QUrl(newURL), entityID);
 }

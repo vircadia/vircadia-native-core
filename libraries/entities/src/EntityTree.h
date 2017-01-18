@@ -202,6 +202,7 @@ public:
     void entityChanged(EntityItemPointer entity);
 
     void emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload);
+    void emitEntityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
 
     void setSimulation(EntitySimulationPointer simulation);
     EntitySimulationPointer getSimulation() const { return _simulation; }
@@ -270,6 +271,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
+    void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
 

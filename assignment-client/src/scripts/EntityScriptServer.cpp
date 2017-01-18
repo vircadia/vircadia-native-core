@@ -97,7 +97,7 @@ void EntityScriptServer::run() {
     auto tree = _entityViewer.getTree().get();
     connect(tree, &EntityTree::deletingEntity, this, &EntityScriptServer::deletingEntity, Qt::QueuedConnection);
     connect(tree, &EntityTree::addingEntity, this, &EntityScriptServer::addingEntity, Qt::QueuedConnection);
-    connect(tree, &EntityTree::entityScriptChanging, this, &EntityScriptServer::entityScriptChanging, Qt::QueuedConnection);
+    connect(tree, &EntityTree::entityServerScriptChanging, this, &EntityScriptServer::entityServerScriptChanging, Qt::QueuedConnection);
 }
 
 void EntityScriptServer::nodeActivated(SharedNodePointer activatedNode) {
@@ -220,7 +220,7 @@ void EntityScriptServer::deletingEntity(const EntityItemID& entityID) {
     }
 }
 
-void EntityScriptServer::entityScriptChanging(const EntityItemID& entityID, const bool reload) {
+void EntityScriptServer::entityServerScriptChanging(const EntityItemID& entityID, const bool reload) {
     if (_entityViewer.getTree() && !_shuttingDown) {
         _entitiesScriptEngine->unloadEntityScript(entityID);
         checkAndCallPreload(entityID, reload);
@@ -231,7 +231,7 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const
     if (_entityViewer.getTree() && !_shuttingDown) {
         EntityItemPointer entity = _entityViewer.getTree()->findEntityByEntityItemID(entityID);
         if (entity && entity->shouldPreloadScript() && _entitiesScriptEngine) {
-            QString scriptUrl = entity->getScript();
+            QString scriptUrl = entity->getServerScripts();
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
             ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
             entity->scriptHasPreloaded();

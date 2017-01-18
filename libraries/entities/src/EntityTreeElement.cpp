@@ -925,6 +925,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
                     QString entityScriptBefore = entityItem->getScript();
+                    QString entityServerScriptsBefore = entityItem->getServerScripts();
                     quint64 entityScriptTimestampBefore = entityItem->getScriptTimestamp();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElementPointer currentContainingElement = _myTree->getContainingElement(entityItemID);
@@ -948,6 +949,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     }
 
                     QString entityScriptAfter = entityItem->getScript();
+                    QString entityServerScriptsAfter = entityItem->getServerScripts();
                     quint64 entityScriptTimestampAfter = entityItem->getScriptTimestamp();
                     bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
 
@@ -955,6 +957,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     // a reload then we want to send out a script changing signal...
                     if (entityScriptBefore != entityScriptAfter || reload) {
                         _myTree->emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
+                    }
+                    if (entityServerScriptsBefore != entityServerScriptsAfter || reload) {
+                        _myTree->emitEntityServerScriptChanging(entityItemID, reload); // the entity server script has changed
                     }
 
                 } else {

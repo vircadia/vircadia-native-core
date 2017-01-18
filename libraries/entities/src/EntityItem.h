@@ -444,6 +444,10 @@ public:
                                               ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
     void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
 
+    bool shouldPreloadServerScript() const { return !_script.isEmpty() &&
+        ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
+    void serverScriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
+
     bool getClientOnly() const { return _clientOnly; }
     void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
     // if this entity is client-only, which avatar is it associated with?
