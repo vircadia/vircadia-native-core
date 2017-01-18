@@ -82,12 +82,15 @@ public:
     bool isIgnoringNode(const QUuid& nodeID) const;
     void personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled);
     bool isPersonalMutingNode(const QUuid& nodeID) const;
+    void setAvatarGain(const QUuid& nodeID, float gain);
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool isRequesting);
+
+    void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
 public slots:
     void reset();

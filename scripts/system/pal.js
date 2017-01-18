@@ -233,6 +233,15 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
         removeOverlays();
         populateUserList();
         break;
+    case 'updateGain':
+        data = message.params;
+        Users.setAvatarGain(data['sessionId'], data['gain']);
+        break;
+    case 'displayNameUpdate':
+        if (MyAvatar.displayName != message.params) {
+            MyAvatar.displayName = message.params;
+        }
+        break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
@@ -449,50 +458,6 @@ triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Cont
 triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
 triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
 //
-// Manage the connection between the button and the window.
-//
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-var buttonName = "pal";
-var button = toolBar.addButton({
-    objectName: buttonName,
-    imageURL: Script.resolvePath("assets/images/tools/people.svg"),
-    visible: true,
-    hoverState: 2,
-    defaultState: 1,
-    buttonState: 1,
-    alpha: 0.9
-});
-var isWired = false;
-function off() {
-    if (isWired) { // It is not ok to disconnect these twice, hence guard.
-        Script.update.disconnect(updateOverlays);
-        Controller.mousePressEvent.disconnect(handleMouseEvent);
-        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-        isWired = false;
-    }
-    triggerMapping.disable(); // It's ok if we disable twice.
-    triggerPressMapping.disable(); // see above
-    removeOverlays();
-    Users.requestsDomainListData = false;
-}
-function onClicked() {
-    if (!pal.visible) {
-        Users.requestsDomainListData = true;
-        populateUserList();
-        pal.raise();
-        isWired = true;
-        Script.update.connect(updateOverlays);
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-    } else {
-        off();
-    }
-    pal.setVisible(!pal.visible);
-}
-
-//
 // Message from other scripts, such as edit.js
 //
 var CHANNEL = 'com.highfidelity.pal';
@@ -523,6 +488,7 @@ var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
 var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
 var myData = {}; // we're not includied in ExtendedOverlay.get.
+var audioInterval;
 
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
@@ -555,21 +521,74 @@ function getAudioLevel(id) {
     return audioLevel;
 }
 
+function createAudioInterval() {
+    // we will update the audioLevels periodically
+    // TODO: tune for efficiency - expecially with large numbers of avatars
+    return Script.setInterval(function () {
+        if (pal.visible) {
+            var param = {};
+            AvatarList.getAvatarIdentifiers().forEach(function (id) {
+                var level = getAudioLevel(id);
+                // qml didn't like an object with null/empty string for a key, so...
+                var userId = id || 0;
+                param[userId] = level;
+            });
+            pal.sendToQml({method: 'updateAudioLevel', params: param});
+        }
+    }, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+}
 
-// we will update the audioLevels periodically
-// TODO: tune for efficiency - expecially with large numbers of avatars
-Script.setInterval(function () {
-    if (pal.visible) {
-        var param = {};
-        AvatarList.getAvatarIdentifiers().forEach(function (id) {
-            var level = getAudioLevel(id);
-            // qml didn't like an object with null/empty string for a key, so...
-            var userId = id || 0;
-            param[userId] = level;
-        });
-        pal.sendToQml({method: 'updateAudioLevel', params: param});
+//
+// Manage the connection between the button and the window.
+//
+var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var buttonName = "pal";
+var button = toolBar.addButton({
+    objectName: buttonName,
+    imageURL: Script.resolvePath("assets/images/tools/people.svg"),
+    visible: true,
+    hoverState: 2,
+    defaultState: 1,
+    buttonState: 1,
+    alpha: 0.9
+});
+var isWired = false;
+function off() {
+    if (isWired) { // It is not ok to disconnect these twice, hence guard.
+        Script.update.disconnect(updateOverlays);
+        Controller.mousePressEvent.disconnect(handleMouseEvent);
+        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+        isWired = false;
     }
-}, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+    triggerMapping.disable(); // It's ok if we disable twice.
+    triggerPressMapping.disable(); // see above
+    removeOverlays();
+    Users.requestsDomainListData = false;
+    if (audioInterval) {
+        Script.clearInterval(audioInterval);
+    }
+}
+function onClicked() {
+    if (!pal.visible) {
+        Users.requestsDomainListData = true;
+        populateUserList();
+        pal.raise();
+        isWired = true;
+        Script.update.connect(updateOverlays);
+        Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+        triggerMapping.enable();
+        triggerPressMapping.enable();
+        createAudioInterval();
+    } else {
+        off();
+    }
+    pal.setVisible(!pal.visible);
+}
+function avatarDisconnected(nodeID) {
+    // remove from the pal list
+    pal.sendToQml({method: 'avatarDisconnected', params: [nodeID]});
+}
 //
 // Button state.
 //
@@ -582,14 +601,16 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
-function clearIgnoredInQMLAndClosePAL() {
-    pal.sendToQml({ method: 'clearIgnored' });
+Users.avatarDisconnected.connect(avatarDisconnected);
+
+function clearLocalQMLDataAndClosePAL() {
+    pal.sendToQml({ method: 'clearLocalQMLData' });
     if (pal.visible) {
         onClicked(); // Close the PAL
     }
 }
-Window.domainChanged.connect(clearIgnoredInQMLAndClosePAL);
-Window.domainConnectionRefused.connect(clearIgnoredInQMLAndClosePAL);
+Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
+Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
 
 //
 // Cleanup.
@@ -600,10 +621,11 @@ Script.scriptEnding.connect(function () {
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-    Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
-    Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
+    Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
+    Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.unsubscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
+    Users.avatarDisconnected.disconnect(avatarDisconnected);
     off();
 });
 

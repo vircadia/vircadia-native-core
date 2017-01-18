@@ -24,7 +24,7 @@ Rectangle {
     // Style
     color: "#E3E3E3"
     // Properties
-    property int myCardHeight: 70
+    property int myCardHeight: 90
     property int rowHeight: 70
     property int actionButtonWidth: 75
     property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
@@ -32,6 +32,20 @@ Rectangle {
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
+    // Keep a local list of per-avatar gainSliderValueDBs. Far faster than fetching this data from the server.
+    // NOTE: if another script modifies the per-avatar gain, this value won't be accurate!
+    property var gainSliderValueDB: ({});
+    
+    // The letterbox used for popup messages
+    LetterboxMessage {
+        id: letterboxMessage
+        z: 999 // Force the popup on top of everything else
+    }
+    function letterbox(message) {
+        letterboxMessage.text = message
+        letterboxMessage.visible = true
+        letterboxMessage.popupRadius = 0
+    }
 
     // This is the container for the PAL
     Rectangle {
@@ -51,7 +65,7 @@ Rectangle {
         id: myInfo
         // Size
         width: palContainer.width
-        height: myCardHeight + 20
+        height: myCardHeight
         // Style
         color: pal.color
         // Anchors
@@ -65,6 +79,7 @@ Rectangle {
             displayName: myData.displayName
             userName: myData.userName
             audioLevel: myData.audioLevel
+            isMyCard: true
             // Size
             width: nameCardWidth
             height: parent.height
@@ -172,8 +187,6 @@ Rectangle {
         TableViewColumn {
             visible: iAmAdmin
             role: "kick"
-            // The hacky spaces used to center text over the button, since I don't know how to apply a margin
-            // to column header text.
             title: "BAN"
             width: actionButtonWidth
             movable: false
@@ -206,6 +219,8 @@ Rectangle {
                 userName: model && model.userName
                 audioLevel: model && model.audioLevel
                 visible: !isCheckBox && !isButton
+                uuid: model && model.sessionId
+                selected: styleData.selected
                 // Size
                 width: nameCardWidth
                 height: parent.height
@@ -331,11 +346,6 @@ Rectangle {
         visible: iAmAdmin
         color: hifi.colors.lightGrayText
     }
-    function letterbox(message) {
-        letterboxMessage.text = message;
-        letterboxMessage.visible = true
-
-    }
     // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
         color: hifi.colors.tableBackgroundLight
@@ -395,9 +405,6 @@ Rectangle {
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
-    }
-    LetterboxMessage {
-        id: letterboxMessage
     }
     }
 
@@ -492,8 +499,13 @@ Rectangle {
                 }
             }
             break;
-        case 'clearIgnored': 
+        case 'clearLocalQMLData': 
             ignored = {};
+            gainSliderValueDB = {};
+            break;
+        case 'avatarDisconnected':
+            var sessionID = message.params[0];
+            delete ignored[sessionID];
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
