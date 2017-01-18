@@ -352,7 +352,7 @@ protected:
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 
-    bool filterProperties(const EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged);
+    bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged);
     QString _entityEditFilter;
     bool _hasEntityEditFilter{ false };
     QScriptEngine _entityEditFilterEngine;

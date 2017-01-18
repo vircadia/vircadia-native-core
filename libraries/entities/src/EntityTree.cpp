@@ -925,13 +925,18 @@ void EntityTree::initEntityEditFilterEngine() {
     _hasEntityEditFilter = _entityEditFilterFunction.isFunction();
 }
 
-bool EntityTree::filterProperties(const EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
+bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
     if (!_hasEntityEditFilter) {
         propertiesOut = propertiesIn;
         wasChanged = false; // not changed
         return true; // allowed
     }
-    QScriptValue inputValues = propertiesIn.copyToScriptValue(&_entityEditFilterEngine, true, true);
+    auto oldProperties = propertiesIn.getDesiredProperties();
+    auto specifiedProperties = propertiesIn.getChangedProperties();
+    propertiesIn.setDesiredProperties(specifiedProperties);
+    QScriptValue inputValues = propertiesIn.copyToScriptValue(&_entityEditFilterEngine, false, true, true);
+    propertiesIn.setDesiredProperties(oldProperties);
+
     auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
     qDebug() << "fixme filter input" << propertiesIn << inputValues.toVariant() << in;
     QScriptValueList args;
@@ -950,7 +955,7 @@ bool EntityTree::filterProperties(const EntityItemProperties& propertiesIn, Enti
         wasChanged = !eq;
     }
 
-    qDebug() << "fixme filter result" << propertiesOut << result.toVariant() << "accepted:" << accepted << "changed:" << (accepted && wasChanged);
+    qDebug() << "fixme filter accepted:" << accepted << " changed : " << (accepted && wasChanged) << " result:" << propertiesOut << result.toVariant();
     return accepted;
 }
 
