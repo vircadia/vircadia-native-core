@@ -69,7 +69,7 @@ class EncodeBitstreamParams {
 public:
     ViewFrustum viewFrustum;
     ViewFrustum lastViewFrustum;
-    quint64 lastViewFrustumSent;
+    quint64 lastQuerySent;
     int maxEncodeLevel;
     int maxLevelReached;
     bool includeExistsBits;
@@ -106,13 +106,13 @@ public:
         bool useDeltaView = false,
         int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         float octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
-        quint64 lastViewFrustumSent = IGNORE_LAST_SENT,
+        quint64 lastQuerySent = IGNORE_LAST_SENT,
         bool forceSendScene = true,
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
         JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
         OctreeElementExtraEncodeData* extraEncodeData = NULL,
         QJsonObject jsonFilters = QJsonObject()) :
-            lastViewFrustumSent(lastViewFrustumSent),
+            lastQuerySent(lastQuerySent),
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
             includeExistsBits(includeExistsBits),

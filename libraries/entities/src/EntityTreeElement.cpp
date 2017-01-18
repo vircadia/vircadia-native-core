@@ -287,13 +287,13 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 EntityItemPointer entity = _entityItems[i];
                 bool includeThisEntity = true;
 
-                if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastViewFrustumSent) {
+                if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastQuerySent) {
                     includeThisEntity = false;
                 }
                 
                 if (!params.jsonFilters.isEmpty()) {
                     // if params include JSON filters, check if this entity matches
-                    includeThisEntity = entity->matchesJSONFilters(params.jsonFilters);
+                    includeThisEntity = includeThisEntity && entity->matchesJSONFilters(params.jsonFilters);
                 }
 
                 if (hadElementExtraData) {
