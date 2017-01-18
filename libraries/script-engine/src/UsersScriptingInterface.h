@@ -139,6 +139,13 @@ signals:
     */
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
 
+    /**jsdoc
+     * Notifies scripts that a user has disconnected from the domain
+     * @function Users.avatar.avatarDisconnected
+     * @param {nodeID} NodeID The session ID of the avatar that has disconnected
+     */
+    void avatarDisconnected(const QUuid& nodeID);
+
 private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);

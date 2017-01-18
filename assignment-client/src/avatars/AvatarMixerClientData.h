@@ -53,8 +53,8 @@ public:
 
     HRCTime getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void flagIdentityChange() { _identityChangeTimestamp = p_high_resolution_clock::now(); }
-    bool getReceivedIdentity() const { return _gotIdentity; }
-    void setReceivedIdentity() { _gotIdentity = true;  }
+    bool getAvatarSessionDisplayNameMustChange() const { return _avatarSessionDisplayNameMustChange; }
+    void setAvatarSessionDisplayNameMustChange(bool set = true) { _avatarSessionDisplayNameMustChange = set; }
 
     void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
     float getFullRateDistance() const { return _fullRateDistance; }
@@ -112,7 +112,7 @@ private:
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
     HRCTime _identityChangeTimestamp;
-    bool _gotIdentity { false };
+    bool _avatarSessionDisplayNameMustChange{ false };
 
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;

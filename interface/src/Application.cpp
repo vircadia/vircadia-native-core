@@ -1236,8 +1236,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
-    static int SEND_STATS_INTERVAL_MS = 10000;
     static int NEARBY_AVATAR_RADIUS_METERS = 10;
+    
+    // setup the stats interval depending on if the 1s faster hearbeat was requested
+    static const QString FAST_STATS_ARG = "--fast-heartbeat";
+    static int SEND_STATS_INTERVAL_MS = arguments().indexOf(FAST_STATS_ARG) != -1 ? 1000 : 10000;
 
     static glm::vec3 lastAvatarPosition = myAvatar->getPosition();
     static glm::mat4 lastHMDHeadPose = getHMDSensorPose();
