@@ -79,7 +79,7 @@ Item {
                 onEntered: breadcrumbText.color = "#1fc6a6";
                 onExited: breadcrumbText.color = "#ffffff";
                 // navigate back to parent level menu if there is one
-                onClicked:
+                onClicked: 
                     if (breadcrumbText.text !== "Menu") {
                         menuPopperUpper.closeLastMenu();
                     }

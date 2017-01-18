@@ -36,14 +36,18 @@ FocusScope {
         //color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
     }
 
+
     ListView {
         id: listView
         x: 0
         y: 0
         width: 480
         height: 720
+        contentWidth: 480
+        contentHeight: 720
 
-        topMargin: hifi.dimensions.menuPadding.y + 90
+        topMargin: hifi.dimensions.menuPadding.y
+        bottomMargin: hifi.dimensions.menuPadding.y
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
         onCountChanged: recalcSize();
@@ -94,12 +98,12 @@ FocusScope {
                     newHeight += currentItem.implicitHeight
                 }
             }
-            newHeight += 2 * hifi.dimensions.menuPadding.y;  // White space at top and bottom.
+            newHeight += hifi.dimensions.menuPadding.y * 2;  // White space at top and bottom.
             if (maxWidth > width) {
                 width = maxWidth;
             }
-            if (newHeight > height) {
-                height = newHeight
+            if (newHeight > contentHeight) {
+                contentHeight = newHeight;
             }
             currentIndex = originalIndex;
         }
