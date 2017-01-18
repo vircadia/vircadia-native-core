@@ -92,11 +92,15 @@
             if ("disabled" in data && !(disabled === data.disabled)) {
                 disabled = data.disabled;
                 debugPrint("Read ambient disabled state: " + disabled);
-                if (disabled) {
-                    this.cleanup();
-                    return;
-                }
+                this._updateColor(disabled);
             }
+        }
+        if (disabled) {
+            this.cleanup();
+            soundURL = "";
+            return;
+        } else if (!checkTimer) {
+            checkTimer = Script.setInterval(_this.maybeUpdate, UPDATE_INTERVAL_MSECS);
         }
         if (!(soundURL === oldSoundURL) || (soundURL === "")) {
             if (soundURL) {
@@ -138,7 +142,7 @@
         if (Settings.getValue("io.highfidelity.isEditting")) {
             return;
         }
-        var props = Entities.getEntityProperties(entity, [ "userData", "age", "scriptTimestamp" ]);
+        var props = Entities.getEntityProperties(entity, [ "userData" ]);
         if (!props.userData) {
             debugPrint("userData is empty; ignoring " + hint);
             this.cleanup();
@@ -147,19 +151,15 @@
         var data = JSON.parse(props.userData);
         data.disabled = !data.disabled;
 
-        debugPrint(hint + " -- triggering ambient sound " + (data.disabled ? "OFF" : "ON") + " (" + soundURL + ")");
+        debugPrint(hint + " -- triggering ambient sound " + (data.disabled ? "OFF" : "ON") + " (" + data.soundURL + ")");
 
         this.cleanup();
-        // Prevent rapid-fire toggling (which seems to sometimes lead to sound injectors becoming unstoppable)
-        this._toggle = this.clickDownOnEntity = function(hint) { debugPrint("ignoring additonal clicks" + hint); };
 
-        Script.setTimeout(function() {
-            // Save the userData and bump scriptTimestamp, which causes all nearby listeners to apply the state change
-            Entities.editEntity(entity, {
-                userData: JSON.stringify(data),
-                scriptTimestamp: props.scriptTimestamp + 1
-            });
-        }, 250);
+        // Save the userData and notify nearby listeners of the change
+        Entities.editEntity(entity, {
+            userData: JSON.stringify(data)
+        });
+        Messages.sendMessage(entity, "toggled");
     };
 
     this._updateColor = function(disabled) {
@@ -182,7 +182,7 @@
         entity = entityID;
         _this = this;
 
-        var props = Entities.getEntityProperties(entity, [ "name", "userData" ]);
+        var props = Entities.getEntityProperties(entity, [ "userData" ]);
         var data = {};
         if (props.userData) {
             data = JSON.parse(props.userData);
@@ -204,8 +204,17 @@
         }
         this._updateColor(data.disabled);
         this.updateSettings();
-        if (!data.disabled) {
-            checkTimer = Script.setInterval(_this.maybeUpdate, UPDATE_INTERVAL_MSECS);
+
+        // Subscribe to toggle notifications using entity ID as a channel name
+        Messages.subscribe(entity);
+        Messages.messageReceived.connect(this, "_onMessageReceived");
+    };
+
+    this._onMessageReceived = function(channel, message, sender, local) {
+        // Handle incoming toggle notifications
+        if (channel === entity && message === "toggled"/*&& sender !== MyAvatar.sessionUUID*/) {
+            debugPrint("received " + message + " from " + sender);
+            this.updateSettings();
         }
     };
 
@@ -214,9 +223,9 @@
         _this.updateSettings();
         var HYSTERESIS_FRACTION = 0.1;
         var props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
-        if (!props.position) {
-            print("FIXME: ambientSound.js -- expected Entity unavailable!")
-            return _this.cleanup();
+        if (disabled || !props.position) {
+            _this.cleanup();
+            return;
         }
         center = props.position;
         rotation = props.rotation;
@@ -236,11 +245,13 @@
             soundPlaying = false;
             debugPrint("Out of range, stopping ambient sound: " + soundURL);
         }
-    }
+    };
 
     this.unload = function(entityID) {
-        debugPrint("Ambient sound unload ");
+        debugPrint("Ambient sound unload");
         this.cleanup();
+        Messages.unsubscribe(entity);
+        Messages.messageReceived.disconnect(this, "_onMessageReceived");
     };
 
     this.cleanup = function() {
