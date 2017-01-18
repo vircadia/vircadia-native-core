@@ -18,6 +18,8 @@
 #include <cctype>
 #include <time.h>
 #include <mutex>
+#include <thread>
+#include <set>
 
 #include <glm/glm.hpp>
 
@@ -1022,4 +1024,54 @@ bool getProcessorInfo(ProcessorInfo& info) {
 #endif
 
     return false;
+}
+
+
+const QString& getInterfaceSharedMemoryName() {
+    static const QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
+    return applicationName;
+}
+
+const std::vector<uint8_t>& getAvailableCores() {
+    static std::vector<uint8_t> availableCores;
+#ifdef Q_OS_WIN
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        DWORD_PTR defaultProcessAffinity = 0, defaultSystemAffinity = 0;
+        HANDLE process = GetCurrentProcess();
+        GetProcessAffinityMask(process, &defaultProcessAffinity, &defaultSystemAffinity);
+        for (uint64_t i = 0; i < sizeof(DWORD_PTR) * BITS_IN_BYTE; ++i) {
+            DWORD_PTR coreMask = 1;
+            coreMask <<= i;
+            if (0 != (defaultSystemAffinity & coreMask)) {
+                availableCores.push_back(i);
+            }
+        }
+    });
+#endif
+    return availableCores;
+}
+
+void setMaxCores(uint8_t maxCores) {
+#ifdef Q_OS_WIN
+    HANDLE process = GetCurrentProcess();
+    auto availableCores = getAvailableCores();
+    if (availableCores.size() <= maxCores) {
+        DWORD_PTR currentProcessAffinity = 0, currentSystemAffinity = 0;
+        GetProcessAffinityMask(process, &currentProcessAffinity, &currentSystemAffinity);
+        SetProcessAffinityMask(GetCurrentProcess(), currentSystemAffinity);
+        return;
+    }
+
+    DWORD_PTR newProcessAffinity = 0;
+    while (maxCores) {
+        int index = randIntInRange(0, (int)availableCores.size() - 1);
+        DWORD_PTR coreMask = 1;
+        coreMask <<= availableCores[index];
+        newProcessAffinity |= coreMask;
+        availableCores.erase(availableCores.begin() + index);
+        maxCores--;
+    }
+    SetProcessAffinityMask(process, newProcessAffinity);
+#endif
 }
