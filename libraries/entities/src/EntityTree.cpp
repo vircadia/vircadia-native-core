@@ -938,7 +938,6 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
     propertiesIn.setDesiredProperties(oldProperties);
 
     auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
-    qDebug() << "fixme filter input" << propertiesIn << inputValues.toVariant() << in;
     QScriptValueList args;
     args << inputValues;
 
@@ -950,12 +949,17 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
         // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
 
         auto out = QJsonValue::fromVariant(result.toVariant());
-        bool eq = in == out;
-        qDebug() << "in:" << in << "out:" << out << "eq:" << eq;
-        wasChanged = !eq;
+        wasChanged = in != out;
+        if (wasChanged) {
+            // Logging will be removed eventually, but for now, the behavior is so fragile that it's worth logging.
+            qCDebug(entities) << "filter accepted. changed:" << wasChanged;
+            qCDebug(entities) << "  in:" << in;
+            qCDebug(entities) << "  out:" << out;
+        }
+    } else {
+        qCDebug(entities) << "filter rejected. in:" << in;
     }
 
-    qDebug() << "fixme filter accepted:" << accepted << " changed : " << (accepted && wasChanged) << " result:" << propertiesOut << result.toVariant();
     return accepted;
 }
 
@@ -1056,11 +1060,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 if (!allowed || wasChanged) {
                     bumpTimestamp(properties);
                     if (properties.getSimulationOwner().getID() == senderNode->getUUID()) {
-                        qDebug() << "fixme Suppressing ownership from" << senderNode->getUUID();
                         properties.setSimulationOwner(QUuid(), 0);
                     }
                 }
-                qDebug() << "fixme final:" << properties;
                 endFilter = usecTimestampNow();
 
                 // search for the entity by EntityItemID
