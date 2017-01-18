@@ -65,7 +65,8 @@ var WEB_STYLUS_COLOR = { red: 0, green: 240, blue: 0 };
 var WEB_STYLUS_TIP_COLOR = { red: 0, green: 0, blue: 240 };
 var WEB_STYLUS_ALPHA = 1.0;
 var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
-var WEB_TOUCH_DISTANCE = 0.2;
+var WEB_STYLUS_LENGTH = 0.2;
+var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative number) to slide stylus in hand
 
 //
 // distant manipulation
@@ -958,11 +959,13 @@ function MyController(hand) {
         var stylusProperties = {
             // url: Script.resourcesPath() + "meshes/tablet-stylus-skinny.fbx",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
-            localPosition: Vec3.sum({ x: 0.0, y: WEB_TOUCH_DISTANCE / 2.0, z: 0.0 },
+            localPosition: Vec3.sum({ x: 0.0,
+                                      y: WEB_TOUCH_Y_OFFSET,
+                                      z: 0.0 },
                                     getGrabPointSphereOffset(this.handToController())),
             // localRotation: { x: 0, y: 0, z: 0, w: 1 },
             localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
-            // dimensions: { x: 0.01, y: WEB_TOUCH_DISTANCE - WEB_TOUCH_SPHERE_RADIUS, z: 0.01 },
+            dimensions: { x: 0.01,  y: 0.01, z: WEB_STYLUS_LENGTH },
             solid: true,
             visible: true,
             ignoreRayIntersection: true,
@@ -984,7 +987,7 @@ function MyController(hand) {
             return;
         }
         var stylusTipProperties = {
-            localPosition: Vec3.sum({ x: 0, y: WEB_TOUCH_DISTANCE - (WEB_TOUCH_SPHERE_RADIUS / 2.0), z: 0 },
+            localPosition: Vec3.sum({ x: 0, y: WEB_STYLUS_LENGTH - (WEB_TOUCH_SPHERE_RADIUS / 2.0), z: 0 },
                                     getGrabPointSphereOffset(this.handToController())),
             localRotation: { x: 0, y: 0, z: 0, w: 1 },
             dimensions: WEB_TOUCH_SPHERE_RADIUS,
@@ -1002,10 +1005,10 @@ function MyController(hand) {
         this.stylusTip = Overlays.addOverlay("sphere", stylusTipProperties);
 
         var stylusProperties = {
-            localPosition: Vec3.sum({ x: 0.0, y: WEB_TOUCH_DISTANCE / 2.0, z: 0.0 },
+            localPosition: Vec3.sum({ x: 0.0, y: WEB_STYLUS_LENGTH / 2.0, z: 0.0 },
                                     getGrabPointSphereOffset(this.handToController())),
             localRotation: { x: 0, y: 0, z: 0, w: 1 },
-            dimensions: { x: 0.01, y: WEB_TOUCH_DISTANCE - WEB_TOUCH_SPHERE_RADIUS, z: 0.01 },
+            dimensions: { x: 0.01, y: WEB_STYLUS_LENGTH + WEB_TOUCH_SPHERE_RADIUS, z: 0.01 },
             color: WEB_STYLUS_COLOR,
             alpha: WEB_STYLUS_ALPHA,
             solid: true,
@@ -1021,8 +1024,8 @@ function MyController(hand) {
     };
 
     this.showStylus = function() {
-        return this.showPrimStylus();
-        // return this.showModelStylus();
+        // return this.showPrimStylus();
+        return this.showModelStylus();
     };
 
     this.hideStylus = function() {
@@ -1263,7 +1266,7 @@ function MyController(hand) {
         if (nearWeb) {
             this.showStylus();
             var rayPickInfo = this.calcRayPickInfo(this.hand);
-            if (rayPickInfo.distance < WEB_TOUCH_DISTANCE) {
+            if (rayPickInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
                 if (this.handleStylusOnWebEntity(rayPickInfo)) {
                     return;
                 }
@@ -1662,7 +1665,7 @@ function MyController(hand) {
             }
         }
 
-        if (rayPickInfo.distance >= WEB_TOUCH_DISTANCE) {
+        if (rayPickInfo.distance >= WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
             if (this.handleLaserOnWebEntity(rayPickInfo)) {
                 return;
             }
@@ -2761,7 +2764,8 @@ function MyController(hand) {
                                                      getControllerWorldLocation(this.handToController(), true));
         if (intersectInfo) {
 
-            if (this.state == STATE_ENTITY_STYLUS_TOUCHING && intersectInfo.distance > WEB_TOUCH_DISTANCE) {
+            if (this.state == STATE_ENTITY_STYLUS_TOUCHING &&
+                intersectInfo.distance > WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
                 this.grabbedEntity = null;
                 this.setState(STATE_OFF, "pulled away from web entity");
                 return;
@@ -2879,7 +2883,8 @@ function MyController(hand) {
             handLaserIntersectOverlay(this.grabbedOverlay, getControllerWorldLocation(this.handToController(), true));
         if (intersectInfo) {
 
-            if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && intersectInfo.distance > WEB_TOUCH_DISTANCE) {
+            if (this.state == STATE_OVERLAY_STYLUS_TOUCHING &&
+                intersectInfo.distance > WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
                 this.grabbedEntity = null;
                 this.setState(STATE_OFF, "pulled away from overlay");
                 return;
