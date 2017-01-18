@@ -487,8 +487,6 @@ Rectangle {
                     // Set the admin status appropriately
                     userModel.setProperty(userIndex, "admin", admin);
                     userModelData[userIndex].admin = admin; // Defensive programming
-                } else {
-                    console.log("updateUsername() called with unknown UUID: ", userId);
                 }
             }
             break;
@@ -504,8 +502,6 @@ Rectangle {
                     if (userIndex != -1) {
                         userModel.setProperty(userIndex, "audioLevel", audioLevel);
                         userModelData[userIndex].audioLevel = audioLevel; // Defensive programming
-                    } else {
-                        console.log("updateAudioLevel() called with unknown UUID: ", userId);
                     }
                 }
             }

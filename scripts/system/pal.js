@@ -497,7 +497,6 @@ function getAudioLevel(id) {
     var audioLevel = 0.0;
     var data = id ? ExtendedOverlay.get(id) : myData;
     if (!data) {
-        print('no data for', id);
         return audioLevel;
     }
 
