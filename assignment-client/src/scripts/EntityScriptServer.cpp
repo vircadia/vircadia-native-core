@@ -186,6 +186,10 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     connect(newEngine.data(), &ScriptEngine::warningMessage, scriptEngines, &ScriptEngines::onWarningMessage);
     connect(newEngine.data(), &ScriptEngine::infoMessage, scriptEngines, &ScriptEngines::onInfoMessage);
 
+    connect(newEngine.data(), &ScriptEngine::update, this, [this] {
+        _entityViewer.queryOctree();
+    });
+
 
     newEngine->runInThread();
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngine.data());
