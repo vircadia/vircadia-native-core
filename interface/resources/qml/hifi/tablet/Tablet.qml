@@ -222,9 +222,10 @@ Item {
     }
     function nextItem() {
         setCurrentItemState("base state");
-
-        if((rowIndex + columnIndex) != count) {
-            columnIndex = (columnIndex + 3 + 1) % 3
+        var nextColumnIndex = (columnIndex + 3 + 1) % 3;
+        var nextIndex = rowIndex + nextColumnIndex;
+        if(nextIndex <= count) {
+            columnIndex = nextColumnIndex;
         };
         setCurrentItemState("hover state");
     }
