@@ -237,6 +237,11 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
         data = message.params;
         Users.setAvatarGain(data['sessionId'], data['gain']);
         break;
+    case 'displayNameUpdate':
+        if (MyAvatar.displayName != message.params) {
+            MyAvatar.displayName = message.params;
+        }
+        break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
