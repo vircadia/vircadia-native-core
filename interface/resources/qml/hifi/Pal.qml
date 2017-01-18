@@ -41,10 +41,10 @@ Rectangle {
         id: letterboxMessage
         z: 999 // Force the popup on top of everything else
     }
-    function letterbox(message, headerGlyph, headerText) {
-        letterboxMessage.text = message
+    function letterbox(headerGlyph, headerText, message) {
         letterboxMessage.headerGlyph = headerGlyph
         letterboxMessage.headerText = headerText
+        letterboxMessage.text = message
         letterboxMessage.visible = true
         letterboxMessage.popupRadius = 0
     }
@@ -372,11 +372,11 @@ Rectangle {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: letterbox("Bold names in the list are <b>avatar display names</b>.<br>" +
+            onClicked: letterbox(hifi.glyphs.question,
+                                 "Display Names",
+                                 "Bold names in the list are <b>avatar display names</b>.<br>" +
                                  "If a display name isn't set, a unique <b>session display name</b> is assigned." +
-                                 "<br><br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.", 
-                                 hifi.glyphs.question,
-                                 "Display Names")
+                                 "<br><br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.")
             onEntered: helpText.color = hifi.colors.baseGrayHighlight
             onExited: helpText.color = hifi.colors.darkGray
         }
@@ -405,10 +405,10 @@ Rectangle {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: letterbox("<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
-                                 "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.",
-                                 hifi.glyphs.question,
-                                 "Admin Actions")
+            onClicked: letterbox(hifi.glyphs.question,
+                                 "Admin Actions",
+                                 "<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
+                                 "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.")
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
@@ -453,9 +453,9 @@ Rectangle {
             var selected = message.params[1];
             var userIndex = findSessionIndex(sessionIds[0]);
             if (sessionIds.length > 1) {
-                letterbox('Only one user can be selected at a time.', "", "");
+                letterbox("", "", 'Only one user can be selected at a time.');
             } else if (userIndex < 0) {
-                letterbox('The last editor is not among this list of users.', "", "");
+                letterbox("", "", 'The last editor is not among this list of users.');
             } else {
                 if (selected) {
                     table.selection.clear(); // for now, no multi-select

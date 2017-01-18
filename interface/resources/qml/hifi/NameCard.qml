@@ -221,9 +221,9 @@ Item {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
                     hoverEnabled: true
-                    onClicked: letterbox("This user is an admin on this domain. Admins can <b>Silence</b> and <b>Ban</b> other users at their discretion - so be extra nice!",
-                    hifi.glyphs.question,
-                    "Domain Admin")
+                    onClicked: letterbox(hifi.glyphs.question,
+                    "Domain Admin",
+                    "This user is an admin on this domain. Admins can <b>Silence</b> and <b>Ban</b> other users at their discretion - so be extra nice!")
                     onEntered: adminLabelQuestionMarkText.color = "#94132e"
                     onExited: adminLabelQuestionMarkText.color = hifi.colors.redHighlight
                 }
