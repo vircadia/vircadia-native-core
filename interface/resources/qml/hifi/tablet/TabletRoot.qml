@@ -10,8 +10,9 @@ Item {
         loader.source = url;
     }
 
-    function loadWebUrl(url) {
+    function loadWebUrl(url, injectedJavaScriptUrl) {
         loader.item.url = url;
+        loader.item.scriptURL = injectedJavaScriptUrl;
     }
 
     SoundEffect {
@@ -35,6 +36,13 @@ Item {
             // propogate eventBridge to WebEngineView
             if (loader.item.hasOwnProperty("eventBridge")) {
                 loader.item.eventBridge = eventBridge;
+
+                // Hook up callback for clara.io download from the marketplace.
+                eventBridge.webEventReceived.connect(function (event) {
+                    if (event.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+                        ApplicationInterface.addAssetToWorldFromURL(event.slice(18));
+                    }
+                });
             }
         }
     }
