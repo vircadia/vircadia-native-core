@@ -828,6 +828,12 @@ function MyController(hand) {
         }
 
         if (this.ignoreInput()) {
+
+            // Most hand input is disabled, because we are interacting with the 2d hud.
+            // However, we still should check for collisions of the stylus with the web overlay.
+            var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+            this.processStylus(controllerLocation.position);
+
             this.turnOffVisualizations();
             return;
         }
@@ -1155,6 +1161,36 @@ function MyController(hand) {
         return _this.rawThumbValue < THUMB_ON_VALUE;
     };
 
+    this.processStylus = function(worldHandPosition) {
+        // see if the hand is near a tablet or web-entity
+        var candidateEntities = Entities.findEntities(worldHandPosition, WEB_DISPLAY_STYLUS_DISTANCE);
+        entityPropertiesCache.addEntities(candidateEntities);
+        var nearWeb = false;
+        for (var i = 0; i < candidateEntities.length; i++) {
+            var props = entityPropertiesCache.getProps(candidateEntities[i]);
+            if (props && (props.type == "Web" || this.isTablet(props))) {
+                nearWeb = true;
+                break;
+            }
+        }
+
+        if (nearWeb) {
+            this.showStylus();
+            var rayPickInfo = this.calcRayPickInfo(this.hand);
+            if (rayPickInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
+                if (this.handleStylusOnWebEntity(rayPickInfo)) {
+                    return;
+                }
+                if (this.handleStylusOnWebOverlay(rayPickInfo)) {
+                    return;
+                }
+                this.handleStylusOnHomeButton(rayPickInfo);
+            }
+        } else {
+            this.hideStylus();
+        }
+    };
+
     this.off = function(deltaTime, timestamp) {
 
         this.checkForUnexpectedChildren();
@@ -1202,32 +1238,7 @@ function MyController(hand) {
             this.grabPointSphereOff();
         }
 
-        // see if the hand is near a tablet or web-entity
-        candidateEntities = Entities.findEntities(worldHandPosition, WEB_DISPLAY_STYLUS_DISTANCE);
-        var nearWeb = false;
-        for (var i = 0; i < candidateEntities.length; i++) {
-            var props = entityPropertiesCache.getProps(candidateEntities[i]);
-            if (props && (props.type == "Web" || this.isTablet(props))) {
-                nearWeb = true;
-                break;
-            }
-        }
-
-        if (nearWeb) {
-            this.showStylus();
-            var rayPickInfo = this.calcRayPickInfo(this.hand);
-            if (rayPickInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
-                if (this.handleStylusOnWebEntity(rayPickInfo)) {
-                    return;
-                }
-                if (this.handleStylusOnWebOverlay(rayPickInfo)) {
-                    return;
-                }
-                this.handleStylusOnHomeButton(rayPickInfo);
-            }
-        } else {
-            this.hideStylus();
-        }
+        this.processStylus(worldHandPosition);
     };
 
    this.handleStylusOnHomeButton = function(rayPickInfo) {
