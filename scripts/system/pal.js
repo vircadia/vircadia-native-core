@@ -267,7 +267,8 @@ function populateUserList() {
             displayName: avatar.sessionDisplayName,
             userName: '',
             sessionId: id || '',
-            audioLevel: 0.0
+            audioLevel: 0.0,
+            admin: false
         };
         // Request the username, fingerprint, and admin status from the given UUID
         // Username and fingerprint returns "" if the requesting user isn't an admin

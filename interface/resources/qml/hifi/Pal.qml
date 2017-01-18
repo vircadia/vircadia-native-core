@@ -28,7 +28,7 @@ Rectangle {
     property int rowHeight: 70
     property int actionButtonWidth: 75
     property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
-    property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
+    property var myData: ({displayName: "", userName: "", audioLevel: 0.0, admin: true}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
@@ -223,7 +223,7 @@ Rectangle {
                 visible: !isCheckBox && !isButton
                 uuid: model && model.sessionId
                 selected: styleData.selected
-                isAdmin: model && model.isAdmin
+                isAdmin: model && model.admin
                 // Size
                 width: nameCardWidth
                 height: parent.height
@@ -472,7 +472,7 @@ Rectangle {
             var userId = message.params[0];
             // The text that goes in the userName field is the second parameter in the message.
             var userName = message.params[1];
-            var isAdmin = message.params[2];
+            var admin = message.params[2];
             // If the userId is empty, we're updating "myData".
             if (!userId) {
                 myData.userName = userName;
@@ -485,8 +485,8 @@ Rectangle {
                     userModel.setProperty(userIndex, "userName", userName);
                     userModelData[userIndex].userName = userName; // Defensive programming
                     // Set the admin status appropriately
-                    userModel.setProperty(userIndex, "isAdmin", isAdmin);
-                    userModelData[userIndex].isAdmin = isAdmin; // Defensive programming
+                    userModel.setProperty(userIndex, "admin", admin);
+                    userModelData[userIndex].admin = admin; // Defensive programming
                 } else {
                     console.log("updateUsername() called with unknown UUID: ", userId);
                 }

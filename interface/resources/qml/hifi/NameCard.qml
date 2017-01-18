@@ -164,7 +164,7 @@ Item {
                 text: thisNameCard.displayName
                 elide: Text.ElideRight
                 // Size
-                width: Math.min(displayNameTextMetrics.tightBoundingRect.width, parent.width - adminLabelText.width - adminLabelQuestionMark.width)
+                width: isAdmin ? Math.min(displayNameTextMetrics.tightBoundingRect.width + 8, parent.width - adminLabelText.width - adminLabelQuestionMark.width + 8) : parent.width
                 // Anchors
                 anchors.top: parent.top
                 anchors.left: parent.left
@@ -183,13 +183,13 @@ Item {
             // "ADMIN" label for other users' cards
             RalewaySemiBold {
                 id: adminLabelText
+                visible: isAdmin
                 text: "ADMIN"
                 // Text size
                 size: displayNameText.size - 4
                 // Anchors
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: displayNameText.right
-                anchors.leftMargin: 8
                 // Style
                 font.capitalization: Font.AllUppercase
                 color: hifi.colors.redHighlight
@@ -200,6 +200,7 @@ Item {
             // This Rectangle refers to the [?] popup button next to "ADMIN"
             Item {
                 id: adminLabelQuestionMark
+                visible: isAdmin
                 // Size
                 width: 20
                 height: displayNameText.height

@@ -37,71 +37,74 @@ Item {
         anchors.centerIn: parent
         radius: popupRadius
         color: "white"
-        Column {
+        Item {
             id: contentContainer
             width: parent.width - 60
+            height: childrenRect.height
             anchors.centerIn: parent
-            spacing: 20
-            Row {
+            Item {
                 id: popupHeaderContainer
                 visible: headerText.text !== "" || headerGlyph.text !== ""
                 height: 30
-                Column {
-                    // Header Glyph
-                    HiFiGlyphs {
-                        id: headerGlyph
-                        visible: headerGlyph.text !== ""
-                        // Size
-                        height: parent.parent.height
-                        // Anchors
-                        anchors.left: parent.left
-                        anchors.leftMargin: -15
-                        // Text Size
-                        size: headerTextPixelSize*2.5
-                        // Style
-                        horizontalAlignment: Text.AlignHLeft
-                        verticalAlignment: Text.AlignVCenter
-                        color: hifi.colors.darkGray
-                    }
-                }
-                Column {
-                    // Header Text
-                    Text {
-                        id: headerText
-                        visible: headerText.text !== ""
-                        // Size
-                        height: parent.parent.height
-                        // Anchors
-                        anchors.left: parent.left
-                        anchors.leftMargin: -15
-                        // Text Size
-                        font.pixelSize: headerTextPixelSize
-                        // Style
-                        font.family: ralewaySemiBold.name
-                        color: hifi.colors.darkGray
-                        horizontalAlignment: Text.AlignHLeft
-                        verticalAlignment: Text.AlignVCenter
-                        wrapMode: Text.WordWrap
-                        textFormat: Text.StyledText
-                    }
-                }
-            }
-            Row {
-                // Popup Text
-                Text {
-                    id: popupText
+                // Anchors
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                // Header Glyph
+                HiFiGlyphs {
+                    id: headerGlyph
+                    visible: headerGlyph.text !== ""
                     // Size
-                    width: parent.parent.width
-                    // Text alignment
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHLeft
+                    height: parent.height
+                    // Anchors
+                    anchors.left: parent.left
+                    anchors.leftMargin: -15
+                    // Text Size
+                    size: headerTextPixelSize*2.5
                     // Style
-                    font.pixelSize: popupTextPixelSize
-                    font.family: ralewayRegular.name
+                    horizontalAlignment: Text.AlignHLeft
+                    verticalAlignment: Text.AlignVCenter
                     color: hifi.colors.darkGray
+                }
+                // Header Text
+                Text {
+                    id: headerText
+                    visible: headerText.text !== ""
+                    // Size
+                    height: parent.height
+                    // Anchors
+                    anchors.left: headerGlyph.right
+                    anchors.leftMargin: -5
+                    // Text Size
+                    font.pixelSize: headerTextPixelSize
+                    // Style
+                    font.family: ralewaySemiBold.name
+                    color: hifi.colors.darkGray
+                    horizontalAlignment: Text.AlignHLeft
+                    verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
                     textFormat: Text.StyledText
                 }
+            }
+            // Popup Text
+            Text {
+                id: popupText
+                // Size
+                width: parent.width
+                // Anchors
+                anchors.top: popupHeaderContainer.visible ? popupHeaderContainer.bottom : parent.top
+                anchors.topMargin: popupHeaderContainer.visible ? 15 : 0
+                anchors.left: parent.left
+                anchors.right: parent.right
+                // Text alignment
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHLeft
+                // Style
+                font.pixelSize: popupTextPixelSize
+                font.family: ralewayRegular.name
+                color: hifi.colors.darkGray
+                wrapMode: Text.WordWrap
+                textFormat: Text.StyledText
             }
         }
     }
