@@ -311,9 +311,11 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
         var resolution = Overlays.getProperty(overlayID, "resolution");
         resolution.z = 1;  // Circumvent divide-by-zero.
         var scale = Overlays.getProperty(overlayID, "dimensions");
+        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
         dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
+        dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
     }
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
