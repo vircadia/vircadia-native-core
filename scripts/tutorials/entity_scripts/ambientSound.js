@@ -27,6 +27,14 @@
     var DEFAULT_URL = "http://hifi-content.s3.amazonaws.com/ken/samples/forest_ambiX.wav";
     var DEFAULT_VOLUME = 1.0;
 
+    var DEFAULT_USERDATA = {
+        soundURL: DEFAULT_URL,
+        range: DEFAULT_RANGE,
+        maxVolume: DEFAULT_VOLUME,
+        disabled: true,
+        grabbableKey: { wantsTrigger: true },
+    };
+
     var soundURL = "";
     var soundOptions = {
         loop: true,
@@ -60,7 +68,13 @@
         var oldSoundURL = soundURL;
         var props = Entities.getEntityProperties(entity, [ "userData" ]);
         if (props.userData) {
-            var data = JSON.parse(props.userData);
+            try {
+                var data = JSON.parse(props.userData);
+            } catch(e) {
+                debugPrint("unable to parse userData JSON string: " + props.userData);
+                this.cleanup();
+                return;
+            }
             if (data.soundURL && !(soundURL === data.soundURL)) {
                 soundURL = data.soundURL;
                 debugPrint("Read ambient sound URL: " + soundURL);
@@ -125,18 +139,27 @@
             return;
         }
         var props = Entities.getEntityProperties(entity, [ "userData", "age", "scriptTimestamp" ]);
+        if (!props.userData) {
+            debugPrint("userData is empty; ignoring " + hint);
+            this.cleanup();
+            return;
+        }
         var data = JSON.parse(props.userData);
         data.disabled = !data.disabled;
 
         debugPrint(hint + " -- triggering ambient sound " + (data.disabled ? "OFF" : "ON") + " (" + soundURL + ")");
 
         this.cleanup();
+        // Prevent rapid-fire toggling (which seems to sometimes lead to sound injectors becoming unstoppable)
+        this._toggle = this.clickDownOnEntity = function(hint) { debugPrint("ignoring additonal clicks" + hint); };
 
-        // Save the userData and bump scriptTimestamp, which causes all nearby listeners to apply the state change
-        Entities.editEntity(entity, {
-            userData: JSON.stringify(data),
-            scriptTimestamp: Math.round(props.age * 1000)
-        });
+        Script.setTimeout(function() {
+            // Save the userData and bump scriptTimestamp, which causes all nearby listeners to apply the state change
+            Entities.editEntity(entity, {
+                userData: JSON.stringify(data),
+                scriptTimestamp: props.scriptTimestamp + 1
+            });
+        }, 250);
     };
 
     this._updateColor = function(disabled) {
@@ -155,21 +178,35 @@
 
     this.preload = function(entityID) {
         //  Load the sound and range from the entity userData fields, and note the position of the entity.
-        debugPrint("Ambient sound preload");
+        debugPrint("Ambient sound preload " + entityID);
         entity = entityID;
         _this = this;
 
-        var props = Entities.getEntityProperties(entity, [ "userData" ]);
+        var props = Entities.getEntityProperties(entity, [ "name", "userData" ]);
+        var data = {};
         if (props.userData) {
-            var data = JSON.parse(props.userData);
-            this._updateColor(data.disabled);
-            if (data.disabled) {
-                _this.maybeUpdate();
-                return;
+            data = JSON.parse(props.userData);
+        }
+        var changed = false;
+        for(var p in DEFAULT_USERDATA) {
+            if (!(p in data)) {
+                data[p] = DEFAULT_USERDATA[p];
+                changed = true;
             }
         }
-
-        checkTimer = Script.setInterval(_this.maybeUpdate, UPDATE_INTERVAL_MSECS);
+        if (!data.grabbableKey.wantsTrigger) {
+            data.grabbableKey.wantsTrigger = true;
+            changed = true;
+        }
+        if (changed) {
+            debugPrint("applying default values to userData");
+            Entities.editEntity(entity, { userData: JSON.stringify(data) });
+        }
+        this._updateColor(data.disabled);
+        this.updateSettings();
+        if (!data.disabled) {
+            checkTimer = Script.setInterval(_this.maybeUpdate, UPDATE_INTERVAL_MSECS);
+        }
     };
 
     this.maybeUpdate = function() {
