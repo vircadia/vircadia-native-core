@@ -460,10 +460,6 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LastEditedBy, lastEditedBy, "");
 
-    properties.getAnimation().debugDump();
-    properties.getSkybox().debugDump();
-    properties.getStage().debugDump();
-
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";
     debug << "]";
