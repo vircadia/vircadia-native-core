@@ -6,6 +6,8 @@ Item {
     objectName: "tabletRoot"
     property var eventBridge;
 
+    signal showDesktop();
+    
     function loadSource(url) {
         loader.source = url;
     }
@@ -33,7 +35,6 @@ Item {
         height: parent.height
 
         onLoaded: {
-            // propogate eventBridge to WebEngineView
             if (loader.item.hasOwnProperty("eventBridge")) {
                 loader.item.eventBridge = eventBridge;
 
@@ -44,8 +45,12 @@ Item {
                     }
                 });
             }
+            loader.item.forceActiveFocus();
+            offscreenFlags.navigationFocused = true;
         }
     }
+   
+    Component.onDestruction: { offscreenFlags.navigationFocused = false; }
 
     width: 480
     height: 720

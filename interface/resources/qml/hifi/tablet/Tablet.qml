@@ -4,9 +4,10 @@ import QtGraphicalEffects 1.0
 Item {
     id: tablet
     objectName: "tablet"
-
     property double micLevel: 0.8
-
+    property int rowIndex: 0
+    property int columnIndex: 0
+    property int count: (flowMain.children.length - 1)
     width: parent.width
     height: parent.height
 
@@ -42,7 +43,6 @@ Item {
 
         // pass a reference to the tabletRoot object to the button.
         button.tabletRoot = parent.parent;
-
         return button;
     }
 
@@ -212,5 +212,67 @@ Item {
             }
         }
     ]
+
+    function setCurrentItemState(state) {
+        var index = rowIndex + columnIndex;
+
+        if (index >= 0 && index <= count ) {
+            flowMain.children[index].state = state;
+        }
+    }
+    function nextItem() {
+        setCurrentItemState("base state");
+        var nextColumnIndex = (columnIndex + 3 + 1) % 3;
+        var nextIndex = rowIndex + nextColumnIndex;
+        if(nextIndex <= count) {
+            columnIndex = nextColumnIndex;
+        };
+        setCurrentItemState("hover state");
+    }
+    
+    function previousItem() {
+        setCurrentItemState("base state");
+        var prevIndex = (columnIndex + 3 - 1) % 3;
+        if((rowIndex + prevIndex) <= count){
+            columnIndex = prevIndex;
+        }
+        setCurrentItemState("hover state");
+    }
+    
+    function upItem() {
+        setCurrentItemState("base state");
+        rowIndex = rowIndex - 3;
+        if (rowIndex < 0 ) {
+            rowIndex =  (count - (count % 3));
+            var index = rowIndex + columnIndex;
+            if(index  > count) {
+                rowIndex = rowIndex - 3;
+            }
+        }
+        setCurrentItemState("hover state");
+    }
+    
+    function downItem() {
+        setCurrentItemState("base state");
+        rowIndex = rowIndex + 3;
+        var index = rowIndex + columnIndex;
+        if (index  > count ) {
+            rowIndex = 0;
+        }
+        setCurrentItemState("hover state");
+    }
+
+    function selectItem() {
+        flowMain.children[rowIndex + columnIndex].clicked();
+        if (tabletRoot) {
+            tabletRoot.playButtonClickSound();
+        }
+    }
+
+    Keys.onRightPressed: nextItem();
+    Keys.onLeftPressed: previousItem();
+    Keys.onDownPressed: downItem();
+    Keys.onUpPressed: upItem();
+    Keys.onReturnPressed: selectItem();
 }
 

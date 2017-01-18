@@ -58,7 +58,6 @@ Item {
             for (var i = 0; i < items.length; ++i) {
                 var item = items[i];
                 if (!item.visible) continue;
-                console.log(item.title)
                 switch (item.type) {
                 case MenuItemType.Menu:
                     result.append({"name": item.title, "item": item})
@@ -81,6 +80,7 @@ Item {
             if (menuStack.length) {
                 topMenu = menuStack[menuStack.length - 1];
                 topMenu.focus = true;
+                topMenu.forceActiveFocus();
                 // show current menu level on nav bar
                 if (topMenu.objectName === "") {
                     breadcrumbText.text = "Menu";
@@ -90,8 +90,7 @@ Item {
             } else {
                 breadcrumbText.text = "Menu";
                 topMenu = null;
-                //offscreenFlags.navigationFocused = false;
-                menuRoot.enabled = false;
+                offscreenFlags.navigationFocused = false;
             }
         }
 
@@ -99,7 +98,8 @@ Item {
             menuStack.push(newMenu);
             topMenu = newMenu;
             topMenu.focus = true;
-            //offscreenFlags.navigationFocused = true;
+            topMenu.forceActiveFocus();
+            offscreenFlags.navigationFocused = true;
         }
 
         function clearMenus() {
@@ -159,16 +159,20 @@ Item {
 
     function popup(parent, items) {
         d.clearMenus();
-        menuRoot.enabled = true;
         d.buildMenu(items, point);
     }
 
     function closeLastMenu() {
-        if (d.menuStack.length) {
+        if (d.menuStack.length > 1) {
             d.popMenu();
             return true;
         }
         return false;
     }
+
+    function previousItem() { d.topMenu.previousItem(); }
+    function nextItem() { d.topMenu.nextItem(); }
+    function selectCurrentItem() { d.topMenu.selectCurrentItem(); }
+    function previousPage() { d.topMenu.previousPage(); }
 
 }

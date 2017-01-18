@@ -47,6 +47,89 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
     }
 }
 
+QQuickWindow* TabletScriptingInterface::getTabletWindow() {
+    TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet("com.highfidelity.interface.tablet.system"));
+    QObject* qmlSurface = tablet->getTabletSurface();
+    OffscreenQmlSurface* surface = dynamic_cast<OffscreenQmlSurface*>(qmlSurface);
+
+    if (!surface) {
+        return nullptr;
+    }
+    QQuickWindow* window = surface->getWindow();
+    return window;
+}
+
+void TabletScriptingInterface::processMenuEvents(QObject* object, const QKeyEvent* event) {
+    switch (event->key()) {
+        case Qt::Key_Down:
+            QMetaObject::invokeMethod(object, "nextItem");
+            break;
+
+        case Qt::Key_Up:
+            QMetaObject::invokeMethod(object, "previousItem");
+            break;
+
+        case Qt::Key_Left:
+            QMetaObject::invokeMethod(object, "previousPage");
+            break;
+
+        case Qt::Key_Right:
+            QMetaObject::invokeMethod(object, "selectCurrentItem");
+            break;
+
+        case Qt::Key_Return:
+            QMetaObject::invokeMethod(object, "selectCurrentItem");
+            break;
+        defualt:
+            break;
+    }
+}
+
+void TabletScriptingInterface::processTabletEvents(QObject* object, const QKeyEvent* event) {
+    switch (event->key()) {
+        case Qt::Key_Down:
+            QMetaObject::invokeMethod(object, "downItem");
+            break;
+
+        case Qt::Key_Up:
+            QMetaObject::invokeMethod(object, "upItem");
+            break;
+
+        case Qt::Key_Left:
+            QMetaObject::invokeMethod(object, "previousItem");
+            break;
+
+        case Qt::Key_Right:
+            QMetaObject::invokeMethod(object, "nextItem");
+            break;
+
+        case Qt::Key_Return:
+            QMetaObject::invokeMethod(object, "selectItem");
+            break;
+        defualt:
+            break;
+    }
+}
+
+
+void TabletScriptingInterface::processEvent(const QKeyEvent* event) {
+    TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet("com.highfidelity.interface.tablet.system"));
+    QObject* qmlTablet = tablet->getQmlTablet();
+    QObject* qmlMenu = tablet->getQmlMenu();
+
+    if (qmlTablet) {
+        processTabletEvents(qmlTablet, event);
+    } else if (qmlMenu) {
+        processMenuEvents(qmlMenu, event);
+    }
+}
+
+QObject* TabletScriptingInterface::getFlags()
+{
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->getFlags();
+}
+
 //
 // TabletProxy
 //
@@ -200,6 +283,10 @@ void TabletProxy::addButtonsToHomeScreen() {
      QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
 }
 
+QObject* TabletProxy::getTabletSurface() {
+    return _qmlOffscreenSurface;
+}
+
 void TabletProxy::addButtonsToMenuScreen() {
     if (!_qmlTabletRoot) {
         return;
@@ -212,7 +299,6 @@ void TabletProxy::addButtonsToMenuScreen() {
 
     QQuickItem* VrMenu = loader->findChild<QQuickItem*>("tabletMenu");
     if (!VrMenu) {
-        qDebug() << "----------> could not find vr menu";
         return;
     }
 
@@ -244,6 +330,28 @@ QQuickItem* TabletProxy::getQmlTablet() const {
     }
 
     return tablet;
+}
+
+QQuickItem* TabletProxy::getQmlMenu() const {
+     if (!_qmlTabletRoot) {
+        return nullptr;
+    }
+
+    auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+    if (!loader) {
+        return nullptr;
+    }
+
+    QQuickItem* VrMenu = loader->findChild<QQuickItem*>("tabletMenu");
+    if (!VrMenu) {
+        return nullptr;
+    }
+
+    QQuickItem* menuList = VrMenu->findChild<QQuickItem*>("tabletMenuHandlerItem");
+    if (!menuList) {
+        return nullptr;
+    }
+    return menuList;
 }
 
 //

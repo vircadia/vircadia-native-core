@@ -13,12 +13,12 @@ import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
 import "../../styles-uit"
-
+import "."
 FocusScope {
     id: root
     implicitHeight: background.height
     implicitWidth: background.width
-
+    objectName: "root"
     property alias currentItem: listView.currentItem
     property alias model: listView.model
     property bool isSubMenu: false
@@ -45,6 +45,7 @@ FocusScope {
         height: 720
         contentWidth: 480
         contentHeight: 720
+        objectName: "menuList"
 
         topMargin: hifi.dimensions.menuPadding.y
         bottomMargin: hifi.dimensions.menuPadding.y
@@ -107,17 +108,21 @@ FocusScope {
             }
             currentIndex = originalIndex;
         }
-
-        function previousItem() { currentIndex = (currentIndex + count - 1) % count; }
-        function nextItem() { currentIndex = (currentIndex + count + 1) % count; }
-        function selectCurrentItem() { if (currentIndex != -1) root.selected(currentItem.source); }
-
+        
         Keys.onUpPressed: previousItem();
         Keys.onDownPressed: nextItem();
         Keys.onSpacePressed: selectCurrentItem();
         Keys.onRightPressed: selectCurrentItem();
         Keys.onReturnPressed: selectCurrentItem();
+        Keys.onLeftPressed: previousPage();
     }
+
+    function previousItem() { listView.currentIndex = (listView.currentIndex + listView.count - 1) % listView.count; }
+    function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
+    function selectCurrentItem() { if (listView.currentIndex != -1) root.selected(currentItem.source); }
+    function previousPage() { root.parent.pop(); }
+
+    
 }
 
 
