@@ -163,6 +163,8 @@ Item {
                 // Properties
                 text: thisNameCard.displayName
                 elide: Text.ElideRight
+                // Size
+                width: Math.min(displayNameTextMetrics.tightBoundingRect.width, parent.width - adminLabelText.width - adminLabelQuestionMark.width)
                 // Anchors
                 anchors.top: parent.top
                 anchors.left: parent.left
@@ -172,6 +174,11 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 // Style
                 color: hifi.colors.darkGray
+            }
+            TextMetrics {
+                id:     displayNameTextMetrics
+                font:   displayNameText.font
+                text:   displayNameText.text
             }
             // "ADMIN" label for other users' cards
             RalewaySemiBold {
@@ -192,6 +199,7 @@ Item {
             }
             // This Rectangle refers to the [?] popup button next to "ADMIN"
             Item {
+                id: adminLabelQuestionMark
                 // Size
                 width: 20
                 height: displayNameText.height
@@ -199,7 +207,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: adminLabelText.right
                 RalewayRegular {
-                    id: adminLabelQuestionMark
+                    id: adminLabelQuestionMarkText
                     text: "[?]"
                     size: adminLabelText.size
                     font.capitalization: Font.AllUppercase
@@ -212,10 +220,9 @@ Item {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
                     hoverEnabled: true
-                    onClicked: letterbox('Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
-                                            "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page.)")
-                    onEntered: adminLabelQuestionMark.color = "#94132e"
-                    onExited: adminLabelQuestionMark.color = hifi.colors.redHighlight
+                    onClicked: letterbox("This user is an admin on this domain. Admins can <b>Silence</b> and <b>Ban</b> other users at their discretion - so be extra nice!", hifi.glyphs.question, "Domain Admin")
+                    onEntered: adminLabelQuestionMarkText.color = "#94132e"
+                    onExited: adminLabelQuestionMarkText.color = hifi.colors.redHighlight
                 }
             }
         }

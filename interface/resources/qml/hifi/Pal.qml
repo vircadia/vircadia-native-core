@@ -41,8 +41,10 @@ Rectangle {
         id: letterboxMessage
         z: 999 // Force the popup on top of everything else
     }
-    function letterbox(message) {
+    function letterbox(message, headerGlyph, headerText) {
         letterboxMessage.text = message
+        letterboxMessage.headerGlyph = headerGlyph
+        letterboxMessage.headerText = headerText
         letterboxMessage.visible = true
         letterboxMessage.popupRadius = 0
     }
@@ -372,7 +374,7 @@ Rectangle {
             hoverEnabled: true
             onClicked: letterbox("Bold names in the list are Avatar Display Names.\n" +
                                  "If a Display Name isn't set, a unique Session Display Name is assigned." +
-                                 "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present.")
+                                 "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present.", "", "")
             onEntered: helpText.color = hifi.colors.baseGrayHighlight
             onExited: helpText.color = hifi.colors.darkGray
         }
@@ -402,7 +404,7 @@ Rectangle {
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
             onClicked: letterbox('Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
-                                 "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page.)")
+                                 "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page.)", "", "")
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
@@ -447,9 +449,9 @@ Rectangle {
             var selected = message.params[1];
             var userIndex = findSessionIndex(sessionIds[0]);
             if (sessionIds.length > 1) {
-                letterbox('Only one user can be selected at a time.');
+                letterbox('Only one user can be selected at a time.', "", "");
             } else if (userIndex < 0) {
-                letterbox('The last editor is not among this list of users.');
+                letterbox('The last editor is not among this list of users.', "", "");
             } else {
                 if (selected) {
                     table.selection.clear(); // for now, no multi-select
@@ -499,7 +501,7 @@ Rectangle {
                         userModel.setProperty(userIndex, "audioLevel", audioLevel);
                         userModelData[userIndex].audioLevel = audioLevel; // Defensive programming
                     } else {
-                        console.log("updateUsername() called with unknown UUID: ", userId);
+                        console.log("updateAudioLevel() called with unknown UUID: ", userId);
                     }
                 }
             }
