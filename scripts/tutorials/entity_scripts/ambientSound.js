@@ -212,7 +212,7 @@
 
     this._onMessageReceived = function(channel, message, sender, local) {
         // Handle incoming toggle notifications
-        if (channel === entity && message === "toggled"/*&& sender !== MyAvatar.sessionUUID*/) {
+        if (channel === entity && message === "toggled") {
             debugPrint("received " + message + " from " + sender);
             this.updateSettings();
         }
