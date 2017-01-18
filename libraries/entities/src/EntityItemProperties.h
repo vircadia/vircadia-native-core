@@ -73,7 +73,7 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUknownCreateTime = false) const;
+    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUknownCreateTime = false, bool strictSemantics = false) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
     static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
@@ -93,6 +93,8 @@ public:
 
     void debugDump() const;
     void setLastEdited(quint64 usecTime);
+    EntityPropertyFlags getDesiredProperties() { return _desiredProperties; }
+    void setDesiredProperties(EntityPropertyFlags properties) {  _desiredProperties = properties; }
 
     // Note:  DEFINE_PROPERTY(PROP_FOO, Foo, foo, type, value) creates the following methods and variables:
     // type getFoo() const;
