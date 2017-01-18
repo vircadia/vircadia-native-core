@@ -154,6 +154,9 @@ void Web3DOverlay::loadSourceURL() {
             auto flags = tabletScriptingInterface->getFlags();
             _webSurface->getRootContext()->setContextProperty("offscreenFlags", flags);
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
+
+            // Override min fps for tablet UI, for silky smooth scrolling
+            _webSurface->setMaxFps(90);
         }
     }
     _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
