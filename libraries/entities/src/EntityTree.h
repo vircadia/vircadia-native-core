@@ -289,6 +289,7 @@ protected:
     static bool findInBoxOperation(OctreeElementPointer element, void* extraData);
     static bool findInFrustumOperation(OctreeElementPointer element, void* extraData);
     static bool sendEntitiesOperation(OctreeElementPointer element, void* extraData);
+    static void bumpTimestamp(EntityItemProperties& properties);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
