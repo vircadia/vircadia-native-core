@@ -1910,7 +1910,7 @@ function MyController(hand) {
                 Overlays.sendHoverOverOverlay(overlay, pointerEvent);
             }
 
-            if (this.triggerSmoothedGrab() && !isEditing()) {
+            if (this.triggerSmoothedGrab()) {
                 this.grabbedOverlay = overlay;
                 this.setState(STATE_OVERLAY_LASER_TOUCHING, "begin touching overlay '" + overlay + "'");
                 return true;
