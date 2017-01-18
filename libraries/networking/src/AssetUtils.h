@@ -27,6 +27,8 @@ using AssetHash = QString;
 using AssetMapping = std::map<AssetPath, AssetHash>;
 using AssetPathList = QStringList;
 
+const MessageID INVALID_MESSAGE_ID = 0;
+
 const size_t SHA256_HASH_LENGTH = 32;
 const size_t SHA256_HASH_HEX_LENGTH = 64;
 const uint64_t MAX_UPLOAD_SIZE = 1000 * 1000 * 1000; // 1GB
