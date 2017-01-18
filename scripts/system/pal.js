@@ -577,80 +577,6 @@ function createAudioInterval() {
     }, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 }
 
-//
-// Manage the connection between the button and the window.
-//
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-var buttonName = "pal";
-var button = toolBar.addButton({
-    objectName: buttonName,
-    imageURL: Script.resolvePath("assets/images/tools/people.svg"),
-    visible: true,
-    hoverState: 2,
-    defaultState: 1,
-    buttonState: 1,
-    alpha: 0.9
-});
-var isWired = false;
-function off() {
-    if (isWired) { // It is not ok to disconnect these twice, hence guard.
-        Script.update.disconnect(updateOverlays);
-        Controller.mousePressEvent.disconnect(handleMouseEvent);
-        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-        isWired = false;
-<<<<<<< HEAD
-    }
-    triggerMapping.disable(); // It's ok if we disable twice.
-    triggerPressMapping.disable(); // see above
-    removeOverlays();
-    Users.requestsDomainListData = false;
-    if (audioInterval) {
-        Script.clearInterval(audioInterval);
-    }
-}
-function onClicked() {
-    if (!pal.visible) {
-        Users.requestsDomainListData = true;
-        populateUserList();
-        pal.raise();
-        isWired = true;
-        Script.update.connect(updateOverlays);
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-        createAudioInterval();
-    } else {
-        off();
-    }
-=======
-    }
-    triggerMapping.disable(); // It's ok if we disable twice.
-    triggerPressMapping.disable(); // see above
-    removeOverlays();
-    Users.requestsDomainListData = false;
-    if (audioInterval) {
-        Script.clearInterval(audioInterval);
-    }
-}
-function onClicked() {
-    if (!pal.visible) {
-        Users.requestsDomainListData = true;
-        populateUserList();
-        pal.raise();
-        isWired = true;
-        Script.update.connect(updateOverlays);
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-        createAudioInterval();
-    } else {
-        off();
-    }
->>>>>>> b02a5f85ec6733b8c6cf5e3f19ce34ed8a375300
-    pal.setVisible(!pal.visible);
-}
 function avatarDisconnected(nodeID) {
     // remove from the pal list
     pal.sendToQml({method: 'avatarDisconnected', params: [nodeID]});
@@ -659,9 +585,7 @@ function avatarDisconnected(nodeID) {
 // Button state.
 //
 function onVisibleChanged() {
-    button.writeProperty('buttonState', pal.visible ? 0 : 1);
-    button.writeProperty('defaultState', pal.visible ? 0 : 1);
-    button.writeProperty('hoverState', pal.visible ? 2 : 3);
+    button.editProperties({isActive: pal.visible});
 }
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
