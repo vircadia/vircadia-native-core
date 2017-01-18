@@ -60,7 +60,9 @@
     }
 
     function toggleHand(channel, hand, senderUUID, localOnly) {
-        activeHand = JSON.parse(hand);
+        if (channel === "toggleHand") {
+            activeHand = JSON.parse(hand);
+        }
     }
 
     Messages.subscribe("toggleHand");

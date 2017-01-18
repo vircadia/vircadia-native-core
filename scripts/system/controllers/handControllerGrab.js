@@ -311,9 +311,11 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
         var resolution = Overlays.getProperty(overlayID, "resolution");
         resolution.z = 1;  // Circumvent divide-by-zero.
         var scale = Overlays.getProperty(overlayID, "dimensions");
+        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
         dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
+        dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
     }
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
@@ -826,6 +828,12 @@ function MyController(hand) {
         }
 
         if (this.ignoreInput()) {
+
+            // Most hand input is disabled, because we are interacting with the 2d hud.
+            // However, we still should check for collisions of the stylus with the web overlay.
+            var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+            this.processStylus(controllerLocation.position);
+
             this.turnOffVisualizations();
             return;
         }
@@ -1153,6 +1161,36 @@ function MyController(hand) {
         return _this.rawThumbValue < THUMB_ON_VALUE;
     };
 
+    this.processStylus = function(worldHandPosition) {
+        // see if the hand is near a tablet or web-entity
+        var candidateEntities = Entities.findEntities(worldHandPosition, WEB_DISPLAY_STYLUS_DISTANCE);
+        entityPropertiesCache.addEntities(candidateEntities);
+        var nearWeb = false;
+        for (var i = 0; i < candidateEntities.length; i++) {
+            var props = entityPropertiesCache.getProps(candidateEntities[i]);
+            if (props && (props.type == "Web" || this.isTablet(props))) {
+                nearWeb = true;
+                break;
+            }
+        }
+
+        if (nearWeb) {
+            this.showStylus();
+            var rayPickInfo = this.calcRayPickInfo(this.hand);
+            if (rayPickInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
+                if (this.handleStylusOnWebEntity(rayPickInfo)) {
+                    return;
+                }
+                if (this.handleStylusOnWebOverlay(rayPickInfo)) {
+                    return;
+                }
+                this.handleStylusOnHomeButton(rayPickInfo);
+            }
+        } else {
+            this.hideStylus();
+        }
+    };
+
     this.off = function(deltaTime, timestamp) {
 
         this.checkForUnexpectedChildren();
@@ -1200,32 +1238,7 @@ function MyController(hand) {
             this.grabPointSphereOff();
         }
 
-        // see if the hand is near a tablet or web-entity
-        candidateEntities = Entities.findEntities(worldHandPosition, WEB_DISPLAY_STYLUS_DISTANCE);
-        var nearWeb = false;
-        for (var i = 0; i < candidateEntities.length; i++) {
-            var props = entityPropertiesCache.getProps(candidateEntities[i]);
-            if (props && (props.type == "Web" || this.isTablet(props))) {
-                nearWeb = true;
-                break;
-            }
-        }
-
-        if (nearWeb) {
-            this.showStylus();
-            var rayPickInfo = this.calcRayPickInfo(this.hand);
-            if (rayPickInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
-                if (this.handleStylusOnWebEntity(rayPickInfo)) {
-                    return;
-                }
-                if (this.handleStylusOnWebOverlay(rayPickInfo)) {
-                    return;
-                }
-                this.handleStylusOnHomeButton(rayPickInfo);
-            }
-        } else {
-            this.hideStylus();
-        }
+        this.processStylus(worldHandPosition);
     };
 
    this.handleStylusOnHomeButton = function(rayPickInfo) {
@@ -1910,7 +1923,7 @@ function MyController(hand) {
                 Overlays.sendHoverOverOverlay(overlay, pointerEvent);
             }
 
-            if (this.triggerSmoothedGrab() && !isEditing()) {
+            if (this.triggerSmoothedGrab()) {
                 this.grabbedOverlay = overlay;
                 this.setState(STATE_OVERLAY_LASER_TOUCHING, "begin touching overlay '" + overlay + "'");
                 return true;
