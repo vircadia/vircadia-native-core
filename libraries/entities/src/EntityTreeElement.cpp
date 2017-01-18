@@ -94,7 +94,7 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
 bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const {
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-
+    
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
                         = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
@@ -289,6 +289,11 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
                 if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastViewFrustumSent) {
                     includeThisEntity = false;
+                }
+                
+                if (!params.jsonFilters.isEmpty()) {
+                    // if params include JSON filters, check if this entity matches
+                    includeThisEntity = entity->matchesJSONFilters(params.jsonFilters);
                 }
 
                 if (hadElementExtraData) {

@@ -2233,3 +2233,22 @@ void EntityItem::globalizeProperties(EntityItemProperties& properties, const QSt
     QUuid empty;
     properties.setParentID(empty);
 }
+
+
+bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
+    // currently the only property filter we handle is '+' which means that query is only asking for entities
+    // where the given property is non-default
+    
+    // enumerate the filter object - for each key present check if the filter (which we only expect to be '+' right now)
+    // tells us that we should include this entity or not
+    bool matchedAllFilters = true;
+    
+    for (auto& property : jsonFilters.keys()) {
+        if (jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
+            // check if this entity has a non-default value for the given property
+            
+        }
+    }
+    
+    return matchedAllFilters;
+}

@@ -470,6 +470,8 @@ public:
 
     QUuid getLastEditedBy() const { return _lastEditedBy; }
     void setLastEditedBy(QUuid value) { _lastEditedBy = value; }
+    
+    bool matchesJSONFilters(const QJsonObject& jsonFilters) const;
 
 protected:
 

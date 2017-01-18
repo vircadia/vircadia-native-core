@@ -31,6 +31,9 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 class EntitySimulation;
 
+namespace EntityQueryFilterSymbol {
+    static const QString NonDefault = "+";
+}
 
 class NewlyCreatedEntityHook {
 public:

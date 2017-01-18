@@ -17,9 +17,6 @@
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
 
-const QString OctreeQuery::NON_DEFAULT_FILTER = "+";
-
-
 OctreeQuery::OctreeQuery() {
     _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
 }

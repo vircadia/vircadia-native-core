@@ -91,7 +91,8 @@ void EntityScriptServer::run() {
     
     // setup the JSON filter that asks for entities with a non-default serverScripts property
     QJsonObject queryJSONParameters;
-    queryJSONParameters["serverScripts"] = OctreeQuery::NON_DEFAULT_FILTER;
+    static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
+    queryJSONParameters[SERVER_SCRIPTS_PROPERTY] = EntityQueryFilterSymbol::NonDefault;
     
     // setup the JSON parameters so that OctreeQuery does not use a frustum and uses our JSON filter
     _entityViewer.getOctreeQuery().setUsesFrustum(false);

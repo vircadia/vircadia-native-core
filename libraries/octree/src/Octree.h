@@ -17,6 +17,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QtCore/QJsonObject>
 
 #include <shared/ReadWriteLockable.h>
 #include <SimpleMovingAverage.h>
@@ -81,6 +82,7 @@ public:
     OctreeSceneStats* stats;
     JurisdictionMap* jurisdictionMap;
     OctreeElementExtraEncodeData* extraEncodeData;
+    QJsonObject jsonFilters;
 
     // output hints from the encode process
     typedef enum {
@@ -108,7 +110,8 @@ public:
         bool forceSendScene = true,
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
         JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
-        OctreeElementExtraEncodeData* extraEncodeData = NULL) :
+        OctreeElementExtraEncodeData* extraEncodeData = NULL,
+        QJsonObject jsonFilters = QJsonObject()) :
             lastViewFrustumSent(lastViewFrustumSent),
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
@@ -121,6 +124,7 @@ public:
             stats(stats),
             jurisdictionMap(jurisdictionMap),
             extraEncodeData(extraEncodeData),
+            jsonFilters(jsonFilters),
             stopReason(UNKNOWN)
     {
         lastViewFrustum.invalidate();

@@ -127,7 +127,6 @@ public:
 
     bool alreadyFullyEncoded(EncodeBitstreamParams& params) const;
 
-
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
     virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData,
                                                          EncodeBitstreamParams& params) const override;
