@@ -403,8 +403,10 @@ Rectangle {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: letterbox('Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
-                                 "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page.)", "", "")
+            onClicked: letterbox("<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
+                                 "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings Page.)",
+                                 hifi.glyphs.question,
+                                 "Admin Actions")
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
