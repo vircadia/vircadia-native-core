@@ -372,9 +372,11 @@ Rectangle {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: letterbox("Bold names in the list are Avatar Display Names.\n" +
-                                 "If a Display Name isn't set, a unique Session Display Name is assigned." +
-                                 "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present.", "", "")
+            onClicked: letterbox("Bold names in the list are <b>avatar display names</b>.<br>" +
+                                 "If a display name isn't set, a unique <b>session display name</b> is assigned." +
+                                 "<br><br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.", 
+                                 hifi.glyphs.question,
+                                 "Display Names")
             onEntered: helpText.color = hifi.colors.baseGrayHighlight
             onExited: helpText.color = hifi.colors.darkGray
         }
@@ -404,7 +406,7 @@ Rectangle {
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
             onClicked: letterbox("<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
-                                 "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings Page.)",
+                                 "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.",
                                  hifi.glyphs.question,
                                  "Admin Actions")
             onEntered: adminHelpText.color = "#94132e"

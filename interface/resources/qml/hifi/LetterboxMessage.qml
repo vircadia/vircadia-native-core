@@ -33,7 +33,7 @@ Item {
     }
     Rectangle {
         width: Math.max(parent.width * 0.75, 400)
-        height: childrenRect.height + 50
+        height: contentContainer.height + 50
         anchors.centerIn: parent
         radius: popupRadius
         color: "white"

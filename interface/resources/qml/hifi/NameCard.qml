@@ -261,7 +261,7 @@ Item {
         Rectangle {
             id: nameCardVUMeter
             // Size
-            width: isMyCard ? myDisplayName.width - 20 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
+            width: isMyCard ? myDisplayName.width - 70 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
             height: 8
             // Anchors
             anchors.top: userNameSpacer.bottom
