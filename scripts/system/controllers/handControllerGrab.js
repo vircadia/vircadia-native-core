@@ -948,7 +948,7 @@ function MyController(hand) {
         }
     };
 
-    this.showModelStylus = function() {
+    this.showStylus = function() {
         if (this.stylus) {
             return;
         }
@@ -957,15 +957,13 @@ function MyController(hand) {
         }
 
         var stylusProperties = {
-            // url: Script.resourcesPath() + "meshes/tablet-stylus-skinny.fbx",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
             localPosition: Vec3.sum({ x: 0.0,
                                       y: WEB_TOUCH_Y_OFFSET,
                                       z: 0.0 },
                                     getGrabPointSphereOffset(this.handToController())),
-            // localRotation: { x: 0, y: 0, z: 0, w: 1 },
             localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
-            dimensions: { x: 0.01,  y: 0.01, z: WEB_STYLUS_LENGTH },
+            dimensions: { x: 0.01, y: 0.01, z: WEB_STYLUS_LENGTH },
             solid: true,
             visible: true,
             ignoreRayIntersection: true,
@@ -976,56 +974,6 @@ function MyController(hand) {
                                                      "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
         };
         this.stylus = Overlays.addOverlay("model", stylusProperties);
-    };
-
-
-    this.showPrimStylus = function() {
-        if (this.stylus) {
-            return;
-        }
-        if (!MyAvatar.sessionUUID) {
-            return;
-        }
-        var stylusTipProperties = {
-            localPosition: Vec3.sum({ x: 0, y: WEB_STYLUS_LENGTH - (WEB_TOUCH_SPHERE_RADIUS / 2.0), z: 0 },
-                                    getGrabPointSphereOffset(this.handToController())),
-            localRotation: { x: 0, y: 0, z: 0, w: 1 },
-            dimensions: WEB_TOUCH_SPHERE_RADIUS,
-            color: WEB_STYLUS_TIP_COLOR,
-            alpha: WEB_STYLUS_ALPHA,
-            solid: true,
-            visible: true,
-            ignoreRayIntersection: true,
-            drawInFront: false,
-            parentID: MyAvatar.sessionUUID,
-            parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                     "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                     "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
-        };
-        this.stylusTip = Overlays.addOverlay("sphere", stylusTipProperties);
-
-        var stylusProperties = {
-            localPosition: Vec3.sum({ x: 0.0, y: WEB_STYLUS_LENGTH / 2.0, z: 0.0 },
-                                    getGrabPointSphereOffset(this.handToController())),
-            localRotation: { x: 0, y: 0, z: 0, w: 1 },
-            dimensions: { x: 0.01, y: WEB_STYLUS_LENGTH + WEB_TOUCH_SPHERE_RADIUS, z: 0.01 },
-            color: WEB_STYLUS_COLOR,
-            alpha: WEB_STYLUS_ALPHA,
-            solid: true,
-            visible: true,
-            ignoreRayIntersection: true,
-            drawInFront: false,
-            parentID: MyAvatar.sessionUUID,
-            parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                     "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                     "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
-        };
-        this.stylus = Overlays.addOverlay("cube", stylusProperties);
-    };
-
-    this.showStylus = function() {
-        // return this.showPrimStylus();
-        return this.showModelStylus();
     };
 
     this.hideStylus = function() {
