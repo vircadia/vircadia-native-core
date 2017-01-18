@@ -1033,12 +1033,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 if (key != Qt::Key_unknown) {
                     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
                     sendEvent(window, &event);
+                    tabletScriptingInterface->processEvent(&event);
                     lastKey = key;
                 }
             } else if (key != Qt::Key_unknown && window) {
                 if (state) {
                     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
                     sendEvent(window, &event);
+                    tabletScriptingInterface->processEvent(&event);
                 } else {
                     QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);
                     sendEvent(window, &event);

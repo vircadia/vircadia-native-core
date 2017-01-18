@@ -1,12 +1,14 @@
 import QtQuick 2.0
 import Hifi 1.0
-
+import "../../desktop"
 FocusScope {
     id: tabletRoot
     objectName: "tabletRoot"
     property var eventBridge;
     property bool desktopRoot: true
 
+    signal showDesktop();
+    
     function loadSource(url) {
         loader.source = url;
     }
@@ -24,15 +26,7 @@ FocusScope {
     function playButtonClickSound() {
         buttonClickSound.play(globalPosition);
     }
-
-    function forceFocus() {
-        console.log(loader.item.objectName);
-        offscreenWindow.requestActivate();
-        loader.item.forceActiveFocus();
-        console.log("----------> adding focus");
-        console.log("------>Current foucs itrm: " + offscreenWindow.activeFocusItem);
-    }
-
+    
     Loader {
         id: loader
         objectName: "loader"
@@ -42,7 +36,6 @@ FocusScope {
         height: parent.height
 
         onLoaded: {
-            // propogate eventBridge to WebEngineView
             if (loader.item.hasOwnProperty("eventBridge")) {
                 loader.item.eventBridge = eventBridge;
 
@@ -53,12 +46,13 @@ FocusScope {
                     }
                 });
             }
-            //loader.item.parent = tablxetRoot;
             loader.item.forceActiveFocus();
-            offscreenFlags.navigationFocus = true;
-            console.log(loader.item.count);
-            console.log("Current focus item " + offscreenWindow.activeFocusItem);
+            offscreenFlags.navigationFocused = true;
         }
+    }
+    Component.onCompleted: {
+        offscreenWindow.requestActivate();
+        offscreenWindow.forceActiveFocus();
     }
     Component.onDestruction: { offscreenFlags.navigationFocused = false; }
 

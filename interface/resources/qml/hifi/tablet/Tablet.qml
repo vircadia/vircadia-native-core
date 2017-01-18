@@ -1,9 +1,8 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
 
-FocusScope {
+Item {
     id: tablet
-    focus: true
     objectName: "tablet"
     property double micLevel: 0.8
     property int rowIndex: 0
@@ -213,6 +212,9 @@ FocusScope {
             }
         }
     ]
+
+    Component.onCompleted: {
+        console.log("On Complete tab: " + activeFocus ); }
 
     function setCurrentItemState(state) {
         var index = rowIndex + columnIndex;

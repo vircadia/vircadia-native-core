@@ -81,6 +81,7 @@ Item {
             if (menuStack.length) {
                 topMenu = menuStack[menuStack.length - 1];
                 topMenu.focus = true;
+                topMenu.forceActiveFocus();
                 // show current menu level on nav bar
                 if (topMenu.objectName === "") {
                     breadcrumbText.text = "Menu";
@@ -98,6 +99,7 @@ Item {
             menuStack.push(newMenu);
             topMenu = newMenu;
             topMenu.focus = true;
+            topMenu.forceActiveFocus();
             offscreenFlags.navigationFocused = true;
         }
 

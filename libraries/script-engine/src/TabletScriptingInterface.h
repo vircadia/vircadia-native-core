@@ -47,9 +47,15 @@ public:
 
     void setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
+    void processEvent(const QKeyEvent* event);
+
     QQuickWindow* getTabletWindow();
 
     QObject* getFlags();
+
+private:
+    void processMenuEvents(QObject* object, const QKeyEvent* event);
+    void processTabletEvents(QObject* object, const QKeyEvent* event);
 
 protected:
     std::mutex _mutex;
@@ -119,6 +125,10 @@ public:
 
     QObject* getTabletSurface();
 
+    QQuickItem* getQmlTablet() const;
+
+    QQuickItem* getQmlMenu() const;
+
 signals:
     /**jsdoc
      * Signaled when this tablet receives an event from the html/js embedded in the tablet
@@ -133,7 +143,6 @@ private slots:
     void addButtonsToMenuScreen();
 protected:
     void removeButtonsFromHomeScreen();
-    QQuickItem* getQmlTablet() const;
 
     QString _name;
     std::mutex _mutex;

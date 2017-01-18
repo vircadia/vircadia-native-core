@@ -18,7 +18,7 @@ FocusScope {
     id: root
     implicitHeight: background.height
     implicitWidth: background.width
-    
+    objectName: "root"
     property alias currentItem: listView.currentItem
     property alias model: listView.model
     property bool isSubMenu: false
@@ -45,6 +45,7 @@ FocusScope {
         height: 720
         contentWidth: 480
         contentHeight: 720
+        objectName: "menuList"
 
         topMargin: hifi.dimensions.menuPadding.y
         bottomMargin: hifi.dimensions.menuPadding.y
