@@ -213,9 +213,6 @@ Item {
         }
     ]
 
-    Component.onCompleted: {
-        console.log("On Complete tab: " + activeFocus ); }
-
     function setCurrentItemState(state) {
         var index = rowIndex + columnIndex;
 
@@ -249,10 +246,8 @@ Item {
             var index = rowIndex + columnIndex;
             if(index  > count) {
                 rowIndex = rowIndex - 3;
-                console.log("index: " + (rowIndex +columnIndex));
             }
         }
-        console.log("row index: " + rowIndex);
         setCurrentItemState("hover state");
     }
     

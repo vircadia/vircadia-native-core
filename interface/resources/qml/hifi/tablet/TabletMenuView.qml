@@ -120,7 +120,7 @@ FocusScope {
     function previousItem() { listView.currentIndex = (listView.currentIndex + listView.count - 1) % listView.count; }
     function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
     function selectCurrentItem() { if (listView.currentIndex != -1) root.selected(currentItem.source); }
-    function previousPage() { root.parent.pop();  }
+    function previousPage() { root.parent.pop(); }
 
     
 }

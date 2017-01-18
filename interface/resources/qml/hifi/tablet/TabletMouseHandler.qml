@@ -58,7 +58,6 @@ Item {
             for (var i = 0; i < items.length; ++i) {
                 var item = items[i];
                 if (!item.visible) continue;
-                console.log(item.title)
                 switch (item.type) {
                 case MenuItemType.Menu:
                     result.append({"name": item.title, "item": item})
@@ -164,7 +163,7 @@ Item {
     }
 
     function closeLastMenu() {
-        if (d.menuStack.length) {
+        if (d.menuStack.length > 1) {
             d.popMenu();
             return true;
         }

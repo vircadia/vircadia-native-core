@@ -1,11 +1,10 @@
 import QtQuick 2.0
 import Hifi 1.0
-import "../../desktop"
-FocusScope {
+
+Item {
     id: tabletRoot
     objectName: "tabletRoot"
     property var eventBridge;
-    property bool desktopRoot: true
 
     signal showDesktop();
     
@@ -26,7 +25,7 @@ FocusScope {
     function playButtonClickSound() {
         buttonClickSound.play(globalPosition);
     }
-    
+
     Loader {
         id: loader
         objectName: "loader"
@@ -50,10 +49,7 @@ FocusScope {
             offscreenFlags.navigationFocused = true;
         }
     }
-    Component.onCompleted: {
-        offscreenWindow.requestActivate();
-        offscreenWindow.forceActiveFocus();
-    }
+   
     Component.onDestruction: { offscreenFlags.navigationFocused = false; }
 
     width: 480

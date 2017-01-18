@@ -351,7 +351,6 @@ QQuickItem* TabletProxy::getQmlMenu() const {
     if (!menuList) {
         return nullptr;
     }
-    qDebug() << "---------->found menuList";
     return menuList;
 }
 
