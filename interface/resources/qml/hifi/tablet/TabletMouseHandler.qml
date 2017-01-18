@@ -171,4 +171,9 @@ Item {
         return false;
     }
 
+    function previousItem() { d.topMenu.previousItem(); }
+    function nextItem() { d.topMenu.nextItem(); }
+    function selectCurrentItem() { d.topMenu.selectCurrentItem(); }
+    function previousPage() { d.topMenu.previousPage(); }
+
 }

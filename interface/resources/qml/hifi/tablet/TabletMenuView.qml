@@ -108,12 +108,7 @@ FocusScope {
             }
             currentIndex = originalIndex;
         }
-
-        function previousItem() { currentIndex = (currentIndex + count - 1) % count; }
-        function nextItem() { currentIndex = (currentIndex + count + 1) % count; }
-        function selectCurrentItem() { if (currentIndex != -1) root.selected(currentItem.source); }
-        function previousPage() { root.parent.pop();  }
-
+        
         Keys.onUpPressed: previousItem();
         Keys.onDownPressed: nextItem();
         Keys.onSpacePressed: selectCurrentItem();
@@ -121,6 +116,13 @@ FocusScope {
         Keys.onReturnPressed: selectCurrentItem();
         Keys.onLeftPressed: previousPage();
     }
+
+    function previousItem() { listView.currentIndex = (listView.currentIndex + listView.count - 1) % listView.count; }
+    function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
+    function selectCurrentItem() { if (listView.currentIndex != -1) root.selected(currentItem.source); }
+    function previousPage() { root.parent.pop();  }
+
+    
 }
 
 

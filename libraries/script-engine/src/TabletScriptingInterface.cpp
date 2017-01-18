@@ -347,7 +347,7 @@ QQuickItem* TabletProxy::getQmlMenu() const {
         return nullptr;
     }
 
-    QQuickItem* menuList = VrMenu->findChild<QQuickItem*>("menuList");
+    QQuickItem* menuList = VrMenu->findChild<QQuickItem*>("tabletMenuHandlerItem");
     if (!menuList) {
         return nullptr;
     }
