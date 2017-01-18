@@ -29,20 +29,36 @@ var HOME_BUTTON_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-home
 //    * rotation - rotation of entity so it faces the user.
 function calcSpawnInfo(hand, height) {
     var noHands = -1;
-    if (HMD.active && hand != noHands) {
-        var handController = getControllerWorldLocation(hand, false);
-        var controllerPosition  = handController.position;
-        var originalOrientation = Quat.lookAt(controllerPosition, HMD.position, Y_AXIS);
-        var yDisplacement = (height/2) + 0.2;
-        var tabletOffset = Vec3.multiplyQbyV(Quat.lookAt(controllerPosition, HMD.position, Y_AXIS), {x: 0, y: yDisplacement, z: -0.2});
-        var finalPosition = Vec3.sum(controllerPosition, tabletOffset);
+    var finalPosition;
+    if (HMD.active && hand !== noHands) {
+        var handController = getControllerWorldLocation(hand, true);
+        var controllerPosition = handController.position;
+
+        // compute the angle of the chord with length (height / 2)
+        var theta = Math.asin(height / (2 * Vec3.distance(HMD.position, controllerPosition)));
+
+        // then we can use this angle to rotate the vector between the HMD position and the center of the tablet.
+        // this vector, u, will become our new look at direction.
+        var d = Vec3.normalize(Vec3.subtract(HMD.position, controllerPosition));
+        var w = Vec3.normalize(Vec3.cross(Y_AXIS, d));
+        var q = Quat.angleAxis(theta * (180 / Math.PI), w);
+        var u = Vec3.multiplyQbyV(q, d);
+
+        // use u to compute a full lookAt quaternion.
+        var lookAtRot = Quat.lookAt(controllerPosition, Vec3.sum(controllerPosition, u), Y_AXIS);
+
+        // adjust the tablet position by a small amount.
+        var yDisplacement = (height / 2) + 0.1;
+        var zDisplacement = 0.05;
+        var tabletOffset = Vec3.multiplyQbyV(lookAtRot, {x: 0, y: yDisplacement, z: zDisplacement});
+        finalPosition = Vec3.sum(controllerPosition, tabletOffset);
         return {
             position: finalPosition,
-            rotation: Quat.lookAt(finalPosition, HMD.position, Y_AXIS)
+            rotation: lookAtRot
         };
     } else {
         var front = Quat.getFront(MyAvatar.orientation);
-        var finalPosition = Vec3.sum(Vec3.sum(MyAvatar.position, Vec3.multiply(0.6, front)), {x: 0, y: 0.6, z: 0});
+        finalPosition = Vec3.sum(Vec3.sum(MyAvatar.position, Vec3.multiply(0.6, front)), {x: 0, y: 0.6, z: 0});
         return {
             position: finalPosition,
             rotation: Quat.lookAt(finalPosition, MyAvatar.getHeadPosition(), Y_AXIS)
@@ -106,12 +122,12 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: -0.01},
         parentID: this.tabletEntityID,
         script: Script.resolvePath("../tablet-ui/HomeButton.js")
-        }, clientOnly);
+    }, clientOnly);
 
     setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
-        if (_this.homeButtonEntity == senderID) {
+        if (_this.homeButtonEntity === senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.gotoHomeScreen();
         }
@@ -128,7 +144,9 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     };
     this.clicked = false;
 
-    this.myOnHmdChanged = function () { _this.onHmdChanged(); };
+    this.myOnHmdChanged = function () {
+        _this.onHmdChanged();
+    };
     HMD.displayModeChanged.connect(this.myOnHmdChanged);
 };
 
