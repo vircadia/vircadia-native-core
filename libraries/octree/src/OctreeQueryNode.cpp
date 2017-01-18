@@ -1,6 +1,6 @@
 //
 //  OctreeQueryNode.cpp
-//  assignment-client/src/octree
+//  libraries/octree/src
 //
 //  Created by Stephen Birarda on 3/21/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -18,7 +18,6 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
-#include "OctreeSendThread.h"
 
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;

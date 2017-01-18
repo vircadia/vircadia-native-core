@@ -16,6 +16,7 @@
 #include <OctreeUtils.h>
 
 #include "EntitiesLogging.h"
+#include "EntityNodeData.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -231,7 +232,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
 }
 
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData,
-                                                                    EncodeBitstreamParams& params) const {
+                                                                EncodeBitstreamParams& params) const {
 
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
 
@@ -291,10 +292,37 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     includeThisEntity = false;
                 }
                 
-                if (!params.jsonFilters.isEmpty()) {
-                    // if params include JSON filters, check if this entity matches
-                    includeThisEntity = includeThisEntity && entity->matchesJSONFilters(params.jsonFilters);
+                auto entityNodeData = dynamic_cast<EntityNodeData*>(params.nodeData);
+                
+                if (entityNodeData) {
+                    // we have an EntityNodeData instance
+                    // so we should assume that means we might have JSON filters to check
+                    auto jsonFilters = entityNodeData->getJSONParameters();
+                    
+                    if (!jsonFilters.isEmpty()) {
+                        // if params include JSON filters, check if this entity matches
+                        bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
+                        
+                        if (entityMatchesFilters) {
+                            // we should include this entity unless it has already been excluded
+                            includeThisEntity = includeThisEntity && true;
+                            
+                            // make sure this entity is in the set of entities sent last frame
+                            entityNodeData->insertEntitySentLastFrame(entity->getID());
+                            
+                        } else {
+                            // we might include this entity if it matched in the previous frame
+                            if (entityNodeData->sentEntityLastFrame(entity->getID())) {
+                                includeThisEntity = includeThisEntity && true;
+                                
+                                entityNodeData->removeEntitySentLastFrame(entity->getID());
+                            } else {
+                                includeThisEntity = false;
+                            }
+                        }
+                    }
                 }
+                
 
                 if (hadElementExtraData) {
                     includeThisEntity = includeThisEntity &&

@@ -82,7 +82,7 @@ public:
     OctreeSceneStats* stats;
     JurisdictionMap* jurisdictionMap;
     OctreeElementExtraEncodeData* extraEncodeData;
-    QJsonObject jsonFilters;
+    NodeData* nodeData;
 
     // output hints from the encode process
     typedef enum {
@@ -110,8 +110,8 @@ public:
         bool forceSendScene = true,
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
         JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
-        OctreeElementExtraEncodeData* extraEncodeData = NULL,
-        QJsonObject jsonFilters = QJsonObject()) :
+        OctreeElementExtraEncodeData* extraEncodeData = nullptr,
+        NodeData* nodeData = nullptr) :
             lastQuerySent(lastQuerySent),
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
@@ -124,7 +124,7 @@ public:
             stats(stats),
             jurisdictionMap(jurisdictionMap),
             extraEncodeData(extraEncodeData),
-            jsonFilters(jsonFilters),
+            nodeData(nodeData),
             stopReason(UNKNOWN)
     {
         lastViewFrustum.invalidate();

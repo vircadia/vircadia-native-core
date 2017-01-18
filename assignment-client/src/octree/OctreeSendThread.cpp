@@ -434,7 +434,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                                                  nodeData->getLastTimeBagEmpty(),
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
                                                  &nodeData->extraEncodeData,
-                                                 nodeData->getJSONParameters());
+                                                 nodeData);
                     nodeData->copyCurrentViewFrustum(params.viewFrustum);
                     if (viewFrustumChanged) {
                         nodeData->copyLastKnownViewFrustum(params.lastViewFrustum);
