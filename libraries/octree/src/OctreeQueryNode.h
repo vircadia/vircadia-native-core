@@ -1,6 +1,6 @@
 //
 //  OctreeQueryNode.h
-//  assignment-client/src/octree
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -15,11 +15,11 @@
 #include <iostream>
 
 #include <NodeData.h>
-#include <OctreeConstants.h>
-#include <OctreeElementBag.h>
-#include <OctreePacketData.h>
-#include <OctreeQuery.h>
-#include <OctreeSceneStats.h>
+#include "OctreeConstants.h"
+#include "OctreeElementBag.h"
+#include "OctreePacketData.h"
+#include "OctreeQuery.h"
+#include "OctreeSceneStats.h"
 #include "SentPacketHistory.h"
 #include <qqueue.h>
 

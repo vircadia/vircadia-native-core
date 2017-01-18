@@ -1077,7 +1077,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // If we were previously in the view, then we normally will return out of here and stop recursing. But
         // if we're in deltaView mode, and this element has changed since it was last sent, then we do
         // need to send it.
-        if (wasInView && !(params.deltaView && element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
+        if (wasInView && !(params.deltaView && element->hasChangedSince(params.lastQuerySent - CHANGE_FUDGE))) {
             if (params.stats) {
                 params.stats->skippedWasInView(element);
             }
@@ -1088,7 +1088,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // If we're not in delta sending mode, and we weren't asked to do a force send, and the voxel hasn't changed,
         // then we can also bail early and save bits
         if (!params.forceSendScene && !params.deltaView &&
-            !element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
+            !element->hasChangedSince(params.lastQuerySent - CHANGE_FUDGE)) {
             if (params.stats) {
                 params.stats->skippedNoChange(element);
             }
@@ -1247,7 +1247,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                     // need to send it.
                     if (!childWasInView ||
                         (params.deltaView &&
-                         childElement->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
+                         childElement->hasChangedSince(params.lastQuerySent - CHANGE_FUDGE))){
 
                         childrenDataBits += (1 << (7 - originalIndex));
                         inViewWithColorCount++;

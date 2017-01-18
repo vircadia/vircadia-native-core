@@ -88,6 +88,15 @@ void EntityScriptServer::run() {
     _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
 
     _entityViewer.init();
+    
+    // setup the JSON filter that asks for entities with a non-default serverScripts property
+    QJsonObject queryJSONParameters;
+    static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
+    queryJSONParameters[SERVER_SCRIPTS_PROPERTY] = EntityQueryFilterSymbol::NonDefault;
+    
+    // setup the JSON parameters so that OctreeQuery does not use a frustum and uses our JSON filter
+    _entityViewer.getOctreeQuery().setUsesFrustum(false);
+    _entityViewer.getOctreeQuery().setJSONParameters(queryJSONParameters);
 
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 

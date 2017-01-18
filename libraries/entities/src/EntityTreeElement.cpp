@@ -16,6 +16,7 @@
 #include <OctreeUtils.h>
 
 #include "EntitiesLogging.h"
+#include "EntityNodeData.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -94,7 +95,7 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
 bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const {
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-
+    
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
                         = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
@@ -231,7 +232,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
 }
 
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData,
-                                                                    EncodeBitstreamParams& params) const {
+                                                                EncodeBitstreamParams& params) const {
 
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
 
@@ -287,9 +288,41 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 EntityItemPointer entity = _entityItems[i];
                 bool includeThisEntity = true;
 
-                if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastViewFrustumSent) {
+                if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastQuerySent) {
                     includeThisEntity = false;
                 }
+                
+                auto entityNodeData = dynamic_cast<EntityNodeData*>(params.nodeData);
+                
+                if (entityNodeData) {
+                    // we have an EntityNodeData instance
+                    // so we should assume that means we might have JSON filters to check
+                    auto jsonFilters = entityNodeData->getJSONParameters();
+                    
+                    if (!jsonFilters.isEmpty()) {
+                        // if params include JSON filters, check if this entity matches
+                        bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
+                        
+                        if (entityMatchesFilters) {
+                            // we should include this entity unless it has already been excluded
+                            includeThisEntity = includeThisEntity && true;
+                            
+                            // make sure this entity is in the set of entities sent last frame
+                            entityNodeData->insertEntitySentLastFrame(entity->getID());
+                            
+                        } else {
+                            // we might include this entity if it matched in the previous frame
+                            if (entityNodeData->sentEntityLastFrame(entity->getID())) {
+                                includeThisEntity = includeThisEntity && true;
+                                
+                                entityNodeData->removeEntitySentLastFrame(entity->getID());
+                            } else {
+                                includeThisEntity = false;
+                            }
+                        }
+                    }
+                }
+                
 
                 if (hadElementExtraData) {
                     includeThisEntity = includeThisEntity &&

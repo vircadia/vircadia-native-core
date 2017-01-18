@@ -2233,3 +2233,30 @@ void EntityItem::globalizeProperties(EntityItemProperties& properties, const QSt
     QUuid empty;
     properties.setParentID(empty);
 }
+
+
+bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
+    
+    // The intention for the query JSON filter and this method is to be flexible to handle a variety of filters for
+    // ALL entity properties. Some work will need to be done to the property system so that it can be more flexible
+    // (to grab the value and default value of a property given the string representation of that property, for example)
+    
+    // currently the only property filter we handle is '+' for serverScripts
+    // which means that we only handle a filtered query asking for entities where the serverScripts property is non-default
+    
+    static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
+    
+    for (auto& property : jsonFilters.keys()) {
+        if (property == SERVER_SCRIPTS_PROPERTY  && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
+            // check if this entity has a non-default value for serverScripts
+            if (_serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+    
+    // the json filter syntax did not match what we expected, return a match
+    return true;
+}
