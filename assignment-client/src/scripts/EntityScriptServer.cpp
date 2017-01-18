@@ -243,11 +243,11 @@ void EntityScriptServer::entityServerScriptChanging(const EntityItemID& entityID
 void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
     if (_entityViewer.getTree() && !_shuttingDown) {
         EntityItemPointer entity = _entityViewer.getTree()->findEntityByEntityItemID(entityID);
-        if (entity && entity->shouldPreloadScript() && _entitiesScriptEngine) {
+        if (entity && entity->shouldPreloadServerScript() && _entitiesScriptEngine) {
             QString scriptUrl = entity->getServerScripts();
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
             ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
-            entity->scriptHasPreloaded();
+            entity->serverScriptHasPreloaded();
         }
     }
 }
