@@ -796,7 +796,8 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
             bool isAdmin = matchingNode->getCanKick();
 
             // Check if the sending node has permission to kick (is an admin)
-            if (sendingNode->getCanKick()) {
+            // OR if the message is from a node whose UUID matches the one in the packet
+            if (sendingNode->getCanKick() || nodeUUID == sendingNode->getUUID()) {
                 // It's time to figure out the username
                 QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
 
