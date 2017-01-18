@@ -673,7 +673,7 @@ Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
 //
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
-    tablet.removeButton(buttonName);
+    tablet.removeButton(button);
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
