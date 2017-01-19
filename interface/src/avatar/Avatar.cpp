@@ -929,7 +929,7 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
         }
         case CAMERA_MATRIX_INDEX: {
             glm::quat rotation;
-            if (_skeletonModel) {
+            if (_skeletonModel && _skeletonModel->isActive()) {
                 int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
                 if (headJointIndex >= 0) {
                     _skeletonModel->getAbsoluteJointRotationInRigFrame(headJointIndex, rotation);
@@ -965,7 +965,7 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         }
         case CAMERA_MATRIX_INDEX: {
             glm::vec3 translation;
-            if (_skeletonModel) {
+            if (_skeletonModel && _skeletonModel->isActive()) {
                 int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
                 if (headJointIndex >= 0) {
                     _skeletonModel->getAbsoluteJointTranslationInRigFrame(headJointIndex, translation);
