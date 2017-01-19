@@ -433,8 +433,21 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     for (int channelCount : (desiredAudioFormat.channelCount() == 1 ? inputChannels : outputChannels)) {
         for (int sampleRate : sampleRates) {
 
+            // int16_t samples
             adjustedAudioFormat.setChannelCount(channelCount);
             adjustedAudioFormat.setSampleRate(sampleRate);
+            adjustedAudioFormat.setSampleSize(16);
+            adjustedAudioFormat.setSampleType(QAudioFormat::SignedInt);
+
+            if (audioDevice.isFormatSupported(adjustedAudioFormat)) {
+                return true;
+            }
+
+            // float samples
+            adjustedAudioFormat.setChannelCount(channelCount);
+            adjustedAudioFormat.setSampleRate(sampleRate);
+            adjustedAudioFormat.setSampleSize(32);
+            adjustedAudioFormat.setSampleType(QAudioFormat::Float);
 
             if (audioDevice.isFormatSupported(adjustedAudioFormat)) {
                 return true;
@@ -1545,11 +1558,15 @@ float AudioClient::gainForSource(float distance, float volume) {
     return gain;
 }
 
-qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
+qint64 AudioClient::AudioOutputIODevice::readData(char* data, qint64 maxSize) {
+
+    // data can be int16_t* or float*
+    int sampleSize = _audio->_outputFormat.sampleSize() / 8;
+    bool isFloat = _audio->_outputFormat.sampleType() == QAudioFormat::SampleType::Float;
 
     // samples requested from OUTPUT_CHANNEL_COUNT
     int deviceChannelCount = _audio->_outputFormat.channelCount();
-    int samplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
+    int samplesRequested = (int)(maxSize / sampleSize) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
 
     int samplesPopped;
     int bytesWritten;
@@ -1559,14 +1576,24 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
 
         // if required, upmix or downmix to deviceChannelCount
-        if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
-            lastPopOutput.readSamples((int16_t*)data, samplesPopped);
-        } else if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
-            lastPopOutput.readSamplesWithUpmix((int16_t*)data, samplesPopped, deviceChannelCount - OUTPUT_CHANNEL_COUNT);
+        if (isFloat) {
+            if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
+                lastPopOutput.readSamples((float*)data, samplesPopped);
+            } else if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
+                lastPopOutput.readSamplesWithUpmix((float*)data, samplesPopped, deviceChannelCount - OUTPUT_CHANNEL_COUNT);
+            } else {
+                lastPopOutput.readSamplesWithDownmix((float*)data, samplesPopped);
+            }
         } else {
-            lastPopOutput.readSamplesWithDownmix((int16_t*)data, samplesPopped);
+            if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
+                lastPopOutput.readSamples((int16_t*)data, samplesPopped);
+            } else if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
+                lastPopOutput.readSamplesWithUpmix((int16_t*)data, samplesPopped, deviceChannelCount - OUTPUT_CHANNEL_COUNT);
+            } else {
+                lastPopOutput.readSamplesWithDownmix((int16_t*)data, samplesPopped);
+            }
         }
-        bytesWritten = (samplesPopped * AudioConstants::SAMPLE_SIZE) * deviceChannelCount / OUTPUT_CHANNEL_COUNT;
+        bytesWritten = (samplesPopped * sampleSize) * deviceChannelCount / OUTPUT_CHANNEL_COUNT;
     } else {
         // nothing on network, don't grab anything from injectors, and just return 0s
         // this will flood the log: qCDebug(audioclient, "empty/partial network buffer");

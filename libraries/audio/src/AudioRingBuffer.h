@@ -103,10 +103,11 @@ public:
         ConstIterator operator+(int i);
         ConstIterator operator-(int i);
 
-        void readSamples(int16_t* dest, int numSamples);
-        void readSamplesWithFade(int16_t* dest, int numSamples, float fade);
-        void readSamplesWithUpmix(int16_t* dest, int numSamples, int numExtraChannels);
-        void readSamplesWithDownmix(int16_t* dest, int numSamples);
+        // dest can be int16_t* or float*
+        template<typename T> void readSamples(T* dest, int numSamples);
+        template<typename T> void readSamplesWithFade(T* dest, int numSamples, float fade);
+        template<typename T> void readSamplesWithUpmix(T* dest, int numSamples, int numExtraChannels);
+        template<typename T> void readSamplesWithDownmix(T* dest, int numSamples);
 
     private:
         int16_t* atShiftedBy(int i);
@@ -203,6 +204,28 @@ inline int16_t* AudioRingBuffer::ConstIterator::atShiftedBy(int i) {
     return _bufferFirst + i;
 }
 
+inline AudioRingBuffer::ConstIterator AudioRingBuffer::nextOutput() const {
+    return ConstIterator(_buffer, _bufferLength, _nextOutput);
+}
+
+inline AudioRingBuffer::ConstIterator AudioRingBuffer::lastFrameWritten() const {
+    return ConstIterator(_buffer, _bufferLength, _endOfLastWrite) - _numFrameSamples;
+}
+
+//
+// dest can be int16_t* or float*
+//
+template<typename T>
+inline void AudioRingBuffer::ConstIterator::readSamples(T* dest, int numSamples) {
+    int16_t* at = _at;
+    for (int i = 0; i < numSamples; i++) {
+        *dest++ = (T)*at;
+        at = (at == _bufferLast) ? _bufferFirst : at + 1;
+    }
+}
+
+// fast path for int16_t*
+template<>
 inline void AudioRingBuffer::ConstIterator::readSamples(int16_t* dest, int numSamples) {
     auto samplesToEnd = _bufferLast - _at + 1;
 
@@ -218,16 +241,17 @@ inline void AudioRingBuffer::ConstIterator::readSamples(int16_t* dest, int numSa
     }
 }
 
-inline void AudioRingBuffer::ConstIterator::readSamplesWithFade(int16_t* dest, int numSamples, float fade) {
+template<typename T>
+inline void AudioRingBuffer::ConstIterator::readSamplesWithFade(T* dest, int numSamples, float fade) {
     int16_t* at = _at;
     for (int i = 0; i < numSamples; i++) {
-        *dest = (float)*at * fade;
-        ++dest;
+        *dest++ = (T)(*at * fade);
         at = (at == _bufferLast) ? _bufferFirst : at + 1;
     }
 }
 
-inline void AudioRingBuffer::ConstIterator::readSamplesWithUpmix(int16_t* dest, int numSamples, int numExtraChannels) {
+template<typename T>
+inline void AudioRingBuffer::ConstIterator::readSamplesWithUpmix(T* dest, int numSamples, int numExtraChannels) {
     int16_t* at = _at;
     for (int i = 0; i < numSamples/2; i++) {
 
@@ -238,15 +262,16 @@ inline void AudioRingBuffer::ConstIterator::readSamplesWithUpmix(int16_t* dest, 
         at = (at == _bufferLast) ? _bufferFirst : at + 1;
 
         // write 2 + N samples
-        *dest++ = left;
-        *dest++ = right;
+        *dest++ = (T)left;
+        *dest++ = (T)right;
         for (int n = 0; n < numExtraChannels; n++) {
-            *dest++ = 0;
+            *dest++ = (T)0;
         }
     }
 }
 
-inline void AudioRingBuffer::ConstIterator::readSamplesWithDownmix(int16_t* dest, int numSamples) {
+template<typename T>
+inline void AudioRingBuffer::ConstIterator::readSamplesWithDownmix(T* dest, int numSamples) {
     int16_t* at = _at;
     for (int i = 0; i < numSamples/2; i++) {
 
@@ -257,16 +282,8 @@ inline void AudioRingBuffer::ConstIterator::readSamplesWithDownmix(int16_t* dest
         at = (at == _bufferLast) ? _bufferFirst : at + 1;
 
         // write 1 sample
-        *dest++ = (int16_t)((left + right) / 2);
+        *dest++ = (T)((left + right) / 2);
     }
-}
-
-inline AudioRingBuffer::ConstIterator AudioRingBuffer::nextOutput() const {
-    return ConstIterator(_buffer, _bufferLength, _nextOutput);
-}
-
-inline AudioRingBuffer::ConstIterator AudioRingBuffer::lastFrameWritten() const {
-    return ConstIterator(_buffer, _bufferLength, _endOfLastWrite) - _numFrameSamples;
 }
 
 #endif // hifi_AudioRingBuffer_h
