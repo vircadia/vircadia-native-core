@@ -135,9 +135,10 @@ signals:
 
     /**jsdoc
     * Notifies scripts of the username and machine fingerprint associated with a UUID.
+    * Username and machineFingerprint will be their default constructor output if the requesting user isn't an admin.
     * @function Users.usernameFromIDReply
     */
-    void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
+    void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint, bool isAdmin);
 
     /**jsdoc
      * Notifies scripts that a user has disconnected from the domain

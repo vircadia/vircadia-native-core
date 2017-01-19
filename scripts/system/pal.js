@@ -267,14 +267,12 @@ function populateUserList() {
             displayName: avatar.sessionDisplayName,
             userName: '',
             sessionId: id || '',
-            audioLevel: 0.0
+            audioLevel: 0.0,
+            admin: false
         };
-        // If the current user is an admin OR
-        // they're requesting their own username ("id" is blank)...
-        if (Users.canKick || !id) {
-            // Request the username from the given UUID
-            Users.requestUsernameFromID(id);
-        }
+        // Request the username, fingerprint, and admin status from the given UUID
+        // Username and fingerprint returns default constructor output if the requesting user isn't an admin
+        Users.requestUsernameFromID(id);
         // Request personal mute status and ignore status
         // from NodeList (as long as we're not requesting it for our own ID)
         if (id) {
@@ -289,16 +287,19 @@ function populateUserList() {
 }
 
 // The function that handles the reply from the server
-function usernameFromIDReply(id, username, machineFingerprint) {
+function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
     var data;
     // If the ID we've received is our ID...
     if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username];
-    } else {
+        data = ['', username, isAdmin];
+    } else if (Users.canKick) {
         // Set the data to contain the ID and the username (if we have one)
         // or fingerprint (if we don't have a username) string.
-        data = [id, username || machineFingerprint];
+        data = [id, username || machineFingerprint, isAdmin];
+    } else {
+        // Set the data to contain specific strings.
+        data = [id, '', isAdmin];
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
