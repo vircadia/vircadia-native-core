@@ -24,7 +24,7 @@ const int DEFAULT_RING_BUFFER_FRAME_CAPACITY = 10;
 template <class T>
 class AudioRingBufferTemplate {
     using Sample = T;
-    static size_t SampleSize = sizeof(Sample);
+    static const int SampleSize = sizeof(Sample);
 
 public:
     AudioRingBufferTemplate(int numFrameSamples, int numFramesCapacity = DEFAULT_RING_BUFFER_FRAME_CAPACITY);
@@ -49,6 +49,14 @@ public:
     /// Returns number of read samples
     int readSamples(Sample* destination, int maxSamples);
 
+    /// Append up to maxSamples into destination (will only read up to samplesAvailable())
+    /// If append == false, behaves as readSamples
+    /// Returns number of appended samples
+    int appendSamples(Sample* destination, int maxSamples, bool append = true);
+
+    /// Skip up to maxSamples (will only skip up to samplesAvailable())
+    void skipSamples(int maxSamples) { shiftReadPosition(std::min(maxSamples, samplesAvailable())); }
+
     /// Write up to maxSamples from source (will only write up to sample capacity)
     /// Returns number of written samples
     int writeSamples(const Sample* source, int maxSamples);
@@ -61,6 +69,10 @@ public:
     /// Read up to maxSize into destination
     /// Returns number of read bytes
     int readData(char* destination, int maxSize);
+
+    /// Append up to maxSize into destination
+    /// Returns number of read bytes
+    int appendData(char* destination, int maxSize);
 
     /// Write up to maxSize from source
     /// Returns number of written bytes
@@ -148,19 +160,19 @@ using AudioRingBuffer = AudioRingBufferTemplate<int16_t>;
 using AudioRingMixBuffer = AudioRingBufferTemplate<float>;
 
 // inline the iterator:
-inline AudioRingBufferTemplate<int16_t>::ConstIterator::ConstIterator() :
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator::ConstIterator() :
     _bufferLength(0),
     _bufferFirst(NULL),
     _bufferLast(NULL),
     _at(NULL) {}
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator::ConstIterator(Sample* bufferFirst, int capacity, Sample* at) :
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator::ConstIterator(Sample* bufferFirst, int capacity, Sample* at) :
     _bufferLength(capacity),
     _bufferFirst(bufferFirst),
     _bufferLast(bufferFirst + capacity - 1),
     _at(at) {}
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator& AudioRingBufferTemplate<int16_t>::ConstIterator::operator=(const ConstIterator& rhs) {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator& AudioRingBufferTemplate<int16_t>::ConstIterator::operator=(const ConstIterator& rhs) {
     _bufferLength = rhs._bufferLength;
     _bufferFirst = rhs._bufferFirst;
     _bufferLast = rhs._bufferLast;
@@ -168,41 +180,41 @@ inline AudioRingBufferTemplate<int16_t>::ConstIterator& AudioRingBufferTemplate<
     return *this;
 }
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator& AudioRingBufferTemplate<int16_t>::ConstIterator::operator++() {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator& AudioRingBufferTemplate<int16_t>::ConstIterator::operator++() {
     _at = (_at == _bufferLast) ? _bufferFirst : _at + 1;
     return *this;
 }
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::ConstIterator::operator++(int) {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::ConstIterator::operator++(int) {
     ConstIterator tmp(*this);
     ++(*this);
     return tmp;
 }
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator& AudioRingBufferTemplate<int16_t>::ConstIterator::operator--() {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator& AudioRingBufferTemplate<int16_t>::ConstIterator::operator--() {
     _at = (_at == _bufferFirst) ? _bufferLast : _at - 1;
     return *this;
 }
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::ConstIterator::operator--(int) {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::ConstIterator::operator--(int) {
     ConstIterator tmp(*this);
     --(*this);
     return tmp;
 }
 
-inline const int16_t& AudioRingBufferTemplate<int16_t>::ConstIterator::operator[] (int i) {
+template<> inline const int16_t& AudioRingBufferTemplate<int16_t>::ConstIterator::operator[] (int i) {
     return *atShiftedBy(i);
 }
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::ConstIterator::operator+(int i) {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::ConstIterator::operator+(int i) {
     return ConstIterator(_bufferFirst, _bufferLength, atShiftedBy(i));
 }
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::ConstIterator::operator-(int i) {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::ConstIterator::operator-(int i) {
     return ConstIterator(_bufferFirst, _bufferLength, atShiftedBy(-i));
 }
 
-inline int16_t* AudioRingBufferTemplate<int16_t>::ConstIterator::atShiftedBy(int i) {
+template<> inline int16_t* AudioRingBufferTemplate<int16_t>::ConstIterator::atShiftedBy(int i) {
     i = (_at - _bufferFirst + i) % _bufferLength;
     if (i < 0) {
         i += _bufferLength;
@@ -210,7 +222,7 @@ inline int16_t* AudioRingBufferTemplate<int16_t>::ConstIterator::atShiftedBy(int
     return _bufferFirst + i;
 }
 
-inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamples(Sample* dest, int numSamples) {
+template<> inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamples(Sample* dest, int numSamples) {
     auto samplesToEnd = _bufferLast - _at + 1;
 
     if (samplesToEnd >= numSamples) {
@@ -225,7 +237,7 @@ inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamples(Sample*
     }
 }
 
-inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithFade(Sample* dest, int numSamples, float fade) {
+template<> inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithFade(Sample* dest, int numSamples, float fade) {
     Sample* at = _at;
     for (int i = 0; i < numSamples; i++) {
         *dest = (float)*at * fade;
@@ -234,7 +246,7 @@ inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithFade
     }
 }
 
-inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithUpmix(Sample* dest, int numSamples, int numExtraChannels) {
+template<> inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithUpmix(Sample* dest, int numSamples, int numExtraChannels) {
     Sample* at = _at;
     for (int i = 0; i < numSamples/2; i++) {
 
@@ -253,7 +265,7 @@ inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithUpmi
     }
 }
 
-inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithDownmix(Sample* dest, int numSamples) {
+template<> inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithDownmix(Sample* dest, int numSamples) {
     Sample* at = _at;
     for (int i = 0; i < numSamples/2; i++) {
 
@@ -268,11 +280,11 @@ inline void AudioRingBufferTemplate<int16_t>::ConstIterator::readSamplesWithDown
     }
 }
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::nextOutput() const {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::nextOutput() const {
     return ConstIterator(_buffer, _bufferLength, _nextOutput);
 }
 
-inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::lastFrameWritten() const {
+template<> inline AudioRingBufferTemplate<int16_t>::ConstIterator AudioRingBufferTemplate<int16_t>::lastFrameWritten() const {
     return ConstIterator(_buffer, _bufferLength, _endOfLastWrite) - _numFrameSamples;
 }
 
