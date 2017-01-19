@@ -216,12 +216,6 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
 
-
-//    newEngine->setEmitScriptUpdatesFunction([this]() {
-//        SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
-//        return !entityServerNode || isPhysicsEnabled();
-//    });
-
     newEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarHashMap>().data());
     newEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
@@ -287,14 +281,15 @@ void EntityScriptServer::entityServerScriptChanging(const EntityItemID& entityID
 }
 
 void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
-    if (_entityViewer.getTree() && !_shuttingDown) {
+    if (_entityViewer.getTree() && !_shuttingDown && _entitiesScriptEngine) {
+        auto details = _entitiesScriptEngine->getEntityScriptDetails(entityID);
+
         EntityItemPointer entity = _entityViewer.getTree()->findEntityByEntityItemID(entityID);
-        if (entity && entity->shouldPreloadServerScript() && _entitiesScriptEngine) {
+        if (entity && (details.scriptText != entity->getServerScripts() || reload)) {
             QString scriptUrl = entity->getServerScripts();
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
             qDebug() << "Loading entity server script" << scriptUrl << "for" << entityID;
             ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
-            entity->serverScriptHasPreloaded();
         }
     }
 }
