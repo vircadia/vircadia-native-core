@@ -82,6 +82,7 @@ public:
     OctreeSceneStats* stats;
     JurisdictionMap* jurisdictionMap;
     OctreeElementExtraEncodeData* extraEncodeData;
+    bool usesFrustum;
     NodeData* nodeData;
 
     // output hints from the encode process
@@ -111,6 +112,7 @@ public:
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
         JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
         OctreeElementExtraEncodeData* extraEncodeData = nullptr,
+        bool usesFrustum = true,
         NodeData* nodeData = nullptr) :
             lastQuerySent(lastQuerySent),
             maxEncodeLevel(maxEncodeLevel),
@@ -124,6 +126,7 @@ public:
             stats(stats),
             jurisdictionMap(jurisdictionMap),
             extraEncodeData(extraEncodeData),
+            usesFrustum(usesFrustum),
             nodeData(nodeData),
             stopReason(UNKNOWN)
     {

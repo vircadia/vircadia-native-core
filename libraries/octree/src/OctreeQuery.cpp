@@ -90,7 +90,7 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     
     // check if this query uses a view frustum
     memcpy(&_usesFrustum, sourceBuffer, sizeof(_usesFrustum));
-    sourceBuffer += _usesFrustum;
+    sourceBuffer += sizeof(_usesFrustum);
     
     if (_usesFrustum) {
         // unpack camera details
@@ -132,7 +132,10 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
         sourceBuffer += binaryParametersBytes;
         
         // grab the parameter object from the packed binary representation of JSON
-        _jsonParameters = QJsonDocument::fromBinaryData(binaryJSONParameters).object();
+        auto newJsonDocument = QJsonDocument::fromBinaryData(binaryJSONParameters);
+        
+        QWriteLocker jsonParameterLocker { &_jsonParametersLock };
+        _jsonParameters = newJsonDocument.object();
     }
     
     return sourceBuffer - startPosition;

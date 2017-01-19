@@ -246,6 +246,7 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const
         if (entity && entity->shouldPreloadServerScript() && _entitiesScriptEngine) {
             QString scriptUrl = entity->getServerScripts();
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+            qDebug() << "Loading entity server script" << scriptUrl << "for" << entityID;
             ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
             entity->serverScriptHasPreloaded();
         }
