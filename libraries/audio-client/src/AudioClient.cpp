@@ -378,7 +378,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         CoUninitialize();
     }
 
-    qCDebug(audioclient) << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
+    qCDebug(audioclient) << "[" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
 
     return getNamedAudioDeviceForMode(mode, deviceName);
 #endif
@@ -400,12 +400,12 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     audioFormat.setByteOrder(QAudioFormat::LittleEndian);
 
     if (!audioDevice.isFormatSupported(audioFormat)) {
-        qCDebug(audioclient) << "WARNING: The native format is" << audioFormat << "but isFormatSupported() failed.";
+        qCWarning(audioclient) << "The native format is" << audioFormat << "but isFormatSupported() failed.";
         return false;
     }
     // converting to/from this rate must produce an integral number of samples
     if (audioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE != 0) {
-        qCDebug(audioclient) << "WARNING: The native sample rate [" << audioFormat.sampleRate() << "] is not supported.";
+        qCWarning(audioclient) << "The native sample rate [" << audioFormat.sampleRate() << "] is not supported.";
         return false;
     }
     return true;
@@ -739,12 +739,12 @@ QVector<QString> AudioClient::getDeviceNames(QAudio::Mode mode) {
 }
 
 bool AudioClient::switchInputToAudioDevice(const QString& inputDeviceName) {
-    qCDebug(audioclient) << "DEBUG [" << inputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName).deviceName() << "]";
+    qCDebug(audioclient) << "[" << inputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName).deviceName() << "]";
     return switchInputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName));
 }
 
 bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
-    qCDebug(audioclient) << "DEBUG [" << outputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName).deviceName() << "]";
+    qCDebug(audioclient) << "[" << outputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName).deviceName() << "]";
     return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
