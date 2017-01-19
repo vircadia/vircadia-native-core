@@ -1,9 +1,9 @@
 //
-//  MeshPartPayload.cpp
+//  CauterizedMeshPartPayload.cpp
 //  interface/src/renderer
 //
-//  Created by Sam Gateau on 10/3/15.
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Andrew Meadows 2017.01.17
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,7 +14,6 @@
 #include <PerfStat.h>
 
 #include "SkeletonModel.h"
-//#include "EntityItem.h"
 
 using namespace render;
 
