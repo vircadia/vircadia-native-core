@@ -12,5 +12,25 @@
     </head>
     <body>
         <h1> Hello Users </h1>
+        <button type="button" onclick="pollUsers()">Poll Users</button>
+        <div id="dev-div"></div>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <script>
+            var METAVERSE_API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online";
+
+            function pollUsers() {
+                $("#dev-div").html("polling users");
+                $.ajax({
+                    url: METAVERSE_API_URL,
+                    success: function(response) {
+                        $("#dev-div").html(response);
+                    }
+                });
+            }
+
+            $(document).ready(function() {
+                $("#dev-div").html("ready");
+            });
+        </script>
     </body>
 </html>

@@ -11,7 +11,7 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
-    var USERS_URL = "https://hifi-content.s3.amazonaws.com/faye/tablet-dev/users.html";
+    var USERS_URL = Script.resolvePath("html/users.html");
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         // TODO: work with Alan to make new icon art
