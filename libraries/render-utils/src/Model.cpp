@@ -673,6 +673,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                 hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
                 verticesCount += renderItem.get()->getVerticesCount();
                 _modelMeshRenderItems.insert(item, renderPayload);
+                _modelMeshRenderItemIDs.emplace_back(item);
             }
             somethingAdded = !_modelMeshRenderItems.empty();
 
@@ -695,6 +696,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     foreach (auto item, _modelMeshRenderItems.keys()) {
         pendingChanges.removeItem(item);
     }
+    _modelMeshRenderItemIDs.clear();
     _modelMeshRenderItems.clear();
     _modelMeshRenderItemsSet.clear();
 
@@ -1301,6 +1303,10 @@ AABox Model::getRenderableMeshBound() const {
     }
 }
 
+const render::ItemIDs& Model::fetchRenderItemIDs() const {
+    return _modelMeshRenderItemIDs;
+}
+
 void Model::createRenderItemSet() {
     if (_collisionGeometry) {
         if (_collisionRenderItemsSet.empty()) {
@@ -1479,6 +1485,7 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
 
     {
         Lock lock(_mutex);
+
         _modelsRequiringBlends.insert(model);
     }
 }

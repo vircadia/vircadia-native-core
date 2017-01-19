@@ -62,7 +62,7 @@ const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        return ItemKey::Builder::opaqueShape();
+        return ItemKey::Builder::opaqueShape().withTypeMeta();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
         return static_pointer_cast<Avatar>(avatar)->getBounds();
@@ -73,6 +73,15 @@ namespace render {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
             avatarPtr->render(args, qApp->getCamera()->getPosition());
         }
+    }
+    template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
+        if (avatarPtr->getSkeletonModel()) {
+            auto metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
+            subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+            return (uint32_t) metaSubItems.size();
+        }
+        return 0;
     }
 }
 

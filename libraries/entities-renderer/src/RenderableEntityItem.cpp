@@ -15,21 +15,21 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload) { 
-        if (payload && payload->entity) {
-            if (payload->entity->getType() == EntityTypes::Light) {
-                return ItemKey::Builder::light();
+        if (payload && payload->_entity) {
+            if (payload->_entity->getType() == EntityTypes::Light) {
+                return ItemKey::Builder::light().withTypeMeta();
             }
-            if (payload && payload->entity->isTransparent()) {
-                return ItemKey::Builder::transparentShape();
+            if (payload && payload->_entity->isTransparent()) {
+                return ItemKey::Builder::transparentShape().withTypeMeta();
             }
         }
-        return ItemKey::Builder::opaqueShape();
+        return ItemKey::Builder::opaqueShape().withTypeMeta();
     }
     
     template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload) { 
-        if (payload && payload->entity) {
+        if (payload && payload->_entity) {
             bool success;
-            auto result = payload->entity->getAABox(success);
+            auto result = payload->_entity->getAABox(success);
             if (!success) {
                 return render::Item::Bound();
             }
@@ -39,10 +39,18 @@ namespace render {
     }
     template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args) {
         if (args) {
-            if (payload && payload->entity && payload->entity->getVisible()) {
-                payload->entity->render(args);
+            if (payload && payload->_entity && payload->_entity->getVisible()) {
+                payload->_entity->render(args);
             }
         }
+    }
+    template <> uint32_t metaFetchMetaSubItems(const RenderableEntityItemProxy::Pointer& payload, ItemIDs& subItems) {
+        auto metaID = payload->_metaID;
+        if (Item::isValidID(metaID)) {
+            subItems.emplace_back(metaID);
+            return 1;
+        }
+        return 0;
     }
 }
 
