@@ -28,12 +28,13 @@
                 background: linear-gradient(#2b2b2b, #1e1e1e);
             }
 
-            .top-bar div {
-                padding-left: 30px;
-                padding-right: 30px;
-                line-height: 90px;
-                color: white;
-                white-space: nowrap;
+            .top-bar .container{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-left: 30px;
+                margin-right: 30px;
+                height: 100%;
             }
 
             .main {
@@ -44,10 +45,12 @@
     </head>
     <body>
         <div class="top-bar">
-            <div>Users Online</div>
+            <div class="container">
+                <div>Users Online</div>
+                <button type="button" onclick="pollUsers()">Refresh</button>
+            </div>
         </div>
         <div class="main">
-            <button type="button" onclick="pollUsers()">Poll Users</button>
             <div id="dev-div"></div>
         </div>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
