@@ -147,3 +147,7 @@ void MenuScriptingInterface::triggerOption(const QString& menuOption) {
     QMetaObject::invokeMethod(Menu::getInstance(), "triggerOption", Q_ARG(const QString&, menuOption));    
 }
 
+void MenuScriptingInterface::closeInfoView(const QString& path) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "closeInfoView", Q_ARG(const QString&, path));
+}
+
