@@ -105,6 +105,7 @@ public:
     void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
     bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
+    const render::ItemIDs& fetchRenderItemIDs() const;
 
     bool maybeStartBlender();
 
@@ -388,6 +389,8 @@ protected:
 
     QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
+
+    render::ItemIDs _modelMeshRenderItemIDs;
 
     bool _addedToScene { false }; // has been added to scene
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
