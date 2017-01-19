@@ -316,9 +316,8 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
-    bool isFullScene = !nodeData->getUsesFrustum()
-        || ((!viewFrustumChanged) && nodeData->getViewFrustumJustStoppedChanging())
-        || nodeData->hasLodChanged();
+    bool isFullScene = nodeData->getUsesFrustum() &&
+        ((!viewFrustumChanged && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged());
 
     bool somethingToSend = true; // assume we have something
 

@@ -287,7 +287,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             for (uint16_t i = 0; i < _entityItems.size(); i++) {
                 EntityItemPointer entity = _entityItems[i];
                 bool includeThisEntity = true;
-
+                
                 if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastQuerySent) {
                     includeThisEntity = false;
                 }
