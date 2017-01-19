@@ -1587,13 +1587,6 @@ void ScriptEngine::unloadAllEntityScripts() {
 #endif // DEBUG_ENGINE_STATE
 }
 
-EntityScriptDetails ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID) const {
-    if (_entityScripts.contains(entityID)) {
-        return _entityScripts[entityID];
-    }
-    return EntityScriptDetails();
-}
-
 void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
     if (!_entityScripts.contains(entityID)) {
         return;

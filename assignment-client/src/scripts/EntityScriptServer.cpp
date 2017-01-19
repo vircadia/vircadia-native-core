@@ -281,8 +281,9 @@ void EntityScriptServer::entityServerScriptChanging(const EntityItemID& entityID
 }
 
 void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
-    if (_entityViewer.getTree() && !_shuttingDown && _entitiesScriptEngine) {
-        auto details = _entitiesScriptEngine->getEntityScriptDetails(entityID);
+    EntityScriptDetails details;
+    if (_entityViewer.getTree() && !_shuttingDown && _entitiesScriptEngine &&
+        _entitiesScriptEngine->getEntityScriptDetails(entityID, details)) {
 
         EntityItemPointer entity = _entityViewer.getTree()->findEntityByEntityItemID(entityID);
         if (entity && (details.scriptText != entity->getServerScripts() || reload)) {

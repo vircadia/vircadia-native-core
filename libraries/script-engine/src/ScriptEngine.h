@@ -149,7 +149,6 @@ public:
                                             const QStringList& params = QStringList()) override;
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
-    Q_INVOKABLE EntityScriptDetails getEntityScriptDetails(const EntityItemID& entityID) const;
 
     Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }
 
