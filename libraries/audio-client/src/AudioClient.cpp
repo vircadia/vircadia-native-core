@@ -1113,8 +1113,7 @@ void AudioClient::prepareLocalAudioInjectors() {
             samples = frames * AudioConstants::STEREO;
             _localInjectorsBuffer.writeSamples(_localOutputScratchBuffer, samples);
 
-        }
-        else {
+        } else {
             // write to local injectors' ring buffer
             samples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
             _localInjectorsBuffer.writeSamples(_localScratchBuffer,
@@ -1675,7 +1674,6 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         bytesWritten = framesPopped * AudioConstants::SAMPLE_SIZE * deviceChannelCount;
     } else {
         // nothing on network, don't grab anything from injectors, and just return 0s
-        // this will flood the log: qCDebug(audioclient, "empty/partial network buffer");
         memset(data, 0, maxSize);
         bytesWritten = maxSize;
     }
