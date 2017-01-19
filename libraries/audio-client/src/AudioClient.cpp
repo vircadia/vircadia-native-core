@@ -1638,6 +1638,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
             if (_audio->_shouldEchoToServer) {
                 // omit local audio, it should be echoed
+                injectorSamplesPopped = 0;
             } else if (networkSamplesPopped == 0) {
                 convertToMix(mixBuffer, scratchBuffer, injectorSamplesPopped);
             } else {
