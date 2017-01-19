@@ -136,7 +136,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.state = "idle";
 
     this.getRoot = function() {
-        return Entities.getWebViewRoot(_this.webEntityID);
+        return Entities.getWebViewRoot(_this.tabletEntityID);
     };
 
     this.getLocation = function() {

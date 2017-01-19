@@ -796,8 +796,14 @@ void MyAvatar::saveData() {
 
     settings.beginWriteArray("avatarEntityData");
     int avatarEntityIndex = 0;
+    auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     _avatarEntitiesLock.withReadLock([&] {
         for (auto entityID : _avatarEntityData.keys()) {
+            if (hmdInterface->getCurrentTableUIID() == entityID) {
+                // don't persist the tablet between domains / sessions
+                continue;
+            }
+
             settings.setArrayIndex(avatarEntityIndex);
             settings.setValue("id", entityID);
             settings.setValue("properties", _avatarEntityData.value(entityID));
