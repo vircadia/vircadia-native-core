@@ -1636,7 +1636,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
             _localInjectorsStream.skipSamples(samplesRequested);
         } else {
             bool append = networkSamplesPopped > 0;
-            if ((injectorSamplesPopped = _localInjectorsStream.readSamples(mixBuffer, samplesRequested, append)) > 0) {
+            if ((injectorSamplesPopped = _localInjectorsStream.appendSamples(mixBuffer, samplesRequested, append)) > 0) {
                 qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsStream.samplesAvailable(), samplesRequested);
             }
         }

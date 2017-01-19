@@ -69,17 +69,6 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
-class LocalInjectorsStream {
-public:
-    LocalInjectorsStream(int numFrameSamples);
-    int getSampleCapacity() { return 0;  };
-    int samplesAvailable() { return 0; }
-    int writeSamples(const float*, int numSamples) { return 0; }
-    void resizeForFrameSize(int numFrameSamples) {}
-    int skipSamples(int numSamples) { return 0; }
-    int readSamples(float* mixBuffer, int numSamples, bool append) { return 0; }
-};
-
 class AudioInjectorsThread : public QThread {
     Q_OBJECT
 
@@ -96,6 +85,8 @@ private:
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+
+    using LocalInjectorsStream = AudioRingMixBuffer;
 public:
     static const int MIN_BUFFER_FRAMES;
     static const int MAX_BUFFER_FRAMES;
