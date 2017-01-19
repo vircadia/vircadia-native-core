@@ -23,7 +23,8 @@
                 $.ajax({
                     url: METAVERSE_API_URL,
                     success: function(response) {
-                        $("#dev-div").html(response);
+                        $("#dev-div").html(JSON.stringify(response.data));
+                        console.log(response);
                     }
                 });
             }
