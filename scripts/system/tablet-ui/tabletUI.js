@@ -26,7 +26,7 @@
         print("show tablet-ui");
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, activeHand, true);
         UIWebTablet.register();
-        HMD.tabletID = UIWebTablet.webEntityID;
+        HMD.tabletID = UIWebTablet.tabletEntityID;
     }
 
     function hideTabletUI() {
