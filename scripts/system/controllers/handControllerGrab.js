@@ -737,6 +737,7 @@ function MyController(hand) {
     this.autoUnequipCounter = 0;
     this.grabPointIntersectsEntity = false;
     this.stylus = null;
+    this.homeButtonTouched = false;
 
     // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
     // when more than one avatar does parenting grabs on things.  This script tries to work
@@ -1178,13 +1179,13 @@ function MyController(hand) {
             this.showStylus();
             var rayPickInfo = this.calcRayPickInfo(this.hand);
             if (rayPickInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
+                this.handleStylusOnHomeButton(rayPickInfo);
                 if (this.handleStylusOnWebEntity(rayPickInfo)) {
                     return;
                 }
                 if (this.handleStylusOnWebOverlay(rayPickInfo)) {
                     return;
                 }
-                this.handleStylusOnHomeButton(rayPickInfo);
             }
         } else {
             this.hideStylus();
@@ -1246,8 +1247,16 @@ function MyController(hand) {
             var entity = rayPickInfo.entityID;
             var name = entityPropertiesCache.getProps(entity).name;
             if (name == "homeButton") {
-                Messages.sendLocalMessage("home", entity);
+                if (this.homeButtonTouched == false) {
+                    this.homeButtonTouched = true;
+                    Controller.triggerHapticPulse(1, 20, this.hand);
+                    Messages.sendLocalMessage("home", entity);
+                }
+            } else {
+                this.homeButtonTouched = false;
             }
+        } else {
+            this.homeButtonTouched = false;
         }
     };
 
@@ -1679,7 +1688,6 @@ function MyController(hand) {
     };
 
     this.handleStylusOnWebEntity = function (rayPickInfo) {
-        Controller.triggerHapticPulse(1, 20, this.hand);
         var pointerEvent;
 
         if (rayPickInfo.entityID && Entities.wantsHandControllerPointerEvents(rayPickInfo.entityID)) {
