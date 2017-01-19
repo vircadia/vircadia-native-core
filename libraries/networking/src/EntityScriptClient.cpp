@@ -1,6 +1,7 @@
 #include "EntityScriptClient.h"
 #include "NodeList.h"
 #include "NetworkLogging.h"
+#include "EntityScriptUtils.h"
 
 #include <QThread>
 
@@ -15,9 +16,12 @@ GetScriptStatusRequest::~GetScriptStatusRequest() {
 
 void GetScriptStatusRequest::start() {
     auto client = DependencyManager::get<EntityScriptClient>();
-    qDebug() << "Sending script status request";
-    client->getEntityServerScriptStatus(_entityID, [this](bool responseReceived) {
-        qDebug() << "Received script status request";
+    client->getEntityServerScriptStatus(_entityID, [this](bool responseReceived, bool isRunning, EntityScriptStatus status, QString errorInfo) {
+        this->responseReceived = responseReceived;
+        this->isRunning = isRunning;
+        this->status = status;
+        this->errorInfo = errorInfo;
+
         emit finished(this);
     });
 }
@@ -84,7 +88,7 @@ MessageID EntityScriptClient::getEntityServerScriptStatus(QUuid entityID, GetScr
         }
     }
 
-    callback(false);
+    callback(false, false, ERROR_LOADING_SCRIPT, "");
     return INVALID_MESSAGE_ID;
 }
 
@@ -92,9 +96,17 @@ void EntityScriptClient::handleGetScriptStatusReply(QSharedPointer<ReceivedMessa
     Q_ASSERT(QThread::currentThread() == thread());
 
     MessageID messageID;
-    message->readPrimitive(&messageID);
+    bool isKnown { false };
+    EntityScriptStatus status = ERROR_LOADING_SCRIPT;
+    QString errorInfo { "" };
 
-    auto status = message->readString();
+    message->readPrimitive(&messageID);
+    message->readPrimitive(&isKnown);
+
+    if (isKnown) {
+        message->readPrimitive(&status);
+        errorInfo = message->readString();
+    }
 
     // Check if we have any pending requests for this node
     auto messageMapIt = _pendingEntityScriptStatusRequests.find(senderNode);
@@ -107,7 +119,7 @@ void EntityScriptClient::handleGetScriptStatusReply(QSharedPointer<ReceivedMessa
         auto requestIt = messageCallbackMap.find(messageID);
         if (requestIt != messageCallbackMap.end()) {
             auto callback = requestIt->second;
-            callback(true);
+            callback(true, isKnown, status, errorInfo);
             messageCallbackMap.erase(requestIt);
         }
 
@@ -145,7 +157,7 @@ void EntityScriptClient::forceFailureOfPendingRequests(SharedNodePointer node) {
         auto messageMapIt = _pendingEntityScriptStatusRequests.find(node);
         if (messageMapIt != _pendingEntityScriptStatusRequests.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(false);
+                value.second(false, false, ERROR_LOADING_SCRIPT, "");
             }
             messageMapIt->second.clear();
         }

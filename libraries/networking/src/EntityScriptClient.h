@@ -15,14 +15,14 @@
 #include "LimitedNodeList.h"
 #include "ReceivedMessage.h"
 #include "AssetUtils.h"
+#include "EntityScriptUtils.h"
 
 #include <DependencyManager.h>
-#include <cstdint>
 #include <unordered_map>
 
 using MessageID = uint32_t;
 
-using GetScriptStatusCallback = std::function<void(bool responseReceived)>;
+using GetScriptStatusCallback = std::function<void(bool responseReceived, bool isRunning, EntityScriptStatus status, QString errorInfo)>;
 
 class GetScriptStatusRequest : public QObject {
     Q_OBJECT
@@ -32,13 +32,17 @@ public:
 
     Q_INVOKABLE void start();
 
+    bool responseReceived;
+    bool isRunning;
+    EntityScriptStatus status;
+    QString errorInfo;
+
 signals:
     void finished(GetScriptStatusRequest* request);
 
 private:
     QUuid _entityID;
     MessageID _messageID;
-    QString status;
 };
 
 class EntityScriptClient : public QObject, public Dependency {
