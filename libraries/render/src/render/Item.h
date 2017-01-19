@@ -441,7 +441,7 @@ public:
     virtual const ShapeKey getShapeKey() const override { return shapeGetShapeKey<T>(_data); }
 
     // Meta Type Interface
-    virtual uint32_t fetchMetaSubItems(ItemIDs& subItems) const { return metaFetchMetaSubItems<T>(_data, subItems); }
+    virtual uint32_t fetchMetaSubItems(ItemIDs& subItems) const override { return metaFetchMetaSubItems<T>(_data, subItems); }
 
 protected:
     DataPointer _data;
