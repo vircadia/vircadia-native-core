@@ -24,7 +24,7 @@
     function showTabletUI() {
         tabletShown = true;
         print("show tablet-ui");
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, activeHand);
+        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, activeHand, true);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.webEntityID;
     }
