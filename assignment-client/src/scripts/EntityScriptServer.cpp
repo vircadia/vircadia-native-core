@@ -11,8 +11,11 @@
 
 #include "EntityScriptServer.h"
 
+#include "EntityScriptUtils.h"
+
 #include <AudioConstants.h>
 #include <AudioInjectorManager.h>
+#include <src/entities/AssignmentParentFinder.h>
 #include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
 #include <plugins/CodecPlugin.h>
@@ -22,8 +25,6 @@
 #include <ScriptEngines.h>
 #include <SoundCache.h>
 #include <WebSocketServerClass.h>
-
-#include "../entities/AssignmentParentFinder.h"
 
 const size_t UUID_LENGTH_BYTES = 16;
 
@@ -75,16 +76,21 @@ void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<Receiv
     MessageID messageID;
     message->readPrimitive(&messageID);
     auto entityID = QUuid::fromRfc4122(message->read(UUID_LENGTH_BYTES));
-
-    // TODO(Huffman) Get Status
     
-    qDebug() << "Getting script status of: " << entityID;
-    auto replyPacket = NLPacket::create(PacketType::EntityScriptGetStatusReply, -1, true);
-    replyPacket->writePrimitive(messageID);
-    replyPacket->writeString("running");
+    auto replyPacketList = NLPacketList::create(PacketType::EntityScriptGetStatusReply, QByteArray(), true, true);
+    replyPacketList->writePrimitive(messageID);
+
+    EntityScriptDetails details;
+    if (_entitiesScriptEngine->getEntityScriptDetails(entityID, details)) {
+        replyPacketList->writePrimitive(true);
+        replyPacketList->writePrimitive(details.status);
+        replyPacketList->writeString(details.errorInfo);
+    } else {
+        replyPacketList->writePrimitive(false);
+    }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *senderNode);
+    nodeList->sendPacketList(std::move(replyPacketList), *senderNode);
 }
 
 void EntityScriptServer::run() {
