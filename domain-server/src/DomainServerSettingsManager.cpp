@@ -812,7 +812,7 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
                 usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
             } else {
                 usernameFromIDReplyPacket->writeString(verifiedUsername);
-                usernameFromIDReplyPacket->writeString(machineFingerprint.toRfc4122());
+                usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
             }
             // Write whether or not the user is an admin
             bool isAdmin = matchingNode->getCanKick();
