@@ -24,9 +24,8 @@
 #include <ScriptCache.h>
 #include <ScriptEngines.h>
 #include <SoundCache.h>
+#include <UUID.h>
 #include <WebSocketServerClass.h>
-
-const size_t UUID_LENGTH_BYTES = 16;
 
 int EntityScriptServer::_entitiesScriptEngineCount = 0;
 
@@ -63,7 +62,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
 
 void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    auto entityID = QUuid::fromRfc4122(message->read(UUID_LENGTH_BYTES));
+    auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
     if (_entityViewer.getTree() && !_shuttingDown) {
         qDebug() << "Reloading: " << entityID;
