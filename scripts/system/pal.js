@@ -208,6 +208,7 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
             var id = overlay.key;
             var selected = ExtendedOverlay.isSelected(id);
             overlay.select(selected);
+            UserActivityLogger.palAction("avatar_selected", id);
         });
 
         HighlightedEntity.clearOverlays();
@@ -232,14 +233,17 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
     case 'refresh':
         removeOverlays();
         populateUserList();
+        UserActivityLogger.palAction("refresh");
         break;
     case 'updateGain':
         data = message.params;
         Users.setAvatarGain(data['sessionId'], data['gain']);
+        UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
         break;
     case 'displayNameUpdate':
         if (MyAvatar.displayName != message.params) {
             MyAvatar.displayName = message.params;
+            UserActivityLogger.palAction("display_name_change");
         }
         break;
     default:
@@ -551,7 +555,10 @@ var button = toolBar.addButton({
     buttonState: 1,
     alpha: 0.9
 });
+
 var isWired = false;
+var palOpenedAt;
+
 function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
         Script.update.disconnect(updateOverlays);
@@ -563,6 +570,11 @@ function off() {
     triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
+    if (palOpenedAt) {
+        var duration = new Date().getTime() - palOpenedAt;
+        UserActivityLogger.palOpened(duration / 1000.0);
+        palOpenedAt = 0; // just a falsy number is good enough.
+    }
     if (audioInterval) {
         Script.clearInterval(audioInterval);
     }
@@ -579,6 +591,7 @@ function onClicked() {
         triggerMapping.enable();
         triggerPressMapping.enable();
         createAudioInterval();
+        palOpenedAt = new Date().getTime();
     } else {
         off();
     }

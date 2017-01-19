@@ -247,6 +247,7 @@ Rectangle {
                     userModel.setProperty(model.userIndex, styleData.role, newValue)
                     userModelData[model.userIndex][styleData.role] = newValue // Defensive programming
                     Users[styleData.role](model.sessionId, newValue)
+                    UserActivityLogger["palAction"](newValue ? "un-" + styleData.role : styleData.role, model.sessionId)
                     if (styleData.role === "ignore") {
                         userModel.setProperty(model.userIndex, "personalMute", newValue)
                         userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
@@ -273,6 +274,7 @@ Rectangle {
                 height: 24
                 onClicked: {
                     Users[styleData.role](model.sessionId)
+                    UserActivityLogger["palAction"](styleData.role, model.sessionId)
                     if (styleData.role === "kick") {
                         // Just for now, while we cannot undo "Ban":
                         userModel.remove(model.userIndex)
