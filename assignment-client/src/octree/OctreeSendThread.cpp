@@ -450,7 +450,11 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                     // it seems like it may be a good idea to include the lock time as part of the encode time
                     // are reported to client. Since you can encode without the lock
                     nodeData->stats.encodeStarted();
-
+                    
+                    if (node->getType() == NodeType::EntityScriptServer) {
+                        qDebug() << "Encoding tree bitstream for" << node->getUUID();
+                    }
+                    
                     bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
 
                     quint64 encodeEnd = usecTimestampNow();

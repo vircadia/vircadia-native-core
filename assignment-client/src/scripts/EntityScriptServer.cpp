@@ -224,6 +224,7 @@ void EntityScriptServer::shutdown() {
 }
 
 void EntityScriptServer::addingEntity(const EntityItemID& entityID) {
+    qDebug() << "adding " << entityID;
     checkAndCallPreload(entityID);
 }
 

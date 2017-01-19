@@ -90,7 +90,7 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     
     // check if this query uses a view frustum
     memcpy(&_usesFrustum, sourceBuffer, sizeof(_usesFrustum));
-    sourceBuffer += _usesFrustum;
+    sourceBuffer += sizeof(_usesFrustum);
     
     if (_usesFrustum) {
         // unpack camera details

@@ -279,7 +279,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     int numberOfEntitiesOffset = 0;
     withReadLock([&] {
         QVector<uint16_t> indexesOfEntitiesToInclude;
-
+        
         // It's possible that our element has been previous completed. In this case we'll simply not include any of our
         // entities for encoding. This is needed because we encode the element data at the "parent" level, and so we
         // need to handle the case where our sibling elements need encoding but we don't.
@@ -300,6 +300,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     auto jsonFilters = entityNodeData->getJSONParameters();
                     
                     if (!jsonFilters.isEmpty()) {
+                        
                         // if params include JSON filters, check if this entity matches
                         bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
                         
@@ -322,7 +323,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                         }
                     }
                 }
-                
 
                 if (hadElementExtraData) {
                     includeThisEntity = includeThisEntity &&
