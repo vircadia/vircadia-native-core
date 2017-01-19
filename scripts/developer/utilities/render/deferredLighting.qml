@@ -74,7 +74,7 @@ Column {
     Column {
         spacing: 10 
         Repeater {
-            model: [ "Tone Mapping exposure:ToneMapping:exposure:5.0:-5.0"
+            model: [ "Tone Mapping Exposure:ToneMapping:exposure:5.0:-5.0"
                           ]
             ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
@@ -88,7 +88,7 @@ Column {
 
         Row {
             Label {
-                text: "Debug Framebuffer"
+                text: "Tone Mapping Curve"
                 anchors.left: root.left           
             }
 
@@ -109,6 +109,7 @@ Column {
     }
     Row {
         id: framebuffer
+        spacing: 10 
 
         Label {
             text: "Debug Framebuffer"
@@ -154,6 +155,15 @@ Column {
             }
             width: 200
             onCurrentIndexChanged: { framebuffer.setDebugMode(currentIndex) }
+        }
+    }
+
+    Row {
+        id: metas
+        CheckBox {
+            text: "Draw Meta Bounds"
+            checked: Render.getConfig("DrawMetaBounds")["enabled"]
+            onCheckedChanged: { Render.getConfig("DrawMetaBounds")["enabled"] = checked }
         }
     }
 }

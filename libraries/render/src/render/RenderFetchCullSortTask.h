@@ -19,7 +19,21 @@
 
 class RenderFetchCullSortTask : public render::Task {
 public:
-    using Output = std::array<render::Varying, 7>;
+
+    enum Buckets {
+        OPAQUE_SHAPE = 0,
+        TRANSPARENT_SHAPE,
+        LIGHT,
+        META,
+        OVERLAY_OPAQUE_SHAPE,
+        OVERLAY_TRANSPARENT_SHAPE,
+        BACKGROUND,
+        SPATIAL_SELECTION,
+
+        NUM_BUCKETS
+    };
+
+    using Output = std::array<render::Varying, Buckets::NUM_BUCKETS>;
     using JobModel = ModelO<RenderFetchCullSortTask>;
 
     RenderFetchCullSortTask(render::CullFunctor cullFunctor);

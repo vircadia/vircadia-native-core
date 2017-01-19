@@ -29,33 +29,41 @@ RenderFetchCullSortTask::RenderFetchCullSortTask(CullFunctor cullFunctor) {
     const auto nonspatialSelection = addJob<FetchNonspatialItems>("FetchOverlaySelection");
 
     // Multi filter visible items into different buckets
-    const int NUM_FILTERS = 3;
+    const int NUM_SPATIAL_FILTERS = 4; 
+    const int NUM_NON_SPATIAL_FILTERS = 3;
     const int OPAQUE_SHAPE_BUCKET = 0;
     const int TRANSPARENT_SHAPE_BUCKET = 1;
     const int LIGHT_BUCKET = 2;
+    const int META_BUCKET = 3;
     const int BACKGROUND_BUCKET = 2;
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray spatialFilters = { {
+    MultiFilterItem<NUM_SPATIAL_FILTERS>::ItemFilterArray spatialFilters = { {
             ItemFilter::Builder::opaqueShape(),
             ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::light()
+            ItemFilter::Builder::light(),
+            ItemFilter::Builder::meta()
         } };
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray nonspatialFilters = { {
+    MultiFilterItem<NUM_NON_SPATIAL_FILTERS>::ItemFilterArray nonspatialFilters = { {
             ItemFilter::Builder::opaqueShape(),
             ItemFilter::Builder::transparentShape(),
             ItemFilter::Builder::background()
         } };
-    const auto filteredSpatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-    const auto filteredNonspatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
+    const auto filteredSpatialBuckets = 
+        addJob<MultiFilterItem<NUM_SPATIAL_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters)
+            .get<MultiFilterItem<NUM_SPATIAL_FILTERS>::ItemBoundsArray>();
+    const auto filteredNonspatialBuckets = 
+        addJob<MultiFilterItem<NUM_NON_SPATIAL_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters)
+            .get<MultiFilterItem<NUM_NON_SPATIAL_FILTERS>::ItemBoundsArray>();
 
     // Extract opaques / transparents / lights / overlays
     const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredSpatialBuckets[OPAQUE_SHAPE_BUCKET]);
     const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", filteredSpatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
     const auto lights = filteredSpatialBuckets[LIGHT_BUCKET];
+    const auto metas = filteredSpatialBuckets[META_BUCKET];
 
     const auto overlayOpaques = addJob<DepthSortItems>("DepthSortOverlayOpaque", filteredNonspatialBuckets[OPAQUE_SHAPE_BUCKET]);
     const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
     const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
     setOutput(Output{{
-            opaques, transparents, lights, overlayOpaques, overlayTransparents, background, spatialSelection }});
+            opaques, transparents, lights, metas, overlayOpaques, overlayTransparents, background, spatialSelection }});
 }
