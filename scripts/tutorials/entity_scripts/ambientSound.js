@@ -1,34 +1,48 @@
 //  ambientSound.js
 //
 //  This entity script will allow you to create an ambient sound that loops when a person is within a given
-//  range of this entity.  Great way to add one or more ambisonic soundfields to your environment.  
+//  range of this entity.  Great way to add one or more ambisonic soundfields to your environment.
 //
-//  In the userData section for the entity, add/edit three values:  
-//      userData.soundURL should be a string giving the URL to the sound file.  Defaults to 100 meters if not set.  
+//  In the userData section for the entity, add/edit three values:
+//      userData.soundURL should be a string giving the URL to the sound file.  Defaults to 100 meters if not set.
 //      userData.range should be an integer for the max distance away from the entity where the sound will be audible.
-//      userData.volume is the max volume at which the clip should play.  Defaults to 1.0 full volume)
+//      userData.maxVolume is the max volume at which the clip should play.  Defaults to 1.0 full volume.
+//      userData.disabled is an optionanl boolean flag which can be used to disable the ambient sound. Defaults to false.
 //
-//  The rotation of the entity is copied to the ambisonic field, so by rotating the entity you will rotate the 
-//  direction in-which a certain sound comes from.  
-//  
+//  The rotation of the entity is copied to the ambisonic field, so by rotating the entity you will rotate the
+//  direction in-which a certain sound comes from.
+//
 //  Remember that the entity has to be visible to the user for the sound to play at all, so make sure the entity is
-//  large enough to be loaded at the range you set, particularly for large ranges.  
-//   
+//  large enough to be loaded at the range you set, particularly for large ranges.
+//
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function(){ 
+(function(){
     //  This sample clip and range will be used if you don't add userData to the entity (see above)
     var DEFAULT_RANGE = 100;
     var DEFAULT_URL = "http://hifi-content.s3.amazonaws.com/ken/samples/forest_ambiX.wav";
     var DEFAULT_VOLUME = 1.0;
 
+    var DEFAULT_USERDATA = {
+        soundURL: DEFAULT_URL,
+        range: DEFAULT_RANGE,
+        maxVolume: DEFAULT_VOLUME,
+        disabled: true,
+        grabbableKey: { wantsTrigger: true },
+    };
+
     var soundURL = "";
+    var soundOptions = {
+        loop: true,
+        localOnly: true,
+    };
     var range = DEFAULT_RANGE;
     var maxVolume = DEFAULT_VOLUME;
+    var disabled = false;
     var UPDATE_INTERVAL_MSECS = 100;
     var rotation;
 
@@ -39,14 +53,13 @@
     var checkTimer = false;
     var _this;
 
-    var WANT_COLOR_CHANGE = false;
     var COLOR_OFF = { red: 128, green: 128, blue: 128 };
     var COLOR_ON = { red: 255, green: 0, blue: 0 };
 
     var WANT_DEBUG = false;
     function debugPrint(string) {
         if (WANT_DEBUG) {
-            print(string);
+            print("ambientSound | " + string);
         }
     }
 
@@ -55,84 +68,201 @@
         var oldSoundURL = soundURL;
         var props = Entities.getEntityProperties(entity, [ "userData" ]);
         if (props.userData) {
-            var data = JSON.parse(props.userData);
+            try {
+                var data = JSON.parse(props.userData);
+            } catch(e) {
+                debugPrint("unable to parse userData JSON string: " + props.userData);
+                this.cleanup();
+                return;
+            }
             if (data.soundURL && !(soundURL === data.soundURL)) {
                 soundURL = data.soundURL;
-                debugPrint("Read ambient sound URL: " + soundURL);    
-            } else if (!data.soundURL) {
-                soundURL = DEFAULT_URL;
+                debugPrint("Read ambient sound URL: " + soundURL);
             }
             if (data.range && !(range === data.range)) {
                 range = data.range;
                 debugPrint("Read ambient sound range: " + range);
             }
-            if (data.volume && !(maxVolume === data.volume)) {
-                maxVolume = data.volume;
+            // Check known aliases for the "volume" setting (which allows for inplace upgrade of existing marketplace entities)
+            data.maxVolume = data.maxVolume || data.soundVolume || data.volume;
+            if (data.maxVolume && !(maxVolume === data.maxVolume)) {
+                maxVolume = data.maxVolume;
                 debugPrint("Read ambient sound volume: " + maxVolume);
             }
+            if ("disabled" in data && !(disabled === data.disabled)) {
+                disabled = data.disabled;
+                debugPrint("Read ambient disabled state: " + disabled);
+                this._updateColor(disabled);
+            }
+        }
+        if (disabled) {
+            this.cleanup();
+            soundURL = "";
+            return;
+        } else if (!checkTimer) {
+            checkTimer = Script.setInterval(_this.maybeUpdate, UPDATE_INTERVAL_MSECS);
         }
         if (!(soundURL === oldSoundURL) || (soundURL === "")) {
-            debugPrint("Loading ambient sound into cache");
-            ambientSound = SoundCache.getSound(soundURL);
+            if (soundURL) {
+                debugPrint("Loading ambient sound into cache");
+                // Use prefetch to detect URL loading errors
+                var resource = SoundCache.prefetch(soundURL);
+                function onStateChanged() {
+                    if (resource.state === Resource.State.FINISHED) {
+                        resource.stateChanged.disconnect(onStateChanged);
+                        ambientSound = SoundCache.getSound(soundURL);
+                    } else if (resource.state === Resource.State.FAILED) {
+                        resource.stateChanged.disconnect(onStateChanged);
+                        debugPrint("Failed to download ambient sound: " + soundURL);
+                    }
+                }
+                resource.stateChanged.connect(onStateChanged);
+                onStateChanged(resource.state);
+            }
             if (soundPlaying && soundPlaying.playing) {
+                debugPrint("URL changed, stopping current ambient sound");
                 soundPlaying.stop();
                 soundPlaying = false;
-                if (WANT_COLOR_CHANGE) {
-                    Entities.editEntity(entity, { color: COLOR_OFF });
-                }
-                debugPrint("Restarting ambient sound");
             }
-        }   
+        }
     }
 
-    this.preload = function(entityID) { 
+    this.clickDownOnEntity = function(entityID, mouseEvent) {
+        if (mouseEvent.isPrimaryButton) {
+            this._toggle("primary click");
+        }
+    };
+
+    this.startFarTrigger = function() {
+        this._toggle("far click");
+    };
+
+    this._toggle = function(hint) {
+        // Toggle between ON/OFF state, but only if not in edit mode
+        if (Settings.getValue("io.highfidelity.isEditting")) {
+            return;
+        }
+        var props = Entities.getEntityProperties(entity, [ "userData" ]);
+        if (!props.userData) {
+            debugPrint("userData is empty; ignoring " + hint);
+            this.cleanup();
+            return;
+        }
+        var data = JSON.parse(props.userData);
+        data.disabled = !data.disabled;
+
+        debugPrint(hint + " -- triggering ambient sound " + (data.disabled ? "OFF" : "ON") + " (" + data.soundURL + ")");
+
+        this.cleanup();
+
+        // Save the userData and notify nearby listeners of the change
+        Entities.editEntity(entity, {
+            userData: JSON.stringify(data)
+        });
+        Messages.sendMessage(entity, "toggled");
+    };
+
+    this._updateColor = function(disabled) {
+        // Update Shape or Text Entity color based on ON/OFF status
+        var props = Entities.getEntityProperties(entity, [ "color", "textColor" ]);
+        var targetColor = disabled ? COLOR_OFF : COLOR_ON;
+        var currentColor = props.textColor || props.color;
+        var newProps = props.textColor ? { textColor: targetColor } : { color: targetColor };
+
+        if (currentColor.red !== targetColor.red ||
+            currentColor.green !== targetColor.green ||
+            currentColor.blue !== targetColor.blue) {
+            Entities.editEntity(entity, newProps);
+        }
+    };
+
+    this.preload = function(entityID) {
         //  Load the sound and range from the entity userData fields, and note the position of the entity.
-        debugPrint("Ambient sound preload");
+        debugPrint("Ambient sound preload " + entityID);
         entity = entityID;
         _this = this;
-        checkTimer = Script.setInterval(this.maybeUpdate, UPDATE_INTERVAL_MSECS);
-    }; 
+
+        var props = Entities.getEntityProperties(entity, [ "userData" ]);
+        var data = {};
+        if (props.userData) {
+            data = JSON.parse(props.userData);
+        }
+        var changed = false;
+        for(var p in DEFAULT_USERDATA) {
+            if (!(p in data)) {
+                data[p] = DEFAULT_USERDATA[p];
+                changed = true;
+            }
+        }
+        if (!data.grabbableKey.wantsTrigger) {
+            data.grabbableKey.wantsTrigger = true;
+            changed = true;
+        }
+        if (changed) {
+            debugPrint("applying default values to userData");
+            Entities.editEntity(entity, { userData: JSON.stringify(data) });
+        }
+        this._updateColor(data.disabled);
+        this.updateSettings();
+
+        // Subscribe to toggle notifications using entity ID as a channel name
+        Messages.subscribe(entity);
+        Messages.messageReceived.connect(this, "_onMessageReceived");
+    };
+
+    this._onMessageReceived = function(channel, message, sender, local) {
+        // Handle incoming toggle notifications
+        if (channel === entity && message === "toggled") {
+            debugPrint("received " + message + " from " + sender);
+            this.updateSettings();
+        }
+    };
 
     this.maybeUpdate = function() {
         // Every UPDATE_INTERVAL_MSECS, update the volume of the ambient sound based on distance from my avatar
         _this.updateSettings();
         var HYSTERESIS_FRACTION = 0.1;
         var props = Entities.getEntityProperties(entity, [ "position", "rotation" ]);
+        if (disabled || !props.position) {
+            _this.cleanup();
+            return;
+        }
         center = props.position;
         rotation = props.rotation;
         var distance = Vec3.length(Vec3.subtract(MyAvatar.position, center));
         if (distance <= range) {
             var volume = (1.0 - distance / range) * maxVolume;
-            if (!soundPlaying && ambientSound.downloaded) {
-                soundPlaying = Audio.playSound(ambientSound,  { loop: true, 
-                                                                localOnly: true, 
-                                                                orientation: rotation,
-                                                                volume: volume });
-                debugPrint("Starting ambient sound, volume: " + volume);
-                if (WANT_COLOR_CHANGE) {
-                    Entities.editEntity(entity, { color: COLOR_ON });
-                }
-                
+            soundOptions.orientation = rotation;
+            soundOptions.volume = volume;
+            if (!soundPlaying && ambientSound && ambientSound.downloaded) {
+                debugPrint("Starting ambient sound: " + soundURL + " (duration: " + ambientSound.duration + ")");
+                soundPlaying = Audio.playSound(ambientSound, soundOptions);
             } else if (soundPlaying && soundPlaying.playing) {
-                soundPlaying.setOptions( { volume: volume, orientation: rotation } );
+                soundPlaying.setOptions(soundOptions);
             }
-
         } else if (soundPlaying && soundPlaying.playing && (distance > range * HYSTERESIS_FRACTION)) {
             soundPlaying.stop();
             soundPlaying = false;
-            Entities.editEntity(entity, { color: { red: 128, green: 128, blue: 128 }});
-            debugPrint("Out of range, stopping ambient sound");
+            debugPrint("Out of range, stopping ambient sound: " + soundURL);
         }
-    }
+    };
 
-    this.unload = function(entityID) { 
+    this.unload = function(entityID) {
         debugPrint("Ambient sound unload");
+        this.cleanup();
+        Messages.unsubscribe(entity);
+        Messages.messageReceived.disconnect(this, "_onMessageReceived");
+    };
+
+    this.cleanup = function() {
         if (checkTimer) {
             Script.clearInterval(checkTimer);
+            checkTimer = false;
         }
         if (soundPlaying && soundPlaying.playing) {
             soundPlaying.stop();
+            soundPlaying = false;
         }
-    }; 
+    };
 
-}) 
+})

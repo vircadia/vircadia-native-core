@@ -1047,7 +1047,7 @@ bool AvatarData::processAvatarIdentity(const Identity& identity) {
     }
 
     if (identity.displayName != _displayName) {
-        setDisplayName(identity.displayName);
+        _displayName = identity.displayName;
         hasIdentityChanged = true;
     }
     maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
@@ -1094,6 +1094,9 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
+    _sessionDisplayName = "";
+
+    sendIdentityPacket();
 
     qCDebug(avatars) << "Changing display name for avatar to" << displayName;
 }

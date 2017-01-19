@@ -56,7 +56,7 @@ int main(int argc, const char* argv[]) {
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
-    QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
+    const QString& applicationName = getInterfaceSharedMemoryName();
 
     bool instanceMightBeRunning = true;
 

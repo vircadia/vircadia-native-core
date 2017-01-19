@@ -90,6 +90,8 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool isRequesting);
 
+    void removeFromIgnoreMuteSets(const QUuid& nodeID);
+
 public slots:
     void reset();
     void sendDomainServerCheckIn();

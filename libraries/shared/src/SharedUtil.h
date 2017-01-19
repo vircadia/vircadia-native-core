@@ -231,4 +231,8 @@ struct ProcessorInfo {
 
 bool getProcessorInfo(ProcessorInfo& info);
 
+const QString& getInterfaceSharedMemoryName();
+
+void setMaxCores(uint8_t maxCores);
+
 #endif // hifi_SharedUtil_h
