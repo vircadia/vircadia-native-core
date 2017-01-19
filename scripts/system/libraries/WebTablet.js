@@ -7,12 +7,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true */
+/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true, HMD, Settings, Script, Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
 
-var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
 var DEFAULT_DPI = 32;
@@ -91,6 +90,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(hand, tabletProperties);
 
+    this.cleanUpOldTablets();
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
     var WEB_ENTITY_Z_OFFSET = -0.0125;
@@ -218,6 +218,27 @@ WebTablet.prototype.register = function() {
     Messages.subscribe("home");
     Messages.messageReceived.connect(this.receive);
 };
+
+WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
+    var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
+    print("cleanup " + children);
+    children.forEach(function(childID) {
+        var props = Entities.getEntityProperties(childID, ["name"]);
+        if (props.name == "WebTablet Tablet") {
+            print("cleaning up " + props.name);
+            Entities.deleteEntity(childID);
+        } else {
+            print("not cleaning up " + props.name);
+        }
+    });
+};
+
+WebTablet.prototype.cleanUpOldTablets = function() {
+    this.cleanUpOldTabletsOnJoint(-1);
+    this.cleanUpOldTabletsOnJoint(SENSOR_TO_ROOM_MATRIX);
+    this.cleanUpOldTabletsOnJoint(CAMERA_MATRIX);
+    this.cleanUpOldTabletsOnJoint(65529);
+}
 
 WebTablet.prototype.unregister = function() {
     Messages.unsubscribe("home");
