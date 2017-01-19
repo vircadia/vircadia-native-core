@@ -727,7 +727,6 @@ function loaded() {
                             elServerScriptStatus.innerHTML = "Error running script";
                             elServerScriptError.style.display = "block";
                         }
-                        //elServerScriptError.innerHTML = JSON.stringify(data) + "\n" + data.errorInfo;;
                         elServerScriptError.innerHTML = data.errorInfo;;
                     } else {
                         elServerScriptStatus.innerHTML = "Not running";
