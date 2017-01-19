@@ -32,6 +32,7 @@ typedef unsigned long long quint64;
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QJsonObject>
+#include <QtCore/QReadWriteLock>
 
 #include <NodeData.h>
 
@@ -69,8 +70,9 @@ public:
     void setCameraCenterRadius(float radius) { _cameraCenterRadius = radius; }
     
     // getters/setters for JSON filter
-    QJsonObject getJSONParameters() { return _jsonParameters; }
-    void setJSONParameters(const QJsonObject& jsonParameters) { _jsonParameters = jsonParameters; }
+    QJsonObject getJSONParameters() { QReadLocker locker { &_jsonParametersLock }; return _jsonParameters; }
+    void setJSONParameters(const QJsonObject& jsonParameters)
+        { QWriteLocker locker { &_jsonParametersLock }; _jsonParameters = jsonParameters; }
     
     // related to Octree Sending strategies
     int getMaxQueryPacketsPerSecond() const { return _maxQueryPPS; }
@@ -104,6 +106,7 @@ protected:
     uint8_t _usesFrustum = true;
     
     QJsonObject _jsonParameters;
+    QReadWriteLock _jsonParametersLock;
     
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

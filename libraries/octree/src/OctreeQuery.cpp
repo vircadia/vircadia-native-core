@@ -132,7 +132,10 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
         sourceBuffer += binaryParametersBytes;
         
         // grab the parameter object from the packed binary representation of JSON
-        _jsonParameters = QJsonDocument::fromBinaryData(binaryJSONParameters).object();
+        auto newJsonDocument = QJsonDocument::fromBinaryData(binaryJSONParameters);
+        
+        QWriteLocker jsonParameterLocker { &_jsonParametersLock };
+        _jsonParameters = newJsonDocument.object();
     }
     
     return sourceBuffer - startPosition;
