@@ -15,7 +15,6 @@
 
 #include <AudioConstants.h>
 #include <AudioInjectorManager.h>
-#include <src/entities/AssignmentParentFinder.h>
 #include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
 #include <plugins/CodecPlugin.h>
@@ -26,6 +25,8 @@
 #include <SoundCache.h>
 #include <UUID.h>
 #include <WebSocketServerClass.h>
+
+#include "../entities/AssignmentParentFinder.h"
 
 int EntityScriptServer::_entitiesScriptEngineCount = 0;
 
