@@ -953,21 +953,32 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         // DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
-            limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
+            limitedNodeList->eachNode([&](const SharedNodePointer& otherNode) {
                 if (otherNode->getUUID() != node->getUUID()
                     && nodeInterestSet.contains(otherNode->getType())) {
-                    
-                    // since we're about to add a node to the packet we start a segment
-                    domainListPackets->startSegment();
 
-                    // don't send avatar nodes to other avatars, that will come from avatar mixer
-                    domainListStream << *otherNode.data();
+                    // (1/19/17) Agents only need to connect to Entity Script Servers to perform administrative tasks
+                    // related to entity server scripts. Only agents with rez permissions should be doing that, so
+                    // if the agent does not have those permissions, we do not want them and the server to incur the
+                    // overhead of connecting to one another.
+                    bool shouldNotConnect = (node->getType() == NodeType::Agent && otherNode->getType() == NodeType::EntityScriptServer
+                                             && !node->getCanRez() && !node->getCanRezTmp())
+                                          || (node->getType() == NodeType::EntityScriptServer && otherNode->getType() == NodeType::Agent
+                                              && !otherNode->getCanRez() && !otherNode->getCanRezTmp());
 
-                    // pack the secret that these two nodes will use to communicate with each other
-                    domainListStream << connectionSecretForNodes(node, otherNode);
+                    if (!shouldNotConnect) {
+                        // since we're about to add a node to the packet we start a segment
+                        domainListPackets->startSegment();
 
-                    // we've added the node we wanted so end the segment now
-                    domainListPackets->endSegment();
+                        // don't send avatar nodes to other avatars, that will come from avatar mixer
+                        domainListStream << *otherNode.data();
+
+                        // pack the secret that these two nodes will use to communicate with each other
+                        domainListStream << connectionSecretForNodes(node, otherNode);
+
+                        // we've added the node we wanted so end the segment now
+                        domainListPackets->endSegment();
+                    }
                 }
             });
         }

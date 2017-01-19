@@ -1388,6 +1388,37 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
 
 var ENTITY_PROPERTIES_URL = Script.resolvePath('html/entityProperties.html');
 
+var ServerScriptStatusMonitor = function(entityID, statusCallback) {
+    var self = this;
+
+    self.entityID = entityID;
+    self.active = true;
+    self.sendRequestTimerID = null;
+
+    var onStatusReceived = function(success, isRunning, status, errorInfo) {
+        print("Got script status:", success, isRunning, status, errorInfo);
+        if (self.active) {
+            print("Requesting status of script");
+            statusCallback({
+                statusRetrieved: success,
+                isRunning: isRunning,
+                status: status,
+                errorInfo: errorInfo
+            });
+            self.sendRequestTimerID = Script.setTimeout(function() {
+                if (self.active) {
+                    Entities.getServerScriptStatus(entityID, onStatusReceived);
+                }
+            }, 1000);
+        };
+    };
+    self.stop = function() {
+        self.active = false;
+    }
+
+    Entities.getServerScriptStatus(entityID, onStatusReceived);
+};
+
 var PropertiesTool = function (opts) {
     var that = {};
 
@@ -1399,6 +1430,11 @@ var PropertiesTool = function (opts) {
 
     var visible = false;
 
+    // This keeps track of the last entity ID that was selected. If multiple entities
+    // are selected or if no entity is selected this will be `null`.
+    var currentSelectedEntityID = null;
+    var statusMonitor = null;
+
     webView.setVisible(visible);
 
     that.setVisible = function (newVisible) {
@@ -1406,10 +1442,43 @@ var PropertiesTool = function (opts) {
         webView.setVisible(visible);
     };
 
+    function updateScriptStatus(info) {
+        print("Got status: ", info);
+        info.type = "server_script_status";
+        webView.emitScriptEvent(JSON.stringify(info));
+    };
+
+    function resetScriptStatus() {
+        updateScriptStatus({
+            statusRetrieved: false,
+            isRunning: false,
+            status: "",
+            errorInfo: ""
+        });
+    }
+
     selectionManager.addEventListener(function () {
         var data = {
             type: 'update'
         };
+
+        resetScriptStatus();
+
+        if (selectionManager.selections.length !== 1) {
+            if (statusMonitor !== null) {
+                statusMonitor.stop();
+                statusMonitor = null;
+            }
+            currentSelectedEntityID = null;
+        } else if (currentSelectedEntityID != selectionManager.selections[0]) {
+            if (statusMonitor !== null) {
+                statusMonitor.stop();
+            }
+            var entityID = selectionManager.selections[0];
+            currentSelectedEntityID = entityID;
+            statusMonitor = new ServerScriptStatusMonitor(entityID, updateScriptStatus);
+        }
+
         var selections = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entity = {};

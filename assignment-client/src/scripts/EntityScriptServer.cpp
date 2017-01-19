@@ -11,6 +11,8 @@
 
 #include "EntityScriptServer.h"
 
+#include "EntityScriptUtils.h"
+
 #include <AudioConstants.h>
 #include <AudioInjectorManager.h>
 #include <EntityScriptingInterface.h>
@@ -21,11 +23,10 @@
 #include <ScriptCache.h>
 #include <ScriptEngines.h>
 #include <SoundCache.h>
+#include <UUID.h>
 #include <WebSocketServerClass.h>
 
 #include "../entities/AssignmentParentFinder.h"
-
-const size_t UUID_LENGTH_BYTES = 16;
 
 int EntityScriptServer::_entitiesScriptEngineCount = 0;
 
@@ -62,29 +63,42 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
 
 void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    auto entityID = QUuid::fromRfc4122(message->read(UUID_LENGTH_BYTES));
+    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
+    // about each other.
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+        auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
-    if (_entityViewer.getTree() && !_shuttingDown) {
-        qDebug() << "Reloading: " << entityID;
-        _entitiesScriptEngine->unloadEntityScript(entityID);
-        checkAndCallPreload(entityID, true);
+        if (_entityViewer.getTree() && !_shuttingDown) {
+            qDebug() << "Reloading: " << entityID;
+            _entitiesScriptEngine->unloadEntityScript(entityID);
+            checkAndCallPreload(entityID, true);
+        }
     }
 }
 
 void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    MessageID messageID;
-    message->readPrimitive(&messageID);
-    auto entityID = QUuid::fromRfc4122(message->read(UUID_LENGTH_BYTES));
+    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
+    // about each other.
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+        MessageID messageID;
+        message->readPrimitive(&messageID);
+        auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
-    // TODO(Huffman) Get Status
-    
-    qDebug() << "Getting script status of: " << entityID;
-    auto replyPacket = NLPacket::create(PacketType::EntityScriptGetStatusReply, -1, true);
-    replyPacket->writePrimitive(messageID);
-    replyPacket->writeString("running");
+        auto replyPacketList = NLPacketList::create(PacketType::EntityScriptGetStatusReply, QByteArray(), true, true);
+        replyPacketList->writePrimitive(messageID);
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *senderNode);
+        EntityScriptDetails details;
+        if (_entitiesScriptEngine->getEntityScriptDetails(entityID, details)) {
+            replyPacketList->writePrimitive(true);
+            replyPacketList->writePrimitive(details.status);
+            replyPacketList->writeString(details.errorInfo);
+        } else {
+            replyPacketList->writePrimitive(false);
+        }
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->sendPacketList(std::move(replyPacketList), *senderNode);
+    }
 }
 
 void EntityScriptServer::run() {

@@ -1374,6 +1374,15 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
     }
 }
 
+bool ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const {
+    auto it = _entityScripts.constFind(entityID);
+    if (it == _entityScripts.constEnd()) {
+        return false;
+    }
+    details = it.value();
+    return true;
+}
+
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
 void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
@@ -1421,11 +1430,24 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
     auto fileName = isURL ? scriptOrURL : "EmbeddedEntityScript";
 
+    EntityScriptDetails newDetails;
+    newDetails.scriptText = scriptOrURL;
+
+    if (!success) {
+        newDetails.status = ERROR_LOADING_SCRIPT;
+        newDetails.errorInfo = "Failed to load script";
+        _entityScripts[entityID] = newDetails;
+        return;
+    }
+
     QScriptProgram program(contents, fileName);
     if (!hasCorrectSyntax(program, this)) {
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
+        newDetails.status = ERROR_RUNNING_SCRIPT;
+        newDetails.errorInfo = "Bad syntax";
+        _entityScripts[entityID] = newDetails;
         return; // done processing script
     }
 
@@ -1451,6 +1473,10 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         testConstructor = sandbox.evaluate(program);
     }
     if (hadUncaughtExceptions(sandbox, program.fileName(), this)) {
+        newDetails.status = ERROR_RUNNING_SCRIPT;
+        newDetails.errorInfo = "Exception";
+        _entityScripts[entityID] = newDetails;
+
         return;
     }
 
@@ -1473,6 +1499,10 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
 
+        newDetails.status = ERROR_RUNNING_SCRIPT;
+        newDetails.errorInfo = "Could not find constructor";
+        _entityScripts[entityID] = newDetails;
+
         return; // done processing script
     }
 
@@ -1489,8 +1519,11 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     };
     doWithEnvironment(entityID, sandboxURL, initialization);
 
-    EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject, lastModified, sandboxURL };
+    newDetails.scriptObject = entityScriptObject;
+    newDetails.lastModified = lastModified;
+    newDetails.definingSandboxURL = sandboxURL;
     _entityScripts[entityID] = newDetails;
+
     if (isURL) {
         setParentURL("");
     }
@@ -1516,7 +1549,9 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
 #endif
 
     if (_entityScripts.contains(entityID)) {
-        callEntityScriptMethod(entityID, "unload");
+        if (_entityScripts[entityID].status == RUNNING) {
+            callEntityScriptMethod(entityID, "unload");
+        }
         _entityScripts.remove(entityID);
         stopAllTimersForEntityScript(entityID);
     }
@@ -1535,7 +1570,9 @@ void ScriptEngine::unloadAllEntityScripts() {
     qCDebug(scriptengine) << "ScriptEngine::unloadAllEntityScripts() called on correct thread [" << thread() << "]";
 #endif
     foreach(const EntityItemID& entityID, _entityScripts.keys()) {
-        callEntityScriptMethod(entityID, "unload");
+        if (_entityScripts[entityID].status == RUNNING) {
+            callEntityScriptMethod(entityID, "unload");
+        }
     }
     _entityScripts.clear();
 
@@ -1574,7 +1611,7 @@ void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
             QString scriptContents = QTextStream(&file).readAll();
             this->unloadEntityScript(entityID);
             this->entityScriptContentAvailable(entityID, details.scriptText, scriptContents, true, true);
-            if (!_entityScripts.contains(entityID)) {
+            if (!_entityScripts.contains(entityID) || _entityScripts[entityID].status != RUNNING) {
                 scriptWarningMessage("Reload script " + details.scriptText + " failed");
             } else {
                 details = _entityScripts[entityID];
@@ -1633,7 +1670,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
 #endif
 
     refreshFileScript(entityID);
-    if (_entityScripts.contains(entityID)) {
+    if (_entityScripts.contains(entityID) && _entityScripts[entityID].status == RUNNING) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
         if (entityScript.property(methodName).isFunction()) {
@@ -1665,7 +1702,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
 #endif
 
     refreshFileScript(entityID);
-    if (_entityScripts.contains(entityID)) {
+    if (_entityScripts.contains(entityID) && _entityScripts[entityID].status == RUNNING) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
         if (entityScript.property(methodName).isFunction()) {
@@ -1698,7 +1735,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
 #endif
     
     refreshFileScript(entityID);
-    if (_entityScripts.contains(entityID)) {
+    if (_entityScripts.contains(entityID) && _entityScripts[entityID].status == RUNNING) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
         if (entityScript.property(methodName).isFunction()) {

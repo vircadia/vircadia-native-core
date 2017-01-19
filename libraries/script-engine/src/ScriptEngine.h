@@ -29,6 +29,7 @@
 #include <LimitedNodeList.h>
 #include <EntityItemID.h>
 #include <EntitiesScriptEngineProvider.h>
+#include <EntityScriptUtils.h>
 
 #include "PointerEvent.h"
 #include "ArrayBufferClass.h"
@@ -58,10 +59,15 @@ typedef QHash<QString, CallbackList> RegisteredEventHandlers;
 
 class EntityScriptDetails {
 public:
-    QString scriptText;
-    QScriptValue scriptObject;
-    int64_t lastModified;
-    QUrl definingSandboxURL;
+    EntityScriptStatus status { RUNNING };
+
+    // If status indicates an error, this contains a human-readable string giving more information about the error.
+    QString errorInfo { "" };
+
+    QString scriptText { "" };
+    QScriptValue scriptObject { QScriptValue() };
+    int64_t lastModified { 0 };
+    QUrl definingSandboxURL { QUrl() };
 };
 
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
@@ -178,6 +184,8 @@ public:
     void scriptWarningMessage(const QString& message);
     void scriptInfoMessage(const QString& message);
 
+    bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
+
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
     void updateMemoryCost(const qint64&);
@@ -200,6 +208,28 @@ signals:
     void doneRunning();
 
 protected:
+    void init();
+
+    bool evaluatePending() const { return _evaluatesPending > 0; }
+    void timerFired();
+    void stopAllTimers();
+    void stopAllTimersForEntityScript(const EntityItemID& entityID);
+    void refreshFileScript(const EntityItemID& entityID);
+
+    void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
+
+    QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
+    void stopTimer(QTimer* timer);
+
+    QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
+    void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
+    Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
+
+    EntityItemID currentEntityIdentifier {}; // Contains the defining entity script entity id during execution, if any. Empty for interface script execution.
+    QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
+    void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
+    void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
+
     QString _scriptContents;
     QString _parentURL;
     std::atomic<bool> _isFinished { false };
@@ -215,19 +245,6 @@ protected:
     bool _debuggable { false };
     qint64 _lastUpdate;
 
-    void init();
-
-    bool evaluatePending() const { return _evaluatesPending > 0; }
-    void timerFired();
-    void stopAllTimers();
-    void stopAllTimersForEntityScript(const EntityItemID& entityID);
-    void refreshFileScript(const EntityItemID& entityID);
-
-    void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
-
-    QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
-    void stopTimer(QTimer* timer);
-
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;
@@ -239,15 +256,6 @@ protected:
     ArrayBufferClass* _arrayBufferClass;
 
     AssetScriptingInterface _assetScriptingInterface{ this };
-
-    QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
-    void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
-    Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
-
-    EntityItemID currentEntityIdentifier {}; // Contains the defining entity script entity id during execution, if any. Empty for interface script execution.
-    QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
-    void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
-    void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
     std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
 
