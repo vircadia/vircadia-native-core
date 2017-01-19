@@ -32,10 +32,10 @@ public:
 
     Q_INVOKABLE void start();
 
-    bool responseReceived;
-    bool isRunning;
-    EntityScriptStatus status;
-    QString errorInfo;
+    bool getResponseReceived() const { return _responseReceived; }
+    bool getIsRunning() const { return _isRunning; }
+    EntityScriptStatus getStatus() const { return _status; }
+    QString getErrorInfo() const { return _errorInfo;  }
 
 signals:
     void finished(GetScriptStatusRequest* request);
@@ -43,6 +43,11 @@ signals:
 private:
     QUuid _entityID;
     MessageID _messageID;
+
+    bool _responseReceived;
+    bool _isRunning;
+    EntityScriptStatus _status;
+    QString _errorInfo;
 };
 
 class EntityScriptClient : public QObject, public Dependency {

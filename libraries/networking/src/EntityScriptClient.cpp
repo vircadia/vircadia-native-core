@@ -17,10 +17,10 @@ GetScriptStatusRequest::~GetScriptStatusRequest() {
 void GetScriptStatusRequest::start() {
     auto client = DependencyManager::get<EntityScriptClient>();
     client->getEntityServerScriptStatus(_entityID, [this](bool responseReceived, bool isRunning, EntityScriptStatus status, QString errorInfo) {
-        this->responseReceived = responseReceived;
-        this->isRunning = isRunning;
-        this->status = status;
-        this->errorInfo = errorInfo;
+        responseReceived = responseReceived;
+        isRunning = isRunning;
+        status = status;
+        errorInfo = errorInfo;
 
         emit finished(this);
     });

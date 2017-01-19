@@ -681,7 +681,7 @@ bool EntityScriptingInterface::getServerScriptStatus(QUuid entityID, QScriptValu
     auto request = client->createScriptStatusRequest(entityID);
     connect(request, &GetScriptStatusRequest::finished, callback.engine(), [callback](GetScriptStatusRequest* request) mutable {
         QString statusString;
-        switch (request->status) {
+        switch (request->getStatus()) {
             case RUNNING:
                 statusString = "running";
                 break;
@@ -695,7 +695,7 @@ bool EntityScriptingInterface::getServerScriptStatus(QUuid entityID, QScriptValu
                 statusString = "";
                 break;
         }
-        QScriptValueList args { request->responseReceived, request->isRunning, statusString, request->errorInfo };
+        QScriptValueList args { request->getResponseReceived(), request->getIsRunning(), statusString, request->getErrorInfo() };
         callback.call(QScriptValue(), args);
         request->deleteLater();
     });
