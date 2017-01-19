@@ -25,6 +25,8 @@
 
 #include "../entities/AssignmentParentFinder.h"
 
+const size_t UUID_LENGTH_BYTES = 16;
+
 int EntityScriptServer::_entitiesScriptEngineCount = 0;
 
 EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssignment(message) {
@@ -52,9 +54,38 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
+
+    packetReceiver.registerListener(PacketType::ReloadEntityServerScript, this, "handleReloadEntityServerScriptPacket");
+    packetReceiver.registerListener(PacketType::EntityScriptGetStatus, this, "handleEntityScriptGetStatusPacket");
 }
 
 static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
+
+void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto entityID = QUuid::fromRfc4122(message->read(UUID_LENGTH_BYTES));
+
+    if (_entityViewer.getTree() && !_shuttingDown) {
+        qDebug() << "Reloading: " << entityID;
+        _entitiesScriptEngine->unloadEntityScript(entityID);
+        checkAndCallPreload(entityID, true);
+    }
+}
+
+void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    MessageID messageID;
+    message->readPrimitive(&messageID);
+    auto entityID = QUuid::fromRfc4122(message->read(UUID_LENGTH_BYTES));
+
+    // TODO(Huffman) Get Status
+    
+    qDebug() << "Getting script status of: " << entityID;
+    auto replyPacket = NLPacket::create(PacketType::EntityScriptGetStatusReply, -1, true);
+    replyPacket->writePrimitive(messageID);
+    replyPacket->writeString("running");
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *senderNode);
+}
 
 void EntityScriptServer::run() {
     // make sure we request our script once the agent connects to the domain
@@ -75,7 +106,8 @@ void EntityScriptServer::run() {
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &EntityScriptServer::nodeKilled);
 
     nodeList->addSetOfNodeTypesToNodeInterestSet({
-        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
+        NodeType::Agent, NodeType::AudioMixer, NodeType::AvatarMixer,
+        NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
     });
 
     // Setup Script Engine

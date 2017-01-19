@@ -25,6 +25,7 @@
 #include "QVariantGLM.h"
 #include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
+#include <EntityScriptClient.h>
 
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
@@ -671,23 +672,20 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
 }
 
 bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
-    // Send packet to entity script server
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer entityScriptServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+    auto client = DependencyManager::get<EntityScriptClient>();
+    return client->reloadServerScript(entityID);
+}
 
-    if (entityScriptServer) {
-        auto id = entityID.toByteArray();
-        auto payloadSize = id.size();
-        auto packet = NLPacket::create(PacketType::ReloadEntityServerScript, payloadSize, true);
-        
-        packet->write(id);
-
-        if (nodeList->sendPacket(std::move(packet), *entityScriptServer) != -1) {
-            return true;
-        }
-    }
-
-    return false;
+bool EntityScriptingInterface::getServerScriptStatus(QUuid entityID, QScriptValue callback) {
+    auto client = DependencyManager::get<EntityScriptClient>();
+    auto request = client->createScriptStatusRequest(entityID);
+    connect(request, &GetScriptStatusRequest::finished, callback.engine(), [callback](GetScriptStatusRequest* request) mutable {
+        QScriptValueList args { true };
+        callback.call(QScriptValue(), args);
+        request->deleteLater();
+    });
+    request->start();
+    return true;
 }
 
 void EntityScriptingInterface::setLightsArePickable(bool value) {

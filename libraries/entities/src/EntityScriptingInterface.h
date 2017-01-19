@@ -211,6 +211,7 @@ public slots:
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
 
     Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
+    Q_INVOKABLE bool getServerScriptStatus(QUuid entityID, QScriptValue callback);
 
     Q_INVOKABLE void setLightsArePickable(bool value);
     Q_INVOKABLE bool getLightsArePickable() const;

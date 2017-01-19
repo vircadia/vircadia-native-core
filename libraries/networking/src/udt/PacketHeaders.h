@@ -107,6 +107,8 @@ public:
         RequestsDomainListData,
         ExitingSpaceBubble,
         PerAvatarGainSet,
+        EntityScriptGetStatus,
+        EntityScriptGetStatusReply,
         ReloadEntityServerScript,
         LAST_PACKET_TYPE = ReloadEntityServerScript
     };
