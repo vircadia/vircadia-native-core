@@ -29,13 +29,18 @@
                 font-weight: bold;
             }
 
-            .top-bar .container{
+            .top-bar .container {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 margin-left: 30px;
                 margin-right: 30px;
                 height: 100%;
+            }
+
+            #refresh-button {
+                width: 24px;
+                height: 24px;
             }
 
             .main {
@@ -53,7 +58,7 @@
         <div class="top-bar">
             <div class="container">
                 <div>Users Online</div>
-                <button type="button" onclick="pollUsers()">Refresh</button>
+                <img id="refresh-button" onclick="pollUsers()" src="https://hifi-content.s3.amazonaws.com/faye/tablet-dev/refresh-icon.svg"></img>
             </div>
         </div>
         <div class="main">
@@ -90,9 +95,9 @@
             $(document).ready(function() {
                 $("#dev-div").html("ready");
                 // Send a ready event to hifi
-                EventBridge.emitWebEvent("ready");
+                // EventBridge.emitWebEvent("ready");
                 // Listen for events from hifi
-                EventBridge.scriptEventReceived.connect(onScriptEventReceived);
+                // EventBridge.scriptEventReceived.connect(onScriptEventReceived);
             });
         </script
     </body>
