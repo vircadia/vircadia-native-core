@@ -593,6 +593,8 @@ function loaded() {
         var elReloadScriptsButton = document.getElementById("reload-script-button");
         var elServerScripts = document.getElementById("property-server-scripts");
         var elReloadServerScriptsButton = document.getElementById("reload-server-scripts-button");
+        var elServerScriptStatus = document.getElementById("server-script-status");
+        var elServerScriptError = document.getElementById("server-script-error");
         var elUserData = document.getElementById("property-user-data");
         var elClearUserData = document.getElementById("userdata-clear");
         var elSaveUserData = document.getElementById("userdata-save");
@@ -710,7 +712,28 @@ function loaded() {
             var properties;
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
-                if (data.type == "update") {
+                if (data.type == "server_script_status") {
+                    if (!data.statusRetrieved) {
+                        elServerScriptStatus.innerHTML = "Failed to retrieve status";
+                        elServerScriptError.style.display = "none";
+                    } else if (data.isRunning) {
+                        if (data.status == "running") {
+                            elServerScriptStatus.innerHTML = "Running";
+                            elServerScriptError.style.display = "none";
+                        } else if (data.status == "error_loading_script") {
+                            elServerScriptStatus.innerHTML = "Error loading script";
+                            elServerScriptError.style.display = "block";
+                        } else if (data.status == "error_running_script") {
+                            elServerScriptStatus.innerHTML = "Error running script";
+                            elServerScriptError.style.display = "block";
+                        }
+                        //elServerScriptError.innerHTML = JSON.stringify(data) + "\n" + data.errorInfo;;
+                        elServerScriptError.innerHTML = data.errorInfo;;
+                    } else {
+                        elServerScriptStatus.innerHTML = "Not running";
+                        elServerScriptError.style.display = "none";
+                    }
+                } else if (data.type == "update") {
 
                     if (data.selections.length == 0) {
                         if (editor !== null && lastEntityID !== null) {
