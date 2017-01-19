@@ -271,7 +271,7 @@ function populateUserList() {
             admin: false
         };
         // Request the username, fingerprint, and admin status from the given UUID
-        // Username and fingerprint returns "" if the requesting user isn't an admin
+        // Username and fingerprint returns default constructor output if the requesting user isn't an admin
         Users.requestUsernameFromID(id);
         // Request personal mute status and ignore status
         // from NodeList (as long as we're not requesting it for our own ID)
@@ -292,13 +292,15 @@ function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
     // If the ID we've received is our ID...
     if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username];
-    } else {
+        data = ['', username, isAdmin];
+    } else if (Users.canKick) {
         // Set the data to contain the ID and the username (if we have one)
         // or fingerprint (if we don't have a username) string.
-        data = [id, username || machineFingerprint];
+        data = [id, username || machineFingerprint, isAdmin];
+    } else {
+        // Set the data to contain specific strings.
+        data = [id, '', isAdmin];
     }
-    data.push(isAdmin);
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
     pal.sendToQml({ method: 'updateUsername', params: data });
