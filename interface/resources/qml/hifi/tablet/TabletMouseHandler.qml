@@ -148,9 +148,6 @@ Item {
                     console.log("Triggering " + item.text)
                     // Don't block waiting for modal dialogs and such that the menu might open.
                     delay.trigger(item);
-                    clearMenus();
-                    // build root level menu
-                    tabletMenu.buildMenu();
                     break;
                 }
         }
