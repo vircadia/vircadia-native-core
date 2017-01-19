@@ -19,7 +19,7 @@
         icon: "icons/tablet-icons/help-i.svg",
         text: "HELP"
     });
-
+    var enabled = false;
     function onClicked() {
         var HELP_URL = Script.resourcesPath() + "html/help.html";
 
@@ -38,7 +38,17 @@
             defaultTab = "gamepad";
         }
         var queryParameters = "handControllerName=" + handControllerName + "&defaultTab=" + defaultTab;
-        Menu.triggerOption('Help...');
+        print("Help enabled " + Menu.isMenuEnabled("Help..."))
+
+        if (enabled) {
+            Menu.closeInfoView('InfoView_html/help.html');
+            enabled = !enabled;
+            button.editProperties({isActive: enabled});
+        } else {
+            Menu.triggerOption('Help...');
+            enabled = !enabled;
+            button.editProperties({isActive: enabled});
+        }
     }
 
     button.clicked.connect(onClicked);

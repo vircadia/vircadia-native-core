@@ -182,6 +182,8 @@ public slots:
      */
     void setMenuEnabled(const QString& menuName, bool isEnabled);
 
+    void closeInfoView(const QString& path);
+
 signals:
     /**jsdoc
      * This is a signal that is emitted when a menu item is clicked.
