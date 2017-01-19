@@ -51,18 +51,17 @@ public:
     virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const;
 
     // Payload resource cached values
-    std::shared_ptr<const model::Mesh> _drawMesh;
-    int _partIndex = 0;
-    model::Mesh::Part _drawPart;
-
-    std::shared_ptr<const model::Material> _drawMaterial;
-
-    model::Box _localBound;
     Transform _drawTransform;
     Transform _transform;
-    mutable model::Box _worldBound;
+    int _partIndex = 0;
+    bool _hasColorAttrib { false };
 
-    bool _hasColorAttrib = false;
+    model::Box _localBound;
+    mutable model::Box _worldBound;
+    std::shared_ptr<const model::Mesh> _drawMesh;
+
+    std::shared_ptr<const model::Material> _drawMaterial;
+    model::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
     size_t getMaterialTextureSize() { return _drawMaterial ? _drawMaterial->getTextureSize() : 0; }
