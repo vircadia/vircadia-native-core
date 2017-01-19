@@ -62,34 +62,38 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
 
 void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+        auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
-    if (_entityViewer.getTree() && !_shuttingDown) {
-        qDebug() << "Reloading: " << entityID;
-        _entitiesScriptEngine->unloadEntityScript(entityID);
-        checkAndCallPreload(entityID, true);
+        if (_entityViewer.getTree() && !_shuttingDown) {
+            qDebug() << "Reloading: " << entityID;
+            _entitiesScriptEngine->unloadEntityScript(entityID);
+            checkAndCallPreload(entityID, true);
+        }
     }
 }
 
 void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    MessageID messageID;
-    message->readPrimitive(&messageID);
-    auto entityID = QUuid::fromRfc4122(message->read(UUID_LENGTH_BYTES));
-    
-    auto replyPacketList = NLPacketList::create(PacketType::EntityScriptGetStatusReply, QByteArray(), true, true);
-    replyPacketList->writePrimitive(messageID);
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+        MessageID messageID;
+        message->readPrimitive(&messageID);
+        auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
-    EntityScriptDetails details;
-    if (_entitiesScriptEngine->getEntityScriptDetails(entityID, details)) {
-        replyPacketList->writePrimitive(true);
-        replyPacketList->writePrimitive(details.status);
-        replyPacketList->writeString(details.errorInfo);
-    } else {
-        replyPacketList->writePrimitive(false);
+        auto replyPacketList = NLPacketList::create(PacketType::EntityScriptGetStatusReply, QByteArray(), true, true);
+        replyPacketList->writePrimitive(messageID);
+
+        EntityScriptDetails details;
+        if (_entitiesScriptEngine->getEntityScriptDetails(entityID, details)) {
+            replyPacketList->writePrimitive(true);
+            replyPacketList->writePrimitive(details.status);
+            replyPacketList->writeString(details.errorInfo);
+        } else {
+            replyPacketList->writePrimitive(false);
+        }
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->sendPacketList(std::move(replyPacketList), *senderNode);
     }
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacketList(std::move(replyPacketList), *senderNode);
 }
 
 void EntityScriptServer::run() {
