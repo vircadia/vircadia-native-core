@@ -1431,7 +1431,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     auto fileName = isURL ? scriptOrURL : "EmbeddedEntityScript";
 
     EntityScriptDetails newDetails;
-    newDetails.scriptText = isURL ? contents : scriptOrURL;
+    newDetails.scriptText = scriptOrURL;
 
     if (!success) {
         newDetails.status = ERROR_LOADING_SCRIPT;
