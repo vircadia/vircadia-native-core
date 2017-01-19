@@ -22,19 +22,22 @@ public:
     CauterizedModel(RigPointer rig, QObject* parent);
     virtual ~CauterizedModel();
 
-	void deleteGeometry() override;
-    virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
+    void flagAsCauterized() { _isCauterized = true; }
+    bool getIsCauterized() const { return _isCauterized; }
 
-    void setCauterizeBones(bool flag) { _cauterizeBones = flag; }
-    bool getCauterizeBones() const { return _cauterizeBones; }
+    void setEnableCauterization(bool flag) { _enableCauterization = flag; }
+    bool getEnableCauterization() const { return _enableCauterization; }
 
     const std::unordered_set<int>& getCauterizeBoneSet() const { return _cauterizeBoneSet; }
     void setCauterizeBoneSet(const std::unordered_set<int>& boneSet) { _cauterizeBoneSet = boneSet; }
 
+	void deleteGeometry() override;
+	bool updateGeometry() override;
+
 	void createVisibleRenderItemSet() override;
     void createCollisionRenderItemSet() override;
 
-	bool updateGeometry() override;
+    virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
     virtual void updateClusterMatrices() override;
     void updateRenderItems() override;
 
@@ -43,7 +46,8 @@ public:
 protected:
     std::unordered_set<int> _cauterizeBoneSet;
 	QVector<Model::MeshState> _cauterizeMeshStates;
-    bool _cauterizeBones { false };
+    bool _isCauterized { false };
+    bool _enableCauterization { false };
 };
 
 #endif // hifi_CauterizedModel_h

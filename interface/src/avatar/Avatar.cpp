@@ -1047,6 +1047,7 @@ void Avatar::setModelURLFinished(bool success) {
 static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride) {
     if (isSoft) {
         // cast to std::shared_ptr<Model>
+        // TODO: re-enable cauterization for the SoftAttachmentModel when this is MyAvatar
         return std::dynamic_pointer_cast<Model>(std::make_shared<SoftAttachmentModel>(std::make_shared<Rig>(), nullptr, rigOverride));
     } else {
         return std::make_shared<Model>(std::make_shared<Rig>());

@@ -44,6 +44,9 @@ void CauterizedMeshPartPayload::updateTransformForSkinnedCauterizedMesh(const Tr
                 _cauterizedTransform = _transform;
             }
         }
+    } else {
+        _worldBound = _localBound;
+        _worldBound.transform(_drawTransform);
     }
 }
 
@@ -51,10 +54,10 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::S
     // Still relying on the raw data from the model
     const Model::MeshState& state = _model->getMeshState(_meshIndex);
     SkeletonModel* skeleton = static_cast<SkeletonModel*>(_model);
-    bool canCauterize = (renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE);
+    bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE) && skeleton->getEnableCauterization();
 
     if (state.clusterBuffer) {
-        if (canCauterize && skeleton->getCauterizeBones()) {
+        if (useCauterizedMesh) {
             const Model::MeshState& cState = skeleton->getCauterizeMeshState(_meshIndex);
             batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, cState.clusterBuffer);
         } else {
@@ -62,7 +65,7 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::S
         }
         batch.setModelTransform(_transform);
     } else {
-        if (canCauterize && skeleton->getCauterizeBones()) {
+        if (useCauterizedMesh) {
             batch.setModelTransform(_cauterizedTransform);
         } else {
             batch.setModelTransform(_transform);

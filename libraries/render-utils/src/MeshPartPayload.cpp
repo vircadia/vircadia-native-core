@@ -370,6 +370,9 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transf
             _worldBound += clusterBound;
         }
         _worldBound.transform(transform);
+    } else {
+        _worldBound = _localBound;
+        _worldBound.transform(_drawTransform);
     }
 }
 
