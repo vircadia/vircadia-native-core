@@ -18,4 +18,4 @@ enum EntityScriptStatus {
     RUNNING
 };
 
-#endif
+#endif // hifi_EntityScriptUtils_h
