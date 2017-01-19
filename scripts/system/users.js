@@ -23,7 +23,12 @@
         tablet.gotoWebScreen(USERS_URL);
     }
 
+    function onWebEventReceived(event) {
+        print(event);
+    }
+
     button.clicked.connect(onClicked);
+    tablet.webEventReceived.connect(onWebEventReceived);
 
     function cleanup() {
         button.clicked.disconnect(onClicked);
