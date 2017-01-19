@@ -444,9 +444,8 @@ public:
                                               ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
     void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
 
-    bool shouldPreloadServerScript() const { return !_script.isEmpty() &&
-        ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
-    void serverScriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
+    bool shouldPreloadServerScript() const { return !_serverScripts.isEmpty() && ((_loadedServerScripts != _serverScripts)); }
+    void serverScriptHasPreloaded() { _loadedServerScripts = _serverScripts; }
 
     bool getClientOnly() const { return _clientOnly; }
     void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
@@ -520,6 +519,7 @@ protected:
     QString _loadedScript; /// the value of _script when the last preload signal was sent
     quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
     QString _serverScripts;
+    QString _loadedServerScripts;
 
     /// the value of _scriptTimestamp when the last preload signal was sent
     // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it
