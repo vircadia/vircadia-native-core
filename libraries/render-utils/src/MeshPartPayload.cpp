@@ -402,7 +402,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
         }
     }
 
-    if (!_hasFinishedFade) {
+    if (_fadeState != FADE_COMPLETE) {
         builder.withTransparent();
     }
 
@@ -472,7 +472,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent || !_hasFinishedFade) {
+    if (isTranslucent || _fadeState != FADE_COMPLETE) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -513,9 +513,10 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    if (!_hasColorAttrib || fadeRatio < 1.0f) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
+    if (_fadeState != FADE_COMPLETE) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, computeFadeAlpha());
+    } else if (!_hasColorAttrib) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
 
@@ -528,17 +529,23 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
-void ModelMeshPartPayload::startFade() {
-    bool shouldFade = EntityItem::getEntitiesShouldFadeFunction()();
-    if (shouldFade) {
-        _fadeStartTime = usecTimestampNow();
-        _hasStartedFade = true;
-        _hasFinishedFade = false;
-    } else {
-        _isFading = true;
-        _hasStartedFade = true;
-        _hasFinishedFade = true;
+float ModelMeshPartPayload::computeFadeAlpha() const {
+    if (_fadeState == FADE_WAITING_TO_START) {
+        return 0.0f;
     }
+    float fadeAlpha = 1.0f;
+    const float INV_FADE_PERIOD = 1.0f / (float)(1 * USECS_PER_SECOND);
+    float fraction = (float)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
+    if (fraction < 1.0f) {
+        fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
+    }
+    if (fadeAlpha >= 1.0f) {
+        _fadeState = FADE_COMPLETE;
+        // when fade-in completes we flag model for one last "render item update"
+        _model->setRenderItemsNeedUpdate();
+        return 1.0f;
+    }
+    return Interpolate::simpleNonLinearBlend(fadeAlpha);
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) const {
@@ -548,33 +555,28 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         return; // bail asap
     }
 
-    // If we didn't start the fade in, check if we are ready to now....
-    if (!_hasStartedFade && _model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
-        const_cast<ModelMeshPartPayload&>(*this).startFade();
+    if (_fadeState == FADE_WAITING_TO_START) {
+        if (_model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
+            if (EntityItem::getEntitiesShouldFadeFunction()()) {
+                _fadeStartTime = usecTimestampNow();
+                _fadeState = FADE_IN_PROGRESS;
+            } else {
+                _fadeState = FADE_COMPLETE;
+            }
+            _model->setRenderItemsNeedUpdate();
+        } else {
+            return;
+        }
     }
 
-    // If we still didn't start the fade in, bail
-    if (!_hasStartedFade) {
+    if (!args) {
         return;
     }
-
-    // When an individual mesh parts like this finishes its fade, we will mark the Model as
-    // having render items that need updating
-    bool nextIsFading = _isFading ? isStillFading() : false;
-    bool startFading = !_isFading && !_hasFinishedFade && _hasStartedFade;
-    bool endFading = _isFading && !nextIsFading;
-    if (startFading || endFading) {
-        _isFading = startFading;
-        _hasFinishedFade = endFading;
-        _model->setRenderItemsNeedUpdate();
-    }
-
-    gpu::Batch& batch = *(args->_batch);
-
     if (!getShapeKey().isValid()) {
         return;
     }
 
+    gpu::Batch& batch = *(args->_batch);
     auto locations =  args->_pipeline->locations;
     assert(locations);
 
@@ -588,9 +590,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     // apply material properties
     bindMaterial(batch, locations);
 
-    if (args) {
-        args->_details._materialSwitches++;
-    }
+    args->_details._materialSwitches++;
 
     // Draw!
     {
@@ -598,8 +598,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         drawCall(batch);
     }
 
-    if (args) {
-        const int INDICES_PER_TRIANGLE = 3;
-        args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
-    }
+    const int INDICES_PER_TRIANGLE = 3;
+    args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }

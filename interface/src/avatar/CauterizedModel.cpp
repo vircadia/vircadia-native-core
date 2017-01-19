@@ -225,9 +225,6 @@ void CauterizedModel::updateRenderItems() {
             foreach (auto itemID, keys) {
                 pendingChanges.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](CauterizedMeshPartPayload& data) {
                     if (data._model && data._model->isLoaded()) {
-                        if (!data.hasStartedFade() && data._model->getGeometry()->areTexturesLoaded()) {
-                            data.startFade();
-                        }
                         // Ensure the model geometry was not reset between frames
                         if (deleteGeometryCounter == data._model->getGeometryCounter()) {
                             // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.

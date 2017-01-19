@@ -21,6 +21,10 @@
 
 #include <model/Geometry.h>
 
+const uint8_t FADE_WAITING_TO_START = 0;
+const uint8_t FADE_IN_PROGRESS = 1;
+const uint8_t FADE_COMPLETE = 2;
+
 class Model;
 
 class MeshPartPayload {
@@ -87,10 +91,7 @@ public:
     void updateTransformForSkinnedMesh(const Transform& transform,
             const QVector<glm::mat4>& clusterMatrices);
 
-    // Entity fade in
-    void startFade();
-    bool hasStartedFade() { return _hasStartedFade; }
-    bool isStillFading() const { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
+    float computeFadeAlpha() const;
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -113,10 +114,8 @@ public:
     bool _isBlendShaped{ false };
 
 private:
-    quint64 _fadeStartTime { 0 };
-    bool _hasStartedFade { false };
-    mutable bool _hasFinishedFade { false };
-    mutable bool _isFading { false };
+    mutable quint64 _fadeStartTime { 0 };
+    mutable uint8_t _fadeState { FADE_WAITING_TO_START };
 };
 
 namespace render {
