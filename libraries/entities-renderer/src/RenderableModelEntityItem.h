@@ -52,6 +52,7 @@ public:
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
     ModelPointer getModel(QSharedPointer<EntityTreeRenderer> renderer);
+    ModelPointer getModelNotSafe();
 
     virtual bool needsToCallUpdate() const override;
     virtual void update(const quint64& now) override;

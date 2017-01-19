@@ -38,6 +38,7 @@ public:
     enum FlagBit {
         TYPE_SHAPE = 0,   // Item is a Shape
         TYPE_LIGHT,       // Item is a Light
+        TYPE_META,        // Item is a Meta: meanning it s used to represent a higher level object, potentially represented by other render items
         TRANSLUCENT,      // Transparent and not opaque, for some odd reason TRANSPARENCY doesn't work...
         VIEW_SPACE,       // Transformed in view space, and not in world space
         DYNAMIC,          // Dynamic and bound will change unlike static item
@@ -72,6 +73,7 @@ public:
 
         Builder& withTypeShape() { _flags.set(TYPE_SHAPE); return (*this); }
         Builder& withTypeLight() { _flags.set(TYPE_LIGHT); return (*this); }
+        Builder& withTypeMeta() { _flags.set(TYPE_META); return (*this); }
         Builder& withTransparent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
@@ -91,6 +93,7 @@ public:
 
     bool isShape() const { return _flags[TYPE_SHAPE]; }
     bool isLight() const { return _flags[TYPE_LIGHT]; }
+    bool isMeta() const { return _flags[TYPE_META]; }
 
     bool isOpaque() const { return !_flags[TRANSLUCENT]; }
     bool isTransparent() const { return _flags[TRANSLUCENT]; }
@@ -150,6 +153,7 @@ public:
 
         Builder& withTypeShape()        { _value.set(ItemKey::TYPE_SHAPE); _mask.set(ItemKey::TYPE_SHAPE); return (*this); }
         Builder& withTypeLight()        { _value.set(ItemKey::TYPE_LIGHT); _mask.set(ItemKey::TYPE_LIGHT); return (*this); }
+        Builder& withTypeMeta()         { _value.set(ItemKey::TYPE_META); _mask.set(ItemKey::TYPE_META); return (*this); }
 
         Builder& withOpaque()           { _value.reset(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
         Builder& withTransparent()      { _value.set(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
@@ -179,6 +183,7 @@ public:
         static Builder opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace(); }
         static Builder transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace(); }
         static Builder light() { return Builder().withTypeLight(); }
+        static Builder meta() { return Builder().withTypeMeta(); }
         static Builder background() { return Builder().withViewSpace().withLayered(); }
         static Builder opaqueShapeLayered() { return Builder().withTypeShape().withOpaque().withWorldSpace().withLayered(); }
         static Builder transparentShapeLayered() { return Builder().withTypeShape().withTransparent().withWorldSpace().withLayered(); }
@@ -210,6 +215,25 @@ inline QDebug operator<<(QDebug debug, const ItemFilter& me) {
 using ItemID = uint32_t;
 using ItemCell = int32_t;
 
+// A few typedefs for standard containers of ItemIDs
+using ItemIDs = std::vector<ItemID>;
+using ItemIDSet = std::set<ItemID>;
+
+// Handy type to just pass the ID and the bound of an item
+class ItemBound {
+    public:
+        ItemBound(ItemID id) : id(id) { }
+        ItemBound(ItemID id, const AABox& bound) : id(id), bound(bound) { }
+
+        ItemID id;
+        AABox bound;
+};
+
+// many Item Bounds in a vector
+using ItemBounds = std::vector<ItemBound>;
+
+// Item is the proxy to a bounded "object" in the scene
+// An item is described by its Key
 class Item {
 public:
     typedef std::vector<Item> Vector;
@@ -295,6 +319,8 @@ public:
 
         virtual const ShapeKey getShapeKey() const = 0;
 
+        virtual uint32_t fetchMetaSubItems(ItemIDs& subItems) const = 0;
+
         ~PayloadInterface() {}
 
         // Status interface is local to the base class
@@ -312,6 +338,9 @@ public:
 
     Item() {}
     ~Item() {}
+
+    // Item exists if it has a valid payload
+    bool exist() const { return (bool)(_payload); }
 
     // Main scene / item managment interface reset/update/kill
     void resetPayload(const PayloadPointer& payload);
@@ -338,6 +367,9 @@ public:
 
     // Shape Type Interface
     const ShapeKey getShapeKey() const { return _payload->getShapeKey(); }
+
+    // Meta Type Interface
+    uint32_t fetchMetaSubItems(ItemIDs& subItems) const { return _payload->fetchMetaSubItems(subItems); }
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
@@ -370,10 +402,7 @@ inline QDebug operator<<(QDebug debug, const Item& item) {
     return debug;
 }
 
-// THe Payload class is the real Payload to be used
-// THis allow anything to be turned into a Payload as long as the required interface functions are available
-// When creating a new kind of payload from a new "stuff" class then you need to create specialized version for "stuff"
-// of the Payload interface
+// Item shared interface supported by the payload
 template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payloadData) { return ItemKey(); }
 template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
 template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { return 0; }
@@ -385,6 +414,14 @@ template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, Ren
 // implying that the shape will setup its own pipeline without the use of the ShapeKey.
 template <class T> const ShapeKey shapeGetShapeKey(const std::shared_ptr<T>& payloadData) { return ShapeKey::Builder::ownPipeline(); }
 
+// Meta Type Interface
+// Meta items act as the grouping object for several sub items (typically shapes).
+template <class T> uint32_t metaFetchMetaSubItems(const std::shared_ptr<T>& payloadData, ItemIDs& subItems) { return 0; }
+
+// THe Payload class is the real Payload to be used
+// THis allow anything to be turned into a Payload as long as the required interface functions are available
+// When creating a new kind of payload from a new "stuff" class then you need to create specialized version for "stuff"
+// of the Payload interface
 template <class T> class Payload : public Item::PayloadInterface {
 public:
     typedef std::shared_ptr<T> DataPointer;
@@ -402,6 +439,9 @@ public:
 
     // Shape Type interface
     virtual const ShapeKey getShapeKey() const override { return shapeGetShapeKey<T>(_data); }
+
+    // Meta Type Interface
+    virtual uint32_t fetchMetaSubItems(ItemIDs& subItems) const override { return metaFetchMetaSubItems<T>(_data, subItems); }
 
 protected:
     DataPointer _data;
@@ -449,22 +489,6 @@ template <> const Item::Bound payloadGetBound(const FooPointer& foo) {
 
 typedef Item::PayloadPointer PayloadPointer;
 typedef std::vector< PayloadPointer > Payloads;
-
-// A few typedefs for standard containers of ItemIDs
-using ItemIDs = std::vector<ItemID>;
-using ItemIDSet = std::set<ItemID>;
-
-// Handy type to just pass the ID and the bound of an item
-class ItemBound {
-public:
-    ItemBound(ItemID id) : id(id) { }
-    ItemBound(ItemID id, const AABox& bound) : id(id), bound(bound) { }
-
-    ItemID id;
-    AABox bound;
-};
-// many Item Bounds in a vector
-using ItemBounds = std::vector<ItemBound>;
 
 // A map of items by ShapeKey to optimize rendering pipeline assignments
 using ShapeBounds = std::unordered_map<ShapeKey, ItemBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;

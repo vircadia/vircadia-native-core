@@ -32,6 +32,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
+    template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems);
 }
 
 static const float SCALING_RATIO = .05f;
