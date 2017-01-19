@@ -69,6 +69,17 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
+class LocalInjectorsStream {
+public:
+    LocalInjectorsStream(int numFrameSamples);
+    int getSampleCapacity() { return 0;  };
+    int samplesAvailable() { return 0; }
+    int writeSamples(const float*, int numSamples) { return 0; }
+    void resizeForFrameSize(int numFrameSamples) {}
+    int skipSamples(int numSamples) { return 0; }
+    int readSamples(float* mixBuffer, int numSamples, bool append) { return 0; }
+};
+
 class AudioInjectorsThread : public QThread {
     Q_OBJECT
 
@@ -97,9 +108,9 @@ public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(AudioRingBuffer& localInjectorsBuffer, MixedProcessedAudioStream& receivedAudioStream,
+        AudioOutputIODevice(LocalInjectorsStream& localInjectorsStream, MixedProcessedAudioStream& receivedAudioStream,
                 AudioClient* audio) :
-            _localInjectorsBuffer(localInjectorsBuffer), _receivedAudioStream(receivedAudioStream),
+            _localInjectorsStream(localInjectorsStream), _receivedAudioStream(receivedAudioStream),
             _audio(audio), _unfulfilledReads(0) {}
 
         void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
@@ -108,7 +119,7 @@ public:
         qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
-        AudioRingBuffer& _localInjectorsBuffer;
+        LocalInjectorsStream& _localInjectorsStream;
         MixedProcessedAudioStream& _receivedAudioStream;
         AudioClient* _audio;
         int _unfulfilledReads;
@@ -277,7 +288,7 @@ private:
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
     AudioRingBuffer _inputRingBuffer;
-    AudioRingBuffer _localInjectorsBuffer;
+    LocalInjectorsStream _localInjectorsStream;
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
@@ -322,7 +333,7 @@ private:
     // for local audio (used by audio injectors thread)
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
-    int16_t* _localOutputScratchBuffer { NULL };
+    float* _localOutputMixBuffer { NULL };
     AudioInjectorsThread _localAudioThread;
     Mutex _localAudioMutex;
 

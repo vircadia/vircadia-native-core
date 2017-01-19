@@ -132,7 +132,7 @@ AudioClient::AudioClient() :
     _loopbackAudioOutput(NULL),
     _loopbackOutputDevice(NULL),
     _inputRingBuffer(0),
-    _localInjectorsBuffer(0),
+    _localInjectorsStream(0),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
     _isStereoInput(false),
     _outputStarveDetectionStartTimeMsec(0),
@@ -154,7 +154,7 @@ AudioClient::AudioClient() :
     _localAudioThread(this),
     _audioLimiter(AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT),
     _outgoingAvatarAudioSequenceNumber(0),
-    _audioOutputIODevice(_localInjectorsBuffer, _receivedAudioStream, this),
+    _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
     _stats(&_receivedAudioStream),
     _inputGate(),
     _positionGetter(DEFAULT_POSITION_GETTER),
@@ -1072,7 +1072,7 @@ void AudioClient::prepareLocalAudioInjectors() {
         return;
     }
 
-    int bufferCapacity = _localInjectorsBuffer.getSampleCapacity();
+    int bufferCapacity = _localInjectorsStream.getSampleCapacity();
     if (_localToOutputResampler) {
         // avoid overwriting the buffer
         bufferCapacity -=
@@ -1086,7 +1086,7 @@ void AudioClient::prepareLocalAudioInjectors() {
         // lock for every write to avoid locking out the device callback
         Lock lock(_localAudioMutex);
 
-        samplesNeeded = bufferCapacity - _localInjectorsBuffer.samplesAvailable();
+        samplesNeeded = bufferCapacity - _localInjectorsStream.samplesAvailable();
         if (samplesNeeded <= 0) {
             break;
         }
@@ -1101,22 +1101,20 @@ void AudioClient::prepareLocalAudioInjectors() {
             _localReverb.render(_localMixBuffer, _localMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
         }
 
-        convertToScratch(_localScratchBuffer, _localMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
-
         int samples;
         if (_localToOutputResampler) {
             // resample to output sample rate
-            int frames = _localToOutputResampler->render(_localScratchBuffer, _localOutputScratchBuffer,
+            int frames = _localToOutputResampler->render(_localMixBuffer, _localOutputMixBuffer,
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
             // write to local injectors' ring buffer
             samples = frames * AudioConstants::STEREO;
-            _localInjectorsBuffer.writeSamples(_localOutputScratchBuffer, samples);
+            _localInjectorsStream.writeSamples(_localOutputMixBuffer, samples);
 
         } else {
             // write to local injectors' ring buffer
             samples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
-            _localInjectorsBuffer.writeSamples(_localScratchBuffer,
+            _localInjectorsStream.writeSamples(_localMixBuffer,
                 AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
         }
 
@@ -1440,8 +1438,8 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
         delete[] _outputScratchBuffer;
         _outputScratchBuffer = NULL;
 
-        delete[] _localOutputScratchBuffer;
-        _localOutputScratchBuffer = NULL;
+        delete[] _localOutputMixBuffer;
+        _localOutputMixBuffer = NULL;
     }
 
     if (_networkToOutputResampler) {
@@ -1501,8 +1499,8 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             _outputPeriod = periodSampleSize * 2;
             _outputMixBuffer = new float[_outputPeriod];
             _outputScratchBuffer = new int16_t[_outputPeriod];
-            _localOutputScratchBuffer = new int16_t[_outputPeriod];
-            _localInjectorsBuffer.resizeForFrameSize(_outputPeriod * 2);
+            _localOutputMixBuffer = new float[_outputPeriod];
+            _localInjectorsStream.resizeForFrameSize(_outputPeriod * 2);
 
             qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / AudioConstants::SAMPLE_SIZE / (float)deviceFrameSize <<
                 "requested bytes:" << requestedSize << "actual bytes:" << _audioOutput->bufferSize() <<
@@ -1630,22 +1628,16 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         samplesRequested = networkSamplesPopped;
     }
 
-    int injectorSamplesPopped;
+    int injectorSamplesPopped = 0;
     {
         Lock lock(_audio->_localAudioMutex);
-        if ((injectorSamplesPopped = _localInjectorsBuffer.readSamples(scratchBuffer, samplesRequested)) > 0) {
-            qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsBuffer.samplesAvailable(), samplesRequested);
-
-            if (_audio->_shouldEchoToServer) {
-                // omit local audio, it should be echoed
-                injectorSamplesPopped = 0;
-            } else if (networkSamplesPopped == 0) {
-                convertToMix(mixBuffer, scratchBuffer, injectorSamplesPopped);
-            } else {
-                // add to mix buffer (float)
-                for (int i = 0; i < injectorSamplesPopped; i++) {
-                    mixBuffer[i] += (float)scratchBuffer[i] * (1 / 32768.0f);
-                }
+        if (_audio->_shouldEchoToServer) {
+            // omit local audio, it should be echoed
+            _localInjectorsStream.skipSamples(samplesRequested);
+        } else {
+            bool append = networkSamplesPopped > 0;
+            if ((injectorSamplesPopped = _localInjectorsStream.readSamples(mixBuffer, samplesRequested, append)) > 0) {
+                qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsStream.samplesAvailable(), samplesRequested);
             }
         }
     }
