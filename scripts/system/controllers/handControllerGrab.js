@@ -2997,7 +2997,6 @@ function MyController(hand) {
 
         children.forEach(function(childID) {
             if (childID !== _this.stylus) {
-                print(childID + " vs " + _this.stylus);
                 // we appear to be holding something and this script isn't in a state that would be holding something.
                 // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
                 // works around some problems that happen when more than one hand or avatar is passing something around.
