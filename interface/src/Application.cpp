@@ -5486,7 +5486,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     UserInputMapper::registerControllerTypes(scriptEngine);
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
-    _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
+    scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
