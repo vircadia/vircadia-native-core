@@ -12,8 +12,7 @@
 #ifndef hifi_SkeletonModel_h
 #define hifi_SkeletonModel_h
 
-
-#include <Model.h>
+#include "CauterizedModel.h"
 
 class Avatar;
 class MuscleConstraint;
@@ -23,7 +22,7 @@ using SkeletonModelPointer = std::shared_ptr<SkeletonModel>;
 using SkeletonModelWeakPointer = std::weak_ptr<SkeletonModel>;
 
 /// A skeleton loaded from a model.
-class SkeletonModel : public Model {
+class SkeletonModel : public CauterizedModel {
     Q_OBJECT
 
 public:
@@ -31,10 +30,10 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
     ~SkeletonModel();
 
-    virtual void initJointStates() override;
+    void initJointStates() override;
 
-    virtual void simulate(float deltaTime, bool fullUpdate = true) override;
-    virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
+    void simulate(float deltaTime, bool fullUpdate = true) override;
+    void updateRig(float deltaTime, glm::mat4 parentTransform) override;
     void updateAttitude();
 
     /// Returns the index of the left hand joint, or -1 if not found.
@@ -105,7 +104,7 @@ public:
 
     float getHeadClipDistance() const { return _headClipDistance; }
 
-    virtual void onInvalidate() override;
+    void onInvalidate() override;
 
 signals:
 

@@ -101,7 +101,7 @@ public:
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
 
-    void updateRenderItems();
+    virtual void updateRenderItems();
     void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
     bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
@@ -215,12 +215,6 @@ public:
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
     glm::vec3 getScaleToFitDimensions() const; /// the dimensions model is scaled to, including inferred y/z
 
-    void setCauterizeBones(bool flag) { _cauterizeBones = flag; }
-    bool getCauterizeBones() const { return _cauterizeBones; }
-
-    const std::unordered_set<int>& getCauterizeBoneSet() const { return _cauterizeBoneSet; }
-    void setCauterizeBoneSet(const std::unordered_set<int>& boneSet) { _cauterizeBoneSet = boneSet; }
-
     int getBlendshapeCoefficientsNum() const { return _blendshapeCoefficients.size(); }
     float getBlendshapeCoefficient(int index) const {
         return ((index < 0) && (index >= _blendshapeCoefficients.size())) ? 0.0f : _blendshapeCoefficients.at(index);
@@ -231,7 +225,7 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
 
     // returns 'true' if needs fullUpdate after geometry change
-    bool updateGeometry();
+    virtual bool updateGeometry();
     void setCollisionMesh(model::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
@@ -241,6 +235,18 @@ public:
     int getRenderInfoTextureCount();
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
+
+    class MeshState {
+    public:
+        QVector<glm::mat4> clusterMatrices;
+        gpu::BufferPointer clusterBuffer;
+
+    };
+
+    const MeshState& getMeshState(int index) { return _meshStates.at(index); }
+
+    uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
+    const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItems; }
 
 public slots:
     void loadURLFinished(bool success);
@@ -298,18 +304,7 @@ protected:
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
 
-    class MeshState {
-    public:
-        QVector<glm::mat4> clusterMatrices;
-        QVector<glm::mat4> cauterizedClusterMatrices;
-        gpu::BufferPointer clusterBuffer;
-        gpu::BufferPointer cauterizedClusterBuffer;
-
-    };
-
     QVector<MeshState> _meshStates;
-    std::unordered_set<int> _cauterizeBoneSet;
-    bool _cauterizeBones;
 
     virtual void initJointStates();
 
@@ -342,7 +337,7 @@ protected:
 
 protected:
 
-    void deleteGeometry();
+    virtual void deleteGeometry();
     void initJointTransforms();
 
     QVector<float> _blendshapeCoefficients;
@@ -371,11 +366,10 @@ protected:
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
 
     void createRenderItemSet();
-    void createVisibleRenderItemSet();
-    void createCollisionRenderItemSet();
+    virtual void createVisibleRenderItemSet();
+    virtual void createCollisionRenderItemSet();
 
     bool _isWireframe;
-
 
     // debug rendering support
     void renderDebugMeshBoxes(gpu::Batch& batch);
