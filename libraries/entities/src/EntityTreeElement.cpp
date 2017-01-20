@@ -284,6 +284,16 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         // entities for encoding. This is needed because we encode the element data at the "parent" level, and so we
         // need to handle the case where our sibling elements need encoding but we don't.
         if (!entityTreeElementExtraEncodeData->elementCompleted) {
+
+            QJsonObject jsonFilters;
+            auto entityNodeData = dynamic_cast<EntityNodeData*>(params.nodeData);
+
+            if (entityNodeData) {
+                // we have an EntityNodeData instance
+                // so we should assume that means we might have JSON filters to check
+                jsonFilters = entityNodeData->getJSONParameters();
+            }
+
             for (uint16_t i = 0; i < _entityItems.size(); i++) {
                 EntityItemPointer entity = _entityItems[i];
                 bool includeThisEntity = true;
@@ -291,35 +301,27 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastQuerySent) {
                     includeThisEntity = false;
                 }
-                
-                auto entityNodeData = dynamic_cast<EntityNodeData*>(params.nodeData);
-                
-                if (entityNodeData) {
-                    // we have an EntityNodeData instance
-                    // so we should assume that means we might have JSON filters to check
-                    auto jsonFilters = entityNodeData->getJSONParameters();
-                    
-                    if (!jsonFilters.isEmpty()) {
-                        
-                        // if params include JSON filters, check if this entity matches
-                        bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
-                        
-                        if (entityMatchesFilters) {
-                            // we should include this entity unless it has already been excluded
+
+                if (!jsonFilters.isEmpty()) {
+
+                    // if params include JSON filters, check if this entity matches
+                    bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
+
+                    if (entityMatchesFilters) {
+                        // we should include this entity unless it has already been excluded
+                        includeThisEntity = includeThisEntity && true;
+
+                        // make sure this entity is in the set of entities sent last frame
+                        entityNodeData->insertEntitySentLastFrame(entity->getID());
+
+                    } else {
+                        // we might include this entity if it matched in the previous frame
+                        if (entityNodeData->sentEntityLastFrame(entity->getID())) {
                             includeThisEntity = includeThisEntity && true;
-                            
-                            // make sure this entity is in the set of entities sent last frame
-                            entityNodeData->insertEntitySentLastFrame(entity->getID());
-                            
+
+                            entityNodeData->removeEntitySentLastFrame(entity->getID());
                         } else {
-                            // we might include this entity if it matched in the previous frame
-                            if (entityNodeData->sentEntityLastFrame(entity->getID())) {
-                                includeThisEntity = includeThisEntity && true;
-                                
-                                entityNodeData->removeEntitySentLastFrame(entity->getID());
-                            } else {
-                                includeThisEntity = false;
-                            }
+                            includeThisEntity = false;
                         }
                     }
                 }
