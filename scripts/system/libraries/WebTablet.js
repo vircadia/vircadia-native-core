@@ -58,11 +58,11 @@ function calcSpawnInfo(hand, height) {
             rotation: lookAtRot
         };
     } else {
-        var front = Quat.getFront(MyAvatar.orientation);
-        finalPosition = Vec3.sum(Vec3.sum(MyAvatar.position, Vec3.multiply(0.6, front)), {x: 0, y: 0.6, z: 0});
+        var front = Quat.getFront(Camera.orientation);
+        finalPosition = Vec3.sum(Camera.position, Vec3.multiply(0.6, front));
         return {
             position: finalPosition,
-            rotation: Quat.lookAt(finalPosition, MyAvatar.getHeadPosition(), Y_AXIS)
+            rotation: Quat.multiply(Camera.orientation, {x: 0, y: 1, z: 0, w: 0})
         };
     }
 }
