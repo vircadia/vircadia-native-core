@@ -1443,7 +1443,6 @@ var PropertiesTool = function (opts) {
     };
 
     function updateScriptStatus(info) {
-        print("Got status: ", info);
         info.type = "server_script_status";
         webView.emitScriptEvent(JSON.stringify(info));
     };
@@ -1457,26 +1456,28 @@ var PropertiesTool = function (opts) {
         });
     }
 
-    selectionManager.addEventListener(function () {
+    selectionManager.addEventListener(function (selectionUpdated) {
         var data = {
             type: 'update'
         };
 
-        resetScriptStatus();
+        if (selectionUpdated) {
+            resetScriptStatus();
 
-        if (selectionManager.selections.length !== 1) {
-            if (statusMonitor !== null) {
-                statusMonitor.stop();
-                statusMonitor = null;
+            if (selectionManager.selections.length !== 1) {
+                if (statusMonitor !== null) {
+                    statusMonitor.stop();
+                    statusMonitor = null;
+                }
+                currentSelectedEntityID = null;
+            } else if (currentSelectedEntityID != selectionManager.selections[0]) {
+                if (statusMonitor !== null) {
+                    statusMonitor.stop();
+                }
+                var entityID = selectionManager.selections[0];
+                currentSelectedEntityID = entityID;
+                statusMonitor = new ServerScriptStatusMonitor(entityID, updateScriptStatus);
             }
-            currentSelectedEntityID = null;
-        } else if (currentSelectedEntityID != selectionManager.selections[0]) {
-            if (statusMonitor !== null) {
-                statusMonitor.stop();
-            }
-            var entityID = selectionManager.selections[0];
-            currentSelectedEntityID = entityID;
-            statusMonitor = new ServerScriptStatusMonitor(entityID, updateScriptStatus);
         }
 
         var selections = [];
