@@ -318,7 +318,6 @@ private:
     AudioSRC* _localToOutputResampler;
 
     // for network audio (used by network audio thread)
-    float _networkMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
 
     // for local audio (used by audio injectors thread)

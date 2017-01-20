@@ -1248,23 +1248,24 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
     outputBuffer.resize(_outputFrameSize * AudioConstants::SAMPLE_SIZE);
     int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
 
-    convertToMix(_networkMixBuffer, decodedSamples, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
-        
-    // apply stereo reverb
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
+
+    // apply stereo reverb
     if (hasReverb) {
         updateReverbOptions();
-        _listenerReverb.render(_networkMixBuffer, _networkMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        int16_t* reverbSamples = _networkToOutputResampler ? _networkScratchBuffer : outputSamples;
+        _listenerReverb.render(decodedSamples, reverbSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     }
 
+    // resample to output sample rate
     if (_networkToOutputResampler) {
-        convertToScratch(_networkScratchBuffer, _networkMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+        const int16_t* inputSamples = hasReverb ? _networkScratchBuffer : decodedSamples;
+        _networkToOutputResampler->render(inputSamples, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    }
 
-        // resample to output sample rate
-        _networkToOutputResampler->render(_networkScratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-    } else {
-        convertToScratch(outputSamples, _networkMixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+    // if no transformations were applied, we still need to copy the buffer
+    if (!hasReverb && !_networkToOutputResampler) {
+        memcpy(outputSamples, decodedSamples, decodedBuffer.size());
     }
 }
 
