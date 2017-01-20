@@ -247,7 +247,7 @@ Rectangle {
                     userModel.setProperty(model.userIndex, styleData.role, newValue)
                     userModelData[model.userIndex][styleData.role] = newValue // Defensive programming
                     Users[styleData.role](model.sessionId, newValue)
-                    UserActivityLogger["palAction"](newValue ? "un-" + styleData.role : styleData.role, model.sessionId)
+                    UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId)
                     if (styleData.role === "ignore") {
                         userModel.setProperty(model.userIndex, "personalMute", newValue)
                         userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming

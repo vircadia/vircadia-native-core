@@ -103,6 +103,8 @@ ExtendedOverlay.prototype.select = function (selected) {
         return;
     }
     
+    UserActivityLogger.palAction(selected ? "avatar_selected" : "avatar_deselected", this.key);
+
     this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
@@ -208,7 +210,6 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
             var id = overlay.key;
             var selected = ExtendedOverlay.isSelected(id);
             overlay.select(selected);
-            UserActivityLogger.palAction("avatar_selected", id);
         });
 
         HighlightedEntity.clearOverlays();
@@ -233,17 +234,24 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
     case 'refresh':
         removeOverlays();
         populateUserList();
-        UserActivityLogger.palAction("refresh");
+        UserActivityLogger.palAction("refresh", "");
         break;
     case 'updateGain':
         data = message.params;
-        Users.setAvatarGain(data['sessionId'], data['gain']);
-        UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
+        if (data['isReleased']) {
+            // isReleased=true happens once at the end of a cycle of dragging
+            // the slider about, but with same gain as last isReleased=false so
+            // we don't set the gain in that case, and only here do we want to
+            // send an analytic event.
+            UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
+        } else {
+            Users.setAvatarGain(data['sessionId'], data['gain']);
+        }
         break;
     case 'displayNameUpdate':
         if (MyAvatar.displayName != message.params) {
             MyAvatar.displayName = message.params;
-            UserActivityLogger.palAction("display_name_change");
+            UserActivityLogger.palAction("display_name_change", "");
         }
         break;
     default:
