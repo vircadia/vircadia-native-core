@@ -125,7 +125,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         parentID: this.tabletEntityID,
         parentJointIndex: -1
     });
-    //setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonEntity === parseInt(senderID)) {
@@ -167,7 +166,7 @@ WebTablet.prototype.getOverlayObject = function () {
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
-    //Entities.deleteEntity(this.homeButtonEntity);
+    Overlays.deleteEntity(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 };
 
