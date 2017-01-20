@@ -416,9 +416,11 @@ Rectangle {
         }
     }
     }
+    // Timer used when selecting table rows that aren't yet present in the model
+    // (i.e. when selecting avatars using edit.js or sphere overlays)
     Timer {
-        property var selected
-        property int userIndex
+        property bool selected // Selected or deselected?
+        property int userIndex // The userIndex of the avatar we want to select
         id: selectionTimer
         onTriggered: {
             if (selected) {
@@ -472,15 +474,20 @@ Rectangle {
             if (sessionIds.length > 1) {
                 letterbox("", "", 'Only one user can be selected at a time.');
             } else if (userIndex < 0) {
+                // If we've already refreshed the PAL and the avatar still isn't present in the model...
                 if (alreadyRefreshed === true) {
                     letterbox('', '', 'The last editor of this object is either you or not among this list of users.');
                 } else {
                     pal.sendToScript({method: 'refresh', params: message.params});
                 }
             } else {
+                // If we've already refreshed the PAL and found the avatar in the model
                 if (alreadyRefreshed === true) {
+                    // Wait a little bit before trying to actually select the avatar in the table
                     selectionTimer.interval = 250;
                 } else {
+                    // If we've found the avatar in the model and didn't need to refresh,
+                    // select the avatar in the table immediately
                     selectionTimer.interval = 0;
                 }
                 selectionTimer.selected = selected;
