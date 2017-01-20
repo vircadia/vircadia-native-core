@@ -91,16 +91,4 @@ static inline float unpackFloatGainFromByte(uint8_t byte) {
     return gain;
 }
 
-static inline void convertToMix(float* mixBuffer, const int16_t* scratchBuffer, int numSamples) {
-    for (int i = 0; i < numSamples; i++) {
-        mixBuffer[i] = (float)scratchBuffer[i] * (1/32768.0f);
-    }
-}
-
-static inline void convertToScratch(int16_t* scratchBuffer, const float* mixBuffer, int numSamples) {
-    for (int i = 0; i < numSamples; i++) {
-        scratchBuffer[i] = (int16_t)(mixBuffer[i] * 32768.0f);
-    }
-}
-
 #endif // hifi_AudioHelpers_h

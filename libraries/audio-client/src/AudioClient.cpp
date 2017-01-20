@@ -46,7 +46,6 @@
 #include <Transform.h>
 
 #include "PositionalAudioStream.h"
-#include "AudioHelpers.h"
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 
@@ -143,6 +142,10 @@ static void channelDownmix(int16_t* source, int16_t* dest, int numSamples) {
         // write 1 sample
         *dest++ = (int16_t)((left + right) / 2);
     }
+}
+
+static inline float convertToFloat(int16_t sample) {
+    return (float)sample * (1 / 32768.0f);
 }
 
 AudioClient::AudioClient() :
@@ -1201,7 +1204,7 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     // stereo gets directly mixed into mixBuffer
                     float gain = injector->getVolume();
                     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-                        mixBuffer[i] += (float)_localScratchBuffer[i] * (1/32768.0f) * gain;
+                        mixBuffer[i] += convertToFloat(_localScratchBuffer[i]) * gain;
                     }
                     
                 } else {
@@ -1652,7 +1655,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples(scratchBuffer, networkSamplesPopped);
 
-        convertToMix(mixBuffer, scratchBuffer, networkSamplesPopped);
+        for (int i = 0; i < networkSamplesPopped; i++) {
+            mixBuffer[i] = convertToFloat(scratchBuffer[i]);
+        }
 
         samplesRequested = networkSamplesPopped;
     }
