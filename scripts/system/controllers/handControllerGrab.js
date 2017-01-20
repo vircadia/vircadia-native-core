@@ -2719,6 +2719,8 @@ function MyController(hand) {
             Entities.sendClickReleaseOnEntity(this.grabbedEntity, pointerEvent);
             Entities.sendHoverLeaveEntity(this.grabbedEntity, pointerEvent);
         }
+        this.grabbedEntity = null;
+        this.grabbedOverlay = null;
     };
 
     this.entityTouching = function(dt) {
@@ -2728,7 +2730,6 @@ function MyController(hand) {
         entityPropertiesCache.addEntity(this.grabbedEntity);
 
         if (this.state == STATE_ENTITY_LASER_TOUCHING && !this.triggerSmoothedGrab()) {
-            this.grabbedEntity = null;
             this.setState(STATE_OFF, "released trigger");
             return;
         }
@@ -2740,7 +2741,6 @@ function MyController(hand) {
 
             if (this.state == STATE_ENTITY_STYLUS_TOUCHING &&
                 intersectInfo.distance > WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
-                this.grabbedEntity = null;
                 this.setState(STATE_OFF, "pulled away from web entity");
                 return;
             }
@@ -2837,19 +2837,19 @@ function MyController(hand) {
             Overlays.sendMouseReleaseOnOverlay(this.grabbedOverlay, pointerEvent);
             Overlays.sendHoverLeaveOverlay(this.grabbedOverlay, pointerEvent);
         }
+        this.grabbedEntity = null;
+        this.grabbedOverlay = null;
     };
 
     this.overlayTouching = function (dt) {
         this.touchingEnterTimer += dt;
 
         if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && this.triggerSmoothedSqueezed()) {
-            this.grabbedEntity = null;
             this.setState(STATE_OFF, "trigger squeezed");
             return;
         }
 
         if (this.state == STATE_OVERLAY_LASER_TOUCHING && !this.triggerSmoothedGrab()) {
-            this.grabbedEntity = null;
             this.setState(STATE_OFF, "released trigger");
             return;
         }
