@@ -33,11 +33,13 @@ SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID, bool& 
     }
 
     // search avatars
-    auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
-    parent = avatarHashMap->getAvatarBySessionID(parentID);
-    if (!parent.expired()) {
-        success = true;
-        return parent;
+    if (DependencyManager::isSet<AvatarHashMap>()) {
+        auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+        parent = avatarHashMap->getAvatarBySessionID(parentID);
+        if (!parent.expired()) {
+            success = true;
+            return parent;
+        }
     }
 
     success = false;
