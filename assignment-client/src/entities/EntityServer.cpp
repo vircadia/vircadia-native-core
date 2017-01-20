@@ -17,7 +17,6 @@
 #include "EntityServerConsts.h"
 #include "EntityNodeData.h"
 #include "AssignmentParentFinder.h"
-#include <AvatarHashMap.h>
 
 const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
@@ -63,7 +62,6 @@ OctreePointer EntityServer::createTree() {
         _entitySimulation = simpleSimulation;
     }
 
-    DependencyManager::set<AvatarHashMap>();
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
     DependencyManager::set<AssignmentParentFinder>(tree);
 
