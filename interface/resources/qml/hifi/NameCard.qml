@@ -346,7 +346,12 @@ Item {
             maximumValue: 20.0
             stepSize: 5
             updateValueWhileDragging: true
-            onValueChanged: updateGainFromQML(uuid, value)
+            onValueChanged: updateGainFromQML(uuid, value, false)
+            onPressedChanged: {
+                if (!pressed) {
+                    updateGainFromQML(uuid, value, true)
+                }
+            }
             MouseArea {
                 anchors.fill: parent
                 onWheel: {
@@ -360,7 +365,8 @@ Item {
                     mouse.accepted = false
                 }
                 onReleased: {
-                    // Pass through to Slider
+                    // the above mouse.accepted seems to make this 
+                    // never get called, nonetheless...
                     mouse.accepted = false
                 }
             }
@@ -382,12 +388,13 @@ Item {
         }
     }
 
-    function updateGainFromQML(avatarUuid, sliderValue) {
-        if (pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
+    function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
+        if (isReleased || pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
             pal.gainSliderValueDB[avatarUuid] = sliderValue;
             var data = {
                 sessionId: avatarUuid,
-                gain: sliderValue
+                gain: sliderValue,
+                isReleased: isReleased
             };
             pal.sendToScript({method: 'updateGain', params: data});
         }

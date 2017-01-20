@@ -103,6 +103,8 @@ ExtendedOverlay.prototype.select = function (selected) {
         return;
     }
     
+    UserActivityLogger.palAction(selected ? "avatar_selected" : "avatar_deselected", this.key);
+
     this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
@@ -232,14 +234,24 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
     case 'refresh':
         removeOverlays();
         populateUserList();
+        UserActivityLogger.palAction("refresh", "");
         break;
     case 'updateGain':
         data = message.params;
-        Users.setAvatarGain(data['sessionId'], data['gain']);
+        if (data['isReleased']) {
+            // isReleased=true happens once at the end of a cycle of dragging
+            // the slider about, but with same gain as last isReleased=false so
+            // we don't set the gain in that case, and only here do we want to
+            // send an analytic event.
+            UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
+        } else {
+            Users.setAvatarGain(data['sessionId'], data['gain']);
+        }
         break;
     case 'displayNameUpdate':
         if (MyAvatar.displayName != message.params) {
             MyAvatar.displayName = message.params;
+            UserActivityLogger.palAction("display_name_change", "");
         }
         break;
     default:
@@ -552,7 +564,10 @@ var button = toolBar.addButton({
     buttonState: 1,
     alpha: 0.9
 });
+
 var isWired = false;
+var palOpenedAt;
+
 function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
         Script.update.disconnect(updateOverlays);
@@ -564,6 +579,11 @@ function off() {
     triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
+    if (palOpenedAt) {
+        var duration = new Date().getTime() - palOpenedAt;
+        UserActivityLogger.palOpened(duration / 1000.0);
+        palOpenedAt = 0; // just a falsy number is good enough.
+    }
     if (audioInterval) {
         Script.clearInterval(audioInterval);
     }
@@ -580,6 +600,7 @@ function onClicked() {
         triggerMapping.enable();
         triggerPressMapping.enable();
         createAudioInterval();
+        palOpenedAt = new Date().getTime();
     } else {
         off();
     }
