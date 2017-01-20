@@ -1659,14 +1659,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     int injectorSamplesPopped = 0;
     {
         Lock lock(_audio->_localAudioMutex);
-        if (_audio->_shouldEchoToServer) {
-            // omit local audio, it should be echoed
-            _localInjectorsStream.skipSamples(samplesRequested);
-        } else {
-            bool append = networkSamplesPopped > 0;
-            if ((injectorSamplesPopped = _localInjectorsStream.appendSamples(mixBuffer, samplesRequested, append)) > 0) {
-                qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsStream.samplesAvailable(), samplesRequested);
-            }
+        bool append = networkSamplesPopped > 0;
+        if ((injectorSamplesPopped = _localInjectorsStream.appendSamples(mixBuffer, samplesRequested, append)) > 0) {
+            qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsStream.samplesAvailable(), samplesRequested);
         }
     }
 
