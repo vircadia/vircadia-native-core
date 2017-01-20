@@ -416,6 +416,20 @@ Rectangle {
         }
     }
     }
+    Timer {
+        property var selected
+        property int userIndex
+        id: selectionTimer
+        onTriggered: {
+            if (selected) {
+                table.selection.clear(); // for now, no multi-select
+                table.selection.select(userIndex);
+                table.positionViewAtRow(userIndex, ListView.Visible);
+            } else {
+                table.selection.deselect(userIndex);
+            }
+        }
+    }
 
     function findSessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var data = optionalData || userModelData, length = data.length;
@@ -453,19 +467,25 @@ Rectangle {
         case 'select':
             var sessionIds = message.params[0];
             var selected = message.params[1];
+            var alreadyRefreshed = message.params[2];
             var userIndex = findSessionIndex(sessionIds[0]);
             if (sessionIds.length > 1) {
                 letterbox("", "", 'Only one user can be selected at a time.');
             } else if (userIndex < 0) {
-                letterbox("", "", 'The last editor is not among this list of users.');
-            } else {
-                if (selected) {
-                    table.selection.clear(); // for now, no multi-select
-                    table.selection.select(userIndex);
-                    table.positionViewAtRow(userIndex, ListView.Visible);
+                if (alreadyRefreshed === true) {
+                    letterbox('', '', 'The last editor of this object is either you or not among this list of users.');
                 } else {
-                    table.selection.deselect(userIndex);
+                    pal.sendToScript({method: 'refresh', params: message.params});
                 }
+            } else {
+                if (alreadyRefreshed === true) {
+                    selectionTimer.interval = 250;
+                } else {
+                    selectionTimer.interval = 0;
+                }
+                selectionTimer.selected = selected;
+                selectionTimer.userIndex = userIndex;
+                selectionTimer.start();
             }
             break;
         // Received an "updateUsername()" request from the JS

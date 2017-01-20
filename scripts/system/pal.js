@@ -233,7 +233,7 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
         break;
     case 'refresh':
         removeOverlays();
-        populateUserList();
+        populateUserList(message.params);
         UserActivityLogger.palAction("refresh", "");
         break;
     case 'updateGain':
@@ -271,7 +271,7 @@ function addAvatarNode(id) {
          color: color(selected, false, 0.0),
          ignoreRayIntersection: false}, selected, true);
 }
-function populateUserList() {
+function populateUserList(selectData) {
     var data = [];
     AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
@@ -295,7 +295,11 @@ function populateUserList() {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    pal.sendToQml({method: 'users', params: data});
+    pal.sendToQml({ method: 'users', params: data });
+    if (selectData) {
+        selectData[2] = true;
+        pal.sendToQml({ method: 'select', params: selectData });
+    }
 }
 
 // The function that handles the reply from the server
@@ -388,7 +392,7 @@ function removeOverlays() {
 function handleClick(pickRay) {
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         // Don't select directly. Tell qml, who will give us back a list of ids.
-        var message = {method: 'select', params: [[overlay.key], !overlay.selected]};
+        var message = {method: 'select', params: [[overlay.key], !overlay.selected, false]};
         pal.sendToQml(message);
         return true;
     });
