@@ -44,8 +44,7 @@ void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessa
 
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::Agent && node->getActiveSocket() &&
-                _channelSubscribers[channel].contains(node->getUUID());
+        return node->getActiveSocket() && _channelSubscribers[channel].contains(node->getUUID());
     },
         [&](const SharedNodePointer& node) {
         auto packetList = MessagesClient::encodeMessagesPacket(channel, message, senderID);
