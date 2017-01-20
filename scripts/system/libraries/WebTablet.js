@@ -114,24 +114,25 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         showKeyboardFocusHighlight: false
     });
 
-    var HOME_BUTTON_Y_OFFSET = -0.25;
-    this.homeButtonEntity = Entities.addEntity({
+    var HOME_BUTTON_Y_OFFSET = -0.26;
+    this.homeButtonEntity = Overlays.addOverlay("model", {
         name: "homeButton",
-        type: "Model",
-        modelURL: HOME_BUTTON_URL,
-        dimensions: { x: 0.04, y: 0.04, z: 0.02 },
-        collisionless: true,
-        localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: -0.01},
+        url: Script.resourcesPath() + "meshes/tablet-home-button.fbx",
+        localPosition: {x: 0.0, y: HOME_BUTTON_Y_OFFSET, z: -0.01},
+        localRotation: Quat.angleAxis(0, Y_AXIS),
+        solid: true,
+        visible: true,
+        dimensions: { x: 0.04, y: 0.04, z: 0.02},
+        drawInFront: false,
         parentID: this.tabletEntityID,
-        script: Script.resolvePath("../tablet-ui/HomeButton.js")
-    }, clientOnly);
-
-    setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
+        parentJointIndex: -1
+    });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
-        if (_this.homeButtonEntity === senderID) {
+        if (_this.homeButtonEntity === parseInt(senderID)) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.gotoHomeScreen();
+            
         }
     };
 
@@ -189,7 +190,7 @@ WebTablet.prototype.getOverlayObject = function () {
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
-    Entities.deleteEntity(this.homeButtonEntity);
+    Overlays.deleteEntity(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     if (HMD.active) {
