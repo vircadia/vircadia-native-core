@@ -190,7 +190,7 @@ WebTablet.prototype.getOverlayObject = function () {
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
-    Overlays.deleteEntity(this.homeButtonEntity);
+    Overlays.deleteOverlay(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     if (HMD.active) {
@@ -305,7 +305,10 @@ WebTablet.prototype.mousePressEvent = function (event) {
     var entityPickResults = Entities.findRayIntersection(pickRay, true); // non-accurate picking
     if (entityPickResults.intersects && entityPickResults.entityID === this.tabletEntityID) {
         var overlayPickResults = Overlays.findRayIntersection(pickRay);
-        if (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID) {
+        if (overlayPickResults.intersects && overlayPickResults.overlayID === HMD.homeButtonID) {
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.gotoHomeScreen();
+        } else if (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID) {
             this.dragging = true;
             var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
             this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
