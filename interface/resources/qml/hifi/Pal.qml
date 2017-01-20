@@ -426,7 +426,7 @@ Rectangle {
             if (selected) {
                 table.selection.clear(); // for now, no multi-select
                 table.selection.select(userIndex);
-                table.positionViewAtRow(userIndex, ListView.Visible);
+                table.positionViewAtRow(userIndex, ListView.Beginning);
             } else {
                 table.selection.deselect(userIndex);
             }
