@@ -117,6 +117,34 @@ void AudioInjectorsThread::prepare() {
     _audio->prepareLocalAudioInjectors();
 }
 
+static void channelUpmix(int16_t* source, int16_t* dest, int numSamples, int numExtraChannels) {
+    for (int i = 0; i < numSamples/2; i++) {
+
+        // read 2 samples
+        int16_t left = *source++;
+        int16_t right = *source++;
+
+        // write 2 + N samples
+        *dest++ = left;
+        *dest++ = right;
+        for (int n = 0; n < numExtraChannels; n++) {
+            *dest++ = 0;
+        }
+    }
+}
+
+static void channelDownmix(int16_t* source, int16_t* dest, int numSamples) {
+    for (int i = 0; i < numSamples/2; i++) {
+
+        // read 2 samples
+        int16_t left = *source++;
+        int16_t right = *source++;
+
+        // write 1 sample
+        *dest++ = (int16_t)((left + right) / 2);
+    }
+}
+
 AudioClient::AudioClient() :
     AbstractAudioInterface(),
     _gate(this),
