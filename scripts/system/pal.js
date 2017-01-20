@@ -103,6 +103,8 @@ ExtendedOverlay.prototype.select = function (selected) {
         return;
     }
     
+    UserActivityLogger.palAction(selected ? "avatar_selected" : "avatar_deselected", this.key);
+
     this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
@@ -232,14 +234,24 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
     case 'refresh':
         removeOverlays();
         populateUserList();
+        UserActivityLogger.palAction("refresh", "");
         break;
     case 'updateGain':
         data = message.params;
-        Users.setAvatarGain(data['sessionId'], data['gain']);
+        if (data['isReleased']) {
+            // isReleased=true happens once at the end of a cycle of dragging
+            // the slider about, but with same gain as last isReleased=false so
+            // we don't set the gain in that case, and only here do we want to
+            // send an analytic event.
+            UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
+        } else {
+            Users.setAvatarGain(data['sessionId'], data['gain']);
+        }
         break;
     case 'displayNameUpdate':
         if (MyAvatar.displayName != message.params) {
             MyAvatar.displayName = message.params;
+            UserActivityLogger.palAction("display_name_change", "");
         }
         break;
     default:
@@ -267,14 +279,12 @@ function populateUserList() {
             displayName: avatar.sessionDisplayName,
             userName: '',
             sessionId: id || '',
-            audioLevel: 0.0
+            audioLevel: 0.0,
+            admin: false
         };
-        // If the current user is an admin OR
-        // they're requesting their own username ("id" is blank)...
-        if (Users.canKick || !id) {
-            // Request the username from the given UUID
-            Users.requestUsernameFromID(id);
-        }
+        // Request the username, fingerprint, and admin status from the given UUID
+        // Username and fingerprint returns default constructor output if the requesting user isn't an admin
+        Users.requestUsernameFromID(id);
         // Request personal mute status and ignore status
         // from NodeList (as long as we're not requesting it for our own ID)
         if (id) {
@@ -289,16 +299,19 @@ function populateUserList() {
 }
 
 // The function that handles the reply from the server
-function usernameFromIDReply(id, username, machineFingerprint) {
+function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
     var data;
     // If the ID we've received is our ID...
     if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username];
-    } else {
+        data = ['', username, isAdmin];
+    } else if (Users.canKick) {
         // Set the data to contain the ID and the username (if we have one)
         // or fingerprint (if we don't have a username) string.
-        data = [id, username || machineFingerprint];
+        data = [id, username || machineFingerprint, isAdmin];
+    } else {
+        // Set the data to contain specific strings.
+        data = [id, '', isAdmin];
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
@@ -574,6 +587,63 @@ function createAudioInterval() {
             pal.sendToQml({method: 'updateAudioLevel', params: param});
         }
     }, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+}
+
+//
+// Manage the connection between the button and the window.
+//
+var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var buttonName = "pal";
+var button = toolBar.addButton({
+    objectName: buttonName,
+    imageURL: Script.resolvePath("assets/images/tools/people.svg"),
+    visible: true,
+    hoverState: 2,
+    defaultState: 1,
+    buttonState: 1,
+    alpha: 0.9
+});
+
+var isWired = false;
+var palOpenedAt;
+
+function off() {
+    if (isWired) { // It is not ok to disconnect these twice, hence guard.
+        Script.update.disconnect(updateOverlays);
+        Controller.mousePressEvent.disconnect(handleMouseEvent);
+        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+        isWired = false;
+    }
+    triggerMapping.disable(); // It's ok if we disable twice.
+    triggerPressMapping.disable(); // see above
+    removeOverlays();
+    Users.requestsDomainListData = false;
+    if (palOpenedAt) {
+        var duration = new Date().getTime() - palOpenedAt;
+        UserActivityLogger.palOpened(duration / 1000.0);
+        palOpenedAt = 0; // just a falsy number is good enough.
+    }
+    if (audioInterval) {
+        Script.clearInterval(audioInterval);
+    }
+}
+function onClicked() {
+    if (!pal.visible) {
+        Users.requestsDomainListData = true;
+        populateUserList();
+        pal.raise();
+        isWired = true;
+        Script.update.connect(updateOverlays);
+        Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+        triggerMapping.enable();
+        triggerPressMapping.enable();
+        createAudioInterval();
+        palOpenedAt = new Date().getTime();
+    } else {
+        off();
+    }
+    pal.setVisible(!pal.visible);
 }
 
 function avatarDisconnected(nodeID) {

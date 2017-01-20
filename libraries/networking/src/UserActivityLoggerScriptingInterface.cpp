@@ -38,6 +38,21 @@ void UserActivityLoggerScriptingInterface::tutorialProgress( QString stepName, i
 
 }
 
+void UserActivityLoggerScriptingInterface::palAction(QString action, QString target) {
+    QJsonObject payload;
+    payload["action"] = action;
+    if (target.length() > 0) {
+        payload["target"] = target;
+    }
+    logAction("pal_activity", payload);
+}
+
+void UserActivityLoggerScriptingInterface::palOpened(float secondsOpened) {
+    logAction("pal_opened", { 
+        { "seconds_opened", secondsOpened }
+    });
+}
+
 void UserActivityLoggerScriptingInterface::logAction(QString action, QJsonObject details) {
     QMetaObject::invokeMethod(&UserActivityLogger::getInstance(), "logAction",
                               Q_ARG(QString, action),
