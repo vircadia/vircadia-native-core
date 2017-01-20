@@ -16,15 +16,20 @@ Script.include(Script.resolvePath("../libraries/Xform.js"));
 
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
-var DEFAULT_DPI = 32;
-var DEFAULT_WIDTH = 0.43;
+var DEFAULT_DPI = 34;
+var DEFAULT_WIDTH = 0.4375;
 var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 
 var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-x.fbx";
+
+// will need to be recaclulated if dimensions of fbx model change.
+var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
+
 var HOME_BUTTON_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-home-button.fbx";
+
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -67,16 +72,24 @@ function calcSpawnInfo(hand, height) {
     }
 }
 
-// ctor
+/**
+ * WebTablet
+ * @param url [string] url of content to show on the tablet.
+ * @param width [number] width in meters of the tablet model
+ * @param dpi [number] dpi of web surface used to show the content.
+ * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
+ * @param clientOnly [bool] true indicates tablet model is only visible to client.
+ */
 WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     var _this = this;
-    var ASPECT = 4.0 / 3.0;
+
+    // scale factor of natural tablet dimensions.
     this.width = width || DEFAULT_WIDTH;
-    var TABLET_HEIGHT_SCALE = 650 / 680;  //  Screen size of tablet entity isn't quite the desired aspect.
-    this.height = this.width * ASPECT * TABLET_HEIGHT_SCALE;
-    var DEPTH = 0.025;
-    var DPI = dpi || DEFAULT_DPI;
+    var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
+    this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    this.dpi = dpi || DEFAULT_DPI;
 
     var tabletProperties = {
         name: "WebTablet Tablet",
@@ -85,7 +98,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
-        dimensions: {x: this.width, y: this.height, z: DEPTH},
+        dimensions: {x: this.width, y: this.height, z: this.depth},
         parentID: MyAvatar.sessionUUID
     };
 
@@ -95,18 +108,20 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.cleanUpOldTablets();
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
-    var WEB_ENTITY_Z_OFFSET = -0.013;
     if (this.webOverlayID) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
+    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var WEB_ENTITY_Y_OFFSET = 0.004;
+
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
         url: url,
-        localPosition: { x: 0, y: 0, z: WEB_ENTITY_Z_OFFSET },
+        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
-        resolution: { x: 480, y: 640 },
-        dpi: DPI,
+        resolution: { x: 480, y: 706 },
+        dpi: this.dpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
         parentID: this.tabletEntityID,
@@ -114,11 +129,11 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         showKeyboardFocusHighlight: false
     });
 
-    var HOME_BUTTON_Y_OFFSET = -0.26;
+    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.035;
     this.homeButtonEntity = Overlays.addOverlay("model", {
         name: "homeButton",
         url: Script.resourcesPath() + "meshes/tablet-home-button.fbx",
-        localPosition: {x: 0.0, y: HOME_BUTTON_Y_OFFSET, z: -0.01},
+        localPosition: {x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: -0.01},
         localRotation: Quat.angleAxis(0, Y_AXIS),
         solid: true,
         visible: true,
@@ -132,7 +147,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         if (_this.homeButtonEntity === parseInt(senderID)) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.gotoHomeScreen();
-            
         }
     };
 
@@ -193,7 +207,7 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteEntity(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
-    if (HMD.active) {
+    if (!HMD.active) {
         Controller.mousePressEvent.disconnect(this.myMousePressEvent);
         Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
         Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
@@ -203,7 +217,7 @@ WebTablet.prototype.destroy = function () {
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
 // with a bit of padding on the top and bottom.
 WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
-    var PADDING_FACTOR = 1.4;
+    var PADDING_FACTOR = 2.2;
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
     var dist = (PADDING_FACTOR * this.height) / (2 * Math.tan(fov / 2));
     return {
