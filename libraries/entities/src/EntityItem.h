@@ -254,13 +254,13 @@ public:
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
 
-    const QString getScript() const { return _script; }
+    QString getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 
     quint64 getScriptTimestamp() const { return _scriptTimestamp; }
     void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
 
-    const QString getServerScripts() const { return _serverScripts; }
+    QString getServerScripts() const { return _serverScripts; }
     void setServerScripts(const QString& serverScripts) { _serverScripts = serverScripts; }
 
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
