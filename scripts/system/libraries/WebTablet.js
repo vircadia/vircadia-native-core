@@ -7,10 +7,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true, HMD, Settings, Script, Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages */
+/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true, HMD, Settings, Script,
+   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
+Script.include(Script.resolvePath("../libraries/Xform.js"));
 
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
@@ -148,6 +150,28 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         _this.onHmdChanged();
     };
     HMD.displayModeChanged.connect(this.myOnHmdChanged);
+
+    this.myMousePressEvent = function (event) {
+        _this.mousePressEvent(event);
+    };
+
+    this.myMouseMoveEvent = function (event) {
+        _this.mouseMoveEvent(event);
+    };
+
+    this.myMouseReleaseEvent = function (event) {
+        _this.mouseReleaseEvent(event);
+    };
+
+    if (!HMD.active) {
+        Controller.mousePressEvent.connect(this.myMousePressEvent);
+        Controller.mouseMoveEvent.connect(this.myMouseMoveEvent);
+        Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
+    }
+
+    this.dragging = false;
+    this.initialLocalIntersectionPoint = {x: 0, y: 0, z: 0};
+    this.initialLocalPosition = {x: 0, y: 0, z: 0};
 };
 
 WebTablet.prototype.setURL = function (url) {
@@ -167,6 +191,12 @@ WebTablet.prototype.destroy = function () {
     Entities.deleteEntity(this.tabletEntityID);
     Entities.deleteEntity(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
+
+    if (HMD.active) {
+        Controller.mousePressEvent.disconnect(this.myMousePressEvent);
+        Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
+        Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
+    }
 };
 
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
@@ -203,6 +233,17 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, tablet
 };
 
 WebTablet.prototype.onHmdChanged = function () {
+
+    if (HMD.active) {
+        Controller.mousePressEvent.disconnect(this.myMousePressEvent);
+        Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
+        Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
+    } else {
+        Controller.mousePressEvent.connect(this.myMousePressEvent);
+        Controller.mouseMoveEvent.connect(this.myMouseMoveEvent);
+        Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
+    }
+
     var NO_HANDS = -1;
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
@@ -224,7 +265,7 @@ WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     print("cleanup " + children);
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
-        if (props.name == "WebTablet Tablet") {
+        if (props.name === "WebTablet Tablet") {
             print("cleaning up " + props.name);
             Entities.deleteEntity(childID);
         } else {
@@ -238,7 +279,7 @@ WebTablet.prototype.cleanUpOldTablets = function() {
     this.cleanUpOldTabletsOnJoint(SENSOR_TO_ROOM_MATRIX);
     this.cleanUpOldTabletsOnJoint(CAMERA_MATRIX);
     this.cleanUpOldTabletsOnJoint(65529);
-}
+};
 
 WebTablet.prototype.unregister = function() {
     Messages.unsubscribe("home");
@@ -256,4 +297,58 @@ WebTablet.unpickle = function (string) {
 
 WebTablet.prototype.getPosition = function () {
     return Overlays.getProperty(this.webOverlayID, "position");
+};
+
+WebTablet.prototype.mousePressEvent = function (event) {
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    var entityPickResults = Entities.findRayIntersection(pickRay, true); // non-accurate picking
+    if (entityPickResults.intersects && entityPickResults.entityID === this.tabletEntityID) {
+        var overlayPickResults = Overlays.findRayIntersection(pickRay);
+        if (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID) {
+            this.dragging = true;
+            var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
+            this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
+            this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
+        }
+    }
+};
+
+function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
+    var rayDirectionDotPlaneNormal = Vec3.dot(rayDirection, planeNormal);
+    if (rayDirectionDotPlaneNormal > 0.00001 || rayDirectionDotPlaneNormal < -0.00001) {
+        var rayStartDotPlaneNormal = Vec3.dot(Vec3.subtract(planePosition, rayStart), planeNormal);
+        var distance = rayStartDotPlaneNormal / rayDirectionDotPlaneNormal;
+        return {hit: true, distance: distance};
+    } else {
+        // ray is parallel to the plane
+        return {hit: false, distance: 0};
+    }
+}
+
+WebTablet.prototype.mouseMoveEvent = function (event) {
+    if (this.dragging) {
+        var pickRay = Camera.computePickRay(event.x, event.y);
+
+        // transform pickRay into camera local coordinates
+        var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
+        var localPickRay = {
+            origin: invCameraXform.xformPoint(pickRay.origin),
+            direction: invCameraXform.xformVector(pickRay.direction)
+        };
+
+        var NORMAL = {x: 0, y: 0, z: -1};
+        var result = rayIntersectPlane(this.initialLocalIntersectionPoint, NORMAL, localPickRay.origin, localPickRay.direction);
+        if (result.hit) {
+            var localIntersectionPoint = Vec3.sum(localPickRay.origin, Vec3.multiply(localPickRay.direction, result.distance));
+            var localOffset = Vec3.subtract(localIntersectionPoint, this.initialLocalIntersectionPoint);
+            var localPosition = Vec3.sum(this.initialLocalPosition, localOffset);
+            Entities.editEntity(this.tabletEntityID, {
+                localPosition: localPosition
+            });
+        }
+    }
+};
+
+WebTablet.prototype.mouseReleaseEvent = function (event) {
+    this.dragging = false;
 };
