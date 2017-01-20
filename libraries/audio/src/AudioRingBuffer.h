@@ -221,6 +221,6 @@ protected:
 
 // expose explicit instantiations for scratch/mix buffers
 using AudioRingBuffer = AudioRingBufferTemplate<int16_t>;
-using AudioRingMixBuffer = AudioRingBufferTemplate<float>;
+using AudioMixRingBuffer = AudioRingBufferTemplate<float>;
 
 #endif // hifi_AudioRingBuffer_h

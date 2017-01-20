@@ -86,7 +86,7 @@ class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
-    using LocalInjectorsStream = AudioRingMixBuffer;
+    using LocalInjectorsStream = AudioMixRingBuffer;
 public:
     static const int MIN_BUFFER_FRAMES;
     static const int MAX_BUFFER_FRAMES;
