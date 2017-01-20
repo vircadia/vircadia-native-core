@@ -303,6 +303,8 @@ void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
         }
 
         resetEntitiesScriptEngine();
+
+        _entityViewer.clear();
     }
 }
 
