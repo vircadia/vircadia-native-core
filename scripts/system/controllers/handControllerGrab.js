@@ -1758,6 +1758,8 @@ function MyController(hand) {
         if (rayPickInfo.overlayID) {
             var overlay = rayPickInfo.overlayID;
 
+            Controller.triggerHapticPulse(1, 20, this.hand);
+
             if (Overlays.keyboardFocusOverlay != overlay) {
                 Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = overlay;
