@@ -204,8 +204,8 @@ public:
 
     void entityChanged(EntityItemPointer entity);
 
-    void emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload);
-    void emitEntityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
+    void emitEntityScriptChanging(const EntityItemID& entityItemID, bool reload);
+    void emitEntityServerScriptChanging(const EntityItemID& entityItemID, bool reload);
 
     void setSimulation(EntitySimulationPointer simulation);
     EntitySimulationPointer getSimulation() const { return _simulation; }
