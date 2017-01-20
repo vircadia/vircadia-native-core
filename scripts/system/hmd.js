@@ -42,6 +42,17 @@ var button;
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
     //TODO change button icon when the hmd changes
+    if (isHmd) {
+        button.editProperties({
+            icon: "icons/tablet-icons/switch-a.svg",
+            text: "DESKTOP"
+        });
+    } else {
+        button.editProperties({
+            icon: "icons/tablet-icons/switch-i.svg",
+            text: "VR"
+        });
+    }
     desktopOnlyViews.forEach(function (view) {
         Menu.setMenuEnabled("View>" + view, !isHmd);
     });
