@@ -307,7 +307,7 @@ void Avatar::setShouldDie() {
     _owningAvatarMixer.clear();
 }
 
-void Avatar::simulate(float deltaTime) {
+void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
     PerformanceTimer perfTimer("simulate");
 
@@ -316,47 +316,18 @@ void Avatar::simulate(float deltaTime) {
     }
     animateScaleChanges(deltaTime);
 
-    bool avatarInView = false;
-    { // update the shouldAnimate flag to match whether or not we will render the avatar.
-        {
-            PROFILE_RANGE(simulation, "cull");
-            // simple frustum check
-            PerformanceTimer perfTimer("inView");
-            ViewFrustum viewFrustum;
-            qApp->copyDisplayViewFrustum(viewFrustum);
-            avatarInView = viewFrustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())
-                || viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
-        }
-        PROFILE_RANGE(simulation, "LOD");
-        if (avatarInView) {
-            const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
-            const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
-            ViewFrustum viewFrustum;
-            qApp->copyViewFrustum(viewFrustum);
-            float visibility = calculateRenderAccuracy(viewFrustum.getPosition(),
-                getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
-            if (!_shouldAnimate) {
-                if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
-                    _shouldAnimate = true;
-                    qCDebug(interfaceapp) << "Restoring" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
-                }
-            } else if (visibility < MAXIMUM_VISIBILITY_FOR_OFF) {
-                _shouldAnimate = false;
-                qCDebug(interfaceapp) << "Optimizing" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
-            }
-        }
-    }
-
     {
         PROFILE_RANGE(simulation, "updateJoints");
         uint64_t start = usecTimestampNow();
-        // CRUFT? _shouldSkipRender is never set 'true'
-        if (_shouldAnimate && avatarInView && !_shouldSkipRender) {
+        if (inView) {
+            // adebug BOOKMARK: can avoid copying duplicate joint data
+            // - can avoid some work when transform not changed (see SkeletonModel::simulate() and Model::setTranslation())
+            // - can maybe use _hasNewFoo instead of AvatarData::_jointDataVersion
+            // - can maybe avoid stuff if blendShapes haven't changed
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
-            _skeletonModel->simulate(deltaTime, _hasNewJointRotations || _hasNewJointTranslations);
+            _skeletonModel->simulate(deltaTime, _hasNewJointData);
             locationChanged(); // joints changed, so if there are any children, update them.
-            _hasNewJointRotations = false;
-            _hasNewJointTranslations = false;
+            _hasNewJointData = false;
 
             glm::vec3 headPosition = getPosition();
             if (!_skeletonModel->getHeadPosition(headPosition)) {
@@ -365,7 +336,8 @@ void Avatar::simulate(float deltaTime) {
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
-            head->simulate(deltaTime, false, !_shouldAnimate);
+            const bool useBillboard = false; // HACK
+            head->simulate(deltaTime, false, useBillboard);
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             getHead()->setPosition(getPosition());
@@ -1106,7 +1078,7 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
     }
-    if (_moving || _hasNewJointRotations || _hasNewJointTranslations) {
+    if (_moving || _hasNewJointData) {
         locationChanged();
     }
 

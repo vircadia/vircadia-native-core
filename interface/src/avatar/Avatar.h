@@ -68,7 +68,7 @@ public:
 
     void init();
     void updateAvatarEntities();
-    void simulate(float deltaTime);
+    void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
@@ -140,8 +140,6 @@ public:
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
-
-    Q_INVOKABLE bool getShouldRender() const { return !_shouldSkipRender; }
 
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
@@ -265,8 +263,6 @@ private:
     int _rightPointerGeometryID { 0 };
     int _nameRectGeometryID { 0 };
     bool _initialized;
-    bool _shouldAnimate { true };
-    bool _shouldSkipRender { false };
     bool _isLookAtTarget { false };
     bool _inScene { false };
 

@@ -165,7 +165,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             ++avatarIterator;
         } else {
             avatar->ensureInScene(avatar);
-            avatar->simulate(deltaTime);
+            const bool inView = true; // HACK
+            avatar->simulate(deltaTime, inView);
             ++avatarIterator;
 
             avatar->updateRenderItem(pendingChanges);
@@ -210,7 +211,8 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
                 ++fadingIterator;
             }
         } else {
-            avatar->simulate(deltaTime);
+            const bool inView = true; // HACK
+            avatar->simulate(deltaTime, inView);
             ++fadingIterator;
         }
     }

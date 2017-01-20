@@ -427,8 +427,7 @@ protected:
     KeyState _keyState;
 
     bool _forceFaceTrackerConnected;
-    bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
-    bool _hasNewJointTranslations; // set in AvatarData, cleared in Avatar
+    bool _hasNewJointData; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
 
