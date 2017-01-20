@@ -589,63 +589,6 @@ function createAudioInterval() {
     }, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 }
 
-//
-// Manage the connection between the button and the window.
-//
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-var buttonName = "pal";
-var button = toolBar.addButton({
-    objectName: buttonName,
-    imageURL: Script.resolvePath("assets/images/tools/people.svg"),
-    visible: true,
-    hoverState: 2,
-    defaultState: 1,
-    buttonState: 1,
-    alpha: 0.9
-});
-
-var isWired = false;
-var palOpenedAt;
-
-function off() {
-    if (isWired) { // It is not ok to disconnect these twice, hence guard.
-        Script.update.disconnect(updateOverlays);
-        Controller.mousePressEvent.disconnect(handleMouseEvent);
-        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-        isWired = false;
-    }
-    triggerMapping.disable(); // It's ok if we disable twice.
-    triggerPressMapping.disable(); // see above
-    removeOverlays();
-    Users.requestsDomainListData = false;
-    if (palOpenedAt) {
-        var duration = new Date().getTime() - palOpenedAt;
-        UserActivityLogger.palOpened(duration / 1000.0);
-        palOpenedAt = 0; // just a falsy number is good enough.
-    }
-    if (audioInterval) {
-        Script.clearInterval(audioInterval);
-    }
-}
-function onClicked() {
-    if (!pal.visible) {
-        Users.requestsDomainListData = true;
-        populateUserList();
-        pal.raise();
-        isWired = true;
-        Script.update.connect(updateOverlays);
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-        createAudioInterval();
-        palOpenedAt = new Date().getTime();
-    } else {
-        off();
-    }
-    pal.setVisible(!pal.visible);
-}
-
 function avatarDisconnected(nodeID) {
     // remove from the pal list
     pal.sendToQml({method: 'avatarDisconnected', params: [nodeID]});
