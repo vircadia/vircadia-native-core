@@ -156,7 +156,7 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
         return false;
     }
     
-    if (_usesFrustum) {
+    if (!_usesFrustum) {
         // this client does not use a view frustum so the view frustum for this query has not changed
         return false;
     } else {
