@@ -104,35 +104,6 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
     _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, entitiesScriptEngineDeleter);
 
-    auto makeSlotForSignal = [&](QString name) -> std::function<void(const EntityItemID&, const PointerEvent&)> {
-        return [newEngine, name](const EntityItemID& entityItemID, const PointerEvent& event) {
-            newEngine->callEntityScriptMethod(entityItemID, name, event);
-        };
-    };
-
-    auto makeSlotForSignalNoEvent = [&](QString name) -> std::function<void(const EntityItemID&)> {
-        return [newEngine, name](const EntityItemID& entityItemID) {
-            newEngine->callEntityScriptMethod(entityItemID, name);
-        };
-    };
-
-    connect(this, &EntityTreeRenderer::mousePressOnEntity, newEngine, makeSlotForSignal("mousePressOnEntity"));
-    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, newEngine, makeSlotForSignal("mouseMoveOnEntity"));
-    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, newEngine, makeSlotForSignal("mouseMoveEvent"));
-    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, newEngine, makeSlotForSignal("mouseReleaseOnEntity"));
-
-    connect(this, &EntityTreeRenderer::clickDownOnEntity, newEngine, makeSlotForSignal("clickDownOnEntity"));
-    connect(this, &EntityTreeRenderer::holdingClickOnEntity, newEngine, makeSlotForSignal("holdingClickOnEntity"));
-    connect(this, &EntityTreeRenderer::clickReleaseOnEntity, newEngine, makeSlotForSignal("clickReleaseOnEntity"));
-
-    connect(this, &EntityTreeRenderer::hoverEnterEntity, newEngine, makeSlotForSignal("hoverEnterEntity"));
-    connect(this, &EntityTreeRenderer::hoverOverEntity, newEngine, makeSlotForSignal("hoverOverEntity"));
-    connect(this, &EntityTreeRenderer::hoverLeaveEntity, newEngine, makeSlotForSignal("hoverLeaveEntity"));
-
-    connect(this, &EntityTreeRenderer::enterEntity, newEngine, makeSlotForSignalNoEvent("enterEntity"));
-    connect(this, &EntityTreeRenderer::leaveEntity, newEngine, makeSlotForSignalNoEvent("leaveEntity"));
-
-
     _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
     _entitiesScriptEngine->runInThread();
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
@@ -235,6 +206,7 @@ void EntityTreeRenderer::update() {
         // and we want to simulate this message here as well as in mouse move
         if (_lastPointerEventValid && !_currentClickingOnEntityID.isInvalidID()) {
             emit holdingClickOnEntity(_currentClickingOnEntityID, _lastPointerEvent);
+            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", _lastPointerEvent);
         }
 
     }
@@ -328,6 +300,9 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             foreach(const EntityItemID& entityID, _currentEntitiesInside) {
                 if (!entitiesContainingAvatar.contains(entityID)) {
                     emit leaveEntity(entityID);
+                    if (_entitiesScriptEngine) {
+                        _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                    }
                 }
             }
 
@@ -335,6 +310,9 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             foreach(const EntityItemID& entityID, entitiesContainingAvatar) {
                 if (!_currentEntitiesInside.contains(entityID)) {
                     emit enterEntity(entityID);
+                    if (_entitiesScriptEngine) {
+                        _entitiesScriptEngine->callEntityScriptMethod(entityID, "enterEntity");
+                    }
                 }
             }
             _currentEntitiesInside = entitiesContainingAvatar;
@@ -349,6 +327,9 @@ void EntityTreeRenderer::leaveAllEntities() {
         // for all of our previous containing entities, if they are no longer containing then send them a leave event
         foreach(const EntityItemID& entityID, _currentEntitiesInside) {
             emit leaveEntity(entityID);
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+            }
         }
         _currentEntitiesInside.clear();
         forceRecheckEntities();
@@ -736,8 +717,15 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
 
         emit mousePressOnEntity(rayPickResult.entityID, pointerEvent);
 
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mousePressOnEntity", pointerEvent);
+        }
+
         _currentClickingOnEntityID = rayPickResult.entityID;
         emit clickDownOnEntity(_currentClickingOnEntityID, pointerEvent);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "clickDownOnEntity", pointerEvent);
+        }
 
         _lastPointerEvent = pointerEvent;
         _lastPointerEventValid = true;
@@ -768,6 +756,9 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
                                   toPointerButton(*event), toPointerButtons(*event));
 
         emit mouseReleaseOnEntity(rayPickResult.entityID, pointerEvent);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseReleaseOnEntity", pointerEvent);
+        }
 
         _lastPointerEvent = pointerEvent;
         _lastPointerEventValid = true;
@@ -785,6 +776,9 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
                                   toPointerButton(*event), toPointerButtons(*event));
 
         emit clickReleaseOnEntity(_currentClickingOnEntityID, pointerEvent);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "clickReleaseOnEntity", pointerEvent);
+        }
     }
 
     // makes it the unknown ID, we just released so we can't be clicking on anything
@@ -813,6 +807,11 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 
         emit mouseMoveOnEntity(rayPickResult.entityID, pointerEvent);
 
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveEvent", pointerEvent);
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveOnEntity", pointerEvent);
+        }
+
         // handle the hover logic...
 
         // if we were previously hovering over an entity, and this new entity is not the same as our previous entity
@@ -827,17 +826,26 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
                                       toPointerButton(*event), toPointerButtons(*event));
 
             emit hoverLeaveEntity(_currentHoverOverEntityID, pointerEvent);
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", pointerEvent);
+            }
         }
 
         // If the new hover entity does not match the previous hover entity then we are entering the new one
         // this is true if the _currentHoverOverEntityID is known or unknown
         if (rayPickResult.entityID != _currentHoverOverEntityID) {
             emit hoverEnterEntity(rayPickResult.entityID, pointerEvent);
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverEnterEntity", pointerEvent);
+            }
         }
 
         // and finally, no matter what, if we're intersecting an entity then we're definitely hovering over it, and
         // we should send our hover over event
         emit hoverOverEntity(rayPickResult.entityID, pointerEvent);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverOverEntity", pointerEvent);
+        }
 
         // remember what we're hovering over
         _currentHoverOverEntityID = rayPickResult.entityID;
@@ -859,6 +867,9 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
                                   toPointerButton(*event), toPointerButtons(*event));
 
             emit hoverLeaveEntity(_currentHoverOverEntityID, pointerEvent);
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", pointerEvent);
+            }
             _currentHoverOverEntityID = UNKNOWN_ENTITY_ID; // makes it the unknown ID
         }
     }
@@ -875,6 +886,9 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
                                   toPointerButton(*event), toPointerButtons(*event));
 
         emit holdingClickOnEntity(_currentClickingOnEntityID, pointerEvent);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", pointerEvent);
+        }
     }
 }
 
@@ -1042,10 +1056,16 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     // And now the entity scripts
     if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
         emit collisionWithEntity(idA, idB, collision);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
+        }
     }
 
     if (isCollisionOwner(myNodeID, entityTree, idB, collision)) {
         emit collisionWithEntity(idB, idA, collision);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, collision);
+        }
     }
 }
 
