@@ -218,10 +218,10 @@ Rectangle {
                 id: nameCard
                 // Properties
                 displayName: styleData.value
-                userName: model && model.userName
-                audioLevel: model && model.audioLevel
+                userName: model ? model.userName : ""
+                audioLevel: model ? model.audioLevel : 0.0
                 visible: !isCheckBox && !isButton
-                uuid: model && model.sessionId
+                uuid: model ? model.sessionId : ""
                 selected: styleData.selected
                 isAdmin: model && model.admin
                 // Size
@@ -241,9 +241,9 @@ Rectangle {
                 id: actionCheckBox
                 visible: isCheckBox
                 anchors.centerIn: parent
-                checked: model[styleData.role]
+                checked: model ? model[styleData.role] : false
                 // If this is a "Personal Mute" checkbox, disable the checkbox if the "Ignore" checkbox is checked.
-                enabled: !(styleData.role === "personalMute" && model["ignore"])
+                enabled: !(styleData.role === "personalMute" && (model ? model["ignore"] : true))
                 boxSize: 24
                 onClicked: {
                     var newValue = !model[styleData.role]
