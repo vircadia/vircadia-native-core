@@ -14,7 +14,7 @@
 
 /* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
    Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset, setGrabCommunications,
-   Menu */
+   Menu, HMD */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -60,10 +60,6 @@ var PICK_WITH_HAND_RAY = true;
 
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 
-var WEB_TOUCH_SPHERE_RADIUS = 0.017;
-var WEB_STYLUS_COLOR = { red: 0, green: 240, blue: 0 };
-var WEB_STYLUS_TIP_COLOR = { red: 0, green: 0, blue: 240 };
-var WEB_STYLUS_ALPHA = 1.0;
 var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
 var WEB_STYLUS_LENGTH = 0.2;
 var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative number) to slide stylus in hand
@@ -278,10 +274,6 @@ function distanceBetweenPointAndEntityBoundingBox(point, entityProps) {
     v.z = Math.min(v.z, localMax.z);
 
     return Vec3.distance(v, localPoint);
-}
-
-function angleBetween(a, b) {
-    return Math.acos(Vec3.dot(Vec3.normalize(a), Vec3.normalize(b)));
 }
 
 function projectOntoXYPlane(worldPos, position, rotation, dimensions, registrationPoint) {
@@ -1247,7 +1239,7 @@ function MyController(hand) {
             var homeButton = rayPickInfo.overlayID;
             var hmdHomeButton = HMD.homeButtonID;
             if (homeButton === hmdHomeButton) {
-                if (this.homeButtonTouched == false) {
+                if (this.homeButtonTouched === false) {
                     this.homeButtonTouched = true;
                     Controller.triggerHapticPulse(1, 20, this.hand);
                     Messages.sendLocalMessage("home", homeButton);
@@ -1265,7 +1257,7 @@ function MyController(hand) {
             var homeButton = rayPickInfo.overlayID;
             var hmdHomeButton = HMD.homeButtonID;
             if (homeButton === hmdHomeButton) {
-                if (this.homeButtonTouched == false) {
+                if (this.homeButtonTouched === false) {
                     this.homeButtonTouched = true;
                     Controller.triggerHapticPulse(1, 20, this.hand);
                     Messages.sendLocalMessage("home", homeButton);
@@ -1777,7 +1769,9 @@ function MyController(hand) {
         if (rayPickInfo.overlayID) {
             var overlay = rayPickInfo.overlayID;
 
-            Controller.triggerHapticPulse(1, 20, this.hand);
+            if (!this.homeButtonTouched) {
+                Controller.triggerHapticPulse(1, 20, this.hand);
+            }
 
             if (Overlays.keyboardFocusOverlay != overlay) {
                 Entities.keyboardFocusEntity = null;
@@ -2039,9 +2033,7 @@ function MyController(hand) {
         }
 
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-
         this.turnOffVisualizations();
-
         this.previousRoomControllerPosition = roomControllerPosition;
     };
 
