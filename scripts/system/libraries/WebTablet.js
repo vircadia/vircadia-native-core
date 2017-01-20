@@ -95,7 +95,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.cleanUpOldTablets();
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
-    var WEB_ENTITY_Z_OFFSET = -0.0125;
+    var WEB_ENTITY_Z_OFFSET = -0.013;
     if (this.webOverlayID) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
