@@ -376,6 +376,9 @@ void Agent::executeScript() {
 
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
 
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
+
     // we need to make sure that init has been called for our EntityScriptingInterface
     // so that it actually has a jurisdiction listener when we ask it for it next
     entityScriptingInterface->init();
