@@ -134,7 +134,7 @@ EntityListTool = function(opts) {
                 Window.alert('There were no recent users of the ' + selectionManager.selections.length + ' selected objects.');
             } else {
                 // No need to subscribe if we're just sending.
-                Messages.sendMessage('com.highfidelity.pal', JSON.stringify({method: 'select', params: [dedupped, true]}), 'local');
+                Messages.sendMessage('com.highfidelity.pal', JSON.stringify({method: 'select', params: [dedupped, true, false]}), 'local');
             }
         } else if (data.type == "delete") {
             deleteSelectedEntities();
