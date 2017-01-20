@@ -196,6 +196,7 @@ void TabletProxy::gotoHomeScreen() {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
+            QMetaObject::invokeMethod(_qmlTabletRoot, "playButtonClickSound"); 
             _state = State::Home;
         }
     }

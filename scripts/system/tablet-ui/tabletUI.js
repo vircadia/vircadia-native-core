@@ -27,6 +27,7 @@
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, activeHand, true);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
+        HMD.homeButtonID = UIWebTablet.homeButtonEntity;
     }
 
     function hideTabletUI() {
@@ -42,6 +43,7 @@
             UIWebTablet.destroy();
             UIWebTablet = null;
             HMD.tabletID = null;
+            HMD.homeButtonID = null;
         }
     }
 
