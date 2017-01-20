@@ -272,8 +272,6 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
-    PROFILE_RANGE(render_detail, __FUNCTION__);
-    PerformanceTimer perfTimer("Model::updateGeometry");
     bool needFullUpdate = false;
 
     if (!isLoaded()) {

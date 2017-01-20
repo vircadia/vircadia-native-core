@@ -308,6 +308,7 @@ void Avatar::setShouldDie() {
 }
 
 void Avatar::simulate(float deltaTime) {
+    PROFILE_RANGE(simulation, "simulate");
     PerformanceTimer perfTimer("simulate");
 
     if (!isDead() && !_motionState) {
@@ -317,8 +318,8 @@ void Avatar::simulate(float deltaTime) {
 
     bool avatarInView = false;
     { // update the shouldAnimate flag to match whether or not we will render the avatar.
-        PerformanceTimer perfTimer("cull");
         {
+            PROFILE_RANGE(simulation, "cull");
             // simple frustum check
             PerformanceTimer perfTimer("inView");
             ViewFrustum viewFrustum;
@@ -326,7 +327,7 @@ void Avatar::simulate(float deltaTime) {
             avatarInView = viewFrustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())
                 || viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
         }
-        PerformanceTimer lodPerfTimer("LOD");
+        PROFILE_RANGE(simulation, "LOD");
         if (avatarInView) {
             const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
             const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
@@ -346,19 +347,17 @@ void Avatar::simulate(float deltaTime) {
         }
     }
 
-    uint64_t start = usecTimestampNow();
-    // CRUFT? _shouldSkipRender is never set 'true'
-    if (_shouldAnimate && avatarInView && !_shouldSkipRender) {
-        {
-            PerformanceTimer perfTimer("skeleton");
+    {
+        PROFILE_RANGE(simulation, "updateJoints");
+        uint64_t start = usecTimestampNow();
+        // CRUFT? _shouldSkipRender is never set 'true'
+        if (_shouldAnimate && avatarInView && !_shouldSkipRender) {
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
             _skeletonModel->simulate(deltaTime, _hasNewJointRotations || _hasNewJointTranslations);
             locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointRotations = false;
             _hasNewJointTranslations = false;
-        }
-        {
-            PerformanceTimer perfTimer("head");
+
             glm::vec3 headPosition = getPosition();
             if (!_skeletonModel->getHeadPosition(headPosition)) {
                 headPosition = getPosition();
@@ -367,15 +366,14 @@ void Avatar::simulate(float deltaTime) {
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
             head->simulate(deltaTime, false, !_shouldAnimate);
+        } else {
+            // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
+            getHead()->setPosition(getPosition());
+            _skeletonModel->simulate(deltaTime, false);
         }
-    } else {
-        // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
-        getHead()->setPosition(getPosition());
-        PerformanceTimer perfTimer("skeleton");
-        _skeletonModel->simulate(deltaTime, false);
+        timeProcessingJoints += usecTimestampNow() - start;
+        numJointsProcessed += _jointData.size();
     }
-    timeProcessingJoints += usecTimestampNow() - start;
-    numJointsProcessed += _jointData.size();
 
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {
@@ -394,11 +392,13 @@ void Avatar::simulate(float deltaTime) {
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 
-    measureMotionDerivatives(deltaTime);
-
-    simulateAttachments(deltaTime);
-    updatePalms();
-    updateAvatarEntities();
+    {
+        PROFILE_RANGE(simulation, "misc");
+        measureMotionDerivatives(deltaTime);
+        simulateAttachments(deltaTime);
+        updatePalms();
+        updateAvatarEntities();
+    }
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
