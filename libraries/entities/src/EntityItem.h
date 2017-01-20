@@ -125,7 +125,7 @@ public:
     void markAsChangedOnServer() { _changedOnServer = usecTimestampNow();  }
     quint64 getLastChangedOnServer() const { return _changedOnServer; }
 
-    // TODO: eventually only include properties changed since the params.lastQuerySent time
+    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
