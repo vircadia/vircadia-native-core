@@ -28,7 +28,7 @@ Rectangle {
     property int rowHeight: 70
     property int actionButtonWidth: 75
     property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
-    property var myData: ({displayName: "", userName: "", audioLevel: 0.0}) // valid dummy until set
+    property var myData: ({displayName: "", userName: "", audioLevel: 0.0, admin: true}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
@@ -41,7 +41,9 @@ Rectangle {
         id: letterboxMessage
         z: 999 // Force the popup on top of everything else
     }
-    function letterbox(message) {
+    function letterbox(headerGlyph, headerText, message) {
+        letterboxMessage.headerGlyph = headerGlyph
+        letterboxMessage.headerText = headerText
         letterboxMessage.text = message
         letterboxMessage.visible = true
         letterboxMessage.popupRadius = 0
@@ -221,6 +223,7 @@ Rectangle {
                 visible: !isCheckBox && !isButton
                 uuid: model && model.sessionId
                 selected: styleData.selected
+                isAdmin: model && model.admin
                 // Size
                 width: nameCardWidth
                 height: parent.height
@@ -247,6 +250,7 @@ Rectangle {
                     userModel.setProperty(model.userIndex, styleData.role, newValue)
                     userModelData[model.userIndex][styleData.role] = newValue // Defensive programming
                     Users[styleData.role](model.sessionId, newValue)
+                    UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId)
                     if (styleData.role === "ignore") {
                         userModel.setProperty(model.userIndex, "personalMute", newValue)
                         userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
@@ -273,6 +277,7 @@ Rectangle {
                 height: 24
                 onClicked: {
                     Users[styleData.role](model.sessionId)
+                    UserActivityLogger["palAction"](styleData.role, model.sessionId)
                     if (styleData.role === "kick") {
                         // Just for now, while we cannot undo "Ban":
                         userModel.remove(model.userIndex)
@@ -369,9 +374,11 @@ Rectangle {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: letterbox("Bold names in the list are Avatar Display Names.\n" +
-                                 "If a Display Name isn't set, a unique Session Display Name is assigned." +
-                                 "\n\nAdministrators of this domain can also see the Username or Machine ID associated with each avatar present.")
+            onClicked: letterbox(hifi.glyphs.question,
+                                 "Display Names",
+                                 "Bold names in the list are <b>avatar display names</b>.<br>" +
+                                 "If a display name isn't set, a unique <b>session display name</b> is assigned." +
+                                 "<br><br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.")
             onEntered: helpText.color = hifi.colors.baseGrayHighlight
             onExited: helpText.color = hifi.colors.darkGray
         }
@@ -400,8 +407,10 @@ Rectangle {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
-            onClicked: letterbox('Silencing a user mutes their microphone. Silenced users can unmute themselves by clicking the "UNMUTE" button on their HUD.\n\n' +
-                                 "Banning a user will remove them from this domain and prevent them from returning. You can un-ban users from your domain's settings page.)")
+            onClicked: letterbox(hifi.glyphs.question,
+                                 "Admin Actions",
+                                 "<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
+                                 "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.")
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
@@ -446,9 +455,9 @@ Rectangle {
             var selected = message.params[1];
             var userIndex = findSessionIndex(sessionIds[0]);
             if (sessionIds.length > 1) {
-                letterbox('Only one user can be selected at a time.');
+                letterbox("", "", 'Only one user can be selected at a time.');
             } else if (userIndex < 0) {
-                letterbox('The last editor is not among this list of users.');
+                letterbox("", "", 'The last editor is not among this list of users.');
             } else {
                 if (selected) {
                     table.selection.clear(); // for now, no multi-select
@@ -465,6 +474,7 @@ Rectangle {
             var userId = message.params[0];
             // The text that goes in the userName field is the second parameter in the message.
             var userName = message.params[1];
+            var admin = message.params[2];
             // If the userId is empty, we're updating "myData".
             if (!userId) {
                 myData.userName = userName;
@@ -476,6 +486,9 @@ Rectangle {
                     // Set the userName appropriately
                     userModel.setProperty(userIndex, "userName", userName);
                     userModelData[userIndex].userName = userName; // Defensive programming
+                    // Set the admin status appropriately
+                    userModel.setProperty(userIndex, "admin", admin);
+                    userModelData[userIndex].admin = admin; // Defensive programming
                 }
             }
             break;

@@ -782,41 +782,48 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // From the packet, pull the UUID we're identifying
     QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
     if (!nodeUUID.isNull()) {
-        // Before we do any processing on this packet, make sure it comes from a node that is allowed to kick (is an admin)
-        // OR from a node whose UUID matches the one in the packet
-        if (sendingNode->getCanKick() || nodeUUID == sendingNode->getUUID()) {
-            // First, make sure we actually have a node with this UUID
-            auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-            auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
+        // First, make sure we actually have a node with this UUID
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
 
-            // If we do have a matching node...
-            if (matchingNode) {
+        // If we do have a matching node...
+        if (matchingNode) {
+            // Setup the packet
+            auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply);
+
+            QString verifiedUsername;
+            QUuid machineFingerprint;
+
+            // Write the UUID to the packet
+            usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
+
+            // Check if the sending node has permission to kick (is an admin)
+            // OR if the message is from a node whose UUID matches the one in the packet
+            if (sendingNode->getCanKick() || nodeUUID == sendingNode->getUUID()) {
                 // It's time to figure out the username
-                QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
-
-                // Setup the packet
-                auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply);
-                usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
+                verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
                 usernameFromIDReplyPacket->writeString(verifiedUsername);
 
                 // now put in the machine fingerprint
                 DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
-                QUuid machineFingerprint = nodeData ? nodeData->getMachineFingerprint() : QUuid();
+                machineFingerprint = nodeData ? nodeData->getMachineFingerprint() : QUuid();
                 usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
-                
-                qDebug() << "Sending username" << verifiedUsername << "and machine fingerprint" << machineFingerprint << "associated with node" << nodeUUID;
-
-                // Ship it!
-                limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);
             } else {
-                qWarning() << "Node username request received for unknown node. Refusing to process.";
+                usernameFromIDReplyPacket->writeString(verifiedUsername);
+                usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
             }
-        } else {
-            qWarning() << "Refusing to process a username request packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
-                << ". Either node doesn't have kick permissions or is requesting a username not from their UUID.";
-        }
+            // Write whether or not the user is an admin
+            bool isAdmin = matchingNode->getCanKick();
+            usernameFromIDReplyPacket->writePrimitive(isAdmin);
 
+            qDebug() << "Sending username" << verifiedUsername << "and machine fingerprint" << machineFingerprint << "associated with node" << nodeUUID << ". Node admin status: " << isAdmin;
+            // Ship it!
+            limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);
+        } else {
+            qWarning() << "Node username request received for unknown node. Refusing to process.";
+        }
     } else {
         qWarning() << "Node username request received for invalid node ID. Refusing to process.";
     }
