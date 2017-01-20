@@ -254,7 +254,7 @@ void EntityScriptServer::clear() {
     _entityViewer.clear();
 }
 
-void EntityScriptServer::shutdown() {
+void EntityScriptServer::shutdownScriptEngine() {
     if (_entitiesScriptEngine) {
         _entitiesScriptEngine->disconnectNonEssentialSignals(); // disconnect all slots/signals from the script engine, except essential
     }
@@ -351,6 +351,8 @@ void EntityScriptServer::handleJurisdictionPacket(QSharedPointer<ReceivedMessage
 }
 
 void EntityScriptServer::aboutToFinish() {
+    shutdownScriptEngine();
+
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 

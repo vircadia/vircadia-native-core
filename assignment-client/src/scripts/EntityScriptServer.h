@@ -48,7 +48,8 @@ private:
 
     void resetEntitiesScriptEngine();
     void clear();
-    void shutdown();
+    void shutdownScriptEngine();
+
     void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
     void entityServerScriptChanging(const EntityItemID& entityID, const bool reload);
