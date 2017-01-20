@@ -31,7 +31,6 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(bool showTablet READ getShouldShowTablet)
     Q_PROPERTY(QUuid tabletID READ getCurrentTableUIID WRITE setCurrentTabletUIID)
     Q_PROPERTY(unsigned int homeButtonID READ getCurrentHomeButtonUUID WRITE setCurrentHomeButtonUUID)
-    Q_PROPERTY(QUuid tabletEntityID READ getCurrentTabletEntityID WRITE setCurrentTabletEntityID)
     
 
 public:
@@ -96,8 +95,6 @@ public:
     void setCurrentHomeButtonUUID(unsigned int homeButtonID) { _homeButtonID = homeButtonID; }
     unsigned int getCurrentHomeButtonUUID() { return _homeButtonID; }
 
-    void setCurrentTabletEntityID(QUuid tabletEntityID) {_tabletEntityID = tabletEntityID; }
-    QUuid getCurrentTabletEntityID() { return _tabletEntityID; }
 
 private:
     bool _showTablet { false };

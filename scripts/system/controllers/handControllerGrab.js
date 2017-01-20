@@ -1700,7 +1700,7 @@ function MyController(hand) {
     };
 
     this.isTablet = function (entityID) {
-        if (entityID === HMD.tabletEntityID) { // XXX what's a better way to know this?
+        if (entityID === HMD.tabletID) { // XXX what's a better way to know this?
             return true;
         }
         return false;
