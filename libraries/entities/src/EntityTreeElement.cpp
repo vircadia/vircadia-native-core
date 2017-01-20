@@ -286,7 +286,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         if (!entityTreeElementExtraEncodeData->elementCompleted) {
 
             QJsonObject jsonFilters;
-            auto entityNodeData = dynamic_cast<EntityNodeData*>(params.nodeData);
+            auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
 
             if (entityNodeData) {
                 // we have an EntityNodeData instance
