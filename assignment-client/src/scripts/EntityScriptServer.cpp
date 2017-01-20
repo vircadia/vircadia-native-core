@@ -296,7 +296,7 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const
 }
 
 void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
-    if (killedNode->getType() == NodeType::EntityServer) {
+    if (!_shuttingDown && killedNode->getType() == NodeType::EntityServer) {
         if (_entitiesScriptEngine) {
             _entitiesScriptEngine->unloadAllEntityScripts();
             _entitiesScriptEngine->stop();
