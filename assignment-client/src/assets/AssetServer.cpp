@@ -27,6 +27,7 @@
 #include "NodeType.h"
 #include "SendAssetTask.h"
 #include "UploadAssetTask.h"
+#include <ClientServerUtils.h>
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 

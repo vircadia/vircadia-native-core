@@ -19,15 +19,12 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QUrl>
 
-using MessageID = uint32_t;
 using DataOffset = int64_t;
 
 using AssetPath = QString;
 using AssetHash = QString;
 using AssetMapping = std::map<AssetPath, AssetHash>;
 using AssetPathList = QStringList;
-
-const MessageID INVALID_MESSAGE_ID = 0;
 
 const size_t SHA256_HASH_LENGTH = 32;
 const size_t SHA256_HASH_HEX_LENGTH = 64;
@@ -66,4 +63,4 @@ bool isValidFilePath(const AssetPath& path);
 bool isValidPath(const AssetPath& path);
 bool isValidHash(const QString& hashString);
 
-#endif
+#endif // hifi_AssetUtils_h
