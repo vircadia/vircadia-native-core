@@ -147,19 +147,22 @@ static bool hasCorrectSyntax(const QScriptProgram& program, ScriptEngine* report
     return true;
 }
 
-static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName, ScriptEngine* reportingEngine, QString& exceptionMessage = QString()) {
+static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName, ScriptEngine* reportingEngine, QString* exceptionMessage = nullptr) {
     if (engine.hasUncaughtException()) {
         const auto backtrace = engine.uncaughtExceptionBacktrace();
         const auto exception = engine.uncaughtException().toString();
         const auto line = QString::number(engine.uncaughtExceptionLineNumber());
         engine.clearExceptions();
 
-        exceptionMessage = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
+        QString message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
         if (!backtrace.empty()) {
             static const auto lineSeparator = "\n    ";
-            exceptionMessage += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
+            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
         }
-        reportingEngine->scriptErrorMessage(qPrintable(exceptionMessage));
+        reportingEngine->scriptErrorMessage(qPrintable(message));
+        if (exceptionMessage) {
+            *exceptionMessage = message;
+        }
         return true;
     }
     return false;
@@ -1474,7 +1477,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     }
 
     QString exceptionMessage;
-    if (hadUncaughtExceptions(sandbox, program.fileName(), this, exceptionMessage)) {
+    if (hadUncaughtExceptions(sandbox, program.fileName(), this, &exceptionMessage)) {
         newDetails.status = ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = exceptionMessage;
         _entityScripts[entityID] = newDetails;
