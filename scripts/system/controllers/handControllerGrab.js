@@ -493,11 +493,9 @@ function removeMyAvatarFromCollidesWith(origCollidesWith) {
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
 // and we should not be showing lasers when someone else is using the Reticle to indicate a 2D minor mode.
 var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
-var EDIT_SETTING = "io.highfidelity.isEditting";
 
 function isEditing() {
-    var actualSettingValue = Settings.getValue(EDIT_SETTING) === "false" ? false : !!Settings.getValue(EDIT_SETTING);
-    return EXTERNALLY_MANAGED_2D_MINOR_MODE && actualSettingValue;
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && isInEditMode();
 }
 
 function isIn2DMode() {
@@ -844,6 +842,9 @@ function MyController(hand) {
     };
 
     this.callEntityMethodOnGrabbed = function(entityMethodName) {
+        if (isInEditMode()) {
+            return;
+        }
         var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
         Entities.callEntityMethod(this.grabbedEntity, entityMethodName, args);
     };
