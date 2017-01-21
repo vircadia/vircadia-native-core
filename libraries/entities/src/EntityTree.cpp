@@ -952,7 +952,7 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
         wasChanged = in != out;
         if (wasChanged) {
             // Logging will be removed eventually, but for now, the behavior is so fragile that it's worth logging.
-            qCDebug(entities) << "filter accepted. changed:" << wasChanged;
+            qCDebug(entities) << "filter accepted. changed: true";
             qCDebug(entities) << "  in:" << in;
             qCDebug(entities) << "  out:" << out;
         }
@@ -1059,9 +1059,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
                 if (!allowed || wasChanged) {
                     bumpTimestamp(properties);
-                    if (properties.getSimulationOwner().getID() == senderNode->getUUID()) {
-                        properties.setSimulationOwner(QUuid(), 0);
-                    }
+                    // For now, free ownership on any modification.
+                    properties.clearSimulationOwner();
                 }
                 endFilter = usecTimestampNow();
 
