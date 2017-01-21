@@ -813,7 +813,7 @@ function MyController(hand) {
 
     this.update = function(deltaTime, timestamp) {
         this.updateSmoothedTrigger();
-
+        this.homeButtonTouched = false;
         //  If both trigger and grip buttons squeezed and nothing is held, rescale my avatar!
         if (this.hand === RIGHT_HAND && this.state === STATE_SEARCHING &&
             this.getOtherHandController().state === STATE_SEARCHING) {
