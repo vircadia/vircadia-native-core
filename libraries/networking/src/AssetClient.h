@@ -21,6 +21,7 @@
 #include <DependencyManager.h>
 
 #include "AssetUtils.h"
+#include "ClientServerUtils.h"
 #include "LimitedNodeList.h"
 #include "Node.h"
 #include "ReceivedMessage.h"

@@ -11,8 +11,6 @@
 
 #include "EntityScriptServer.h"
 
-#include "EntityScriptUtils.h"
-
 #include <AudioConstants.h>
 #include <AudioInjectorManager.h>
 #include <EntityScriptingInterface.h>
@@ -26,6 +24,7 @@
 #include <UUID.h>
 #include <WebSocketServerClass.h>
 
+#include "ClientServerUtils.h"
 #include "../entities/AssignmentParentFinder.h"
 
 int EntityScriptServer::_entitiesScriptEngineCount = 0;

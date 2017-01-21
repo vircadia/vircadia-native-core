@@ -12,6 +12,7 @@
 #ifndef hifi_EntityScriptClient_h
 #define hifi_EntityScriptClient_h
 
+#include "ClientServerUtils.h"
 #include "LimitedNodeList.h"
 #include "ReceivedMessage.h"
 #include "AssetUtils.h"
@@ -19,8 +20,6 @@
 
 #include <DependencyManager.h>
 #include <unordered_map>
-
-using MessageID = uint32_t;
 
 using GetScriptStatusCallback = std::function<void(bool responseReceived, bool isRunning, EntityScriptStatus status, QString errorInfo)>;
 
