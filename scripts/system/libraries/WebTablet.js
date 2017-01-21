@@ -23,13 +23,12 @@ var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 
-var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-x.fbx";
+var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
 
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
-
-var HOME_BUTTON_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-home-button.fbx";
-
+var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
+var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -94,7 +93,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     var tabletProperties = {
         name: "WebTablet Tablet",
         type: "Model",
-        modelURL: TABLET_URL,
+        modelURL: TABLET_MODEL_PATH,
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
@@ -130,14 +129,14 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     });
 
     var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.035;
-    this.homeButtonEntity = Overlays.addOverlay("model", {
+    this.homeButtonEntity = Overlays.addOverlay("sphere", {
         name: "homeButton",
-        url: Script.resourcesPath() + "meshes/tablet-home-button.fbx",
         localPosition: {x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: -0.01},
         localRotation: Quat.angleAxis(0, Y_AXIS),
-        solid: true,
-        visible: true,
         dimensions: { x: 0.04, y: 0.04, z: 0.02},
+        alpha: 0.0,
+        visible: true,
+        alpha: 0.0, 
         drawInFront: false,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
@@ -146,7 +145,13 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonEntity === parseInt(senderID)) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.gotoHomeScreen();
+            var onHomeScreen = tablet.onHomeScreen();
+            if (onHomeScreen) {
+                HMD.closeTablet();
+            } else {
+                tablet.gotoHomeScreen();
+                _this.setHomeButtonTexture();
+            }
         }
     };
 
@@ -188,6 +193,11 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.initialLocalIntersectionPoint = {x: 0, y: 0, z: 0};
     this.initialLocalPosition = {x: 0, y: 0, z: 0};
 };
+
+WebTablet.prototype.setHomeButtonTexture = function() {
+    print(this.homeButtonEntity);
+    Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
+}
 
 WebTablet.prototype.setURL = function (url) {
     Overlays.editOverlay(this.webOverlayID, { url: url });
@@ -321,7 +331,13 @@ WebTablet.prototype.mousePressEvent = function (event) {
         var overlayPickResults = Overlays.findRayIntersection(pickRay);
         if (overlayPickResults.intersects && overlayPickResults.overlayID === HMD.homeButtonID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.gotoHomeScreen();
+            var onHomeScreen = tablet.onHomeScreen();
+            if (onHomeScreen) {
+                HMD.closeTablet();
+            } else {
+                tablet.gotoHomeScreen();
+                this.setHomeButtonTexture();
+            }
         } else if (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID) {
             this.dragging = true;
             var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
