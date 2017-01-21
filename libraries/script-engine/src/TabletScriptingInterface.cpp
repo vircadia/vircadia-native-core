@@ -235,6 +235,10 @@ QObject* TabletProxy::addButton(const QVariant& properties) {
     return tabletButtonProxy.data();
 }
 
+bool TabletProxy::onHomeScreen() {
+    return _state == State::Home;
+}
+
 void TabletProxy::removeButton(QObject* tabletButtonProxy) {
     std::lock_guard<std::mutex> guard(_mutex);
 
