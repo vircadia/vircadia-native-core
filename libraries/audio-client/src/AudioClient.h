@@ -280,6 +280,9 @@ private:
     QIODevice* _loopbackOutputDevice;
     AudioRingBuffer _inputRingBuffer;
     LocalInjectorsStream _localInjectorsStream;
+    // In order to use _localInjectorsStream as a lock-free pipe,
+    // use it with a single producer/consumer, and track available samples
+    std::atomic<int> _localSamplesAvailable { 0 };
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 

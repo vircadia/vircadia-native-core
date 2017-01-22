@@ -190,6 +190,9 @@ AudioClient::AudioClient() :
     _inputGate(),
     _positionGetter(DEFAULT_POSITION_GETTER),
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
+    // avoid putting a lock in the device callback
+    assert(_localSamplesAvailable.is_lock_free());
+
     // deprecate legacy settings
     {
         Setting::Handle<int>::Deprecated("maxFramesOverDesired", InboundAudioStream::MAX_FRAMES_OVER_DESIRED);
@@ -1105,7 +1108,8 @@ void AudioClient::prepareLocalAudioInjectors() {
 
     int bufferCapacity = _localInjectorsStream.getSampleCapacity();
     if (_localToOutputResampler) {
-        // avoid overwriting the buffer
+        // avoid overwriting the buffer,
+        // instead of failing on writes because the buffer is used as a lock-free pipe
         bufferCapacity -=
             _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) *
             AudioConstants::STEREO;
@@ -1115,9 +1119,10 @@ void AudioClient::prepareLocalAudioInjectors() {
     int samplesNeeded = std::numeric_limits<int>::max();
     while (samplesNeeded > 0) {
         // lock for every write to avoid locking out the device callback
+        // this lock is intentional - the buffer is only lock-free in its use in the device callback
         Lock lock(_localAudioMutex);
 
-        samplesNeeded = bufferCapacity - _localInjectorsStream.samplesAvailable();
+        samplesNeeded = bufferCapacity - _localSamplesAvailable.load(std::memory_order_relaxed);
         if (samplesNeeded <= 0) {
             break;
         }
@@ -1149,6 +1154,7 @@ void AudioClient::prepareLocalAudioInjectors() {
                 AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
         }
 
+        _localSamplesAvailable.fetch_add(samples, std::memory_order_release);
         samplesNeeded -= samples;
     }
 }
@@ -1452,6 +1458,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
     bool supportedFormat = false;
 
     Lock lock(_localAudioMutex);
+    _localSamplesAvailable.exchange(0, std::memory_order_release);
 
     // cleanup any previously initialized device
     if (_audioOutput) {
@@ -1666,7 +1673,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     {
         Lock lock(_audio->_localAudioMutex);
         bool append = networkSamplesPopped > 0;
+        samplesRequested = std::min(samplesRequested, _audio->_localSamplesAvailable.load(std::memory_order_acquire));
         if ((injectorSamplesPopped = _localInjectorsStream.appendSamples(mixBuffer, samplesRequested, append)) > 0) {
+            _audio->_localSamplesAvailable.fetch_sub(injectorSamplesPopped, std::memory_order_release);
             qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsStream.samplesAvailable(), samplesRequested);
         }
     }

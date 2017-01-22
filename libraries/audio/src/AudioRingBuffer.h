@@ -45,6 +45,12 @@ public:
     // FIXME: discards any data in the buffer
     void resizeForFrameSize(int numFrameSamples);
 
+    // Reading and writing to the buffer uses minimal shared data, such that
+    // in cases that avoid overwriting the buffer, a single producer/consumer
+    // may use this as a lock-free pipe (see audio-client/src/AudioClient.cpp).
+    // IMPORTANT: Avoid changes to the implementation that touch shared data unless you can
+    // maintain this behavior.
+
     /// Read up to maxSamples into destination (will only read up to samplesAvailable())
     /// Returns number of read samples
     int readSamples(Sample* destination, int maxSamples);
