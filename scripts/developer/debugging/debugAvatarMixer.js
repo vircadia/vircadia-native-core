@@ -17,28 +17,7 @@
 
 Script.include("/~/system/libraries/controllers.js");
 
-// grab the toolbar
-var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-
-var ASSETS_PATH = Script.resolvePath("assets");
-var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
-
-function buttonImageURL() {
-    return TOOLS_PATH + (Users.canKick ? 'kick.svg' : 'ignore.svg');
-}
-
-// setup the mod button and add it to the toolbar
-var button = toolbar.addButton({
-    objectName: 'debugAvatarMixer',
-    imageURL: buttonImageURL(),
-    visible: true,
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 3,
-    alpha: 0.9
-});
-
-var isShowingOverlays = false;
+var isShowingOverlays = true;
 var debugOverlays = {};
 
 function removeOverlays() {
@@ -54,22 +33,6 @@ function removeOverlays() {
 
     debugOverlays = {};
 }
-
-// handle clicks on the toolbar button
-function buttonClicked(){
-    if (isShowingOverlays) {
-        removeOverlays();
-        isShowingOverlays = false;
-    } else {
-        isShowingOverlays = true;
-    }
-
-    button.writeProperty('buttonState', isShowingOverlays ? 0 : 1);
-    button.writeProperty('defaultState', isShowingOverlays ? 0 : 1);
-    button.writeProperty('hoverState', isShowingOverlays ? 2 : 3);
-}
-
-button.clicked.connect(buttonClicked);
 
 function updateOverlays() {
     if (isShowingOverlays) {
@@ -161,7 +124,6 @@ AvatarList.avatarRemovedEvent.connect(function(avatarID){
 
 // cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
-    toolbar.removeButton('debugAvatarMixer');
     removeOverlays();
 });
 
