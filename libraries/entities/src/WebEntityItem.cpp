@@ -129,7 +129,6 @@ void WebEntityItem::setSourceUrl(const QString& value) {
 
         if (newURL.isValid()) {
             _sourceUrl = newURL.toDisplayString();
-            qCDebug(entities) << "Changed web entity source URL to " << _sourceUrl;
         } else {
             qCDebug(entities) << "Clearing web entity source URL since" << value << "cannot be parsed to a valid URL.";
         }
