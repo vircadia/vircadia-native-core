@@ -67,6 +67,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script>
             var METAVERSE_API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online";
+            var myUsername = null;
 
             function displayUsers(data) {
                 $("#users-list").empty();
@@ -74,36 +75,52 @@
                     // Don't display users who aren't in a domain
                     if (typeof data.users[i].location.root.name === "undefined") {
                         console.log(data.users[i].username + "is online but not in a domain");
+                        $("#dev-div").append("<p>" + data.users[i].username + "is online but not in a domain</p>");
                     } else {
-                        console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
-                        $("#users-list").append("<div>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</div>");
+                        $("#dev-div").append("<div>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</div>");
+                        // Don't display yourself
+                        if (data.users[i].username !== myUsername) {
+                            console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
+                            $("#users-list").append("<div>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</div>");
+                        }
                     }
                 }
             }
 
             function pollUsers() {
                 // TODO: better transition visual such as spin wheel or loading bar
-                $("#dev-div").html("polling users");
+                $("#dev-div").append("<p>polling users..</p>");
                 $.ajax({
                     url: METAVERSE_API_URL,
                     success: function(response) {
                         console.log(response);
+                        $("#dev-div").append("<p>polling sucess</p>");
                         displayUsers(response.data);
                     }
                 });
             }
 
             function onScriptEventReceived(event) {
-                // TODO: event handling
+                $("#dev-div").append("<p>Received a script event, its type is " + typeof event + "</p>");
+                if (typeof event === "string") {
+                    // Parse the string into an object
+                    event = JSON.parse(event);
+                }
+                if (event.type === "sendUsername") {
+                    myUsername = event.data.username;
+                    $("#dev-div").append("<p>myUsername is " + myUsername + "</p>");
+                    consoloe.log("myUsername is " + myUsername);
+                }
             }
 
             $(document).ready(function() {
-                $("#dev-div").html("ready");
-                // Send a ready event to hifi
-                // EventBridge.emitWebEvent("ready");
+                $("#dev-div").append("<p>ready</p>");
                 // Listen for events from hifi
-                // EventBridge.scriptEventReceived.connect(onScriptEventReceived);
+                EventBridge.scriptEventReceived.connect(onScriptEventReceived);
+                // Send a ready event to hifi
+                var eventObject = {"type": "ready"};
+                EventBridge.emitWebEvent(JSON.stringify(eventObject));
             });
-        </script
+        </script>
     </body>
 </html>

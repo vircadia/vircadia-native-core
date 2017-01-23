@@ -11,7 +11,7 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
-    var USERS_URL = Script.resolvePath("html/users.html");
+    var USERS_URL = "https://hifi-content.s3.amazonaws.com/faye/tablet-dev/users.html";
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         // TODO: work with Alan to make new icon art
@@ -24,7 +24,20 @@
     }
 
     function onWebEventReceived(event) {
-        print(event);
+        print("Script received a web event, its type is " + typeof event);
+        if (typeof event === "string") {
+            event = JSON.parse(event);
+        }
+        if (event.type === "ready") {
+            // send username to html
+            var myUsername = GlobalServices.username;
+            var object = {
+                "type": "sendUsername",
+                "data": {"username": myUsername}
+            };
+            print("sending username: " + myUsername);
+            tablet.emitScriptEvent(JSON.stringify(object));
+        } 
     }
 
     button.clicked.connect(onClicked);
