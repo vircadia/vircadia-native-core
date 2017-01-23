@@ -842,14 +842,14 @@ function MyController(hand) {
     };
 
     this.callEntityMethodOnGrabbed = function(entityMethodName) {
-        if (isInEditMode()) {
-            return;
-        }
         var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
         Entities.callEntityMethod(this.grabbedEntity, entityMethodName, args);
     };
 
     this.setState = function(newState, reason) {
+        if (isInEditMode() && newState !== STATE_OFF && newState !== STATE_SEARCHING) {
+            return;
+        }
         setGrabCommunications((newState === STATE_DISTANCE_HOLDING) || (newState === STATE_NEAR_GRABBING));
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             var oldStateName = stateToName(this.state);
