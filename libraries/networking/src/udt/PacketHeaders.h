@@ -106,7 +106,8 @@ public:
         ViewFrustum,
         RequestsDomainListData,
         ExitingSpaceBubble,
-        LAST_PACKET_TYPE = ExitingSpaceBubble
+        PerAvatarGainSet,
+        LAST_PACKET_TYPE = PerAvatarGainSet
     };
 };
 
@@ -211,6 +212,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     HasKillAvatarReason,
     SessionDisplayName,
     Unignore,
+    ImmediateSessionDisplayNameUpdates,
     VariableAvatarData
 };
 

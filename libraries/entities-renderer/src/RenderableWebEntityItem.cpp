@@ -246,14 +246,14 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
-    if (_sourceUrl != value) {
-        qCDebug(entities) << "Setting web entity source URL to " << value;
-        _sourceUrl = value;
-        if (_webSurface) {
-            AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                _webSurface->getRootItem()->setProperty("url", _sourceUrl);
-            });
-        }
+    auto valueBeforeSuperclassSet = _sourceUrl;
+
+    WebEntityItem::setSourceUrl(value);
+
+    if (_sourceUrl != valueBeforeSuperclassSet && _webSurface) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+            _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+        });
     }
 }
 

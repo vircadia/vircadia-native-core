@@ -194,7 +194,7 @@ public:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) { 
-        return ItemKey::Builder::opaqueShape();
+        return ItemKey::Builder::opaqueShape().withTypeMeta();
     }
     
     template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) { 
@@ -215,6 +215,15 @@ namespace render {
                 payload->entity->render(args);
             }
         }
+    }
+    template <> uint32_t metaFetchMetaSubItems(const RenderableModelEntityItemMeta::Pointer& payload, ItemIDs& subItems) {
+        auto modelEntity = std::static_pointer_cast<RenderableModelEntityItem>(payload->entity);
+        if (modelEntity->hasModel()) {
+            auto metaSubItems = modelEntity->getModelNotSafe()->fetchRenderItemIDs();
+            subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+            return (uint32_t) metaSubItems.size();
+        }
+        return 0;
     }
 }
 
@@ -473,6 +482,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 }
 
+ModelPointer RenderableModelEntityItem::getModelNotSafe() {
+    return _model;
+}
+
 ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRenderer> renderer) {
     if (!renderer) {
         return nullptr;
@@ -646,6 +659,12 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         // the model is still being downloaded.
         return false;
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
+        if (!_model) {
+            EntityTreePointer tree = getTree();
+            if (tree) {
+                QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+            }
+        }
         return (_model && _model->isLoaded());
     }
     return true;

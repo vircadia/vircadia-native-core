@@ -24,32 +24,41 @@
 
 #include <gpu/StandardShaderLib.h>
 
-#include <render/drawItemBounds_vert.h>
-#include <render/drawItemBounds_frag.h>
+#include "nop_frag.h"
 
 using namespace render;
+extern void initForwardPipelines(ShapePlumber& plumber);
 
 RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
-    // Extract opaques / transparents / lights / overlays
-    const auto opaques = items[0];
-    const auto transparents = items[1];
-    const auto lights = items[2];
-    const auto overlayOpaques = items[3];
-    const auto overlayTransparents = items[4];
-    const auto background = items[5];
+    // Prepare the ShapePipelines
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+    initForwardPipelines(*shapePlumber);
+
+    // Extract opaques / transparents / lights / metas / overlays / background
+    const auto opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+    const auto transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+    const auto lights = items[RenderFetchCullSortTask::LIGHT];
+    const auto metas = items[RenderFetchCullSortTask::META];
+    const auto overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+    const auto overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto background = items[RenderFetchCullSortTask::BACKGROUND];
+    const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
+    addJob<Draw>("DrawOpaques", opaques, shapePlumber);
+    addJob<Stencil>("Stencil");
     addJob<DrawBackground>("DrawBackground", background);
 
-    // bounds do not draw on stencil buffer, so they must come last
+    // Bounds do not draw on stencil buffer, so they must come last
     addJob<DrawBounds>("DrawBounds", opaques);
 
     // Blit!
     addJob<Blit>("Blit", framebuffer);
 }
 
-void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
+void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        gpu::FramebufferPointer& framebuffer) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
@@ -89,30 +98,8 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
     framebuffer = _framebuffer;
 }
 
-const gpu::PipelinePointer DrawBounds::getPipeline() {
-    if (!_boundsPipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
-        auto ps = gpu::Shader::createPixel(std::string(drawItemBounds_frag));
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        _cornerLocation = program->getUniforms().findLocation("inBoundPos");
-        _scaleLocation = program->getUniforms().findLocation("inBoundDim");
-
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
-
-        _boundsPipeline = gpu::Pipeline::create(program, state);
-    }
-    return _boundsPipeline;
-}
-
-void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
+void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -127,23 +114,50 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
 
-        // Bind program
-        batch.setPipeline(getPipeline());
-        assert(_cornerLocation >= 0);
-        assert(_scaleLocation >= 0);
-
-        // Render bounds
-        for (const auto& item : items) {
-            batch._glUniform3fv(_cornerLocation, 1, (const float*)(&item.bound.getCorner()));
-            batch._glUniform3fv(_scaleLocation, 1, (const float*)(&item.bound.getScale()));
-
-            static const int NUM_VERTICES_PER_CUBE = 24;
-            batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
-        }
+        // Render items
+        renderStateSortShapes(sceneContext, renderContext, _shapePlumber, items, -1);
     });
+    args->_batch = nullptr;
 }
 
-void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
+const gpu::PipelinePointer Stencil::getPipeline() {
+    if (!_stencilPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(nop_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram(*program);
+
+        auto state = std::make_shared<gpu::State>();
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        const gpu::int8 STENCIL_OPAQUE = 1;
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS,
+                    gpu::State::STENCIL_OP_REPLACE,
+                    gpu::State::STENCIL_OP_REPLACE,
+                    gpu::State::STENCIL_OP_KEEP));
+
+        _stencilPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _stencilPipeline;
+}
+
+void Stencil::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.enableStereo(false);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        batch.setPipeline(getPipeline());
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
+    args->_batch = nullptr;
+}
+
+void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& background) {
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -161,7 +175,9 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderItems(sceneContext, renderContext, items);
+        renderItems(sceneContext, renderContext, background);
     });
     args->_batch = nullptr;
 }
+
+

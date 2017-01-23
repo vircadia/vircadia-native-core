@@ -53,14 +53,15 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
 
-    // Extract opaques / transparents / lights / overlays
-    const auto opaques = items[0];
-    const auto transparents = items[1];
-    const auto lights = items[2];
-    const auto overlayOpaques = items[3];
-    const auto overlayTransparents = items[4];
-    const auto background = items[5];
-    const auto spatialSelection = items[6];
+    // Extract opaques / transparents / lights / metas / overlays / background
+    const auto opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+    const auto transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+    const auto lights = items[RenderFetchCullSortTask::LIGHT];
+    const auto metas = items[RenderFetchCullSortTask::META];
+    const auto overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+    const auto overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto background = items[RenderFetchCullSortTask::BACKGROUND];
+    const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
 
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -158,6 +159,11 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     
     // Debugging stages
     {
+
+
+        // Bounds do not draw on stencil buffer, so they must come last
+        addJob<DrawBounds>("DrawMetaBounds", metas);
+
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
