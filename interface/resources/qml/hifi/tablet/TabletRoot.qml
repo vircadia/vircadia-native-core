@@ -19,7 +19,7 @@ Item {
 
     SoundEffect {
         id: buttonClickSound
-        source: "../../../sounds/Gamemaster-Audio-button-click.wav"
+        source: "../../../sounds/button-click.wav"
     }
 
     function playButtonClickSound() {
