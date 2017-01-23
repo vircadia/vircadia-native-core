@@ -63,6 +63,7 @@ var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
 var WEB_STYLUS_LENGTH = 0.2;
 var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative number) to slide stylus in hand
+var WEB_TOUCH_TOO_CLOSE = 0.04; // if the stylus is pushed far though the web surface, don't consider it touching
 
 //
 // distant manipulation
@@ -1170,7 +1171,8 @@ function MyController(hand) {
         if (nearWeb) {
             this.showStylus();
             var rayPickInfo = this.calcRayPickInfo(this.hand);
-            if (rayPickInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
+            if (rayPickInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET &&
+                rayPickInfo.distance > WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_TOO_CLOSE) {
                 this.handleStylusOnHomeButton(rayPickInfo);
                 if (this.handleStylusOnWebEntity(rayPickInfo)) {
                     return;
