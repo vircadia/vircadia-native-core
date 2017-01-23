@@ -429,7 +429,6 @@ var toolBar = (function () {
             });
         });
 
-
         that.setActive(false);
     }
 
@@ -446,6 +445,7 @@ var toolBar = (function () {
     };
 
     that.setActive = function (active) {
+        Settings.setValue(EDIT_SETTING, active);
         if (active === isActive) {
             return;
         }
@@ -457,7 +457,6 @@ var toolBar = (function () {
             enabled: active
         }));
         isActive = active;
-        Settings.setValue(EDIT_SETTING, active);
         if (!isActive) {
             entityListTool.setVisible(false);
             gridTool.setVisible(false);
