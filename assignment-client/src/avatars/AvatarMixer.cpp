@@ -422,10 +422,10 @@ void AvatarMixer::broadcastAvatarData() {
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                     auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
-                    auto lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+                    QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
                     bool distanceAdjust = true;
                     glm::vec3 viewerPosition = nodeData->getPosition();
-                    auto bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition);
+                    auto bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
                     numAvatarDataBytes += avatarPacketList->write(bytes);
 
                     avatarPacketList->endSegment();

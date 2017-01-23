@@ -260,7 +260,8 @@ const float AVATAR_MIN_TRANSLATION = 0.0001f;
 
 const float ROTATION_15D_DOT = 0.9914449f;
 const float ROTATION_45D_DOT = 0.9238795f;
-const float ROTATION_90D_DOT = 0.7071068f;
+const float ROTATION_90D_DOT  = 0.7071068f;
+const float ROTATION_179D_DOT = 0.0087266f;
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
@@ -350,8 +351,8 @@ public:
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, QVector<JointData>& lastSentJointData,
-                                    bool distanceAdjust, glm::vec3 viewerPosition);
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+                            bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut = nullptr);
 
     virtual void doneEncoding(bool cullSmallChanges);
 
@@ -531,7 +532,11 @@ public:
 
     float getDataRate(const QString& rateName = QString(""));
 
-    QVector<JointData>& getLastSentJointData() { return _lastSentJointData; }
+    QVector<JointData> getLastSentJointData() { 
+        QReadLocker readLock(&_jointDataLock);
+        return _lastSentJointData;
+    }
+
 
 public slots:
     void sendAvatarDataPacket();

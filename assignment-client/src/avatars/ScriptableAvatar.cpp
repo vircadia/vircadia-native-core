@@ -14,8 +14,8 @@
 #include <GLMHelpers.h>
 #include "ScriptableAvatar.h"
 
-QByteArray ScriptableAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, QVector<JointData>& lastSentJointData,
-    bool distanceAdjust, glm::vec3 viewerPosition) {
+QByteArray ScriptableAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+                            bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
     _globalPosition = getPosition();
     return AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition);
 }

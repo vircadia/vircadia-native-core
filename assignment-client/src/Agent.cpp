@@ -507,6 +507,7 @@ void Agent::processAgentAvatar() {
         glm::vec3 viewerPosition(0);
 
         QByteArray avatarByteArray = scriptedAvatar->toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition);
+
         scriptedAvatar->doneEncoding(true);
 
         static AvatarDataSequenceNumber sequenceNumber = 0;

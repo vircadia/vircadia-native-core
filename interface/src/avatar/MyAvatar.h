@@ -333,8 +333,11 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, QVector<JointData>& lastSentJointData,
-                            bool distanceAdjust, glm::vec3 viewerPosition) override;
+
+
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+                            bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut = nullptr) override;
+
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
