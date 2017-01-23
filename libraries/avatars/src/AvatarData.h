@@ -263,6 +263,12 @@ const float ROTATION_45D_DOT = 0.9238795f;
 const float ROTATION_90D_DOT  = 0.7071068f;
 const float ROTATION_179D_DOT = 0.0087266f;
 
+const float AVATAR_DISTANCE_LEVEL_1 = 10.0f;
+const float AVATAR_DISTANCE_LEVEL_2 = 100.0f;
+const float AVATAR_DISTANCE_LEVEL_3 = 1000.0f;
+const float AVATAR_DISTANCE_LEVEL_4 = 10000.0f;
+
+
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
 const glm::vec3 START_LOCATION(6270, 211, 6000);

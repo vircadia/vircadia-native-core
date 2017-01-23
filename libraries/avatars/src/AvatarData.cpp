@@ -196,20 +196,20 @@ bool AvatarData::faceTrackerInfoChangedSince(quint64 time) {
 float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) {
     auto distance = glm::distance(_globalPosition, viewerPosition);
     float result = ROTATION_179D_DOT; // assume worst
-    if (distance < 1.0f) {
+    if (distance < AVATAR_DISTANCE_LEVEL_1) {
         result = AVATAR_MIN_ROTATION_DOT;
-    } else if (distance < 5.0f) {
+    } else if (distance < AVATAR_DISTANCE_LEVEL_2) {
         result = ROTATION_15D_DOT;
-    } else if (distance < 10.0f) {
+    } else if (distance < AVATAR_DISTANCE_LEVEL_3) {
         result = ROTATION_45D_DOT;
-    } else if (distance < 20.0f) {
+    } else if (distance < AVATAR_DISTANCE_LEVEL_4) {
         result = ROTATION_90D_DOT;
     }
     return result;
 }
 
 float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition) {
-    return AVATAR_MIN_TRANSLATION; // FIXME
+    return AVATAR_MIN_TRANSLATION; // Eventually make this distance sensitive as well
 }
 
 
@@ -233,19 +233,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
 
-    // FIXME - things to consider
-    //
-    //   - how to dry up this code?
-    //
-    //   - the sections below are basically little repeats of each other, where they
-    //     cast the destination pointer to the section struct type, set the struct
-    //     members in some specific way (not just assigning), then advance the buffer,
-    //     and then remember the last value sent. This could be macro-ized and/or
-    //     templatized or lambda-ized
-    //
-    //   - also, we could determine the "hasXXX" flags in the little sections,
-    //     and then set the actual flag values AFTER the rest are done...
-    //
     // FIXME -
     //
     //    BUG -- if you enter a space bubble, and then back away, the avatar has wrong orientation until "send all" happens... 
@@ -253,24 +240,16 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     //
     //    BUG -- Resizing avatar seems to "take too long"... the avatar doesn't redraw at smaller size right away
     //
-
-    // TODO -
+    // TODO consider these additional optimizations in the future
+    // 1) SensorToWorld - should we only send this for avatars with attachments?? - 20 bytes - 7.20 kbps
+    // 2) GUIID for the session change to 2byte index                   (savings) - 14 bytes - 5.04 kbps
+    // 3) Improve Joints -- currently we use rotational tolerances, but if we had skeleton/bone length data
+    //    we could do a better job of determining if the change in joints actually translates to visible
+    //    changes at distance.
     //
-    // 1) Joints... use more aggressive quantization and/or culling for more distance between avatars
-    // 2) SensorToWorld - should we only send this for avatars with attachments?? - 20 bytes - 7.20 kbps
-    // 3) GUIID for the session change to 2byte index                   (savings) - 14 bytes - 5.04 kbps
-    //
-    // Joints --
-    //    63 rotations   * 6 bytes = 136kbps
-    //    3 translations * 6 bytes = 6.48kbps
-    //
-    // How we need to handle joints:
-    //  1) need to track "_lastSentJointData" for each "viewer" so it can't be a member variable of the
-    //     AvatarData. instead it should be like lastSentTime where it's passed in. Store it in the node data
-    //     and in AvatarMixer pass it accordingly
-    //
-    //  2) we also want to know the "distance" to the viewer to adjust the relative tolerance for changes and
-    //     whether or not we actually want to do this distance adjust
+    //    Potential savings:
+    //              63 rotations   * 6 bytes = 136kbps
+    //              3 translations * 6 bytes = 6.48kbps
     //
 
     auto parentID = getParentID();
