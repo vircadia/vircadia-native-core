@@ -358,7 +358,7 @@ public:
     } AvatarDataDetail;
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                            bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut = nullptr);
+                        bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr);
 
     virtual void doneEncoding(bool cullSmallChanges);
 

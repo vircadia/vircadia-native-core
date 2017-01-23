@@ -336,7 +336,7 @@ private:
 
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                            bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut = nullptr) override;
+                            bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr) override;
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);

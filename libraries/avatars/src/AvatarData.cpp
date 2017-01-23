@@ -1542,17 +1542,13 @@ void AvatarData::sendAvatarDataPacket() {
 
     bool cullSmallData = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
     auto dataDetail = cullSmallData ? SendAllData : CullSmallData;
-    quint64 lastSentTime = 0;
     QVector<JointData> lastSentJointData;
     {
         QReadLocker readLock(&_jointDataLock);
         lastSentJointData = _lastSentJointData;
     } 
-    bool distanceAdjust = false;
-    glm::vec3 viewerPosition(0);
-    QByteArray avatarByteArray = toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition);
-
-    doneEncoding(cullSmallData); // FIXME - doneEncoding() takes a bool for culling small changes, that's janky!
+    QByteArray avatarByteArray = toByteArray(dataDetail, 0, lastSentJointData);
+    doneEncoding(cullSmallData);
 
     static AvatarDataSequenceNumber sequenceNumber = 0;
 
