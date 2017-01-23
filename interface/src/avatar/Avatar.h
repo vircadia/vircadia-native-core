@@ -180,7 +180,7 @@ public:
     uint64_t getLastRenderUpdateTime() const { return _lastRenderUpdateTime; }
     void setLastRenderUpdateTime(uint64_t time) { _lastRenderUpdateTime = time; }
 
-    Q_INVOKABLE void setShouldDie();
+    bool shouldDie() const;
 
 public slots:
 

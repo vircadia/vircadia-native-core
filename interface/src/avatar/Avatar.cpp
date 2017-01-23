@@ -303,9 +303,9 @@ void Avatar::updateAvatarEntities() {
     }
 }
 
-void Avatar::setShouldDie() {
-    // This will cause the avatar to be shrunk away and removed (the actual Avatar gets removed), but then it comes back.
-    _owningAvatarMixer.clear();
+bool Avatar::shouldDie() const {
+    const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
+    return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS;
 }
 
 void Avatar::simulate(float deltaTime, bool inView) {
