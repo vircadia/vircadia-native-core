@@ -346,15 +346,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     return changedProperties;
 }
 
-QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnkownCreateTime, bool strictSemantics) const {
-    // If strictSemantics is true and skipDefaults is false, then all and only those properties are copied in the property flag
+QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime, bool strictSemantics) const {
+    // If strictSemantics is true and skipDefaults is false, then all and only those properties are copied for which the property flag
     // is included in _desiredProperties, or is one of the specially enumerated ALWAYS properties below.
     // (There may be exceptions, but if so, they are bugs.)
     // In all other cases, you are welcome to inspect the code and try to figure out what was intended. I wish you luck. -HRS 1/18/17
     QScriptValue properties = engine->newObject();
     EntityItemProperties defaultEntityProperties;
 
-    if (_created == UNKNOWN_CREATED_TIME && !allowUnkownCreateTime) {
+    if (_created == UNKNOWN_CREATED_TIME && !allowUnknownCreateTime) {
         // No entity properties can have been set so return without setting any default, zero property values.
         return properties;
     }
