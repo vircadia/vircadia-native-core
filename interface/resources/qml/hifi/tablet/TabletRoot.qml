@@ -46,11 +46,8 @@ Item {
                 });
             }
             loader.item.forceActiveFocus();
-            offscreenFlags.navigationFocused = true;
         }
     }
-   
-    Component.onDestruction: { offscreenFlags.navigationFocused = false; }
 
     width: 480
     height: 720

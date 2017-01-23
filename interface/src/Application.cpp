@@ -978,7 +978,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         using namespace controller;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        if (offscreenUi->navigationFocused()) {
+        {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
             static int lastKey = Qt::Key_unknown;
