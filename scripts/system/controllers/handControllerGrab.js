@@ -813,7 +813,6 @@ function MyController(hand) {
 
     this.update = function(deltaTime, timestamp) {
         this.updateSmoothedTrigger();
-
         //  If both trigger and grip buttons squeezed and nothing is held, rescale my avatar!
         if (this.hand === RIGHT_HAND && this.state === STATE_SEARCHING &&
             this.getOtherHandController().state === STATE_SEARCHING) {
@@ -1178,7 +1177,9 @@ function MyController(hand) {
                 if (this.handleStylusOnWebOverlay(rayPickInfo)) {
                     return;
                 }
-            }
+            } else {
+		this.homeButtonTouched = false;
+	    }
         } else {
             this.hideStylus();
         }
