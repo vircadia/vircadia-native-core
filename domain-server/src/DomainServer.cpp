@@ -841,7 +841,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     sendingNode->setLocalSocket(nodeRequestData.localSockAddr);
     
     // update the NodeInterestSet in case there have been any changes
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
 
     // guard against patched agents asking to hear about other agents
     auto safeInterestSet = nodeRequestData.interestList.toSet();
@@ -945,7 +945,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // always send the node their own UUID back
     QDataStream domainListStream(domainListPackets.get());
 
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     // store the nodeInterestSet on this DomainServerNodeData, in case it has changed
     auto& nodeInterestSet = nodeData->getNodeInterestSet();
@@ -994,7 +994,7 @@ QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, con
             secretUUID = QUuid::createUuid();
 
             // set it on the other Node's sessionSecretHash
-            reinterpret_cast<DomainServerNodeData*>(nodeBData)->getSessionSecretHash().insert(nodeA->getUUID(), secretUUID);
+            static_cast<DomainServerNodeData*>(nodeBData)->getSessionSecretHash().insert(nodeA->getUUID(), secretUUID);
         }
 
         return secretUUID;
@@ -1124,7 +1124,7 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
 void DomainServer::setupPendingAssignmentCredits() {
     // enumerate the NodeList to find the assigned nodes
     DependencyManager::get<LimitedNodeList>()->eachNode([&](const SharedNodePointer& node){
-        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+        DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
         if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
             // check if we have a non-finalized transaction for this node to add this amount to
@@ -1556,7 +1556,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     nodeJson[JSON_KEY_UPTIME] = QString::number(double(QDateTime::currentMSecsSinceEpoch() - node->getWakeTimestamp()) / 1000.0);
 
     // if the node has pool information, add it
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     // add the node username, if it exists
     nodeJson[JSON_KEY_USERNAME] = nodeData->getUsername();
@@ -1687,7 +1687,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             // enumerate the NodeList to find the assigned nodes
             nodeList->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
-                DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+                DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
                 if (!nodeData->getAssignmentUUID().isNull()) {
                     // add the node using the UUID as the key
@@ -1775,7 +1775,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 if (matchingNode) {
                     // create a QJsonDocument with the stats QJsonObject
                     QJsonObject statsObject =
-                        reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->getStatsJSONObject();
+                        static_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->getStatsJSONObject();
 
                     // add the node type to the JSON data for output purposes
                     statsObject["node_type"] = NodeType::getNodeTypeName(matchingNode->getType()).toLower().replace(' ', '-');
