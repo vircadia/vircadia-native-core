@@ -24,7 +24,7 @@
 #include "AnimDebugDraw.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
-    Model(rig, parent),
+    CauterizedModel(rig, parent),
     _owningAvatar(owningAvatar),
     _boundingCapsuleLocalOffset(0.0f),
     _boundingCapsuleRadius(0.0f),
@@ -166,7 +166,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
         // evaluate AnimGraph animation and update jointStates.
-        Model::updateRig(deltaTime, parentTransform);
+        CauterizedModel::updateRig(deltaTime, parentTransform);
 
         Rig::EyeParameters eyeParams;
         eyeParams.worldHeadOrientation = headParams.worldHeadOrientation;
@@ -178,10 +178,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
         _rig->updateFromEyeParameters(eyeParams);
-
     } else {
-
-        Model::updateRig(deltaTime, parentTransform);
+        CauterizedModel::updateRig(deltaTime, parentTransform);
 
         // This is a little more work than we really want.
         //
