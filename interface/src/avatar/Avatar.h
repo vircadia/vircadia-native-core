@@ -177,6 +177,9 @@ public:
     glm::vec3 getUncachedRightPalmPosition() const;
     glm::quat getUncachedRightPalmRotation() const;
 
+    uint64_t getLastRenderUpdateTime() const { return _lastRenderUpdateTime; }
+    void setLastRenderUpdateTime(uint64_t time) { _lastRenderUpdateTime = time; }
+
     Q_INVOKABLE void setShouldDie();
 
 public slots:
@@ -259,6 +262,7 @@ protected:
     void ensureInScene(AvatarSharedPointer self);
 
 private:
+    uint64_t _lastRenderUpdateTime { 0 };
     int _leftPointerGeometryID { 0 };
     int _rightPointerGeometryID { 0 };
     int _nameRectGeometryID { 0 };

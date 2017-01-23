@@ -132,53 +132,94 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
 
 Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar");
 
+class AvatarPriority {
+public:
+    AvatarPriority(AvatarSharedPointer a, float p) : avatar(a), priority(p) {}
+    AvatarSharedPointer avatar;
+    float priority;
+    // NOTE: we invert the less-than operator to sort high priorities to front
+    bool operator<(const AvatarPriority& other) const { return priority > other.priority; }
+};
+
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
-
     if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
         return;
     }
-
     lock.unlock();
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
-    render::PendingChanges pendingChanges;
 
-    // simulate avatars
-    auto hashCopy = getHashCopy();
+    auto avatarMap = getHashCopy();
+    QList<AvatarSharedPointer> avatarList = avatarMap.values();
+    uint64_t now = usecTimestampNow();
+    ViewFrustum cameraView;
+    qApp->copyDisplayViewFrustum(cameraView);
+    glm::vec3 frustumCenter = cameraView.getPosition();
 
-    uint64_t start = usecTimestampNow();
-    AvatarHash::iterator avatarIterator = hashCopy.begin();
-    while (avatarIterator != hashCopy.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+    const float OUT_OF_VIEW_PENALTY = -10.0;
 
+    std::priority_queue<AvatarPriority> sortedAvatars;
+    for (int32_t i = 0; i < avatarList.size(); ++i) {
+        const auto& avatar = std::static_pointer_cast<Avatar>(avatarList.at(i));
         if (avatar == _myAvatar || !avatar->isInitialized()) {
             // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
             // DO NOT update or fade out uninitialized Avatars
-            ++avatarIterator;
-        } else if (avatar->shouldDie()) {
-            removeAvatar(avatarIterator.key());
-            ++avatarIterator;
-        } else {
-            avatar->ensureInScene(avatar);
-            const bool inView = true; // HACK
-            avatar->simulate(deltaTime, inView);
-            ++avatarIterator;
-
-            avatar->updateRenderItem(pendingChanges);
+            continue;
         }
+        if (avatar->shouldDie()) {
+            removeAvatar(avatar->getID());
+            continue;
+        }
+
+        // priority = weighted linear combination of:
+        //   (a) apparentSize
+        //   (b) proximity to center of view, and
+        //   (c) time since last update
+        glm::vec3 avatarPosition = avatar->getPosition();
+        glm::vec3 offset = avatarPosition - frustumCenter;
+        float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
+        float radius = avatar->getBoundingRadius();
+        const glm::vec3& forward = cameraView.getDirection();
+        float apparentSize = radius / distance;
+        float cosineAngle = glm::length(offset - glm::dot(offset, forward) * forward) / distance;
+        float age = (float)(now - avatar->getLastRenderUpdateTime()) / (float)(USECS_PER_SECOND);
+        float priority = 2.0f * apparentSize + 0.25f * cosineAngle + age;
+
+        // decrement priority of avatars outside keyhole
+        if (distance > cameraView.getCenterRadius()) {
+            if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
+                priority += OUT_OF_VIEW_PENALTY;
+            }
+        }
+        sortedAvatars.push(AvatarPriority(avatar, priority));
+    }
+
+    render::PendingChanges pendingChanges;
+    const uint64_t AVATAR_RENDER_UPDATE_TIME_BUDGET = 2 * USECS_PER_MSEC;
+    uint64_t expiry = now + AVATAR_RENDER_UPDATE_TIME_BUDGET;
+    while (!sortedAvatars.empty()) {
+        const AvatarPriority& sortData = sortedAvatars.top();
+        const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
+        avatar->ensureInScene(avatar);
+        const bool inView = sortData.priority > 0.5f * OUT_OF_VIEW_PENALTY;
+        avatar->simulate(deltaTime, inView);
+        if (expiry > usecTimestampNow()) {
+            avatar->updateRenderItem(pendingChanges);
+            avatar->setLastRenderUpdateTime(now);
+        }
+        sortedAvatars.pop();
     }
     qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
 
-    // simulate avatar fades
     simulateAvatarFades(deltaTime);
 
-    PROFILE_COUNTER(simulation_avatar, "NumAvatarsPerSec",
-            { { "NumAvatarsPerSec", (float)(size() * USECS_PER_SECOND) / (float)(usecTimestampNow() - start) } });
+    //PROFILE_COUNTER(simulation_avatar, "NumAvatarsPerSec",
+    //        { { "NumAvatarsPerSec", (float)((size() - sortedAvatars.size()) * USECS_PER_SECOND) / (float)(usecTimestampNow() - now) } });
     PROFILE_COUNTER(simulation_avatar, "NumJointsPerSec", { { "NumJointsPerSec", Avatar::getNumJointsProcessedPerSecond() } });
 }
 

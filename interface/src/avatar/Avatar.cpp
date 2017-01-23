@@ -127,6 +127,7 @@ Avatar::Avatar(RigPointer rig) :
     _nameRectGeometryID = geometryCache->allocateID();
     _leftPointerGeometryID = geometryCache->allocateID();
     _rightPointerGeometryID = geometryCache->allocateID();
+    _lastRenderUpdateTime = usecTimestampNow();
 }
 
 Avatar::~Avatar() {
@@ -320,10 +321,6 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         uint64_t start = usecTimestampNow();
         if (inView) {
-            // adebug BOOKMARK: can avoid copying duplicate joint data
-            // - can avoid some work when transform not changed (see SkeletonModel::simulate() and Model::setTranslation())
-            // - can maybe use _hasNewFoo instead of AvatarData::_jointDataVersion
-            // - can maybe avoid stuff if blendShapes haven't changed
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
             _skeletonModel->simulate(deltaTime, _hasNewJointData);
             locationChanged(); // joints changed, so if there are any children, update them.
