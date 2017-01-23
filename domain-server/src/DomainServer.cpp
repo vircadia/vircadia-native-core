@@ -107,7 +107,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
-    
+
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
@@ -281,7 +281,7 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
         QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
 
         qDebug() << "Reading certificate file at" << certPath << "for HTTPS.";
-        qDebug() << "Reading key file at" << keyPath << "for HTTPS.";    
+        qDebug() << "Reading key file at" << keyPath << "for HTTPS.";
 
         QFile certFile(certPath);
         certFile.open(QIODevice::ReadOnly);
@@ -528,12 +528,12 @@ void DomainServer::setupNodeListAndAssignments() {
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
     packetReceiver.registerListener(PacketType::DomainDisconnectRequest, this, "processNodeDisconnectRequestPacket");
-    
+
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
     packetReceiver.registerListener(PacketType::NodeKickRequest, &_settingsManager, "processNodeKickRequestPacket");
     packetReceiver.registerListener(PacketType::UsernameFromIDRequest, &_settingsManager, "processUsernameFromIDRequestPacket");
-    
+
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
@@ -542,7 +542,7 @@ void DomainServer::setupNodeListAndAssignments() {
 
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
-    
+
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 
@@ -811,18 +811,18 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
         if (!excludedTypes.contains(defaultedType)
             && defaultedType != Assignment::UNUSED_1
             && defaultedType != Assignment::AgentType) {
-            
+
             if (defaultedType == Assignment::AssetServerType) {
                 // Make sure the asset-server is enabled before adding it here.
                 // Initially we do not assign it by default so we can test it in HF domains first
                 static const QString ASSET_SERVER_ENABLED_KEYPATH = "asset_server.enabled";
-                
+
                 if (!_settingsManager.valueOrDefaultValueForKeyPath(ASSET_SERVER_ENABLED_KEYPATH).toBool()) {
                     // skip to the next iteration if asset-server isn't enabled
                     continue;
                 }
             }
-            
+
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);
@@ -839,7 +839,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     // update this node's sockets in case they have changed
     sendingNode->setPublicSocket(nodeRequestData.publicSockAddr);
     sendingNode->setLocalSocket(nodeRequestData.localSockAddr);
-    
+
     // update the NodeInterestSet in case there have been any changes
     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
 
@@ -928,14 +928,14 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr) {
     const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NUM_BYTES_RFC4122_UUID + 2;
-    
+
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
     QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
     QDataStream extendedHeaderStream(&extendedHeader, QIODevice::WriteOnly);
-   
+
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    
+
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
     extendedHeaderStream << node->getPermissions();
@@ -958,7 +958,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
             limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
                 if (otherNode->getUUID() != node->getUUID()
                     && nodeInterestSet.contains(otherNode->getType())) {
-                    
+
                     // since we're about to add a node to the packet we start a segment
                     domainListPackets->startSegment();
 
@@ -974,7 +974,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
             });
         }
     }
-    
+
     // send an empty list to the node, in case there were no other nodes
     domainListPackets->closeCurrentPacket(true);
 
@@ -983,8 +983,8 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
-    DomainServerNodeData* nodeAData = dynamic_cast<DomainServerNodeData*>(nodeA->getLinkedData());
-    DomainServerNodeData* nodeBData = dynamic_cast<DomainServerNodeData*>(nodeB->getLinkedData());
+    DomainServerNodeData* nodeAData = static_cast<DomainServerNodeData*>(nodeA->getLinkedData());
+    DomainServerNodeData* nodeBData = static_cast<DomainServerNodeData*>(nodeB->getLinkedData());
 
     if (nodeAData && nodeBData) {
         QUuid& secretUUID = nodeAData->getSessionSecretHash()[nodeB->getUUID()];
@@ -1020,7 +1020,7 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
         [&](const SharedNodePointer& node)->bool {
             if (node->getLinkedData() && node->getActiveSocket() && node != addedNode) {
                 // is the added Node in this node's interest list?
-                DomainServerNodeData* nodeData = dynamic_cast<DomainServerNodeData*>(node->getLinkedData());
+                DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
                 return nodeData->getNodeInterestSet().contains(addedNode->getType());
             } else {
                 return false;
@@ -1510,7 +1510,7 @@ void DomainServer::sendHeartbeatToIceServer() {
 }
 
 void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode) {
-    auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+    auto nodeData = static_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     if (nodeData) {
         nodeData->updateJSONStats(packetList->getMessage());
     }
@@ -1624,23 +1624,23 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && assignmentRegex.indexIn(url.path()) != -1) {
         QUuid nodeUUID = QUuid(assignmentRegex.cap(1));
-        
+
         auto matchingNode = nodeList->nodeWithUUID(nodeUUID);
-        
+
         // don't handle if we don't have a matching node
         if (!matchingNode) {
             return false;
         }
-        
-        auto nodeData = dynamic_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
-        
+
+        auto nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+
         // don't handle if we don't have node data for this node
         if (!nodeData) {
             return false;
         }
-        
+
         SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
-        
+
         // check if we have an assignment that matches this temp UUID, and it is a scripted assignment
         if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
             // we have a matching assignment and it is for the right type, have the HTTP manager handle it
@@ -1655,7 +1655,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         }
-        
+
         // request not handled
         return false;
     }
@@ -2247,7 +2247,7 @@ void DomainServer::addStaticAssignmentsToQueue() {
     // if the domain-server has just restarted,
     // check if there are static assignments that we need to throw into the assignment queue
     auto sharedAssignments = _allAssignments.values();
-    
+
     // sort the assignments to put the server/mixer assignments first
     qSort(sharedAssignments.begin(), sharedAssignments.end(), [](SharedAssignmentPointer a, SharedAssignmentPointer b){
         if (a->getType() == b->getType()) {
@@ -2258,9 +2258,9 @@ void DomainServer::addStaticAssignmentsToQueue() {
             return a->getType() != Assignment::AgentType;
         }
     });
-    
+
     auto staticAssignment = sharedAssignments.begin();
-    
+
     while (staticAssignment != sharedAssignments.end()) {
         // add any of the un-matched static assignments to the queue
 
@@ -2385,7 +2385,7 @@ void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
     // broadcast out the DomainServerRemovedNode message
     limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
         // only send the removed node packet to nodes that care about the type of node this was
-        auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
+        auto nodeLinkedData = static_cast<DomainServerNodeData*>(otherNode->getLinkedData());
         return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
     }, [&limitedNodeList](const SharedNodePointer& otherNode){
         limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
