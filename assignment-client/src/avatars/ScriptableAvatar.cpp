@@ -17,7 +17,7 @@
 QByteArray ScriptableAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
                             bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
     _globalPosition = getPosition();
-    return AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition);
+    return AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
 }
 
 
@@ -57,18 +57,11 @@ void ScriptableAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _bind.reset();
     _animSkeleton.reset();
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    //qDebug() << "skeletonModelURL:" << skeletonModelURL;
-    //qDebug() << "_skeletonFBXURL:" << _skeletonFBXURL;
 }
 void ScriptableAvatar::update(float deltatime) {
-    //qDebug() << __FUNCTION__ << "delta:" << deltatime;
     if (_bind.isNull() && !_skeletonFBXURL.isEmpty()) { // AvatarData will parse the .fst, but not get the .fbx skeleton.
         _bind = DependencyManager::get<AnimationCache>()->getAnimation(_skeletonFBXURL);
-        //qDebug() << "_skeletonFBXURL:" << _skeletonFBXURL;
     }
-
-    //qDebug() << "bind:" << _bind << "isLoaded:" << (!_bind.isNull() && _bind->isLoaded());
-    //qDebug() << "_animation:" << _animation << "isLoaded:" << (_animation && _animation->isLoaded());
 
     // Run animation
     if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0 && !_bind.isNull() && _bind->isLoaded()) {
@@ -76,7 +69,6 @@ void ScriptableAvatar::update(float deltatime) {
             _animSkeleton = std::make_shared<AnimSkeleton>(_bind->getGeometry());
         }
         float currentFrame = _animationDetails.currentFrame + deltatime * _animationDetails.fps;
-        //qDebug() << "currentFrame:" << currentFrame;
         if (_animationDetails.loop || currentFrame < _animationDetails.lastFrame) {
             while (currentFrame >= _animationDetails.lastFrame) {
                 currentFrame -= (_animationDetails.lastFrame - _animationDetails.firstFrame);
@@ -115,7 +107,6 @@ void ScriptableAvatar::update(float deltatime) {
                 if (data.rotation != pose.rot()) {
                     data.rotation = pose.rot();
                     data.rotationSet = true;
-                    //qDebug() << "joint[" << i << "].rotation:" << data.rotation;
                 }
             }
 

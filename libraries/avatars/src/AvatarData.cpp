@@ -195,7 +195,6 @@ bool AvatarData::faceTrackerInfoChangedSince(quint64 time) {
 
 float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) {
     auto distance = glm::distance(_globalPosition, viewerPosition);
-    //qDebug() << "_globalPosition:" << _globalPosition << "viewerPosition:" << viewerPosition << "distance:" << distance;
     float result = ROTATION_179D_DOT; // assume worst
     if (distance < 1.0f) {
         result = AVATAR_MIN_ROTATION_DOT;
@@ -206,8 +205,6 @@ float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) {
     } else if (distance < 20.0f) {
         result = ROTATION_90D_DOT;
     }
-    //qDebug() << __FUNCTION__ << "result:" << result;
-
     return result;
 }
 
@@ -465,29 +462,19 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
         float minRotationDOT = !distanceAdjust ? AVATAR_MIN_ROTATION_DOT : getDistanceBasedMinRotationDOT(viewerPosition);
         auto distance = glm::distance(_globalPosition, viewerPosition);
-        //qDebug() << "sendAll:" << sendAll << "cullSmallChanges:" << cullSmallChanges << "minRotationDOT:" << minRotationDOT << "distance:" << distance;
 
         for (int i = 0; i < _jointData.size(); i++) {
             const JointData& data = _jointData[i];
 
-
             // The dot product for smaller rotations is a smaller number.
-            //
-            //     const float AVATAR_MIN_ROTATION_DOT = 0.9999999f;
-            //     const float ROTATION_15D_DOT = 0.9914449f;
-            //     const float ROTATION_45D_DOT = 0.9238795f;
-            //     const float ROTATION_90D_DOT = 0.7071068f;
             // So if the dot() is less than the value, then the rotation is a larger angle of rotation
-            //
             bool largeEnoughRotation = fabsf(glm::dot(data.rotation, lastSentJointData[i].rotation)) < minRotationDOT;
-
-            //qDebug() << "joint[" << i << "].dot:" << fabsf(glm::dot(data.rotation, lastSentJointData[i].rotation)) << "minRotationDOT:" << minRotationDOT << "largeEnoughRotation:" << largeEnoughRotation;
 
             if (sendAll || lastSentJointData[i].rotation != data.rotation) {
                 if (sendAll || !cullSmallChanges || largeEnoughRotation) {
                     if (data.rotationSet) {
                         validity |= (1 << validityBit);
-#if 1 //def WANT_DEBUG
+#ifdef WANT_DEBUG
                         rotationSentCount++;
 #endif
                         if (sentJointDataOut) {
@@ -542,9 +529,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                     glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation) {
                     if (data.translationSet) {
                         validity |= (1 << validityBit);
-#if 1 //def WANT_DEBUG
+                        #ifdef WANT_DEBUG
                         translationSentCount++;
-#endif
+                        #endif
                         maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
                         maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
                         maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
@@ -591,19 +578,16 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
             TRANSLATION_COMPRESSION_RADIX);
 
-        //qDebug() << "hasJointData rotationSentCount:" << rotationSentCount << "translationSentCount:" << translationSentCount;
-
-
 #ifdef WANT_DEBUG
         if (sendAll) {
             qCDebug(avatars) << "AvatarData::toByteArray" << cullSmallChanges << sendAll
-                << "rotations:" << rotationSentCount << "translations:" << translationSentCount
-                << "largest:" << maxTranslationDimension
-                << "size:"
-                << (beforeRotations - startPosition) << "+"
-                << (beforeTranslations - beforeRotations) << "+"
-                << (destinationBuffer - beforeTranslations) << "="
-                << (destinationBuffer - startPosition);
+                    << "rotations:" << rotationSentCount << "translations:" << translationSentCount
+                    << "largest:" << maxTranslationDimension
+                    << "size:"
+                    << (beforeRotations - startPosition) << "+"
+                    << (beforeTranslations - beforeRotations) << "+"
+                    << (destinationBuffer - beforeTranslations) << "="
+                    << (destinationBuffer - startPosition);
         }
 #endif
     }
@@ -1029,7 +1013,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
         }
 
-#if 0 //def WANT_DEBUG
+#ifdef WANT_DEBUG
         if (numValidJointRotations > 15) {
             qCDebug(avatars) << "RECEIVING -- rotations:" << numValidJointRotations
                 << "translations:" << numValidJointTranslations
@@ -1040,7 +1024,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerLeftHandMatrixCache);
         sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerRightHandMatrixCache);
 
-        //qDebug() << "hasJointData numValidJointRotations:" << numValidJointRotations << "numValidJointTranslations:" << numValidJointTranslations;
         int numBytesRead = sourceBuffer - startSection;
         _jointDataRate.increment(numBytesRead);
     }
@@ -1530,8 +1513,6 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
 
 void AvatarData::setJointMappingsFromNetworkReply() {
 
-    //qDebug() << __FUNCTION__ << "_skeletonModelURL:" << _skeletonModelURL;
-
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
 
     {
@@ -1630,9 +1611,6 @@ void AvatarData::updateJointMappings() {
     }
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
-
-        //qDebug() << __FUNCTION__ << "_skeletonModelURL:" << _skeletonModelURL;
-
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
