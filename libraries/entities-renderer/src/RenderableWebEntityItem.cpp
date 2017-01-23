@@ -268,7 +268,8 @@ void RenderableWebEntityItem::loadSourceURL() {
 
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system",
+                                                       _webSurface->getRootItem(), _webSurface.data());
         }
     }
     _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
@@ -276,19 +277,17 @@ void RenderableWebEntityItem::loadSourceURL() {
 
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
-    if (_sourceUrl != value) {
+    auto valueBeforeSuperclassSet = _sourceUrl;
 
-        qCDebug(entities) << "Setting web entity source URL to " << value;
+    WebEntityItem::setSourceUrl(value);
 
-        _sourceUrl = value;
-        if (_webSurface) {
-            AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                loadSourceURL();
-                if (_contentType == htmlContent) {
-                    _webSurface->getRootItem()->setProperty("url", _sourceUrl);
-                }
-            });
-        }
+    if (_sourceUrl != valueBeforeSuperclassSet && _webSurface) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+            loadSourceURL();
+            if (_contentType == htmlContent) {
+                _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+            }
+        });
     }
 }
 
