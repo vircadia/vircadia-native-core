@@ -294,6 +294,9 @@ void AudioMixer::sendStatsPacket() {
 
     // general stats
     statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == -1;
+
+    statsObject["threads"] = _slavePool.numThreads();
+
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
