@@ -33,6 +33,7 @@ Item {
     property real audioLevel: 0.0
     property bool isMyCard: false
     property bool selected: false
+    property bool isAdmin: false
 
     /* User image commented out for now - will probably be re-introduced later.
     Column {
@@ -139,32 +140,94 @@ Item {
             }
         }
         // Spacer for DisplayName for my card
-        Rectangle {
+        Item {
             id: myDisplayNameSpacer
-            width: myDisplayName.width
+            width: 1
+            height: 4
             // Anchors
             anchors.top: myDisplayName.bottom
-            height: 5
-            visible: isMyCard
-            opacity: 0
         }
-        // DisplayName Text for others' cards
-        FiraSansSemiBold {
-            id: displayNameText
-            // Properties
-            text: thisNameCard.displayName
-            elide: Text.ElideRight
+        // DisplayName container for others' cards
+        Item {
+            id: displayNameContainer
             visible: !isMyCard
             // Size
             width: parent.width
+            height: displayNameTextPixelSize + 4
             // Anchors
             anchors.top: parent.top
-            // Text Size
-            size: displayNameTextPixelSize
-            // Text Positioning
-            verticalAlignment: Text.AlignVCenter
-            // Style
-            color: hifi.colors.darkGray
+            anchors.left: parent.left
+            // DisplayName Text for others' cards
+            FiraSansSemiBold {
+                id: displayNameText
+                // Properties
+                text: thisNameCard.displayName
+                elide: Text.ElideRight
+                // Size
+                width: isAdmin ? Math.min(displayNameTextMetrics.tightBoundingRect.width + 8, parent.width - adminLabelText.width - adminLabelQuestionMark.width + 8) : parent.width
+                // Anchors
+                anchors.top: parent.top
+                anchors.left: parent.left
+                // Text Size
+                size: displayNameTextPixelSize
+                // Text Positioning
+                verticalAlignment: Text.AlignVCenter
+                // Style
+                color: hifi.colors.darkGray
+            }
+            TextMetrics {
+                id:     displayNameTextMetrics
+                font:   displayNameText.font
+                text:   displayNameText.text
+            }
+            // "ADMIN" label for other users' cards
+            RalewaySemiBold {
+                id: adminLabelText
+                visible: isAdmin
+                text: "ADMIN"
+                // Text size
+                size: displayNameText.size - 4
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: displayNameText.right
+                // Style
+                font.capitalization: Font.AllUppercase
+                color: hifi.colors.redHighlight
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignTop
+            }
+            // This Rectangle refers to the [?] popup button next to "ADMIN"
+            Item {
+                id: adminLabelQuestionMark
+                visible: isAdmin
+                // Size
+                width: 20
+                height: displayNameText.height
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: adminLabelText.right
+                RalewayRegular {
+                    id: adminLabelQuestionMarkText
+                    text: "[?]"
+                    size: adminLabelText.size
+                    font.capitalization: Font.AllUppercase
+                    color: hifi.colors.redHighlight
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    anchors.fill: parent
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    hoverEnabled: true
+                    onClicked: letterbox(hifi.glyphs.question,
+                    "Domain Admin",
+                    "This user is an admin on this domain. Admins can <b>Silence</b> and <b>Ban</b> other users at their discretion - so be extra nice!")
+                    onEntered: adminLabelQuestionMarkText.color = "#94132e"
+                    onExited: adminLabelQuestionMarkText.color = hifi.colors.redHighlight
+                }
+            }
         }
 
         // UserName Text
@@ -177,7 +240,7 @@ Item {
             // Size
             width: parent.width
             // Anchors
-            anchors.top: isMyCard ? myDisplayNameSpacer.bottom : displayNameText.bottom
+            anchors.top: isMyCard ? myDisplayNameSpacer.bottom : displayNameContainer.bottom
             // Text Size
             size: thisNameCard.usernameTextHeight
             // Text Positioning
@@ -188,7 +251,7 @@ Item {
 
         // Spacer
         Item {
-            id: spacer
+            id: userNameSpacer
             height: 4
             width: parent.width
             // Anchors
@@ -199,10 +262,10 @@ Item {
         Rectangle {
             id: nameCardVUMeter
             // Size
-            width: isMyCard ? myDisplayName.width - 20 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
+            width: isMyCard ? myDisplayName.width - 70 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
             height: 8
             // Anchors
-            anchors.top: spacer.bottom
+            anchors.top: userNameSpacer.bottom
             // Style
             radius: 4
             color: "#c5c5c5"
@@ -283,7 +346,12 @@ Item {
             maximumValue: 20.0
             stepSize: 5
             updateValueWhileDragging: true
-            onValueChanged: updateGainFromQML(uuid, value)
+            onValueChanged: updateGainFromQML(uuid, value, false)
+            onPressedChanged: {
+                if (!pressed) {
+                    updateGainFromQML(uuid, value, true)
+                }
+            }
             MouseArea {
                 anchors.fill: parent
                 onWheel: {
@@ -297,7 +365,8 @@ Item {
                     mouse.accepted = false
                 }
                 onReleased: {
-                    // Pass through to Slider
+                    // the above mouse.accepted seems to make this 
+                    // never get called, nonetheless...
                     mouse.accepted = false
                 }
             }
@@ -319,12 +388,13 @@ Item {
         }
     }
 
-    function updateGainFromQML(avatarUuid, sliderValue) {
-        if (pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
+    function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
+        if (isReleased || pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
             pal.gainSliderValueDB[avatarUuid] = sliderValue;
             var data = {
                 sessionId: avatarUuid,
-                gain: sliderValue
+                gain: sliderValue,
+                isReleased: isReleased
             };
             pal.sendToScript({method: 'updateGain', params: data});
         }

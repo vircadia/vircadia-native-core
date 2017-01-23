@@ -13,7 +13,7 @@
 #include "InterfaceLogging.h"
 
 SoftAttachmentModel::SoftAttachmentModel(RigPointer rig, QObject* parent, RigPointer rigOverride) :
-    Model(rig, parent),
+    CauterizedModel(rig, parent),
     _rigOverride(rigOverride) {
     assert(_rig);
     assert(_rigOverride);

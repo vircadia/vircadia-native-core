@@ -12,7 +12,7 @@
 #ifndef hifi_SoftAttachmentModel_h
 #define hifi_SoftAttachmentModel_h
 
-#include <Model.h>
+#include "CauterizedModel.h"
 
 // A model that allows the creator to specify a secondary rig instance.
 // When the cluster matrices are created for rendering, the
@@ -22,16 +22,15 @@
 // This is used by Avatar instances to wear clothing that follows the same
 // animated pose as the SkeletonModel.
 
-class SoftAttachmentModel : public Model {
+class SoftAttachmentModel : public CauterizedModel {
     Q_OBJECT
 
 public:
-
     SoftAttachmentModel(RigPointer rig, QObject* parent, RigPointer rigOverride);
     ~SoftAttachmentModel();
 
-    virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
-    virtual void updateClusterMatrices() override;
+    void updateRig(float deltaTime, glm::mat4 parentTransform) override;
+    void updateClusterMatrices() override;
 
 protected:
     int getJointIndexOverride(int i) const;

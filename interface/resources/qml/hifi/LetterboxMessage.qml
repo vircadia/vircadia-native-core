@@ -15,7 +15,13 @@ import "../styles-uit"
 
 Item {
     property alias text: popupText.text
+    property alias headerGlyph: headerGlyph.text
+    property alias headerText: headerText.text
     property real popupRadius: hifi.dimensions.borderRadius
+    property real headerTextPixelSize: 22
+    property real popupTextPixelSize: 16
+    FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
+    FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
     visible: false
     id: letterbox
     anchors.fill: parent
@@ -27,19 +33,79 @@ Item {
     }
     Rectangle {
         width: Math.max(parent.width * 0.75, 400)
-        height: popupText.contentHeight*1.5
+        height: contentContainer.height + 50
         anchors.centerIn: parent
         radius: popupRadius
         color: "white"
-        FiraSansSemiBold {
-            id: popupText
-            size: hifi.fontSizes.textFieldInput
-            color: hifi.colors.darkGray
-            horizontalAlignment: Text.AlignHCenter
-            anchors.fill: parent
-            anchors.leftMargin: 15
-            anchors.rightMargin: 15
-            wrapMode: Text.WordWrap
+        Item {
+            id: contentContainer
+            width: parent.width - 60
+            height: childrenRect.height
+            anchors.centerIn: parent
+            Item {
+                id: popupHeaderContainer
+                visible: headerText.text !== "" || headerGlyph.text !== ""
+                height: 30
+                // Anchors
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                // Header Glyph
+                HiFiGlyphs {
+                    id: headerGlyph
+                    visible: headerGlyph.text !== ""
+                    // Size
+                    height: parent.height
+                    // Anchors
+                    anchors.left: parent.left
+                    anchors.leftMargin: -15
+                    // Text Size
+                    size: headerTextPixelSize*2.5
+                    // Style
+                    horizontalAlignment: Text.AlignHLeft
+                    verticalAlignment: Text.AlignVCenter
+                    color: hifi.colors.darkGray
+                }
+                // Header Text
+                Text {
+                    id: headerText
+                    visible: headerText.text !== ""
+                    // Size
+                    height: parent.height
+                    // Anchors
+                    anchors.left: headerGlyph.right
+                    anchors.leftMargin: -5
+                    // Text Size
+                    font.pixelSize: headerTextPixelSize
+                    // Style
+                    font.family: ralewaySemiBold.name
+                    color: hifi.colors.darkGray
+                    horizontalAlignment: Text.AlignHLeft
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.WordWrap
+                    textFormat: Text.StyledText
+                }
+            }
+            // Popup Text
+            Text {
+                id: popupText
+                // Size
+                width: parent.width
+                // Anchors
+                anchors.top: popupHeaderContainer.visible ? popupHeaderContainer.bottom : parent.top
+                anchors.topMargin: popupHeaderContainer.visible ? 15 : 0
+                anchors.left: parent.left
+                anchors.right: parent.right
+                // Text alignment
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHLeft
+                // Style
+                font.pixelSize: popupTextPixelSize
+                font.family: ralewayRegular.name
+                color: hifi.colors.darkGray
+                wrapMode: Text.WordWrap
+                textFormat: Text.StyledText
+            }
         }
     }
     MouseArea {
