@@ -91,7 +91,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _scaledToFit(false),
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
-    _cauterizeBones(false),
     _url(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
@@ -244,9 +243,6 @@ void Model::updateRenderItems() {
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
                 if (data._model && data._model->isLoaded()) {
-                    if (!data.hasStartedFade() && data._model->getGeometry()->areTexturesLoaded()) {
-                        data.startFade();
-                    }
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
                         Transform modelTransform = data._model->getTransform();
@@ -257,7 +253,7 @@ void Model::updateRenderItems() {
 
                         // update the model transform and bounding box for this render item.
                         const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                        data.updateTransformForSkinnedMesh(modelTransform, state.clusterMatrices, state.cauterizedClusterMatrices);
+                        data.updateTransformForSkinnedMesh(modelTransform, state.clusterMatrices);
                     }
                 }
             });
@@ -314,8 +310,6 @@ bool Model::updateGeometry() {
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
-            state.cauterizedClusterMatrices.resize(mesh.clusters.size());
-
             _meshStates.append(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
@@ -1179,13 +1173,6 @@ void Model::updateClusterMatrices() {
     }
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
-    static const glm::mat4 zeroScale(
-        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
-
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
@@ -1199,20 +1186,6 @@ void Model::updateClusterMatrices() {
 #else
             state.clusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
 #endif
-
-            // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
-            if (!_cauterizeBoneSet.empty()) {
-                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                    jointMatrix = cauterizeMatrix;
-                }
-#if GLM_ARCH & GLM_ARCH_SSE2
-                glm::mat4 out, inverseBindMatrix = cluster.inverseBindMatrix;
-                glm_mat4_mul((glm_vec4*)&jointMatrix, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
-                state.cauterizedClusterMatrices[j] = out;
-#else
-                state.cauterizedClusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
-#endif
-            }
         }
 
         // Once computed the cluster matrices, update the buffer(s)
@@ -1223,17 +1196,6 @@ void Model::updateClusterMatrices() {
             } else {
                 state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
                                                 (const gpu::Byte*) state.clusterMatrices.constData());
-            }
-
-            if (!_cauterizeBoneSet.empty() && (state.cauterizedClusterMatrices.size() > 1)) {
-                if (!state.cauterizedClusterBuffer) {
-                    state.cauterizedClusterBuffer =
-                        std::make_shared<gpu::Buffer>(state.cauterizedClusterMatrices.size() * sizeof(glm::mat4),
-                                                      (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
-                } else {
-                    state.cauterizedClusterBuffer->setSubData(0, state.cauterizedClusterMatrices.size() * sizeof(glm::mat4),
-                                                              (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
-                }
             }
         }
     }
@@ -1505,7 +1467,6 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
 
     {
         Lock lock(_mutex);
-
         _modelsRequiringBlends.insert(model);
     }
 }
