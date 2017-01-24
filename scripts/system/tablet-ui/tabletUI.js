@@ -54,7 +54,12 @@
             tablet.updateAudioBar(currentMicLevel);
         }
 
-        if (HMD.showTablet && !tabletShown) {
+        if (tabletShown && UIWebTablet && Overlays.getOverlayType(UIWebTablet.webOverlayID) != "web3d") {
+            // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
+            // the overlay to be deleted, but not recreated.  repair this situation here:
+            hideTabletUI();
+            showTabletUI();
+        } else if (HMD.showTablet && !tabletShown) {
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
             hideTabletUI();
