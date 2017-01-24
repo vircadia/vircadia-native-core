@@ -422,11 +422,19 @@ GameManager.prototype = {
         var enemiesEscaped = false;
         for (var i = this.enemyIDs.length - 1; i >= 0; --i) {
             var position = Entities.getEntityProperties(this.enemyIDs[i], 'position').position;
-            if (position && position.z < this.gatePosition.z) {
+            if (position === undefined) {
+                // If the enemy can no longer be found, assume it was hit 
+                this.enemyIDs.splice(i, 1);
+                Audio.playSound(TARGET_HIT_SOUND, {
+                    volume: 1.0,
+                    position: this.rootPosition,
+                });
+                this.setScore(this.score + 100);
+                enemiesEscaped = true;
+            } else if (position.z < this.gatePosition.z) {
                 Entities.deleteEntity(this.enemyIDs[i]);
                 this.enemyIDs.splice(i, 1);
                 this.setLivesLeft(this.livesLeft - 1);
-                this.numberOfEntitiesLeftForWave--;
                 Audio.playSound(ESCAPE_SOUND, {
                     volume: 1.0,
                     position: this.rootPosition
@@ -519,7 +527,6 @@ GameManager.prototype = {
                 position: this.rootPosition,
             });
 
-            this.numberOfEntitiesLeftForWave--;
             // Update score
             this.setScore(this.score + 100);
             print("SCORE: ", this.score);
