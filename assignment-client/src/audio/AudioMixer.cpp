@@ -403,7 +403,7 @@ void AudioMixer::start() {
 
     // mix state
     unsigned int frame = 1;
-    auto frameTimestamp = p_high_resolution_clock::time_point::min();
+    auto frameTimestamp = p_high_resolution_clock::now();
 
     while (!_isFinished) {
         auto ticTimer = _ticTiming.timer();
