@@ -963,7 +963,17 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 auto entityScriptURL = QUrl::fromUserInput(properties.getScript());
 
                 for (const auto& whiteListedPrefix : _entityScriptSourceWhitelist) {
-                    if (entityScriptURL.host().compare(whiteListedPrefix, Qt::CaseInsensitive) == 0) {
+                    auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+
+                    if (entityScriptURL.scheme() != whiteListURL.scheme()) {
+                        // isParentOf will be false if the schemes are different, but 
+                    }
+
+                    qDebug() << "Comparing" << entityScriptURL << "to" << whiteListURL;
+                    qDebug() << whiteListURL.isParentOf(entityScriptURL);
+
+                    // check if this script URL matches the whitelist domain and, optionally, is beneath the path
+                    if (whiteListURL.isParentOf(entityScriptURL)) {
                         passedWhiteList = true;
                         break;
                     }
