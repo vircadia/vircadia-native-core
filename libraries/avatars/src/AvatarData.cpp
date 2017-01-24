@@ -52,7 +52,6 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
-static const int AUDIO_LOUDNESS_RADIX = 2;
 static const float AUDIO_LOUDNESS_SCALE = 1024.0f;
 //static const int MODEL_OFFSET_RADIX = 6;
 
