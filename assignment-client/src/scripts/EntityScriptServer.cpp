@@ -210,7 +210,7 @@ void EntityScriptServer::selectAudioFormat(const QString& selectedCodecName) {
 
 void EntityScriptServer::resetEntitiesScriptEngine() {
     auto engineName = QString("Entities %1").arg(++_entitiesScriptEngineCount);
-    auto newEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, engineName));
+    auto newEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(ScriptEngine::ENTITY_SERVER_SCRIPT, NO_SCRIPT, engineName));
 
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
