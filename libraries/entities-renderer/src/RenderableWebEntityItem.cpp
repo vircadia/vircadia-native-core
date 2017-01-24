@@ -251,6 +251,8 @@ void RenderableWebEntityItem::setSourceUrl(const QString& value) {
     WebEntityItem::setSourceUrl(value);
 
     if (_sourceUrl != valueBeforeSuperclassSet && _webSurface) {
+        qCDebug(entities) << "Changing web entity source URL to " << _sourceUrl;
+
         AbstractViewStateInterface::instance()->postLambdaEvent([this] {
             _webSurface->getRootItem()->setProperty("url", _sourceUrl);
         });
