@@ -12,23 +12,17 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
-
+var MENU_ITEM = "Users Online";
 // create tablet button
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
     icon: "icons/tablet-icons/people-i.svg",
-    text: "Users"
+    text: "Users",
+    isActive: Menu.isOptionChecked(MENU_ITEM)
 });
-var showUsersOverlays = false;
 function onClicked() {
-    print(showUsersOverlays);
-    // hide/show users overlays
-    if (showUsersOverlays) {
-        showUsersOverlays = false;
-    } else {
-        showUsersOverlays = true;
-    }
-    button.editProperties({isActive: showUsersOverlays});
+    Menu.setIsOptionChecked(MENU_ITEM, !Menu.isOptionChecked(MENU_ITEM));
+    button.editProperties({isActive: Menu.isOptionChecked(MENU_ITEM)});
 }
 button.clicked.connect(onClicked);
 
