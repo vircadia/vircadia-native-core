@@ -464,14 +464,11 @@ std::chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_po
     // compute how long the last frame took
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - timestamp);
 
-    // sleep until the next frame should start
-    if (nextTimestamp > now) {
-        auto timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextTimestamp - now);
-        std::this_thread::sleep_for(timeToSleep);
-    }
-
     // set the new frame timestamp
-    timestamp = p_high_resolution_clock::now();
+    timestamp = std::max(now, nextTimestamp);
+
+    // sleep until the next frame should start
+    std::this_thread::sleep_until(timestamp);
 
     return duration;
 }
