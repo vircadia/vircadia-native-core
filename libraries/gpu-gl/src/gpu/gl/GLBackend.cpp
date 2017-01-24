@@ -62,8 +62,6 @@ BackendPointer GLBackend::createBackend() {
     INSTANCE = result.get();
     void* voidInstance = &(*result);
     qApp->setProperty(hifi::properties::gl::BACKEND, QVariant::fromValue(voidInstance));
-
-    gl::GLTexture::initTextureTransferHelper();
     return result;
 }
 
@@ -623,6 +621,7 @@ void GLBackend::queueLambda(const std::function<void()> lambda) const {
 }
 
 void GLBackend::recycle() const {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__)
     {
         std::list<std::function<void()>> lamdbasTrash;
         {
@@ -745,10 +744,6 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
-
-#ifndef THREADED_TEXTURE_TRANSFER
-    gl::GLTexture::_textureTransferHelper->process();
-#endif
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {

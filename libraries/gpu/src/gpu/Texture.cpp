@@ -253,35 +253,42 @@ bool Texture::Storage::assignMipFaceData(uint16 level, const Element& format, Si
     return allocated == size;
 }
 
-Texture* Texture::createExternal2D(const ExternalRecycler& recycler, const Sampler& sampler) {
-    Texture* tex = new Texture();
+Texture* Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
+    Texture* tex = new Texture(TextureUsageType::EXTERNAL);
     tex->_type = TEX_2D;
     tex->_maxMip = 0;
     tex->_sampler = sampler;
-    tex->setUsage(Usage::Builder().withExternal().withColor());
     tex->setExternalRecycler(recycler);
     return tex;
 }
 
+Texture* Texture::createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
+    return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
+}
+
 Texture* Texture::create1D(const Element& texelFormat, uint16 width, const Sampler& sampler) { 
-    return create(TEX_1D, texelFormat, width, 1, 1, 1, 1, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_1D, texelFormat, width, 1, 1, 1, 1, sampler);
 }
 
 Texture* Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
-    return create(TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
+}
+
+Texture* Texture::createStrict(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
+    return create(TextureUsageType::STRICT_RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
 }
 
 Texture* Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler) {
-    return create(TEX_3D, texelFormat, width, height, depth, 1, 1, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_3D, texelFormat, width, height, depth, 1, 1, sampler);
 }
 
 Texture* Texture::createCube(const Element& texelFormat, uint16 width, const Sampler& sampler) {
-    return create(TEX_CUBE, texelFormat, width, width, 1, 1, 1, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_CUBE, texelFormat, width, width, 1, 1, 1, sampler);
 }
 
-Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler)
+Texture* Texture::create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler)
 {
-    Texture* tex = new Texture();
+    Texture* tex = new Texture(usageType);
     tex->_storage.reset(new Storage());
     tex->_type = type;
     tex->_storage->assignTexture(tex);
@@ -293,16 +300,14 @@ Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, ui
     return tex;
 }
 
-Texture::Texture():
-    Resource()
-{
+Texture::Texture(TextureUsageType usageType) :
+    Resource(), _usageType(usageType) {
     _textureCPUCount++;
 }
 
-Texture::~Texture()
-{
+Texture::~Texture() {
     _textureCPUCount--;
-    if (getUsage().isExternal()) {
+    if (_usageType == TextureUsageType::EXTERNAL) {
         Texture::ExternalUpdates externalUpdates;
         {
             Lock lock(_externalMutex);
