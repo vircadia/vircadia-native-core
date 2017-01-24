@@ -215,7 +215,6 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
 
-    newEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarHashMap>().data());
     newEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
