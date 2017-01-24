@@ -69,7 +69,7 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    void addAvatarToSimulation(Avatar* avatar);
+    //void addAvatarToSimulation(Avatar* avatar);
 
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),

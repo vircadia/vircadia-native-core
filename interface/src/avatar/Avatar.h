@@ -181,6 +181,8 @@ public:
     void setLastRenderUpdateTime(uint64_t time) { _lastRenderUpdateTime = time; }
 
     bool shouldDie() const;
+    void animateScaleChanges(float deltaTime);
+    void setTargetScale(float targetScale) override;
 
 public slots:
 
@@ -231,8 +233,6 @@ protected:
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
 
-    virtual void animateScaleChanges(float deltaTime);
-
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
@@ -269,6 +269,7 @@ private:
     bool _initialized;
     bool _isLookAtTarget { false };
     bool _inScene { false };
+    bool _isAnimatingScale { false };
 
     float getBoundingRadius() const;
 

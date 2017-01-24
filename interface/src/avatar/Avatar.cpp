@@ -188,23 +188,33 @@ AABox Avatar::getBounds() const {
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {
-    float currentScale = getUniformScale();
-    auto desiredScale = getDomainLimitedScale();
-    if (currentScale != desiredScale) {
+    if (_isAnimatingScale) {
+        float currentScale = getUniformScale();
+        float desiredScale = getDomainLimitedScale();
+
         // use exponential decay toward the domain limit clamped scale
         const float SCALE_ANIMATION_TIMESCALE = 0.5f;
         float blendFactor = glm::clamp(deltaTime / SCALE_ANIMATION_TIMESCALE, 0.0f, 1.0f);
         float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * desiredScale;
 
         // snap to the end when we get close enough
-        const float MIN_RELATIVE_SCALE_ERROR = 0.03f;
-        if (fabsf(desiredScale - currentScale) / desiredScale < MIN_RELATIVE_SCALE_ERROR) {
+        const float MIN_RELATIVE_ERROR = 0.03f;
+        float relativeError = fabsf(desiredScale - currentScale) / desiredScale;
+        if (relativeError < MIN_RELATIVE_ERROR) {
             animatedScale = desiredScale;
+            _isAnimatingScale = false;
         }
-
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
+
+        // TODO: rebuilding the shape constantly is somehwat expensive.
+        // We should only rebuild after significant change.
         rebuildCollisionShape();
     }
+}
+
+void Avatar::setTargetScale(float targetScale) {
+    AvatarData::setTargetScale(targetScale);
+    _isAnimatingScale = true;
 }
 
 void Avatar::updateAvatarEntities() {
@@ -311,12 +321,6 @@ bool Avatar::shouldDie() const {
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
     PerformanceTimer perfTimer("simulate");
-
-    if (!isDead() && !_motionState) {
-        DependencyManager::get<AvatarManager>()->addAvatarToSimulation(this);
-    }
-    animateScaleChanges(deltaTime);
-
     {
         PROFILE_RANGE(simulation, "updateJoints");
         uint64_t start = usecTimestampNow();

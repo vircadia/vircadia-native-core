@@ -175,6 +175,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             removeAvatar(avatar->getID());
             continue;
         }
+        if (avatar->isDead()) {
+            continue;
+        }
 
         // priority = weighted linear combination of:
         //   (a) apparentSize
@@ -205,7 +208,24 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     while (!sortedAvatars.empty()) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
+
+        // for ALL avatars...
         avatar->ensureInScene(avatar);
+        if (!avatar->getMotionState()) {
+            ShapeInfo shapeInfo;
+            avatar->computeShapeInfo(shapeInfo);
+            btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+            if (shape) {
+                // don't add to the simulation now, instead put it on a list to be added later
+                AvatarMotionState* motionState = new AvatarMotionState(avatar.get(), shape);
+                avatar->setMotionState(motionState);
+                _motionStatesToAddToPhysics.insert(motionState);
+                _motionStatesThatMightUpdate.insert(motionState);
+            }
+        }
+        avatar->animateScaleChanges(deltaTime);
+
+        // for avatars in view...
         const bool inView = sortData.priority > 0.5f * OUT_OF_VIEW_PENALTY;
         avatar->simulate(deltaTime, inView);
         if (expiry > usecTimestampNow()) {
@@ -429,6 +449,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
     }
 }
 
+/*
 void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
     assert(!avatar->getMotionState());
 
@@ -443,6 +464,7 @@ void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
         _motionStatesThatMightUpdate.insert(motionState);
     }
 }
+*/
 
 void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
