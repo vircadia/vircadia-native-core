@@ -261,6 +261,11 @@ void Menu::closeInfoView(const QString& path) {
     offscreenUi->hide(path);
 }
 
+bool Menu::isInfoViewVisible(const QString& path) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->isVisible(path);
+}
+
 void Menu::triggerOption(const QString& menuOption) {
     QAction* action = _actionHash.value(menuOption);
     if (action) {
