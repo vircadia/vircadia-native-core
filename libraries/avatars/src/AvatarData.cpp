@@ -429,9 +429,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 #endif
 
         if (sentJointDataOut) {
-            if (sentJointDataOut->size() != _jointData.size()) {
-                sentJointDataOut->resize(_jointData.size());
-            }
+            sentJointDataOut->resize(_jointData.size()); // Make sure the destination is resized before using it
         }
         float minRotationDOT = !distanceAdjust ? AVATAR_MIN_ROTATION_DOT : getDistanceBasedMinRotationDOT(viewerPosition);
 
@@ -1538,6 +1536,7 @@ void AvatarData::sendAvatarDataPacket() {
     QVector<JointData> lastSentJointData;
     {
         QReadLocker readLock(&_jointDataLock);
+        _lastSentJointData.resize(_jointData.size());
         lastSentJointData = _lastSentJointData;
     } 
     QByteArray avatarByteArray = toByteArray(dataDetail, 0, lastSentJointData);

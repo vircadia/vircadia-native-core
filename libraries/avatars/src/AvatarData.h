@@ -536,8 +536,11 @@ public:
 
     float getDataRate(const QString& rateName = QString(""));
 
+    int getJointCount() { return _jointData.size(); }
+
     QVector<JointData> getLastSentJointData() { 
         QReadLocker readLock(&_jointDataLock);
+        _lastSentJointData.resize(_jointData.size());
         return _lastSentJointData;
     }
 

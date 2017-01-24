@@ -114,7 +114,9 @@ public:
     }
 
     QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) {
-        return _lastOtherAvatarSentJoints[otherAvatar];
+        auto result = _lastOtherAvatarSentJoints[otherAvatar];
+        result.resize(_avatar->getJointCount());
+        return result;
     }
 
     
