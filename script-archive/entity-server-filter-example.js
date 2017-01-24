@@ -16,16 +16,16 @@ function filter(p) {
 	/* Clamp velocity to maxVelocity units/second. Zeroing each component of acceleration keeps us from slamming.*/
 	var maxVelocity = 5;
     if (p.velocity) {
-		if (p.velocity.x > maxVelocity) {
-			p.velocity.x = maxVelocity;
+		if (Math.abs(p.velocity.x) > maxVelocity) {
+			p.velocity.x = Math.sign(p.velocity.x) * maxVelocity;
 			p.acceleration.x = 0;
 		}
-		if (p.velocity.y > maxVelocity) {
-			p.velocity.y = maxVelocity;
+		if (Math.abs(p.velocity.y) > maxVelocity) {
+			p.velocity.y = Math.sign(p.velocity.y) * maxVelocity;
 			p.acceleration.y = 0;
 		}
-		if (p.velocity.z > maxVelocity) {
-			p.velocity.z = maxVelocity;
+		if (Math.abs(p.velocity.z) > maxVelocity) {
+			p.velocity.z = Math.sign(p.velocity.z) * maxVelocity;
 			p.acceleration.z = 0;
 		}
     }
