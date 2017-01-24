@@ -41,7 +41,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     DependencyManager::set<AudioInjectorManager>();
 
     DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ScriptEngines>(ENTITY_SERVER_SCRIPT);
+    DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
 
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
