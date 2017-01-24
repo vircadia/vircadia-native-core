@@ -51,6 +51,8 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
 void AddressBarDialog::loadAddress(const QString& address, bool fromSuggestions) {
     qDebug() << "Called LoadAddress with address " << address;
     if (!address.isEmpty()) {
+        auto HMD = DependencyManager::get<HMDScriptingInterface>();
+        HMD->setShouldShowTablet(false);
         DependencyManager::get<AddressManager>()->handleLookupString(address, fromSuggestions);
     }
 }
@@ -62,6 +64,8 @@ void AddressBarDialog::loadHome() {
     if (homeLocation == "") {
         homeLocation = DEFAULT_HOME_LOCATION;
     }
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    HMD->setShouldShowTablet(false);
     DependencyManager::get<AddressManager>()->handleLookupString(homeLocation);
 }
 
