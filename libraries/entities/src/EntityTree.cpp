@@ -1053,7 +1053,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
                 startFilter = usecTimestampNow();
                 bool wasChanged = false;
-                bool allowed = filterProperties(properties, properties, wasChanged);
+                // Having (un)lock rights bypasses the filter.
+                bool allowed = senderNode->isAllowedEditor() || filterProperties(properties, properties, wasChanged);
                 if (!allowed) {
                     properties = EntityItemProperties();
                 }
