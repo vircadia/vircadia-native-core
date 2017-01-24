@@ -87,6 +87,7 @@ public:
     bool isMounted() const;
 
     void toggleShouldShowTablet() { _showTablet = !_showTablet; }
+    void setShouldShowTablet(bool value) { _showTablet = value; }
     bool getShouldShowTablet() const { return _showTablet; }
 
     void setCurrentTabletUIID(QUuid tabletID) { _tabletUIID = tabletID; }
