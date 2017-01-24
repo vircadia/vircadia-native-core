@@ -9,6 +9,26 @@ function filter(p) {
 
     /* Can also reject altogether */
     if (p.userData) { return false; }
+	
+    /* Reject if modifications made to Model properties */
+    if (p.modelURL || p.compoundShapeURL || p.shape || p.shapeType || p.url || p.fps || p.currentFrame || p.running || p.loop || p.firstFrame || p.lastFrame || p.hold || p.textures || p.xTextureURL || p.yTextureURL || p.zTextureURL) { return false; }
+	
+	/* Clamp velocity to maxVelocity units/second. Zeroing each component of acceleration keeps us from slamming.*/
+	var maxVelocity = 5;
+    if (p.velocity) {
+		if (Math.abs(p.velocity.x) > maxVelocity) {
+			p.velocity.x = Math.sign(p.velocity.x) * maxVelocity;
+			p.acceleration.x = 0;
+		}
+		if (Math.abs(p.velocity.y) > maxVelocity) {
+			p.velocity.y = Math.sign(p.velocity.y) * maxVelocity;
+			p.acceleration.y = 0;
+		}
+		if (Math.abs(p.velocity.z) > maxVelocity) {
+			p.velocity.z = Math.sign(p.velocity.z) * maxVelocity;
+			p.acceleration.z = 0;
+		}
+    }
 
     /* If we make it this far, return the (possibly modified) properties. */
     return p;
