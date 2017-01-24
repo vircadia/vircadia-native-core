@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
+import "../../styles-uit"
 
 Item {
     id: tablet
@@ -98,8 +99,10 @@ Item {
 
             Item {
                 id: item1
-                width: 225
+                width: 170
                 height: 10
+                anchors.left: parent.left
+                anchors.leftMargin: 50
                 anchors.verticalCenter: parent.verticalCenter
                 Rectangle {
                     id: audioBarBase
@@ -123,18 +126,18 @@ Item {
                     anchors.fill: audioBarMask
                     source: audioBarMask
                     start: Qt.point(0, 0)
-                    end: Qt.point(225, 0)
+                    end: Qt.point(170, 0)
                     gradient: Gradient {
                         GradientStop {
                             position: 0
                             color: "#2c8e72"
                         }
                         GradientStop {
-                            position: 0.9
+                            position: 0.8
                             color: "#1fc6a6"
                         }
                         GradientStop {
-                            position: 0.91
+                            position: 0.81
                             color: "#ea4c5f"
                         }
                         GradientStop {
@@ -143,6 +146,17 @@ Item {
                         }
                     }
                 }
+            }
+
+            RalewaySemiBold {
+                id: usernameText
+                text: tablet.parent.parent.username
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right
+                anchors.rightMargin: 0
+                horizontalAlignment: Text.AlignRight
+                font.pixelSize: 20
+                color: "#afafaf"
             }
         }
     }
@@ -229,7 +243,7 @@ Item {
         };
         setCurrentItemState("hover state");
     }
-    
+
     function previousItem() {
         setCurrentItemState("base state");
         var prevIndex = (columnIndex + 3 - 1) % 3;
@@ -238,7 +252,7 @@ Item {
         }
         setCurrentItemState("hover state");
     }
-    
+
     function upItem() {
         setCurrentItemState("base state");
         rowIndex = rowIndex - 3;
@@ -251,7 +265,7 @@ Item {
         }
         setCurrentItemState("hover state");
     }
-    
+
     function downItem() {
         setCurrentItemState("base state");
         rowIndex = rowIndex + 3;
@@ -275,4 +289,3 @@ Item {
     Keys.onUpPressed: upItem();
     Keys.onReturnPressed: selectItem();
 }
-
