@@ -429,7 +429,6 @@ var toolBar = (function () {
             });
         });
 
-
         that.setActive(false);
     }
 
@@ -446,6 +445,7 @@ var toolBar = (function () {
     };
 
     that.setActive = function (active) {
+        Settings.setValue(EDIT_SETTING, active);
         if (active === isActive) {
             return;
         }
@@ -457,7 +457,6 @@ var toolBar = (function () {
             enabled: active
         }));
         isActive = active;
-        Settings.setValue(EDIT_SETTING, active);
         if (!isActive) {
             entityListTool.setVisible(false);
             gridTool.setVisible(false);
@@ -1557,7 +1556,7 @@ var PropertiesTool = function (opts) {
                     Camera.cameraEntity = selectionManager.selections[0];
                 }
             } else if (data.action === "rescaleDimensions") {
-                var multiplier = data.percentage / 100;
+                var multiplier = data.percentage / 100.0;
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (i = 0; i < selectionManager.selections.length; i++) {
