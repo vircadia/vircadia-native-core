@@ -30,7 +30,7 @@ class AudioMixerSlave {
 public:
     using ConstIter = NodeList::const_iterator;
 
-    void configure(ConstIter begin, ConstIter end, unsigned int frame);
+    void configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio);
 
     // mix and broadcast non-ignored streams to the node
     // returns true if a mixed packet was sent to the node
@@ -43,7 +43,8 @@ private:
     bool prepareMix(const SharedNodePointer& node);
     // add a stream to the mix
     void addStreamToMix(AudioMixerClientData& listenerData, const QUuid& streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
+            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer,
+            bool throttle);
 
     float gainForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
             const glm::vec3& relativePosition, bool isEcho);
@@ -58,6 +59,7 @@ private:
     ConstIter _begin;
     ConstIter _end;
     unsigned int _frame { 0 };
+    float _throttlingRatio { 0.0f };
 };
 
 #endif // hifi_AudioMixerSlave_h

@@ -47,9 +47,6 @@ static const QString AUDIO_THREADING_GROUP_KEY = "audio_threading";
 int AudioMixer::_numStaticJitterFrames{ -1 };
 float AudioMixer::_noiseMutingThreshold{ DEFAULT_NOISE_MUTING_THRESHOLD };
 float AudioMixer::_attenuationPerDoublingInDistance{ DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE };
-float AudioMixer::_trailingSleepRatio{ 1.0f };
-float AudioMixer::_performanceThrottlingRatio{ 0.0f };
-float AudioMixer::_minAudibilityThreshold{ LOUDNESS_TO_DISTANCE_RATIO / 2.0f };
 QHash<QString, AABox> AudioMixer::_audioZones;
 QVector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
 QVector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
@@ -297,8 +294,7 @@ void AudioMixer::sendStatsPacket() {
 
     statsObject["threads"] = _slavePool.numThreads();
 
-    statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
-    statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
+    statsObject["throttling_ratio"] = _throttlingRatio;
 
     statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
     statsObject["avg_listeners_per_frame"] = (float)_stats.sumListeners / (float)_numStatFrames;
@@ -335,7 +331,7 @@ void AudioMixer::sendStatsPacket() {
 
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_stats.hrtfRenders);
     mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_stats.hrtfSilentRenders);
-    mixStats["%_hrtf_struggle_mixes"] = percentageForMixStats(_stats.hrtfStruggleRenders);
+    mixStats["%_hrtf_throttle_mixes"] = percentageForMixStats(_stats.hrtfThrottleRenders);
     mixStats["%_manual_stereo_mixes"] = percentageForMixStats(_stats.manualStereoMixes);
     mixStats["%_manual_echo_mixes"] = percentageForMixStats(_stats.manualEchoMixes);
 
@@ -411,17 +407,15 @@ void AudioMixer::start() {
         parseSettingsObject(settingsObject);
     }
 
-    // manageLoad state
-    auto frameTimestamp = p_high_resolution_clock::time_point::min();
-    unsigned int framesSinceManagement = std::numeric_limits<int>::max();
-
     // mix state
     unsigned int frame = 1;
+    auto frameTimestamp = p_high_resolution_clock::time_point::min();
 
     while (!_isFinished) {
         {
             auto timer = _sleepTiming.timer();
-            manageLoad(frameTimestamp, framesSinceManagement);
+            auto frameDuration = timeFrame(frameTimestamp);
+            throttle(frameDuration);
         }
 
         auto timer = _frameTiming.timer();
@@ -438,7 +432,7 @@ void AudioMixer::start() {
             // mix across slave threads
             {
                 auto timer = _mixTiming.timer();
-                _slavePool.mix(cbegin, cend, frame);
+                _slavePool.mix(cbegin, cend, frame, _throttlingRatio);
             }
         });
 
@@ -467,68 +461,53 @@ void AudioMixer::start() {
     }
 }
 
-void AudioMixer::manageLoad(p_high_resolution_clock::time_point& frameTimestamp, unsigned int& framesSinceCutoffEvent) {
-    auto timeToSleep = std::chrono::microseconds(0);
+std::chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {
+    // advance the next frame
+    auto nextTimestamp = timestamp + std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
+    auto now = p_high_resolution_clock::now();
 
-    // sleep until the next frame, if necessary
-    {
-        // advance the next frame
-        frameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
-        auto now = p_high_resolution_clock::now();
+    // compute how long the last frame took
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - timestamp);
 
-        // calculate sleep
-        if (frameTimestamp < now) {
-            frameTimestamp = now;
+    // sleep until the next frame should start
+    if (nextTimestamp > now) {
+        auto timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextTimestamp - now);
+        std::this_thread::sleep_for(timeToSleep);
+    }
+
+    // set the new frame timestamp
+    timestamp = p_high_resolution_clock::now();
+
+    return duration;
+}
+
+void AudioMixer::throttle(std::chrono::microseconds duration) {
+    // throttle using a basic PI controller, keeping duration under 9000 us
+    const int TARGET = 9000;
+    const float PROPORTIONAL_TERM = -0.0f;
+    const float INTEGRAL_TERM = -0.0f;
+
+    // error term is the fraction of a frame away from the target duration
+    float error = (TARGET - duration.count()) / 10000.0f;
+
+    if (_throttlingRatio == 0.0f && error > 0) {
+        // if we are not throttling nor struggling, reset the controller and continue
+        if (error > 0) {
+            _throttlingIntegral = 0.0f;
+            return;
         } else {
-            timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(frameTimestamp - now);
-            std::this_thread::sleep_for(timeToSleep);
+            qDebug() << "audio-mixer is struggling - throttling";
         }
     }
 
-    // manage mixer load
-    {
-        const int TRAILING_AVERAGE_FRAMES = 100;
-        const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
-        const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    _throttlingIntegral += error;
+    _throttlingIntegral = INTEGRAL_TERM == 0.0f ? 1.0f : std::max(_throttlingIntegral, 1 / INTEGRAL_TERM);
+    _throttlingRatio = PROPORTIONAL_TERM * error + INTEGRAL_TERM * _throttlingIntegral;
 
-        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
-        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+    _throttlingRatio = glm::clamp(_throttlingRatio, 0.0f, 1.0f);
 
-        const float RATIO_BACK_OFF = 0.02f;
-
-        _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio) +
-            // ratio of frame spent sleeping / total frame time
-            ((CURRENT_FRAME_RATIO * timeToSleep.count()) / (float) AudioConstants::NETWORK_FRAME_USECS);
-
-        bool hasRatioChanged = false;
-
-        if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-                qDebug() << "Mixer is struggling";
-                // change our min required loudness to reduce some load
-                _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
-                hasRatioChanged = true;
-            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-                qDebug() << "Mixer is recovering";
-                // back off the required loudness
-                _performanceThrottlingRatio = std::max(0.0f, _performanceThrottlingRatio - RATIO_BACK_OFF);
-                hasRatioChanged = true;
-            }
-
-            if (hasRatioChanged) {
-                // set out min audability threshold from the new ratio
-                _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
-                framesSinceCutoffEvent = 0;
-
-                qDebug() << "Sleeping" << _trailingSleepRatio << "of frame";
-                qDebug() << "Cutoff is" << _performanceThrottlingRatio;
-                qDebug() << "Minimum audibility to be mixed is" << _minAudibilityThreshold;
-            }
-        }
-
-        if (!hasRatioChanged) {
-            ++framesSinceCutoffEvent;
-        }
+    if (_throttlingRatio == 0.0f) {
+        qDebug() << "audio-mixer is recovered - no longer throttling";
     }
 }
 

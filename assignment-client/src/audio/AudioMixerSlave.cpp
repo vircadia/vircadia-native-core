@@ -36,6 +36,8 @@
 
 #include "AudioMixerSlave.h"
 
+using AudioStreamMap = AudioMixerClientData::AudioStreamMap;
+
 std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec) {
     auto audioPacket = NLPacket::create(type, size);
     audioPacket->writePrimitive(sequence);
@@ -134,10 +136,11 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
     }
 }
 
-void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame) {
+void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
     _begin = begin;
     _end = end;
     _frame = frame;
+    _throttlingRatio = throttlingRatio;
 }
 
 void AudioMixerSlave::mix(const SharedNodePointer& node) {
@@ -196,6 +199,41 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
     }
 }
 
+AudioStreamMap splitQuietestStreams(const AvatarAudioStream& listener, AudioStreamMap& streams, int numToRetain) {
+    using AudioStreamKey = AudioStreamMap::key_type;
+
+    std::vector<std::pair<float, AudioStreamKey>> streamVolumes;
+    // satisfy the push_heap precondition that streamVolumes be non-empty
+    streamVolumes.push_back(std::make_pair(0.0f, QUuid()));
+
+    // put streams into a heap by their volume
+    for (const auto& streamPair : streams) {
+        const auto& streamKey = streamPair.first;
+        const auto& stream = streamPair.second;
+
+        // calculate the volume
+        float distance = glm::length(stream->getPosition() - listener.getPosition());
+        float volume = stream->getLastPopOutputTrailingLoudness() / distance;
+
+        streamVolumes.push_back(std::make_pair(volume, streamKey));
+        std::push_heap(streamVolumes.begin(), streamVolumes.end());
+    }
+
+    // pop the loudest numToRetain streams off the heap
+    AudioStreamMap poppedStreams;
+    for (int i = 0; i < numToRetain; i++) {
+        std::pop_heap(streamVolumes.begin(), streamVolumes.end());
+
+        AudioStreamKey streamKey = streamVolumes.back().second;
+        poppedStreams[streamKey] = streams[streamKey];
+        streams.erase(streamKey);
+
+        streamVolumes.pop_back();
+    }
+    streams.swap(poppedStreams);
+    return poppedStreams;
+}
+
 bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
     AvatarAudioStream* nodeAudioStream = static_cast<AudioMixerClientData*>(node->getLinkedData())->getAvatarAudioStream();
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
@@ -250,16 +288,27 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
                 }
             }
 
-            // Enumerate the audio streams attached to the otherNode
-            auto streamsCopy = otherData->getAudioStreams();
-            for (auto& streamPair : streamsCopy) {
-                auto otherNodeStream = streamPair.second;
-                bool isSelfWithEcho = ((*otherNode == *node) && (otherNodeStream->shouldLoopbackForNode()));
-                // Add all audio streams that should be added to the mix
-                if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius)) {
-                    addStreamToMix(*nodeData, otherNode->getUUID(), *nodeAudioStream, *otherNodeStream);
+            auto addStreams = [&](AudioStreamMap& streams, bool throttle) {
+                for (auto& streamPair : streams) {
+                    auto otherNodeStream = streamPair.second;
+                    bool isSelfWithEcho = ((*otherNode == *node) && (otherNodeStream->shouldLoopbackForNode()));
+                    // Add all audio streams that should be added to the mix
+                    if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius)) {
+                        addStreamToMix(*nodeData, otherNode->getUUID(), *nodeAudioStream, *otherNodeStream, throttle);
+                    }
                 }
+            };
+
+            auto streams = otherData->getAudioStreams();
+
+            // if throttling, we need to sort by loudness and omit the quietest streams
+            if (_throttlingRatio > 0.0f) {
+                int numStreams = (int)(streams.size() * (1 - _throttlingRatio));
+                auto quietStreams = splitQuietestStreams(*nodeAudioStream, streams, numStreams);
+                addStreams(quietStreams, true);
             }
+
+            addStreams(streams, false);
         }
     });
 
@@ -278,7 +327,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
 }
 
 void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
-        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
+        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        bool throttle) {
     // to reduce artifacts we calculate the gain and azimuth for every source for this listener
     // even if we are not going to end up mixing in this source
 
@@ -391,16 +441,12 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
         return;
     }
 
-    float audibilityThreshold = AudioMixer::getMinimumAudibilityThreshold();
-    if (audibilityThreshold > 0.0f &&
-        streamToAdd.getLastPopOutputTrailingLoudness() / glm::length(relativePosition) <= audibilityThreshold) {
-        // the mixer is struggling so we're going to drop off some streams
-
+    if (throttle) {
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
         hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-        ++stats.hrtfStruggleRenders;
+        ++stats.hrtfThrottleRenders;
 
         return;
     }
