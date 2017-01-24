@@ -193,15 +193,15 @@ bool AvatarData::faceTrackerInfoChangedSince(quint64 time) {
 
 float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) {
     auto distance = glm::distance(_globalPosition, viewerPosition);
-    float result = ROTATION_179D_DOT; // assume worst
+    float result = ROTATION_CHANGE_179D; // assume worst
     if (distance < AVATAR_DISTANCE_LEVEL_1) {
         result = AVATAR_MIN_ROTATION_DOT;
     } else if (distance < AVATAR_DISTANCE_LEVEL_2) {
-        result = ROTATION_15D_DOT;
+        result = ROTATION_CHANGE_15D;
     } else if (distance < AVATAR_DISTANCE_LEVEL_3) {
-        result = ROTATION_45D_DOT;
+        result = ROTATION_CHANGE_45D;
     } else if (distance < AVATAR_DISTANCE_LEVEL_4) {
-        result = ROTATION_90D_DOT;
+        result = ROTATION_CHANGE_90D;
     }
     return result;
 }
