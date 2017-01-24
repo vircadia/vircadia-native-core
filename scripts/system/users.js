@@ -13,6 +13,18 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
+// create tablet button
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var button = tablet.addButton({
+    icon: "icons/tablet-icons/people-i.svg",
+    text: "Users"
+});
+function onClicked() {
+    // hide/show users overlays
+
+}
+button.clicked.connect(onClicked);
+
 // resolve these paths immediately
 var MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
 var BASE_URL = Script.resolvePath("assets/images/tools/");
@@ -1233,5 +1245,12 @@ var usersWindow = (function () {
     setUp();
     Script.scriptEnding.connect(tearDown);
 }());
+
+function cleanup () {
+    //remove tablet button
+    button.clicked.disconnect(onClicked);
+    tablet.removeButton(button);
+}
+Script.scriptEnding.connect(cleanup);
 
 }()); // END LOCAL_SCOPE
