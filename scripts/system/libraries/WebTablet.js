@@ -64,9 +64,10 @@ function calcSpawnInfo(hand, height) {
     } else {
         var front = Quat.getFront(Camera.orientation);
         finalPosition = Vec3.sum(Camera.position, Vec3.multiply(0.6, front));
+        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, front, {x: 0, y: 1, z: 0});
         return {
             position: finalPosition,
-            rotation: Quat.multiply(Camera.orientation, {x: 0, y: 1, z: 0, w: 0})
+            rotation: Quat.multiply(orientation, {x: 0, y: 1, z: 0, w: 0})
         };
     }
 }

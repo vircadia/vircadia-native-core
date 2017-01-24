@@ -151,3 +151,10 @@ void MenuScriptingInterface::closeInfoView(const QString& path) {
     QMetaObject::invokeMethod(Menu::getInstance(), "closeInfoView", Q_ARG(const QString&, path));
 }
 
+bool MenuScriptingInterface::isInfoViewVisible(const QString& path) {
+    bool result;
+    QMetaObject::invokeMethod(Menu::getInstance(), "isInfoViewVisible", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(bool, result), Q_ARG(const QString&, path));
+    return result;
+}
+

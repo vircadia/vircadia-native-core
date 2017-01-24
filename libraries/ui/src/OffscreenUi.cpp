@@ -130,6 +130,15 @@ void OffscreenUi::hide(const QString& name) {
     }
 }
 
+bool OffscreenUi::isVisible(const QString& name) {
+    QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
+    if (item) {
+        return QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).read().toBool();
+    } else {
+        return false;
+    }
+}
+
 class ModalDialogListener : public QObject {
     Q_OBJECT
     friend class OffscreenUi;
