@@ -377,10 +377,11 @@ GameManager.prototype = {
             this.checkEnemyPositionsTimer = null;
 
             // Play after 1.5s to let other sounds finish playing
+            var self = this;
             Script.setTimeout(function() {
                 Audio.playSound(WAVE_COMPLETE_SOUND, {
                     volume: 1.0,
-                    position: this.rootPosition
+                    position: self.rootPosition
                 });
             }, 1500);
         }
@@ -445,10 +446,11 @@ GameManager.prototype = {
             return;
         }
 
+        var self = this;
         Script.setTimeout(function() {
             Audio.playSound(GAME_OVER_SOUND, {
                 volume: 1.0,
-                position: this.rootPosition
+                position: self.rootPosition
             });
         }, 1500);
 
