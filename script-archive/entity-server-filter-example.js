@@ -13,18 +13,19 @@ function filter(p) {
     /* Reject if modifications made to Model properties */
     if (p.modelURL || p.compoundShapeURL || p.shape || p.shapeType || p.url || p.fps || p.currentFrame || p.running || p.loop || p.firstFrame || p.lastFrame || p.hold || p.textures || p.xTextureURL || p.yTextureURL || p.zTextureURL) { return false; }
 	
-	/* Clamp velocity to 5 units/second. Zeroing each component of acceleration keeps us from slamming.*/
+	/* Clamp velocity to maxVelocity units/second. Zeroing each component of acceleration keeps us from slamming.*/
+	var maxVelocity = 5;
     if (p.velocity) {
-		if (p.velocity.x > 5) {
-			p.velocity.x = 5;
+		if (p.velocity.x > maxVelocity) {
+			p.velocity.x = maxVelocity;
 			p.acceleration.x = 0;
 		}
-		if (p.velocity.y > 5) {
-			p.velocity.y = 5;
+		if (p.velocity.y > maxVelocity) {
+			p.velocity.y = maxVelocity;
 			p.acceleration.y = 0;
 		}
-		if (p.velocity.z > 5) {
-			p.velocity.z = 5;
+		if (p.velocity.z > maxVelocity) {
+			p.velocity.z = maxVelocity;
 			p.acceleration.z = 0;
 		}
     }
