@@ -114,7 +114,7 @@ const char IS_FINGER_POINTING_FLAG = 4;
 // before the "header" structure
 const char AVATARDATA_FLAGS_MINIMUM = 0;
 
-using smallFloat = uint16_t; // a compressed float with less precision, user defined radix
+using SmallFloat = uint16_t; // a compressed float with less precision, user defined radix
 
 namespace AvatarDataPacket {
 
@@ -164,7 +164,7 @@ namespace AvatarDataPacket {
     const size_t AVATAR_ORIENTATION_SIZE = 6;
 
     PACKED_BEGIN struct AvatarScale {
-        smallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte() 
+        SmallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte() 
     } PACKED_END;
     const size_t AVATAR_SCALE_SIZE = 2;
 
@@ -190,7 +190,7 @@ namespace AvatarDataPacket {
         //
         // POTENTIAL SAVINGS - 20 bytes
 
-        uint8_t sensorToWorldQuat[6];     // 6 byte compressed quaternion part of sensor to world matrix
+        SixByteQuat sensorToWorldQuat;     // 6 byte compressed quaternion part of sensor to world matrix
         uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
         float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
                                           // FIXME - sensorToWorldTrans might be able to be better compressed if it was
