@@ -73,7 +73,7 @@ private slots:
 private:
     // mixing helpers
     std::chrono::microseconds timeFrame(p_high_resolution_clock::time_point& timestamp);
-    void throttle(std::chrono::microseconds frameDuration);
+    void throttle(std::chrono::microseconds frameDuration, int frame);
     // pop a frame from any streams on the node
     // returns the number of available streams
     int prepareFrame(const SharedNodePointer& node, unsigned int frame);
@@ -84,7 +84,7 @@ private:
 
     void parseSettingsObject(const QJsonObject& settingsObject);
 
-    float _throttlingIntegral { 0.0f };
+    float _trailingMixRatio { 0.0f };
     float _throttlingRatio { 0.0f };
 
     int _numStatFrames { 0 };

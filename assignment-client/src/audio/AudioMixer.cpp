@@ -294,6 +294,7 @@ void AudioMixer::sendStatsPacket() {
 
     statsObject["threads"] = _slavePool.numThreads();
 
+    statsObject["trailing_mix_ratio"] = _trailingMixRatio;
     statsObject["throttling_ratio"] = _throttlingRatio;
 
     statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
@@ -410,7 +411,7 @@ void AudioMixer::start() {
         {
             auto timer = _sleepTiming.timer();
             auto frameDuration = timeFrame(frameTimestamp);
-            throttle(frameDuration);
+            throttle(frameDuration, frame);
         }
 
         auto frameTimer = _frameTiming.timer();
@@ -473,33 +474,48 @@ std::chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_po
     return duration;
 }
 
-void AudioMixer::throttle(std::chrono::microseconds duration) {
-    // throttle using a basic PI controller, keeping duration under 9000 us
-    const int TARGET = 9000;
-    const float PROPORTIONAL_TERM = -0.0f;
-    const float INTEGRAL_TERM = -0.0f;
+void AudioMixer::throttle(std::chrono::microseconds duration, int frame) {
+    // throttle using a modified integral controller
+    const float FRAME_TIME = 10000.0f;
+    float mixRatio = duration.count() / FRAME_TIME;
 
-    // error term is the fraction of a frame away from the target duration
-    float error = (TARGET - duration.count()) / 10000.0f;
+    // constants are determined based on a "regular" 16-CPU EC2 server
 
-    if (_throttlingRatio == 0.0f && error > 0) {
-        // if we are not throttling nor struggling, reset the controller and continue
-        if (error > 0) {
-            _throttlingIntegral = 0.0f;
-            return;
-        } else {
-            qDebug() << "audio-mixer is struggling - throttling";
+    // target different mix and backoff ratios (they also have different backoff rates)
+    // this is to prevent oscillation, and encourage throttling to find a steady state
+    const float TARGET = 0.9f;
+    // on a "regular" machine with 100 avatars, this is the largest value where
+    // - overthrottling can be recovered
+    // - oscillations will not occur after the recovery
+    const float BACKOFF_TARGET = 0.47f;
+
+    // the mixer is known to struggle at about 80 on a "regular" machine
+    // so throttle 2/80 the streams to ensure smooth audio (throttling is linear)
+    const float THROTTLE_RATE = 2 / 80.0f;
+    const float BACKOFF_RATE = THROTTLE_RATE / 4;
+
+    // recovery should be bounded so that large changes in user count is a tolerable experience
+    // throttling is linear, so most cases will not need a full recovery
+    const int RECOVERY_TIME = 180;
+
+    // weight more recent frames to determine if throttling is necessary,
+    const int TRAILING_FRAMES = (int)(100 * RECOVERY_TIME * BACKOFF_RATE);
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    _trailingMixRatio = PREVIOUS_FRAMES_RATIO * _trailingMixRatio + CURRENT_FRAME_RATIO * mixRatio;
+
+    if (frame % TRAILING_FRAMES == 0) {
+        if (_trailingMixRatio > TARGET) {
+            _throttlingRatio += THROTTLE_RATE;
+            _throttlingRatio = std::min(_throttlingRatio, 1.0f);
+            qDebug("audio-mixer is struggling (%f mix/sleep) - throttling %f of streams",
+                    (double)_trailingMixRatio, (double)_throttlingRatio);
+        } else if (_throttlingRatio > 0.0f && _trailingMixRatio <= BACKOFF_TARGET) {
+            _throttlingRatio -= BACKOFF_RATE;
+            _throttlingRatio = std::max(_throttlingRatio, 0.0f);
+            qDebug("audio-mixer is recovering (%f mix/sleep) - throttling %f of streams",
+                    (double)_trailingMixRatio, (double)_throttlingRatio);
         }
-    }
-
-    _throttlingIntegral += error;
-    _throttlingIntegral = INTEGRAL_TERM == 0.0f ? 1.0f : std::max(_throttlingIntegral, 1 / INTEGRAL_TERM);
-    _throttlingRatio = PROPORTIONAL_TERM * error + INTEGRAL_TERM * _throttlingIntegral;
-
-    _throttlingRatio = glm::clamp(_throttlingRatio, 0.0f, 1.0f);
-
-    if (_throttlingRatio == 0.0f) {
-        qDebug() << "audio-mixer is recovered - no longer throttling";
     }
 }
 
