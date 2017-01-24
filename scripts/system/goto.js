@@ -14,7 +14,6 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-var isActive = false
 var button = tablet.addButton({
     icon: "icons/tablet-icons/goto-i.svg",
     text:"GOTO"
@@ -22,14 +21,13 @@ var button = tablet.addButton({
 
 
 function onAddressBarShown(visible) {
+    button.editProperties({isActive: visible});
 }
 
 function setActive(active) {
     isActive = active;
 }
 function onClicked(){
-    setActive(!isActive);
-    button.editProperties({isActive: isActive});
     DialogsManager.toggleAddressBar();
 }
 button.clicked.connect(onClicked);
