@@ -402,11 +402,11 @@ void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success, bo
             changed = true;
             myWorldTransform.setTranslation(position);
             Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+            _translationChanged = usecTimestampNow();
         }
     });
     if (success && changed) {
         locationChanged(tellPhysics);
-        _translationChanged = usecTimestampNow();
     }
 }
 
@@ -455,11 +455,11 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& succe
             changed = true;
             myWorldTransform.setRotation(orientation);
             Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+            _rotationChanged = usecTimestampNow();
         }
     });
     if (success && changed) {
         locationChanged(tellPhysics);
-        _rotationChanged = usecTimestampNow();
     }
 }
 
@@ -654,12 +654,12 @@ void SpatiallyNestable::setTransform(const Transform& transform, bool& success) 
         Transform::inverseMult(_transform, parentTransform, transform);
         if (_transform != beforeTransform) {
             changed = true;
+            _translationChanged = usecTimestampNow();
+            _rotationChanged = usecTimestampNow();
         }
     });
     if (success && changed) {
         locationChanged();
-        _translationChanged = usecTimestampNow();
-        _rotationChanged = usecTimestampNow();
     }
 }
 
@@ -696,11 +696,11 @@ void SpatiallyNestable::setScale(const glm::vec3& scale) {
         if (_transform.getScale() != scale) {
             _transform.setScale(scale);
             changed = true;
+            _scaleChanged = usecTimestampNow();
         }
     });
     if (changed) {
         dimensionsChanged();
-        _scaleChanged = usecTimestampNow();
     }
 }
 
@@ -718,12 +718,12 @@ void SpatiallyNestable::setScale(float value) {
         _transform.setScale(value);
         if (_transform.getScale() != beforeScale) {
             changed = true;
+            _scaleChanged = usecTimestampNow();
         }
     });
 
     if (changed) {
         dimensionsChanged();
-        _scaleChanged = usecTimestampNow();
     }
 }
 
@@ -747,14 +747,14 @@ void SpatiallyNestable::setLocalTransform(const Transform& transform) {
         if (_transform != transform) {
             _transform = transform;
             changed = true;
+            _scaleChanged = usecTimestampNow();
+            _translationChanged = usecTimestampNow();
+            _rotationChanged = usecTimestampNow();
         }
     });
 
     if (changed) {
         locationChanged();
-        _scaleChanged = usecTimestampNow();
-        _translationChanged = usecTimestampNow();
-        _rotationChanged = usecTimestampNow();
     }
 }
 
@@ -777,11 +777,11 @@ void SpatiallyNestable::setLocalPosition(const glm::vec3& position, bool tellPhy
         if (_transform.getTranslation() != position) {
             _transform.setTranslation(position);
             changed = true;
+            _translationChanged = usecTimestampNow();
         }
     });
     if (changed) {
         locationChanged(tellPhysics);
-        _translationChanged = usecTimestampNow();
     }
 }
 
@@ -804,11 +804,11 @@ void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
         if (_transform.getRotation() != orientation) {
             _transform.setRotation(orientation);
             changed = true;
+            _rotationChanged = usecTimestampNow();
         }
     });
     if (changed) {
         locationChanged();
-        _rotationChanged = usecTimestampNow();
     }
 }
 
@@ -862,11 +862,11 @@ void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
         if (_transform.getScale() != scale) {
             _transform.setScale(scale);
             changed = true;
+            _scaleChanged = usecTimestampNow();
         }
     });
     if (changed) {
         dimensionsChanged();
-        _scaleChanged = usecTimestampNow();
     }
 }
 
@@ -1076,6 +1076,9 @@ void SpatiallyNestable::setLocalTransformAndVelocities(
         if (_transform != localTransform) {
             _transform = localTransform;
             changed = true;
+            _scaleChanged = usecTimestampNow();
+            _translationChanged = usecTimestampNow();
+            _rotationChanged = usecTimestampNow();
         }
     });
     // linear velocity
@@ -1089,9 +1092,6 @@ void SpatiallyNestable::setLocalTransformAndVelocities(
 
     if (changed) {
         locationChanged(false);
-        _scaleChanged = usecTimestampNow();
-        _translationChanged = usecTimestampNow();
-        _rotationChanged = usecTimestampNow();
     }
 }
 
