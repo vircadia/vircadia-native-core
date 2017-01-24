@@ -241,11 +241,12 @@
                         return;
                     }
 
+                    isDownloading = false;
+
                     EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + zipFileURL);
                     console.log("Clara.io FBX: File download initiated for " + zipFileURL);
 
                     xmlHttpRequest = null;
-                    isDownloading = false;
                 }
 
                 isDownloading = true;
