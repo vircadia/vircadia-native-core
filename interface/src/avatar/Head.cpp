@@ -70,7 +70,7 @@ void Head::reset() {
     _baseYaw = _basePitch = _baseRoll = 0.0f;
 }
 
-void Head::simulate(float deltaTime, bool isMine, bool billboard) {
+void Head::simulate(float deltaTime, bool isMine) {
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
@@ -117,7 +117,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
     }
    
-    if (!(_isFaceTrackerConnected || billboard)) {
+    if (!_isFaceTrackerConnected) {
 
         if (!_isEyeTrackerConnected) {
             // Update eye saccades
@@ -220,7 +220,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     _leftEyePosition = _rightEyePosition = getPosition();
     _eyePosition = getPosition();
 
-    if (!billboard && _owningAvatar) {
+    if (_owningAvatar) {
         auto skeletonModel = static_cast<Avatar*>(_owningAvatar)->getSkeletonModel();
         if (skeletonModel) {
             skeletonModel->getEyePositions(_leftEyePosition, _rightEyePosition);
