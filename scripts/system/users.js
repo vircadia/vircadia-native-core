@@ -12,6 +12,19 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
+var MENU_ITEM = "Users Online";
+// create tablet button
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var button = tablet.addButton({
+    icon: "icons/tablet-icons/people-i.svg",
+    text: "Users",
+    isActive: Menu.isOptionChecked(MENU_ITEM)
+});
+function onClicked() {
+    Menu.setIsOptionChecked(MENU_ITEM, !Menu.isOptionChecked(MENU_ITEM));
+    button.editProperties({isActive: Menu.isOptionChecked(MENU_ITEM)});
+}
+button.clicked.connect(onClicked);
 
 // resolve these paths immediately
 var MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
@@ -1233,5 +1246,12 @@ var usersWindow = (function () {
     setUp();
     Script.scriptEnding.connect(tearDown);
 }());
+
+function cleanup () {
+    //remove tablet button
+    button.clicked.disconnect(onClicked);
+    tablet.removeButton(button);
+}
+Script.scriptEnding.connect(cleanup);
 
 }()); // END LOCAL_SCOPE
