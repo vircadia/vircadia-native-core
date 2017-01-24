@@ -467,23 +467,6 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
     }
 }
 
-/*
-void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
-    assert(!avatar->getMotionState());
-
-    ShapeInfo shapeInfo;
-    avatar->computeShapeInfo(shapeInfo);
-    btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-    if (shape) {
-        // we don't add to the simulation now, we put it on a list to be added later
-        AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-        avatar->setMotionState(motionState);
-        _motionStatesToAddToPhysics.insert(motionState);
-        _motionStatesThatMightUpdate.insert(motionState);
-    }
-}
-*/
-
 void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
         for (auto avatarData : _avatarHash) {
