@@ -70,8 +70,6 @@ public:
 
     bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
-    /// \return the point about which scaling occurs.
-    glm::vec3 getScalePivot() const;
 
     void setDeltaPitch(float pitch) { _deltaPitch = pitch; }
     float getDeltaPitch() const { return _deltaPitch; }

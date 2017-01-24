@@ -378,10 +378,6 @@ glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
     return rotationBetween(orientation * IDENTITY_FRONT, lookAtDelta + glm::length(lookAtDelta) * _saccade) * orientation;
 }
 
-glm::vec3 Head::getScalePivot() const {
-    return _position;
-}
-
 void Head::setFinalPitch(float finalPitch) {
     _deltaPitch = glm::clamp(finalPitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH) - _basePitch;
 }
