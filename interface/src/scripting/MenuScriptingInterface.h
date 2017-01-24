@@ -183,6 +183,7 @@ public slots:
     void setMenuEnabled(const QString& menuName, bool isEnabled);
 
     void closeInfoView(const QString& path);
+    bool isInfoViewVisible(const QString& path);
 
 signals:
     /**jsdoc
