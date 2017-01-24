@@ -958,9 +958,16 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
             if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty() && !properties.getScript().isEmpty()) {
                 bool passedWhiteList = false;
-                auto entityScript = properties.getScript();
+
+                // grab a URL representation of the entity script so we can check the host for this script
+                auto entityScriptURL = QUrl::fromUserInput(properties.getScript());
+
                 for (const auto& whiteListedPrefix : _entityScriptSourceWhitelist) {
-                    if (entityScript.startsWith(whiteListedPrefix, Qt::CaseInsensitive)) {
+                    auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+
+                    // check if this script URL matches the whitelist domain and, optionally, is beneath the path
+                    if (entityScriptURL.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
+                        entityScriptURL.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
                         passedWhiteList = true;
                         break;
                     }
