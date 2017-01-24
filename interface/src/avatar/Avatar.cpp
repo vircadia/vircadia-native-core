@@ -323,10 +323,13 @@ void Avatar::simulate(float deltaTime, bool inView) {
     PerformanceTimer perfTimer("simulate");
     {
         PROFILE_RANGE(simulation, "updateJoints");
-        uint64_t start = usecTimestampNow();
-        if (inView) {
+        if (inView && _hasNewJointData) {
+            uint64_t start = usecTimestampNow();
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
-            _skeletonModel->simulate(deltaTime, _hasNewJointData);
+            _skeletonModel->simulate(deltaTime, true);
+            timeProcessingJoints += usecTimestampNow() - start;
+            numJointsProcessed += _jointData.size();
+
             locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointData = false;
 
@@ -337,15 +340,11 @@ void Avatar::simulate(float deltaTime, bool inView) {
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
-            const bool useBillboard = false; // HACK
-            head->simulate(deltaTime, false, useBillboard);
+            head->simulate(deltaTime, false);
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
-            getHead()->setPosition(getPosition());
             _skeletonModel->simulate(deltaTime, false);
         }
-        timeProcessingJoints += usecTimestampNow() - start;
-        numJointsProcessed += _jointData.size();
     }
 
     // update animation for display name fade in/out
