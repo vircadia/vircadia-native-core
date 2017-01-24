@@ -1549,7 +1549,7 @@ var PropertiesTool = function (opts) {
                     Camera.cameraEntity = selectionManager.selections[0];
                 }
             } else if (data.action === "rescaleDimensions") {
-                var multiplier = data.percentage / 100;
+                var multiplier = data.percentage / 100.0;
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (i = 0; i < selectionManager.selections.length; i++) {
