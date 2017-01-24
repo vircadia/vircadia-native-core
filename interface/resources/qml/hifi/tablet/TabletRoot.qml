@@ -7,7 +7,7 @@ Item {
     property var eventBridge;
 
     signal showDesktop();
-    
+
     function loadSource(url) {
         loader.source = url;
     }
@@ -23,7 +23,11 @@ Item {
     }
 
     function playButtonClickSound() {
-        buttonClickSound.play(globalPosition);
+        // Because of the asynchronous nature of initalization, it is possible for this function to be
+        // called before the C++ has set the globalPosition context variable.
+        if (typeof globalPosition !== 'undefined') {
+            buttonClickSound.play(globalPosition);
+        }
     }
 
     Loader {
