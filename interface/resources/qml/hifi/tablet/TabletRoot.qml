@@ -4,6 +4,7 @@ import Hifi 1.0
 Item {
     id: tabletRoot
     objectName: "tabletRoot"
+    property string username: "Unknown user"
     property var eventBridge;
 
     signal showDesktop();
@@ -28,6 +29,10 @@ Item {
         if (typeof globalPosition !== 'undefined') {
             buttonClickSound.play(globalPosition);
         }
+    }
+
+    function setUsername(newUsername) {
+        username = newUsername;
     }
 
     Loader {
