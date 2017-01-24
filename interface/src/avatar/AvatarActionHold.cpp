@@ -235,6 +235,11 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         qDebug() << "AvatarActionHold::doKinematicUpdate -- no owning entity";
         return;
     }
+    if (ownerEntity->getParentID() != QUuid()) {
+        // if the held entity has been given a parent, stop acting on it.
+        return;
+    }
+
     void* physicsInfo = ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
         qDebug() << "AvatarActionHold::doKinematicUpdate -- no owning physics info";
