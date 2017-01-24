@@ -179,11 +179,6 @@ void AvatarData::setTargetScale(float targetScale) {
     _targetScale = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
 }
 
-void AvatarData::setTargetScaleVerbose(float targetScale) {
-    setTargetScale(targetScale);
-    qCDebug(avatars) << "Changed scale to " << _targetScale;
-}
-
 glm::vec3 AvatarData::getHandPosition() const {
     return getOrientation() * _handPosition + getPosition();
 }

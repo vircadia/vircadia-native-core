@@ -262,8 +262,7 @@ public:
 
     //  Scale
     float getTargetScale() const;
-    void setTargetScale(float targetScale);
-    void setTargetScaleVerbose(float targetScale);
+    virtual void setTargetScale(float targetScale);
 
     float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
     void setDomainMinimumScale(float domainMinimumScale)
