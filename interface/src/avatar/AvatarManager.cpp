@@ -192,6 +192,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             float cosineAngle = glm::length(offset - glm::dot(offset, forward) * forward) / distance;
             const float TIME_PENALTY = 0.080f; // seconds
             float age = (float)(startTime - avatar->getLastRenderUpdateTime()) / (float)(USECS_PER_SECOND) - TIME_PENALTY;
+            // NOTE: we are adding values of different units to get a single measure of "priority".
+            // Thus we multiply each component by a conversion "weight" that scales its units
+            // relative to the others.  These weights are pure magic tuning and are hard coded in the
+            // relation below: (hint: unitary weights are not explicityly shown)
             float priority = apparentSize + 0.25f * cosineAngle + age;
 
             // decrement priority of avatars outside keyhole
@@ -233,7 +237,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         uint64_t now = usecTimestampNow();
         if (now < renderExpiry) {
             // we're within budget
-            bool inView = sortData.priority > 0.5f * OUT_OF_VIEW_PENALTY;
+            const float OUT_OF_VIEW_THRESHOLD = 0.5f * OUT_OF_VIEW_PENALTY;
+            bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(pendingChanges);
             avatar->setLastRenderUpdateTime(startTime);
