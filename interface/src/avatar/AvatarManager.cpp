@@ -205,7 +205,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     }
 
     render::PendingChanges pendingChanges;
-    // NOTE: the copy of hash and sort above takes about 300 usec 
     const uint64_t RENDER_UPDATE_BUDGET = 1500; // usec
     const uint64_t MAX_UPDATE_BUDGET = 2000; // usec
     uint64_t renderExpiry = startTime + RENDER_UPDATE_BUDGET;
