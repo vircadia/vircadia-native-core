@@ -1392,7 +1392,7 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "rescaleDimensions",
-                percentage: parseInt(elRescaleDimensionsPct.value),
+                percentage: parseFloat(elRescaleDimensionsPct.value),
             }));
         });
         elReloadScriptButton.addEventListener("click", function() {
