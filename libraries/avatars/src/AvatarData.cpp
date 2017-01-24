@@ -417,10 +417,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasJointData) {
         QReadLocker readLock(&_jointDataLock);
 
-        int rotationSentCount = 0;
-        int translationSentCount = 0;
-
-
         // joint rotation data
         int numJoints = _jointData.size();
         *destinationBuffer++ = (uint8_t)numJoints;
@@ -440,7 +436,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             }
         }
         float minRotationDOT = !distanceAdjust ? AVATAR_MIN_ROTATION_DOT : getDistanceBasedMinRotationDOT(viewerPosition);
-        auto distance = glm::distance(_globalPosition, viewerPosition);
 
         for (int i = 0; i < _jointData.size(); i++) {
             const JointData& data = _jointData[i];

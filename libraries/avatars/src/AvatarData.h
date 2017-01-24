@@ -180,9 +180,7 @@ namespace AvatarDataPacket {
     const size_t LOOK_AT_POSITION_SIZE = 12;
 
     PACKED_BEGIN struct AudioLoudness {
-        uint8_t audioLoudness;            // current loudness of microphone, clamped to MAX_AUDIO_LOUDNESS and 
-                                          // scaled by AUDIO_LOUDNESS_SCALE typical values 0 to 255 or once
-                                          // rescaled 0.0 to 1000.0
+        uint8_t audioLoudness;            // current loudness of microphone compressed with packFloatGainToByte()
     } PACKED_END;
     const size_t AUDIO_LOUDNESS_SIZE = 1;
 
