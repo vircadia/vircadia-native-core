@@ -115,6 +115,7 @@ private:
         uint64_t _history[TIMER_TRAILING_SECONDS] {};
         int _index { 0 };
     };
+    Timer _ticTiming;
     Timer _sleepTiming;
     Timer _frameTiming;
     Timer _prepareTiming;
