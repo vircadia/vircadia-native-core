@@ -19,9 +19,16 @@ var button = tablet.addButton({
     icon: "icons/tablet-icons/people-i.svg",
     text: "Users"
 });
+var showUsersOverlays = false;
 function onClicked() {
+    print(showUsersOverlays);
     // hide/show users overlays
-
+    if (showUsersOverlays) {
+        showUsersOverlays = false;
+    } else {
+        showUsersOverlays = true;
+    }
+    button.editProperties({isActive: showUsersOverlays});
 }
 button.clicked.connect(onClicked);
 
