@@ -286,11 +286,11 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         tree->setEntityScriptSourceWhitelist("");
     }
 
-    QString entityEditFilter;
-    if (readOptionString("entityEditFilter", settingsSectionObject, entityEditFilter)) {
-        tree->setEntityEditFilter(entityEditFilter);
+    if (readOptionString("entityEditFilter", settingsSectionObject, _entityEditFilter)) {
+        // FIXME: Fetch script from file synchronously. We don't want the server processing edits while a restarting entity server is fetching from a DOS'd source.
+        _entityEditFilterEngine.evaluate(_entityEditFilter);
+        tree->initEntityEditFilterEngine(&_entityEditFilterEngine);
     }
-    tree->initEntityEditFilterEngine(); // whether supplied or not.
 }
 
 void EntityServer::nodeAdded(SharedNodePointer node) {

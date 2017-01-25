@@ -918,15 +918,15 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
-void EntityTree::initEntityEditFilterEngine() {
-    _entityEditFilterEngine.evaluate(_entityEditFilter);
-    auto global = _entityEditFilterEngine.globalObject();
+void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine) {
+    _entityEditFilterEngine = engine;
+    auto global = _entityEditFilterEngine->globalObject();
     _entityEditFilterFunction = global.property("filter");
     _hasEntityEditFilter = _entityEditFilterFunction.isFunction();
 }
 
 bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
-    if (!_hasEntityEditFilter) {
+    if (!_hasEntityEditFilter || !_entityEditFilterEngine) {
         propertiesOut = propertiesIn;
         wasChanged = false; // not changed
         return true; // allowed
@@ -934,7 +934,7 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
     auto oldProperties = propertiesIn.getDesiredProperties();
     auto specifiedProperties = propertiesIn.getChangedProperties();
     propertiesIn.setDesiredProperties(specifiedProperties);
-    QScriptValue inputValues = propertiesIn.copyToScriptValue(&_entityEditFilterEngine, false, true, true);
+    QScriptValue inputValues = propertiesIn.copyToScriptValue(_entityEditFilterEngine, false, true, true);
     propertiesIn.setDesiredProperties(oldProperties);
 
     auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
