@@ -327,9 +327,8 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     }
                 }
 
-                if (hadElementExtraData) {
-                    includeThisEntity = includeThisEntity &&
-                        entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
+                if (includeThisEntity && hadElementExtraData) {
+                    includeThisEntity = entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
                 }
 
                 // we only check the bounds against our frustum and LOD if the query has asked us to check against the frustum
