@@ -482,6 +482,7 @@ void OpenGLDisplayPlugin::submitFrame(const gpu::FramePointer& newFrame) {
 }
 
 void OpenGLDisplayPlugin::updateFrameData() {
+    PROFILE_RANGE(render, __FUNCTION__)
     if (_lockCurrentTexture) {
         return;
     }
@@ -596,12 +597,16 @@ void OpenGLDisplayPlugin::internalPresent() {
 }
 
 void OpenGLDisplayPlugin::present() {
-    PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, (uint64_t)presentCount())
-    updateFrameData();
+    auto frameId = (uint64_t)presentCount();
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
+    {
+        PROFILE_RANGE_EX(render, "updateFrameData", 0xff00ff00, frameId)
+        updateFrameData();
+    }
     incrementPresentCount();
 
     {
-        PROFILE_RANGE_EX(render, "recycle", 0xff00ff00, (uint64_t)presentCount())
+        PROFILE_RANGE_EX(render, "recycle", 0xff00ff00, frameId)
         _gpuContext->recycle();
     }
 
@@ -615,19 +620,19 @@ void OpenGLDisplayPlugin::present() {
                 _lastFrame = _currentFrame.get();
             });
             // Execute the frame rendering commands
-            PROFILE_RANGE_EX(render, "execute", 0xff00ff00, (uint64_t)presentCount())
+            PROFILE_RANGE_EX(render, "execute", 0xff00ff00, frameId)
             _gpuContext->executeFrame(_currentFrame);
         }
 
         // Write all layers to a local framebuffer
         {
-            PROFILE_RANGE_EX(render, "composite", 0xff00ffff, (uint64_t)presentCount())
+            PROFILE_RANGE_EX(render, "composite", 0xff00ffff, frameId)
             compositeLayers();
         }
 
         // Take the composite framebuffer and send it to the output device
         {
-            PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, (uint64_t)presentCount())
+            PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, frameId)
             internalPresent();
         }
 

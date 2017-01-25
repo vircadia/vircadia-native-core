@@ -131,7 +131,7 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
 }
 
 void AudioMixerSlavePool::resize(int numThreads) {
-    assert(_numThreads == _slaves.size());
+    assert(_numThreads == (int)_slaves.size());
 
 #ifdef AUDIO_SINGLE_THREADED
     qDebug("%s: running single threaded", __FUNCTION__, numThreads);
@@ -182,6 +182,6 @@ void AudioMixerSlavePool::resize(int numThreads) {
     }
 
     _numThreads = _numStarted = _numFinished = numThreads;
-    assert(_numThreads == _slaves.size());
+    assert(_numThreads == (int)_slaves.size());
 #endif
 }

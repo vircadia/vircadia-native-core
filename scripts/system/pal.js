@@ -103,6 +103,8 @@ ExtendedOverlay.prototype.select = function (selected) {
         return;
     }
     
+    UserActivityLogger.palAction(selected ? "avatar_selected" : "avatar_deselected", this.key);
+
     this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
@@ -231,11 +233,26 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
         break;
     case 'refresh':
         removeOverlays();
-        populateUserList();
+        populateUserList(message.params);
+        UserActivityLogger.palAction("refresh", "");
         break;
     case 'updateGain':
         data = message.params;
-        Users.setAvatarGain(data['sessionId'], data['gain']);
+        if (data['isReleased']) {
+            // isReleased=true happens once at the end of a cycle of dragging
+            // the slider about, but with same gain as last isReleased=false so
+            // we don't set the gain in that case, and only here do we want to
+            // send an analytic event.
+            UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
+        } else {
+            Users.setAvatarGain(data['sessionId'], data['gain']);
+        }
+        break;
+    case 'displayNameUpdate':
+        if (MyAvatar.displayName != message.params) {
+            MyAvatar.displayName = message.params;
+            UserActivityLogger.palAction("display_name_change", "");
+        }
         break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
@@ -254,7 +271,7 @@ function addAvatarNode(id) {
          color: color(selected, false, 0.0),
          ignoreRayIntersection: false}, selected, true);
 }
-function populateUserList() {
+function populateUserList(selectData) {
     var data = [];
     AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
@@ -262,14 +279,12 @@ function populateUserList() {
             displayName: avatar.sessionDisplayName,
             userName: '',
             sessionId: id || '',
-            audioLevel: 0.0
+            audioLevel: 0.0,
+            admin: false
         };
-        // If the current user is an admin OR
-        // they're requesting their own username ("id" is blank)...
-        if (Users.canKick || !id) {
-            // Request the username from the given UUID
-            Users.requestUsernameFromID(id);
-        }
+        // Request the username, fingerprint, and admin status from the given UUID
+        // Username and fingerprint returns default constructor output if the requesting user isn't an admin
+        Users.requestUsernameFromID(id);
         // Request personal mute status and ignore status
         // from NodeList (as long as we're not requesting it for our own ID)
         if (id) {
@@ -280,20 +295,27 @@ function populateUserList() {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    pal.sendToQml({method: 'users', params: data});
+    pal.sendToQml({ method: 'users', params: data });
+    if (selectData) {
+        selectData[2] = true;
+        pal.sendToQml({ method: 'select', params: selectData });
+    }
 }
 
 // The function that handles the reply from the server
-function usernameFromIDReply(id, username, machineFingerprint) {
+function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
     var data;
     // If the ID we've received is our ID...
     if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username];
-    } else {
+        data = ['', username, isAdmin];
+    } else if (Users.canKick) {
         // Set the data to contain the ID and the username (if we have one)
         // or fingerprint (if we don't have a username) string.
-        data = [id, username || machineFingerprint];
+        data = [id, username || machineFingerprint, isAdmin];
+    } else {
+        // Set the data to contain specific strings.
+        data = [id, '', isAdmin];
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
@@ -370,7 +392,7 @@ function removeOverlays() {
 function handleClick(pickRay) {
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         // Don't select directly. Tell qml, who will give us back a list of ids.
-        var message = {method: 'select', params: [[overlay.key], !overlay.selected]};
+        var message = {method: 'select', params: [[overlay.key], !overlay.selected, false]};
         pal.sendToQml(message);
         return true;
     });
@@ -493,7 +515,6 @@ function getAudioLevel(id) {
     var audioLevel = 0.0;
     var data = id ? ExtendedOverlay.get(id) : myData;
     if (!data) {
-        print('no data for', id);
         return audioLevel;
     }
 
@@ -547,7 +568,10 @@ var button = toolBar.addButton({
     buttonState: 1,
     alpha: 0.9
 });
+
 var isWired = false;
+var palOpenedAt;
+
 function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
         Script.update.disconnect(updateOverlays);
@@ -559,6 +583,11 @@ function off() {
     triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
+    if (palOpenedAt) {
+        var duration = new Date().getTime() - palOpenedAt;
+        UserActivityLogger.palOpened(duration / 1000.0);
+        palOpenedAt = 0; // just a falsy number is good enough.
+    }
     if (audioInterval) {
         Script.clearInterval(audioInterval);
     }
@@ -575,12 +604,16 @@ function onClicked() {
         triggerMapping.enable();
         triggerPressMapping.enable();
         createAudioInterval();
+        palOpenedAt = new Date().getTime();
     } else {
         off();
     }
     pal.setVisible(!pal.visible);
 }
-
+function avatarDisconnected(nodeID) {
+    // remove from the pal list
+    pal.sendToQml({method: 'avatarDisconnected', params: [nodeID]});
+}
 //
 // Button state.
 //
@@ -593,6 +626,8 @@ button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
+Users.avatarDisconnected.connect(avatarDisconnected);
+
 function clearLocalQMLDataAndClosePAL() {
     pal.sendToQml({ method: 'clearLocalQMLData' });
     if (pal.visible) {
@@ -615,6 +650,7 @@ Script.scriptEnding.connect(function () {
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.unsubscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
+    Users.avatarDisconnected.disconnect(avatarDisconnected);
     off();
 });
 

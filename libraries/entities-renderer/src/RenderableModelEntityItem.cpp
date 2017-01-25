@@ -194,7 +194,7 @@ public:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) { 
-        return ItemKey::Builder::opaqueShape();
+        return ItemKey::Builder::opaqueShape().withTypeMeta();
     }
     
     template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) { 
@@ -215,6 +215,15 @@ namespace render {
                 payload->entity->render(args);
             }
         }
+    }
+    template <> uint32_t metaFetchMetaSubItems(const RenderableModelEntityItemMeta::Pointer& payload, ItemIDs& subItems) {
+        auto modelEntity = std::static_pointer_cast<RenderableModelEntityItem>(payload->entity);
+        if (modelEntity->hasModel()) {
+            auto metaSubItems = modelEntity->getModelNotSafe()->fetchRenderItemIDs();
+            subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+            return (uint32_t) metaSubItems.size();
+        }
+        return 0;
     }
 }
 
@@ -471,6 +480,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
         }
     }
+}
+
+ModelPointer RenderableModelEntityItem::getModelNotSafe() {
+    return _model;
 }
 
 ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRenderer> renderer) {
