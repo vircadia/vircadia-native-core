@@ -309,16 +309,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
 
                     if (entityMatchesFilters) {
-                        // we should include this entity unless it has already been excluded
-                        includeThisEntity = true;
-
                         // make sure this entity is in the set of entities sent last frame
                         entityNodeData->insertEntitySentLastFrame(entity->getID());
 
                     } else {
                         // we might include this entity if it matched in the previous frame
                         if (entityNodeData->sentEntityLastFrame(entity->getID())) {
-                            includeThisEntity = true;
 
                             entityNodeData->removeEntitySentLastFrame(entity->getID());
                         } else {
