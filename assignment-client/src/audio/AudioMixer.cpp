@@ -487,7 +487,7 @@ void AudioMixer::throttle(std::chrono::microseconds duration, int frame) {
     // on a "regular" machine with 100 avatars, this is the largest value where
     // - overthrottling can be recovered
     // - oscillations will not occur after the recovery
-    const float BACKOFF_TARGET = 0.47f;
+    const float BACKOFF_TARGET = 0.44f;
 
     // the mixer is known to struggle at about 80 on a "regular" machine
     // so throttle 2/80 the streams to ensure smooth audio (throttling is linear)
