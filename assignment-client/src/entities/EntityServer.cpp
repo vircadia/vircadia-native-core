@@ -9,9 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QEventLoop>
 #include <QTimer>
 #include <EntityTree.h>
 #include <SimpleEntitySimulation.h>
+#include <ResourceCache.h>
+#include <ScriptCache.h>
 
 #include "EntityServer.h"
 #include "EntityServerConsts.h"
@@ -26,6 +29,10 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     OctreeServer(message),
     _entitySimulation(NULL)
 {
+    ResourceManager::init();
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<ScriptCache>();
+
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::EntityAdd, PacketType::EntityEdit, PacketType::EntityErase },
                                             this, "handleEntityPacket");
@@ -286,11 +293,53 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         tree->setEntityScriptSourceWhitelist("");
     }
 
-    if (readOptionString("entityEditFilter", settingsSectionObject, _entityEditFilter)) {
-        // FIXME: Fetch script from file synchronously. We don't want the server processing edits while a restarting entity server is fetching from a DOS'd source.
-        _entityEditFilterEngine.evaluate(_entityEditFilter);
-        tree->initEntityEditFilterEngine(&_entityEditFilterEngine);
+    if (readOptionString("entityEditFilter", settingsSectionObject, _entityEditFilter) && !_entityEditFilter.isEmpty()) {
+        // Fetch script from file synchronously. We don't want the server processing edits while a restarting entity server is fetching from a DOS'd source.
+        QUrl scriptURL(_entityEditFilter);
+
+        // The following should be abstracted out for use in Agent.cpp (and maybe later AvatarMixer.cpp)
+        if (scriptURL.scheme().isEmpty() || (scriptURL.scheme() == URL_SCHEME_FILE)) {
+            qWarning() << "Cannot load script from local filesystem, because assignment may be on a different computer.";
+            scriptRequestFinished();
+            return;
+        }
+        auto scriptRequest = ResourceManager::createResourceRequest(this, scriptURL);
+        if (!scriptRequest) {
+            qWarning() << "Could not create ResourceRequest for Agent script at" << scriptURL.toString();
+            scriptRequestFinished();
+            return;
+        }
+        // Agent.cpp sets up a timeout here, but that is unnecessary, as ResourceRequest has its own.
+        connect(scriptRequest, &ResourceRequest::finished, this, &EntityServer::scriptRequestFinished);
+        // FIXME: handle atp rquests setup here. See Agent::requestScript()
+        qInfo() << "Requesting script at URL" << qPrintable(scriptRequest->getUrl().toString());
+        scriptRequest->send();
+        _scriptRequestLoop.exec(); // Block here, but allow the request to be processed and its signals to be handled.
     }
+}
+
+void EntityServer::scriptRequestFinished() {
+    auto scriptRequest = qobject_cast<ResourceRequest*>(sender());
+    if (scriptRequest && scriptRequest->getResult() == ResourceRequest::Success) {
+        auto scriptContents = scriptRequest->getData();
+        qInfo() << "Downloaded script:" << scriptContents;
+        _entityEditFilterEngine.evaluate(scriptContents);
+        std::static_pointer_cast<EntityTree>(_tree)->initEntityEditFilterEngine(&_entityEditFilterEngine);
+        scriptRequest->deleteLater();
+        if (_scriptRequestLoop.isRunning()) {
+            _scriptRequestLoop.quit();
+        }
+        return;
+    } else if (scriptRequest) {
+        qCritical() << "Failed to download script at" << scriptRequest->getUrl().toString();
+        // See HTTPResourceRequest::onRequestFinished for interpretation of codes. For example, a 404 is code 6 and 403 is 3. A timeout is 2. Go figure.
+        qCritical() << "ResourceRequest error was" << scriptRequest->getResult();
+    } else {
+        qCritical() << "Failed to create script request.";
+    }
+    // Hard stop of the assignment client on failure. We don't want anyone to think they have a filter in place when they don't.
+    // Alas, only indications will be the above logging with assignment client restarting repeatedly, and clients will not see any entities.
+    stop();
 }
 
 void EntityServer::nodeAdded(SharedNodePointer node) {
