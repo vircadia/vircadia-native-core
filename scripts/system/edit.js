@@ -244,8 +244,6 @@ var toolBar = (function () {
                 imageURL: TOOLS_PATH + "edit.svg",
                 visible: true,
                 alpha: 0.9,
-                buttonState: 1,
-                hoverState: 3,
                 defaultState: 1
             });
         } else {

@@ -24,9 +24,6 @@
             objectName: buttonName,
             imageURL: Script.resolvePath("assets/images/tools/help.svg"),
             visible: true,
-            hoverState: 2,
-            defaultState: 1,
-            buttonState: 1,
             alpha: 0.9
         });
     } else {

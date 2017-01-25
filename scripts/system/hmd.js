@@ -83,8 +83,6 @@ if (headset) {
             objectName: "hmdToggle",
             imageURL: Script.resolvePath("assets/images/tools/switch.svg"),
             visible: true,
-            hoverState: 2,
-            defaultState: 0,
             alpha: 0.9
         });
     } else {

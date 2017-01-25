@@ -126,9 +126,6 @@ if (Settings.getValue("HUDUIEnabled")) {
     marketplaceButton = toolBar.addButton({
         imageURL: toolIconUrl + "market.svg",
         objectName: "marketplace",
-        buttonState: 1,
-        defaultState: 1,
-        hoverState: 3,
         alpha: 0.9
     });
 } else {

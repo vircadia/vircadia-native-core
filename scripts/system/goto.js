@@ -33,9 +33,6 @@ if (Settings.getValue("HUDUIEnabled")) {
         objectName: buttonName,
         imageURL: Script.resolvePath("assets/images/tools/directory.svg"),
         visible: true,
-        buttonState: 1,
-        defaultState: 1,
-        hoverState: 3,
         alpha: 0.9
     });
 } else {

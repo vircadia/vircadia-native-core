@@ -28,9 +28,6 @@ if (Settings.getValue("HUDUIEnabled")) {
         objectName: buttonName,
         imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
         visible: true,
-        buttonState: 1,
-        defaultState: 1,
-        hoverState: 2,
         alpha: 0.9,
     });
 } else {
