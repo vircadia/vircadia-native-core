@@ -1396,9 +1396,7 @@ var ServerScriptStatusMonitor = function(entityID, statusCallback) {
     self.sendRequestTimerID = null;
 
     var onStatusReceived = function(success, isRunning, status, errorInfo) {
-        print("Got script status:", success, isRunning, status, errorInfo);
         if (self.active) {
-            print("Requesting status of script");
             statusCallback({
                 statusRetrieved: success,
                 isRunning: isRunning,
