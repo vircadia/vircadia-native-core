@@ -36,7 +36,6 @@
 
 #include "AudioMixer.h"
 
-static const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
 static const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 static const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
