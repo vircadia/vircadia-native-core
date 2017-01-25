@@ -960,11 +960,14 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                     // (1/19/17) Agents only need to connect to Entity Script Servers to perform administrative tasks
                     // related to entity server scripts. Only agents with rez permissions should be doing that, so
                     // if the agent does not have those permissions, we do not want them and the server to incur the
-                    // overhead of connecting to one another.
+                    // overhead of connecting to one another. Additionally we exclude agents that do not care about the
+                    // Entity Script Server and won't attempt to connect to it.
+                    auto otherNodeData = static_cast<DomainServerNodeData*>(otherNode->getLinkedData());
                     bool shouldNotConnect = (node->getType() == NodeType::Agent && otherNode->getType() == NodeType::EntityScriptServer
                                              && !node->getCanRez() && !node->getCanRezTmp())
                                           || (node->getType() == NodeType::EntityScriptServer && otherNode->getType() == NodeType::Agent
-                                              && !otherNode->getCanRez() && !otherNode->getCanRezTmp());
+                                              && (!otherNodeData->getNodeInterestSet().contains(NodeType::EntityServer) ||
+                                              !otherNode->getCanRez() && !otherNode->getCanRezTmp()));
 
                     if (!shouldNotConnect) {
                         // since we're about to add a node to the packet we start a segment
