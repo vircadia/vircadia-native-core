@@ -196,7 +196,7 @@ var toolBar = (function () {
 
     function cleanup() {
         that.setActive(false);
-	tablet.removeButton(activeButton);
+        tablet.removeButton(activeButton);
     }
 
     function addButton(name, image, handler) {
