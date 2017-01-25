@@ -122,10 +122,20 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     bool isThrottling = _throttlingRatio > 0.0f;
     std::vector<std::pair<float, SharedNodePointer>> throttledNodes;
 
-    std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
+    typedef void (AudioMixerSlave::*MixFunctor)(
+            AudioMixerClientData&, const QUuid&, const AvatarAudioStream&, const PositionalAudioStream&);
+    auto allStreams = [&](const SharedNodePointer& node, MixFunctor mixFunctor) {
         AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        for (auto& streamPair : nodeData->getAudioStreams()) {
+            auto nodeStream = streamPair.second;
+            (this->*mixFunctor)(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
+        }
+    };
 
+    std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
         if (*node == *listener) {
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+
             // only mix the echo, if requested
             for (auto& streamPair : nodeData->getAudioStreams()) {
                 auto nodeStream = streamPair.second;
@@ -135,12 +145,10 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             }
         } else if (!shouldIgnoreNode(listener, node)) {
             if (!isThrottling) {
-                // mix all the streams
-                for (auto& streamPair : nodeData->getAudioStreams()) {
-                    auto nodeStream = streamPair.second;
-                    mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
-                }
+                allStreams(node, &AudioMixerSlave::mixStream);
             } else {
+                AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+
                 // compute the node's max relative volume
                 float nodeVolume;
                 for (auto& streamPair : nodeData->getAudioStreams()) {
@@ -169,11 +177,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             std::pop_heap(throttledNodes.begin(), throttledNodes.end());
 
             auto& node = throttledNodes.back().second;
-            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
-            for (auto& streamPair : nodeData->getAudioStreams()) {
-                auto nodeStream = streamPair.second;
-                mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
-            }
+            allStreams(node, &AudioMixerSlave::mixStream);
 
             throttledNodes.pop_back();
         }
@@ -181,11 +185,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
         // throttle the remaining nodes' streams
         for (const std::pair<float, SharedNodePointer>& nodePair : throttledNodes) {
             auto& node = nodePair.second;
-            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
-            for (auto& streamPair : nodeData->getAudioStreams()) {
-                auto nodeStream = streamPair.second;
-                throttleStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
-            }
+            allStreams(node, &AudioMixerSlave::throttleStream);
         }
     }
 
@@ -205,10 +205,15 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
 void AudioMixerSlave::throttleStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
-    mixStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, true);
+    addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, true);
 }
 
 void AudioMixerSlave::mixStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
+        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
+    addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, false);
+}
+
+void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         bool throttle) {
     ++stats.totalMixes;

@@ -44,8 +44,10 @@ private:
     void throttleStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
             const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
     void mixStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
+            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
+    void addStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
             const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer,
-            bool throttle = false);
+            bool throttle);
 
     // mixing buffers
     float _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
