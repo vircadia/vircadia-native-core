@@ -199,121 +199,87 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
     }
 }
 
-AudioStreamMap splitQuietestStreams(const AvatarAudioStream& listener, AudioStreamMap& streams, int numToRetain) {
-    using AudioStreamKey = AudioStreamMap::key_type;
-
-    std::vector<std::pair<float, AudioStreamKey>> streamVolumes;
-    // satisfy the push_heap precondition that streamVolumes be non-empty
-    streamVolumes.push_back(std::make_pair(0.0f, QUuid()));
-
-    // put streams into a heap by their volume
-    for (const auto& streamPair : streams) {
-        const auto& streamKey = streamPair.first;
-        const auto& stream = streamPair.second;
-
-        // calculate the volume
-        float distance = glm::length(stream->getPosition() - listener.getPosition());
-        float volume = stream->getLastPopOutputTrailingLoudness() / distance;
-
-        streamVolumes.push_back(std::make_pair(volume, streamKey));
-        std::push_heap(streamVolumes.begin(), streamVolumes.end());
-    }
-
-    // pop the loudest numToRetain streams off the heap
-    AudioStreamMap poppedStreams;
-    for (int i = 0; i < numToRetain; i++) {
-        std::pop_heap(streamVolumes.begin(), streamVolumes.end());
-
-        AudioStreamKey streamKey = streamVolumes.back().second;
-        poppedStreams[streamKey] = streams[streamKey];
-        streams.erase(streamKey);
-
-        streamVolumes.pop_back();
-    }
-    streams.swap(poppedStreams);
-    return poppedStreams;
-}
-
-bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
-    AvatarAudioStream* nodeAudioStream = static_cast<AudioMixerClientData*>(node->getLinkedData())->getAvatarAudioStream();
-    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
+    AvatarAudioStream* listenerAudioStream = static_cast<AudioMixerClientData*>(listener->getLinkedData())->getAvatarAudioStream();
+    AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
 
     // zero out the client mix for this node
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
-    // loop through all other nodes that have sufficient audio to mix
-    std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode){
-        // make sure that we have audio data for this other node
-        // and that it isn't being ignored by our listening node
-        // and that it isn't ignoring our listening node
-        AudioMixerClientData* otherData = static_cast<AudioMixerClientData*>(otherNode->getLinkedData());
+    if (_throttlingRatio == 0.0f) {
+        std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
 
-        // When this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
-        bool getsAnyIgnored = nodeData->getRequestsDomainListData() && node->getCanKick();
-
-        if (otherData
-            && (!node->isIgnoringNodeWithID(otherNode->getUUID()) || (otherData->getRequestsDomainListData() && otherNode->getCanKick()))
-            && (!otherNode->isIgnoringNodeWithID(node->getUUID()) || getsAnyIgnored))  {
-
-            // check to see if we're ignoring in radius
-            bool insideIgnoreRadius = false;
-            // If the otherNode equals the node, we're doing a comparison on ourselves
-            if (*otherNode == *node) {
-                // We'll always be inside the radius in that case.
-                insideIgnoreRadius = true;
-            // Check to see if the space bubble is enabled
-            } else if ((node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled())) {
-                // Define the minimum bubble size
-                static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
-                AudioMixerClientData* nodeData = reinterpret_cast<AudioMixerClientData*>(node->getLinkedData());
-                // Set up the bounding box for the current node
-                AABox nodeBox(nodeData->getAvatarBoundingBoxCorner(), nodeData->getAvatarBoundingBoxScale());
-                // Clamp the size of the bounding box to a minimum scale
-                if (glm::any(glm::lessThan(nodeData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                    nodeBox.setScaleStayCentered(minBubbleSize);
-                }
-                // Set up the bounding box for the current other node
-                AABox otherNodeBox(otherData->getAvatarBoundingBoxCorner(), otherData->getAvatarBoundingBoxScale());
-                // Clamp the size of the bounding box to a minimum scale
-                if (glm::any(glm::lessThan(otherData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                    otherNodeBox.setScaleStayCentered(minBubbleSize);
-                }
-                // Quadruple the scale of both bounding boxes
-                nodeBox.embiggen(4.0f);
-                otherNodeBox.embiggen(4.0f);
-
-                // Perform the collision check between the two bounding boxes
-                if (nodeBox.touches(otherNodeBox)) {
-                    insideIgnoreRadius = true;
-                }
-            }
-
-            auto addStreams = [&](AudioStreamMap& streams, bool throttle) {
-                for (auto& streamPair : streams) {
-                    auto otherNodeStream = streamPair.second;
-                    bool isSelfWithEcho = ((*otherNode == *node) && (otherNodeStream->shouldLoopbackForNode()));
-                    // Add all audio streams that should be added to the mix
-                    if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius)) {
-                        addStreamToMix(*nodeData, otherNode->getUUID(), *nodeAudioStream, *otherNodeStream, throttle);
+            if (*node == *listener) {
+                for (auto& streamPair : nodeData->getAudioStreams()) {
+                    auto nodeStream = streamPair.second;
+                    if (nodeStream->shouldLoopbackForNode()) {
+                        addStreamToMix(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
                     }
                 }
-            };
+            } else if (!shouldIgnoreNode(listener, node)) {
+                for (auto& streamPair : nodeData->getAudioStreams()) {
+                    auto nodeStream = streamPair.second;
+                    addStreamToMix(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
+                }
+            }
+        });
+    } else {
+        std::vector<std::pair<float, SharedNodePointer>> throttledNodes;
 
-            auto streams = otherData->getAudioStreams();
+        std::for_each(_begin, _end, [&](const SharedNodePointer& node){
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
 
-            // if throttling, we need to sort by loudness and omit the quietest streams
-            if (_throttlingRatio > 0.0f) {
-                int numStreams = (int)(streams.size() * (1 - _throttlingRatio));
-                auto quietStreams = splitQuietestStreams(*nodeAudioStream, streams, numStreams);
-                addStreams(quietStreams, true);
+            if (*node == *listener) {
+                for (auto& streamPair : nodeData->getAudioStreams()) {
+                    auto nodeStream = streamPair.second;
+                    if (nodeStream->shouldLoopbackForNode()) {
+                        addStreamToMix(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
+                    }
+                }
+            } else if (!shouldIgnoreNode(listener, node)) {
+                float nodeVolume;
+                for (auto& streamPair : nodeData->getAudioStreams()) {
+                    auto nodeStream = streamPair.second;
+                    float distance = glm::length(nodeStream->getPosition() - listenerAudioStream->getPosition());
+                    nodeVolume = std::max(nodeStream->getLastPopOutputTrailingLoudness() / distance, nodeVolume);
+                }
+                throttledNodes.push_back(std::make_pair(nodeVolume, node));
+                if (!throttledNodes.empty()) {
+                    std::push_heap(throttledNodes.begin(), throttledNodes.end());
+                }
+            }
+        });
+
+        int numToRetain = (int)(std::distance(_begin, _end) * (1 - _throttlingRatio));
+        for (int i = 0; i < numToRetain; i++) {
+            if (throttledNodes.empty()) {
+                break;
             }
 
-            addStreams(streams, false);
+            std::pop_heap(throttledNodes.begin(), throttledNodes.end());
+
+            auto& node = throttledNodes.back().second;
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+            for (auto& streamPair : nodeData->getAudioStreams()) {
+                auto nodeStream = streamPair.second;
+                addStreamToMix(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
+            }
+
+            throttledNodes.pop_back();
         }
-    });
+        for (const std::pair<float, SharedNodePointer>& nodePair : throttledNodes) {
+            auto& node = nodePair.second;
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+            for (auto& streamPair : nodeData->getAudioStreams()) {
+                auto nodeStream = streamPair.second;
+                addStreamToMix(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream, true);
+            }
+        }
+    }
 
     // use the per listener AudioLimiter to render the mixed data...
-    nodeData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    listenerData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
     // check for silent audio after the peak limiter has converted the samples
     bool hasAudio = false;
@@ -325,6 +291,54 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
     }
     return hasAudio;
 }
+
+bool AudioMixerSlave::shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node) {
+    AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
+    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+
+    // when this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
+    bool getsAnyIgnored = listenerData->getRequestsDomainListData() && listener->getCanKick();
+
+    bool ignore = true;
+
+    if (nodeData &&
+            // make sure that it isn't being ignored by our listening node
+            (!listener->isIgnoringNodeWithID(node->getUUID()) || (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
+            // and that it isn't ignoring our listening node
+            (!node->isIgnoringNodeWithID(listener->getUUID()) || getsAnyIgnored))  {
+
+        // is either node enabling the space bubble / ignore radius?
+        if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
+            // define the minimum bubble size
+            static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
+
+            // set up the bounding box for the listener
+            AABox listenerBox(listenerData->getAvatarBoundingBoxCorner(), listenerData->getAvatarBoundingBoxScale());
+            if (glm::any(glm::lessThan(listenerData->getAvatarBoundingBoxScale(), minBubbleSize))) {
+                listenerBox.setScaleStayCentered(minBubbleSize);
+            }
+
+            // set up the bounding box for the node
+            AABox nodeBox(nodeData->getAvatarBoundingBoxCorner(), nodeData->getAvatarBoundingBoxScale());
+            // Clamp the size of the bounding box to a minimum scale
+            if (glm::any(glm::lessThan(nodeData->getAvatarBoundingBoxScale(), minBubbleSize))) {
+                nodeBox.setScaleStayCentered(minBubbleSize);
+            }
+
+            // quadruple the scale of both bounding boxes
+            listenerBox.embiggen(4.0f);
+            nodeBox.embiggen(4.0f);
+
+            // perform the collision check between the two bounding boxes
+            ignore = listenerBox.touches(nodeBox);
+        } else {
+            ignore = false;
+        }
+    }
+
+    return ignore;
+}
+
 
 void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
