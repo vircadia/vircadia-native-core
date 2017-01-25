@@ -208,29 +208,19 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         bool throttle) {
-    // to reduce artifacts we calculate the gain and azimuth for every source for this listener
-    // even if we are not going to end up mixing in this source
-
     ++stats.totalMixes;
 
-    // this ensures that the tail of any previously mixed audio or the first block of new audio sounds correct
+    // to reduce artifacts we call the HRTF functor for every source, even if throttled or silent
+    // this ensures the correct tail from last mixed block and the correct spatialization of next first block
 
     // check if this is a server echo of a source back to itself
     bool isEcho = (&streamToAdd == &listeningNodeStream);
 
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
 
-    // figure out the distance between source and listener
     float distance = glm::max(glm::length(relativePosition), EPSILON);
-
-    // figure out the gain for this source at the listener
     float gain = gainForSource(listeningNodeStream, streamToAdd, relativePosition, isEcho);
-
-    // figure out the azimuth to this source at the listener
     float azimuth = isEcho ? 0.0f : azimuthForSource(listeningNodeStream, listeningNodeStream, relativePosition);
-
-    float repeatedFrameFadeFactor = 1.0f;
-
     static const int HRTF_DATASET_INDEX = 1;
 
     if (!streamToAdd.lastPopSucceeded()) {
@@ -241,31 +231,24 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
 
             // in an injector, just go silent - the injector has likely ended
             // in other inputs (microphone, &c.), repeat with fade to avoid the harsh jump to silence
-
-            // we'll repeat the last block until it has a block to mix
-            // and we'll gradually fade that repeated block into silence.
-
-            // calculate its fade factor, which depends on how many times it's already been repeated.
-            repeatedFrameFadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd.getConsecutiveNotMixedCount() - 1);
-            if (!isInjector && repeatedFrameFadeFactor > 0.0f) {
-                // apply the repeatedFrameFadeFactor to the gain
-                gain *= repeatedFrameFadeFactor;
-
-                forceSilentBlock = false;
+            if (!isInjector) {
+                // calculate its fade factor, which depends on how many times it's already been repeated.
+                float fadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd.getConsecutiveNotMixedCount() - 1);
+                if (fadeFactor > 0.0f) {
+                    // apply the fadeFactor to the gain
+                    gain *= fadeFactor;
+                    forceSilentBlock = false;
+                }
             }
         }
 
         if (forceSilentBlock) {
-            // we're deciding not to repeat either since we've already done it enough times or repetition with fade is disabled
-            // in this case we will call renderSilent with a forced silent block
-            // this ensures the correct tail from the previously mixed block and the correct spatialization of first block
-            // of any upcoming audio
-
+            // call renderSilent with a forced silent block to reduce artifacts
+            // (this is not done for stereo streams since they do not go through the HRTF)
             if (!streamToAdd.isStereo() && !isEcho) {
                 // get the existing listener-source HRTF object, or create a new one
                 auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
 
-                // this is not done for stereo streams since they do not go through the HRTF
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
                 hrtf.renderSilent(silentMonoBlock, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
@@ -280,25 +263,25 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
     // grab the stream from the ring buffer
     AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd.getLastPopOutput();
 
-    if (streamToAdd.isStereo() || isEcho) {
-        // this is a stereo source or server echo so we do not pass it through the HRTF
-        // simply apply our calculated gain to each sample
-        if (streamToAdd.isStereo()) {
-            for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-                _mixSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
-            }
-
-            ++stats.manualStereoMixes;
-        } else {
-            for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i += 2) {
-                auto monoSample = float(streamPopOutput[i / 2] * gain / AudioConstants::MAX_SAMPLE_VALUE);
-                _mixSamples[i] += monoSample;
-                _mixSamples[i + 1] += monoSample;
-            }
-
-            ++stats.manualEchoMixes;
+    // stereo sources are not passed through HRTF
+    if (streamToAdd.isStereo()) {
+        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
+            _mixSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
         }
 
+        ++stats.manualStereoMixes;
+        return;
+    }
+
+    // echo sources are not passed through HRTF
+    if (isEcho) {
+        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i += 2) {
+            auto monoSample = float(streamPopOutput[i / 2] * gain / AudioConstants::MAX_SAMPLE_VALUE);
+            _mixSamples[i] += monoSample;
+            _mixSamples[i + 1] += monoSample;
+        }
+
+        ++stats.manualEchoMixes;
         return;
     }
 
@@ -307,34 +290,28 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
 
     streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-    // if the frame we're about to mix is silent, simply call render silent and move on
     if (streamToAdd.getLastPopOutputLoudness() == 0.0f) {
-        // silent frame from source
-
-        // we still need to call renderSilent via the HRTF for mono source
+        // call renderSilent to reduce artifacts
         hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++stats.hrtfSilentRenders;
-
         return;
     }
 
     if (throttle) {
-        // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
+        // call renderSilent with actual frame data and a gain of 0.0f to reduce artifacts
         hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++stats.hrtfThrottleRenders;
-
         return;
     }
 
-    ++stats.hrtfRenders;
-
-    // mono stream, call the HRTF with our block and calculated azimuth and gain
     hrtf.render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+    ++stats.hrtfRenders;
 }
 
 std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec) {
