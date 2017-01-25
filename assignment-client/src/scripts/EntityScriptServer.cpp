@@ -286,9 +286,11 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const
         bool notRunning = !_entitiesScriptEngine->getEntityScriptDetails(entityID, details);
         if (entity && (reload || notRunning || details.scriptText != entity->getServerScripts())) {
             QString scriptUrl = entity->getServerScripts();
-            scriptUrl = ResourceManager::normalizeURL(scriptUrl);
-            qDebug() << "Loading entity server script" << scriptUrl << "for" << entityID;
-            ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
+            if (!scriptUrl.isEmpty()) {
+                scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+                qDebug() << "Loading entity server script" << scriptUrl << "for" << entityID;
+                ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
+            }
         }
     }
 }
