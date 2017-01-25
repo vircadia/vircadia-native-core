@@ -85,19 +85,6 @@ namespace render {
     }
 }
 
-static uint64_t timeProcessingJoints = 0;
-static int32_t numJointsProcessed = 0;
-
-float Avatar::getNumJointsProcessedPerSecond() {
-    float rate = 0.0f;
-    if (timeProcessingJoints > 0) {
-        rate = (float)(numJointsProcessed * USECS_PER_SECOND) / (float)timeProcessingJoints;
-    }
-    timeProcessingJoints = 0;
-    numJointsProcessed = 0;
-    return rate;
-}
-
 Avatar::Avatar(RigPointer rig) :
     AvatarData(),
     _skeletonOffset(0.0f),
@@ -324,11 +311,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
     {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView && _hasNewJointData) {
-            uint64_t start = usecTimestampNow();
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
             _skeletonModel->simulate(deltaTime, true);
-            timeProcessingJoints += usecTimestampNow() - start;
-            numJointsProcessed += _jointData.size();
 
             locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointData = false;

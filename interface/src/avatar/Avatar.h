@@ -58,8 +58,6 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
-    static float getNumJointsProcessedPerSecond();
-
     explicit Avatar(RigPointer rig = nullptr);
     ~Avatar();
 

@@ -213,7 +213,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     const uint64_t MAX_UPDATE_BUDGET = 2000; // usec
     uint64_t renderExpiry = startTime + RENDER_UPDATE_BUDGET;
     uint64_t maxExpiry = startTime + MAX_UPDATE_BUDGET;
-    size_t numAvatarsProcessed = sortedAvatars.size();
     while (!sortedAvatars.empty()) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
@@ -258,11 +257,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
 
     simulateAvatarFades(deltaTime);
-
-    numAvatarsProcessed -= sortedAvatars.size();
-    float numAvatarsPerSec = (float)(numAvatarsProcessed * USECS_PER_SECOND) / (float)(usecTimestampNow() - startTime);
-    PROFILE_COUNTER(simulation_avatar, "NumAvatarsPerSec", { { "NumAvatarsPerSec", numAvatarsPerSec } });
-    PROFILE_COUNTER(simulation_avatar, "NumJointsPerSec", { { "NumJointsPerSec", Avatar::getNumJointsProcessedPerSecond() } });
 }
 
 void AvatarManager::postUpdate(float deltaTime) {
