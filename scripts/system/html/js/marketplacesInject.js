@@ -24,7 +24,7 @@
 
     var canWriteAssets = false;
     var xmlHttpRequest = null;
-    var isDownloading = false;  // Explicitly track download request status.
+    var isPreparing = false;  // Explicitly track download request status.
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -139,7 +139,7 @@
             function startAutoDownload() {
 
                 // One file request at a time.
-                if (isDownloading) {
+                if (isPreparing) {
                     console.log("WARNIKNG: Clara.io FBX: Prepare only one download at a time");
                     return;
                 }
@@ -178,7 +178,7 @@
                     var message = this.responseText.slice(responseTextIndex);
                     var statusMessage = "";
 
-                    if (isDownloading) {  // Ignore messages in flight after finished/cancelled.
+                    if (isPreparing) {  // Ignore messages in flight after finished/cancelled.
                         var lines = message.split(/[\n\r]+/);
 
                         for (var i = 0, length = lines.length; i < length; i++) {
@@ -222,11 +222,11 @@
                 xmlHttpRequest.onload = function () {
                     var statusMessage = "";
 
-                    if (!isDownloading) {
+                    if (!isPreparing) {
                         return;
                     }
 
-                    isDownloading = false;
+                    isPreparing = false;
 
                     var HTTP_OK = 200;
                     if (this.status !== HTTP_OK) {
@@ -245,7 +245,7 @@
                     xmlHttpRequest = null;
                 }
 
-                isDownloading = true;
+                isPreparing = true;
 
                 console.log("Clara.io FBX: Request zip file for " + uuid);
                 EventBridge.emitWebEvent(CLARA_IO_STATUS + " Initiating download");
@@ -298,7 +298,7 @@
     }
 
     function cancelClaraDownload() {
-        isDownloading = false;
+        isPreparing = false;
 
         if (xmlHttpRequest) {
             xmlHttpRequest.abort();
