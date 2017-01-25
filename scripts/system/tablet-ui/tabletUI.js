@@ -108,6 +108,6 @@
     Script.scriptEnding.connect(function () {
         Entities.deleteEntity(HMD.tabletID);
         HMD.tabletID = null;
-        HDM.homeButtonID = null;
+        HMD.homeButtonID = null;
     });
 }()); // END LOCAL_SCOPE

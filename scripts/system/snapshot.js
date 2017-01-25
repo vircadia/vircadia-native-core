@@ -7,19 +7,36 @@
 // Distributed under the Apache License, Version 2.0
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/* globals Tablet, Toolbars, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar */
 
 (function() { // BEGIN LOCAL_SCOPE
 
 var SNAPSHOT_DELAY = 500; // 500ms
 var FINISH_SOUND_DELAY = 350;
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var resetOverlays;
 var reticleVisible;
 var clearOverlayWhenMoving;
-var button = tablet.addButton({
-    icon: "icons/tablet-icons/snap-i.svg",
-    text: "SNAP"
-});
+
+var button;
+var buttonName = "SNAP";
+var tablet = null;
+var toolBar = null;
+
+if (Settings.getValue("HUDUIEnabled")) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
+        visible: true,
+        alpha: 0.9,
+    });
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        icon: "icons/tablet-icons/snap-i.svg",
+        text: buttonName
+    });
+}
 
 function shouldOpenFeedAfterShare() {
     var persisted = Settings.getValue('openFeedAfterShare', true); // might answer true, false, "true", or "false"
@@ -51,10 +68,10 @@ function confirmShare(data) {
                 Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
                 break;
             case 'setOpenFeedFalse':
-                Settings.setValue('openFeedAfterShare', false)
+                Settings.setValue('openFeedAfterShare', false);
                 break;
             case 'setOpenFeedTrue':
-                Settings.setValue('openFeedAfterShare', true)
+                Settings.setValue('openFeedAfterShare', true);
                 break;
             default:
                 dialog.webEventReceived.disconnect(onMessage);
@@ -200,7 +217,12 @@ Window.processingGif.connect(processingGif);
 
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
-    tablet.removeButton(button);
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
     Window.snapshotShared.disconnect(snapshotShared);
     Window.processingGif.disconnect(processingGif);
 });

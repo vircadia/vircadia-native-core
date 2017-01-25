@@ -3,10 +3,33 @@ import QtQuick.Controls 1.4
 
 StateImage {
     id: button
-    property int hoverState: -1
-    property int defaultState: -1
+    property bool isActive: false
+    property bool isEntered: false
+
+    property int imageOffOut: 1
+    property int imageOffIn: 3
+    property int imageOnOut: 0
+    property int imageOnIn: 2
 
     signal clicked()
+
+    function changeProperty(key, value) {
+        button[key] = value;
+    }
+
+    function updateState() {
+        if (!button.isEntered && !button.isActive) {
+            buttonState = imageOffOut;
+        } else if (!button.isEntered && button.isActive) {
+            buttonState = imageOnOut;
+        } else if (button.isEntered && !button.isActive) {
+            buttonState = imageOffIn;
+        } else {
+            buttonState = imageOnIn;
+        }
+    }
+
+    onIsActiveChanged: updateState();
 
     Timer {
         id: asyncClickSender
@@ -22,14 +45,12 @@ StateImage {
         anchors.fill: parent
         onClicked: asyncClickSender.start();
         onEntered: {
-            if (hoverState >= 0) {
-                buttonState = hoverState;
-            }
+            button.isEntered = true;
+            updateState();
         }
         onExited: {
-            if (defaultState >= 0) {
-                buttonState = defaultState;
-            }
+            button.isEntered = false;
+            updateState();
         }
     }
 }

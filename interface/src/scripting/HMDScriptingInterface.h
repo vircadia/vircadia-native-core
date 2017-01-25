@@ -91,11 +91,10 @@ public:
     bool getShouldShowTablet() const { return _showTablet; }
 
     void setCurrentTabletUIID(QUuid tabletID) { _tabletUIID = tabletID; }
-    QUuid getCurrentTableUIID() { return _tabletUIID; }
+    QUuid getCurrentTableUIID() const { return _tabletUIID; }
 
     void setCurrentHomeButtonUUID(unsigned int homeButtonID) { _homeButtonID = homeButtonID; }
-    unsigned int getCurrentHomeButtonUUID() { return _homeButtonID; }
-
+    unsigned int getCurrentHomeButtonUUID() const { return _homeButtonID; }
 
 private:
     bool _showTablet { false };

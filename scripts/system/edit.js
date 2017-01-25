@@ -170,8 +170,9 @@ var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
     var that = {},
         toolBar,
-        activeButton,
-        tablet;
+        activeButton = null,
+        systemToolbar = null,
+        tablet = null;
 
     function createNewEntity(properties) {
         Settings.setValue(EDIT_SETTING, false);
@@ -196,7 +197,12 @@ var toolBar = (function () {
 
     function cleanup() {
         that.setActive(false);
-        tablet.removeButton(activeButton);
+        if (tablet) {
+            tablet.removeButton(activeButton);
+        }
+        if (systemToolbar) {
+            systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
+        }
     }
 
     function addButton(name, image, handler) {
@@ -231,11 +237,22 @@ var toolBar = (function () {
         });
 
 
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        activeButton = tablet.addButton({
-            icon: "icons/tablet-icons/edit-i.svg",
-            text: "EDIT"
-        });
+        if (Settings.getValue("HUDUIEnabled")) {
+            systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
+            activeButton = systemToolbar.addButton({
+                objectName: EDIT_TOGGLE_BUTTON,
+                imageURL: TOOLS_PATH + "edit.svg",
+                visible: true,
+                alpha: 0.9,
+                defaultState: 1
+            });
+        } else {
+            tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            activeButton = tablet.addButton({
+                icon: "icons/tablet-icons/edit-i.svg",
+                text: "EDIT"
+            });
+        }
 
         activeButton.clicked.connect(function() {
             that.toggle();

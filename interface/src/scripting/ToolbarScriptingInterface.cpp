@@ -19,11 +19,33 @@ class ToolbarButtonProxy : public QmlWrapper {
 
 public:
     ToolbarButtonProxy(QObject* qmlObject, QObject* parent = nullptr) : QmlWrapper(qmlObject, parent) {
+        std::lock_guard<std::mutex> guard(_mutex);
+        _qmlButton = qobject_cast<QQuickItem*>(qmlObject);
         connect(qmlObject, SIGNAL(clicked()), this, SIGNAL(clicked()));
+    }
+
+    Q_INVOKABLE void editProperties(QVariantMap properties) {
+        std::lock_guard<std::mutex> guard(_mutex);
+        QVariantMap::const_iterator iter = properties.constBegin();
+        while (iter != properties.constEnd()) {
+            _properties[iter.key()] = iter.value();
+            if (_qmlButton) {
+                // [01/25 14:26:20] [WARNING] [default] QMetaObject::invokeMethod: No such method ToolbarButton_QMLTYPE_195::changeProperty(QVariant,QVariant)
+
+                QMetaObject::invokeMethod(_qmlButton, "changeProperty", Qt::AutoConnection,
+                                          Q_ARG(QVariant, QVariant(iter.key())), Q_ARG(QVariant, iter.value()));
+            }
+            ++iter;
+        }
     }
 
 signals:
     void clicked();
+
+protected:
+    mutable std::mutex _mutex;
+    QQuickItem* _qmlButton { nullptr };
+    QVariantMap _properties;
 };
 
 class ToolbarProxy : public QmlWrapper {

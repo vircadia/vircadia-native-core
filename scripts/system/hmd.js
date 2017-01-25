@@ -10,6 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/*globals HMD, Toolbars, Script, Menu, Tablet, Camera */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -35,23 +36,37 @@ function updateControllerDisplay() {
     }
 }
 
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button;
+var toolBar = null;
+var tablet = null;
+
+if (Settings.getValue("HUDUIEnabled")) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+}
+
 // Independent and Entity mode make people sick. Third Person and Mirror have traps that we need to work through.
 // Disable them in hmd.
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
-    //TODO change button icon when the hmd changes
-    if (isHmd) {
-        button.editProperties({
-            icon: "icons/tablet-icons/switch-a.svg",
-            text: "DESKTOP"
-        });
+    if (Settings.getValue("HUDUIEnabled")) {
+        button.writeProperty('buttonState', isHmd ? 0 : 1);
+        button.writeProperty('defaultState', isHmd ? 0 : 1);
+        button.writeProperty('hoverState', isHmd ? 2 : 3);
     } else {
-        button.editProperties({
-            icon: "icons/tablet-icons/switch-i.svg",
-            text: "VR"
-        });
+        //TODO change button icon when the hmd changes
+        if (isHmd) {
+            button.editProperties({
+                icon: "icons/tablet-icons/switch-a.svg",
+                text: "DESKTOP"
+            });
+        } else {
+            button.editProperties({
+                icon: "icons/tablet-icons/switch-i.svg",
+                text: "VR"
+            });
+        }
     }
     desktopOnlyViews.forEach(function (view) {
         Menu.setMenuEnabled("View>" + view, !isHmd);
@@ -63,10 +78,19 @@ function onClicked(){
     Menu.setIsOptionChecked(isDesktop ? headset : desktopMenuItemName, true);
 }
 if (headset) {
-    button = tablet.addButton({
-        icon: "icons/tablet-icons/switch-a.svg",
-        text: "SWITCH"
-    });
+    if (Settings.getValue("HUDUIEnabled")) {
+        button = toolBar.addButton({
+            objectName: "hmdToggle",
+            imageURL: Script.resolvePath("assets/images/tools/switch.svg"),
+            visible: true,
+            alpha: 0.9
+        });
+    } else {
+        button = tablet.addButton({
+            icon: "icons/tablet-icons/switch-a.svg",
+            text: "SWITCH"
+        });
+    }
     onHmdChanged(HMD.active);
 
     button.clicked.connect(onClicked);
@@ -75,7 +99,12 @@ if (headset) {
 
     Script.scriptEnding.connect(function () {
         button.clicked.disconnect(onClicked);
-        tablet.removeButton(button);
+        if (tablet) {
+            tablet.removeButton(button);
+        }
+        if (toolBar) {
+            toolBar.removeButton("hmdToggle");
+        }
         HMD.displayModeChanged.disconnect(onHmdChanged);
         Camera.modeUpdated.disconnect(updateControllerDisplay);
     });
