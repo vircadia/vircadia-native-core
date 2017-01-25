@@ -261,7 +261,8 @@ public:
     void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
 
     QString getServerScripts() const { return _serverScripts; }
-    void setServerScripts(const QString& serverScripts) { _serverScripts = serverScripts; }
+    void setServerScripts(const QString& serverScripts)
+        { _serverScripts = serverScripts; _serverScriptsChangedTimestamp = usecTimestampNow(); }
 
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& value);
@@ -515,7 +516,10 @@ protected:
     QString _script; /// the value of the script property
     QString _loadedScript; /// the value of _script when the last preload signal was sent
     quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+
     QString _serverScripts;
+    /// keep track of time when _serverScripts property was last changed
+    quint64 _serverScriptsChangedTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP };
 
     /// the value of _scriptTimestamp when the last preload signal was sent
     // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it
