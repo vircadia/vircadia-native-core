@@ -109,5 +109,5 @@
 	Entities.deleteEntity(HMD.tabletID);
 	HMD.tabletID = null;
 	HDM.homeButtonID = null;
-    });
+    })
 }()); // END LOCAL_SCOPE
