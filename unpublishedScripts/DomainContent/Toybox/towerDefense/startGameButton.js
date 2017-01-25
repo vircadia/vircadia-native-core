@@ -5,7 +5,9 @@
     };
     StartButton.prototype = {
         preload: function(entityID) {
+            print("Preloading start button");
             this.entityID = entityID;
+            this.commChannel = "shortbow-" + Entities.getEntityProperties(entityID, 'parentID').parentID;
             Script.addEventHandler(entityID, "collisionWithEntity", this.onCollide.bind(this));
         },
         signalAC: function() {

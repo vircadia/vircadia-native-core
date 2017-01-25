@@ -26,6 +26,7 @@
             this.entityIDsThatHaveCollidedWithMe.push(entityB);
 
             var colliderName = Entities.getEntityProperties(entityB, 'name').name;
+            print("Hit: ", entityB);
 
             // If the other entity's name includes 'projectile' and we haven't hit it before,
             // continue on.
@@ -34,9 +35,10 @@
                 Messages.sendMessage(this.gameChannel, JSON.stringify({
                     type: "enemy-killed",
                     entityID: this.entityID,
+                    position: Entities.getEntityProperties(this.entityID, 'position').position
                 }));
                 Entities.deleteEntity(this.entityID);
-            } else if (colliderName.indexOf("goal") > -1) {
+            } else if (colliderName.indexOf("GateCollider") > -1) {
                 Messages.sendMessage(this.gameChannel, JSON.stringify({
                     type: "enemy-escaped",
                     entityID: this.entityID,
