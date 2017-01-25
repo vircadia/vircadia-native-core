@@ -318,20 +318,58 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     }
 }
 
+// Copied from ScriptEngine.cpp. We should make this a class method for reuse.
+// Note: I've deliberately stopped short of using ScriptEngine instead of QScriptEngine, as that is out of project scope at this point.
+static bool hasCorrectSyntax(const QScriptProgram& program) {
+    const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
+    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
+        const auto error = syntaxCheck.errorMessage();
+        const auto line = QString::number(syntaxCheck.errorLineNumber());
+        const auto column = QString::number(syntaxCheck.errorColumnNumber());
+        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
+        qCritical() << qPrintable(message);
+        return false;
+    }
+    return true;
+}
+static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName) {
+    if (engine.hasUncaughtException()) {
+        const auto backtrace = engine.uncaughtExceptionBacktrace();
+        const auto exception = engine.uncaughtException().toString();
+        const auto line = QString::number(engine.uncaughtExceptionLineNumber());
+        engine.clearExceptions();
+
+        static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
+        auto message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
+        if (!backtrace.empty()) {
+            static const auto lineSeparator = "\n    ";
+            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
+        }
+        qCritical() << qPrintable(message);
+        return true;
+    }
+    return false;
+}
 void EntityServer::scriptRequestFinished() {
     auto scriptRequest = qobject_cast<ResourceRequest*>(sender());
+    const QString urlString = scriptRequest->getUrl().toString();
     if (scriptRequest && scriptRequest->getResult() == ResourceRequest::Success) {
         auto scriptContents = scriptRequest->getData();
         qInfo() << "Downloaded script:" << scriptContents;
-        _entityEditFilterEngine.evaluate(scriptContents);
-        std::static_pointer_cast<EntityTree>(_tree)->initEntityEditFilterEngine(&_entityEditFilterEngine);
-        scriptRequest->deleteLater();
-        if (_scriptRequestLoop.isRunning()) {
-            _scriptRequestLoop.quit();
+        QScriptProgram program(scriptContents, urlString);
+        if (hasCorrectSyntax(program)) {
+            _entityEditFilterEngine.evaluate(scriptContents);
+            if (!hadUncaughtExceptions(_entityEditFilterEngine, urlString)) {
+                std::static_pointer_cast<EntityTree>(_tree)->initEntityEditFilterEngine(&_entityEditFilterEngine);
+                scriptRequest->deleteLater();
+                if (_scriptRequestLoop.isRunning()) {
+                    _scriptRequestLoop.quit();
+                }
+            }
         }
         return;
     } else if (scriptRequest) {
-        qCritical() << "Failed to download script at" << scriptRequest->getUrl().toString();
+        qCritical() << "Failed to download script at" << urlString;
         // See HTTPResourceRequest::onRequestFinished for interpretation of codes. For example, a 404 is code 6 and 403 is 3. A timeout is 2. Go figure.
         qCritical() << "ResourceRequest error was" << scriptRequest->getResult();
     } else {
