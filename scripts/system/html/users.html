@@ -115,6 +115,7 @@
 
             $(document).ready(function() {
                 $("#dev-div").append("<p>ready</p>");
+                pollUsers();
                 // Listen for events from hifi
                 EventBridge.scriptEventReceived.connect(onScriptEventReceived);
                 // Send a ready event to hifi
