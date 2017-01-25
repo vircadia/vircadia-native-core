@@ -302,14 +302,15 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     includeThisEntity = false;
                 }
 
-                if (!jsonFilters.isEmpty()) {
+                // if this entity has been updated since our last full send and there are json filters, check them
+                if (includeThisEntity && !jsonFilters.isEmpty()) {
 
                     // if params include JSON filters, check if this entity matches
                     bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
 
                     if (entityMatchesFilters) {
                         // we should include this entity unless it has already been excluded
-                        includeThisEntity = includeThisEntity && true;
+                        includeThisEntity = true;
 
                         // make sure this entity is in the set of entities sent last frame
                         entityNodeData->insertEntitySentLastFrame(entity->getID());
@@ -317,7 +318,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     } else {
                         // we might include this entity if it matched in the previous frame
                         if (entityNodeData->sentEntityLastFrame(entity->getID())) {
-                            includeThisEntity = includeThisEntity && true;
+                            includeThisEntity = true;
 
                             entityNodeData->removeEntitySentLastFrame(entity->getID());
                         } else {
@@ -326,11 +327,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     }
                 }
 
-                if (hadElementExtraData) {
-                    includeThisEntity = includeThisEntity &&
-                        entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
+                if (includeThisEntity && hadElementExtraData) {
+                    includeThisEntity = entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
                 }
 
+                // we only check the bounds against our frustum and LOD if the query has asked us to check against the frustum
+                // which can sometimes not be the case when JSON filters are sent
                 if (params.usesFrustum && (includeThisEntity || params.recurseEverything)) {
 
                     // we want to use the maximum possible box for this, so that we don't have to worry about the nuance of

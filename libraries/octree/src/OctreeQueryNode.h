@@ -100,6 +100,9 @@ public:
     bool hasNextNackedPacket() const;
     const NLPacket* getNextNackedPacket();
 
+    // call only from OctreeSendThread for the given node
+    bool haveJSONParametersChanged();
+
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -143,6 +146,8 @@ private:
     quint64 _sceneSendStartTime = 0;
 
     std::array<char, udt::MAX_PACKET_SIZE> _lastOctreePayload;
+
+    QJsonObject _lastCheckJSONParameters;
 };
 
 #endif // hifi_OctreeQueryNode_h
