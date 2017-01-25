@@ -17,7 +17,6 @@
 #include "DependencyManager.h"
 #include "AddressManager.h"
 #include "DialogsManager.h"
-// #include "scripting/HMDScriptingInterface.h"
 
 HIFI_QML_DEF(AddressBarDialog)
 
@@ -40,10 +39,6 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
     connect(addressManager.data(), &AddressManager::hostChanged, this, &AddressBarDialog::metaverseServerUrlChanged);
-    // connect(addressManager.data(), &AddressManager::hostChanged, [](){
-    //     auto HMD = DependencyManager::get<HMDScriptingInterface>();
-    //     HMD->setShouldShowTablet(false);
-    // });
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::setUseFeed, this, &AddressBarDialog::setUseFeed);
     connect(qApp, &Application::receivedHifiSchemeURL, this, &AddressBarDialog::receivedHifiSchemeURL);
 }
@@ -51,8 +46,6 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
 void AddressBarDialog::loadAddress(const QString& address, bool fromSuggestions) {
     qDebug() << "Called LoadAddress with address " << address;
     if (!address.isEmpty()) {
-        // auto HMD = DependencyManager::get<HMDScriptingInterface>();
-        // HMD->setShouldShowTablet(false);
         DependencyManager::get<AddressManager>()->handleLookupString(address, fromSuggestions);
     }
 }
@@ -64,8 +57,6 @@ void AddressBarDialog::loadHome() {
     if (homeLocation == "") {
         homeLocation = DEFAULT_HOME_LOCATION;
     }
-    // auto HMD = DependencyManager::get<HMDScriptingInterface>();
-    // HMD->setShouldShowTablet(false);
     DependencyManager::get<AddressManager>()->handleLookupString(homeLocation);
 }
 
