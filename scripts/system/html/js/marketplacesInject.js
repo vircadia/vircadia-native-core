@@ -226,25 +226,21 @@
                         return;
                     }
 
+                    isDownloading = false;
+
                     var HTTP_OK = 200;
                     if (this.status !== HTTP_OK) {
                         statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
                         console.log("ERROR: Clara.io FBX: " + statusMessage);
                         EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
-                        return;
-                    }
-
-                    if (zipFileURL.slice(-4) !== ".zip") {
+                    } else if (zipFileURL.slice(-4) !== ".zip") {
                         statusMessage = "Error creating zip file for download.";
                         console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
                         EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
-                        return;
+                    } else {
+                        EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + zipFileURL);
+                        console.log("Clara.io FBX: File download initiated for " + zipFileURL);
                     }
-
-                    isDownloading = false;
-
-                    EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + zipFileURL);
-                    console.log("Clara.io FBX: File download initiated for " + zipFileURL);
 
                     xmlHttpRequest = null;
                 }
