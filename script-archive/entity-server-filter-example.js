@@ -29,6 +29,28 @@ function filter(p) {
 			p.acceleration.z = 0;
 		}
     }
+    
+    /* Define an axis-aligned zone in which entities are not allowed to enter. */
+    /* This example zone corresponds to an area to the right of the spawnpoint
+    in your Sandbox. It's an area near the big rock to the right. If an entity
+    enters the zone, it'll move behind the rock.*/
+    var boxMin = {x: 25.5, y: -0.48, z: -9.9};
+    var boxMax = {x: 31.1, y: 4, z: -3.79};
+    var zero = {x: 0.0, y: 0.0, z: 0.0};
+    
+    if (p.position) {
+        var x = p.position.x;
+        var y = p.position.y;
+        var z = p.position.z;
+        if ((x > boxMin.x && x < boxMax.x) &&
+            (y > boxMin.y && y < boxMax.y) &&
+            (z > boxMin.z && z < boxMax.z)) {
+            /* Move it to the origin of the zone */
+            p.position = boxMin;
+            p.velocity = zero;
+            p.acceleration = zero;
+        }
+    }
 
     /* If we make it this far, return the (possibly modified) properties. */
     return p;
