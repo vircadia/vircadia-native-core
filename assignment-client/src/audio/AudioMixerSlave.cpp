@@ -42,8 +42,15 @@ using AudioStreamMap = AudioMixerClientData::AudioStreamMap;
 std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec);
 void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QByteArray& buffer);
 void sendSilentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
-void sendMutePacket(const SharedNodePointer& node);
+void sendMutePacket(const SharedNodePointer& node, AudioMixerClientData&);
 void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
+
+// mix helpers
+bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
+float gainForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition, bool isEcho);
+float azimuthForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition);
 
 void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
     _begin = begin;
@@ -198,54 +205,6 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     return hasAudio;
 }
 
-bool AudioMixerSlave::shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node) {
-    AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
-    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
-
-    // when this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
-    bool getsAnyIgnored = listenerData->getRequestsDomainListData() && listener->getCanKick();
-
-    bool ignore = true;
-
-    if (nodeData &&
-            // make sure that it isn't being ignored by our listening node
-            (!listener->isIgnoringNodeWithID(node->getUUID()) || (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
-            // and that it isn't ignoring our listening node
-            (!node->isIgnoringNodeWithID(listener->getUUID()) || getsAnyIgnored))  {
-
-        // is either node enabling the space bubble / ignore radius?
-        if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
-            // define the minimum bubble size
-            static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
-
-            // set up the bounding box for the listener
-            AABox listenerBox(listenerData->getAvatarBoundingBoxCorner(), listenerData->getAvatarBoundingBoxScale());
-            if (glm::any(glm::lessThan(listenerData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                listenerBox.setScaleStayCentered(minBubbleSize);
-            }
-
-            // set up the bounding box for the node
-            AABox nodeBox(nodeData->getAvatarBoundingBoxCorner(), nodeData->getAvatarBoundingBoxScale());
-            // Clamp the size of the bounding box to a minimum scale
-            if (glm::any(glm::lessThan(nodeData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                nodeBox.setScaleStayCentered(minBubbleSize);
-            }
-
-            // quadruple the scale of both bounding boxes
-            listenerBox.embiggen(4.0f);
-            nodeBox.embiggen(4.0f);
-
-            // perform the collision check between the two bounding boxes
-            ignore = listenerBox.touches(nodeBox);
-        } else {
-            ignore = false;
-        }
-    }
-
-    return ignore;
-}
-
-
 void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         bool throttle) {
@@ -378,87 +337,6 @@ void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, con
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 }
 
-float AudioMixerSlave::gainForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
-        const glm::vec3& relativePosition, bool isEcho) {
-    float gain = 1.0f;
-
-    float distanceBetween = glm::length(relativePosition);
-
-    if (distanceBetween < EPSILON) {
-        distanceBetween = EPSILON;
-    }
-
-    if (streamToAdd.getType() == PositionalAudioStream::Injector) {
-        gain *= reinterpret_cast<const InjectedAudioStream*>(&streamToAdd)->getAttenuationRatio();
-    }
-
-    if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
-        //  source is another avatar, apply fixed off-axis attenuation to make them quieter as they turn away from listener
-        glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
-
-        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                           glm::normalize(rotatedListenerPosition));
-
-        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-
-        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
-
-        // multiply the current attenuation coefficient by the calculated off axis coefficient
-        gain *= offAxisCoefficient;
-    }
-
-    float attenuationPerDoublingInDistance = AudioMixer::getAttenuationPerDoublingInDistance();
-    auto& zoneSettings = AudioMixer::getZoneSettings();
-    auto& audioZones = AudioMixer::getAudioZones();
-    for (int i = 0; i < zoneSettings.length(); ++i) {
-        if (audioZones[zoneSettings[i].source].contains(streamToAdd.getPosition()) &&
-            audioZones[zoneSettings[i].listener].contains(listeningNodeStream.getPosition())) {
-            attenuationPerDoublingInDistance = zoneSettings[i].coefficient;
-            break;
-        }
-    }
-
-    const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
-    if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
-
-        // translate the zone setting to gain per log2(distance)
-        float g = 1.0f - attenuationPerDoublingInDistance;
-        g = (g < EPSILON) ? EPSILON : g;
-        g = (g > 1.0f) ? 1.0f : g;
-
-        // calculate the distance coefficient using the distance to this node
-        float distanceCoefficient = fastExp2f(fastLog2f(g) * fastLog2f(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
-
-        // multiply the current attenuation coefficient by the distance coefficient
-        gain *= distanceCoefficient;
-    }
-
-    return gain;
-}
-
-float AudioMixerSlave::azimuthForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
-        const glm::vec3& relativePosition) {
-    glm::quat inverseOrientation = glm::inverse(listeningNodeStream.getOrientation());
-
-    //  Compute sample delay for the two ears to create phase panning
-    glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-
-    // project the rotated source position vector onto the XZ plane
-    rotatedSourcePosition.y = 0.0f;
-
-    static const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
-
-    if (glm::length2(rotatedSourcePosition) > SOURCE_DISTANCE_THRESHOLD) {
-        // produce an oriented angle about the y-axis
-        return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, -1.0f, 0.0f));
-    } else {
-        // there is no distance between listener and source - return no azimuth
-        return 0;
-    }
-}
-
 std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec) {
     auto audioPacket = NLPacket::create(type, size);
     audioPacket->writePrimitive(sequence);
@@ -562,5 +440,133 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
 
         // send the packet
         DependencyManager::get<NodeList>()->sendPacket(std::move(envPacket), *node);
+    }
+}
+
+bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node) {
+    AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
+    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+
+    // when this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
+    bool getsAnyIgnored = listenerData->getRequestsDomainListData() && listener->getCanKick();
+
+    bool ignore = true;
+
+    if (nodeData &&
+            // make sure that it isn't being ignored by our listening node
+            (!listener->isIgnoringNodeWithID(node->getUUID()) || (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
+            // and that it isn't ignoring our listening node
+            (!node->isIgnoringNodeWithID(listener->getUUID()) || getsAnyIgnored))  {
+
+        // is either node enabling the space bubble / ignore radius?
+        if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
+            // define the minimum bubble size
+            static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
+
+            // set up the bounding box for the listener
+            AABox listenerBox(listenerData->getAvatarBoundingBoxCorner(), listenerData->getAvatarBoundingBoxScale());
+            if (glm::any(glm::lessThan(listenerData->getAvatarBoundingBoxScale(), minBubbleSize))) {
+                listenerBox.setScaleStayCentered(minBubbleSize);
+            }
+
+            // set up the bounding box for the node
+            AABox nodeBox(nodeData->getAvatarBoundingBoxCorner(), nodeData->getAvatarBoundingBoxScale());
+            // Clamp the size of the bounding box to a minimum scale
+            if (glm::any(glm::lessThan(nodeData->getAvatarBoundingBoxScale(), minBubbleSize))) {
+                nodeBox.setScaleStayCentered(minBubbleSize);
+            }
+
+            // quadruple the scale of both bounding boxes
+            listenerBox.embiggen(4.0f);
+            nodeBox.embiggen(4.0f);
+
+            // perform the collision check between the two bounding boxes
+            ignore = listenerBox.touches(nodeBox);
+        } else {
+            ignore = false;
+        }
+    }
+
+    return ignore;
+}
+
+float gainForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition, bool isEcho) {
+    float gain = 1.0f;
+
+    float distanceBetween = glm::length(relativePosition);
+
+    if (distanceBetween < EPSILON) {
+        distanceBetween = EPSILON;
+    }
+
+    if (streamToAdd.getType() == PositionalAudioStream::Injector) {
+        gain *= reinterpret_cast<const InjectedAudioStream*>(&streamToAdd)->getAttenuationRatio();
+    }
+
+    if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
+        //  source is another avatar, apply fixed off-axis attenuation to make them quieter as they turn away from listener
+        glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
+
+        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                           glm::normalize(rotatedListenerPosition));
+
+        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
+
+        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
+
+        // multiply the current attenuation coefficient by the calculated off axis coefficient
+        gain *= offAxisCoefficient;
+    }
+
+    float attenuationPerDoublingInDistance = AudioMixer::getAttenuationPerDoublingInDistance();
+    auto& zoneSettings = AudioMixer::getZoneSettings();
+    auto& audioZones = AudioMixer::getAudioZones();
+    for (int i = 0; i < zoneSettings.length(); ++i) {
+        if (audioZones[zoneSettings[i].source].contains(streamToAdd.getPosition()) &&
+            audioZones[zoneSettings[i].listener].contains(listeningNodeStream.getPosition())) {
+            attenuationPerDoublingInDistance = zoneSettings[i].coefficient;
+            break;
+        }
+    }
+
+    const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
+    if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
+
+        // translate the zone setting to gain per log2(distance)
+        float g = 1.0f - attenuationPerDoublingInDistance;
+        g = (g < EPSILON) ? EPSILON : g;
+        g = (g > 1.0f) ? 1.0f : g;
+
+        // calculate the distance coefficient using the distance to this node
+        float distanceCoefficient = fastExp2f(fastLog2f(g) * fastLog2f(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
+
+        // multiply the current attenuation coefficient by the distance coefficient
+        gain *= distanceCoefficient;
+    }
+
+    return gain;
+}
+
+float azimuthForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition) {
+    glm::quat inverseOrientation = glm::inverse(listeningNodeStream.getOrientation());
+
+    //  Compute sample delay for the two ears to create phase panning
+    glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
+
+    // project the rotated source position vector onto the XZ plane
+    rotatedSourcePosition.y = 0.0f;
+
+    const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
+
+    if (glm::length2(rotatedSourcePosition) > SOURCE_DISTANCE_THRESHOLD) {
+        // produce an oriented angle about the y-axis
+        return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, -1.0f, 0.0f));
+    } else {
+        // there is no distance between listener and source - return no azimuth
+        return 0;
     }
 }

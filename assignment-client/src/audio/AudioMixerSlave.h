@@ -41,17 +41,10 @@ public:
 private:
     // create mix, returns true if mix has audio
     bool prepareMix(const SharedNodePointer& listener);
-    // check whether a node should be ignored
-    bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
     // add a stream to the mix
     void addStreamToMix(AudioMixerClientData& listenerData, const QUuid& streamerID,
             const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer,
             bool throttle = false);
-
-    float gainForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
-            const glm::vec3& relativePosition, bool isEcho);
-    float azimuthForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
-            const glm::vec3& relativePosition);
 
     // mixing buffers
     float _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
