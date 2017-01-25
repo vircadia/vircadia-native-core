@@ -963,11 +963,17 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                     // overhead of connecting to one another. Additionally we exclude agents that do not care about the
                     // Entity Script Server and won't attempt to connect to it.
                     auto otherNodeData = static_cast<DomainServerNodeData*>(otherNode->getLinkedData());
-                    bool shouldNotConnect = (node->getType() == NodeType::Agent && otherNode->getType() == NodeType::EntityScriptServer
-                                             && !node->getCanRez() && !node->getCanRezTmp())
-                                          || (node->getType() == NodeType::EntityScriptServer && otherNode->getType() == NodeType::Agent
-                                              && (!otherNodeData->getNodeInterestSet().contains(NodeType::EntityServer) ||
-                                              !otherNode->getCanRez() && !otherNode->getCanRezTmp()));
+
+                    bool isAgentWithoutRights = node->getType() == NodeType::Agent
+                        && otherNode->getType() == NodeType::EntityScriptServer
+                        && !node->getCanRez() && !node->getCanRezTmp();
+
+                    bool isScriptServerForIneffectiveAgent =
+                        (node->getType() == NodeType::EntityScriptServer && otherNode->getType() == NodeType::Agent)
+                        && (!otherNodeData->getNodeInterestSet().contains(NodeType::EntityServer)
+                        || (!otherNode->getCanRez() && !otherNode->getCanRezTmp()));
+
+                    bool shouldNotConnect = isAgentWithoutRights || isScriptServerForIneffectiveAgent;
 
                     if (!shouldNotConnect) {
                         // since we're about to add a node to the packet we start a segment
