@@ -477,12 +477,28 @@ triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Cont
 //
 // Manage the connection between the button and the window.
 //
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var button;
 var buttonName = "PAL";
-var button = tablet.addButton({
-    text: buttonName,
-    icon: "icons/tablet-icons/people-i.svg"
-});
+var tablet = null;
+var toolBar = null;
+if (HMD.hudUIEnabled) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/people.svg"),
+        visible: true,
+        hoverState: 2,
+        defaultState: 1,
+        buttonState: 1,
+        alpha: 0.9
+    });
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        text: buttonName,
+        icon: "icons/tablet-icons/people-i.svg"
+    });
+}
 var isWired = false;
 function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
@@ -623,7 +639,12 @@ Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
 //
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
-    tablet.removeButton(button);
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);

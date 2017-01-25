@@ -22,6 +22,10 @@ public:
         connect(qmlObject, SIGNAL(clicked()), this, SIGNAL(clicked()));
     }
 
+    Q_INVOKABLE void editProperties(QVariantMap properties) {
+        qDebug() << "XXX WRITE TabletButtonProxy::editProperties";
+    }
+
 signals:
     void clicked();
 };

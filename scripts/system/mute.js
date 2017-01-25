@@ -13,30 +13,53 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-
-var button = tablet.addButton({
-    icon: "icons/tablet-icons/mic-a.svg",
-    text: "MUTE",
-    activeIcon: "icons/tablet-icons/mic-i.svg",
-    activeText: "UNMUTE"
-});
+var button;
+var buttonName = "MUTE";
+var toolBar = null;
+var tablet = null;
 
 function onMuteToggled() {
     button.editProperties({isActive: AudioDevice.getMuted()});
 }
-onMuteToggled();
 function onClicked(){
     var menuItem = "Mute Microphone";
     Menu.setIsOptionChecked(menuItem, !Menu.isOptionChecked(menuItem));
 }
+
+if (HMD.hudUIEnabled) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/mic.svg"),
+        visible: true,
+        buttonState: 1,
+        defaultState: 1,
+        hoverState: 3,
+        alpha: 0.9
+    });
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        icon: "icons/tablet-icons/mic-a.svg",
+        text: buttonName,
+        activeIcon: "icons/// TODO: ablet-icons/mic-i.svg",
+        activeText: "UNMUTE"
+    });
+}
+onMuteToggled();
+
 button.clicked.connect(onClicked);
 AudioDevice.muteToggled.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
-    tablet.removeButton(button);
     AudioDevice.muteToggled.disconnect(onMuteToggled);
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
 });
 
 }()); // END LOCAL_SCOPE

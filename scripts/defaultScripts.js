@@ -43,6 +43,8 @@ var DEFAULT_SCRIPTS = [
 var MENU_CATEGORY = "Developer";
 var MENU_ITEM = "Debug defaultScripts.js";
 
+HMD.hudUIEnabled = true;
+
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
 var previousSetting = Settings.getValue(SETTINGS_KEY);
 
