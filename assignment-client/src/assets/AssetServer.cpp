@@ -30,6 +30,7 @@
 #include "NodeType.h"
 #include "SendAssetTask.h"
 #include "UploadAssetTask.h"
+#include <ClientServerUtils.h>
 
 static const uint8_t MIN_CORES_FOR_MULTICORE = 4;
 static const uint8_t CPU_AFFINITY_COUNT_HIGH = 2;
@@ -190,7 +191,7 @@ void AssetServer::completeSetup() {
             cleanupUnmappedFiles();
         }
 
-        nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+        nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
     } else {
         qCritical() << "Asset Server assignment will not continue because mapping file could not be loaded.";
         setFinished(true);

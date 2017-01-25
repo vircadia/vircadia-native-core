@@ -808,9 +808,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     for (Assignment::Type defaultedType = Assignment::AudioMixerType;
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
-        if (!excludedTypes.contains(defaultedType)
-            && defaultedType != Assignment::UNUSED_1
-            && defaultedType != Assignment::AgentType) {
+        if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
 
             if (defaultedType == Assignment::AssetServerType) {
                 // Make sure the asset-server is enabled before adding it here.
@@ -855,6 +853,44 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     nodeData->setPlaceName(nodeRequestData.placeName);
 
     sendDomainListToNode(sendingNode, message->getSenderSockAddr());
+}
+
+bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
+    auto nodeAData = static_cast<DomainServerNodeData*>(nodeA->getLinkedData());
+    auto nodeBData = static_cast<DomainServerNodeData*>(nodeB->getLinkedData());
+
+    // if we have no linked data for node A then B can't possibly be in the interest set
+    if (!nodeAData) {
+        return false;
+    }
+
+    // first check if the general interest set A contains the type for B
+    if (nodeAData->getNodeInterestSet().contains(nodeB->getType())) {
+        // given that there is a match in the general interest set, do any special checks
+
+        // (1/19/17) Agents only need to connect to Entity Script Servers to perform administrative tasks
+        // related to entity server scripts. Only agents with rez permissions should be doing that, so
+        // if the agent does not have those permissions, we do not want them and the server to incur the
+        // overhead of connecting to one another. Additionally we exclude agents that do not care about the
+        // Entity Script Server and won't attempt to connect to it.
+
+        bool isAgentWithoutRights = nodeA->getType() == NodeType::Agent
+            && nodeB->getType() == NodeType::EntityScriptServer
+            && !nodeA->getCanRez() && !nodeA->getCanRezTmp();
+
+        if (isAgentWithoutRights) {
+            return false;
+        }
+
+        bool isScriptServerForIneffectiveAgent =
+            (nodeA->getType() == NodeType::EntityScriptServer && nodeB->getType() == NodeType::Agent)
+            && ((nodeBData && !nodeBData->getNodeInterestSet().contains(NodeType::EntityScriptServer))
+                || (!nodeB->getCanRez() && !nodeB->getCanRezTmp()));
+
+        return !isScriptServerForIneffectiveAgent;
+    } else {
+        return false;
+    }
 }
 
 unsigned int DomainServer::countConnectedUsers() {
@@ -955,10 +991,8 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         // DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
-            limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
-                if (otherNode->getUUID() != node->getUUID()
-                    && nodeInterestSet.contains(otherNode->getType())) {
-
+            limitedNodeList->eachNode([&](const SharedNodePointer& otherNode) {
+                if (otherNode->getUUID() != node->getUUID() && isInInterestSet(node, otherNode)) {
                     // since we're about to add a node to the packet we start a segment
                     domainListPackets->startSegment();
 
@@ -1020,8 +1054,7 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
         [&](const SharedNodePointer& node)->bool {
             if (node->getLinkedData() && node->getActiveSocket() && node != addedNode) {
                 // is the added Node in this node's interest list?
-                DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
-                return nodeData->getNodeInterestSet().contains(addedNode->getType());
+                return isInInterestSet(node, addedNode);
             } else {
                 return false;
             }
@@ -2371,7 +2404,6 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMes
 }
 
 void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
-    auto nodeType = nodeToKill->getType();
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     const QUuid& nodeUUID = nodeToKill->getUUID();
 
@@ -2383,10 +2415,9 @@ void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
     removedNodePacket->write(nodeUUID.toRfc4122());
 
     // broadcast out the DomainServerRemovedNode message
-    limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
+    limitedNodeList->eachMatchingNode([this, &nodeToKill](const SharedNodePointer& otherNode) -> bool {
         // only send the removed node packet to nodes that care about the type of node this was
-        auto nodeLinkedData = static_cast<DomainServerNodeData*>(otherNode->getLinkedData());
-        return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
+        return isInInterestSet(otherNode, nodeToKill);
     }, [&limitedNodeList](const SharedNodePointer& otherNode){
         limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
     });

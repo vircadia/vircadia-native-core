@@ -390,8 +390,12 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     return result;
 }
 
-void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload) {
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, bool reload) {
     emit entityScriptChanging(entityItemID, reload);
+}
+
+void EntityTree::emitEntityServerScriptChanging(const EntityItemID& entityItemID, bool reload) {
+    emit entityServerScriptChanging(entityItemID, reload);
 }
 
 void EntityTree::notifyNewCollisionSoundURL(const QString& newURL, const EntityItemID& entityID) {

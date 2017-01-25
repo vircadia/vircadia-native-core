@@ -32,21 +32,21 @@ KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
 EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties) :
+    _id(UNKNOWN_ENTITY_ID),
+    _idSet(false),
+    _lastEdited(0),
+    _type(EntityTypes::Unknown),
 
-_id(UNKNOWN_ENTITY_ID),
-_idSet(false),
-_lastEdited(0),
-_type(EntityTypes::Unknown),
+    _localRenderAlpha(1.0f),
 
-_localRenderAlpha(1.0f),
+    _localRenderAlphaChanged(false),
 
-_localRenderAlphaChanged(false),
-
-_defaultSettings(true),
-_naturalDimensions(1.0f, 1.0f, 1.0f),
-_naturalPosition(0.0f, 0.0f, 0.0f),
-_desiredProperties(desiredProperties)
+    _defaultSettings(true),
+    _naturalDimensions(1.0f, 1.0f, 1.0f),
+    _naturalPosition(0.0f, 0.0f, 0.0f),
+    _desiredProperties(desiredProperties)
 {
+
 }
 
 void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sittingPoints) {
@@ -241,6 +241,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
+    CHECK_PROPERTY_CHANGE(PROP_SERVER_SCRIPTS, serverScripts);
     CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_COLOR_SPREAD, colorSpread);
@@ -388,6 +389,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIFETIME, lifetime);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT, script);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SERVER_SCRIPTS, serverScripts);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_REGISTRATION_POINT, registrationPoint);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
@@ -628,6 +630,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptTimestamp, quint64, setScriptTimestamp);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(serverScripts, QString, setServerScripts);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
@@ -917,6 +920,7 @@ QScriptValue EntityItemProperties::entityPropertyFlagsToScriptValue(QScriptEngin
 static QHash<QString, EntityPropertyList> _propertyStringsToEnums;
 
 void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {
+
     static std::once_flag initMap;
 
     std::call_once(initMap, [](){
@@ -934,6 +938,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_LIFETIME, Lifetime, lifetime, float);
         ADD_PROPERTY_TO_MAP(PROP_SCRIPT, Script, script, QString);
         ADD_PROPERTY_TO_MAP(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
+        ADD_PROPERTY_TO_MAP(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, xColor);
         ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor);
@@ -1201,6 +1206,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, properties.getLifetime());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT, properties.getScript());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, properties.getScriptTimestamp());
+            APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, properties.getServerScripts());
             APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
             APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, properties.getRegistrationPoint());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
@@ -1501,6 +1507,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SERVER_SCRIPTS, QString, setServerScripts);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, xColor, setColor);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
@@ -1627,7 +1634,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
     // when encoding/decoding edits because otherwise they can't polymorph to other shape types
-    if (properties.getType() == EntityTypes::Shape || 
+    if (properties.getType() == EntityTypes::Shape ||
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
@@ -1688,6 +1695,7 @@ void EntityItemProperties::markAllChanged() {
     _userDataChanged = true;
     _scriptChanged = true;
     _scriptTimestampChanged = true;
+    _serverScriptsChanged = true;
     _collisionSoundURLChanged = true;
     _registrationPointChanged = true;
     _angularVelocityChanged = true;
@@ -1895,6 +1903,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (scriptTimestampChanged()) {
         out += "scriptTimestamp";
+    }
+    if (serverScriptsChanged()) {
+        out += "serverScripts";
     }
     if (collisionSoundURLChanged()) {
         out += "collisionSoundURL";

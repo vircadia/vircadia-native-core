@@ -108,7 +108,7 @@ public:
     virtual bool isRendered() const { return getShouldRender(); }
 
     virtual bool deleteApproved() const { return true; }
-
+    
     virtual bool canRayIntersect() const { return isLeaf(); }
     /// \param center center of sphere in meters
     /// \param radius radius of sphere in meters
