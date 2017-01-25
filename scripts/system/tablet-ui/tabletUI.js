@@ -54,7 +54,13 @@
             tablet.updateAudioBar(currentMicLevel);
         }
 
-        if (HMD.showTablet && !tabletShown) {
+        if (tabletShown && UIWebTablet && Overlays.getOverlayType(UIWebTablet.webOverlayID) != "web3d") {
+            // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
+            // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any
+            // other reason, close the tablet.
+            hideTabletUI();
+            HMD.closeTablet();
+        } else if (HMD.showTablet && !tabletShown) {
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
             hideTabletUI();
