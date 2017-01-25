@@ -332,6 +332,8 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                         entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
                 }
 
+                // we only check the bounds against our frustum and LOD if the query has asked us to check against the frustum
+                // which can sometimes not be the case when JSON filters are sent
                 if (params.usesFrustum && (includeThisEntity || params.recurseEverything)) {
 
                     // we want to use the maximum possible box for this, so that we don't have to worry about the nuance of
