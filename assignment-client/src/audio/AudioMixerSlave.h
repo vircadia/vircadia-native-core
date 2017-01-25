@@ -41,8 +41,9 @@ public:
 private:
     // create mix, returns true if mix has audio
     bool prepareMix(const SharedNodePointer& listener);
-    // add a stream to the mix
-    void addStreamToMix(AudioMixerClientData& listenerData, const QUuid& streamerID,
+    void throttleStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
+            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
+    void mixStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
             const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer,
             bool throttle = false);
 
