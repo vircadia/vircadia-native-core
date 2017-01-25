@@ -474,7 +474,7 @@ std::chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_po
 }
 
 void AudioMixer::throttle(std::chrono::microseconds duration, int frame) {
-    // throttle using a modified integral controller
+    // throttle using a modified proportional-integral controller
     const float FRAME_TIME = 10000.0f;
     float mixRatio = duration.count() / FRAME_TIME;
 
@@ -505,12 +505,14 @@ void AudioMixer::throttle(std::chrono::microseconds duration, int frame) {
 
     if (frame % TRAILING_FRAMES == 0) {
         if (_trailingMixRatio > TARGET) {
-            _throttlingRatio += THROTTLE_RATE;
+            int proportionalTerm = 1 + (_trailingMixRatio - TARGET) / 0.1f;
+            _throttlingRatio += THROTTLE_RATE * proportionalTerm;
             _throttlingRatio = std::min(_throttlingRatio, 1.0f);
             qDebug("audio-mixer is struggling (%f mix/sleep) - throttling %f of streams",
                     (double)_trailingMixRatio, (double)_throttlingRatio);
         } else if (_throttlingRatio > 0.0f && _trailingMixRatio <= BACKOFF_TARGET) {
-            _throttlingRatio -= BACKOFF_RATE;
+            int proportionalTerm = 1 + (TARGET - _trailingMixRatio) / 0.2f;
+            _throttlingRatio -= BACKOFF_RATE * proportionalTerm;
             _throttlingRatio = std::max(_throttlingRatio, 0.0f);
             qDebug("audio-mixer is recovering (%f mix/sleep) - throttling %f of streams",
                     (double)_trailingMixRatio, (double)_throttlingRatio);
