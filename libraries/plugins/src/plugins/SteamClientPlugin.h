@@ -46,9 +46,9 @@ class SteamScriptingInterface : public QObject {
     Q_PROPERTY(bool isRunning READ isRunning)
 
 public:
-    SteamScriptingInterface(QObject* parent, SteamClientPlugin* plugin) : QObject(parent) {}
+    SteamScriptingInterface(QObject* parent, SteamClientPlugin* plugin) : QObject(parent), _plugin(plugin) {}
 
-    public slots:
+public slots:
     bool isRunning() const { return _plugin->isRunning(); }
     void openInviteOverlay() const { _plugin->openInviteOverlay(); }
 
