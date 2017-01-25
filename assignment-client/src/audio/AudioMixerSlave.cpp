@@ -38,103 +38,12 @@
 
 using AudioStreamMap = AudioMixerClientData::AudioStreamMap;
 
-std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec) {
-    auto audioPacket = NLPacket::create(type, size);
-    audioPacket->writePrimitive(sequence);
-    audioPacket->writeString(codec);
-    return audioPacket;
-}
-
-void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QByteArray& buffer) {
-    static const int MIX_PACKET_SIZE =
-        sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
-    quint16 sequence = data.getOutgoingSequenceNumber();
-    QString codec = data.getCodecName();
-    auto mixPacket = createAudioPacket(PacketType::MixedAudio, MIX_PACKET_SIZE, sequence, codec);
-
-    // pack samples
-    mixPacket->write(buffer.constData(), buffer.size());
-
-    // send packet
-    DependencyManager::get<NodeList>()->sendPacket(std::move(mixPacket), *node);
-    data.incrementOutgoingMixedAudioSequenceNumber();
-}
-
-void sendSilentPacket(const SharedNodePointer& node, AudioMixerClientData& data) {
-    static const int SILENT_PACKET_SIZE =
-        sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE + sizeof(quint16);
-    quint16 sequence = data.getOutgoingSequenceNumber();
-    QString codec = data.getCodecName();
-    auto mixPacket = createAudioPacket(PacketType::SilentAudioFrame, SILENT_PACKET_SIZE, sequence, codec);
-
-    // pack number of samples
-    mixPacket->writePrimitive(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
-
-    // send packet
-    DependencyManager::get<NodeList>()->sendPacket(std::move(mixPacket), *node);
-    data.incrementOutgoingMixedAudioSequenceNumber();
-}
-
-void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data) {
-    bool hasReverb = false;
-    float reverbTime, wetLevel;
-
-    auto& reverbSettings = AudioMixer::getReverbSettings();
-    auto& audioZones = AudioMixer::getAudioZones();
-
-    AvatarAudioStream* stream = data.getAvatarAudioStream();
-    glm::vec3 streamPosition = stream->getPosition();
-
-    // find reverb properties
-    for (int i = 0; i < reverbSettings.size(); ++i) {
-        AABox box = audioZones[reverbSettings[i].zone];
-        if (box.contains(streamPosition)) {
-            hasReverb = true;
-            reverbTime = reverbSettings[i].reverbTime;
-            wetLevel = reverbSettings[i].wetLevel;
-            break;
-        }
-    }
-
-    // check if data changed
-    bool dataChanged = (stream->hasReverb() != hasReverb) ||
-        (stream->hasReverb() && (stream->getRevebTime() != reverbTime || stream->getWetLevel() != wetLevel));
-    if (dataChanged) {
-        // update stream
-        if (hasReverb) {
-            stream->setReverb(reverbTime, wetLevel);
-        } else {
-            stream->clearReverb();
-        }
-    }
-
-    // send packet at change or every so often
-    float CHANCE_OF_SEND = 0.01f;
-    bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
-
-    if (sendData) {
-        // size the packet
-        unsigned char bitset = 0;
-        int packetSize = sizeof(bitset);
-        if (hasReverb) {
-            packetSize += sizeof(reverbTime) + sizeof(wetLevel);
-        }
-
-        // write the packet
-        auto envPacket = NLPacket::create(PacketType::AudioEnvironment, packetSize);
-        if (hasReverb) {
-            setAtBit(bitset, HAS_REVERB_BIT);
-        }
-        envPacket->writePrimitive(bitset);
-        if (hasReverb) {
-            envPacket->writePrimitive(reverbTime);
-            envPacket->writePrimitive(wetLevel);
-        }
-
-        // send the packet
-        DependencyManager::get<NodeList>()->sendPacket(std::move(envPacket), *node);
-    }
-}
+// packet helpers
+std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec);
+void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QByteArray& buffer);
+void sendSilentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
+void sendMutePacket(const SharedNodePointer& node);
+void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
 
 void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
     _begin = begin;
@@ -150,6 +59,7 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
         return;
     }
 
+    // check that the stream is valid
     auto avatarStream = data->getAvatarAudioStream();
     if (avatarStream == nullptr) {
         return;
@@ -157,11 +67,7 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
 
     // send mute packet, if necessary
     if (AudioMixer::shouldMute(avatarStream->getQuietestFrameLoudness()) || data->shouldMuteClient()) {
-        auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
-        DependencyManager::get<NodeList>()->sendPacket(std::move(mutePacket), *node);
-
-        // probably now we just reset the flag, once should do it (?)
-        data->setShouldMuteClient(false);
+        sendMutePacket(node, *data);
     }
 
     // send audio packets, if necessary
@@ -173,13 +79,13 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
 
         // send audio packet
         if (mixHasAudio || data->shouldFlushEncoder()) {
-            // encode the audio
             QByteArray encodedBuffer;
             if (mixHasAudio) {
+                // encode the audio
                 QByteArray decodedBuffer(reinterpret_cast<char*>(_bufferSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                 data->encode(decodedBuffer, encodedBuffer);
             } else {
-                // time to flush, which resets the shouldFlush until next time we encode something
+                // time to flush (resets shouldFlush until the next encode)
                 data->encodeFrameOfZeros(encodedBuffer);
             }
 
@@ -192,7 +98,7 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
         sendEnvironmentPacket(node, *data);
 
         // send stats packet (about every second)
-        static const unsigned int NUM_FRAMES_PER_SEC = (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC);
+        const unsigned int NUM_FRAMES_PER_SEC = (int)ceil(AudioConstants::NETWORK_FRAMES_PER_SEC);
         if (data->shouldSendStats(_frame % NUM_FRAMES_PER_SEC)) {
             data->sendAudioStreamStatsPackets(node);
         }
@@ -550,5 +456,111 @@ float AudioMixerSlave::azimuthForSource(const AvatarAudioStream& listeningNodeSt
     } else {
         // there is no distance between listener and source - return no azimuth
         return 0;
+    }
+}
+
+std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec) {
+    auto audioPacket = NLPacket::create(type, size);
+    audioPacket->writePrimitive(sequence);
+    audioPacket->writeString(codec);
+    return audioPacket;
+}
+
+void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QByteArray& buffer) {
+    static const int MIX_PACKET_SIZE =
+        sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
+    quint16 sequence = data.getOutgoingSequenceNumber();
+    QString codec = data.getCodecName();
+    auto mixPacket = createAudioPacket(PacketType::MixedAudio, MIX_PACKET_SIZE, sequence, codec);
+
+    // pack samples
+    mixPacket->write(buffer.constData(), buffer.size());
+
+    // send packet
+    DependencyManager::get<NodeList>()->sendPacket(std::move(mixPacket), *node);
+    data.incrementOutgoingMixedAudioSequenceNumber();
+}
+
+void sendSilentPacket(const SharedNodePointer& node, AudioMixerClientData& data) {
+    static const int SILENT_PACKET_SIZE =
+        sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE + sizeof(quint16);
+    quint16 sequence = data.getOutgoingSequenceNumber();
+    QString codec = data.getCodecName();
+    auto mixPacket = createAudioPacket(PacketType::SilentAudioFrame, SILENT_PACKET_SIZE, sequence, codec);
+
+    // pack number of samples
+    mixPacket->writePrimitive(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+
+    // send packet
+    DependencyManager::get<NodeList>()->sendPacket(std::move(mixPacket), *node);
+    data.incrementOutgoingMixedAudioSequenceNumber();
+}
+
+void sendMutePacket(const SharedNodePointer& node, AudioMixerClientData& data) {
+    auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
+    DependencyManager::get<NodeList>()->sendPacket(std::move(mutePacket), *node);
+
+    // probably now we just reset the flag, once should do it (?)
+    data.setShouldMuteClient(false);
+}
+
+void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data) {
+    bool hasReverb = false;
+    float reverbTime, wetLevel;
+
+    auto& reverbSettings = AudioMixer::getReverbSettings();
+    auto& audioZones = AudioMixer::getAudioZones();
+
+    AvatarAudioStream* stream = data.getAvatarAudioStream();
+    glm::vec3 streamPosition = stream->getPosition();
+
+    // find reverb properties
+    for (int i = 0; i < reverbSettings.size(); ++i) {
+        AABox box = audioZones[reverbSettings[i].zone];
+        if (box.contains(streamPosition)) {
+            hasReverb = true;
+            reverbTime = reverbSettings[i].reverbTime;
+            wetLevel = reverbSettings[i].wetLevel;
+            break;
+        }
+    }
+
+    // check if data changed
+    bool dataChanged = (stream->hasReverb() != hasReverb) ||
+        (stream->hasReverb() && (stream->getRevebTime() != reverbTime || stream->getWetLevel() != wetLevel));
+    if (dataChanged) {
+        // update stream
+        if (hasReverb) {
+            stream->setReverb(reverbTime, wetLevel);
+        } else {
+            stream->clearReverb();
+        }
+    }
+
+    // send packet at change or every so often
+    float CHANCE_OF_SEND = 0.01f;
+    bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
+
+    if (sendData) {
+        // size the packet
+        unsigned char bitset = 0;
+        int packetSize = sizeof(bitset);
+        if (hasReverb) {
+            packetSize += sizeof(reverbTime) + sizeof(wetLevel);
+        }
+
+        // write the packet
+        auto envPacket = NLPacket::create(PacketType::AudioEnvironment, packetSize);
+        if (hasReverb) {
+            setAtBit(bitset, HAS_REVERB_BIT);
+        }
+        envPacket->writePrimitive(bitset);
+        if (hasReverb) {
+            envPacket->writePrimitive(reverbTime);
+            envPacket->writePrimitive(wetLevel);
+        }
+
+        // send the packet
+        DependencyManager::get<NodeList>()->sendPacket(std::move(envPacket), *node);
     }
 }
