@@ -204,7 +204,7 @@ void TabletProxy::gotoMenuScreen() {
     if (_qmlTabletRoot) {
         if (_state != State::Menu) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()));
+            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()), Qt::DirectConnection);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
             _state = State::Menu;
         }
@@ -215,7 +215,7 @@ void TabletProxy::gotoHomeScreen() {
     if (_qmlTabletRoot) {
         if (_state != State::Home) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
+            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()), Qt::DirectConnection);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
             QMetaObject::invokeMethod(_qmlTabletRoot, "playButtonClickSound");
             _state = State::Home;
