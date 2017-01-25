@@ -237,7 +237,7 @@ var toolBar = (function () {
         });
 
 
-        if (HMD.hudUIEnabled) {
+        if (Settings.getValue("HUDUIEnabled")) {
             systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
             activeButton = systemToolbar.addButton({
                 objectName: EDIT_TOGGLE_BUTTON,

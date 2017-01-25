@@ -22,7 +22,7 @@ var buttonName = "SNAP";
 var tablet = null;
 var toolBar = null;
 
-if (HMD.hudUIEnabled) {
+if (Settings.getValue("HUDUIEnabled")) {
     toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
     button = toolBar.addButton({
         objectName: buttonName,

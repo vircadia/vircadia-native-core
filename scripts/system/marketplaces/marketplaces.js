@@ -112,7 +112,7 @@ function toggleMarketplace() {
 var tablet = null;
 var toolBar = null;
 var marketplaceButton = null;
-if (HMD.hudUIEnabled) {
+if (Settings.getValue("HUDUIEnabled")) {
     marketplaceWindow = new OverlayWebWindow({
         title: "Marketplace",
         source: "about:blank",

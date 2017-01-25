@@ -40,7 +40,7 @@ var button;
 var toolBar = null;
 var tablet = null;
 
-if (HMD.hudUIEnabled) {
+if (Settings.getValue("HUDUIEnabled")) {
     toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 } else {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -50,7 +50,7 @@ if (HMD.hudUIEnabled) {
 // Disable them in hmd.
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
-    if (HMD.hudUIEnabled) {
+    if (Settings.getValue("HUDUIEnabled")) {
         button.writeProperty('buttonState', isHmd ? 0 : 1);
         button.writeProperty('defaultState', isHmd ? 0 : 1);
         button.writeProperty('hoverState', isHmd ? 2 : 3);
@@ -78,7 +78,7 @@ function onClicked(){
     Menu.setIsOptionChecked(isDesktop ? headset : desktopMenuItemName, true);
 }
 if (headset) {
-    if (HMD.hudUIEnabled) {
+    if (Settings.getValue("HUDUIEnabled")) {
         button = toolBar.addButton({
             objectName: "hmdToggle",
             imageURL: Script.resolvePath("assets/images/tools/switch.svg"),

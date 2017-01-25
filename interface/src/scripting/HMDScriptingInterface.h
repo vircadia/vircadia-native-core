@@ -31,7 +31,7 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(bool showTablet READ getShouldShowTablet)
     Q_PROPERTY(QUuid tabletID READ getCurrentTableUIID WRITE setCurrentTabletUIID)
     Q_PROPERTY(unsigned int homeButtonID READ getCurrentHomeButtonUUID WRITE setCurrentHomeButtonUUID)
-    Q_PROPERTY(bool hudUIEnabled READ getHUDUIEnabled WRITE setHUDUIEnabled);
+    
 
 public:
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
@@ -96,9 +96,6 @@ public:
     void setCurrentHomeButtonUUID(unsigned int homeButtonID) { _homeButtonID = homeButtonID; }
     unsigned int getCurrentHomeButtonUUID() const { return _homeButtonID; }
 
-    bool getHUDUIEnabled() const { return _hudUIEnabled; }
-    void setHUDUIEnabled(bool value) { _hudUIEnabled = value; }
-
 private:
     bool _showTablet { false };
     QUuid _tabletUIID; // this is the entityID of the WebEntity which is part of (a child of) the tablet-ui.
@@ -114,8 +111,6 @@ private:
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
     glm::mat4 getWorldHMDMatrix() const;
     std::atomic<int> _showHandControllersCount { 0 };
-
-    bool _hudUIEnabled;
 };
 
 #endif // hifi_HMDScriptingInterface_h

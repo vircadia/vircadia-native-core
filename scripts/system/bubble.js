@@ -165,7 +165,7 @@
 
     // Setup the bubble button
     var buttonName = "BUBBLE";
-    if (HMD.hudUIEnabled) {
+    if (Settings.getValue("HUDUIEnabled")) {
         var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
         button = toolbar.addButton({
             objectName: 'bubble',

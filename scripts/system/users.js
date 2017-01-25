@@ -20,7 +20,7 @@ var tablet = null;
 
 var MENU_ITEM = "Users Online";
 
-if (HMD.hudUIEnabled) {
+if (Settings.getValue("HUDUIEnabled")) {
     toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
     button = toolBar.addButton({
         objectName: buttonName,

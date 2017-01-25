@@ -18,7 +18,7 @@
     var buttonName = "HELP";
     var toolBar = null;
     var tablet = null;
-    if (HMD.hudUIEnabled) {
+    if (Settings.getValue("HUDUIEnabled")) {
         toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
         button = toolBar.addButton({
             objectName: buttonName,
