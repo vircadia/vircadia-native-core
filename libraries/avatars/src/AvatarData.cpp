@@ -133,7 +133,6 @@ AvatarData::AvatarData() :
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
     setBodyRoll(0.0f);
-    setParentJointIndex(0);
 
     ASSERT(sizeof(AvatarDataPacket::Header) == AvatarDataPacket::HEADER_SIZE);
     ASSERT(sizeof(AvatarDataPacket::MinimalAvatarInfo) == AvatarDataPacket::MINIMAL_AVATAR_INFO_SIZE);
