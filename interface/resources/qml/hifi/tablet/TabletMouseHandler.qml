@@ -63,7 +63,9 @@ Item {
                     result.append({"name": item.title, "item": item})
                     break;
                 case MenuItemType.Item:
-                    result.append({"name": item.text, "item": item})
+                    if (item.text !== "Users Online") {
+                        result.append({"name": item.text, "item": item})
+                    }
                     break;
                 case MenuItemType.Separator:
                     result.append({"name": "", "item": item})
