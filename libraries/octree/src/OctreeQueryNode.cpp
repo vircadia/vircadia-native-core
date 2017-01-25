@@ -320,3 +320,15 @@ void OctreeQueryNode::parseNackPacket(ReceivedMessage& message) {
         _nackedSequenceNumbers.enqueue(sequenceNumber);
     }
 }
+
+bool OctreeQueryNode::haveJSONParametersChanged() {
+    bool parametersChanged = false;
+    auto currentParameters = getJSONParameters();
+
+    if (_lastCheckJSONParameters != getJSONParameters()) {
+        parametersChanged = true;
+        _lastCheckJSONParameters = currentParameters;
+    }
+
+    return parametersChanged;
+}
