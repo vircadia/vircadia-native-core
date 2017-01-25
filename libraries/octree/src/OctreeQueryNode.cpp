@@ -325,7 +325,7 @@ bool OctreeQueryNode::haveJSONParametersChanged() {
     bool parametersChanged = false;
     auto currentParameters = getJSONParameters();
 
-    if (_lastCheckJSONParameters != getJSONParameters()) {
+    if (_lastCheckJSONParameters != currentParameters) {
         parametersChanged = true;
         _lastCheckJSONParameters = currentParameters;
     }
