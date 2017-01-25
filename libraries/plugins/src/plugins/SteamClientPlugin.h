@@ -43,7 +43,7 @@ public:
 class SteamScriptingInterface : public QObject {
     Q_OBJECT
 
-    Q_PROPERTY(bool isRunning READ isRunning)
+    Q_PROPERTY(bool running READ isRunning)
 
 public:
     SteamScriptingInterface(QObject* parent, SteamClientPlugin* plugin) : QObject(parent), _plugin(plugin) {}
