@@ -196,6 +196,7 @@ var toolBar = (function () {
 
     function cleanup() {
         that.setActive(false);
+        tablet.removeButton(activeButton);
     }
 
     function addButton(name, image, handler) {
@@ -696,7 +697,9 @@ function mouseClickEvent(event) {
         toolBar.setActive(true);
         var pickRay = result.pickRay;
         var foundEntity = result.entityID;
-
+        if (foundEntity === HMD.tabletID) {
+            return;
+        }
         properties = Entities.getEntityProperties(foundEntity);
         if (isLocked(properties)) {
             if (wantDebug) {

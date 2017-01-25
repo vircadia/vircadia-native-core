@@ -62,14 +62,14 @@ FocusScope {
             id: iconColorOverlay
             anchors.fill: menuRootIcon
             source: menuRootIcon
-            color: "#ffffff"
+            color: "#34a2c7"
         }
 
         RalewayBold {
             id: breadcrumbText
             text: "Menu"
-            size: 18
-            color: "#ffffff"
+            size: 26
+            color: "#34a2c7"
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: menuRootIcon.right
             anchors.leftMargin: 15
@@ -77,7 +77,7 @@ FocusScope {
                 anchors.fill: parent
                 hoverEnabled: true
                 onEntered: breadcrumbText.color = "#1fc6a6";
-                onExited: breadcrumbText.color = "#ffffff";
+                onExited: breadcrumbText.color = "#34a2c7";
                 // navigate back to parent level menu if there is one
                 onClicked: 
                     if (breadcrumbText.text !== "Menu") {
