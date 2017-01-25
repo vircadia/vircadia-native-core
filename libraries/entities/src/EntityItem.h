@@ -518,7 +518,8 @@ protected:
     quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
 
     QString _serverScripts;
-    quint64 _serverScriptsChangedTimestamp; /// keep track of time when _serverScripts property was last changed
+    /// keep track of time when _serverScripts property was last changed
+    quint64 _serverScriptsChangedTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP };
 
     /// the value of _scriptTimestamp when the last preload signal was sent
     // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it

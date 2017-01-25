@@ -781,22 +781,17 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
 
-    bool previousOverwriteLocalDataValue = overwriteLocalData;
+    {
+        // We use this scope to work around an issue stopping server script changes
+        // from being received by an entity script server running a script that continously updates an entity.
 
-    if (!overwriteLocalData) {
-        // We've decided not to read the data in this update because we have a newer local state of the entity.
-        // In order to work around a bug stopping server script changes from being received by an entity script server
-        // running a script that continously updates an entity, we force the overwriting of the server scripts
-        // if we believe this update might have a newer version than the one we have locally.
+        // Basically, we'll allow recent changes to the server scripts even if there are local changes to other properties
+        // that have been made more recently.
 
-        if (_lastEditedFromRemote > _serverScriptsChangedTimestamp) {
-            overwriteLocalData = true;
-        }
+        bool overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
+
+        READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
     }
-
-    READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
-
-    overwriteLocalData = previousOverwriteLocalDataValue;
 
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, updateRegistrationPoint);
 
