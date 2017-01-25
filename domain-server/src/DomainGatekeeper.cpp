@@ -46,10 +46,9 @@ QUuid DomainGatekeeper::assignmentUUIDForPendingAssignment(const QUuid& tempUUID
     }
 }
 
-const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-    << NodeType::AvatarMixer << NodeType::EntityServer
-    << NodeType::AssetServer
-    << NodeType::MessagesMixer;
+const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
+        << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer
+        << NodeType::EntityScriptServer;
 
 void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessage> message) {
     if (message->getSize() == 0) {
@@ -72,7 +71,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     }
 
     static const NodeSet VALID_NODE_TYPES {
-        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::AssetServer, NodeType::EntityServer, NodeType::Agent, NodeType::MessagesMixer
+        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::AssetServer, NodeType::EntityServer, NodeType::Agent, NodeType::MessagesMixer, NodeType::EntityScriptServer
     };
 
     if (!VALID_NODE_TYPES.contains(nodeConnection.nodeType)) {
@@ -107,7 +106,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
     if (node) {
         // set the sending sock addr and node interest set on this node
-        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+        DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
         nodeData->setSendingSockAddr(message->getSenderSockAddr());
 
         // guard against patched agents asking to hear about other agents
@@ -128,12 +127,12 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         emit connectedNode(node);
     } else {
         qDebug() << "Refusing connection from node at" << message->getSenderSockAddr()
-            << "with hardware address" << nodeConnection.hardwareAddress 
+            << "with hardware address" << nodeConnection.hardwareAddress
             << "and machine fingerprint" << nodeConnection.machineFingerprint;
     }
 }
 
-NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress, 
+NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress,
                                                         const QString& hardwareAddress, const QUuid& machineFingerprint) {
     NodePermissions userPerms;
 
@@ -283,7 +282,7 @@ void DomainGatekeeper::updateNodePermissions() {
             QString hardwareAddress;
             QUuid machineFingerprint;
 
-            DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+            DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
             if (nodeData) {
                 hardwareAddress = nodeData->getHardwareAddress();
                 machineFingerprint = nodeData->getMachineFingerprint();
@@ -336,7 +335,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     // add the new node
     SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
 
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(newNode->getLinkedData());
 
     // set assignment related data on the linked data for this node
     nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
@@ -458,7 +457,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     newNode->setPermissions(userPerms);
 
     // grab the linked data for our new node so we can set the username
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(newNode->getLinkedData());
 
     // if we have a username from the connect request, set it on the DomainServerNodeData
     nodeData->setUsername(username);

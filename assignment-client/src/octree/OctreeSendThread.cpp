@@ -316,8 +316,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
-    bool isFullScene = ((!viewFrustumChanged) && nodeData->getViewFrustumJustStoppedChanging())
-                                || nodeData->hasLodChanged();
+    bool isFullScene = nodeData->haveJSONParametersChanged() ||
+        (nodeData->getUsesFrustum()
+         && ((!viewFrustumChanged && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged()));
 
     bool somethingToSend = true; // assume we have something
 
@@ -432,7 +433,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                                                  boundaryLevelAdjust, octreeSizeScale,
                                                  nodeData->getLastTimeBagEmpty(),
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
-                                                 &nodeData->extraEncodeData);
+                                                 &nodeData->extraEncodeData,
+                                                 nodeData->getUsesFrustum(),
+                                                 nodeData);
                     nodeData->copyCurrentViewFrustum(params.viewFrustum);
                     if (viewFrustumChanged) {
                         nodeData->copyLastKnownViewFrustum(params.lastViewFrustum);

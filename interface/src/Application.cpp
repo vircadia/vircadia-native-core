@@ -61,7 +61,7 @@
 #include <CursorManager.h>
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
-#include <display-plugins/DisplayPlugin.h>
+#include <EntityScriptClient.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
@@ -174,6 +174,7 @@
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
+#include <EntityScriptClient.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -459,7 +460,7 @@ bool setupEssentials(int& argc, char** argv) {
     // Set dependencies
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
-    DependencyManager::set<ScriptEngines>();
+    DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
@@ -516,6 +517,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     DependencyManager::set<CompositorHelper>();
     DependencyManager::set<OffscreenQmlSurfaceCache>();
+    DependencyManager::set<EntityScriptClient>();
     return previousSessionCrashed;
 }
 
@@ -854,7 +856,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-        << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
+        << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer << NodeType::EntityScriptServer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -5494,6 +5496,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(scriptEngine);
+
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);

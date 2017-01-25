@@ -53,6 +53,9 @@ public:
     const QString& addRepeatedMessageRegex(const QString& regexString);
     const QString& addOnlyOnceMessageRegex(const QString& regexString);
 
+private slots:
+    void setupRepeatedMessageFlusher();
+
 private:
     LogHandler();
     ~LogHandler();

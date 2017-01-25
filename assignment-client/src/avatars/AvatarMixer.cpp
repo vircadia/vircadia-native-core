@@ -681,8 +681,8 @@ void AvatarMixer::run() {
 
 void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-    
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
 
