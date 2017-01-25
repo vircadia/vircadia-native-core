@@ -1939,6 +1939,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
     rootContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
+    rootContext->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+
     rootContext->setContextProperty("Camera", &_myCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -3400,6 +3402,8 @@ void Application::idle(float nsecsElapsed) {
     PROFILE_COUNTER(app, "cpuSystem", { { "system", kernelUserAndSystem.z } });
 #endif
 
+
+
     auto displayPlugin = getActiveDisplayPlugin();
     if (displayPlugin) {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
@@ -3409,9 +3413,15 @@ void Application::idle(float nsecsElapsed) {
     PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", int, ResourceCache::getPendingRequestCount());
     PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
-
-
-
+    auto renderConfig = _renderEngine->getConfiguration();
+    PROFILE_COUNTER_IF_CHANGED(render, "gpuTime", float, (float)_gpuContext->getFrameTimerGPUAverage());
+    PROFILE_COUNTER(render_detail, "gpuTimes", {
+        { "OpaqueRangeTimer", renderConfig->getConfig("OpaqueRangeTimer")->property("gpuRunTime") },
+        { "LinearDepth", renderConfig->getConfig("LinearDepth")->property("gpuRunTime") },
+        { "SurfaceGeometry", renderConfig->getConfig("SurfaceGeometry")->property("gpuRunTime") },
+        { "RenderDeferred", renderConfig->getConfig("RenderDeferred")->property("gpuRunTime") },
+        { "ToneAndPostRangeTimer", renderConfig->getConfig("ToneAndPostRangeTimer")->property("gpuRunTime") }
+    });
 
     PROFILE_RANGE(app, __FUNCTION__);
 

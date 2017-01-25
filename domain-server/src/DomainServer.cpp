@@ -107,7 +107,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
-    
+
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
@@ -281,7 +281,7 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
         QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
 
         qDebug() << "Reading certificate file at" << certPath << "for HTTPS.";
-        qDebug() << "Reading key file at" << keyPath << "for HTTPS.";    
+        qDebug() << "Reading key file at" << keyPath << "for HTTPS.";
 
         QFile certFile(certPath);
         certFile.open(QIODevice::ReadOnly);
@@ -528,12 +528,12 @@ void DomainServer::setupNodeListAndAssignments() {
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
     packetReceiver.registerListener(PacketType::DomainDisconnectRequest, this, "processNodeDisconnectRequestPacket");
-    
+
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
     packetReceiver.registerListener(PacketType::NodeKickRequest, &_settingsManager, "processNodeKickRequestPacket");
     packetReceiver.registerListener(PacketType::UsernameFromIDRequest, &_settingsManager, "processUsernameFromIDRequestPacket");
-    
+
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
@@ -542,7 +542,7 @@ void DomainServer::setupNodeListAndAssignments() {
 
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
-    
+
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 
@@ -809,18 +809,18 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
         if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
-            
+
             if (defaultedType == Assignment::AssetServerType) {
                 // Make sure the asset-server is enabled before adding it here.
                 // Initially we do not assign it by default so we can test it in HF domains first
                 static const QString ASSET_SERVER_ENABLED_KEYPATH = "asset_server.enabled";
-                
+
                 if (!_settingsManager.valueOrDefaultValueForKeyPath(ASSET_SERVER_ENABLED_KEYPATH).toBool()) {
                     // skip to the next iteration if asset-server isn't enabled
                     continue;
                 }
             }
-            
+
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);
@@ -837,9 +837,9 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     // update this node's sockets in case they have changed
     sendingNode->setPublicSocket(nodeRequestData.publicSockAddr);
     sendingNode->setLocalSocket(nodeRequestData.localSockAddr);
-    
+
     // update the NodeInterestSet in case there have been any changes
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
 
     // guard against patched agents asking to hear about other agents
     auto safeInterestSet = nodeRequestData.interestList.toSet();
@@ -964,14 +964,14 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr) {
     const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NUM_BYTES_RFC4122_UUID + 2;
-    
+
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
     QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
     QDataStream extendedHeaderStream(&extendedHeader, QIODevice::WriteOnly);
-   
+
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    
+
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
     extendedHeaderStream << node->getPermissions();
@@ -981,7 +981,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // always send the node their own UUID back
     QDataStream domainListStream(domainListPackets.get());
 
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     // store the nodeInterestSet on this DomainServerNodeData, in case it has changed
     auto& nodeInterestSet = nodeData->getNodeInterestSet();
@@ -1008,7 +1008,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
             });
         }
     }
-    
+
     // send an empty list to the node, in case there were no other nodes
     domainListPackets->closeCurrentPacket(true);
 
@@ -1017,8 +1017,8 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
-    DomainServerNodeData* nodeAData = dynamic_cast<DomainServerNodeData*>(nodeA->getLinkedData());
-    DomainServerNodeData* nodeBData = dynamic_cast<DomainServerNodeData*>(nodeB->getLinkedData());
+    DomainServerNodeData* nodeAData = static_cast<DomainServerNodeData*>(nodeA->getLinkedData());
+    DomainServerNodeData* nodeBData = static_cast<DomainServerNodeData*>(nodeB->getLinkedData());
 
     if (nodeAData && nodeBData) {
         QUuid& secretUUID = nodeAData->getSessionSecretHash()[nodeB->getUUID()];
@@ -1028,7 +1028,7 @@ QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, con
             secretUUID = QUuid::createUuid();
 
             // set it on the other Node's sessionSecretHash
-            reinterpret_cast<DomainServerNodeData*>(nodeBData)->getSessionSecretHash().insert(nodeA->getUUID(), secretUUID);
+            static_cast<DomainServerNodeData*>(nodeBData)->getSessionSecretHash().insert(nodeA->getUUID(), secretUUID);
         }
 
         return secretUUID;
@@ -1157,7 +1157,7 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
 void DomainServer::setupPendingAssignmentCredits() {
     // enumerate the NodeList to find the assigned nodes
     DependencyManager::get<LimitedNodeList>()->eachNode([&](const SharedNodePointer& node){
-        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+        DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
         if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
             // check if we have a non-finalized transaction for this node to add this amount to
@@ -1543,7 +1543,7 @@ void DomainServer::sendHeartbeatToIceServer() {
 }
 
 void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode) {
-    auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+    auto nodeData = static_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     if (nodeData) {
         nodeData->updateJSONStats(packetList->getMessage());
     }
@@ -1589,7 +1589,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     nodeJson[JSON_KEY_UPTIME] = QString::number(double(QDateTime::currentMSecsSinceEpoch() - node->getWakeTimestamp()) / 1000.0);
 
     // if the node has pool information, add it
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     // add the node username, if it exists
     nodeJson[JSON_KEY_USERNAME] = nodeData->getUsername();
@@ -1657,23 +1657,23 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && assignmentRegex.indexIn(url.path()) != -1) {
         QUuid nodeUUID = QUuid(assignmentRegex.cap(1));
-        
+
         auto matchingNode = nodeList->nodeWithUUID(nodeUUID);
-        
+
         // don't handle if we don't have a matching node
         if (!matchingNode) {
             return false;
         }
-        
-        auto nodeData = dynamic_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
-        
+
+        auto nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+
         // don't handle if we don't have node data for this node
         if (!nodeData) {
             return false;
         }
-        
+
         SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
-        
+
         // check if we have an assignment that matches this temp UUID, and it is a scripted assignment
         if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
             // we have a matching assignment and it is for the right type, have the HTTP manager handle it
@@ -1688,7 +1688,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         }
-        
+
         // request not handled
         return false;
     }
@@ -1720,7 +1720,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             // enumerate the NodeList to find the assigned nodes
             nodeList->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
-                DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+                DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
                 if (!nodeData->getAssignmentUUID().isNull()) {
                     // add the node using the UUID as the key
@@ -1808,7 +1808,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 if (matchingNode) {
                     // create a QJsonDocument with the stats QJsonObject
                     QJsonObject statsObject =
-                        reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->getStatsJSONObject();
+                        static_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->getStatsJSONObject();
 
                     // add the node type to the JSON data for output purposes
                     statsObject["node_type"] = NodeType::getNodeTypeName(matchingNode->getType()).toLower().replace(' ', '-');
@@ -2280,7 +2280,7 @@ void DomainServer::addStaticAssignmentsToQueue() {
     // if the domain-server has just restarted,
     // check if there are static assignments that we need to throw into the assignment queue
     auto sharedAssignments = _allAssignments.values();
-    
+
     // sort the assignments to put the server/mixer assignments first
     qSort(sharedAssignments.begin(), sharedAssignments.end(), [](SharedAssignmentPointer a, SharedAssignmentPointer b){
         if (a->getType() == b->getType()) {
@@ -2291,9 +2291,9 @@ void DomainServer::addStaticAssignmentsToQueue() {
             return a->getType() != Assignment::AgentType;
         }
     });
-    
+
     auto staticAssignment = sharedAssignments.begin();
-    
+
     while (staticAssignment != sharedAssignments.end()) {
         // add any of the un-matched static assignments to the queue
 

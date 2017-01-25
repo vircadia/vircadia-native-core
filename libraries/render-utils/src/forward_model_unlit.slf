@@ -1,0 +1,45 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  material_opaque_unlit.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 5/5/2016.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+<@include LightingModel.slh@>
+<@include model/Material.slh@>
+
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO)$>
+
+in vec2 _texCoord0;
+in vec3 _normal;
+in vec3 _color;
+in float _alpha;
+
+void main(void) {
+
+    Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
+
+    float opacity = 1.0;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <$discardTransparent(opacity)$>;
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color;
+
+    packDeferredFragmentUnlit(
+        normalize(_normal), 
+        opacity,
+        albedo * isUnlitEnabled());
+}

@@ -36,17 +36,19 @@ void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status:
 
 class RenderableEntityItemProxy {
 public:
-    RenderableEntityItemProxy(EntityItemPointer entity) : entity(entity) { }
+    RenderableEntityItemProxy(EntityItemPointer entity, render::ItemID metaID) : _entity(entity), _metaID(metaID) { }
     typedef render::Payload<RenderableEntityItemProxy> Payload;
     typedef Payload::DataPointer Pointer;
 
-    EntityItemPointer entity;
+    EntityItemPointer _entity;
+    render::ItemID _metaID;
 };
 
 namespace render {
    template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload);
    template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload);
    template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args);
+   template <> uint32_t metaFetchMetaSubItems(const RenderableEntityItemProxy::Pointer& payload, ItemIDs& subItems);
 }
 
 // Mixin class for implementing basic single item rendering
@@ -55,7 +57,7 @@ public:
     bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
         _myItem = scene->allocateID();
 
-        auto renderData = std::make_shared<RenderableEntityItemProxy>(self);
+        auto renderData = std::make_shared<RenderableEntityItemProxy>(self, _myItem);
         auto renderPayload = std::make_shared<RenderableEntityItemProxy::Payload>(renderData);
 
         render::Item::Status::Getters statusGetters;

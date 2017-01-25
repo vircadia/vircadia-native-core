@@ -219,7 +219,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     HandControllerJoints,
     HasKillAvatarReason,
     SessionDisplayName,
-    Unignore
+    Unignore,
+    ImmediateSessionDisplayNameUpdates
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

@@ -28,11 +28,12 @@ Item {
     property string uuid: ""
     property string displayName: ""
     property string userName: ""
-    property int displayTextHeight: 18
+    property real displayNameTextPixelSize: 18
     property int usernameTextHeight: 12
     property real audioLevel: 0.0
     property bool isMyCard: false
     property bool selected: false
+    property bool isAdmin: false
 
     /* User image commented out for now - will probably be re-introduced later.
     Column {
@@ -55,22 +56,178 @@ Item {
         width: parent.width - /*avatarImage.width - parent.spacing - */parent.anchors.leftMargin - parent.anchors.rightMargin
         height: childrenRect.height
         anchors.verticalCenter: parent.verticalCenter
-        // DisplayName Text
-        FiraSansSemiBold {
-            id: displayNameText
-            // Properties
-            text: thisNameCard.displayName
-            elide: Text.ElideRight
+
+        // DisplayName field for my card
+        Rectangle {
+            id: myDisplayName
+            visible: isMyCard
             // Size
-            width: parent.width
+            width: parent.width + 70
+            height: 35
             // Anchors
             anchors.top: parent.top
-            // Text Size
-            size: thisNameCard.displayTextHeight
-            // Text Positioning
-            verticalAlignment: Text.AlignVCenter
+            anchors.left: parent.left
+            anchors.leftMargin: -10
             // Style
-            color: hifi.colors.darkGray
+            color: hifi.colors.textFieldLightBackground
+            border.color: hifi.colors.blueHighlight
+            border.width: 0
+            TextInput {
+                id: myDisplayNameText
+                // Properties
+                text: thisNameCard.displayName
+                maximumLength: 256
+                clip: true
+                // Size
+                width: parent.width
+                height: parent.height
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.right: parent.right
+                anchors.rightMargin: editGlyph.width + editGlyph.anchors.rightMargin
+                // Style
+                color: hifi.colors.darkGray
+                FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+                font.family: firaSansSemiBold.name
+                font.pixelSize: displayNameTextPixelSize
+                selectionColor: hifi.colors.blueHighlight
+                selectedTextColor: "black"
+                // Text Positioning
+                verticalAlignment: TextInput.AlignVCenter
+                horizontalAlignment: TextInput.AlignLeft
+                // Signals
+                onEditingFinished: {
+                    pal.sendToScript({method: 'displayNameUpdate', params: text})
+                    cursorPosition = 0
+                    focus = false
+                    myDisplayName.border.width = 0
+                    color = hifi.colors.darkGray
+                }
+            }
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                hoverEnabled: true
+                onClicked: {
+                    myDisplayName.border.width = 1
+                    myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
+                    myDisplayNameText.focus = true
+                    myDisplayNameText.color = "black"
+                }
+                onDoubleClicked: {
+                    myDisplayNameText.selectAll();
+                    myDisplayNameText.focus = true;
+                }
+                onEntered: myDisplayName.color = hifi.colors.lightGrayText
+                onExited: myDisplayName.color = hifi.colors.textFieldLightBackground
+            }
+            // Edit pencil glyph
+            HiFiGlyphs {
+                id: editGlyph
+                text: hifi.glyphs.editPencil
+                // Text Size
+                size: displayNameTextPixelSize*1.5
+                // Anchors
+                anchors.right: parent.right
+                anchors.rightMargin: 5
+                anchors.verticalCenter: parent.verticalCenter
+                // Style
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                color: hifi.colors.baseGray
+            }
+        }
+        // Spacer for DisplayName for my card
+        Item {
+            id: myDisplayNameSpacer
+            width: 1
+            height: 4
+            // Anchors
+            anchors.top: myDisplayName.bottom
+        }
+        // DisplayName container for others' cards
+        Item {
+            id: displayNameContainer
+            visible: !isMyCard
+            // Size
+            width: parent.width
+            height: displayNameTextPixelSize + 4
+            // Anchors
+            anchors.top: parent.top
+            anchors.left: parent.left
+            // DisplayName Text for others' cards
+            FiraSansSemiBold {
+                id: displayNameText
+                // Properties
+                text: thisNameCard.displayName
+                elide: Text.ElideRight
+                // Size
+                width: isAdmin ? Math.min(displayNameTextMetrics.tightBoundingRect.width + 8, parent.width - adminLabelText.width - adminLabelQuestionMark.width + 8) : parent.width
+                // Anchors
+                anchors.top: parent.top
+                anchors.left: parent.left
+                // Text Size
+                size: displayNameTextPixelSize
+                // Text Positioning
+                verticalAlignment: Text.AlignVCenter
+                // Style
+                color: hifi.colors.darkGray
+            }
+            TextMetrics {
+                id:     displayNameTextMetrics
+                font:   displayNameText.font
+                text:   displayNameText.text
+            }
+            // "ADMIN" label for other users' cards
+            RalewaySemiBold {
+                id: adminLabelText
+                visible: isAdmin
+                text: "ADMIN"
+                // Text size
+                size: displayNameText.size - 4
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: displayNameText.right
+                // Style
+                font.capitalization: Font.AllUppercase
+                color: hifi.colors.redHighlight
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignTop
+            }
+            // This Rectangle refers to the [?] popup button next to "ADMIN"
+            Item {
+                id: adminLabelQuestionMark
+                visible: isAdmin
+                // Size
+                width: 20
+                height: displayNameText.height
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: adminLabelText.right
+                RalewayRegular {
+                    id: adminLabelQuestionMarkText
+                    text: "[?]"
+                    size: adminLabelText.size
+                    font.capitalization: Font.AllUppercase
+                    color: hifi.colors.redHighlight
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    anchors.fill: parent
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    hoverEnabled: true
+                    onClicked: letterbox(hifi.glyphs.question,
+                    "Domain Admin",
+                    "This user is an admin on this domain. Admins can <b>Silence</b> and <b>Ban</b> other users at their discretion - so be extra nice!")
+                    onEntered: adminLabelQuestionMarkText.color = "#94132e"
+                    onExited: adminLabelQuestionMarkText.color = hifi.colors.redHighlight
+                }
+            }
         }
 
         // UserName Text
@@ -83,7 +240,7 @@ Item {
             // Size
             width: parent.width
             // Anchors
-            anchors.top: displayNameText.bottom
+            anchors.top: isMyCard ? myDisplayNameSpacer.bottom : displayNameContainer.bottom
             // Text Size
             size: thisNameCard.usernameTextHeight
             // Text Positioning
@@ -94,7 +251,7 @@ Item {
 
         // Spacer
         Item {
-            id: spacer
+            id: userNameSpacer
             height: 4
             width: parent.width
             // Anchors
@@ -105,10 +262,10 @@ Item {
         Rectangle {
             id: nameCardVUMeter
             // Size
-            width: ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
+            width: isMyCard ? myDisplayName.width - 70 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * parent.width
             height: 8
             // Anchors
-            anchors.top: spacer.bottom
+            anchors.top: userNameSpacer.bottom
             // Style
             radius: 4
             color: "#c5c5c5"
@@ -189,7 +346,12 @@ Item {
             maximumValue: 20.0
             stepSize: 5
             updateValueWhileDragging: true
-            onValueChanged: updateGainFromQML(uuid, value)
+            onValueChanged: updateGainFromQML(uuid, value, false)
+            onPressedChanged: {
+                if (!pressed) {
+                    updateGainFromQML(uuid, value, true)
+                }
+            }
             MouseArea {
                 anchors.fill: parent
                 onWheel: {
@@ -203,7 +365,8 @@ Item {
                     mouse.accepted = false
                 }
                 onReleased: {
-                    // Pass through to Slider
+                    // the above mouse.accepted seems to make this 
+                    // never get called, nonetheless...
                     mouse.accepted = false
                 }
             }
@@ -225,12 +388,13 @@ Item {
         }
     }
 
-    function updateGainFromQML(avatarUuid, sliderValue) {
-        if (pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
+    function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
+        if (isReleased || pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
             pal.gainSliderValueDB[avatarUuid] = sliderValue;
             var data = {
                 sessionId: avatarUuid,
-                gain: sliderValue
+                gain: sliderValue,
+                isReleased: isReleased
             };
             pal.sendToScript({method: 'updateGain', params: data});
         }

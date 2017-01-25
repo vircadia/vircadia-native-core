@@ -262,8 +262,12 @@ void AvatarMixer::broadcastAvatarData() {
             // setup a PacketList for the avatarPackets
             auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
-            if (avatar.getSessionDisplayName().isEmpty() &&  // We haven't set it yet...
-                nodeData->getReceivedIdentity()) { // ... but we have processed identity (with possible displayName).
+            if (nodeData->getAvatarSessionDisplayNameMustChange()) {
+                const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
+                if (--_sessionDisplayNames[existingBaseDisplayName].second <= 0) {
+                    _sessionDisplayNames.remove(existingBaseDisplayName);
+                }
+
                 QString baseName = avatar.getDisplayName().trimmed();
                 const QRegularExpression curses{ "fuck|shit|damn|cock|cunt" }; // POC. We may eventually want something much more elaborate (subscription?).
                 baseName = baseName.replace(curses, "*"); // Replace rather than remove, so that people have a clue that the person's a jerk.
@@ -276,11 +280,14 @@ void AvatarMixer::broadcastAvatarData() {
                 QPair<int, int>& soFar = _sessionDisplayNames[baseName]; // Inserts and answers 0, 0 if not already present, which is what we want.
                 int& highWater = soFar.first;
                 nodeData->setBaseDisplayName(baseName);
-                avatar.setSessionDisplayName((highWater > 0) ? baseName + "_" + QString::number(highWater) : baseName);
+                QString sessionDisplayName = (highWater > 0) ? baseName + "_" + QString::number(highWater) : baseName;
+                avatar.setSessionDisplayName(sessionDisplayName);
                 highWater++;
                 soFar.second++; // refcount
                 nodeData->flagIdentityChange();
-                sendIdentityPacket(nodeData, node); // Tell new node about its sessionUUID. Others will find out below.
+                nodeData->setAvatarSessionDisplayNameMustChange(false);
+                sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name. Others will find out below.
+                qDebug() << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
             }
 
             // this is an AGENT we have received head data from
@@ -584,7 +591,7 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             if (avatar.processAvatarIdentity(identity)) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
-                nodeData->setReceivedIdentity();
+                nodeData->setAvatarSessionDisplayNameMustChange(true);
             }
         }
     }

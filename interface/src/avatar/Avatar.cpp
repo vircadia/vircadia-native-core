@@ -62,7 +62,7 @@ const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        return ItemKey::Builder::opaqueShape();
+        return ItemKey::Builder::opaqueShape().withTypeMeta();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
         return static_pointer_cast<Avatar>(avatar)->getBounds();
@@ -73,6 +73,15 @@ namespace render {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
             avatarPtr->render(args, qApp->getCamera()->getPosition());
         }
+    }
+    template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
+        if (avatarPtr->getSkeletonModel()) {
+            auto metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
+            subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+            return (uint32_t) metaSubItems.size();
+        }
+        return 0;
     }
 }
 
@@ -1035,10 +1044,14 @@ void Avatar::setModelURLFinished(bool success) {
 
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
-static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride) {
+static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride, bool isCauterized) {
     if (isSoft) {
         // cast to std::shared_ptr<Model>
-        return std::dynamic_pointer_cast<Model>(std::make_shared<SoftAttachmentModel>(std::make_shared<Rig>(), nullptr, rigOverride));
+        std::shared_ptr<SoftAttachmentModel> softModel = std::make_shared<SoftAttachmentModel>(std::make_shared<Rig>(), nullptr, rigOverride);
+        if (isCauterized) {
+            softModel->flagAsCauterized();
+        }
+        return std::dynamic_pointer_cast<Model>(softModel);
     } else {
         return std::make_shared<Model>(std::make_shared<Rig>());
     }
@@ -1064,12 +1077,12 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     for (int i = 0; i < attachmentData.size(); i++) {
         if (i == (int)_attachmentModels.size()) {
             // if number of attachments has been increased, we need to allocate a new model
-            _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig()));
+            _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar()));
         }
         else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
             // if the attachment has changed type, we need to re-allocate a new one.
             _attachmentsToRemove.push_back(_attachmentModels[i]);
-            _attachmentModels[i] = allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig());
+            _attachmentModels[i] = allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar());
         }
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }

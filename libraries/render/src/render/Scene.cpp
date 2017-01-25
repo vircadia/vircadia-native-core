@@ -58,7 +58,7 @@ ItemID Scene::allocateID() {
     return _IDAllocator.fetch_add(1);
 }
 
-bool Scene::isAllocatedID(const ItemID& id) {
+bool Scene::isAllocatedID(const ItemID& id) const {
     return Item::isValidID(id) && (id < _numAllocatedItems.load());
 }
 
