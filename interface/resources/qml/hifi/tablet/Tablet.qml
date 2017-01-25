@@ -9,8 +9,6 @@ Item {
     property int rowIndex: 0
     property int columnIndex: 0
     property int count: (flowMain.children.length - 1)
-    width: parent.width
-    height: parent.height
 
     // called by C++ code to keep audio bar updated
     function setMicLevel(newMicLevel) {
