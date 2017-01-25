@@ -180,9 +180,6 @@ bool AudioInjector::injectLocally() {
         } else {
             qCDebug(audio) << "AudioInjector::injectLocally called without any data in Sound QByteArray";
         }
-
-    } else {
-        qCDebug(audio) << "AudioInjector::injectLocally cannot inject locally with no local audio interface present.";
     }
 
     return success;

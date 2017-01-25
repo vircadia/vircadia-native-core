@@ -132,6 +132,8 @@ private:
 
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr);
 
+    bool isInInterestSet(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
+
     QUuid connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
     void broadcastNewNode(const SharedNodePointer& node);
 

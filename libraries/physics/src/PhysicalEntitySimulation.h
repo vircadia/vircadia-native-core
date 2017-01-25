@@ -27,7 +27,7 @@ class PhysicalEntitySimulation;
 using PhysicalEntitySimulationPointer = std::shared_ptr<PhysicalEntitySimulation>;
 using SetOfEntityMotionStates = QSet<EntityMotionState*>;
 
-class PhysicalEntitySimulation :public EntitySimulation {
+class PhysicalEntitySimulation : public EntitySimulation {
 public:
     PhysicalEntitySimulation();
     ~PhysicalEntitySimulation();

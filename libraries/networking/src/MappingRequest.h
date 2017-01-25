@@ -40,7 +40,7 @@ public:
 
 protected:
     Error _error { NoError };
-    MessageID _mappingRequestID { AssetClient::INVALID_MESSAGE_ID };
+    MessageID _mappingRequestID { INVALID_MESSAGE_ID };
 
 private:
     virtual void doStart() = 0;
