@@ -729,7 +729,7 @@ void ViewFrustum::evalProjectionMatrix(glm::mat4& proj) const {
 glm::mat4 ViewFrustum::evalProjectionMatrixRange(float rangeNear, float rangeFar) const {
 
     // make sure range near far make sense
-    assert(rangeNear > 0.0);
+    assert(rangeNear > 0.0f);
     assert(rangeFar > rangeNear);
 
     // recreate a projection matrix for only a range of depth of this frustum.
@@ -738,7 +738,7 @@ glm::mat4 ViewFrustum::evalProjectionMatrixRange(float rangeNear, float rangeFar
     glm::mat4 rangeProj = _projection;
     
     float A = -(rangeFar + rangeNear) / (rangeFar - rangeNear);
-    float B = -2 * rangeFar*rangeNear / ((rangeFar - rangeNear));
+    float B = -2.0f * rangeFar*rangeNear / ((rangeFar - rangeNear));
 
     rangeProj[2][2] = A;
     rangeProj[3][2] = B;

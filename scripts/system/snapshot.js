@@ -22,6 +22,8 @@ var buttonName = "SNAP";
 var tablet = null;
 var toolBar = null;
 
+var buttonConnected = false;
+
 if (Settings.getValue("HUDUIEnabled")) {
     toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
     button = toolBar.addButton({
@@ -177,7 +179,10 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
         }
     } else {
         // Allow the user to click the snapshot HUD button again
-        button.clicked.connect(onClicked);
+        if (!buttonConnected) {
+            button.clicked.connect(onClicked);
+            buttonConnected = true;
+        }
     }
     Window.snapshotTaken.disconnect(resetButtons);
 
@@ -205,6 +210,7 @@ function processingGif() {
     Reticle.visible = reticleVisible;
 
     button.clicked.disconnect(onClicked);
+    buttonConnected = false;
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);
@@ -212,11 +218,13 @@ function processingGif() {
 }
 
 button.clicked.connect(onClicked);
+buttonConnected = true;
 Window.snapshotShared.connect(snapshotShared);
 Window.processingGif.connect(processingGif);
 
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
+    buttonConnected = false;
     if (tablet) {
         tablet.removeButton(button);
     }

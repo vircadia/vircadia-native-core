@@ -48,38 +48,17 @@ public:
             void update();
             uvec3 getPageCounts(const uvec3& dimensions) const;
             uint32_t getPageCount(const uvec3& dimensions) const;
+            uint32_t getSize() const;
 
             GL45Texture& texture;
             bool sparse { false };
             uvec3 pageDimensions { DEFAULT_PAGE_DIMENSION };
             GLuint maxSparseLevel { DEFAULT_MAX_SPARSE_LEVEL };
+            uint32_t allocatedPages { 0 };
             uint32_t maxPages { 0 };
             uint32_t pageBytes { 0 };
             GLint pageDimensionsIndex { 0 };
         };
-
-#if INCREMENTAL_TRANSFER
-        struct TransferState {
-            TransferState(GL45Texture& texture);
-            uvec3 currentPageSize() const;
-            void updateMip();
-            void populatePage(std::vector<uint8_t>& dest);
-            bool increment();
-
-            GL45Texture& texture;
-            GLTexelFormat texelFormat;
-            uint8_t face { 0 };
-            uint16_t mipLevel { 0 };
-            uint32_t bytesPerLine { 0 };
-            uint32_t bytesPerPixel { 0 };
-            uint32_t bytesPerPage { 0 };
-            uvec3 mipDimensions;
-            uvec3 mipOffset;
-            const uint8_t* srcPointer { nullptr };
-        };
-    protected:
-        TransferState _transferState;
-#endif
 
     protected:
         void updateMips() override;
@@ -98,8 +77,6 @@ public:
         void derez();
 
         SparseInfo _sparseInfo;
-        uint32_t _allocatedPages { 0 };
-        uint32_t _lastMipAllocatedPages { 0 };
         uint16_t _mipOffset { 0 };
         friend class GL45Backend;
     };
