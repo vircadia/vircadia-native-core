@@ -32,7 +32,7 @@ if (Settings.getValue("HUDUIEnabled")) {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         icon: "icons/tablet-icons/users-i.svg",
-        text: "Users",
+        text: "USERS",
         isActive: Menu.isOptionChecked(MENU_ITEM)
     });
 }
