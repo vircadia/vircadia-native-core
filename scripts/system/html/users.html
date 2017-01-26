@@ -92,8 +92,8 @@
         </div>
         <div class="main">
             <ul class="tabs">
-                <li tab-id="tab-1" class="current">Everyone (10)</li>
-                <li tab-id="tab-2">Friends (2)</li>
+                <li tab-id="tab-1" class="current">Everyone (0)</li>
+                <li tab-id="tab-2">Friends (0)</li>
             </ul>
             <div id="tab-1" class="tab-content current">
                 <ul id="users-list"></ul>
@@ -141,6 +141,7 @@
                         console.log(response);
                         $("#dev-div").append("<p>polling everyone sucess</p>");
                         processData(response.data, "everyone");
+                        displayUsers(response.data);
                     }
                 });
                 $.ajax({
