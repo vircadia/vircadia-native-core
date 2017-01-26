@@ -220,15 +220,19 @@ void SkeletonModel::updateAttitude() {
 // Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
 // but just before head has been simulated.
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
-    updateAttitude();
-    setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
+    if (fullUpdate) {
+        updateAttitude();
+        setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
 
-    Model::simulate(deltaTime, fullUpdate);
+        Model::simulate(deltaTime, fullUpdate);
 
-    // let rig compute the model offset
-    glm::vec3 registrationPoint;
-    if (_rig->getModelRegistrationPoint(registrationPoint)) {
-        setOffset(registrationPoint);
+        // let rig compute the model offset
+        glm::vec3 registrationPoint;
+        if (_rig->getModelRegistrationPoint(registrationPoint)) {
+            setOffset(registrationPoint);
+        }
+    } else {
+        Model::simulate(deltaTime, fullUpdate);
     }
 
     if (!isActive() || !_owningAvatar->isMyAvatar()) {

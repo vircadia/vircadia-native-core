@@ -1269,6 +1269,7 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     PerformanceTimer perfTimer("copyJoints");
+    PROFILE_RANGE(simulation_animation_detail, "copyJoints");
     if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._relativePoses.size()) {
         // make a vector of rotations in absolute-geometry-frame
         const AnimPoseVec& absoluteDefaultPoses = _animSkeleton->getAbsoluteDefaultPoses();
