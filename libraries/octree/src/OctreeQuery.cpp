@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QJsonDocument>
+
 #include <GLMHelpers.h>
 #include <udt/PacketHeaders.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
-
 
 OctreeQuery::OctreeQuery() {
     _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
@@ -23,35 +24,27 @@ OctreeQuery::OctreeQuery() {
 int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
     
-    // TODO: DRY this up to a shared method
-    // that can pack any type given the number of bytes
-    // and return the number of bytes to push the pointer
+    // back a boolean (cut to 1 byte) to designate if this query uses the sent view frustum
+    memcpy(destinationBuffer, &_usesFrustum, sizeof(_usesFrustum));
+    destinationBuffer += sizeof(_usesFrustum);
     
-    // camera details
-    memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
-    destinationBuffer += sizeof(_cameraPosition);
-    destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _cameraOrientation);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _cameraFov);
-    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _cameraAspectRatio);
-    destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraNearClip);
-    destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraFarClip);
-    memcpy(destinationBuffer, &_cameraEyeOffsetPosition, sizeof(_cameraEyeOffsetPosition));
-    destinationBuffer += sizeof(_cameraEyeOffsetPosition);
-
-    // bitMask of less than byte wide items
-    unsigned char bitItems = 0;
-
-    // NOTE: we need to keep these here for new clients to talk to old servers. After we know that the clients and
-    // servers and clients have all been updated we could remove these bits. New servers will always force these
-    // features on old clients even if they don't ask for them. (which old clients will properly handle). New clients
-    // will always ask for these so that old servers will use these features.
-    setAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
-    setAtBit(bitItems, WANT_COLOR_AT_BIT);
-    setAtBit(bitItems, WANT_DELTA_AT_BIT);
-    setAtBit(bitItems, WANT_COMPRESSION);
-
-    *destinationBuffer++ = bitItems;
-
+    if (_usesFrustum) {
+        // TODO: DRY this up to a shared method
+        // that can pack any type given the number of bytes
+        // and return the number of bytes to push the pointer
+        
+        // camera details
+        memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
+        destinationBuffer += sizeof(_cameraPosition);
+        destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _cameraOrientation);
+        destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _cameraFov);
+        destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _cameraAspectRatio);
+        destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraNearClip);
+        destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraFarClip);
+        memcpy(destinationBuffer, &_cameraEyeOffsetPosition, sizeof(_cameraEyeOffsetPosition));
+        destinationBuffer += sizeof(_cameraEyeOffsetPosition);
+    }
+    
     // desired Max Octree PPS
     memcpy(destinationBuffer, &_maxQueryPPS, sizeof(_maxQueryPPS));
     destinationBuffer += sizeof(_maxQueryPPS);
@@ -67,6 +60,25 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_cameraCenterRadius, sizeof(_cameraCenterRadius));
     destinationBuffer += sizeof(_cameraCenterRadius);
     
+    // create a QByteArray that holds the binary representation of the JSON parameters
+    QByteArray binaryParametersDocument;
+    
+    if (!_jsonParameters.isEmpty()) {
+        binaryParametersDocument = QJsonDocument(_jsonParameters).toBinaryData();
+    }
+    
+    // write the size of the JSON parameters
+    uint16_t binaryParametersBytes = binaryParametersDocument.size();
+    memcpy(destinationBuffer, &binaryParametersBytes, sizeof(binaryParametersBytes));
+    destinationBuffer += sizeof(binaryParametersBytes);
+    
+    // pack the binary JSON parameters
+    // NOTE: for now we assume that the filters that will be set are all small enough that we will not have a packet > MTU
+    if (binaryParametersDocument.size() > 0) {
+        memcpy(destinationBuffer, binaryParametersDocument.data(), binaryParametersBytes);
+        destinationBuffer += binaryParametersBytes;
+    }
+    
     return destinationBuffer - bufferStart;
 }
 
@@ -76,24 +88,22 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(message.getRawMessage());
     const unsigned char* sourceBuffer = startPosition;
     
-    // camera details
-    memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
-    sourceBuffer += sizeof(_cameraPosition);
-    sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, _cameraOrientation);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_cameraFov);
-    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer,_cameraAspectRatio);
-    sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraNearClip);
-    sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraFarClip);
-    memcpy(&_cameraEyeOffsetPosition, sourceBuffer, sizeof(_cameraEyeOffsetPosition));
-    sourceBuffer += sizeof(_cameraEyeOffsetPosition);
-
-    // optional feature flags
-    unsigned char bitItems = 0;
-    bitItems = (unsigned char)*sourceBuffer++;
-
-    // NOTE: we used to use these bits to set feature request items if we need to extend the protocol with optional features
-    // do it here with... wantFeature= oneAtBit(bitItems, WANT_FEATURE_BIT);
-    Q_UNUSED(bitItems);
+    // check if this query uses a view frustum
+    memcpy(&_usesFrustum, sourceBuffer, sizeof(_usesFrustum));
+    sourceBuffer += sizeof(_usesFrustum);
+    
+    if (_usesFrustum) {
+        // unpack camera details
+        memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
+        sourceBuffer += sizeof(_cameraPosition);
+        sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, _cameraOrientation);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_cameraFov);
+        sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer,_cameraAspectRatio);
+        sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraNearClip);
+        sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraFarClip);
+        memcpy(&_cameraEyeOffsetPosition, sourceBuffer, sizeof(_cameraEyeOffsetPosition));
+        sourceBuffer += sizeof(_cameraEyeOffsetPosition);
+    }
 
     // desired Max Octree PPS
     memcpy(&_maxQueryPPS, sourceBuffer, sizeof(_maxQueryPPS));
@@ -106,13 +116,28 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     // desired boundaryLevelAdjust
     memcpy(&_boundaryLevelAdjust, sourceBuffer, sizeof(_boundaryLevelAdjust));
     sourceBuffer += sizeof(_boundaryLevelAdjust);
-
-    auto bytesRead = sourceBuffer - startPosition;
-    auto bytesLeft = message.getSize() - bytesRead;
-    if (bytesLeft >= (int)sizeof(_cameraCenterRadius)) {
-        memcpy(&_cameraCenterRadius, sourceBuffer, sizeof(_cameraCenterRadius));
-        sourceBuffer += sizeof(_cameraCenterRadius);
+    
+    memcpy(&_cameraCenterRadius, sourceBuffer, sizeof(_cameraCenterRadius));
+    sourceBuffer += sizeof(_cameraCenterRadius);
+    
+    // check if we have a packed JSON filter
+    uint16_t binaryParametersBytes;
+    memcpy(&binaryParametersBytes, sourceBuffer, sizeof(binaryParametersBytes));
+    sourceBuffer += sizeof(binaryParametersBytes);
+    
+    if (binaryParametersBytes > 0) {
+        // unpack the binary JSON parameters
+        QByteArray binaryJSONParameters { binaryParametersBytes, 0 };
+        memcpy(binaryJSONParameters.data(), sourceBuffer, binaryParametersBytes);
+        sourceBuffer += binaryParametersBytes;
+        
+        // grab the parameter object from the packed binary representation of JSON
+        auto newJsonDocument = QJsonDocument::fromBinaryData(binaryJSONParameters);
+        
+        QWriteLocker jsonParameterLocker { &_jsonParametersLock };
+        _jsonParameters = newJsonDocument.object();
     }
+    
     return sourceBuffer - startPosition;
 }
 

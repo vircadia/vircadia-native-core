@@ -121,6 +121,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LIFETIME;
     requestedProperties += PROP_SCRIPT;
     requestedProperties += PROP_SCRIPT_TIMESTAMP;
+    requestedProperties += PROP_SERVER_SCRIPTS;
     requestedProperties += PROP_COLLISION_SOUND_URL;
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_DAMPING;
@@ -265,6 +266,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, getScriptTimestamp());
+        APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, getServerScripts());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
@@ -778,6 +780,19 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
     READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+
+    {
+        // We use this scope to work around an issue stopping server script changes
+        // from being received by an entity script server running a script that continously updates an entity.
+
+        // Basically, we'll allow recent changes to the server scripts even if there are local changes to other properties
+        // that have been made more recently.
+
+        bool overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
+
+        READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
+    }
+
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, updateRegistrationPoint);
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
@@ -1186,6 +1201,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(scriptTimestamp, getScriptTimestamp);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(serverScripts, getServerScripts);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getLocalAngularVelocity);
@@ -1298,6 +1314,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(scriptTimestamp, setScriptTimestamp);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(serverScripts, setServerScripts);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
@@ -2227,4 +2244,31 @@ void EntityItem::globalizeProperties(EntityItemProperties& properties, const QSt
     }
     QUuid empty;
     properties.setParentID(empty);
+}
+
+
+bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
+    
+    // The intention for the query JSON filter and this method is to be flexible to handle a variety of filters for
+    // ALL entity properties. Some work will need to be done to the property system so that it can be more flexible
+    // (to grab the value and default value of a property given the string representation of that property, for example)
+    
+    // currently the only property filter we handle is '+' for serverScripts
+    // which means that we only handle a filtered query asking for entities where the serverScripts property is non-default
+    
+    static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
+    
+    foreach(const auto& property, jsonFilters.keys()) {
+        if (property == SERVER_SCRIPTS_PROPERTY  && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
+            // check if this entity has a non-default value for serverScripts
+            if (_serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+    
+    // the json filter syntax did not match what we expected, return a match
+    return true;
 }

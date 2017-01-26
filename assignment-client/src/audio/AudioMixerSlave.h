@@ -30,7 +30,7 @@ class AudioMixerSlave {
 public:
     using ConstIter = NodeList::const_iterator;
 
-    void configure(ConstIter begin, ConstIter end, unsigned int frame);
+    void configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio);
 
     // mix and broadcast non-ignored streams to the node
     // returns true if a mixed packet was sent to the node
@@ -40,15 +40,14 @@ public:
 
 private:
     // create mix, returns true if mix has audio
-    bool prepareMix(const SharedNodePointer& node);
-    // add a stream to the mix
-    void addStreamToMix(AudioMixerClientData& listenerData, const QUuid& streamerID,
+    bool prepareMix(const SharedNodePointer& listener);
+    void throttleStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
             const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
-
-    float gainForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
-            const glm::vec3& relativePosition, bool isEcho);
-    float azimuthForSource(const AvatarAudioStream& listener, const PositionalAudioStream& streamer,
-            const glm::vec3& relativePosition);
+    void mixStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
+            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
+    void addStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
+            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer,
+            bool throttle);
 
     // mixing buffers
     float _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
@@ -58,6 +57,7 @@ private:
     ConstIter _begin;
     ConstIter _end;
     unsigned int _frame { 0 };
+    float _throttlingRatio { 0.0f };
 };
 
 #endif // hifi_AudioMixerSlave_h

@@ -31,14 +31,11 @@ typedef unsigned long long quint64;
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QJsonObject>
+#include <QtCore/QReadWriteLock>
+
 #include <NodeData.h>
 
-// First bitset
-const int WANT_LOW_RES_MOVING_BIT = 0;
-const int WANT_COLOR_AT_BIT = 1;
-const int WANT_DELTA_AT_BIT = 2;
-const int UNUSED_BIT_3 = 3; // unused... available for new feature
-const int WANT_COMPRESSION = 4; // 5th bit
 
 class OctreeQuery : public NodeData {
     Q_OBJECT
@@ -71,11 +68,19 @@ public:
     void setCameraFarClip(float farClip) { _cameraFarClip = farClip; }
     void setCameraEyeOffsetPosition(const glm::vec3& eyeOffsetPosition) { _cameraEyeOffsetPosition = eyeOffsetPosition; }
     void setCameraCenterRadius(float radius) { _cameraCenterRadius = radius; }
-
+    
+    // getters/setters for JSON filter
+    QJsonObject getJSONParameters() { QReadLocker locker { &_jsonParametersLock }; return _jsonParameters; }
+    void setJSONParameters(const QJsonObject& jsonParameters)
+        { QWriteLocker locker { &_jsonParametersLock }; _jsonParameters = jsonParameters; }
+    
     // related to Octree Sending strategies
     int getMaxQueryPacketsPerSecond() const { return _maxQueryPPS; }
     float getOctreeSizeScale() const { return _octreeElementSizeScale; }
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
+    
+    bool getUsesFrustum() { return _usesFrustum; }
+    void setUsesFrustum(bool usesFrustum) { _usesFrustum = usesFrustum; }
 
 public slots:
     void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
@@ -97,7 +102,12 @@ protected:
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
     float _octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE; /// used for LOD calculations
     int _boundaryLevelAdjust = 0; /// used for LOD calculations
-
+    
+    uint8_t _usesFrustum = true;
+    
+    QJsonObject _jsonParameters;
+    QReadWriteLock _jsonParametersLock;
+    
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     OctreeQuery(const OctreeQuery&);

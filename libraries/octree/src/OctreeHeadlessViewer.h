@@ -36,6 +36,8 @@ public:
     virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
+    
+    OctreeQuery& getOctreeQuery() { return _octreeQuery; }
 
     static int parseOctreeStats(QSharedPointer<ReceivedMessage> message, SharedNodePointer sourceNode);
     static void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);

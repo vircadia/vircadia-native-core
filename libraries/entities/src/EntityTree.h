@@ -31,6 +31,9 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 class EntitySimulation;
 
+namespace EntityQueryFilterSymbol {
+    static const QString NonDefault = "+";
+}
 
 class NewlyCreatedEntityHook {
 public:
@@ -201,7 +204,8 @@ public:
 
     void entityChanged(EntityItemPointer entity);
 
-    void emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload);
+    void emitEntityScriptChanging(const EntityItemID& entityItemID, bool reload);
+    void emitEntityServerScriptChanging(const EntityItemID& entityItemID, bool reload);
 
     void setSimulation(EntitySimulationPointer simulation);
     EntitySimulationPointer getSimulation() const { return _simulation; }
@@ -270,6 +274,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
+    void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
 

@@ -590,7 +590,11 @@ function loaded() {
         var elLifetime = document.getElementById("property-lifetime");
         var elScriptURL = document.getElementById("property-script-url");
         var elScriptTimestamp = document.getElementById("property-script-timestamp");
-        var elReloadScriptButton = document.getElementById("reload-script-button");
+        var elReloadScriptsButton = document.getElementById("reload-script-button");
+        var elServerScripts = document.getElementById("property-server-scripts");
+        var elReloadServerScriptsButton = document.getElementById("reload-server-scripts-button");
+        var elServerScriptStatus = document.getElementById("server-script-status");
+        var elServerScriptError = document.getElementById("server-script-error");
         var elUserData = document.getElementById("property-user-data");
         var elClearUserData = document.getElementById("userdata-clear");
         var elSaveUserData = document.getElementById("userdata-save");
@@ -708,7 +712,27 @@ function loaded() {
             var properties;
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
-                if (data.type == "update") {
+                if (data.type == "server_script_status") {
+                    if (!data.statusRetrieved) {
+                        elServerScriptStatus.innerHTML = "Failed to retrieve status";
+                        elServerScriptError.style.display = "none";
+                    } else if (data.isRunning) {
+                        if (data.status == "running") {
+                            elServerScriptStatus.innerHTML = "Running";
+                            elServerScriptError.style.display = "none";
+                        } else if (data.status == "error_loading_script") {
+                            elServerScriptStatus.innerHTML = "Error loading script";
+                            elServerScriptError.style.display = "block";
+                        } else if (data.status == "error_running_script") {
+                            elServerScriptStatus.innerHTML = "Error running script";
+                            elServerScriptError.style.display = "block";
+                        }
+                        elServerScriptError.innerHTML = data.errorInfo;;
+                    } else {
+                        elServerScriptStatus.innerHTML = "Not running";
+                        elServerScriptError.style.display = "none";
+                    }
+                } else if (data.type == "update") {
 
                     if (data.selections.length == 0) {
                         if (editor !== null && lastEntityID !== null) {
@@ -847,6 +871,7 @@ function loaded() {
                         elLifetime.value = properties.lifetime;
                         elScriptURL.value = properties.script;
                         elScriptTimestamp.value = properties.scriptTimestamp;
+                        elServerScripts.value = properties.serverScripts;
 
                         var json = null;
                         try {
@@ -1143,6 +1168,7 @@ function loaded() {
         elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
         elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
         elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
+        elServerScripts.addEventListener('change', createEmitTextPropertyUpdateFunction('serverScripts'));
 
         elClearUserData.addEventListener("click", function() {
             deleteJSONEditor();
@@ -1392,15 +1418,22 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "rescaleDimensions",
-                percentage: parseInt(elRescaleDimensionsPct.value),
+                percentage: parseFloat(elRescaleDimensionsPct.value),
             }));
         });
-        elReloadScriptButton.addEventListener("click", function() {
+        elReloadScriptsButton.addEventListener("click", function() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
-                action: "reloadScript"
+                action: "reloadClientScripts"
             }));
         });
+        elReloadServerScriptsButton.addEventListener("click", function() {
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "action",
+                action: "reloadServerScripts"
+            }));
+        });
+
 
         window.onblur = function() {
             // Fake a change event

@@ -61,6 +61,13 @@ float Interpolate::interpolate3Points(float y1, float y2, float y3, float u) {
     }
 }
 
+float Interpolate::simpleNonLinearBlend(float fraction) {
+    // uses arctan() to map a linear distribution in domain [0,1] to a non-linear blend (slow out, slow in) in range [0,1]
+    const float WIDTH = 20.0f;
+    const float INV_ARCTAN_WIDTH = 0.339875327433f; // 1 / (2 * atan(WIDTH/2))
+    return 0.5f + atanf(WIDTH * (fraction - 0.5f)) * INV_ARCTAN_WIDTH;
+}
+
 float Interpolate::calculateFadeRatio(quint64 start) {
     const float FADE_TIME = 1.0f;
     float t = 2.0f * std::min(((float)(usecTimestampNow() - start)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);

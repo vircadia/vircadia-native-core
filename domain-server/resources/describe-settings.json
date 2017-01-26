@@ -1089,9 +1089,9 @@
         {
           "name": "noise_muting_threshold",
           "label": "Noise Muting Threshold",
-          "help": "Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute)",
-          "placeholder": "0.003",
-          "default": "0.003",
+          "help": "Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute). 0.003 is a typical setting to mute loud people.",
+          "placeholder": "1.0",
+          "default": "1.0",
           "advanced": false
         },
         {
@@ -1285,7 +1285,7 @@
         {
           "name": "entityScriptSourceWhitelist",
           "label": "Entity Scripts Allowed from:",
-          "help": "The domains that entity scripts are allowed from. A comma separated list of domains that entity scripts are allowed from, if someone attempts to create and entity or edit an entity to have a different domain, it will be rejected. If left blank, any domain is allowed.",
+          "help": "Comma separated list of URLs (with optional paths) that entity scripts are allowed from. If someone attempts to create and entity or edit an entity to have a different domain, it will be rejected. If left blank, any domain is allowed.",
           "placeholder": "",
           "default": "",
           "advanced": true

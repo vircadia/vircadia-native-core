@@ -25,6 +25,10 @@ public:
     // pass through all three y values. Return value lies wholly within the range of y values passed in.
     static float interpolate3Points(float y1, float y2, float y3, float u);
 
+    // returns smooth in and out blend between 0 and 1
+    // DANGER: assumes fraction is properly inside range [0, 1]
+    static float simpleNonLinearBlend(float fraction);
+
     static float calculateFadeRatio(quint64 start);
 };
 

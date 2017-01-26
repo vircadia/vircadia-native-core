@@ -16,6 +16,7 @@
 #include <OctreeUtils.h>
 
 #include "EntitiesLogging.h"
+#include "EntityNodeData.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -94,7 +95,7 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
 bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const {
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-
+    
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
                         = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
@@ -231,7 +232,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
 }
 
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData,
-                                                                    EncodeBitstreamParams& params) const {
+                                                                EncodeBitstreamParams& params) const {
 
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
 
@@ -278,25 +279,57 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     int numberOfEntitiesOffset = 0;
     withReadLock([&] {
         QVector<uint16_t> indexesOfEntitiesToInclude;
-
+        
         // It's possible that our element has been previous completed. In this case we'll simply not include any of our
         // entities for encoding. This is needed because we encode the element data at the "parent" level, and so we
         // need to handle the case where our sibling elements need encoding but we don't.
         if (!entityTreeElementExtraEncodeData->elementCompleted) {
+
+            QJsonObject jsonFilters;
+            auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
+
+            if (entityNodeData) {
+                // we have an EntityNodeData instance
+                // so we should assume that means we might have JSON filters to check
+                jsonFilters = entityNodeData->getJSONParameters();
+            }
+
             for (uint16_t i = 0; i < _entityItems.size(); i++) {
                 EntityItemPointer entity = _entityItems[i];
                 bool includeThisEntity = true;
 
-                if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastViewFrustumSent) {
+                if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastQuerySent) {
                     includeThisEntity = false;
                 }
 
-                if (hadElementExtraData) {
-                    includeThisEntity = includeThisEntity &&
-                        entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
+                // if this entity has been updated since our last full send and there are json filters, check them
+                if (includeThisEntity && !jsonFilters.isEmpty()) {
+
+                    // if params include JSON filters, check if this entity matches
+                    bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
+
+                    if (entityMatchesFilters) {
+                        // make sure this entity is in the set of entities sent last frame
+                        entityNodeData->insertEntitySentLastFrame(entity->getID());
+
+                    } else {
+                        // we might include this entity if it matched in the previous frame
+                        if (entityNodeData->sentEntityLastFrame(entity->getID())) {
+
+                            entityNodeData->removeEntitySentLastFrame(entity->getID());
+                        } else {
+                            includeThisEntity = false;
+                        }
+                    }
                 }
 
-                if (includeThisEntity || params.recurseEverything) {
+                if (includeThisEntity && hadElementExtraData) {
+                    includeThisEntity = entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
+                }
+
+                // we only check the bounds against our frustum and LOD if the query has asked us to check against the frustum
+                // which can sometimes not be the case when JSON filters are sent
+                if (params.usesFrustum && (includeThisEntity || params.recurseEverything)) {
 
                     // we want to use the maximum possible box for this, so that we don't have to worry about the nuance of
                     // simulation changing what's visible. consider the case where the entity contains an angular velocity
@@ -925,6 +958,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
                     QString entityScriptBefore = entityItem->getScript();
+                    QString entityServerScriptsBefore = entityItem->getServerScripts();
                     quint64 entityScriptTimestampBefore = entityItem->getScriptTimestamp();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElementPointer currentContainingElement = _myTree->getContainingElement(entityItemID);
@@ -948,6 +982,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     }
 
                     QString entityScriptAfter = entityItem->getScript();
+                    QString entityServerScriptsAfter = entityItem->getServerScripts();
                     quint64 entityScriptTimestampAfter = entityItem->getScriptTimestamp();
                     bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
 
@@ -955,6 +990,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     // a reload then we want to send out a script changing signal...
                     if (entityScriptBefore != entityScriptAfter || reload) {
                         _myTree->emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
+                    }
+                    if (entityServerScriptsBefore != entityServerScriptsAfter || reload) {
+                        _myTree->emitEntityServerScriptChanging(entityItemID, reload); // the entity server script has changed
                     }
 
                 } else {

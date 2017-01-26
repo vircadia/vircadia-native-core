@@ -14,7 +14,7 @@
 
 #include <udt/PacketHeaders.h>
 
-#include "../octree/OctreeQueryNode.h"
+#include <OctreeQueryNode.h>
 
 class EntityNodeData : public OctreeQueryNode {
 public:
@@ -22,9 +22,15 @@ public:
 
     quint64 getLastDeletedEntitiesSentAt() const { return _lastDeletedEntitiesSentAt; }
     void setLastDeletedEntitiesSentAt(quint64 sentAt) { _lastDeletedEntitiesSentAt = sentAt; }
+    
+    // these can only be called from the OctreeSendThread for the given Node
+    void insertEntitySentLastFrame(const QUuid& entityID) { _entitiesSentLastFrame.insert(entityID); }
+    void removeEntitySentLastFrame(const QUuid& entityID) { _entitiesSentLastFrame.remove(entityID); }
+    bool sentEntityLastFrame(const QUuid& entityID) { return _entitiesSentLastFrame.contains(entityID); }
 
 private:
     quint64 _lastDeletedEntitiesSentAt { usecTimestampNow() };
+    QSet<QUuid> _entitiesSentLastFrame;
 };
 
 #endif // hifi_EntityNodeData_h

@@ -26,6 +26,8 @@ using SpatiallyNestableWeakConstPointer = std::weak_ptr<const SpatiallyNestable>
 using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
 using SpatiallyNestableConstPointer = std::shared_ptr<const SpatiallyNestable>;
 
+static const uint16_t INVALID_JOINT_INDEX = -1;
+
 enum class NestableType {
     Entity,
     Avatar,
@@ -180,7 +182,7 @@ protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
-    quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
+    quint16 _parentJointIndex { INVALID_JOINT_INDEX }; // which joint of the parent is this relative to?
 
     mutable SpatiallyNestableWeakPointer _parent;
 

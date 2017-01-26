@@ -170,7 +170,7 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
 }
 
 
-// TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+// TODO: eventually only include properties changed since the params.lastQuerySent time
 EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;

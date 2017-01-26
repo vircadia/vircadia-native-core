@@ -179,7 +179,7 @@ int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* dat
 }
 
 
-// TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+// TODO: eventually only include properties changed since the params.lastQuerySent time
 EntityPropertyFlags PolyVoxEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_VOXEL_VOLUME_SIZE;
