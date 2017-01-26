@@ -103,6 +103,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script>
             var METAVERSE_API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online";
+            var FRIENDS_FILTER = "&filter=friends";
             var myUsername = null;
 
             function displayUsers(data) {
@@ -123,15 +124,31 @@
                 }
             }
 
+            function processData(data, type) {
+                var num = data.users.length;
+                if (type === "everyone") {
+                    $(".tabs li:nth-child(1)").text("Everyone (" + num + ")");
+                } else if (type === "friends") {
+                    $(".tabs li:nth-child(2)").text("Friends (" + num + ")");
+                }
+            }
+
             function pollUsers() {
-                // TODO: better transition visual such as spin wheel or loading bar
                 $("#dev-div").append("<p>polling users..</p>");
                 $.ajax({
                     url: METAVERSE_API_URL,
                     success: function(response) {
                         console.log(response);
-                        $("#dev-div").append("<p>polling sucess</p>");
-                        displayUsers(response.data);
+                        $("#dev-div").append("<p>polling everyone sucess</p>");
+                        processData(response.data, "everyone");
+                    }
+                });
+                $.ajax({
+                    url: METAVERSE_API_URL + FRIENDS_FILTER,
+                    success: function(response) {
+                        console.log(response);
+                        $("#dev-div").append("<p>polling friends sucess</p>");
+                        processData(response.data, "friends");
                     }
                 });
             }
