@@ -15,6 +15,7 @@
 #include "../gl/GLBackend.h"
 #include "../gl/GLTexture.h"
 #include <thread>
+#include <gpu/TextureTable.h>
 
 #define INCREMENTAL_TRANSFER 0
 #define GPU_SSBO_TRANSFORM_OBJECT 1
@@ -47,6 +48,21 @@ public:
 
     static const std::string GL45_VERSION;
     const std::string& getVersion() const override { return GL45_VERSION; }
+
+    class GL45TextureTable : public GLObject<TextureTable>  {
+        static GLuint allocate();
+        using Parent = GLObject<TextureTable>;
+    public:
+        using HandlesArray = std::array<uvec4, TextureTable::COUNT>;
+        GL45TextureTable(const std::weak_ptr<GLBackend>& backend, const TextureTable& texture, const HandlesArray& newHandles, bool complete);
+        ~GL45TextureTable();
+
+        // FIXME instead of making a buffer for each table, there should be a global buffer of all materials
+        // and we should store an offset into that buffer
+        const uint32_t _stamp { 0 };
+        const HandlesArray _handles;
+        const bool _complete { false };
+    };
 
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
@@ -181,6 +197,8 @@ protected:
     GLuint getQueryID(const QueryPointer& query) override;
     GLQuery* syncGPUObject(const Query& query) override;
 
+    GL45TextureTable* syncGPUObject(const TextureTablePointer& textureTable);
+
     // Draw Stage
     void do_draw(const Batch& batch, size_t paramOffset) override;
     void do_drawIndexed(const Batch& batch, size_t paramOffset) override;
@@ -192,6 +210,9 @@ protected:
     // Input Stage
     void resetInputStage() override;
     void updateInput() override;
+
+    // Resource stage
+    void do_setResourceTextureTable(const Batch& batch, size_t paramOffset) override;
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void transferTransformState(const Batch& batch) const override;

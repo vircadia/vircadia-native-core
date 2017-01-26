@@ -99,6 +99,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_setUniformBuffer),
     (&::gpu::gl::GLBackend::do_setResourceBuffer),
     (&::gpu::gl::GLBackend::do_setResourceTexture),
+    (&::gpu::gl::GLBackend::do_setResourceTextureTable),
 
     (&::gpu::gl::GLBackend::do_setFramebuffer),
     (&::gpu::gl::GLBackend::do_clearFramebuffer),

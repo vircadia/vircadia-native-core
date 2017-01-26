@@ -20,14 +20,15 @@
 #include <QtCore/QDebug>
 
 #include <NumericalConstants.h>
+#include <gpu/TextureTable.h>
 #include "../gl/GLTexelFormat.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
 
-#define SPARSE_PAGE_SIZE_OVERHEAD_ESTIMATE 1.3f
 #define MAX_RESOURCE_TEXTURES_PER_FRAME 2
+
 
 GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
     if (!texturePointer) {
