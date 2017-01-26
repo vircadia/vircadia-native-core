@@ -58,6 +58,8 @@ WindowScriptingInterface::WindowScriptingInterface() {
             OffscreenUi::warning("Import SVO Error", "You need to be running edit.js to import entities.");
         }
     });
+
+    connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::geometryChanged);
 }
 
 WindowScriptingInterface::~WindowScriptingInterface() {

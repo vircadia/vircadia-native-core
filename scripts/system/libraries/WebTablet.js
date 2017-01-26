@@ -22,6 +22,8 @@ var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
+var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
+var INCHES_TO_METERS = 1 / 39.3701;
 
 var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
 
@@ -120,7 +122,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         url: url,
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
-        resolution: { x: 480, y: 706 },
+        resolution: TABLET_TEXTURE_RESOLUTION,
         dpi: this.dpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
@@ -137,7 +139,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         dimensions: { x: 0.04, y: 0.04, z: 0.02},
         alpha: 0.0,
         visible: true,
-        alpha: 0.0, 
         drawInFront: false,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
@@ -193,12 +194,17 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.dragging = false;
     this.initialLocalIntersectionPoint = {x: 0, y: 0, z: 0};
     this.initialLocalPosition = {x: 0, y: 0, z: 0};
+
+    this.myGeometryChanged = function (geometry) {
+        _this.geometryChanged(geometry);
+    };
+    Window.geometryChanged.connect(this.myGeometryChanged);
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
     print(this.homeButtonEntity);
     Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
-}
+};
 
 WebTablet.prototype.setURL = function (url) {
     Overlays.editOverlay(this.webOverlayID, { url: url });
@@ -223,14 +229,29 @@ WebTablet.prototype.destroy = function () {
         Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
         Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
     }
+
+    Window.geometryChanged.disconnect(this.myGeometryChanged);
+};
+
+WebTablet.prototype.geometryChanged = function (geometry) {
+    if (!HMD.active) {
+        var NO_HANDS = -1;
+        var tabletProperties = {};
+        // compute position, rotation & parentJointIndex of the tablet
+        this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+        Entities.editEntity(this.tabletEntityID, tabletProperties);
+    }
 };
 
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
 // with a bit of padding on the top and bottom.
 WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
-    var PADDING_FACTOR = 2.2;
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
-    var dist = (PADDING_FACTOR * this.height) / (2 * Math.tan(fov / 2));
+    var MAX_PADDING_FACTOR = 2.2;
+    var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
+    var TABLET_HEIGHT = (TABLET_TEXTURE_RESOLUTION.y / this.dpi) * INCHES_TO_METERS;
+    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2)) - WEB_ENTITY_Z_OFFSET;
     return {
         position: Vec3.sum(Camera.position, Vec3.multiply(dist, Quat.getFront(Camera.orientation))),
         rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
