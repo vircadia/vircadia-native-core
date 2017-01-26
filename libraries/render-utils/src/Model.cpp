@@ -272,8 +272,6 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
-    PROFILE_RANGE(render_detail, __FUNCTION__);
-    PerformanceTimer perfTimer("Model::updateGeometry");
     bool needFullUpdate = false;
 
     if (!isLoaded()) {
@@ -1128,7 +1126,9 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         if (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) {
             snapToRegistrationPoint();
         }
-        simulateInternal(deltaTime);
+        // update the world space transforms for all joints
+        glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
+        updateRig(deltaTime, parentTransform);
     }
 }
 
@@ -1136,12 +1136,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
     _rig->updateAnimations(deltaTime, parentTransform);
-}
-
-void Model::simulateInternal(float deltaTime) {
-    // update the world space transforms for all joints
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
-    updateRig(deltaTime, parentTransform);
 }
 
 // virtual

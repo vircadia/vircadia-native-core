@@ -157,7 +157,7 @@ void setupPreferences() {
     }
     {
         auto getter = [=]()->float { return myAvatar->getUniformScale(); };
-        auto setter = [=](float value) { myAvatar->setTargetScaleVerbose(value); }; // The hell?
+        auto setter = [=](float value) { myAvatar->setTargetScale(value); };
         auto preference = new SpinnerPreference(AVATAR_TUNING, "Avatar scale (default is 1.0)", getter, setter);
         preference->setMin(0.01f);
         preference->setMax(99.9f);

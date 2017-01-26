@@ -253,6 +253,16 @@ int WindowScriptingInterface::createMessageBox(QString title, QString text, int 
 void WindowScriptingInterface::updateMessageBox(int id, QString title, QString text, int buttons, int defaultButton) {
     auto messageBox = _messageBoxes.value(id);
     if (messageBox) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "updateMessageBox",
+                Q_ARG(int, id),
+                Q_ARG(QString, title),
+                Q_ARG(QString, text),
+                Q_ARG(int, buttons),
+                Q_ARG(int, defaultButton));
+            return;
+        }
+
         messageBox->setProperty("title", title);
         messageBox->setProperty("text", text);
         messageBox->setProperty("buttons", buttons);
@@ -263,6 +273,12 @@ void WindowScriptingInterface::updateMessageBox(int id, QString title, QString t
 void WindowScriptingInterface::closeMessageBox(int id) {
     auto messageBox = _messageBoxes.value(id);
     if (messageBox) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "closeMessageBox",
+                Q_ARG(int, id));
+            return;
+        }
+
         disconnect(messageBox);
         messageBox->setVisible(false);
         messageBox->deleteLater();

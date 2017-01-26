@@ -85,7 +85,6 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
 
-
 // Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
 // backward compatibility. The bits are ordered as such (0-7 left to right).
@@ -405,8 +404,7 @@ public:
 
     //  Scale
     float getTargetScale() const;
-    void setTargetScale(float targetScale);
-    void setTargetScaleVerbose(float targetScale);
+    virtual void setTargetScale(float targetScale);
 
     float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
 
@@ -513,8 +511,6 @@ public:
 
     const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
 
-    bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
-
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
@@ -600,8 +596,7 @@ protected:
     KeyState _keyState;
 
     bool _forceFaceTrackerConnected;
-    bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
-    bool _hasNewJointTranslations; // set in AvatarData, cleared in Avatar
+    bool _hasNewJointData; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
 

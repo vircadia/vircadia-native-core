@@ -63,8 +63,7 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _forceFaceTrackerConnected(false),
-    _hasNewJointRotations(true),
-    _hasNewJointTranslations(true),
+    _hasNewJointData(true),
     _headData(NULL),
     _displayNameTargetAlpha(1.0f),
     _displayNameAlpha(1.0f),
@@ -132,11 +131,6 @@ void AvatarData::setTargetScale(float targetScale) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
     }
-}
-
-void AvatarData::setTargetScaleVerbose(float targetScale) {
-    setTargetScale(targetScale);
-    qCDebug(avatars) << "Changed scale to " << _targetScale;
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
@@ -712,8 +706,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         glm::quat newOrientation;
         sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, newOrientation);
         glm::quat currentOrientation = getLocalOrientation();
+
         if (currentOrientation != newOrientation) {
-            _hasNewJointRotations = true;
+            _hasNewJointData = true;
             setLocalOrientation(newOrientation);
         }
         int numBytesRead = sourceBuffer - startSection;
@@ -978,7 +973,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             JointData& data = _jointData[i];
             if (validTranslations[i]) {
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
-                _hasNewJointTranslations = true;
+                _hasNewJointData = true;
                 data.translationSet = true;
             }
         }

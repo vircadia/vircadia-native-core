@@ -312,7 +312,6 @@ protected:
     void scaleToFit();
     void snapToRegistrationPoint();
 
-    void simulateInternal(float deltaTime);
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Restores the indexed joint to its default position.

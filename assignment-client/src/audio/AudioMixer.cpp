@@ -38,7 +38,7 @@
 
 static const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
-static const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
+static const float DEFAULT_NOISE_MUTING_THRESHOLD = 1.0f;
 static const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 static const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
@@ -69,7 +69,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
-    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket"); 
+    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
     packetReceiver.registerListener(PacketType::PerAvatarGainSet, this, "handlePerAvatarGainSetDataPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
