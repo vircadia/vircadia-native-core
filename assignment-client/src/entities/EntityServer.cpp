@@ -360,7 +360,9 @@ void EntityServer::scriptRequestFinished() {
         if (hasCorrectSyntax(program)) {
             _entityEditFilterEngine.evaluate(scriptContents);
             if (!hadUncaughtExceptions(_entityEditFilterEngine, urlString)) {
-                std::static_pointer_cast<EntityTree>(_tree)->initEntityEditFilterEngine(&_entityEditFilterEngine);
+                std::static_pointer_cast<EntityTree>(_tree)->initEntityEditFilterEngine(&_entityEditFilterEngine, [this]() {
+                    return hadUncaughtExceptions(_entityEditFilterEngine, _entityEditFilter);
+                });
                 scriptRequest->deleteLater();
                 if (_scriptRequestLoop.isRunning()) {
                     _scriptRequestLoop.quit();

@@ -918,8 +918,9 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
-void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine) {
+void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions) {
     _entityEditFilterEngine = engine;
+    _entityEditFilterHadUncaughtExceptions = entityEditFilterHadUncaughtExceptions;
     auto global = _entityEditFilterEngine->globalObject();
     _entityEditFilterFunction = global.property("filter");
     _hasEntityEditFilter = _entityEditFilterFunction.isFunction();
@@ -942,12 +943,14 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
     args << inputValues;
 
     QScriptValue result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
+    if (_entityEditFilterHadUncaughtExceptions()) {
+        result = QScriptValue();
+    }
 
-    propertiesOut.copyFromScriptValue(result, false);
     bool accepted = result.isObject(); // filters should return null or false to completely reject edit or add
     if (accepted) {
+        propertiesOut.copyFromScriptValue(result, false);
         // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
-
         auto out = QJsonValue::fromVariant(result.toVariant());
         wasChanged = in != out;
         if (wasChanged) {
