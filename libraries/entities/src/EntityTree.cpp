@@ -922,15 +922,16 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
-void EntityTree::initEntityEditFilterEngine() {
-    _entityEditFilterEngine.evaluate(_entityEditFilter);
-    auto global = _entityEditFilterEngine.globalObject();
+void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions) {
+    _entityEditFilterEngine = engine;
+    _entityEditFilterHadUncaughtExceptions = entityEditFilterHadUncaughtExceptions;
+    auto global = _entityEditFilterEngine->globalObject();
     _entityEditFilterFunction = global.property("filter");
     _hasEntityEditFilter = _entityEditFilterFunction.isFunction();
 }
 
 bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
-    if (!_hasEntityEditFilter) {
+    if (!_hasEntityEditFilter || !_entityEditFilterEngine) {
         propertiesOut = propertiesIn;
         wasChanged = false; // not changed
         return true; // allowed
@@ -938,7 +939,7 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
     auto oldProperties = propertiesIn.getDesiredProperties();
     auto specifiedProperties = propertiesIn.getChangedProperties();
     propertiesIn.setDesiredProperties(specifiedProperties);
-    QScriptValue inputValues = propertiesIn.copyToScriptValue(&_entityEditFilterEngine, false, true, true);
+    QScriptValue inputValues = propertiesIn.copyToScriptValue(_entityEditFilterEngine, false, true, true);
     propertiesIn.setDesiredProperties(oldProperties);
 
     auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
@@ -946,22 +947,16 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
     args << inputValues;
 
     QScriptValue result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
+    if (_entityEditFilterHadUncaughtExceptions()) {
+        result = QScriptValue();
+    }
 
-    propertiesOut.copyFromScriptValue(result, false);
     bool accepted = result.isObject(); // filters should return null or false to completely reject edit or add
     if (accepted) {
+        propertiesOut.copyFromScriptValue(result, false);
         // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
-
         auto out = QJsonValue::fromVariant(result.toVariant());
         wasChanged = in != out;
-        if (wasChanged) {
-            // Logging will be removed eventually, but for now, the behavior is so fragile that it's worth logging.
-            qCDebug(entities) << "filter accepted. changed: true";
-            qCDebug(entities) << "  in:" << in;
-            qCDebug(entities) << "  out:" << out;
-        }
-    } else {
-        qCDebug(entities) << "filter rejected. in:" << in;
     }
 
     return accepted;

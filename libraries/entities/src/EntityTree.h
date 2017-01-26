@@ -68,7 +68,6 @@ public:
 
     void setEntityMaxTmpLifetime(float maxTmpEntityLifetime) { _maxTmpEntityLifetime = maxTmpEntityLifetime; }
     void setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist);
-    void setEntityEditFilter(const QString& entityEditFilter) { _entityEditFilter = entityEditFilter; }
 
     /// Implements our type specific root element factory
     virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;
@@ -267,7 +266,7 @@ public:
 
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
 
-    void initEntityEditFilterEngine();
+    void initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions);
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
@@ -358,11 +357,11 @@ protected:
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 
     bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged);
-    QString _entityEditFilter;
     bool _hasEntityEditFilter{ false };
-    QScriptEngine _entityEditFilterEngine;
-    QScriptValue _entityEditFilterFunction;
-    QScriptValue _nullObjectForFilter;
+    QScriptEngine* _entityEditFilterEngine{};
+    QScriptValue _entityEditFilterFunction{};
+    QScriptValue _nullObjectForFilter{};
+    std::function<bool()> _entityEditFilterHadUncaughtExceptions;
 
     QStringList _entityScriptSourceWhitelist;
 };
