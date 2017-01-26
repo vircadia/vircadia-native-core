@@ -25,6 +25,7 @@
 #include "QVariantGLM.h"
 #include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
+#include <EntityScriptClient.h>
 
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
@@ -668,6 +669,38 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
         }
     }
     return result;
+}
+
+bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
+    auto client = DependencyManager::get<EntityScriptClient>();
+    return client->reloadServerScript(entityID);
+}
+
+bool EntityScriptingInterface::getServerScriptStatus(QUuid entityID, QScriptValue callback) {
+    auto client = DependencyManager::get<EntityScriptClient>();
+    auto request = client->createScriptStatusRequest(entityID);
+    connect(request, &GetScriptStatusRequest::finished, callback.engine(), [callback](GetScriptStatusRequest* request) mutable {
+        QString statusString;
+        switch (request->getStatus()) {
+            case RUNNING:
+                statusString = "running";
+                break;
+            case ERROR_LOADING_SCRIPT:
+                statusString = "error_loading_script";
+                break;
+            case ERROR_RUNNING_SCRIPT:
+                statusString = "error_running_script";
+                break;
+            default:
+                statusString = "";
+                break;
+        }
+        QScriptValueList args { request->getResponseReceived(), request->getIsRunning(), statusString, request->getErrorInfo() };
+        callback.call(QScriptValue(), args);
+        request->deleteLater();
+    });
+    request->start();
+    return true;
 }
 
 void EntityScriptingInterface::setLightsArePickable(bool value) {

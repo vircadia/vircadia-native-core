@@ -593,7 +593,7 @@ hr {
 .dropdown dl {
     font-family: FiraSans-SemiBold;
     font-size: 15px;
-    width: 172px;
+    width: 292px;
     height: 28px;
     padding: 0 28px 0 12px;
     color: #afafaf;
@@ -645,7 +645,7 @@ hr {
 .dropdown li {
     list-style-type: none;
     padding: 3px 0 1px 12px;
-    width: 200px;
+    width: 320px;
     height: auto;
     font-family: FiraSans-SemiBold;
     font-size: 15px;

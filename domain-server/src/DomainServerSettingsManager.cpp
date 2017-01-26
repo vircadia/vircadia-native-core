@@ -725,7 +725,7 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                     }
 
                     // potentially remove connect permissions for the MAC address and machine fingerprint
-                    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+                    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
                     if (nodeData) {
                         // mac address first
                         NodePermissionsKey macAddressKey(nodeData->getHardwareAddress(), 0);
@@ -807,7 +807,7 @@ void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPoin
                 usernameFromIDReplyPacket->writeString(verifiedUsername);
 
                 // now put in the machine fingerprint
-                DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+                DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
                 machineFingerprint = nodeData ? nodeData->getMachineFingerprint() : QUuid();
                 usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
             } else {

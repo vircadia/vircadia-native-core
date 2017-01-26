@@ -12,12 +12,13 @@
 #include <udt/PacketHeaders.h>
 
 #include "Agent.h"
+#include "assets/AssetServer.h"
 #include "AssignmentFactory.h"
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
 #include "entities/EntityServer.h"
-#include "assets/AssetServer.h"
 #include "messages/MessagesMixer.h"
+#include "scripts/EntityScriptServer.h"
 
 ThreadedAssignment* AssignmentFactory::unpackAssignment(ReceivedMessage& message) {
 
@@ -39,7 +40,9 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(ReceivedMessage& message
             return new AssetServer(message);
         case Assignment::MessagesMixerType:
             return new MessagesMixer(message);
+        case Assignment::EntityScriptServerType:
+            return new EntityScriptServer(message);
         default:
-            return NULL;
+            return nullptr;
     }
 }
