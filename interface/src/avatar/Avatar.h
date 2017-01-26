@@ -58,8 +58,6 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
-    static float getNumJointsProcessedPerSecond();
-
     explicit Avatar(RigPointer rig = nullptr);
     ~Avatar();
 
@@ -68,7 +66,7 @@ public:
 
     void init();
     void updateAvatarEntities();
-    void simulate(float deltaTime);
+    void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
@@ -141,8 +139,6 @@ public:
 
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
 
-    Q_INVOKABLE bool getShouldRender() const { return !_shouldSkipRender; }
-
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
@@ -179,7 +175,12 @@ public:
     glm::vec3 getUncachedRightPalmPosition() const;
     glm::quat getUncachedRightPalmRotation() const;
 
-    Q_INVOKABLE void setShouldDie();
+    uint64_t getLastRenderUpdateTime() const { return _lastRenderUpdateTime; }
+    void setLastRenderUpdateTime(uint64_t time) { _lastRenderUpdateTime = time; }
+
+    bool shouldDie() const;
+    void animateScaleChanges(float deltaTime);
+    void setTargetScale(float targetScale) override;
 
 public slots:
 
@@ -230,8 +231,6 @@ protected:
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
 
-    virtual void animateScaleChanges(float deltaTime);
-
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
@@ -261,14 +260,14 @@ protected:
     void ensureInScene(AvatarSharedPointer self);
 
 private:
+    uint64_t _lastRenderUpdateTime { 0 };
     int _leftPointerGeometryID { 0 };
     int _rightPointerGeometryID { 0 };
     int _nameRectGeometryID { 0 };
     bool _initialized;
-    bool _shouldAnimate { true };
-    bool _shouldSkipRender { false };
     bool _isLookAtTarget { false };
     bool _inScene { false };
+    bool _isAnimatingScale { false };
 
     float getBoundingRadius() const;
 
