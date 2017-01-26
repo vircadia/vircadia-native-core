@@ -36,6 +36,292 @@
 
 #include "AudioMixerSlave.h"
 
+using AudioStreamMap = AudioMixerClientData::AudioStreamMap;
+
+// packet helpers
+std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec);
+void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QByteArray& buffer);
+void sendSilentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
+void sendMutePacket(const SharedNodePointer& node, AudioMixerClientData&);
+void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
+
+// mix helpers
+bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
+float gainForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition, bool isEcho);
+float azimuthForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition);
+
+void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
+    _begin = begin;
+    _end = end;
+    _frame = frame;
+    _throttlingRatio = throttlingRatio;
+}
+
+void AudioMixerSlave::mix(const SharedNodePointer& node) {
+    // check that the node is valid
+    AudioMixerClientData* data = (AudioMixerClientData*)node->getLinkedData();
+    if (data == nullptr) {
+        return;
+    }
+
+    // check that the stream is valid
+    auto avatarStream = data->getAvatarAudioStream();
+    if (avatarStream == nullptr) {
+        return;
+    }
+
+    // send mute packet, if necessary
+    if (AudioMixer::shouldMute(avatarStream->getQuietestFrameLoudness()) || data->shouldMuteClient()) {
+        sendMutePacket(node, *data);
+    }
+
+    // send audio packets, if necessary
+    if (node->getType() == NodeType::Agent && node->getActiveSocket()) {
+        ++stats.sumListeners;
+
+        // mix the audio
+        bool mixHasAudio = prepareMix(node);
+
+        // send audio packet
+        if (mixHasAudio || data->shouldFlushEncoder()) {
+            QByteArray encodedBuffer;
+            if (mixHasAudio) {
+                // encode the audio
+                QByteArray decodedBuffer(reinterpret_cast<char*>(_bufferSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                data->encode(decodedBuffer, encodedBuffer);
+            } else {
+                // time to flush (resets shouldFlush until the next encode)
+                data->encodeFrameOfZeros(encodedBuffer);
+            }
+
+            sendMixPacket(node, *data, encodedBuffer);
+        } else {
+            sendSilentPacket(node, *data);
+        }
+
+        // send environment packet
+        sendEnvironmentPacket(node, *data);
+
+        // send stats packet (about every second)
+        const unsigned int NUM_FRAMES_PER_SEC = (int)ceil(AudioConstants::NETWORK_FRAMES_PER_SEC);
+        if (data->shouldSendStats(_frame % NUM_FRAMES_PER_SEC)) {
+            data->sendAudioStreamStatsPackets(node);
+        }
+    }
+}
+
+bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
+    AvatarAudioStream* listenerAudioStream = static_cast<AudioMixerClientData*>(listener->getLinkedData())->getAvatarAudioStream();
+    AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
+
+    // zero out the mix for this listener
+    memset(_mixSamples, 0, sizeof(_mixSamples));
+
+    bool isThrottling = _throttlingRatio > 0.0f;
+    std::vector<std::pair<float, SharedNodePointer>> throttledNodes;
+
+    typedef void (AudioMixerSlave::*MixFunctor)(
+            AudioMixerClientData&, const QUuid&, const AvatarAudioStream&, const PositionalAudioStream&);
+    auto allStreams = [&](const SharedNodePointer& node, MixFunctor mixFunctor) {
+        AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        for (auto& streamPair : nodeData->getAudioStreams()) {
+            auto nodeStream = streamPair.second;
+            (this->*mixFunctor)(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
+        }
+    };
+
+    std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
+        if (*node == *listener) {
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+
+            // only mix the echo, if requested
+            for (auto& streamPair : nodeData->getAudioStreams()) {
+                auto nodeStream = streamPair.second;
+                if (nodeStream->shouldLoopbackForNode()) {
+                    mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
+                }
+            }
+        } else if (!shouldIgnoreNode(listener, node)) {
+            if (!isThrottling) {
+                allStreams(node, &AudioMixerSlave::mixStream);
+            } else {
+                AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+
+                // compute the node's max relative volume
+                float nodeVolume;
+                for (auto& streamPair : nodeData->getAudioStreams()) {
+                    auto nodeStream = streamPair.second;
+                    float distance = glm::length(nodeStream->getPosition() - listenerAudioStream->getPosition());
+                    nodeVolume = std::max(nodeStream->getLastPopOutputTrailingLoudness() / distance, nodeVolume);
+                }
+
+                // max-heapify the nodes by relative volume
+                throttledNodes.push_back(std::make_pair(nodeVolume, node));
+                if (!throttledNodes.empty()) {
+                    std::push_heap(throttledNodes.begin(), throttledNodes.end());
+                }
+            }
+        }
+    });
+
+    if (isThrottling) {
+        // pop the loudest nodes off the heap and mix their streams
+        int numToRetain = (int)(std::distance(_begin, _end) * (1 - _throttlingRatio));
+        for (int i = 0; i < numToRetain; i++) {
+            if (throttledNodes.empty()) {
+                break;
+            }
+
+            std::pop_heap(throttledNodes.begin(), throttledNodes.end());
+
+            auto& node = throttledNodes.back().second;
+            allStreams(node, &AudioMixerSlave::mixStream);
+
+            throttledNodes.pop_back();
+        }
+
+        // throttle the remaining nodes' streams
+        for (const std::pair<float, SharedNodePointer>& nodePair : throttledNodes) {
+            auto& node = nodePair.second;
+            allStreams(node, &AudioMixerSlave::throttleStream);
+        }
+    }
+
+    // use the per listener AudioLimiter to render the mixed data...
+    listenerData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+    // check for silent audio after the peak limiter has converted the samples
+    bool hasAudio = false;
+    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
+        if (_bufferSamples[i] != 0) {
+            hasAudio = true;
+            break;
+        }
+    }
+    return hasAudio;
+}
+
+void AudioMixerSlave::throttleStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
+        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
+    addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, true);
+}
+
+void AudioMixerSlave::mixStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
+        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
+    addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, false);
+}
+
+void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
+        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        bool throttle) {
+    ++stats.totalMixes;
+
+    // to reduce artifacts we call the HRTF functor for every source, even if throttled or silent
+    // this ensures the correct tail from last mixed block and the correct spatialization of next first block
+
+    // check if this is a server echo of a source back to itself
+    bool isEcho = (&streamToAdd == &listeningNodeStream);
+
+    glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
+
+    float distance = glm::max(glm::length(relativePosition), EPSILON);
+    float gain = gainForSource(listeningNodeStream, streamToAdd, relativePosition, isEcho);
+    float azimuth = isEcho ? 0.0f : azimuthForSource(listeningNodeStream, listeningNodeStream, relativePosition);
+    static const int HRTF_DATASET_INDEX = 1;
+
+    if (!streamToAdd.lastPopSucceeded()) {
+        bool forceSilentBlock = true;
+
+        if (!streamToAdd.getLastPopOutput().isNull()) {
+            bool isInjector = dynamic_cast<const InjectedAudioStream*>(&streamToAdd);
+
+            // in an injector, just go silent - the injector has likely ended
+            // in other inputs (microphone, &c.), repeat with fade to avoid the harsh jump to silence
+            if (!isInjector) {
+                // calculate its fade factor, which depends on how many times it's already been repeated.
+                float fadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd.getConsecutiveNotMixedCount() - 1);
+                if (fadeFactor > 0.0f) {
+                    // apply the fadeFactor to the gain
+                    gain *= fadeFactor;
+                    forceSilentBlock = false;
+                }
+            }
+        }
+
+        if (forceSilentBlock) {
+            // call renderSilent with a forced silent block to reduce artifacts
+            // (this is not done for stereo streams since they do not go through the HRTF)
+            if (!streamToAdd.isStereo() && !isEcho) {
+                // get the existing listener-source HRTF object, or create a new one
+                auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+
+                static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
+                hrtf.renderSilent(silentMonoBlock, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
+                                  AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+                ++stats.hrtfSilentRenders;
+            }
+
+            return;
+        }
+    }
+
+    // grab the stream from the ring buffer
+    AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd.getLastPopOutput();
+
+    // stereo sources are not passed through HRTF
+    if (streamToAdd.isStereo()) {
+        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
+            _mixSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
+        }
+
+        ++stats.manualStereoMixes;
+        return;
+    }
+
+    // echo sources are not passed through HRTF
+    if (isEcho) {
+        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i += 2) {
+            auto monoSample = float(streamPopOutput[i / 2] * gain / AudioConstants::MAX_SAMPLE_VALUE);
+            _mixSamples[i] += monoSample;
+            _mixSamples[i + 1] += monoSample;
+        }
+
+        ++stats.manualEchoMixes;
+        return;
+    }
+
+    // get the existing listener-source HRTF object, or create a new one
+    auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+
+    streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+    if (streamToAdd.getLastPopOutputLoudness() == 0.0f) {
+        // call renderSilent to reduce artifacts
+        hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
+                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+        ++stats.hrtfSilentRenders;
+        return;
+    }
+
+    if (throttle) {
+        // call renderSilent with actual frame data and a gain of 0.0f to reduce artifacts
+        hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
+                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+        ++stats.hrtfThrottleRenders;
+        return;
+    }
+
+    hrtf.render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
+                AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+    ++stats.hrtfRenders;
+}
+
 std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec) {
     auto audioPacket = NLPacket::create(type, size);
     audioPacket->writePrimitive(sequence);
@@ -71,6 +357,14 @@ void sendSilentPacket(const SharedNodePointer& node, AudioMixerClientData& data)
     // send packet
     DependencyManager::get<NodeList>()->sendPacket(std::move(mixPacket), *node);
     data.incrementOutgoingMixedAudioSequenceNumber();
+}
+
+void sendMutePacket(const SharedNodePointer& node, AudioMixerClientData& data) {
+    auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
+    DependencyManager::get<NodeList>()->sendPacket(std::move(mutePacket), *node);
+
+    // probably now we just reset the flag, once should do it (?)
+    data.setShouldMuteClient(false);
 }
 
 void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data) {
@@ -134,285 +428,54 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
     }
 }
 
-void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame) {
-    _begin = begin;
-    _end = end;
-    _frame = frame;
-}
-
-void AudioMixerSlave::mix(const SharedNodePointer& node) {
-    // check that the node is valid
-    AudioMixerClientData* data = (AudioMixerClientData*)node->getLinkedData();
-    if (data == nullptr) {
-        return;
-    }
-
-    auto avatarStream = data->getAvatarAudioStream();
-    if (avatarStream == nullptr) {
-        return;
-    }
-
-    // send mute packet, if necessary
-    if (AudioMixer::shouldMute(avatarStream->getQuietestFrameLoudness()) || data->shouldMuteClient()) {
-        auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
-        DependencyManager::get<NodeList>()->sendPacket(std::move(mutePacket), *node);
-
-        // probably now we just reset the flag, once should do it (?)
-        data->setShouldMuteClient(false);
-    }
-
-    // send audio packets, if necessary
-    if (node->getType() == NodeType::Agent && node->getActiveSocket()) {
-        ++stats.sumListeners;
-
-        // mix the audio
-        bool mixHasAudio = prepareMix(node);
-
-        // send audio packet
-        if (mixHasAudio || data->shouldFlushEncoder()) {
-            // encode the audio
-            QByteArray encodedBuffer;
-            if (mixHasAudio) {
-                QByteArray decodedBuffer(reinterpret_cast<char*>(_bufferSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
-                data->encode(decodedBuffer, encodedBuffer);
-            } else {
-                // time to flush, which resets the shouldFlush until next time we encode something
-                data->encodeFrameOfZeros(encodedBuffer);
-            }
-
-            sendMixPacket(node, *data, encodedBuffer);
-        } else {
-            sendSilentPacket(node, *data);
-        }
-
-        // send environment packet
-        sendEnvironmentPacket(node, *data);
-
-        // send stats packet (about every second)
-        static const unsigned int NUM_FRAMES_PER_SEC = (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC);
-        if (data->shouldSendStats(_frame % NUM_FRAMES_PER_SEC)) {
-            data->sendAudioStreamStatsPackets(node);
-        }
-    }
-}
-
-bool AudioMixerSlave::prepareMix(const SharedNodePointer& node) {
-    AvatarAudioStream* nodeAudioStream = static_cast<AudioMixerClientData*>(node->getLinkedData())->getAvatarAudioStream();
+bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node) {
+    AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
 
-    // zero out the client mix for this node
-    memset(_mixSamples, 0, sizeof(_mixSamples));
+    // when this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
+    bool getsAnyIgnored = listenerData->getRequestsDomainListData() && listener->getCanKick();
 
-    // loop through all other nodes that have sufficient audio to mix
-    std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode){
-        // make sure that we have audio data for this other node
-        // and that it isn't being ignored by our listening node
-        // and that it isn't ignoring our listening node
-        AudioMixerClientData* otherData = static_cast<AudioMixerClientData*>(otherNode->getLinkedData());
+    bool ignore = true;
 
-        // When this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
-        bool getsAnyIgnored = nodeData->getRequestsDomainListData() && node->getCanKick();
+    if (nodeData &&
+            // make sure that it isn't being ignored by our listening node
+            (!listener->isIgnoringNodeWithID(node->getUUID()) || (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
+            // and that it isn't ignoring our listening node
+            (!node->isIgnoringNodeWithID(listener->getUUID()) || getsAnyIgnored))  {
 
-        if (otherData
-            && (!node->isIgnoringNodeWithID(otherNode->getUUID()) || (otherData->getRequestsDomainListData() && otherNode->getCanKick()))
-            && (!otherNode->isIgnoringNodeWithID(node->getUUID()) || getsAnyIgnored))  {
+        // is either node enabling the space bubble / ignore radius?
+        if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
+            // define the minimum bubble size
+            static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
 
-            // check to see if we're ignoring in radius
-            bool insideIgnoreRadius = false;
-            // If the otherNode equals the node, we're doing a comparison on ourselves
-            if (*otherNode == *node) {
-                // We'll always be inside the radius in that case.
-                insideIgnoreRadius = true;
-            // Check to see if the space bubble is enabled
-            } else if ((node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled())) {
-                // Define the minimum bubble size
-                static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
-                AudioMixerClientData* nodeData = reinterpret_cast<AudioMixerClientData*>(node->getLinkedData());
-                // Set up the bounding box for the current node
-                AABox nodeBox(nodeData->getAvatarBoundingBoxCorner(), nodeData->getAvatarBoundingBoxScale());
-                // Clamp the size of the bounding box to a minimum scale
-                if (glm::any(glm::lessThan(nodeData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                    nodeBox.setScaleStayCentered(minBubbleSize);
-                }
-                // Set up the bounding box for the current other node
-                AABox otherNodeBox(otherData->getAvatarBoundingBoxCorner(), otherData->getAvatarBoundingBoxScale());
-                // Clamp the size of the bounding box to a minimum scale
-                if (glm::any(glm::lessThan(otherData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                    otherNodeBox.setScaleStayCentered(minBubbleSize);
-                }
-                // Quadruple the scale of both bounding boxes
-                nodeBox.embiggen(4.0f);
-                otherNodeBox.embiggen(4.0f);
-
-                // Perform the collision check between the two bounding boxes
-                if (nodeBox.touches(otherNodeBox)) {
-                    insideIgnoreRadius = true;
-                }
+            // set up the bounding box for the listener
+            AABox listenerBox(listenerData->getAvatarBoundingBoxCorner(), listenerData->getAvatarBoundingBoxScale());
+            if (glm::any(glm::lessThan(listenerData->getAvatarBoundingBoxScale(), minBubbleSize))) {
+                listenerBox.setScaleStayCentered(minBubbleSize);
             }
 
-            // Enumerate the audio streams attached to the otherNode
-            auto streamsCopy = otherData->getAudioStreams();
-            for (auto& streamPair : streamsCopy) {
-                auto otherNodeStream = streamPair.second;
-                bool isSelfWithEcho = ((*otherNode == *node) && (otherNodeStream->shouldLoopbackForNode()));
-                // Add all audio streams that should be added to the mix
-                if (isSelfWithEcho || (!isSelfWithEcho && !insideIgnoreRadius)) {
-                    addStreamToMix(*nodeData, otherNode->getUUID(), *nodeAudioStream, *otherNodeStream);
-                }
-            }
-        }
-    });
-
-    // use the per listener AudioLimiter to render the mixed data...
-    nodeData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-    // check for silent audio after the peak limiter has converted the samples
-    bool hasAudio = false;
-    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-        if (_bufferSamples[i] != 0) {
-            hasAudio = true;
-            break;
-        }
-    }
-    return hasAudio;
-}
-
-void AudioMixerSlave::addStreamToMix(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
-        const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
-    // to reduce artifacts we calculate the gain and azimuth for every source for this listener
-    // even if we are not going to end up mixing in this source
-
-    ++stats.totalMixes;
-
-    // this ensures that the tail of any previously mixed audio or the first block of new audio sounds correct
-
-    // check if this is a server echo of a source back to itself
-    bool isEcho = (&streamToAdd == &listeningNodeStream);
-
-    glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
-
-    // figure out the distance between source and listener
-    float distance = glm::max(glm::length(relativePosition), EPSILON);
-
-    // figure out the gain for this source at the listener
-    float gain = gainForSource(listeningNodeStream, streamToAdd, relativePosition, isEcho);
-
-    // figure out the azimuth to this source at the listener
-    float azimuth = isEcho ? 0.0f : azimuthForSource(listeningNodeStream, listeningNodeStream, relativePosition);
-
-    float repeatedFrameFadeFactor = 1.0f;
-
-    static const int HRTF_DATASET_INDEX = 1;
-
-    if (!streamToAdd.lastPopSucceeded()) {
-        bool forceSilentBlock = true;
-
-        if (!streamToAdd.getLastPopOutput().isNull()) {
-            bool isInjector = dynamic_cast<const InjectedAudioStream*>(&streamToAdd);
-
-            // in an injector, just go silent - the injector has likely ended
-            // in other inputs (microphone, &c.), repeat with fade to avoid the harsh jump to silence
-
-            // we'll repeat the last block until it has a block to mix
-            // and we'll gradually fade that repeated block into silence.
-
-            // calculate its fade factor, which depends on how many times it's already been repeated.
-            repeatedFrameFadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd.getConsecutiveNotMixedCount() - 1);
-            if (!isInjector && repeatedFrameFadeFactor > 0.0f) {
-                // apply the repeatedFrameFadeFactor to the gain
-                gain *= repeatedFrameFadeFactor;
-
-                forceSilentBlock = false;
-            }
-        }
-
-        if (forceSilentBlock) {
-            // we're deciding not to repeat either since we've already done it enough times or repetition with fade is disabled
-            // in this case we will call renderSilent with a forced silent block
-            // this ensures the correct tail from the previously mixed block and the correct spatialization of first block
-            // of any upcoming audio
-
-            if (!streamToAdd.isStereo() && !isEcho) {
-                // get the existing listener-source HRTF object, or create a new one
-                auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
-
-                // this is not done for stereo streams since they do not go through the HRTF
-                static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
-                hrtf.renderSilent(silentMonoBlock, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
-                                  AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-                ++stats.hrtfSilentRenders;
+            // set up the bounding box for the node
+            AABox nodeBox(nodeData->getAvatarBoundingBoxCorner(), nodeData->getAvatarBoundingBoxScale());
+            // Clamp the size of the bounding box to a minimum scale
+            if (glm::any(glm::lessThan(nodeData->getAvatarBoundingBoxScale(), minBubbleSize))) {
+                nodeBox.setScaleStayCentered(minBubbleSize);
             }
 
-            return;
-        }
-    }
+            // quadruple the scale of both bounding boxes
+            listenerBox.embiggen(4.0f);
+            nodeBox.embiggen(4.0f);
 
-    // grab the stream from the ring buffer
-    AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd.getLastPopOutput();
-
-    if (streamToAdd.isStereo() || isEcho) {
-        // this is a stereo source or server echo so we do not pass it through the HRTF
-        // simply apply our calculated gain to each sample
-        if (streamToAdd.isStereo()) {
-            for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-                _mixSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
-            }
-
-            ++stats.manualStereoMixes;
+            // perform the collision check between the two bounding boxes
+            ignore = listenerBox.touches(nodeBox);
         } else {
-            for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i += 2) {
-                auto monoSample = float(streamPopOutput[i / 2] * gain / AudioConstants::MAX_SAMPLE_VALUE);
-                _mixSamples[i] += monoSample;
-                _mixSamples[i + 1] += monoSample;
-            }
-
-            ++stats.manualEchoMixes;
+            ignore = false;
         }
-
-        return;
     }
 
-    // get the existing listener-source HRTF object, or create a new one
-    auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
-
-    streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-    // if the frame we're about to mix is silent, simply call render silent and move on
-    if (streamToAdd.getLastPopOutputLoudness() == 0.0f) {
-        // silent frame from source
-
-        // we still need to call renderSilent via the HRTF for mono source
-        hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
-                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-        ++stats.hrtfSilentRenders;
-
-        return;
-    }
-
-    float audibilityThreshold = AudioMixer::getMinimumAudibilityThreshold();
-    if (audibilityThreshold > 0.0f &&
-        streamToAdd.getLastPopOutputTrailingLoudness() / glm::length(relativePosition) <= audibilityThreshold) {
-        // the mixer is struggling so we're going to drop off some streams
-
-        // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
-        hrtf.renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
-                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-        ++stats.hrtfStruggleRenders;
-
-        return;
-    }
-
-    ++stats.hrtfRenders;
-
-    // mono stream, call the HRTF with our block and calculated azimuth and gain
-    hrtf.render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
-                AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    return ignore;
 }
 
-float AudioMixerSlave::gainForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+float gainForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition, bool isEcho) {
     float gain = 1.0f;
 
@@ -472,7 +535,7 @@ float AudioMixerSlave::gainForSource(const AvatarAudioStream& listeningNodeStrea
     return gain;
 }
 
-float AudioMixerSlave::azimuthForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+float azimuthForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition) {
     glm::quat inverseOrientation = glm::inverse(listeningNodeStream.getOrientation());
 
@@ -482,7 +545,7 @@ float AudioMixerSlave::azimuthForSource(const AvatarAudioStream& listeningNodeSt
     // project the rotated source position vector onto the XZ plane
     rotatedSourcePosition.y = 0.0f;
 
-    static const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
+    const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
 
     if (glm::length2(rotatedSourcePosition) > SOURCE_DISTANCE_THRESHOLD) {
         // produce an oriented angle about the y-axis

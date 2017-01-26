@@ -63,7 +63,7 @@ var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
 var WEB_STYLUS_LENGTH = 0.2;
 var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative number) to slide stylus in hand
-var WEB_TOUCH_TOO_CLOSE = 0.04; // if the stylus is pushed far though the web surface, don't consider it touching
+var WEB_TOUCH_TOO_CLOSE = 0.03; // if the stylus is pushed far though the web surface, don't consider it touching
 
 //
 // distant manipulation
@@ -800,6 +800,10 @@ function MyController(hand) {
     this.lastUnequipCheckTime = 0;
 
     this.equipOverlayInfoSetMap = {};
+
+    this.tabletStabbed = false;
+    this.tabletStabbedPos2D = null;
+    this.tabletStabbedPos3D = null;
 
     var _this = this;
 
@@ -2836,12 +2840,29 @@ function MyController(hand) {
             handLaserIntersectOverlay(this.grabbedOverlay, getControllerWorldLocation(this.handToController(), true));
         if (intersectInfo) {
             var pointerEvent;
+
+            var pos2D;
+            var pos3D;
+            if (this.tabletStabbed) {
+                // Some people like to jam the stylus a long ways into the tablet when clicking on a button.
+                // They almost always move out of the deadzone when they do this.  We detect if the stylus
+                // has gone far through the tablet and suppress any further faux mouse events until the
+                // stylus is withdrawn.  Once it has withdrawn, we do a release click wherever the stylus was
+                // when it was pushed into the tablet.
+                this.tabletStabbed = false;
+                pos2D = this.tabletStabbedPos2D;
+                pos3D = this.tabletStabbedPos3D;
+            } else {
+                pos2D = projectOntoOverlayXYPlane(this.grabbedOverlay, intersectInfo.point);
+                pos3D = intersectInfo.point;
+            }
+
             if (this.deadspotExpired) {
                 pointerEvent = {
                     type: "Release",
                     id: HARDWARE_MOUSE_ID,
-                    pos2D: projectOntoOverlayXYPlane(this.grabbedOverlay, intersectInfo.point),
-                    pos3D: intersectInfo.point,
+                    pos2D: pos2D,
+                    pos3D: pos3D,
                     normal: intersectInfo.normal,
                     direction: intersectInfo.searchRay.direction,
                     button: "Primary"
@@ -2885,6 +2906,22 @@ function MyController(hand) {
                 return;
             }
 
+            var pos2D = projectOntoOverlayXYPlane(this.grabbedOverlay, intersectInfo.point);
+            var pos3D = intersectInfo.point;
+
+            if (this.state == STATE_OVERLAY_STYLUS_TOUCHING &&
+                !this.deadspotExpired &&
+                intersectInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_TOO_CLOSE) {
+                // they've stabbed the tablet, don't send events until they pull back
+                this.tabletStabbed = true;
+                this.tabletStabbedPos2D = pos2D;
+                this.tabletStabbedPos3D = pos3D;
+                return;
+            }
+            if (this.tabletStabbed) {
+                return;
+            }
+
             if (Overlays.keyboardFocusOverlay != this.grabbedOverlay) {
                 Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = this.grabbedOverlay;
@@ -2893,8 +2930,8 @@ function MyController(hand) {
             var pointerEvent = {
                 type: "Move",
                 id: HARDWARE_MOUSE_ID,
-                pos2D: projectOntoOverlayXYPlane(this.grabbedOverlay, intersectInfo.point),
-                pos3D: intersectInfo.point,
+                pos2D: pos2D,
+                pos3D: pos3D,
                 normal: intersectInfo.normal,
                 direction: intersectInfo.searchRay.direction,
                 button: "NoButtons",
