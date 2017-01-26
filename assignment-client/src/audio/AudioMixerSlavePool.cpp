@@ -41,7 +41,7 @@ void AudioMixerSlaveThread::wait() {
         });
         ++_pool._numStarted;
     }
-    configure(_pool._begin, _pool._end, _pool._frame);
+    configure(_pool._begin, _pool._end, _pool._frame, _pool._throttlingRatio);
 }
 
 void AudioMixerSlaveThread::notify(bool stopping) {
@@ -64,13 +64,14 @@ bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node) {
 static AudioMixerSlave slave;
 #endif
 
-void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame) {
+void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
     _begin = begin;
     _end = end;
     _frame = frame;
+    _throttlingRatio = throttlingRatio;
 
 #ifdef AUDIO_SINGLE_THREADED
-    slave.configure(_begin, _end, frame);
+    slave.configure(_begin, _end, frame, throttlingRatio);
     std::for_each(begin, end, [&](const SharedNodePointer& node) {
         slave.mix(node);
     });
