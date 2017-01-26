@@ -957,14 +957,6 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
         // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
         auto out = QJsonValue::fromVariant(result.toVariant());
         wasChanged = in != out;
-        if (wasChanged) {
-            // Logging will be removed eventually, but for now, the behavior is so fragile that it's worth logging.
-            qCDebug(entities) << "filter accepted. changed: true";
-            qCDebug(entities) << "  in:" << in;
-            qCDebug(entities) << "  out:" << out;
-        }
-    } else {
-        qCDebug(entities) << "filter rejected. in:" << in;
     }
 
     return accepted;
