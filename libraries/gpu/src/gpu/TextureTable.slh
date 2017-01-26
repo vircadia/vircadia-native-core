@@ -13,11 +13,13 @@
 #ifdef GPU_TEXTURE_TABLE_BINDLESS
 #define GPU_TEXTURE_TABLE_MAX_NUM_TEXTURES 8
 
-struct TextureTable {
-    uvec4 _textures[GPU_TEXTURE_TABLE_MAX_NUM_TEXTURES];
+struct GPUTextureTable {
+    uvec2 _textures[GPU_TEXTURE_TABLE_MAX_NUM_TEXTURES];
 };
 
-#define TextureTable(index) layout (std140) uniform gpu_textureTableBuffer##index { TextureTable _table##index; };
+#define TextureTable(index, name) layout (std140) uniform gpu_textureTableBuffer { GPUTextureTable name; }
+
+#define tableTex(name, slot) sampler2D(name._textures[slot])
 
 #else
 

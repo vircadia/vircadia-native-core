@@ -50,6 +50,12 @@ static const std::string stereoVersion {
 #endif
 };
 
+// TextureTable specific defines
+static const std::string textureTableVersion {
+    "#extension GL_ARB_bindless_texture : require\n#define GPU_TEXTURE_TABLE_BINDLESS\n"
+};
+
+
 // Versions specific of the shader
 static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
     "",
@@ -64,10 +70,15 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
     Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
     shader.incrementCompilationAttempt();
 
+    bool supportTextureTableBindless = true;
+
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
 
-        std::string shaderDefines = getBackendShaderHeader() + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version];
+        std::string shaderDefines = getBackendShaderHeader() + "\n"
+			+ (supportTextureTableBindless ? textureTableVersion : "\n")
+			+ DOMAIN_DEFINES[shader.getType()] + "\n"
+			+ VERSION_DEFINES[version];
         if (handler) {
             bool retest = true;
             std::string currentSrc = shaderSource;
@@ -89,7 +100,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
             compilationLogs[version].compiled = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, compilationLogs[version].message);
         }
 
-         if (!compilationLogs[version].compiled) {
+        if (!compilationLogs[version].compiled) {
             qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Shader didn't compile:\n" << compilationLogs[version].message.c_str();
             shader.setCompilationLogs(compilationLogs);
             return nullptr;
