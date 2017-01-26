@@ -64,6 +64,7 @@ var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
 var WEB_STYLUS_LENGTH = 0.2;
 var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative number) to slide stylus in hand
 var WEB_TOUCH_TOO_CLOSE = 0.03; // if the stylus is pushed far though the web surface, don't consider it touching
+var WEB_TOUCH_Y_TOUCH_DEADZONE_SIZE = 0.01;
 
 //
 // distant manipulation
@@ -2900,7 +2901,7 @@ function MyController(hand) {
         if (intersectInfo) {
 
             if (this.state == STATE_OVERLAY_STYLUS_TOUCHING &&
-                intersectInfo.distance > WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET) {
+                intersectInfo.distance > WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET + WEB_TOUCH_Y_TOUCH_DEADZONE_SIZE) {
                 this.grabbedEntity = null;
                 this.setState(STATE_OFF, "pulled away from overlay");
                 return;
