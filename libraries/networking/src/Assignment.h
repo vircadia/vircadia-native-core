@@ -33,7 +33,7 @@ public:
         AgentType = 2,
         AssetServerType = 3,
         MessagesMixerType = 4,
-        UNUSED_1 = 5,
+        EntityScriptServerType = 5,
         EntityServerType = 6,
         AllTypes = 7
     };

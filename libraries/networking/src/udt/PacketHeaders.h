@@ -107,7 +107,10 @@ public:
         RequestsDomainListData,
         ExitingSpaceBubble,
         PerAvatarGainSet,
-        LAST_PACKET_TYPE = PerAvatarGainSet
+        EntityScriptGetStatus,
+        EntityScriptGetStatusReply,
+        ReloadEntityServerScript,
+        LAST_PACKET_TYPE = ReloadEntityServerScript
     };
 };
 
@@ -197,6 +200,11 @@ const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
 const PacketVersion VERSION_WEB_ENTITIES_SUPPORT_DPI = 63;
 const PacketVersion VERSION_ENTITIES_ARROW_ACTION = 64;
 const PacketVersion VERSION_ENTITIES_LAST_EDITED_BY = 65;
+const PacketVersion VERSION_ENTITIES_SERVER_SCRIPTS = 66;
+
+enum class EntityQueryPacketVersion: PacketVersion {
+    JsonFilter = 18
+};
 
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19

@@ -44,8 +44,7 @@ void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessa
 
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::Agent && node->getActiveSocket() &&
-                _channelSubscribers[channel].contains(node->getUUID());
+        return node->getActiveSocket() && _channelSubscribers[channel].contains(node->getUUID());
     },
         [&](const SharedNodePointer& node) {
         auto packetList = MessagesClient::encodeMessagesPacket(channel, message, senderID);
@@ -83,5 +82,6 @@ void MessagesMixer::sendStatsPacket() {
 
 void MessagesMixer::run() {
     ThreadedAssignment::commonInit(MESSAGES_MIXER_LOGGING_NAME, NodeType::MessagesMixer);
-    DependencyManager::get<NodeList>()->addNodeTypeToInterestSet(NodeType::Agent);
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
 }

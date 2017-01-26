@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Agent.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
@@ -46,14 +48,12 @@
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
 
-#include "Agent.h"
 #include "AvatarAudioTimer.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
-    _entityEditSender(),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES) {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
@@ -68,7 +68,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ScriptEngines>();
+    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
@@ -143,7 +143,7 @@ void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
     _receivedAudioStream.clearBuffer();
 }
 
-const QString AGENT_LOGGING_NAME = "agent";
+static const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
 
@@ -321,7 +321,7 @@ void Agent::scriptRequestFinished() {
 }
 
 void Agent::executeScript() {
-    _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(_scriptContents, _payload));
+    _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload));
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     // setup an Avatar for the script to use
@@ -375,6 +375,9 @@ void Agent::executeScript() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
+
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
 
     // we need to make sure that init has been called for our EntityScriptingInterface
     // so that it actually has a jurisdiction listener when we ask it for it next

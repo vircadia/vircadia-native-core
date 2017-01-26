@@ -113,7 +113,7 @@ SelectionManager = (function() {
             that.selections.push(entityID);
         }
 
-        that._update();
+        that._update(true);
     };
 
     that.addEntity = function(entityID, toggleSelection) {
@@ -132,7 +132,7 @@ SelectionManager = (function() {
             }
         }
 
-        that._update();
+        that._update(true);
     };
 
     that.removeEntity = function(entityID) {
@@ -140,15 +140,15 @@ SelectionManager = (function() {
         if (idx >= 0) {
             that.selections.splice(idx, 1);
         }
-        that._update();
+        that._update(true);
     };
 
     that.clearSelections = function() {
         that.selections = [];
-        that._update();
+        that._update(true);
     };
 
-    that._update = function() {
+    that._update = function(selectionUpdated) {
         if (that.selections.length == 0) {
             that.localDimensions = null;
             that.localPosition = null;
@@ -205,7 +205,7 @@ SelectionManager = (function() {
 
         for (var i = 0; i < listeners.length; i++) {
             try {
-                listeners[i]();
+                listeners[i](selectionUpdated === true);
             } catch (e) {
                 print("EntitySelectionTool got exception: " + JSON.stringify(e));
             }
