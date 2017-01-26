@@ -938,7 +938,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             JointData& data = _jointData[i];
             if (validRotations[i]) {
                 sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
-                _hasNewJointRotations = true;
+                _hasNewJointData = true;
                 data.rotationSet = true;
             }
         }
