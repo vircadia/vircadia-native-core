@@ -47,6 +47,21 @@
                 padding: 30px;
             }
 
+            .tabs {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .tabs li {
+                display: inline-block;
+                padding: 10px 15px;
+            }
+
+            .tabs li.current {
+                background: rgba(255,255,255,0.15);
+            }
+
             #users-list div {
                 padding-top: 4px;
                 padding-bottom: 4px;
@@ -62,7 +77,14 @@
             </div>
         </div>
         <div class="main">
-            <div id="users-list"></div>
+            <ul class="tabs">
+                <li class="current">Everyone (10)</li>
+                <li>Friends (2)</li>
+            </ul>
+            <div id="tab-1">
+                <div id="users-list"></div>
+            </div>
+            <div id="tab-2"></div>
         </div>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script>
@@ -115,9 +137,18 @@
 
             $(document).ready(function() {
                 $("#dev-div").append("<p>ready</p>");
+                // Auto-load user lists when page loads
                 pollUsers();
+                
+                // Click listener for tabs
+                $(".tabs li").click(function() {
+                    $(".tabs li").removeClass("current");
+                    $(this).addClass("current");
+                });
+
                 // Listen for events from hifi
                 EventBridge.scriptEventReceived.connect(onScriptEventReceived);
+                
                 // Send a ready event to hifi
                 var eventObject = {"type": "ready"};
                 EventBridge.emitWebEvent(JSON.stringify(eventObject));
