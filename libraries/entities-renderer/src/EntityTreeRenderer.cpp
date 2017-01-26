@@ -45,9 +45,7 @@
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
-    OctreeRenderer(),
     _wantScripts(wantScripts),
-    _entitiesScriptEngine(NULL),
     _lastPointerEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -103,7 +101,7 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     // Keep a ref to oldEngine until newEngine is ready so EntityScriptingInterface has something to use
     auto oldEngine = _entitiesScriptEngine;
 
-    auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
+    auto newEngine = new ScriptEngine(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
     _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, entitiesScriptEngineDeleter);
 
     _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
@@ -169,7 +167,7 @@ void EntityTreeRenderer::init() {
     connect(entityTree.get(), &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
     connect(entityTree.get(), &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
     connect(entityTree.get(), &EntityTree::entityScriptChanging,
-            this, &EntityTreeRenderer::entitySciptChanging, Qt::QueuedConnection);
+            this, &EntityTreeRenderer::entityScriptChanging, Qt::QueuedConnection);
 }
 
 void EntityTreeRenderer::shutdown() {
@@ -939,7 +937,7 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 }
 
 
-void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
+void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         _entitiesScriptEngine->unloadEntityScript(entityID);
         checkAndCallPreload(entityID, reload);
@@ -1063,7 +1061,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         }
     }
 
-    if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
+    if (isCollisionOwner(myNodeID, entityTree, idB, collision)) {
         emit collisionWithEntity(idB, idA, collision);
         if (_entitiesScriptEngine) {
             _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, collision);

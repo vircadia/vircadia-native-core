@@ -19,7 +19,6 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QUrl>
 
-using MessageID = uint32_t;
 using DataOffset = int64_t;
 
 using AssetPath = QString;
@@ -64,4 +63,4 @@ bool isValidFilePath(const AssetPath& path);
 bool isValidPath(const AssetPath& path);
 bool isValidHash(const QString& hashString);
 
-#endif
+#endif // hifi_AssetUtils_h
