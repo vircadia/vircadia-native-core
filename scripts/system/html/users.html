@@ -62,9 +62,23 @@
                 background: rgba(255,255,255,0.15);
             }
 
-            #users-list div {
-                padding-top: 4px;
-                padding-bottom: 4px;
+            .tab-content {
+                display: none;
+            }
+
+            .tab-content.current {
+                display: inherit;
+                background: rgba(255,255,255,0.15);
+            }
+
+            #users-list {
+                list-style: none;
+                padding: 15px 0px 15px 15px;
+                margin: 0;
+            }
+
+            #users-list li {
+                padding: 2px 0px;
             }
 
         </style>
@@ -78,13 +92,13 @@
         </div>
         <div class="main">
             <ul class="tabs">
-                <li class="current">Everyone (10)</li>
-                <li>Friends (2)</li>
+                <li tab-id="tab-1" class="current">Everyone (10)</li>
+                <li tab-id="tab-2">Friends (2)</li>
             </ul>
-            <div id="tab-1">
-                <div id="users-list"></div>
+            <div id="tab-1" class="tab-content current">
+                <ul id="users-list"></ul>
             </div>
-            <div id="tab-2"></div>
+            <div id="tab-2" class="tab-content"></div>
         </div>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script>
@@ -99,11 +113,11 @@
                         console.log(data.users[i].username + "is online but not in a domain");
                         $("#dev-div").append("<p>" + data.users[i].username + "is online but not in a domain</p>");
                     } else {
-                        $("#dev-div").append("<div>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</div>");
+                        $("#dev-div").append("<li>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
                         // Don't display yourself
                         if (data.users[i].username !== myUsername) {
                             console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
-                            $("#users-list").append("<div>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</div>");
+                            $("#users-list").append("<li>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
                         }
                     }
                 }
@@ -142,6 +156,9 @@
                 
                 // Click listener for tabs
                 $(".tabs li").click(function() {
+                    var tabID = $(this).attr("tab-id");
+                    $(".tab-content").removeClass("current");
+                    $("#" + tabID).addClass("current");
                     $(".tabs li").removeClass("current");
                     $(this).addClass("current");
                 });
