@@ -50,23 +50,17 @@ if (Settings.getValue("HUDUIEnabled")) {
 // Disable them in hmd.
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 function onHmdChanged(isHmd) {
-    if (Settings.getValue("HUDUIEnabled")) {
-        button.writeProperty('buttonState', isHmd ? 0 : 1);
-        button.writeProperty('defaultState', isHmd ? 0 : 1);
-        button.writeProperty('hoverState', isHmd ? 2 : 3);
+    //TODO change button icon when the hmd changes
+    if (isHmd) {
+        button.editProperties({
+            icon: "icons/tablet-icons/switch-a.svg",
+            text: "DESKTOP"
+        });
     } else {
-        //TODO change button icon when the hmd changes
-        if (isHmd) {
-            button.editProperties({
-                icon: "icons/tablet-icons/switch-a.svg",
-                text: "DESKTOP"
-            });
-        } else {
-            button.editProperties({
-                icon: "icons/tablet-icons/switch-i.svg",
-                text: "VR"
-            });
-        }
+        button.editProperties({
+            icon: "icons/tablet-icons/switch-i.svg",
+            text: "VR"
+        });
     }
     desktopOnlyViews.forEach(function (view) {
         Menu.setMenuEnabled("View>" + view, !isHmd);
