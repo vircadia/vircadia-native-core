@@ -98,6 +98,12 @@ public:
     static const int MAX_NUM_RESOURCE_TEXTURES = 16;
     size_t getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
 
+    // Texture Tables offers 2 dedicated slot (taken from the ubo slots)
+    static const int MAX_NUM_RESOURCE_TABLE_TEXTURES = 2;
+    static const int RESOURCE_TABLE_TEXTURE_SLOT_OFFSET = TRANSFORM_CAMERA_SLOT + 1;
+    size_t getMaxNumResourceTextureTables() const { return MAX_NUM_RESOURCE_TABLE_TEXTURES; }
+
+
     // Draw Stage
     virtual void do_draw(const Batch& batch, size_t paramOffset) = 0;
     virtual void do_drawIndexed(const Batch& batch, size_t paramOffset) = 0;

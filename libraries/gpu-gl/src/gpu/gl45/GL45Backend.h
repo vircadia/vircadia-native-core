@@ -103,7 +103,7 @@ public:
         friend class GL45Backend;
         using PromoteLambda = std::function<void()>;
 
-
+        const uvec4& getHandle();
     protected:
         GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         ~GL45VariableAllocationTexture();

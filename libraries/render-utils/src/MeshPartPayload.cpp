@@ -145,6 +145,17 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     auto textureCache = DependencyManager::get<TextureCache>();
+    if (!_drawMaterialTextures) {
+        _drawMaterialTextures = std::make_shared<gpu::TextureTable>();
+        _drawMaterialTextures->setTexture(model::MaterialKey::ALBEDO_MAP, textureCache->getWhiteTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::ROUGHNESS_MAP, textureCache->getWhiteTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::NORMAL_MAP, textureCache->getBlueTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::METALLIC_MAP, textureCache->getBlackTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::OCCLUSION_MAP, textureCache->getWhiteTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::SCATTERING_MAP, textureCache->getWhiteTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::EMISSIVE_MAP, textureCache->getBlackTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::LIGHTMAP_MAP, textureCache->getGrayTexture());
+    }
 
     batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, _drawMaterial->getSchemaBuffer());
     batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::TEXMAPARRAY, _drawMaterial->getTexMapArrayBuffer());
@@ -172,9 +183,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isAlbedoMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
-        } else {
-            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getGrayTexture());
+            _drawMaterialTextures->setTexture(model::MaterialKey::ALBEDO_MAP, itr->second->getTextureView());
         }
     }
 
@@ -182,11 +191,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isRoughnessMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
-        } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
+            _drawMaterialTextures->setTexture(model::MaterialKey::ROUGHNESS_MAP, itr->second->getTextureView());
         }
     }
 
@@ -194,11 +199,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isNormalMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
-        } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, textureCache->getBlueTexture());
+            _drawMaterialTextures->setTexture(model::MaterialKey::NORMAL_MAP, itr->second->getTextureView());
         }
     }
 
@@ -206,11 +207,11 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isMetallicMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::METALLIC_MAP, itr->second->getTextureView());
 
             // texcoord are assumed to be the same has albedo
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, textureCache->getBlackTexture());
+            _drawMaterialTextures->setTexture(model::MaterialKey::METALLIC_MAP, textureCache->getBlackTexture());
         }
     }
 
@@ -218,11 +219,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isOcclusionMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
-        } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, textureCache->getWhiteTexture());
+            _drawMaterialTextures->setTexture(model::MaterialKey::OCCLUSION_MAP, itr->second->getTextureView());
         }
     }
 
@@ -230,11 +227,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isScatteringMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
-        } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
+            _drawMaterialTextures->setTexture(model::MaterialKey::SCATTERING_MAP, itr->second->getTextureView());
         }
     }
 
@@ -243,17 +236,16 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::LIGHTMAP_MAP, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
+            _drawMaterialTextures->setTexture(model::MaterialKey::LIGHTMAP_MAP, textureCache->getGrayTexture());
         }
     } else if (materialKey.isEmissiveMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
-
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::EMISSIVE_MAP, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
+            _drawMaterialTextures->setTexture(model::MaterialKey::EMISSIVE_MAP, textureCache->getBlackTexture());
         }
     }
 }
