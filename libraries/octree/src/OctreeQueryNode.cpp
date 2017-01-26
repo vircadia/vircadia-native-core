@@ -1,6 +1,6 @@
 //
 //  OctreeQueryNode.cpp
-//  assignment-client/src/octree
+//  libraries/octree/src
 //
 //  Created by Stephen Birarda on 3/21/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -18,7 +18,6 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
-#include "OctreeSendThread.h"
 
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
@@ -156,65 +155,71 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     if (_isShuttingDown) {
         return false;
     }
-
-    bool currentViewFrustumChanged = false;
-    ViewFrustum newestViewFrustum;
-    // get position and orientation details from the camera
-    newestViewFrustum.setPosition(getCameraPosition());
-    newestViewFrustum.setOrientation(getCameraOrientation());
-
-    newestViewFrustum.setCenterRadius(getCameraCenterRadius());
-
-    // Also make sure it's got the correct lens details from the camera
-    float originalFOV = getCameraFov();
-    float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
-
-    if (0.0f != getCameraAspectRatio() &&
-        0.0f != getCameraNearClip() &&
-        0.0f != getCameraFarClip() &&
-        getCameraNearClip() != getCameraFarClip()) {
-        newestViewFrustum.setProjection(glm::perspective(
-            glm::radians(wideFOV), // hack
-            getCameraAspectRatio(),
-            getCameraNearClip(),
-            getCameraFarClip()));
-    }
-
-
-    { // if there has been a change, then recalculate
-        QMutexLocker viewLocker(&_viewMutex);
-        if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
-            _currentViewFrustum = newestViewFrustum;
-            _currentViewFrustum.calculate();
-            currentViewFrustumChanged = true;
-        }
-    }
-
-    // Also check for LOD changes from the client
-    if (_lodInitialized) {
-        if (_lastClientBoundaryLevelAdjust != getBoundaryLevelAdjust()) {
-            _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
-            _lodChanged = true;
-        }
-        if (_lastClientOctreeSizeScale != getOctreeSizeScale()) {
-            _lastClientOctreeSizeScale = getOctreeSizeScale();
-            _lodChanged = true;
-        }
+    
+    if (!_usesFrustum) {
+        // this client does not use a view frustum so the view frustum for this query has not changed
+        return false;
     } else {
-        _lodInitialized = true;
-        _lastClientOctreeSizeScale = getOctreeSizeScale();
-        _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
-        _lodChanged = false;
+        bool currentViewFrustumChanged = false;
+        
+        ViewFrustum newestViewFrustum;
+        // get position and orientation details from the camera
+        newestViewFrustum.setPosition(getCameraPosition());
+        newestViewFrustum.setOrientation(getCameraOrientation());
+        
+        newestViewFrustum.setCenterRadius(getCameraCenterRadius());
+        
+        // Also make sure it's got the correct lens details from the camera
+        float originalFOV = getCameraFov();
+        float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
+        
+        if (0.0f != getCameraAspectRatio() &&
+            0.0f != getCameraNearClip() &&
+            0.0f != getCameraFarClip() &&
+            getCameraNearClip() != getCameraFarClip()) {
+            newestViewFrustum.setProjection(glm::perspective(
+                                                             glm::radians(wideFOV), // hack
+                                                             getCameraAspectRatio(),
+                                                             getCameraNearClip(),
+                                                             getCameraFarClip()));
+        }
+        
+        
+        { // if there has been a change, then recalculate
+            QMutexLocker viewLocker(&_viewMutex);
+            if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
+                _currentViewFrustum = newestViewFrustum;
+                _currentViewFrustum.calculate();
+                currentViewFrustumChanged = true;
+            }
+        }
+        
+        // Also check for LOD changes from the client
+        if (_lodInitialized) {
+            if (_lastClientBoundaryLevelAdjust != getBoundaryLevelAdjust()) {
+                _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
+                _lodChanged = true;
+            }
+            if (_lastClientOctreeSizeScale != getOctreeSizeScale()) {
+                _lastClientOctreeSizeScale = getOctreeSizeScale();
+                _lodChanged = true;
+            }
+        } else {
+            _lodInitialized = true;
+            _lastClientOctreeSizeScale = getOctreeSizeScale();
+            _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
+            _lodChanged = false;
+        }
+        
+        // When we first detect that the view stopped changing, we record this.
+        // but we don't change it back to false until we've completely sent this
+        // scene.
+        if (_viewFrustumChanging && !currentViewFrustumChanged) {
+            _viewFrustumJustStoppedChanging = true;
+        }
+        _viewFrustumChanging = currentViewFrustumChanged;
+        return currentViewFrustumChanged;
     }
-
-    // When we first detect that the view stopped changing, we record this.
-    // but we don't change it back to false until we've completely sent this
-    // scene.
-    if (_viewFrustumChanging && !currentViewFrustumChanged) {
-        _viewFrustumJustStoppedChanging = true;
-    }
-    _viewFrustumChanging = currentViewFrustumChanged;
-    return currentViewFrustumChanged;
 }
 
 void OctreeQueryNode::setViewSent(bool viewSent) {
@@ -314,4 +319,16 @@ void OctreeQueryNode::parseNackPacket(ReceivedMessage& message) {
         message.readPrimitive(&sequenceNumber);
         _nackedSequenceNumbers.enqueue(sequenceNumber);
     }
+}
+
+bool OctreeQueryNode::haveJSONParametersChanged() {
+    bool parametersChanged = false;
+    auto currentParameters = getJSONParameters();
+
+    if (_lastCheckJSONParameters != currentParameters) {
+        parametersChanged = true;
+        _lastCheckJSONParameters = currentParameters;
+    }
+
+    return parametersChanged;
 }

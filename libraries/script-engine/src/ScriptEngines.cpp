@@ -62,8 +62,9 @@ void ScriptEngines::onErrorLoadingScript(const QString& url) {
     emit errorLoadingScript(url, scriptName);
 }
 
-ScriptEngines::ScriptEngines()
-    : _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
+ScriptEngines::ScriptEngines(ScriptEngine::Context context)
+    : _context(context),
+      _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
 {
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
@@ -453,7 +454,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         return scriptEngine;
     }
 
-    scriptEngine = new ScriptEngine(NO_SCRIPT, "");
+    scriptEngine = new ScriptEngine(_context, NO_SCRIPT, "");
     scriptEngine->setUserLoaded(isUserLoaded);
     connect(scriptEngine, &ScriptEngine::doneRunning, this, [scriptEngine] {
         scriptEngine->deleteLater();

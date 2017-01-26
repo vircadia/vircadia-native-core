@@ -20,6 +20,7 @@
 #include <SettingHandle.h>
 #include <DependencyManager.h>
 
+#include "ScriptEngine.h"
 #include "ScriptsModel.h"
 #include "ScriptsModelFilter.h"
 
@@ -34,7 +35,7 @@ class ScriptEngines : public QObject, public Dependency {
 public:
     using ScriptInitializer = std::function<void(ScriptEngine*)>;
 
-    ScriptEngines();
+    ScriptEngines(ScriptEngine::Context context);
     void registerScriptInitializer(ScriptInitializer initializer);
 
     void loadScripts();
@@ -90,7 +91,6 @@ public slots:
 protected slots:
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
 
-
 protected:
     friend class ScriptEngine;
 
@@ -101,6 +101,7 @@ protected:
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
 
+    ScriptEngine::Context _context;
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
     QSet<ScriptEngine*> _allKnownScriptEngines;

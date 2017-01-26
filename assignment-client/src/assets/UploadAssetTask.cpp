@@ -18,6 +18,8 @@
 #include <NodeList.h>
 #include <NLPacketList.h>
 
+#include "ClientServerUtils.h"
+
 
 UploadAssetTask::UploadAssetTask(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode,
                                  const QDir& resourcesDir) :
