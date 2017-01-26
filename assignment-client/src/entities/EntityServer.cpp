@@ -367,9 +367,9 @@ void EntityServer::scriptRequestFinished() {
                 if (_scriptRequestLoop.isRunning()) {
                     _scriptRequestLoop.quit();
                 }
+                return;
             }
         }
-        return;
     } else if (scriptRequest) {
         qCritical() << "Failed to download script at" << urlString;
         // See HTTPResourceRequest::onRequestFinished for interpretation of codes. For example, a 404 is code 6 and 403 is 3. A timeout is 2. Go figure.
@@ -380,6 +380,9 @@ void EntityServer::scriptRequestFinished() {
     // Hard stop of the assignment client on failure. We don't want anyone to think they have a filter in place when they don't.
     // Alas, only indications will be the above logging with assignment client restarting repeatedly, and clients will not see any entities.
     stop();
+    if (_scriptRequestLoop.isRunning()) {
+        _scriptRequestLoop.quit();
+    }
 }
 
 void EntityServer::nodeAdded(SharedNodePointer node) {
