@@ -1294,7 +1294,7 @@
           "name": "entityEditFilter",
           "label": "Filter Entity Edits",
           "help": "Check all entity edits against this filter function.",
-          "placeholder": "function filter(properties) { return properties; }",
+          "placeholder": "url whose content is like: function filter(properties) { return properties; }",
           "default": "",
           "advanced": true
         },
