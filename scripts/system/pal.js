@@ -478,7 +478,7 @@ triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Cont
 // Manage the connection between the button and the window.
 //
 var button;
-var buttonName = "PAL";
+var buttonName = "PEOPLE";
 var tablet = null;
 var toolBar = null;
 if (Settings.getValue("HUDUIEnabled")) {
