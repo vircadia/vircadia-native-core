@@ -39,7 +39,7 @@ if (Settings.getValue("HUDUIEnabled")) {
     button = tablet.addButton({
         icon: "icons/tablet-icons/mic-a.svg",
         text: buttonName,
-        activeIcon: "icons/// TODO: ablet-icons/mic-i.svg",
+        activeIcon: "icons/tablet-icons/mic-i.svg",
         activeText: "UNMUTE"
     });
 }
