@@ -25,7 +25,7 @@ var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
 
-var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
+var TABLET_URL = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
 
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
