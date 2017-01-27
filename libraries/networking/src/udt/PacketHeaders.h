@@ -220,7 +220,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     HasKillAvatarReason,
     SessionDisplayName,
     Unignore,
-    ImmediateSessionDisplayNameUpdates
+    ImmediateSessionDisplayNameUpdates,
+    VariableAvatarData
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

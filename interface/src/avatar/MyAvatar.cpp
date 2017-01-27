@@ -226,23 +226,24 @@ void MyAvatar::simulateAttachments(float deltaTime) {
     // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
 }
 
-QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail) {
+QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+                        bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
     CameraMode mode = qApp->getCamera()->getMode();
     _globalPosition = getPosition();
-    _globalBoundingBoxCorner.x = _characterController.getCapsuleRadius();
-    _globalBoundingBoxCorner.y = _characterController.getCapsuleHalfHeight();
-    _globalBoundingBoxCorner.z = _characterController.getCapsuleRadius();
-    _globalBoundingBoxCorner += _characterController.getCapsuleLocalOffset();
+    _globalBoundingBoxDimensions.x = _characterController.getCapsuleRadius();
+    _globalBoundingBoxDimensions.y = _characterController.getCapsuleHalfHeight();
+    _globalBoundingBoxDimensions.z = _characterController.getCapsuleRadius();
+    _globalBoundingBoxOffset = _characterController.getCapsuleLocalOffset();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getPosition();
         setPosition(getSkeletonPosition());
-        QByteArray array = AvatarData::toByteArray(dataDetail);
+        QByteArray array = AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
         // copy the correct position back
         setPosition(oldPosition);
         return array;
     }
-    return AvatarData::toByteArray(dataDetail);
+    return AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
 }
 
 void MyAvatar::centerBody() {

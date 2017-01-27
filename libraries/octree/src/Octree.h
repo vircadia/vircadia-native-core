@@ -356,6 +356,7 @@ public:
     virtual quint64 getAverageUpdateTime() const { return 0;  }
     virtual quint64 getAverageCreateTime() const { return 0;  }
     virtual quint64 getAverageLoggingTime() const { return 0;  }
+    virtual quint64 getAverageFilterTime() const { return 0; }
 
 signals:
     void importSize(float x, float y, float z);
