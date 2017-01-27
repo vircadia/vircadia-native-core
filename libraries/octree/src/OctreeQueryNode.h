@@ -1,6 +1,6 @@
 //
 //  OctreeQueryNode.h
-//  assignment-client/src/octree
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -15,11 +15,11 @@
 #include <iostream>
 
 #include <NodeData.h>
-#include <OctreeConstants.h>
-#include <OctreeElementBag.h>
-#include <OctreePacketData.h>
-#include <OctreeQuery.h>
-#include <OctreeSceneStats.h>
+#include "OctreeConstants.h"
+#include "OctreeElementBag.h"
+#include "OctreePacketData.h"
+#include "OctreeQuery.h"
+#include "OctreeSceneStats.h"
 #include "SentPacketHistory.h"
 #include <qqueue.h>
 
@@ -100,6 +100,9 @@ public:
     bool hasNextNackedPacket() const;
     const NLPacket* getNextNackedPacket();
 
+    // call only from OctreeSendThread for the given node
+    bool haveJSONParametersChanged();
+
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -143,6 +146,8 @@ private:
     quint64 _sceneSendStartTime = 0;
 
     std::array<char, udt::MAX_PACKET_SIZE> _lastOctreePayload;
+
+    QJsonObject _lastCheckJSONParameters;
 };
 
 #endif // hifi_OctreeQueryNode_h

@@ -68,7 +68,7 @@ void GetMappingRequest::doStart() {
     _mappingRequestID = assetClient->getAssetMapping(_path,
             [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
-        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
+        _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -100,7 +100,7 @@ void GetAllMappingsRequest::doStart() {
     _mappingRequestID = assetClient->getAllAssetMappings(
             [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
-        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
+        _mappingRequestID = INVALID_MESSAGE_ID;
 
         if (!responseReceived) {
             _error = NetworkError;
@@ -152,7 +152,7 @@ void SetMappingRequest::doStart() {
     _mappingRequestID = assetClient->setAssetMapping(_path, _hash,
             [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
-        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
+        _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -195,7 +195,7 @@ void DeleteMappingsRequest::doStart() {
     _mappingRequestID = assetClient->deleteAssetMappings(_paths,
             [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
-        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
+        _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -237,7 +237,7 @@ void RenameMappingRequest::doStart() {
     _mappingRequestID = assetClient->renameAssetMapping(_oldPath, _newPath,
             [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
-        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
+        _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {

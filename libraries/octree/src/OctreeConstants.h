@@ -12,7 +12,7 @@
 #ifndef hifi_OctreeConstants_h
 #define hifi_OctreeConstants_h
 
-#include <QtGlobal> // for quint64
+#include <QtCore/QString> // for quint64/QString
 #include <glm/glm.hpp>
 
 const quint64 CHANGE_FUDGE = 1000 * 200; // useconds of fudge in determining if we want to resend changed voxels

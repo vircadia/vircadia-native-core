@@ -56,6 +56,7 @@ typedef unsigned long long quint64;
 #include <Packed.h>
 #include <ThreadSafeValueCache.h>
 #include <SharedUtil.h>
+#include <shared/RateCounter.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -81,8 +82,6 @@ const quint32 AVATAR_MOTION_DEFAULTS =
 const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
         AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
-const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
-
 // Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
 // backward compatibility. The bits are ordered as such (0-7 left to right).
@@ -101,6 +100,7 @@ const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 
+
 const char HAND_STATE_NULL = 0;
 const char LEFT_HAND_POINTING_FLAG = 1;
 const char RIGHT_HAND_POINTING_FLAG = 2;
@@ -110,6 +110,131 @@ const char IS_FINGER_POINTING_FLAG = 4;
 // before the "header" structure
 const char AVATARDATA_FLAGS_MINIMUM = 0;
 
+using SmallFloat = uint16_t; // a compressed float with less precision, user defined radix
+
+namespace AvatarDataPacket {
+
+    // NOTE: every time AvatarData is sent from mixer to client, it also includes the GUIID for the session
+    // this is 16bytes of data at 45hz that's 5.76kbps
+    // it might be nice to use a dictionary to compress that
+
+    // Packet State Flags - we store the details about the existence of other records in this bitset:
+    // AvatarGlobalPosition, Avatar Faceshift, eye tracking, and existence of
+    using HasFlags = uint16_t;
+    const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION = 1U << 0;
+    const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX    = 1U << 1;
+    const HasFlags PACKET_HAS_AVATAR_ORIENTATION     = 1U << 2;
+    const HasFlags PACKET_HAS_AVATAR_SCALE           = 1U << 3;
+    const HasFlags PACKET_HAS_LOOK_AT_POSITION       = 1U << 4;
+    const HasFlags PACKET_HAS_AUDIO_LOUDNESS         = 1U << 5;
+    const HasFlags PACKET_HAS_SENSOR_TO_WORLD_MATRIX = 1U << 6;
+    const HasFlags PACKET_HAS_ADDITIONAL_FLAGS       = 1U << 7;
+    const HasFlags PACKET_HAS_PARENT_INFO            = 1U << 8;
+    const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 9;
+    const HasFlags PACKET_HAS_FACE_TRACKER_INFO      = 1U << 10;
+    const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
+
+    // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
+
+    PACKED_BEGIN struct Header {
+        HasFlags packetHasFlags;        // state flags, indicated which additional records are included in the packet
+    } PACKED_END;
+    const size_t HEADER_SIZE = 2;
+
+    PACKED_BEGIN struct AvatarGlobalPosition {
+        float globalPosition[3];          // avatar's position
+    } PACKED_END;
+    const size_t AVATAR_GLOBAL_POSITION_SIZE = 12;
+
+    PACKED_BEGIN struct AvatarBoundingBox {
+        float avatarDimensions[3];        // avatar's bounding box in world space units, but relative to the position.
+        float boundOriginOffset[3];       // offset from the position of the avatar to the origin of the bounding box
+    } PACKED_END;
+    const size_t AVATAR_BOUNDING_BOX_SIZE = 24;
+
+
+    using SixByteQuat = uint8_t[6];
+    PACKED_BEGIN struct AvatarOrientation {
+        SixByteQuat avatarOrientation;      // encodeded and compressed by packOrientationQuatToSixBytes()
+    } PACKED_END;
+    const size_t AVATAR_ORIENTATION_SIZE = 6;
+
+    PACKED_BEGIN struct AvatarScale {
+        SmallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte() 
+    } PACKED_END;
+    const size_t AVATAR_SCALE_SIZE = 2;
+
+    PACKED_BEGIN struct LookAtPosition {
+        float lookAtPosition[3];          // world space position that eyes are focusing on.
+                                          // FIXME - unless the person has an eye tracker, this is simulated... 
+                                          //    a) maybe we can just have the client calculate this
+                                          //    b) at distance this will be hard to discern and can likely be 
+                                          //       descimated or dropped completely
+                                          //
+                                          // POTENTIAL SAVINGS - 12 bytes
+    } PACKED_END;
+    const size_t LOOK_AT_POSITION_SIZE = 12;
+
+    PACKED_BEGIN struct AudioLoudness {
+        uint8_t audioLoudness;            // current loudness of microphone compressed with packFloatGainToByte()
+    } PACKED_END;
+    const size_t AUDIO_LOUDNESS_SIZE = 1;
+
+    PACKED_BEGIN struct SensorToWorldMatrix {
+        // FIXME - these 20 bytes are only used by viewers if my avatar has "attachments"
+        // we could save these bytes if no attachments are active.
+        //
+        // POTENTIAL SAVINGS - 20 bytes
+
+        SixByteQuat sensorToWorldQuat;     // 6 byte compressed quaternion part of sensor to world matrix
+        uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
+        float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
+                                          // FIXME - sensorToWorldTrans might be able to be better compressed if it was
+                                          // relative to the avatar position.
+    } PACKED_END;
+    const size_t SENSOR_TO_WORLD_SIZE = 20;
+
+    PACKED_BEGIN struct AdditionalFlags {
+        uint8_t flags;                    // additional flags: hand state, key state, eye tracking
+    } PACKED_END;
+    const size_t ADDITIONAL_FLAGS_SIZE = 1;
+
+    // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
+    PACKED_BEGIN struct ParentInfo {
+        uint8_t parentUUID[16];       // rfc 4122 encoded
+        uint16_t parentJointIndex;
+    } PACKED_END;
+    const size_t PARENT_INFO_SIZE = 18;
+
+    // will only ever be included if the avatar has a parent but can change independent of changes to parent info
+    // and so we keep it a separate record
+    PACKED_BEGIN struct AvatarLocalPosition {
+        float localPosition[3];           // parent frame translation of the avatar
+    } PACKED_END;
+    const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
+
+    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
+    PACKED_BEGIN struct FaceTrackerInfo {
+        float leftEyeBlink;
+        float rightEyeBlink;
+        float averageLoudness;
+        float browAudioLift;
+        uint8_t numBlendshapeCoefficients;
+        // float blendshapeCoefficients[numBlendshapeCoefficients];
+    } PACKED_END;
+    const size_t FACE_TRACKER_INFO_SIZE = 17;
+
+    // variable length structure follows
+    /*
+    struct JointData {
+        uint8_t numJoints;
+        uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
+        SixByteQuat rotation[numValidRotations];               // encodeded and compressed by packOrientationQuatToSixBytes()
+        uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
+        SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+    };
+    */
+}
 
 static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
@@ -126,6 +251,16 @@ const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02f;
 // this controls how large a change in joint-rotation must be before the interface sends it to the avatar mixer
 const float AVATAR_MIN_ROTATION_DOT = 0.9999999f;
 const float AVATAR_MIN_TRANSLATION = 0.0001f;
+
+const float ROTATION_CHANGE_15D = 0.9914449f;
+const float ROTATION_CHANGE_45D = 0.9238795f;
+const float ROTATION_CHANGE_90D = 0.7071068f;
+const float ROTATION_CHANGE_179D = 0.0087266f;
+
+const float AVATAR_DISTANCE_LEVEL_1 = 10.0f;
+const float AVATAR_DISTANCE_LEVEL_2 = 100.0f;
+const float AVATAR_DISTANCE_LEVEL_3 = 1000.0f;
+const float AVATAR_DISTANCE_LEVEL_4 = 10000.0f;
 
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
@@ -216,7 +351,9 @@ public:
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail);
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+                        bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr);
+
     virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged
@@ -264,14 +401,14 @@ public:
 
     //  Scale
     float getTargetScale() const;
-    void setTargetScale(float targetScale);
-    void setTargetScaleVerbose(float targetScale);
+    virtual void setTargetScale(float targetScale);
 
     float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
+
     void setDomainMinimumScale(float domainMinimumScale)
-        { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); }
-    void setDomainMaximumScale(float domainMaximumScale)
-        { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); }
+        { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
+    void setDomainMaximumScale(float domainMaximumScale) 
+        { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
@@ -371,8 +508,6 @@ public:
 
     const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
 
-    bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
-
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
@@ -380,7 +515,7 @@ public:
     void fromJson(const QJsonObject& json);
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
-    glm::vec3 getGlobalBoundingBoxCorner() { return _globalBoundingBoxCorner; }
+    glm::vec3 getGlobalBoundingBoxCorner() { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
@@ -391,6 +526,17 @@ public:
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
+
+    float getDataRate(const QString& rateName = QString(""));
+
+    int getJointCount() { return _jointData.size(); }
+
+    QVector<JointData> getLastSentJointData() { 
+        QReadLocker readLock(&_jointDataLock);
+        _lastSentJointData.resize(_jointData.size());
+        return _lastSentJointData;
+    }
+
 
 public slots:
     void sendAvatarDataPacket();
@@ -406,7 +552,27 @@ public slots:
 
     float getTargetScale() { return _targetScale; }
 
+    void resetLastSent() { _lastToByteArray = 0; }
+
 protected:
+    void lazyInitHeadData();
+
+    float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition);
+    float getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition);
+
+    bool avatarBoundingBoxChangedSince(quint64 time);
+    bool avatarScaleChangedSince(quint64 time);
+    bool lookAtPositionChangedSince(quint64 time);
+    bool audioLoudnessChangedSince(quint64 time);
+    bool sensorToWorldMatrixChangedSince(quint64 time);
+    bool additionalFlagsChangedSince(quint64 time);
+
+    bool hasParent() { return !getParentID().isNull(); }
+    bool parentInfoChangedSince(quint64 time);
+
+    bool hasFaceTracker() { return _headData ? _headData->_isFaceTrackerConnected : false; }
+    bool faceTrackerInfoChangedSince(quint64 time);
+
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
@@ -427,8 +593,7 @@ protected:
     KeyState _keyState;
 
     bool _forceFaceTrackerConnected;
-    bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
-    bool _hasNewJointTranslations; // set in AvatarData, cleared in Avatar
+    bool _hasNewJointData; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
 
@@ -466,8 +631,35 @@ protected:
     // _globalPosition is sent along with localPosition + parent because the avatar-mixer doesn't know
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
-    glm::vec3 _globalPosition;
-    glm::vec3 _globalBoundingBoxCorner;
+    glm::vec3 _globalPosition { 0, 0, 0 };
+
+
+    quint64 _globalPositionChanged { 0 };
+    quint64 _avatarBoundingBoxChanged { 0 };
+    quint64 _avatarScaleChanged { 0 };
+    quint64 _sensorToWorldMatrixChanged { 0 };
+    quint64 _additionalFlagsChanged { 0 };
+    quint64 _parentChanged { 0 };
+
+    quint64  _lastToByteArray { 0 }; // tracks the last time we did a toByteArray
+
+    // Some rate data for incoming data
+    RateCounter<> _parseBufferRate;
+    RateCounter<> _globalPositionRate;
+    RateCounter<> _localPositionRate;
+    RateCounter<> _avatarBoundingBoxRate;
+    RateCounter<> _avatarOrientationRate;
+    RateCounter<> _avatarScaleRate;
+    RateCounter<> _lookAtPositionRate;
+    RateCounter<> _audioLoudnessRate;
+    RateCounter<> _sensorToWorldRate;
+    RateCounter<> _additionalFlagsRate;
+    RateCounter<> _parentInfoRate;
+    RateCounter<> _faceTrackerRate;
+    RateCounter<> _jointDataRate;
+
+    glm::vec3 _globalBoundingBoxDimensions;
+    glm::vec3 _globalBoundingBoxOffset;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar

@@ -390,8 +390,12 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     return result;
 }
 
-void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload) {
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, bool reload) {
     emit entityScriptChanging(entityItemID, reload);
+}
+
+void EntityTree::emitEntityServerScriptChanging(const EntityItemID& entityItemID, bool reload) {
+    emit entityServerScriptChanging(entityItemID, reload);
 }
 
 void EntityTree::notifyNewCollisionSoundURL(const QString& newURL, const EntityItemID& entityID) {
@@ -918,6 +922,56 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
+void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions) {
+    _entityEditFilterEngine = engine;
+    _entityEditFilterHadUncaughtExceptions = entityEditFilterHadUncaughtExceptions;
+    auto global = _entityEditFilterEngine->globalObject();
+    _entityEditFilterFunction = global.property("filter");
+    _hasEntityEditFilter = _entityEditFilterFunction.isFunction();
+}
+
+bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
+    if (!_hasEntityEditFilter || !_entityEditFilterEngine) {
+        propertiesOut = propertiesIn;
+        wasChanged = false; // not changed
+        return true; // allowed
+    }
+    auto oldProperties = propertiesIn.getDesiredProperties();
+    auto specifiedProperties = propertiesIn.getChangedProperties();
+    propertiesIn.setDesiredProperties(specifiedProperties);
+    QScriptValue inputValues = propertiesIn.copyToScriptValue(_entityEditFilterEngine, false, true, true);
+    propertiesIn.setDesiredProperties(oldProperties);
+
+    auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
+    QScriptValueList args;
+    args << inputValues;
+
+    QScriptValue result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
+    if (_entityEditFilterHadUncaughtExceptions()) {
+        result = QScriptValue();
+    }
+
+    bool accepted = result.isObject(); // filters should return null or false to completely reject edit or add
+    if (accepted) {
+        propertiesOut.copyFromScriptValue(result, false);
+        // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
+        auto out = QJsonValue::fromVariant(result.toVariant());
+        wasChanged = in != out;
+    }
+
+    return accepted;
+}
+
+void EntityTree::bumpTimestamp(EntityItemProperties& properties) { //fixme put class/header
+    const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
+    // also bump up the lastEdited time of the properties so that the interface that created this edit
+    // will accept our adjustment to lifetime back into its own entity-tree.
+    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
+        properties.setLastEdited(usecTimestampNow());
+    }
+    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -941,9 +995,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startLookup = 0, endLookup = 0;
             quint64 startUpdate = 0, endUpdate = 0;
             quint64 startCreate = 0, endCreate = 0;
+            quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
 
-            const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
             bool suppressDisallowedScript = false;
 
             _totalEditMessages++;
@@ -995,18 +1049,28 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
                     properties.getLifetime() > _maxTmpEntityLifetime) {
                     properties.setLifetime(_maxTmpEntityLifetime);
-                    // also bump up the lastEdited time of the properties so that the interface that created this edit
-                    // will accept our adjustment to lifetime back into its own entity-tree.
-                    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
-                        properties.setLastEdited(usecTimestampNow());
-                    }
-                    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                    bumpTimestamp(properties);
                 }
             }
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
+
+                startFilter = usecTimestampNow();
+                bool wasChanged = false;
+                // Having (un)lock rights bypasses the filter.
+                bool allowed = senderNode->isAllowedEditor() || filterProperties(properties, properties, wasChanged);
+                if (!allowed) {
+                    properties = EntityItemProperties();
+                }
+                if (!allowed || wasChanged) {
+                    bumpTimestamp(properties);
+                    // For now, free ownership on any modification.
+                    properties.clearSimulationOwner();
+                }
+                endFilter = usecTimestampNow();
+
                 // search for the entity by EntityItemID
                 startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
@@ -1014,7 +1078,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 if (existingEntity && message.getType() == PacketType::EntityEdit) {
 
                     if (suppressDisallowedScript) {
-                        properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                        bumpTimestamp(properties);
                         properties.setScript(existingEntity->getScript());
                     }
 
@@ -1084,6 +1148,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             _totalUpdateTime += endUpdate - startUpdate;
             _totalCreateTime += endCreate - startCreate;
             _totalLoggingTime += endLogging - startLogging;
+            _totalFilterTime += endFilter - startFilter;
 
             break;
         }

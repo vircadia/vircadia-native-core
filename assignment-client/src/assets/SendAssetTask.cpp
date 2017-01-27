@@ -21,6 +21,7 @@
 #include <udt/Packet.h>
 
 #include "AssetUtils.h"
+#include "ClientServerUtils.h"
 
 SendAssetTask::SendAssetTask(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& sendToNode, const QDir& resourcesDir) :
     QRunnable(),

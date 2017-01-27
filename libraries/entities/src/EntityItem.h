@@ -125,7 +125,7 @@ public:
     void markAsChangedOnServer() { _changedOnServer = usecTimestampNow();  }
     quint64 getLastChangedOnServer() const { return _changedOnServer; }
 
-    // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+    // TODO: eventually only include properties changed since the params.lastQuerySent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -254,11 +254,15 @@ public:
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
 
-    const QString& getScript() const { return _script; }
+    QString getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 
     quint64 getScriptTimestamp() const { return _scriptTimestamp; }
     void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
+
+    QString getServerScripts() const { return _serverScripts; }
+    void setServerScripts(const QString& serverScripts)
+        { _serverScripts = serverScripts; _serverScriptsChangedTimestamp = usecTimestampNow(); }
 
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& value);
@@ -463,6 +467,8 @@ public:
 
     QUuid getLastEditedBy() const { return _lastEditedBy; }
     void setLastEditedBy(QUuid value) { _lastEditedBy = value; }
+    
+    bool matchesJSONFilters(const QJsonObject& jsonFilters) const;
 
 protected:
 
@@ -510,6 +516,10 @@ protected:
     QString _script; /// the value of the script property
     QString _loadedScript; /// the value of _script when the last preload signal was sent
     quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+
+    QString _serverScripts;
+    /// keep track of time when _serverScripts property was last changed
+    quint64 _serverScriptsChangedTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP };
 
     /// the value of _scriptTimestamp when the last preload signal was sent
     // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it

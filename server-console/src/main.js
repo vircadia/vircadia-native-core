@@ -582,7 +582,7 @@ function checkNewContent() {
     if (argv.noUpdater) {
       return;
     }
-    
+
     // Start downloading content set
     var req = request.head({
         url: HOME_CONTENT_URL
@@ -859,7 +859,7 @@ function onContentLoaded() {
 
     if (dsPath && acPath) {
         domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
-        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
+        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n7',
                                                                 '--log-directory', logPath,
                                                                 '--http-status-port', httpStatusPort], httpStatusPort, logPath);
         homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
