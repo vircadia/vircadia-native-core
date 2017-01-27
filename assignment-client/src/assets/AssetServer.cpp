@@ -35,7 +35,9 @@
 static const uint8_t MIN_CORES_FOR_MULTICORE = 4;
 static const uint8_t CPU_AFFINITY_COUNT_HIGH = 2;
 static const uint8_t CPU_AFFINITY_COUNT_LOW = 1;
+#ifdef Q_OS_WIN
 static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
+#endif
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 

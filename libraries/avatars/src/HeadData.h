@@ -19,6 +19,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <SharedUtil.h>
+
 // degrees
 const float MIN_HEAD_YAW = -180.0f;
 const float MAX_HEAD_YAW = 180.0f;
@@ -56,7 +58,13 @@ public:
     void setOrientation(const glm::quat& orientation);
 
     float getAudioLoudness() const { return _audioLoudness; }
-    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
+    void setAudioLoudness(float audioLoudness) { 
+        if (audioLoudness != _audioLoudness) {
+            _audioLoudnessChanged = usecTimestampNow();
+        }
+        _audioLoudness = audioLoudness; 
+    }
+    bool audioLoudnessChangedSince(quint64 time) { return _audioLoudnessChanged >= time; }
 
     float getAudioAverageLoudness() const { return _audioAverageLoudness; }
     void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
@@ -66,7 +74,13 @@ public:
     void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
 
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
-    void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
+    void setLookAtPosition(const glm::vec3& lookAtPosition) { 
+        if (_lookAtPosition != lookAtPosition) {
+            _lookAtPositionChanged = usecTimestampNow();
+        }
+        _lookAtPosition = lookAtPosition;
+    }
+    bool lookAtPositionChangedSince(quint64 time) { return _lookAtPositionChanged >= time; }
 
     friend class AvatarData;
 
@@ -80,7 +94,11 @@ protected:
     float _baseRoll;
 
     glm::vec3 _lookAtPosition;
+    quint64 _lookAtPositionChanged { 0 };
+
     float _audioLoudness;
+    quint64 _audioLoudnessChanged { 0 };
+
     bool _isFaceTrackerConnected;
     bool _isEyeTrackerConnected;
     float _leftEyeBlink;

@@ -1291,6 +1291,14 @@
           "advanced": true
         },
         {
+          "name": "entityEditFilter",
+          "label": "Filter Entity Edits",
+          "help": "Check all entity edits against this filter function.",
+          "placeholder": "url whose content is like: function filter(properties) { return properties; }",
+          "default": "",
+          "advanced": true
+        },
+        {
           "name": "persistFilePath",
           "label": "Entities File Path",
           "help": "The path to the file entities are stored in.<br/>If this path is relative it will be relative to the application data directory.<br/>The filename must end in .json.gz.",
