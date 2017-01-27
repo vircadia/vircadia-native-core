@@ -92,6 +92,7 @@ void SparseInfo::maybeMakeSparse() {
     if (!texture._gpuObject.isAutogenerateMips()) {
         return;
     }
+    return;
 
     const uvec3 dimensions = texture._gpuObject.getDimensions();
     auto allowedPageDimensions = getPageDimensionsForFormat(texture._target, texture._internalFormat);
