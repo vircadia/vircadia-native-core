@@ -12,9 +12,12 @@
 
 (function() { // BEGIN LOCAL_SCOPE
     var USERS_URL = "https://hifi-content.s3.amazonaws.com/faye/tablet-dev/users.html";
+    var FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
+    var FRIENDS_WINDOW_WIDTH = 290;
+    var FRIENDS_WINDOW_HEIGHT = 500;
+    var FRIENDS_WINDOW_TITLE = "Add/Remove Friends";
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
-        // TODO: work with Alan to make new icon art
         icon: "icons/tablet-icons/people-i.svg",
         text: "Users"
     });
@@ -37,7 +40,19 @@
             };
             print("sending username: " + myUsername);
             tablet.emitScriptEvent(JSON.stringify(object));
-        } 
+        }
+        if (event.type === "manage-friends") {
+            // open a web overlay to metaverse friends page
+            var friendsWindow = new OverlayWebWindow({
+                title: FRIENDS_WINDOW_TITLE,
+                width: FRIENDS_WINDOW_WIDTH,
+                height: FRIENDS_WINDOW_HEIGHT,
+                visible: false
+            });
+            friendsWindow.setURL(FRIENDS_WINDOW_URL);
+            friendsWindow.setVisible(true);
+            friendsWindow.raise();
+        }
     }
 
     button.clicked.connect(onClicked);

@@ -100,6 +100,7 @@
             </div>
             <div id="tab-2" class="tab-content">
                 <ul></ul>
+                <button id="friends-button">Add/Remove Friends</button>
             </div>
         </div>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
@@ -190,6 +191,13 @@
                 // Send a ready event to hifi
                 var eventObject = {"type": "ready"};
                 EventBridge.emitWebEvent(JSON.stringify(eventObject));
+
+                // Click listener mangage friends button
+                $("#friends-button").click(function() {
+                    // Send a manage friends event to hifi
+                    eventObject = {"type": "manage-friends"};
+                    EventBridge.emitWebEvent(JSON.stringify(eventObject));
+                });
             });
         </script>
     </body>
