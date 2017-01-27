@@ -15,7 +15,6 @@ var DEFAULT_SCRIPTS = [
     "system/progress.js",
     "system/away.js",
     "system/users.js",
-    "system/friends.js",
     "system/mute.js",
     "system/goto.js",
     "system/hmd.js",
