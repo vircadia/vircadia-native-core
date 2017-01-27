@@ -162,6 +162,10 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                     glm::vec3 relativePosition = nodeStream->getPosition() - listenerAudioStream->getPosition();
                     float gain = approximateGain(*listenerAudioStream, *nodeStream, relativePosition);
 
+                    // modify by hrtf gain adjustment
+                    auto& hrtf = listenerData->hrtfForStream(nodeID, nodeStream->getStreamIdentifier());
+                    gain *= hrtf.getGainAdjustment();
+
                     auto streamVolume = nodeStream->getLastPopOutputTrailingLoudness() * gain;
                     nodeVolume = std::max(streamVolume, nodeVolume);
                 }
