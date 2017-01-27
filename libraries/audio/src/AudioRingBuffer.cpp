@@ -135,17 +135,17 @@ int AudioRingBufferTemplate<T>::appendData(char *data, int maxSize) {
 
         // read to the end of the buffer
         for (int i = 0; i < numSamplesToEnd; i++) {
-            *dest++ = *output++;
+            *dest++ += *output++;
         }
 
         // read the rest from the beginning of the buffer
         output = _buffer;
         for (int i = 0; i < (numReadSamples - numSamplesToEnd); i++) {
-            *dest++ = *output++;
+            *dest++ += *output++;
         }
     } else {
         for (int i = 0; i < numReadSamples; i++) {
-            *dest++ = *output++;
+            *dest++ += *output++;
         }
     }
 
