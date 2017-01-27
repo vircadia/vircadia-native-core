@@ -185,11 +185,9 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         _this.mouseReleaseEvent(event);
     };
 
-    if (!HMD.active) {
-        Controller.mousePressEvent.connect(this.myMousePressEvent);
-        Controller.mouseMoveEvent.connect(this.myMouseMoveEvent);
-        Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
-    }
+    Controller.mousePressEvent.connect(this.myMousePressEvent);
+    Controller.mouseMoveEvent.connect(this.myMouseMoveEvent);
+    Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
 
     this.dragging = false;
     this.initialLocalIntersectionPoint = {x: 0, y: 0, z: 0};
@@ -224,11 +222,10 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
-    if (!HMD.active) {
-        Controller.mousePressEvent.disconnect(this.myMousePressEvent);
-        Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
-        Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
-    }
+    
+    Controller.mousePressEvent.disconnect(this.myMousePressEvent);
+    Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
+    Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
 
     Window.geometryChanged.disconnect(this.myGeometryChanged);
 };
