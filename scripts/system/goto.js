@@ -20,13 +20,7 @@ var toolBar = null;
 var tablet = null;
 
 function onAddressBarShown(visible) {
-    if (tablet !== null) {
-        if (tablet.onHomeScreen === true) {
-            button.editProperties({isActive: visible});
-        }
-    } else {
-        button.editProperties({isActive: visible});
-    }
+    button.editProperties({isActive: visible});
 }
 
 function onClicked(){
