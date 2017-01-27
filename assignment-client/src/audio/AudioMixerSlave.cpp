@@ -488,10 +488,25 @@ bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer
     return ignore;
 }
 
+static const float ATTENUATION_START_DISTANCE = 1.0f;
+
 float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition) {
+    float gain = 1.0f;
+
+    // injector: apply attenuation
+    if (streamToAdd.getType() == PositionalAudioStream::Injector) {
+        gain *= reinterpret_cast<const InjectedAudioStream*>(&streamToAdd)->getAttenuationRatio();
+    }
+
+    // avatar: skip attenuation - it is too costly to approximate
+
+    // distance attenuation: approximate, ignore zone-specific attenuations
+    // this is a good approximation for streams further than ATTENUATION_START_DISTANCE
+    // those streams closer will be amplified; amplifying close streams is acceptable
+    // when throttling, as close streams are expected to be heard by a user
     float distance = glm::length(relativePosition);
-    return 1.0f / distance;
+    return gain / distance;
 }
 
 float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
@@ -501,10 +516,9 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
     // injector: apply attenuation
     if (streamToAdd.getType() == PositionalAudioStream::Injector) {
         gain *= reinterpret_cast<const InjectedAudioStream*>(&streamToAdd)->getAttenuationRatio();
-    }
 
-    // avatar: apply fixed off-axis attentuation to make them quieter as they turn away
-    if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
+    // avatar: apply fixed off-axis attenuation to make them quieter as they turn away
+    } else if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
         glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
         float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
                                            glm::normalize(rotatedListenerPosition));
@@ -530,9 +544,9 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
         }
     }
 
-    // compute distance attenuation
-    const float ATTENUATION_START_DISTANCE = 1.0f;
-    float distance = std::max(glm::length(relativePosition), EPSILON);
+    // distance attenuation
+    float distance = glm::length(relativePosition);
+    assert(ATTENUATION_START_DISTANCE > EPSILON);
     if (distance >= ATTENUATION_START_DISTANCE) {
 
         // translate the zone setting to gain per log2(distance)
