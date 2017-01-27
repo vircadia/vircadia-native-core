@@ -46,12 +46,12 @@ void sendMutePacket(const SharedNodePointer& node, AudioMixerClientData&);
 void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
 
 // mix helpers
-bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
-float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+inline bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
+inline float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
-float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+inline float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition, bool isEcho);
-float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+inline float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 
 void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
