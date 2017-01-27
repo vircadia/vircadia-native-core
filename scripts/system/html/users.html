@@ -81,6 +81,43 @@
                 padding: 2px 0px;
             }
 
+            input[type=button] {
+                font-family: 'Raleway';
+                font-weight: bold;
+                font-size: 13px;
+                text-transform: uppercase;
+                vertical-align: top;
+                height: 28px;
+                min-width: 120px;
+                padding: 0px 18px;
+                margin-right: 6px;
+                border-radius: 5px;
+                border: none;
+                color: #fff;
+                background-color: #000;
+                background: linear-gradient(#343434 20%, #000 100%);
+                cursor: pointer;
+            }
+
+            input[type=button].blue {
+                color: #fff;
+                background-color: #1080b8;
+                background: linear-gradient(#00b4ef 20%, #1080b8 100%);
+            }
+
+            input[type=button].blue:hover {
+                background: linear-gradient(#00b4ef, #00b4ef);
+                border: none;
+            }
+
+            input[type=button].blue:active {
+                background: linear-gradient(#1080b8, #1080b8);
+            }
+
+            #friends-button {
+                margin: 0px 0px 15px 10px;
+            }
+
         </style>
     </head>
     <body>
@@ -100,7 +137,7 @@
             </div>
             <div id="tab-2" class="tab-content">
                 <ul></ul>
-                <button id="friends-button">Add/Remove Friends</button>
+                <input type="button" class="blue" id="friends-button" value="Add/Remove Friends">
             </div>
         </div>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
