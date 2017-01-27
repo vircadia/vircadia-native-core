@@ -347,11 +347,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     return changedProperties;
 }
 
-QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const {
+QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime, bool strictSemantics) const {
+    // If strictSemantics is true and skipDefaults is false, then all and only those properties are copied for which the property flag
+    // is included in _desiredProperties, or is one of the specially enumerated ALWAYS properties below.
+    // (There may be exceptions, but if so, they are bugs.)
+    // In all other cases, you are welcome to inspect the code and try to figure out what was intended. I wish you luck. -HRS 1/18/17
     QScriptValue properties = engine->newObject();
     EntityItemProperties defaultEntityProperties;
 
-    if (_created == UNKNOWN_CREATED_TIME) {
+    if (_created == UNKNOWN_CREATED_TIME && !allowUnknownCreateTime) {
         // No entity properties can have been set so return without setting any default, zero property values.
         return properties;
     }
@@ -365,7 +369,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     created.setTimeSpec(Qt::OffsetFromUTC);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(created, created.toString(Qt::ISODate));
 
-    if (!skipDefaults || _lifetime != defaultEntityProperties._lifetime) {
+    if ((!skipDefaults || _lifetime != defaultEntityProperties._lifetime) && !strictSemantics) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(age, getAge()); // gettable, but not settable
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
@@ -541,7 +545,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     }
 
     // Sitting properties support
-    if (!skipDefaults) {
+    if (!skipDefaults && !strictSemantics) {
         QScriptValue sittingPoints = engine->newObject();
         for (int i = 0; i < _sittingPoints.size(); ++i) {
             QScriptValue sittingPoint = engine->newObject();
@@ -554,7 +558,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(sittingPoints, sittingPoints); // gettable, but not settable
     }
 
-    if (!skipDefaults) {
+    if (!skipDefaults && !strictSemantics) {
         AABox aaBox = getAABox();
         QScriptValue boundingBox = engine->newObject();
         QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
@@ -569,7 +573,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     }
 
     QString textureNamesStr = QJsonDocument::fromVariant(_textureNames).toJson();
-    if (!skipDefaults) {
+    if (!skipDefaults && !strictSemantics) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(originalTextures, textureNamesStr); // gettable, but not settable
     }
 
@@ -586,7 +590,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
 
     // Rendering info
-    if (!skipDefaults) {
+    if (!skipDefaults && !strictSemantics) {
         QScriptValue renderInfo = engine->newObject();
 
         // currently only supported by models

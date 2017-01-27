@@ -351,7 +351,6 @@ int EntityItem::expectedBytes() {
     return MINIMUM_HEADER_BYTES;
 }
 
-
 // clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
@@ -669,6 +668,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // entity-server is trying to clear our ownership (probably at our own request)
                 // but we actually want to own it, therefore we ignore this clear event
                 // and pretend that we own it (we assume we'll recover it soon)
+
+                // However, for now, when the server uses a newer time than what we sent, listen to what we're told.
+                if (overwriteLocalData) weOwnSimulation = false;
             } else if (_simulationOwner.set(newSimOwner)) {
                 _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
                 somethingChanged = true;
