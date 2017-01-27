@@ -71,13 +71,13 @@
                 background: rgba(255,255,255,0.15);
             }
 
-            #users-list {
+            .tab-content ul {
                 list-style: none;
                 padding: 15px 0px 15px 15px;
                 margin: 0;
             }
 
-            #users-list li {
+            .tab-content ul li {
                 padding: 2px 0px;
             }
 
@@ -96,9 +96,11 @@
                 <li tab-id="tab-2">Friends (0)</li>
             </ul>
             <div id="tab-1" class="tab-content current">
-                <ul id="users-list"></ul>
+                <ul></ul>
             </div>
-            <div id="tab-2" class="tab-content"></div>
+            <div id="tab-2" class="tab-content">
+                <ul></ul>
+            </div>
         </div>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script>
@@ -106,8 +108,8 @@
             var FRIENDS_FILTER = "&filter=friends";
             var myUsername = null;
 
-            function displayUsers(data) {
-                $("#users-list").empty();
+            function displayUsers(data, element) {
+                element.empty();
                 for (var i = 0; i < data.users.length; i++) {
                     // Don't display users who aren't in a domain
                     if (typeof data.users[i].location.root.name === "undefined") {
@@ -118,7 +120,7 @@
                         // Don't display yourself
                         if (data.users[i].username !== myUsername) {
                             console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
-                            $("#users-list").append("<li>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
+                            element.append("<li>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
                         }
                     }
                 }
@@ -128,8 +130,10 @@
                 var num = data.users.length;
                 if (type === "everyone") {
                     $(".tabs li:nth-child(1)").text("Everyone (" + num + ")");
+                    displayUsers(data, $("#tab-1 ul"));
                 } else if (type === "friends") {
                     $(".tabs li:nth-child(2)").text("Friends (" + num + ")");
+                    displayUsers(data, $("#tab-2 ul"));
                 }
             }
 
@@ -141,7 +145,6 @@
                         console.log(response);
                         $("#dev-div").append("<p>polling everyone sucess</p>");
                         processData(response.data, "everyone");
-                        displayUsers(response.data);
                     }
                 });
                 $.ajax({
