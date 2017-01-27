@@ -9,88 +9,89 @@
 //
 
 (function() {
-    this.equipped = false;
-    this.isActive = false;
+    var self = this;
 
-    this.secondHandID = null;
-    this.minuteHandID = null;
+    self.equipped = false;
+    self.isActive = false;
 
-    var tickSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/huffman/tick.wav");
-    var tickInjector = null;
-    var tickIntervalID = null;
+    self.secondHandID = null;
+    self.minuteHandID = null;
 
-    var chimeSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/huffman/chime.wav");
+    self.tickSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/huffman/tick.wav");
+    self.tickInjector = null;
+    self.tickIntervalID = null;
 
-    this.preload = function(entityID) {
+    self.chimeSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/huffman/chime.wav");
+
+    self.preload = function(entityID) {
         print("Preloading stopwatch: ", entityID);
-        this.entityID = entityID;
-        this.messageChannel = "STOPWATCH-" + entityID;
+        self.entityID = entityID;
+        self.messageChannel = "STOPWATCH-" + entityID;
 
-        var userData = Entities.getEntityProperties(this.entityID, 'userData').userData;
+        var userData = Entities.getEntityProperties(self.entityID, 'userData').userData;
         var data = JSON.parse(userData);
-        this.secondHandID = data.secondHandID;
-        this.minuteHandID = data.minuteHandID;
+        self.secondHandID = data.secondHandID;
+        self.minuteHandID = data.minuteHandID;
 
-        this.resetTimer();
+        self.resetTimer();
 
-        Messages.subscribe(this.messageChannel);
-        Messages.messageReceived.connect(this, this.messageReceived);
+        Messages.subscribe(self.messageChannel);
+        Messages.messageReceived.connect(this, self.messageReceived);
     };
-    this.unload = function() {
-        print("Unloading stopwatch:", this.entityID);
-        this.resetTimer();
-        Messages.unsubscribe(this.messageChannel);
-        Messages.messageReceived.disconnect(this, this.messageReceived);
+    self.unload = function() {
+        print("Unloading stopwatch:", self.entityID);
+        self.resetTimer();
+        Messages.unsubscribe(self.messageChannel);
+        Messages.messageReceived.disconnect(this, self.messageReceived);
     };
-    this.messageReceived = function(channel, message, sender) {
+    self.messageReceived = function(channel, message, sender) {
         print("Message received", channel, sender, message); 
-        if (channel === this.messageChannel && message === 'click') {
-            if (this.isActive) {
-                this.resetTimer();
+        if (channel === self.messageChannel && message === 'click') {
+            if (self.isActive) {
+                self.resetTimer();
             } else {
-                this.startTimer();
+                self.startTimer();
             }
         }
     };
-    this.getStopwatchPosition = function() {
-        return Entities.getEntityProperties(this.entityID, "position").position;
+    self.getStopwatchPosition = function() {
+        return Entities.getEntityProperties(self.entityID, "position").position;
     };
-    this.resetTimer = function() {
+    self.resetTimer = function() {
         print("Stopping stopwatch");
-        if (tickInjector) {
-            tickInjector.stop();
+        if (self.tickInjector) {
+            self.tickInjector.stop();
         }
-        if (tickIntervalID !== null) {
-            Script.clearInterval(tickIntervalID);
-            tickIntervalID = null;
+        if (self.tickIntervalID !== null) {
+            Script.clearInterval(self.tickIntervalID);
+            self.tickIntervalID = null;
         }
-        Entities.editEntity(this.secondHandID, {
+        Entities.editEntity(self.secondHandID, {
             rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
             angularVelocity: { x: 0, y: 0, z: 0 },
         });
-        Entities.editEntity(this.minuteHandID, {
+        Entities.editEntity(self.minuteHandID, {
             rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
             angularVelocity: { x: 0, y: 0, z: 0 },
         });
-        this.isActive = false;
+        self.isActive = false;
     };
-    this.startTimer = function() {
+    self.startTimer = function() {
         print("Starting stopwatch");
-        if (!tickInjector) {
-            tickInjector = Audio.playSound(tickSound, {
-                position: this.getStopwatchPosition(),
+        if (!self.tickInjector) {
+            self.tickInjector = Audio.playSound(self.tickSound, {
+                position: self.getStopwatchPosition(),
                 volume: 0.7,
                 loop: true
             });
         } else {
-            tickInjector.restart();
+            self.tickInjector.restart();
         }
 
-        var self = this;
         var seconds = 0;
-        tickIntervalID = Script.setInterval(function() {
-            if (tickInjector) {
-                tickInjector.setOptions({
+        self.tickIntervalID = Script.setInterval(function() {
+            if (self.tickInjector) {
+                self.tickInjector.setOptions({
                     position: self.getStopwatchPosition(),
                     volume: 0.7,
                     loop: true
@@ -105,7 +106,7 @@
                 Entities.editEntity(self.minuteHandID, {
                     rotation: Quat.fromPitchYawRollDegrees(0, (seconds / 60) * degreesPerTick, 0),
                 });
-                Audio.playSound(chimeSound, {
+                Audio.playSound(self.chimeSound, {
                     position: self.getStopwatchPosition(),
                     volume: 1.0,
                     loop: false
@@ -113,6 +114,6 @@
             }
         }, 1000);
 
-        this.isActive = true;
+        self.isActive = true;
     };
 });
