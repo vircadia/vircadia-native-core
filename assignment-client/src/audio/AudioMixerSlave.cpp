@@ -242,7 +242,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
     float distance = glm::max(glm::length(relativePosition), EPSILON);
     float gain = computeGain(listeningNodeStream, streamToAdd, relativePosition, isEcho);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
-    static const int HRTF_DATASET_INDEX = 1;
+    const int HRTF_DATASET_INDEX = 1;
 
     if (!streamToAdd.lastPopSucceeded()) {
         bool forceSilentBlock = true;
@@ -343,7 +343,7 @@ std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 s
 }
 
 void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QByteArray& buffer) {
-    static const int MIX_PACKET_SIZE =
+    const int MIX_PACKET_SIZE =
         sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
     quint16 sequence = data.getOutgoingSequenceNumber();
     QString codec = data.getCodecName();
@@ -358,7 +358,7 @@ void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QB
 }
 
 void sendSilentPacket(const SharedNodePointer& node, AudioMixerClientData& data) {
-    static const int SILENT_PACKET_SIZE =
+    const int SILENT_PACKET_SIZE =
         sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE + sizeof(quint16);
     quint16 sequence = data.getOutgoingSequenceNumber();
     QString codec = data.getCodecName();
