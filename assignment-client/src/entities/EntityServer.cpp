@@ -314,7 +314,9 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         // FIXME: handle atp rquests setup here. See Agent::requestScript()
         qInfo() << "Requesting script at URL" << qPrintable(scriptRequest->getUrl().toString());
         scriptRequest->send();
+        qDebug() << "script request sent";
         _scriptRequestLoop.exec(); // Block here, but allow the request to be processed and its signals to be handled.
+        qDebug() << "script request event loop complete";
     }
 }
 
@@ -351,6 +353,7 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
     return false;
 }
 void EntityServer::scriptRequestFinished() {
+    qDebug() << "script request completed";
     auto scriptRequest = qobject_cast<ResourceRequest*>(sender());
     const QString urlString = scriptRequest->getUrl().toString();
     if (scriptRequest && scriptRequest->getResult() == ResourceRequest::Success) {
@@ -364,9 +367,11 @@ void EntityServer::scriptRequestFinished() {
                     return hadUncaughtExceptions(_entityEditFilterEngine, _entityEditFilter);
                 });
                 scriptRequest->deleteLater();
+                qDebug() << "script request ending event loop. running:" << _scriptRequestLoop.isRunning();
                 if (_scriptRequestLoop.isRunning()) {
                     _scriptRequestLoop.quit();
                 }
+                qDebug() << "script request event loop quit";
                 return;
             }
         }
@@ -379,10 +384,13 @@ void EntityServer::scriptRequestFinished() {
     }
     // Hard stop of the assignment client on failure. We don't want anyone to think they have a filter in place when they don't.
     // Alas, only indications will be the above logging with assignment client restarting repeatedly, and clients will not see any entities.
+    qDebug() << "script request failure causing stop";
     stop();
+    qDebug() << "script request ending event loop. running:" << _scriptRequestLoop.isRunning();
     if (_scriptRequestLoop.isRunning()) {
         _scriptRequestLoop.quit();
     }
+    qDebug() << "script request event loop quit";
 }
 
 void EntityServer::nodeAdded(SharedNodePointer node) {
