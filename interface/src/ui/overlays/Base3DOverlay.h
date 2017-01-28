@@ -36,6 +36,8 @@ public:
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
 
+    virtual bool isAA() const { return true; }
+
     void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }

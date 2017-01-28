@@ -29,6 +29,8 @@ public:
     Web3DOverlay(const Web3DOverlay* Web3DOverlay);
     virtual ~Web3DOverlay();
 
+    virtual bool isAA() const { return false; }
+
     QString pickURL();
     void loadSourceURL();
     virtual void render(RenderArgs* args) override;
