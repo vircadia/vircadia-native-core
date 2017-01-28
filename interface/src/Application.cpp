@@ -175,6 +175,7 @@
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 #include <EntityScriptClient.h>
+#include <ModelScriptingInterface.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.

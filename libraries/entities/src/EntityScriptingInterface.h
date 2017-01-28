@@ -35,6 +35,7 @@
 #include "EntityItemProperties.h"
 
 class EntityTree;
+class MeshProxy;
 
 class RayToEntityIntersectionResult {
 public:
@@ -227,6 +228,7 @@ public slots:
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
     Q_INVOKABLE bool setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
                                        const glm::vec3& cuboidSize, int value);
+    Q_INVOKABLE MeshProxy* voxelsToMesh(QUuid entityID);
 
     Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
     Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);

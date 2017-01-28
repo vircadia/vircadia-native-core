@@ -911,6 +911,10 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
         });
 }
 
+MeshProxy* EntityScriptingInterface::voxelsToMesh(QUuid entityID) {
+    return nullptr;
+}
+
 bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
