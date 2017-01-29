@@ -37,6 +37,8 @@ public:
 
     MeshPointer getMeshPointer() const { return _mesh; }
 
+    Q_INVOKABLE int getNumVertices() const { return _mesh->getNumVertices(); }
+
 protected:
     MeshPointer _mesh;
 };

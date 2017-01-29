@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QScriptEngine>
+#include <QtScript/QScriptValue>
 #include "ModelScriptingInterface.h"
 
 ModelScriptingInterface::ModelScriptingInterface(QObject* parent) : QObject(parent) {
@@ -23,9 +25,10 @@ MeshProxy::~MeshProxy() {
 
 
 QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in) {
-    QScriptValue obj("something");
-    return obj;
+    return engine->newQObject(in, QScriptEngine::QtOwnership,
+                              QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
 }
 
 void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out) {
+    out = qobject_cast<MeshProxy*>(value.toQObject());
 }

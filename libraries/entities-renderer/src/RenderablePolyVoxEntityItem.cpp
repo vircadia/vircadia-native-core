@@ -14,6 +14,7 @@
 #include <QByteArray>
 #include <QtConcurrent/QtConcurrentRun>
 #include <glm/gtx/transform.hpp>
+#include "ModelScriptingInterface.h"
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -73,7 +74,7 @@ const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
   _meshDirty
 
   In RenderablePolyVoxEntityItem::render, these flags are checked and changes are propagated along the chain.
-  decompressVolumeData() is called to decompress _voxelData into _volData.  getMesh() is called to invoke the
+  decompressVolumeData() is called to decompress _voxelData into _volData.  recomputeMesh() is called to invoke the
   polyVox surface extractor to create _mesh (as well as set Simulation _dirtyFlags).  Because Simulation::DIRTY_SHAPE
   is set, isReadyToComputeShape() gets called and _shape is created either from _volData or _shape, depending on
   the surface style.
@@ -81,7 +82,7 @@ const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
   When a script changes _volData, compressVolumeDataAndSendEditPacket is called to update _voxelData and to
   send a packet to the entity-server.
 
-  decompressVolumeData, getMesh, computeShapeInfoWorker, and compressVolumeDataAndSendEditPacket are too expensive
+  decompressVolumeData, recomputeMesh, computeShapeInfoWorker, and compressVolumeDataAndSendEditPacket are too expensive
   to run on a thread that has other things to do.  These use QtConcurrent::run to spawn a thread.  As each thread
   finishes, it adjusts the dirty flags so that the next call to render() will kick off the next step.
 
@@ -570,7 +571,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     if (voxelDataDirty) {
         decompressVolumeData();
     } else if (volDataDirty) {
-        getMesh();
+        recomputeMesh();
     }
 
     model::MeshPointer mesh;
@@ -1096,7 +1097,7 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
     }
 }
 
-void RenderablePolyVoxEntityItem::getMesh() {
+void RenderablePolyVoxEntityItem::recomputeMesh() {
     // use _volData to make a renderable mesh
     PolyVoxSurfaceStyle voxelSurfaceStyle;
     withReadLock([&] {
@@ -1171,7 +1172,7 @@ void RenderablePolyVoxEntityItem::getMesh() {
 }
 
 void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
-    // this catches the payload from getMesh
+    // this catches the payload from recomputeMesh
     bool neighborsNeedUpdate;
     withWriteLock([&] {
         _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
@@ -1426,7 +1427,6 @@ std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getZPN
     return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_zPNeighbor.lock());
 }
 
-
 void RenderablePolyVoxEntityItem::bonkNeighbors() {
     // flag neighbors to the negative of this entity as needing to rebake their meshes.
     cacheNeighbors();
@@ -1446,7 +1446,6 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
     }
 }
 
-
 void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     EntityItem::locationChanged(tellPhysics);
     if (!_pipeline || !render::Item::isValidID(_myItem)) {
@@ -1457,4 +1456,18 @@ void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     pendingChanges.updateItem<PolyVoxPayload>(_myItem, [](PolyVoxPayload& payload) {});
 
     scene->enqueuePendingChanges(pendingChanges);
+}
+
+bool RenderablePolyVoxEntityItem::getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) const {
+    bool success = false;
+    MeshProxy* meshProxy = nullptr;
+    model::MeshPointer mesh = nullptr;
+    withReadLock([&] {
+        if (_meshInitialized) {
+            success = true;
+            meshProxy = new MeshProxy(_mesh);
+        }
+    });
+    result = meshToScriptValue(engine, meshProxy);
+    return success;
 }
