@@ -1739,7 +1739,7 @@ static const QString JSON_AVATAR_HEAD_MODEL = QStringLiteral("headModel");
 static const QString JSON_AVATAR_BODY_MODEL = QStringLiteral("bodyModel");
 static const QString JSON_AVATAR_DISPLAY_NAME = QStringLiteral("displayName");
 // It isn't meaningful to persist sessionDisplayName.
-static const QString JSON_AVATAR_ATTACHEMENTS = QStringLiteral("attachments");
+static const QString JSON_AVATAR_ATTACHMENTS = QStringLiteral("attachments");
 static const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
 static const QString JSON_AVATAR_SCALE = QStringLiteral("scale");
 static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
@@ -1782,7 +1782,7 @@ QJsonObject AvatarData::toJson() const {
         for (auto attachment : getAttachmentData()) {
             attachmentsJson.push_back(attachment.toJson());
         }
-        root[JSON_AVATAR_ATTACHEMENTS] = attachmentsJson;
+        root[JSON_AVATAR_ATTACHMENTS] = attachmentsJson;
     }
 
     _avatarEntitiesLock.withReadLock([&] {
@@ -1895,8 +1895,8 @@ void AvatarData::fromJson(const QJsonObject& json) {
         setTargetScale((float)json[JSON_AVATAR_SCALE].toDouble());
     }
 
-    if (json.contains(JSON_AVATAR_ATTACHEMENTS) && json[JSON_AVATAR_ATTACHEMENTS].isArray()) {
-        QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHEMENTS].toArray();
+    if (json.contains(JSON_AVATAR_ATTACHMENTS) && json[JSON_AVATAR_ATTACHMENTS].isArray()) {
+        QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
         QVector<AttachmentData> attachments;
         for (auto attachmentJson : attachmentsJson) {
             AttachmentData attachment;
@@ -1907,7 +1907,7 @@ void AvatarData::fromJson(const QJsonObject& json) {
     }
 
     // if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
-    //     QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHEMENTS].toArray();
+    //     QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
     //     for (auto attachmentJson : attachmentsJson) {
     //         // TODO -- something
     //     }
