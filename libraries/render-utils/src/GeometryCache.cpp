@@ -36,7 +36,9 @@
 #include "simple_textured_frag.h"
 #include "simple_textured_unlit_frag.h"
 #include "simple_opaque_web_browser_frag.h"
+#include "simple_opaque_web_browser_overlay_frag.h"
 #include "simple_transparent_web_browser_frag.h"
+#include "simple_transparent_web_browser_overlay_frag.h"
 #include "glowLine_vert.h"
 #include "glowLine_frag.h"
 
@@ -1760,66 +1762,61 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
     return a.getRaw() == b.getRaw();
 }
 
-void GeometryCache::bindOpaqueWebBrowserProgram(gpu::Batch& batch) {
-    batch.setPipeline(getOpaqueWebBrowserProgram());
+static void buildWebShader(const std::string& vertShaderText, const std::string& fragShaderText, bool blendEnable,
+                           gpu::ShaderPointer& shaderPointerOut, gpu::PipelinePointer& pipelinePointerOut) {
+    auto VS = gpu::Shader::createVertex(vertShaderText);
+    auto PS = gpu::Shader::createPixel(fragShaderText);
+
+    shaderPointerOut = gpu::Shader::createProgram(VS, PS);
+
+    gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
+    gpu::Shader::makeProgram(*shaderPointerOut, slotBindings);
+    auto state = std::make_shared<gpu::State>();
+    state->setCullMode(gpu::State::CULL_NONE);
+    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    state->setBlendFunction(blendEnable,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+    pipelinePointerOut = gpu::Pipeline::create(shaderPointerOut, state);
+}
+
+void GeometryCache::bindOpaqueWebBrowserProgram(gpu::Batch& batch, bool isAA) {
+    batch.setPipeline(getOpaqueWebBrowserProgram(isAA));
     // Set a default normal map
     batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
                              DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
-gpu::PipelinePointer GeometryCache::getOpaqueWebBrowserProgram() {
+gpu::PipelinePointer GeometryCache::getOpaqueWebBrowserProgram(bool isAA) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        auto VS = gpu::Shader::createVertex(std::string(simple_vert));
-        auto PS = gpu::Shader::createPixel(std::string(simple_opaque_web_browser_frag));
-
-        _simpleOpaqueWebBrowserShader = gpu::Shader::createProgram(VS, PS);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
-        gpu::Shader::makeProgram(*_simpleOpaqueWebBrowserShader, slotBindings);
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_NONE);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setBlendFunction(false,
-                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-        _simpleOpaqueWebBrowserPipeline = gpu::Pipeline::create(_simpleOpaqueWebBrowserShader, state);
+        const bool BLEND_ENABLE = false;
+        buildWebShader(simple_vert, simple_opaque_web_browser_frag, BLEND_ENABLE, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipeline);
+        buildWebShader(simple_vert, simple_opaque_web_browser_overlay_frag, BLEND_ENABLE, _simpleOpaqueWebBrowserOverlayShader, _simpleOpaqueWebBrowserOverlayPipeline);
     });
 
-    return _simpleOpaqueWebBrowserPipeline;
+    return isAA ? _simpleOpaqueWebBrowserPipeline : _simpleOpaqueWebBrowserOverlayPipeline;
 }
 
-void GeometryCache::bindTransparentWebBrowserProgram(gpu::Batch& batch) {
-    batch.setPipeline(getTransparentWebBrowserProgram());
+void GeometryCache::bindTransparentWebBrowserProgram(gpu::Batch& batch, bool isAA) {
+    batch.setPipeline(getTransparentWebBrowserProgram(isAA));
     // Set a default normal map
     batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
                              DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
-gpu::PipelinePointer GeometryCache::getTransparentWebBrowserProgram() {
+gpu::PipelinePointer GeometryCache::getTransparentWebBrowserProgram(bool isAA) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        auto VS = gpu::Shader::createVertex(std::string(simple_vert));
-        auto PS = gpu::Shader::createPixel(std::string(simple_transparent_web_browser_frag));
 
-        _simpleTransparentWebBrowserShader = gpu::Shader::createProgram(VS, PS);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
-        gpu::Shader::makeProgram(*_simpleTransparentWebBrowserShader, slotBindings);
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_NONE);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setBlendFunction(true,
-                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-        _simpleTransparentWebBrowserPipeline = gpu::Pipeline::create(_simpleTransparentWebBrowserShader, state);
+        const bool BLEND_ENABLE = true;
+        buildWebShader(simple_vert, simple_transparent_web_browser_frag, BLEND_ENABLE, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipeline);
+        buildWebShader(simple_vert, simple_transparent_web_browser_overlay_frag, BLEND_ENABLE, _simpleTransparentWebBrowserOverlayShader, _simpleTransparentWebBrowserOverlayPipeline);
     });
 
-    return _simpleTransparentWebBrowserPipeline;
+    return isAA ? _simpleTransparentWebBrowserPipeline : _simpleTransparentWebBrowserOverlayPipeline;
 }
 
 void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {

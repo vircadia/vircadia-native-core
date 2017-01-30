@@ -128,7 +128,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         alpha: 1.0,
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
-        showKeyboardFocusHighlight: false
+        showKeyboardFocusHighlight: false,
+        isAA: HMD.active
     });
 
     var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.035;
@@ -293,6 +294,10 @@ WebTablet.prototype.onHmdChanged = function () {
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
     Entities.editEntity(this.tabletEntityID, tabletProperties);
+
+    // Full scene FXAA should be disabled on the overlay when the tablet in desktop mode.
+    // This should make the text more readable.
+    Overlays.editOverlay(this.webOverlayID, { isAA: HMD.active });
 };
 
 WebTablet.prototype.pickle = function () {
