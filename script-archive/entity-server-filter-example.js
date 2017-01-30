@@ -1,6 +1,17 @@
 function filter(p) {
-    /* block comments are ok, but not double-slash end-of-line-comments */
-
+    /******************************************************/
+    /* General Filter Comments
+    /*
+    - Custom filters must be named "filter" and must be global
+    - Block comments are ok, but not double-slash end-of-line-comments
+    - Certain JavaScript functions are not available, like Math.sign(), as they are undefined in QT's non-conforming JS
+    - HiFi's scripting interface is unavailable here. That means you can't call, for example, Users.*()
+    */
+    /******************************************************/
+    
+    /******************************************************/
+    /* Simple Filter Examples
+    /******************************************************/
     /* Simple example: if someone specifies name, add an 'x' to it. Note that print is ok to use. */
     if (p.name) {p.name += 'x'; print('fixme name', p. name);}
 
@@ -9,7 +20,7 @@ function filter(p) {
     if (p.position) {p.position.y = Math.min(1, p.position.y); print('fixme p.y', p.position.y);}
 
     
-    /* Can also reject altogether */
+    /* Can also reject new properties altogether by returning false */
     if (p.userData) { return false; }
 	
     
@@ -17,21 +28,35 @@ function filter(p) {
     if (p.modelURL || p.compoundShapeURL || p.shape || p.shapeType || p.url || p.fps || p.currentFrame || p.running || p.loop || p.firstFrame || p.lastFrame || p.hold || p.textures || p.xTextureURL || p.yTextureURL || p.zTextureURL) { return false; }
 	
     
+    /******************************************************/
+    /* Physical Property Filter Examples
+    /*
+    NOTES about filtering physical properties:
+    - For now, ensure you always supply a new value for the filtered physical property
+        (instead of simply removing the property)
+    - Ensure you always specify a slightly different value for physical properties every
+        time your filter returns. Look to "var nearZero" below for an example).
+        This is necessary because Interface checks if a physical property has changed
+        when deciding whether to apply or reject the server's physical properties.
+        If a physical property's value doesn't change, Interface will reject the server's property value,
+        and Bullet will continue simulating the entity with stale physical properties.
+    */
+    /******************************************************/
 	/* Clamp velocity to maxVelocity units/second. Zeroing each component of acceleration keeps us from slamming.*/
-	var maxVelocity = 5;
-    function sign(val) {
-        if (val > 0) {
-            return 1;
-        } else if (val < 0) {
-            return -1;
-        } else {
-            return 0;
-        }
-    }
-    /* Random near-zero value used as "zero" to prevent two sequential updates from being
-    exactly the same (which would cause them to be ignored) */
-    var nearZero = 0.0001 * Math.random() + 0.001;
     if (p.velocity) {
+        var maxVelocity = 5;
+        /* Random near-zero value used as "zero" to prevent two sequential updates from being
+        exactly the same (which would cause them to be ignored) */
+        var nearZero = 0.0001 * Math.random() + 0.001;
+        function sign(val) {
+            if (val > 0) {
+                return 1;
+            } else if (val < 0) {
+                return -1;
+            } else {
+                return 0;
+            }
+        }
 		if (Math.abs(p.velocity.x) > maxVelocity) {
 			p.velocity.x = sign(p.velocity.x) * (maxVelocity + nearZero);
 			p.acceleration.x = nearZero;
