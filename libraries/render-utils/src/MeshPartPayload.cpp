@@ -147,8 +147,19 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         numUnlit++;
     }
 
+    if (!enableTextures) {
+        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, nullptr);
+        return;
+    }
+
     // Albedo
-    if (enableTextures && materialKey.isAlbedoMap()) {
+    if (materialKey.isAlbedoMap()) {
         auto itr = textureMaps.find(model::MaterialKey::ALBEDO_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
@@ -160,7 +171,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Roughness map
-    if (enableTextures && materialKey.isRoughnessMap()) {
+    if (materialKey.isRoughnessMap()) {
         auto itr = textureMaps.find(model::MaterialKey::ROUGHNESS_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
@@ -174,7 +185,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Normal map
-    if (enableTextures && materialKey.isNormalMap()) {
+    if (materialKey.isNormalMap()) {
         auto itr = textureMaps.find(model::MaterialKey::NORMAL_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
@@ -188,7 +199,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Metallic map
-    if (enableTextures && materialKey.isMetallicMap()) {
+    if (materialKey.isMetallicMap()) {
         auto itr = textureMaps.find(model::MaterialKey::METALLIC_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
@@ -202,7 +213,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Occlusion map
-    if (enableTextures && materialKey.isOcclusionMap()) {
+    if (materialKey.isOcclusionMap()) {
         auto itr = textureMaps.find(model::MaterialKey::OCCLUSION_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
@@ -216,7 +227,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Scattering map
-    if (enableTextures && materialKey.isScatteringMap()) {
+    if (materialKey.isScatteringMap()) {
         auto itr = textureMaps.find(model::MaterialKey::SCATTERING_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
@@ -230,7 +241,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Emissive / Lightmap
-    if (enableTextures && materialKey.isLightmapMap()) {
+    if (materialKey.isLightmapMap()) {
         auto itr = textureMaps.find(model::MaterialKey::LIGHTMAP_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
@@ -238,7 +249,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
         }
-    } else if (enableTextures && materialKey.isEmissiveMap()) {
+    } else if (materialKey.isEmissiveMap()) {
         auto itr = textureMaps.find(model::MaterialKey::EMISSIVE_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
