@@ -128,7 +128,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         alpha: 1.0,
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
-        showKeyboardFocusHighlight: false
+        showKeyboardFocusHighlight: false,
+        isAA: HMD.active
     });
 
     var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.035;
@@ -222,7 +223,6 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
-    
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
     Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
     Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
@@ -293,6 +293,10 @@ WebTablet.prototype.onHmdChanged = function () {
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
     Entities.editEntity(this.tabletEntityID, tabletProperties);
+
+    // Full scene FXAA should be disabled on the overlay when the tablet in desktop mode.
+    // This should make the text more readable.
+    Overlays.editOverlay(this.webOverlayID, { isAA: HMD.active });
 };
 
 WebTablet.prototype.pickle = function () {
@@ -357,7 +361,7 @@ WebTablet.prototype.mousePressEvent = function (event) {
                 tablet.gotoHomeScreen();
                 this.setHomeButtonTexture();
             }
-        } else if (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID) {
+        } else if (!HMD.active && (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID)) {
             this.dragging = true;
             var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
             this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
