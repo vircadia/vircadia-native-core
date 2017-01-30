@@ -526,7 +526,7 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
         const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
         const float OFF_AXIS_ATTENUATION_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
         float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-            (OFF_AXIS_ATTENUATION_STEP * (angleOfDelivery / PI_OVER_TWO));
+            (angleOfDelivery * (OFF_AXIS_ATTENUATION_STEP / PI_OVER_TWO));
 
         gain *= offAxisCoefficient;
     }
