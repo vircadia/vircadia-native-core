@@ -158,8 +158,9 @@ Rectangle {
         onSortIndicatorOrderChanged: sortModel()
 
         TableViewColumn {
+            id: displayNameHeader
             role: "displayName"
-            title: "NAMES"
+            title: table.rowCount + (table.rowCount === 1 ? " NAME" : " NAMES")
             width: nameCardWidth
             movable: false
             resizable: false
@@ -351,6 +352,11 @@ Rectangle {
         visible: iAmAdmin
         color: hifi.colors.lightGrayText
     }
+    TextMetrics {
+        id: displayNameHeaderMetrics
+        text: displayNameHeader.title
+        font: displayNameHeader.font
+    }
     // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
         color: hifi.colors.tableBackgroundLight
@@ -359,7 +365,7 @@ Rectangle {
         anchors.left: table.left
         anchors.top: table.top
         anchors.topMargin: 1
-        anchors.leftMargin: nameCardWidth/2 + 24
+        anchors.leftMargin: nameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6
         RalewayRegular {
             id: helpText
             text: "[?]"
