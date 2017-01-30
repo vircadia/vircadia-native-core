@@ -116,11 +116,11 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _hmdAtRestDetector(glm::vec3(0), glm::quat())
 {
     using namespace recording;
+    _skeletonModel->flagAsCauterized();
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-
 
     // Necessary to select the correct slot
     using SlotType = void(MyAvatar::*)(const glm::vec3&, bool, const glm::quat&, bool);
@@ -226,23 +226,24 @@ void MyAvatar::simulateAttachments(float deltaTime) {
     // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
 }
 
-QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail) {
+QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+                        bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
     CameraMode mode = qApp->getCamera()->getMode();
     _globalPosition = getPosition();
-    _globalBoundingBoxCorner.x = _characterController.getCapsuleRadius();
-    _globalBoundingBoxCorner.y = _characterController.getCapsuleHalfHeight();
-    _globalBoundingBoxCorner.z = _characterController.getCapsuleRadius();
-    _globalBoundingBoxCorner += _characterController.getCapsuleLocalOffset();
+    _globalBoundingBoxDimensions.x = _characterController.getCapsuleRadius();
+    _globalBoundingBoxDimensions.y = _characterController.getCapsuleHalfHeight();
+    _globalBoundingBoxDimensions.z = _characterController.getCapsuleRadius();
+    _globalBoundingBoxOffset = _characterController.getCapsuleLocalOffset();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getPosition();
         setPosition(getSkeletonPosition());
-        QByteArray array = AvatarData::toByteArray(dataDetail);
+        QByteArray array = AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
         // copy the correct position back
         setPosition(oldPosition);
         return array;
     }
-    return AvatarData::toByteArray(dataDetail);
+    return AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
 }
 
 void MyAvatar::centerBody() {
@@ -796,8 +797,14 @@ void MyAvatar::saveData() {
 
     settings.beginWriteArray("avatarEntityData");
     int avatarEntityIndex = 0;
+    auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     _avatarEntitiesLock.withReadLock([&] {
         for (auto entityID : _avatarEntityData.keys()) {
+            if (hmdInterface->getCurrentTableUIID() == entityID) {
+                // don't persist the tablet between domains / sessions
+                continue;
+            }
+
             settings.setArrayIndex(avatarEntityIndex);
             settings.setValue("id", entityID);
             settings.setValue("properties", _avatarEntityData.value(entityID));
@@ -1592,7 +1599,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
-        _skeletonModel->setCauterizeBones(!shouldDrawHead);
+        _skeletonModel->setEnableCauterization(!shouldDrawHead);
     }
     _prevShouldDrawHead = shouldDrawHead;
 }

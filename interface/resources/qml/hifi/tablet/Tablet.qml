@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
+import "../../styles-uit"
 
 Item {
     id: tablet
@@ -8,8 +9,6 @@ Item {
     property int rowIndex: 0
     property int columnIndex: 0
     property int count: (flowMain.children.length - 1)
-    width: parent.width
-    height: parent.height
 
     // called by C++ code to keep audio bar updated
     function setMicLevel(newMicLevel) {
@@ -77,73 +76,75 @@ Item {
         anchors.topMargin: 0
         anchors.top: parent.top
 
-        Row {
-            id: rowAudio1
-            height: parent.height
-            anchors.topMargin: 0
-            anchors.top: parent.top
-            anchors.leftMargin: 30
+
+        Image {
+            id: muteIcon
+            width: 40
+            height: 40
+            source: "../../../icons/tablet-mute-icon.svg"
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Item {
+            id: item1
+            width: 170
+            height: 10
             anchors.left: parent.left
-            anchors.rightMargin: 30
-            anchors.right: parent.right
-            spacing: 5
-
-            Image {
-                id: muteIcon
-                width: 40
-                height: 40
-                source: "../../../icons/tablet-mute-icon.svg"
-                anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 50
+            anchors.verticalCenter: parent.verticalCenter
+            Rectangle {
+                id: audioBarBase
+                color: "#333333"
+                radius: 5
+                anchors.fill: parent
             }
-
-            Item {
-                id: item1
-                width: 225
-                height: 10
-                anchors.verticalCenter: parent.verticalCenter
-                Rectangle {
-                    id: audioBarBase
-                    color: "#333333"
-                    radius: 5
-                    anchors.fill: parent
-                }
-                Rectangle {
-                    id: audioBarMask
-                    width: parent.width * tablet.micLevel
-                    color: "#333333"
-                    radius: 5
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 0
-                    anchors.top: parent.top
-                    anchors.topMargin: 0
-                    anchors.left: parent.left
-                    anchors.leftMargin: 0
-                }
-                LinearGradient {
-                    anchors.fill: audioBarMask
-                    source: audioBarMask
-                    start: Qt.point(0, 0)
-                    end: Qt.point(225, 0)
-                    gradient: Gradient {
-                        GradientStop {
-                            position: 0
-                            color: "#2c8e72"
-                        }
-                        GradientStop {
-                            position: 0.9
-                            color: "#1fc6a6"
-                        }
-                        GradientStop {
-                            position: 0.91
-                            color: "#ea4c5f"
-                        }
-                        GradientStop {
-                            position: 1
-                            color: "#ea4c5f"
-                        }
+            Rectangle {
+                id: audioBarMask
+                width: parent.width * tablet.micLevel
+                color: "#333333"
+                radius: 5
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.top: parent.top
+                anchors.topMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 0
+            }
+            LinearGradient {
+                anchors.fill: audioBarMask
+                source: audioBarMask
+                start: Qt.point(0, 0)
+                end: Qt.point(170, 0)
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0
+                        color: "#2c8e72"
+                    }
+                    GradientStop {
+                        position: 0.8
+                        color: "#1fc6a6"
+                    }
+                    GradientStop {
+                        position: 0.81
+                        color: "#ea4c5f"
+                    }
+                    GradientStop {
+                        position: 1
+                        color: "#ea4c5f"
                     }
                 }
             }
+        }
+
+        RalewaySemiBold {
+            id: usernameText
+            text: tablet.parent.parent.username
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
+            anchors.rightMargin: 20
+            horizontalAlignment: Text.AlignRight
+            font.pixelSize: 20
+            color: "#afafaf"
         }
     }
 
@@ -229,7 +230,7 @@ Item {
         };
         setCurrentItemState("hover state");
     }
-    
+
     function previousItem() {
         setCurrentItemState("base state");
         var prevIndex = (columnIndex + 3 - 1) % 3;
@@ -238,7 +239,7 @@ Item {
         }
         setCurrentItemState("hover state");
     }
-    
+
     function upItem() {
         setCurrentItemState("base state");
         rowIndex = rowIndex - 3;
@@ -251,7 +252,7 @@ Item {
         }
         setCurrentItemState("hover state");
     }
-    
+
     function downItem() {
         setCurrentItemState("base state");
         rowIndex = rowIndex + 3;
@@ -275,4 +276,3 @@ Item {
     Keys.onUpPressed: upItem();
     Keys.onReturnPressed: selectItem();
 }
-

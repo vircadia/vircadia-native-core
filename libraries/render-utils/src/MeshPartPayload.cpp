@@ -251,7 +251,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 }
 
-void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool canCauterize) const {
+void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     batch.setModelTransform(_drawTransform);
 }
 
@@ -265,7 +265,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
-    bindTransform(batch, locations);
+    bindTransform(batch, locations, args->_renderMode);
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
@@ -359,11 +359,8 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform,
-        const QVector<glm::mat4>& clusterMatrices,
-        const QVector<glm::mat4>& cauterizedClusterMatrices) {
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const QVector<glm::mat4>& clusterMatrices) {
     _transform = transform;
-    _cauterizedTransform = transform;
 
     if (clusterMatrices.size() > 0) {
         _worldBound = AABox();
@@ -372,16 +369,13 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transf
             clusterBound.transform(clusterMatrix);
             _worldBound += clusterBound;
         }
-
-        _worldBound.transform(transform);
+        _worldBound.transform(_transform);
         if (clusterMatrices.size() == 1) {
             _transform = _transform.worldTransform(Transform(clusterMatrices[0]));
-            if (cauterizedClusterMatrices.size() != 0) {
-                _cauterizedTransform = _cauterizedTransform.worldTransform(Transform(cauterizedClusterMatrices[0]));
-            } else {
-                _cauterizedTransform = _transform;
-            }
         }
+    } else {
+        _worldBound = _localBound;
+        _worldBound.transform(_transform);
     }
 }
 
@@ -408,7 +402,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
         }
     }
 
-    if (!_hasFinishedFade) {
+    if (_fadeState != FADE_COMPLETE) {
         builder.withTransparent();
     }
 
@@ -478,7 +472,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent || !_hasFinishedFade) {
+    if (isTranslucent || _fadeState != FADE_COMPLETE) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -519,43 +513,39 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    if (!_hasColorAttrib || fadeRatio < 1.0f) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
+    if (_fadeState != FADE_COMPLETE) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, computeFadeAlpha());
+    } else if (!_hasColorAttrib) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
 
-void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool canCauterize) const {
+void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     // Still relying on the raw data from the model
-    const Model::MeshState& state = _model->_meshStates.at(_meshIndex);
-
+    const Model::MeshState& state = _model->getMeshState(_meshIndex);
     if (state.clusterBuffer) {
-        if (canCauterize && _model->getCauterizeBones()) {
-            batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, state.cauterizedClusterBuffer);
-        } else {
-            batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, state.clusterBuffer);
-        }
-        batch.setModelTransform(_transform);
-    } else {
-        if (canCauterize && _model->getCauterizeBones()) {
-            batch.setModelTransform(_cauterizedTransform);
-        } else {
-            batch.setModelTransform(_transform);
-        }
+        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, state.clusterBuffer);
     }
+    batch.setModelTransform(_transform);
 }
 
-void ModelMeshPartPayload::startFade() {
-    bool shouldFade = EntityItem::getEntitiesShouldFadeFunction()();
-    if (shouldFade) {
-        _fadeStartTime = usecTimestampNow();
-        _hasStartedFade = true;
-        _hasFinishedFade = false;
-    } else {
-        _isFading = true;
-        _hasStartedFade = true;
-        _hasFinishedFade = true;
+float ModelMeshPartPayload::computeFadeAlpha() const {
+    if (_fadeState == FADE_WAITING_TO_START) {
+        return 0.0f;
     }
+    float fadeAlpha = 1.0f;
+    const float INV_FADE_PERIOD = 1.0f / (float)(1 * USECS_PER_SECOND);
+    float fraction = (float)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
+    if (fraction < 1.0f) {
+        fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
+    }
+    if (fadeAlpha >= 1.0f) {
+        _fadeState = FADE_COMPLETE;
+        // when fade-in completes we flag model for one last "render item update"
+        _model->setRenderItemsNeedUpdate();
+        return 1.0f;
+    }
+    return Interpolate::simpleNonLinearBlend(fadeAlpha);
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) const {
@@ -565,40 +555,34 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         return; // bail asap
     }
 
-    // If we didn't start the fade in, check if we are ready to now....
-    if (!_hasStartedFade && _model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
-        const_cast<ModelMeshPartPayload&>(*this).startFade();
+    if (_fadeState == FADE_WAITING_TO_START) {
+        if (_model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
+            if (EntityItem::getEntitiesShouldFadeFunction()()) {
+                _fadeStartTime = usecTimestampNow();
+                _fadeState = FADE_IN_PROGRESS;
+            } else {
+                _fadeState = FADE_COMPLETE;
+            }
+            _model->setRenderItemsNeedUpdate();
+        } else {
+            return;
+        }
     }
 
-    // If we still didn't start the fade in, bail
-    if (!_hasStartedFade) {
+    if (!args) {
         return;
     }
-
-    // When an individual mesh parts like this finishes its fade, we will mark the Model as
-    // having render items that need updating
-    bool nextIsFading = _isFading ? isStillFading() : false;
-    bool startFading = !_isFading && !_hasFinishedFade && _hasStartedFade;
-    bool endFading = _isFading && !nextIsFading;
-    if (startFading || endFading) {
-        _isFading = startFading;
-        _hasFinishedFade = endFading;
-        _model->setRenderItemsNeedUpdate();
-    }
-
-    gpu::Batch& batch = *(args->_batch);
-
     if (!getShapeKey().isValid()) {
         return;
     }
 
+    gpu::Batch& batch = *(args->_batch);
     auto locations =  args->_pipeline->locations;
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
-    bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
     _model->updateClusterMatrices();
-    bindTransform(batch, locations, canCauterize);
+    bindTransform(batch, locations, args->_renderMode);
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
@@ -606,9 +590,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     // apply material properties
     bindMaterial(batch, locations);
 
-    if (args) {
-        args->_details._materialSwitches++;
-    }
+    args->_details._materialSwitches++;
 
     // Draw!
     {
@@ -616,9 +598,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         drawCall(batch);
     }
 
-    if (args) {
-        const int INDICES_PER_TRIANGLE = 3;
-        args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
-    }
+    const int INDICES_PER_TRIANGLE = 3;
+    args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }
-

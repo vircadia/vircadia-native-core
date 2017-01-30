@@ -24,9 +24,10 @@
     function showTabletUI() {
         tabletShown = true;
         print("show tablet-ui");
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, activeHand);
+        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", null, null, activeHand, true);
         UIWebTablet.register();
-        HMD.tabletID = UIWebTablet.webEntityID;
+        HMD.tabletID = UIWebTablet.tabletEntityID;
+        HMD.homeButtonID = UIWebTablet.homeButtonEntity;
     }
 
     function hideTabletUI() {
@@ -42,6 +43,7 @@
             UIWebTablet.destroy();
             UIWebTablet = null;
             HMD.tabletID = null;
+            HMD.homeButtonID = null;
         }
     }
 
@@ -52,7 +54,13 @@
             tablet.updateAudioBar(currentMicLevel);
         }
 
-        if (HMD.showTablet && !tabletShown) {
+        if (tabletShown && UIWebTablet && Overlays.getOverlayType(UIWebTablet.webOverlayID) != "web3d") {
+            // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
+            // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any
+            // other reason, close the tablet.
+            hideTabletUI();
+            HMD.closeTablet();
+        } else if (HMD.showTablet && !tabletShown) {
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
             hideTabletUI();
@@ -60,7 +68,9 @@
     }
 
     function toggleHand(channel, hand, senderUUID, localOnly) {
-        activeHand = JSON.parse(hand);
+        if (channel === "toggleHand") {
+            activeHand = JSON.parse(hand);
+        }
     }
 
     Messages.subscribe("toggleHand");
@@ -94,4 +104,10 @@
         }
         return micLevel;
     }
+
+    Script.scriptEnding.connect(function () {
+        Entities.deleteEntity(HMD.tabletID);
+        HMD.tabletID = null;
+        HMD.homeButtonID = null;
+    });
 }()); // END LOCAL_SCOPE

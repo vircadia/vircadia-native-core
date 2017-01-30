@@ -11,6 +11,7 @@
 #include <QtCore/QThread>
 
 #include <AudioInjector.h>
+#include <AccountManager.h>
 #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
 #include "ScriptEngineLogging.h"
@@ -166,6 +167,16 @@ static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* 
     buttonProxy->setQmlButton(qobject_cast<QQuickItem*>(qmlButton));
 }
 
+static QString getUsername() {
+    QString username = "Unknown user";
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (accountManager->isLoggedIn()) {
+        return accountManager->getAccountInfo().getUsername();
+    } else {
+        return "Unknown user";
+    }
+}
+
 void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     std::lock_guard<std::mutex> guard(_mutex);
     _qmlOffscreenSurface = qmlOffscreenSurface;
@@ -173,6 +184,16 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
     if (_qmlTabletRoot && _qmlOffscreenSurface) {
         QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
         gotoHomeScreen();
+
+        QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
+
+        // hook up username changed signal.
+        auto accountManager = DependencyManager::get<AccountManager>();
+        QObject::connect(accountManager.data(), &AccountManager::profileChanged, [this]() {
+            if (_qmlTabletRoot) {
+                QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
+            }
+        });
     } else {
         removeButtonsFromHomeScreen();
         _state = State::Uninitialized;
@@ -182,8 +203,9 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
 void TabletProxy::gotoMenuScreen() {
     if (_qmlTabletRoot) {
         if (_state != State::Menu) {
+            removeButtonsFromHomeScreen();
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()));
+            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()), Qt::DirectConnection);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
             _state = State::Menu;
         }
@@ -194,8 +216,9 @@ void TabletProxy::gotoHomeScreen() {
     if (_qmlTabletRoot) {
         if (_state != State::Home) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
+            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()), Qt::DirectConnection);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
+            QMetaObject::invokeMethod(_qmlTabletRoot, "playButtonClickSound");
             _state = State::Home;
         }
     }
@@ -232,6 +255,10 @@ QObject* TabletProxy::addButton(const QVariant& properties) {
         }
     }
     return tabletButtonProxy.data();
+}
+
+bool TabletProxy::onHomeScreen() {
+    return _state == State::Home;
 }
 
 void TabletProxy::removeButton(QObject* tabletButtonProxy) {

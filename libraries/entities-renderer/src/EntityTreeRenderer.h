@@ -122,7 +122,7 @@ signals:
 public slots:
     void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
-    void entitySciptChanging(const EntityItemID& entityID, const bool reload);
+    void entityScriptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void updateEntityRenderStatus(bool shouldRenderEntities);
     void updateZone(const EntityItemID& id);

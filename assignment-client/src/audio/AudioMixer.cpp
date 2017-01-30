@@ -36,9 +36,8 @@
 
 #include "AudioMixer.h"
 
-static const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
-static const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
+static const float DEFAULT_NOISE_MUTING_THRESHOLD = 1.0f;
 static const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 static const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
@@ -47,9 +46,6 @@ static const QString AUDIO_THREADING_GROUP_KEY = "audio_threading";
 int AudioMixer::_numStaticJitterFrames{ -1 };
 float AudioMixer::_noiseMutingThreshold{ DEFAULT_NOISE_MUTING_THRESHOLD };
 float AudioMixer::_attenuationPerDoublingInDistance{ DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE };
-float AudioMixer::_trailingSleepRatio{ 1.0f };
-float AudioMixer::_performanceThrottlingRatio{ 0.0f };
-float AudioMixer::_minAudibilityThreshold{ LOUDNESS_TO_DISTANCE_RATIO / 2.0f };
 QHash<QString, AABox> AudioMixer::_audioZones;
 QVector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
 QVector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
@@ -69,7 +65,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
-    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket"); 
+    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
     packetReceiver.registerListener(PacketType::PerAvatarGainSet, this, "handlePerAvatarGainSetDataPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
@@ -294,35 +290,31 @@ void AudioMixer::sendStatsPacket() {
 
     // general stats
     statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == -1;
-    statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
-    statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
+
+    statsObject["threads"] = _slavePool.numThreads();
+
+    statsObject["trailing_mix_ratio"] = _trailingMixRatio;
+    statsObject["throttling_ratio"] = _throttlingRatio;
 
     statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
     statsObject["avg_listeners_per_frame"] = (float)_stats.sumListeners / (float)_numStatFrames;
 
     // timing stats
     QJsonObject timingStats;
-    uint64_t timing, trailing;
 
-    _sleepTiming.get(timing, trailing);
-    timingStats["us_per_sleep"] = (qint64)(timing / _numStatFrames);
-    timingStats["us_per_sleep_trailing"] = (qint64)(trailing / _numStatFrames);
+    auto addTiming = [&](Timer& timer, std::string name) {
+        uint64_t timing, trailing;
+        timer.get(timing, trailing);
+        timingStats[("us_per_" + name).c_str()] = (qint64)(timing / _numStatFrames);
+        timingStats[("us_per_" + name + "_trailing").c_str()] = (qint64)(trailing / _numStatFrames);
+    };
 
-    _frameTiming.get(timing, trailing);
-    timingStats["us_per_frame"] = (qint64)(timing / _numStatFrames);
-    timingStats["us_per_frame_trailing"] = (qint64)(trailing / _numStatFrames);
-
-    _prepareTiming.get(timing, trailing);
-    timingStats["us_per_prepare"] = (qint64)(timing / _numStatFrames);
-    timingStats["us_per_prepare_trailing"] = (qint64)(trailing / _numStatFrames);
-
-    _mixTiming.get(timing, trailing);
-    timingStats["us_per_mix"] = (qint64)(timing / _numStatFrames);
-    timingStats["us_per_mix_trailing"] = (qint64)(trailing / _numStatFrames);
-
-    _eventsTiming.get(timing, trailing);
-    timingStats["us_per_events"] = (qint64)(timing / _numStatFrames);
-    timingStats["us_per_events_trailing"] = (qint64)(trailing / _numStatFrames);
+    addTiming(_ticTiming, "tic");
+    addTiming(_sleepTiming, "sleep");
+    addTiming(_frameTiming, "frame");
+    addTiming(_prepareTiming, "prepare");
+    addTiming(_mixTiming, "mix");
+    addTiming(_eventsTiming, "events");
 
     // call it "avg_..." to keep it higher in the display, sorted alphabetically
     statsObject["avg_timing_stats"] = timingStats;
@@ -332,7 +324,7 @@ void AudioMixer::sendStatsPacket() {
 
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_stats.hrtfRenders);
     mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_stats.hrtfSilentRenders);
-    mixStats["%_hrtf_struggle_mixes"] = percentageForMixStats(_stats.hrtfStruggleRenders);
+    mixStats["%_hrtf_throttle_mixes"] = percentageForMixStats(_stats.hrtfThrottleRenders);
     mixStats["%_manual_stereo_mixes"] = percentageForMixStats(_stats.manualStereoMixes);
     mixStats["%_manual_echo_mixes"] = percentageForMixStats(_stats.manualEchoMixes);
 
@@ -398,7 +390,7 @@ void AudioMixer::start() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // prepare the NodeList
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
     nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     // parse out any AudioMixer settings
@@ -408,25 +400,25 @@ void AudioMixer::start() {
         parseSettingsObject(settingsObject);
     }
 
-    // manageLoad state
-    auto frameTimestamp = p_high_resolution_clock::time_point::min();
-    unsigned int framesSinceManagement = std::numeric_limits<int>::max();
-
     // mix state
     unsigned int frame = 1;
+    auto frameTimestamp = p_high_resolution_clock::now();
 
     while (!_isFinished) {
+        auto ticTimer = _ticTiming.timer();
+
         {
             auto timer = _sleepTiming.timer();
-            manageLoad(frameTimestamp, framesSinceManagement);
+            auto frameDuration = timeFrame(frameTimestamp);
+            throttle(frameDuration, frame);
         }
 
-        auto timer = _frameTiming.timer();
+        auto frameTimer = _frameTiming.timer();
 
         nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
             // prepare frames; pop off any new audio from their streams
             {
-                auto timer = _prepareTiming.timer();
+                auto prepareTimer = _prepareTiming.timer();
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
                     _stats.sumStreams += prepareFrame(node, frame);
                 });
@@ -434,8 +426,8 @@ void AudioMixer::start() {
 
             // mix across slave threads
             {
-                auto timer = _mixTiming.timer();
-                _slavePool.mix(cbegin, cend, frame);
+                auto mixTimer = _mixTiming.timer();
+                _slavePool.mix(cbegin, cend, frame, _throttlingRatio);
             }
         });
 
@@ -450,7 +442,7 @@ void AudioMixer::start() {
 
         // play nice with qt event-looping
         {
-            auto timer = _eventsTiming.timer();
+            auto eventsTimer = _eventsTiming.timer();
 
             // since we're a while loop we need to yield to qt's event processing
             QCoreApplication::processEvents();
@@ -464,67 +456,68 @@ void AudioMixer::start() {
     }
 }
 
-void AudioMixer::manageLoad(p_high_resolution_clock::time_point& frameTimestamp, unsigned int& framesSinceCutoffEvent) {
-    auto timeToSleep = std::chrono::microseconds(0);
+std::chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {
+    // advance the next frame
+    auto nextTimestamp = timestamp + std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
+    auto now = p_high_resolution_clock::now();
 
-    // sleep until the next frame, if necessary
-    {
-        // advance the next frame
-        frameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
-        auto now = p_high_resolution_clock::now();
+    // compute how long the last frame took
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - timestamp);
 
-        // calculate sleep
-        if (frameTimestamp < now) {
-            frameTimestamp = now;
-        } else {
-            timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(frameTimestamp - now);
-            std::this_thread::sleep_for(timeToSleep);
-        }
-    }
+    // set the new frame timestamp
+    timestamp = std::max(now, nextTimestamp);
 
-    // manage mixer load
-    {
-        const int TRAILING_AVERAGE_FRAMES = 100;
-        const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
-        const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    // sleep until the next frame should start
+    // WIN32 sleep_until is broken until VS2015 Update 2
+    // instead, std::max (above) guarantees that timestamp >= now, so we can sleep_for
+    std::this_thread::sleep_for(timestamp - now);
 
-        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
-        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+    return duration;
+}
 
-        const float RATIO_BACK_OFF = 0.02f;
+void AudioMixer::throttle(std::chrono::microseconds duration, int frame) {
+    // throttle using a modified proportional-integral controller
+    const float FRAME_TIME = 10000.0f;
+    float mixRatio = duration.count() / FRAME_TIME;
 
-        _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio) +
-            // ratio of frame spent sleeping / total frame time
-            ((CURRENT_FRAME_RATIO * timeToSleep.count()) / (float) AudioConstants::NETWORK_FRAME_USECS);
+    // constants are determined based on a "regular" 16-CPU EC2 server
 
-        bool hasRatioChanged = false;
+    // target different mix and backoff ratios (they also have different backoff rates)
+    // this is to prevent oscillation, and encourage throttling to find a steady state
+    const float TARGET = 0.9f;
+    // on a "regular" machine with 100 avatars, this is the largest value where
+    // - overthrottling can be recovered
+    // - oscillations will not occur after the recovery
+    const float BACKOFF_TARGET = 0.44f;
 
-        if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-                qDebug() << "Mixer is struggling";
-                // change our min required loudness to reduce some load
-                _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
-                hasRatioChanged = true;
-            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-                qDebug() << "Mixer is recovering";
-                // back off the required loudness
-                _performanceThrottlingRatio = std::max(0.0f, _performanceThrottlingRatio - RATIO_BACK_OFF);
-                hasRatioChanged = true;
-            }
+    // the mixer is known to struggle at about 80 on a "regular" machine
+    // so throttle 2/80 the streams to ensure smooth audio (throttling is linear)
+    const float THROTTLE_RATE = 2 / 80.0f;
+    const float BACKOFF_RATE = THROTTLE_RATE / 4;
 
-            if (hasRatioChanged) {
-                // set out min audability threshold from the new ratio
-                _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
-                framesSinceCutoffEvent = 0;
+    // recovery should be bounded so that large changes in user count is a tolerable experience
+    // throttling is linear, so most cases will not need a full recovery
+    const int RECOVERY_TIME = 180;
 
-                qDebug() << "Sleeping" << _trailingSleepRatio << "of frame";
-                qDebug() << "Cutoff is" << _performanceThrottlingRatio;
-                qDebug() << "Minimum audibility to be mixed is" << _minAudibilityThreshold;
-            }
-        }
+    // weight more recent frames to determine if throttling is necessary,
+    const int TRAILING_FRAMES = (int)(100 * RECOVERY_TIME * BACKOFF_RATE);
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    _trailingMixRatio = PREVIOUS_FRAMES_RATIO * _trailingMixRatio + CURRENT_FRAME_RATIO * mixRatio;
 
-        if (!hasRatioChanged) {
-            ++framesSinceCutoffEvent;
+    if (frame % TRAILING_FRAMES == 0) {
+        if (_trailingMixRatio > TARGET) {
+            int proportionalTerm = 1 + (_trailingMixRatio - TARGET) / 0.1f;
+            _throttlingRatio += THROTTLE_RATE * proportionalTerm;
+            _throttlingRatio = std::min(_throttlingRatio, 1.0f);
+            qDebug("audio-mixer is struggling (%f mix/sleep) - throttling %f of streams",
+                    (double)_trailingMixRatio, (double)_throttlingRatio);
+        } else if (_throttlingRatio > 0.0f && _trailingMixRatio <= BACKOFF_TARGET) {
+            int proportionalTerm = 1 + (TARGET - _trailingMixRatio) / 0.2f;
+            _throttlingRatio -= BACKOFF_RATE * proportionalTerm;
+            _throttlingRatio = std::max(_throttlingRatio, 0.0f);
+            qDebug("audio-mixer is recovering (%f mix/sleep) - throttling %f of streams",
+                    (double)_trailingMixRatio, (double)_throttlingRatio);
         }
     }
 }

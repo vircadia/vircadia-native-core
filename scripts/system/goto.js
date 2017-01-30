@@ -10,34 +10,50 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/* globals Tablet, Toolbars, Script, HMD, DialogsManager */
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-var isActive = false
-var button = tablet.addButton({
-    icon: "icons/tablet-icons/goto-i.svg",
-    text:"GOTO"
-});
-
+var button;
+var buttonName = "GOTO";
+var toolBar = null;
+var tablet = null;
 
 function onAddressBarShown(visible) {
+    button.editProperties({isActive: visible});
 }
 
-function setActive(active) {
-    isActive = active;
-}
 function onClicked(){
-    setActive(!isActive);
-    button.editProperties({isActive: isActive});
     DialogsManager.toggleAddressBar();
 }
+
+if (Settings.getValue("HUDUIEnabled")) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/directory.svg"),
+        visible: true,
+        alpha: 0.9
+    });
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        icon: "icons/tablet-icons/goto-i.svg",
+        text: buttonName
+    });
+}
+
 button.clicked.connect(onClicked);
 DialogsManager.addressBarShown.connect(onAddressBarShown);
 
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
-    tablet.removeButton(button);
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
     DialogsManager.addressBarShown.disconnect(onAddressBarShown);
 });
 

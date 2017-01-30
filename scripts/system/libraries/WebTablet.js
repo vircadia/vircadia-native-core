@@ -7,23 +7,30 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true */
+/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true, HMD, Settings, Script,
+   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
+Script.include(Script.resolvePath("../libraries/Xform.js"));
 
-var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
-var DEFAULT_DPI = 32;
-var DEFAULT_WIDTH = 0.43;
+var DEFAULT_DPI = 34;
+var DEFAULT_WIDTH = 0.4375;
 var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
+var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
+var INCHES_TO_METERS = 1 / 39.3701;
 
-var TABLET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Tablet-Model-v1-x.fbx";
-var HOME_BUTTON_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-home-button.fbx";
+var TABLET_URL = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+
+// will need to be recaclulated if dimensions of fbx model change.
+var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
+var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
+var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -57,54 +64,66 @@ function calcSpawnInfo(hand, height) {
             rotation: lookAtRot
         };
     } else {
-        var front = Quat.getFront(MyAvatar.orientation);
-        finalPosition = Vec3.sum(Vec3.sum(MyAvatar.position, Vec3.multiply(0.6, front)), {x: 0, y: 0.6, z: 0});
+        var front = Quat.getFront(Camera.orientation);
+        finalPosition = Vec3.sum(Camera.position, Vec3.multiply(0.6, front));
+        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, front, {x: 0, y: 1, z: 0});
         return {
             position: finalPosition,
-            rotation: Quat.lookAt(finalPosition, MyAvatar.getHeadPosition(), Y_AXIS)
+            rotation: Quat.multiply(orientation, {x: 0, y: 1, z: 0, w: 0})
         };
     }
 }
 
-// ctor
+/**
+ * WebTablet
+ * @param url [string] url of content to show on the tablet.
+ * @param width [number] width in meters of the tablet model
+ * @param dpi [number] dpi of web surface used to show the content.
+ * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
+ * @param clientOnly [bool] true indicates tablet model is only visible to client.
+ */
 WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     var _this = this;
-    var ASPECT = 4.0 / 3.0;
+
+    // scale factor of natural tablet dimensions.
     this.width = width || DEFAULT_WIDTH;
-    var TABLET_HEIGHT_SCALE = 650 / 680;  //  Screen size of tablet entity isn't quite the desired aspect.
-    this.height = this.width * ASPECT * TABLET_HEIGHT_SCALE;
-    var DEPTH = 0.025;
-    var DPI = dpi || DEFAULT_DPI;
+    var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
+    this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    this.dpi = dpi || DEFAULT_DPI;
 
     var tabletProperties = {
         name: "WebTablet Tablet",
         type: "Model",
-        modelURL: TABLET_URL,
+        modelURL: TABLET_MODEL_PATH,
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
-        dimensions: {x: this.width, y: this.height, z: DEPTH},
+        dimensions: {x: this.width, y: this.height, z: this.depth},
         parentID: MyAvatar.sessionUUID
     };
 
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(hand, tabletProperties);
 
+    this.cleanUpOldTablets();
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
 
-    var WEB_ENTITY_Z_OFFSET = -0.0125;
     if (this.webOverlayID) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
+    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var WEB_ENTITY_Y_OFFSET = 0.004;
+
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
         url: url,
-        localPosition: { x: 0, y: 0, z: WEB_ENTITY_Z_OFFSET },
+        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
-        resolution: { x: 480, y: 640 },
-        dpi: DPI,
+        resolution: TABLET_TEXTURE_RESOLUTION,
+        dpi: this.dpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
         parentID: this.tabletEntityID,
@@ -112,31 +131,36 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         showKeyboardFocusHighlight: false
     });
 
-    var HOME_BUTTON_Y_OFFSET = -0.25;
-    this.homeButtonEntity = Entities.addEntity({
+    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.035;
+    this.homeButtonEntity = Overlays.addOverlay("sphere", {
         name: "homeButton",
-        type: "Model",
-        modelURL: HOME_BUTTON_URL,
-        dimensions: { x: 0.04, y: 0.04, z: 0.02 },
-        collisionless: true,
-        localPosition: {x: 0, y: HOME_BUTTON_Y_OFFSET, z: -0.01},
+        localPosition: {x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: -0.01},
+        localRotation: Quat.angleAxis(0, Y_AXIS),
+        dimensions: { x: 0.04, y: 0.04, z: 0.02},
+        alpha: 0.0,
+        visible: true,
+        drawInFront: false,
         parentID: this.tabletEntityID,
-        script: Script.resolvePath("../tablet-ui/HomeButton.js")
-    }, clientOnly);
-
-    setEntityCustomData('grabbableKey', this.homeButtonEntity, {wantsTrigger: true});
+        parentJointIndex: -1
+    });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
-        if (_this.homeButtonEntity === senderID) {
+        if (_this.homeButtonEntity === parseInt(senderID)) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.gotoHomeScreen();
+            var onHomeScreen = tablet.onHomeScreen();
+            if (onHomeScreen) {
+                HMD.closeTablet();
+            } else {
+                tablet.gotoHomeScreen();
+                _this.setHomeButtonTexture();
+            }
         }
     };
 
     this.state = "idle";
 
     this.getRoot = function() {
-        return Entities.getWebViewRoot(_this.webEntityID);
+        return Entities.getWebViewRoot(_this.tabletEntityID);
     };
 
     this.getLocation = function() {
@@ -148,6 +172,36 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         _this.onHmdChanged();
     };
     HMD.displayModeChanged.connect(this.myOnHmdChanged);
+
+    this.myMousePressEvent = function (event) {
+        _this.mousePressEvent(event);
+    };
+
+    this.myMouseMoveEvent = function (event) {
+        _this.mouseMoveEvent(event);
+    };
+
+    this.myMouseReleaseEvent = function (event) {
+        _this.mouseReleaseEvent(event);
+    };
+
+    Controller.mousePressEvent.connect(this.myMousePressEvent);
+    Controller.mouseMoveEvent.connect(this.myMouseMoveEvent);
+    Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
+
+    this.dragging = false;
+    this.initialLocalIntersectionPoint = {x: 0, y: 0, z: 0};
+    this.initialLocalPosition = {x: 0, y: 0, z: 0};
+
+    this.myGeometryChanged = function (geometry) {
+        _this.geometryChanged(geometry);
+    };
+    Window.geometryChanged.connect(this.myGeometryChanged);
+};
+
+WebTablet.prototype.setHomeButtonTexture = function() {
+    print(this.homeButtonEntity);
+    Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
 };
 
 WebTablet.prototype.setURL = function (url) {
@@ -165,16 +219,36 @@ WebTablet.prototype.getOverlayObject = function () {
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Entities.deleteEntity(this.tabletEntityID);
-    Entities.deleteEntity(this.homeButtonEntity);
+    Overlays.deleteOverlay(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
+
+    
+    Controller.mousePressEvent.disconnect(this.myMousePressEvent);
+    Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
+    Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
+
+    Window.geometryChanged.disconnect(this.myGeometryChanged);
+};
+
+WebTablet.prototype.geometryChanged = function (geometry) {
+    if (!HMD.active) {
+        var NO_HANDS = -1;
+        var tabletProperties = {};
+        // compute position, rotation & parentJointIndex of the tablet
+        this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+        Entities.editEntity(this.tabletEntityID, tabletProperties);
+    }
 };
 
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
 // with a bit of padding on the top and bottom.
 WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
-    var PADDING_FACTOR = 1.4;
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
-    var dist = (PADDING_FACTOR * this.height) / (2 * Math.tan(fov / 2));
+    var MAX_PADDING_FACTOR = 2.2;
+    var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
+    var TABLET_HEIGHT = (TABLET_TEXTURE_RESOLUTION.y / this.dpi) * INCHES_TO_METERS;
+    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2)) - WEB_ENTITY_Z_OFFSET;
     return {
         position: Vec3.sum(Camera.position, Vec3.multiply(dist, Quat.getFront(Camera.orientation))),
         rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
@@ -203,6 +277,17 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, tablet
 };
 
 WebTablet.prototype.onHmdChanged = function () {
+
+    if (HMD.active) {
+        Controller.mousePressEvent.disconnect(this.myMousePressEvent);
+        Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
+        Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
+    } else {
+        Controller.mousePressEvent.connect(this.myMousePressEvent);
+        Controller.mouseMoveEvent.connect(this.myMouseMoveEvent);
+        Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
+    }
+
     var NO_HANDS = -1;
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
@@ -217,6 +302,27 @@ WebTablet.prototype.pickle = function () {
 WebTablet.prototype.register = function() {
     Messages.subscribe("home");
     Messages.messageReceived.connect(this.receive);
+};
+
+WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
+    var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
+    print("cleanup " + children);
+    children.forEach(function(childID) {
+        var props = Entities.getEntityProperties(childID, ["name"]);
+        if (props.name === "WebTablet Tablet") {
+            print("cleaning up " + props.name);
+            Entities.deleteEntity(childID);
+        } else {
+            print("not cleaning up " + props.name);
+        }
+    });
+};
+
+WebTablet.prototype.cleanUpOldTablets = function() {
+    this.cleanUpOldTabletsOnJoint(-1);
+    this.cleanUpOldTabletsOnJoint(SENSOR_TO_ROOM_MATRIX);
+    this.cleanUpOldTabletsOnJoint(CAMERA_MATRIX);
+    this.cleanUpOldTabletsOnJoint(65529);
 };
 
 WebTablet.prototype.unregister = function() {
@@ -235,4 +341,67 @@ WebTablet.unpickle = function (string) {
 
 WebTablet.prototype.getPosition = function () {
     return Overlays.getProperty(this.webOverlayID, "position");
+};
+
+WebTablet.prototype.mousePressEvent = function (event) {
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    var entityPickResults = Entities.findRayIntersection(pickRay, true); // non-accurate picking
+    if (entityPickResults.intersects && entityPickResults.entityID === this.tabletEntityID) {
+        var overlayPickResults = Overlays.findRayIntersection(pickRay);
+        if (overlayPickResults.intersects && overlayPickResults.overlayID === HMD.homeButtonID) {
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            var onHomeScreen = tablet.onHomeScreen();
+            if (onHomeScreen) {
+                HMD.closeTablet();
+            } else {
+                tablet.gotoHomeScreen();
+                this.setHomeButtonTexture();
+            }
+        } else if (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID) {
+            this.dragging = true;
+            var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
+            this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
+            this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
+        }
+    }
+};
+
+function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
+    var rayDirectionDotPlaneNormal = Vec3.dot(rayDirection, planeNormal);
+    if (rayDirectionDotPlaneNormal > 0.00001 || rayDirectionDotPlaneNormal < -0.00001) {
+        var rayStartDotPlaneNormal = Vec3.dot(Vec3.subtract(planePosition, rayStart), planeNormal);
+        var distance = rayStartDotPlaneNormal / rayDirectionDotPlaneNormal;
+        return {hit: true, distance: distance};
+    } else {
+        // ray is parallel to the plane
+        return {hit: false, distance: 0};
+    }
+}
+
+WebTablet.prototype.mouseMoveEvent = function (event) {
+    if (this.dragging) {
+        var pickRay = Camera.computePickRay(event.x, event.y);
+
+        // transform pickRay into camera local coordinates
+        var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
+        var localPickRay = {
+            origin: invCameraXform.xformPoint(pickRay.origin),
+            direction: invCameraXform.xformVector(pickRay.direction)
+        };
+
+        var NORMAL = {x: 0, y: 0, z: -1};
+        var result = rayIntersectPlane(this.initialLocalIntersectionPoint, NORMAL, localPickRay.origin, localPickRay.direction);
+        if (result.hit) {
+            var localIntersectionPoint = Vec3.sum(localPickRay.origin, Vec3.multiply(localPickRay.direction, result.distance));
+            var localOffset = Vec3.subtract(localIntersectionPoint, this.initialLocalIntersectionPoint);
+            var localPosition = Vec3.sum(this.initialLocalPosition, localOffset);
+            Entities.editEntity(this.tabletEntityID, {
+                localPosition: localPosition
+            });
+        }
+    }
+};
+
+WebTablet.prototype.mouseReleaseEvent = function (event) {
+    this.dragging = false;
 };

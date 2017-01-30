@@ -15,8 +15,7 @@
 
 (function () { // BEGIN LOCAL_SCOPE
 
-    // grab the toolbar
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var button;
     // Used for animating and disappearing the bubble
     var bubbleOverlayTimestamp;
     // Used for flashing the HUD button upon activation
@@ -164,11 +163,23 @@
         }
     }
 
-    // Setup the bubble button and add it to the toolbar
-    var button = tablet.addButton({
-        icon: "icons/tablet-icons/bubble-i.svg",
-        text: "BUBBLE"
-    });
+    // Setup the bubble button
+    var buttonName = "BUBBLE";
+    if (Settings.getValue("HUDUIEnabled")) {
+        var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+        button = toolbar.addButton({
+            objectName: 'bubble',
+            imageURL: buttonImageURL(),
+            visible: true,
+            alpha: 0.9
+        });
+    } else {
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        button = tablet.addButton({
+            icon: "icons/tablet-icons/bubble-i.svg",
+            text: buttonName
+        });
+    }
     onBubbleToggled();
 
     button.clicked.connect(Users.toggleIgnoreRadius);
@@ -178,7 +189,12 @@
     // Cleanup the toolbar button and overlays when script is stopped
     Script.scriptEnding.connect(function () {
         button.clicked.disconnect(Users.toggleIgnoreRadius);
-        tablet.removeButton(button);
+        if (tablet) {
+            tablet.removeButton(button);
+        }
+        if (toolbar) {
+            toolbar.removeButton('bubble');
+        }
         Users.ignoreRadiusEnabledChanged.disconnect(onBubbleToggled);
         Users.enteredIgnoreRadius.disconnect(enteredIgnoreRadius);
         Overlays.deleteOverlay(bubbleOverlay);

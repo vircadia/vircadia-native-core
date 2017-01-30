@@ -20,7 +20,7 @@ struct AudioMixerStats {
 
     int hrtfRenders { 0 };
     int hrtfSilentRenders { 0 };
-    int hrtfStruggleRenders { 0 };
+    int hrtfThrottleRenders { 0 };
 
     int manualStereoMixes { 0 };
     int manualEchoMixes { 0 };

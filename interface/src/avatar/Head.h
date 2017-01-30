@@ -31,7 +31,7 @@ public:
 
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine, bool billboard = false);
+    void simulate(float deltaTime, bool isMine);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
@@ -70,8 +70,6 @@ public:
 
     bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
-    /// \return the point about which scaling occurs.
-    glm::vec3 getScalePivot() const;
 
     void setDeltaPitch(float pitch) { _deltaPitch = pitch; }
     float getDeltaPitch() const { return _deltaPitch; }

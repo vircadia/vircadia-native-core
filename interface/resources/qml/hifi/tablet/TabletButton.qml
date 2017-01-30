@@ -125,7 +125,6 @@ Item {
             }
         }
         onEntered: {
-            console.log("Tablet Button Hovered!");
             tabletButton.isEntered = true;
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";
@@ -134,7 +133,6 @@ Item {
             }
         }
         onExited: {
-            console.log("Tablet Button Unhovered!");
             tabletButton.isEntered = false;
             if (tabletButton.isActive) {
                 tabletButton.state = "active state";

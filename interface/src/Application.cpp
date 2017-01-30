@@ -61,7 +61,7 @@
 #include <CursorManager.h>
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
-#include <display-plugins/DisplayPlugin.h>
+#include <EntityScriptClient.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
@@ -174,6 +174,7 @@
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
+#include <EntityScriptClient.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -459,7 +460,7 @@ bool setupEssentials(int& argc, char** argv) {
     // Set dependencies
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
-    DependencyManager::set<ScriptEngines>();
+    DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
@@ -516,6 +517,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     DependencyManager::set<CompositorHelper>();
     DependencyManager::set<OffscreenQmlSurfaceCache>();
+    DependencyManager::set<EntityScriptClient>();
     return previousSessionCrashed;
 }
 
@@ -854,7 +856,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-        << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
+        << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer << NodeType::EntityScriptServer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -978,7 +980,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         using namespace controller;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        if (offscreenUi->navigationFocused()) {
+        {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
             static int lastKey = Qt::Key_unknown;
@@ -1940,6 +1942,8 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
     rootContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
+    rootContext->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 
     rootContext->setContextProperty("Camera", &_myCamera);
 
@@ -3398,6 +3402,8 @@ void Application::idle(float nsecsElapsed) {
     PROFILE_COUNTER(app, "cpuSystem", { { "system", kernelUserAndSystem.z } });
 #endif
 
+
+
     auto displayPlugin = getActiveDisplayPlugin();
     if (displayPlugin) {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
@@ -3407,9 +3413,15 @@ void Application::idle(float nsecsElapsed) {
     PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", int, ResourceCache::getPendingRequestCount());
     PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
-
-
-
+    auto renderConfig = _renderEngine->getConfiguration();
+    PROFILE_COUNTER_IF_CHANGED(render, "gpuTime", float, (float)_gpuContext->getFrameTimerGPUAverage());
+    PROFILE_COUNTER(render_detail, "gpuTimes", {
+        { "OpaqueRangeTimer", renderConfig->getConfig("OpaqueRangeTimer")->property("gpuRunTime") },
+        { "LinearDepth", renderConfig->getConfig("LinearDepth")->property("gpuRunTime") },
+        { "SurfaceGeometry", renderConfig->getConfig("SurfaceGeometry")->property("gpuRunTime") },
+        { "RenderDeferred", renderConfig->getConfig("RenderDeferred")->property("gpuRunTime") },
+        { "ToneAndPostRangeTimer", renderConfig->getConfig("ToneAndPostRangeTimer")->property("gpuRunTime") }
+    });
 
     PROFILE_RANGE(app, __FUNCTION__);
 
@@ -5163,6 +5175,7 @@ void Application::nodeAdded(SharedNodePointer node) const {
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet right away
         getMyAvatar()->sendIdentityPacket();
+        getMyAvatar()->resetLastSent();
     }
 }
 
@@ -5484,6 +5497,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(scriptEngine);
+
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);

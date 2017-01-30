@@ -121,7 +121,8 @@ public:
      * @param msg {object|string}
      */
     Q_INVOKABLE void emitScriptEvent(QVariant msg);
-
+    
+    Q_INVOKABLE bool onHomeScreen();
 
     QObject* getTabletSurface();
 

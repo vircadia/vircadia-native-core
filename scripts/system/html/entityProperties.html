@@ -318,6 +318,18 @@
                 <input type="text" id="property-script-url">
                 <input type="button" id="reload-script-button" class="glyph" value="F">
             </div>
+            <div class="behavior-group property url refresh">
+                <label for="property-server-scripts">Server Script URL</label>
+                <input type="text" id="property-server-scripts">
+                <input type="button" id="reload-server-scripts-button" class="glyph" value="F">
+            </div>
+            <div class="behavior-group property">
+                <label for="server-script-status">Server Script Status</label>
+                <span id="server-script-status"></span>
+            </div>
+            <div class="behavior-group property">
+                <textarea id="server-script-error"></textarea>
+            </div>
             <div class="section-header model-group model-section zone-section">
                 <label>Model</label><span>M</span>
             </div>
@@ -328,13 +340,13 @@
             <div class="model-group model-section zone-section property dropdown">
                 <label>Collision shape type</label>
                 <select name="SelectShapeType" id="property-shape-type">
-                    <option value="none">None</option>
+                    <option value="none">No Collision</option>
                     <option value="box">Box</option>
                     <option value="sphere">Sphere</option>
                     <option value="compound">Compound</option>
-                    <option value="simple-hull">One Hull</option>
-                    <option value="simple-compound">Hull Per Submesh</option>
-                    <option value="static-mesh">Static Mesh</option>
+                    <option value="simple-hull">Basic - Whole model</option>
+                    <option value="simple-compound">Good - Sub-meshes</option>
+                    <option value="static-mesh">Exact - All polygons (non-dynamic only)</option>
                 </select>
             </div>
             <div class="model-group model-section zone-section property url ">

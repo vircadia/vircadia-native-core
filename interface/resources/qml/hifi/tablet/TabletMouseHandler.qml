@@ -63,7 +63,9 @@ Item {
                     result.append({"name": item.title, "item": item})
                     break;
                 case MenuItemType.Item:
-                    result.append({"name": item.text, "item": item})
+                    if (item.text !== "Users Online") {
+                        result.append({"name": item.text, "item": item})
+                    }
                     break;
                 case MenuItemType.Separator:
                     result.append({"name": "", "item": item})
@@ -90,7 +92,6 @@ Item {
             } else {
                 breadcrumbText.text = "Menu";
                 topMenu = null;
-                offscreenFlags.navigationFocused = false;
             }
         }
 
@@ -99,7 +100,6 @@ Item {
             topMenu = newMenu;
             topMenu.focus = true;
             topMenu.forceActiveFocus();
-            offscreenFlags.navigationFocused = true;
         }
 
         function clearMenus() {
@@ -148,9 +148,6 @@ Item {
                     console.log("Triggering " + item.text)
                     // Don't block waiting for modal dialogs and such that the menu might open.
                     delay.trigger(item);
-                    clearMenus();
-                    // build root level menu
-                    tabletMenu.buildMenu();
                     break;
                 }
         }
