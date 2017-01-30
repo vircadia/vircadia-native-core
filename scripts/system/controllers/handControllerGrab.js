@@ -853,7 +853,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState, reason) {
-        if (isInEditMode() && (newState !== STATE_OFF &&
+        if ((isInEditMode() && this.grabbedEntity !== HMD.tabletID )&& (newState !== STATE_OFF &&
                                newState !== STATE_SEARCHING &&
                                newState !== STATE_OVERLAY_STYLUS_TOUCHING)) {
             return;
@@ -1510,7 +1510,6 @@ function MyController(hand) {
     };
 
     this.entityIsNearGrabbable = function(entityID, handPosition, maxDistance) {
-
         if (!this.entityIsGrabbable(entityID)) {
             return false;
         }
@@ -1703,7 +1702,7 @@ function MyController(hand) {
     };
 
     this.isTablet = function (entityID) {
-        if (entityID === HMD.tabletID) { // XXX what's a better way to know this?
+        if (entityID === HMD.tabletID) {
             return true;
         }
         return false;
@@ -2264,7 +2263,6 @@ function MyController(hand) {
         this.clearEquipHaptics();
 
         this.shouldScale = false;
-
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
         if (this.entityActivated) {
@@ -2394,7 +2392,6 @@ function MyController(hand) {
 
     this.nearGrabbing = function(deltaTime, timestamp) {
         this.grabPointSphereOff();
-
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");

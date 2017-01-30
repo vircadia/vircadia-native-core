@@ -191,7 +191,6 @@ var toolBar = (function () {
         selectionManager.clearSelections();
         entityListTool.sendUpdate();
         selectionManager.setSelections([entityID]);
-
         return entityID;
     }
 
@@ -714,9 +713,6 @@ function mouseClickEvent(event) {
         toolBar.setActive(true);
         var pickRay = result.pickRay;
         var foundEntity = result.entityID;
-        if (foundEntity === HMD.tabletID) {
-            return;
-        }
         properties = Entities.getEntityProperties(foundEntity);
         if (isLocked(properties)) {
             if (wantDebug) {
