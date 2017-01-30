@@ -1510,7 +1510,7 @@ function MyController(hand) {
     };
 
     this.entityIsNearGrabbable = function(entityID, handPosition, maxDistance) {
-        
+
         if (!this.entityIsGrabbable(entityID)) {
             return false;
         }
@@ -2264,7 +2264,7 @@ function MyController(hand) {
         this.clearEquipHaptics();
 
         this.shouldScale = false;
-        
+
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
         if (this.entityActivated) {
@@ -2394,7 +2394,7 @@ function MyController(hand) {
 
     this.nearGrabbing = function(deltaTime, timestamp) {
         this.grabPointSphereOff();
-        
+
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");

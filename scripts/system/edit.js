@@ -191,7 +191,7 @@ var toolBar = (function () {
         selectionManager.clearSelections();
         entityListTool.sendUpdate();
         selectionManager.setSelections([entityID]);
-        
+
         return entityID;
     }
 
