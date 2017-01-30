@@ -129,7 +129,7 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
+void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool enableTextures) const {
     if (!_drawMaterial) {
         return;
     }
@@ -148,7 +148,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Albedo
-    if (materialKey.isAlbedoMap()) {
+    if (enableTextures && materialKey.isAlbedoMap()) {
         auto itr = textureMaps.find(model::MaterialKey::ALBEDO_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
@@ -160,7 +160,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Roughness map
-    if (materialKey.isRoughnessMap()) {
+    if (enableTextures && materialKey.isRoughnessMap()) {
         auto itr = textureMaps.find(model::MaterialKey::ROUGHNESS_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
@@ -174,7 +174,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Normal map
-    if (materialKey.isNormalMap()) {
+    if (enableTextures && materialKey.isNormalMap()) {
         auto itr = textureMaps.find(model::MaterialKey::NORMAL_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
@@ -188,7 +188,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Metallic map
-    if (materialKey.isMetallicMap()) {
+    if (enableTextures && materialKey.isMetallicMap()) {
         auto itr = textureMaps.find(model::MaterialKey::METALLIC_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
@@ -202,7 +202,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Occlusion map
-    if (materialKey.isOcclusionMap()) {
+    if (enableTextures && materialKey.isOcclusionMap()) {
         auto itr = textureMaps.find(model::MaterialKey::OCCLUSION_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
@@ -216,7 +216,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Scattering map
-    if (materialKey.isScatteringMap()) {
+    if (enableTextures && materialKey.isScatteringMap()) {
         auto itr = textureMaps.find(model::MaterialKey::SCATTERING_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
@@ -230,7 +230,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 
     // Emissive / Lightmap
-    if (materialKey.isLightmapMap()) {
+    if (enableTextures && materialKey.isLightmapMap()) {
         auto itr = textureMaps.find(model::MaterialKey::LIGHTMAP_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
@@ -238,7 +238,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
         }
-    } else if (materialKey.isEmissiveMap()) {
+    } else if (enableTextures && materialKey.isEmissiveMap()) {
         auto itr = textureMaps.find(model::MaterialKey::EMISSIVE_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
@@ -271,7 +271,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
     bindMesh(batch);
 
     // apply material properties
-    bindMaterial(batch, locations);
+    bindMaterial(batch, locations, args->_enableTexturing);
 
     if (args) {
         args->_details._materialSwitches++;
@@ -588,7 +588,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     bindMesh(batch);
 
     // apply material properties
-    bindMaterial(batch, locations);
+    bindMaterial(batch, locations, args->_enableTexturing);
 
     args->_details._materialSwitches++;
 

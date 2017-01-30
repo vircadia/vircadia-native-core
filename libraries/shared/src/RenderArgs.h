@@ -122,6 +122,7 @@ public:
     gpu::Batch* _batch = nullptr;
 
     std::shared_ptr<gpu::Texture> _whiteTexture;
+    bool _enableTexturing { true };
 
     RenderDetails _details;
 };
