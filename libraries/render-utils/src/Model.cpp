@@ -133,16 +133,15 @@ void Model::setRotation(const glm::quat& rotation) {
     updateRenderItems();
 }
 
-void Model::setSpatiallyNestableOverride(SpatiallyNestablePointer override) {
+void Model::setSpatiallyNestableOverride(SpatiallyNestable* override) {
     _spatiallyNestableOverride = override;
     updateRenderItems();
 }
 
 Transform Model::getTransform() const {
-    SpatiallyNestablePointer spatiallyNestableOverride = _spatiallyNestableOverride.lock();
-    if (spatiallyNestableOverride) {
+    if (_spatiallyNestableOverride) {
         bool success;
-        Transform transform = spatiallyNestableOverride->getTransform(success);
+        Transform transform = _spatiallyNestableOverride->getTransform(success);
         if (success) {
             transform.setScale(getScale());
             return transform;

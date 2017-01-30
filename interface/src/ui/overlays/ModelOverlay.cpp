@@ -22,6 +22,7 @@ ModelOverlay::ModelOverlay()
       _modelTextures(QVariantMap())
 {
     _model->init();
+    _model->setSpatiallyNestableOverride(this);
     _isLoaded = false;
 }
 
@@ -33,6 +34,7 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     _updateModel(false)
 {
     _model->init();
+    _model->setSpatiallyNestableOverride(this);
     if (_url.isValid()) {
         _updateModel = true;
         _isLoaded = false;

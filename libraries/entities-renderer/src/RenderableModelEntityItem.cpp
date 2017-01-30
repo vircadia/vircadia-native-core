@@ -508,7 +508,7 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
             _model = _myRenderer->allocateModel(getModelURL(), renderer->getEntityLoadingPriority(*this));
-            _model->setSpatiallyNestableOverride(shared_from_this());
+            _model->setSpatiallyNestableOverride(this);
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {

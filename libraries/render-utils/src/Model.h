@@ -205,7 +205,7 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
-    void setSpatiallyNestableOverride(SpatiallyNestablePointer ptr);
+    void setSpatiallyNestableOverride(SpatiallyNestable* ptr);
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
@@ -297,7 +297,7 @@ protected:
     glm::quat _rotation;
     glm::vec3 _scale;
 
-    SpatiallyNestableWeakPointer _spatiallyNestableOverride;
+    SpatiallyNestable* _spatiallyNestableOverride { nullptr };
 
     glm::vec3 _offset;
 
