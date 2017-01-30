@@ -1552,6 +1552,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
             return args->map->value(oldID);
         }
         EntityItemID newID = QUuid::createUuid();
+        args->map->insert(oldID, newID);
+
         EntityItemProperties properties = item->getProperties();
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
@@ -1564,6 +1566,43 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 // But do not add root offset in this case.
             } else { // Should not happen, but let's try to be helpful...
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
+            }
+        }
+
+        if (!properties.getXNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXNNeighborID());
+            if (neighborEntity) {
+                properties.setXNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getXPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXPNeighborID());
+            if (neighborEntity) {
+                properties.setXPNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getYNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYNNeighborID());
+            if (neighborEntity) {
+                properties.setYNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getYPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYPNeighborID());
+            if (neighborEntity) {
+                properties.setYPNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getZNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZNNeighborID());
+            if (neighborEntity) {
+                properties.setZNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getZPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZPNeighborID());
+            if (neighborEntity) {
+                properties.setZPNeighborID(getMapped(neighborEntity));
             }
         }
 
@@ -1584,7 +1623,6 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 args->otherTree->addEntity(newID, properties);
             });
         }
-        args->map->insert(oldID, newID);
         return newID;
     };
 
