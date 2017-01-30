@@ -223,7 +223,6 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
-    
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
     Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
     Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
@@ -362,7 +361,7 @@ WebTablet.prototype.mousePressEvent = function (event) {
                 tablet.gotoHomeScreen();
                 this.setHomeButtonTexture();
             }
-        } else if (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID) {
+        } else if (!HMD.active && (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID)) {
             this.dragging = true;
             var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
             this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
