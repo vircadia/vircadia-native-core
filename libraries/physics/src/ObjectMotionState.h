@@ -146,6 +146,8 @@ public:
     void dirtyInternalKinematicChanges() { _hasInternalKinematicChanges = true; }
     void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
 
+    virtual bool shouldBeLocallyOwned() const { return false; }
+
     friend class PhysicsEngine;
 
 protected:
