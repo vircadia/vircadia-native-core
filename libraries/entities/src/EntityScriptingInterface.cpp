@@ -27,6 +27,7 @@
 #include "ZoneEntityItem.h"
 #include "WebEntityItem.h"
 #include <EntityScriptClient.h>
+#include <Profile.h>
 
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
