@@ -25,6 +25,7 @@ Column {
                      "Lightmap:LightingModel:enableLightmap",
                      "Background:LightingModel:enableBackground",                      
                      "ssao:AmbientOcclusion:enabled",                      
+                     "Textures:LightingModel:enableMaterialTexturing",                      
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]

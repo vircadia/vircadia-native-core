@@ -51,7 +51,7 @@ public:
     // ModelMeshPartPayload functions to perform render
     void drawCall(gpu::Batch& batch) const;
     virtual void bindMesh(gpu::Batch& batch) const;
-    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const;
+    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool enableTextures) const;
     virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const;
 
     // Payload resource cached values
