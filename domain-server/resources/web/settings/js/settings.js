@@ -908,7 +908,7 @@ function validateInputs() {
   }
 
   _.each(tables, function(table) {
-    var inputs = $(table).find('tr.' + Settings.NEW_ROW_CLASS + ' input[data-changed="true"]');
+    var inputs = $(table).find('tr.' + Settings.NEW_ROW_CLASS + ':not([data-category]) input[data-changed="true"]');
 
     var empty = false;
 
@@ -917,6 +917,7 @@ function validateInputs() {
 
       if (inputVal.length === 0) {
         empty = true
+
         markParentRowInvalid(input);
         return;
       }
@@ -984,25 +985,7 @@ var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please
 
 function saveSettings() {
 
-  // verify that the password and confirmation match before saving
-  var canPost = true;
-
-  if (formJSON["security"]) {
-    var password = formJSON["security"]["http_password"];
-    var verify_password = formJSON["security"]["verify_http_password"];
-
-    if (password && password.length > 0) {
-      if (password != verify_password) {
-        bootbox.alert({"message": "Passwords must match!", "title":"Password Error"});
-        canPost = false;
-      } else {
-        formJSON["security"]["http_password"] = sha256_digest(password);
-        delete formJSON["security"]["verify_http_password"];
-      }
-    }
-  }
-
-  if (canPost && validateInputs()) {
+  if (validateInputs()) {
     // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
 
     // disable any inputs not changed
@@ -1021,6 +1004,24 @@ function saveSettings() {
       }
     }
 
+    // verify that the password and confirmation match before saving
+    var canPost = true;
+
+    if (formJSON["security"]) {
+      var password = formJSON["security"]["http_password"];
+      var verify_password = formJSON["security"]["verify_http_password"];
+
+      if (password && password.length > 0) {
+        if (password != verify_password) {
+          bootbox.alert({"message": "Passwords must match!", "title":"Password Error"});
+          canPost = false;
+        } else {
+          formJSON["security"]["http_password"] = sha256_digest(password);
+          delete formJSON["security"]["verify_http_password"];
+        }
+      }
+    }
+
     console.log("----- SAVING ------");
     console.log(formJSON);
 
@@ -1032,15 +1033,12 @@ function saveSettings() {
     // remove focus from the button
     $(this).blur();
 
-    // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-    postSettings(formJSON);
+    if (canPost) {
+      // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+      postSettings(formJSON);
+    }
   }
 }
-
-// disable any inputs not changed
-$("input:not([data-changed])").each(function(){
-  $(this).prop('disabled', true);
-});
 
 $('body').on('click', '.save-button', function(e){
   saveSettings();
