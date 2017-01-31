@@ -10,13 +10,13 @@ var TARGET_HIT_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/tar
 var ESCAPE_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/escape.wav"));
 
 // +--------+      +-----------+      +-----------------+
-// |        |      |           <------+                 |
-// |  IDLE  +------>  PLAYING  |      |  BETWEEN_WAVES  |
-// |        |      |           +------>                 |
-// +----^---+      +-----+-----+      +-----------------+
-//      |                |
-//      |                |
-//      |         +------v------+
+// |        |      |           |<-----+                 |
+// |  IDLE  +----->|  PLAYING  |      |  BETWEEN_WAVES  |
+// |        |      |           +----->|                 |
+// +--------+      +-----+-----+      +-----------------+
+//      ^                |
+//      |                v
+//      |         +-------------+
 //      |         |             |
 //      +---------+  GAME_OVER  |
 //                |             |
@@ -134,9 +134,10 @@ var baseEnemyProperties = {
     velocity: {
         x: 0,
         y: 0,
-        z: -30
+        z: -3
     },
     script: Script.resolvePath('enemyEntity.js'),
+    serverScripts: "null"
 };
 
 
@@ -302,9 +303,8 @@ ShortbowGameManager.prototype = {
         this.spawnQueue = [];
         this.spawnStartTime = Date.now();
 
-        print("Editing wave number 500", this.waveDisplayID, this.waveNumber);
-        Entities.editEntity('{1b630f6a-a6e4-4bca-be5e-d8d2709bb278}', {
-            text: '500',//this.waveNumber
+        Entities.editEntity(this.waveDisplayID, {
+            text: this.waveNumber
         });
 
         var numberOfEnemiesLeftToSpawn = this.waveNumber * 2;
@@ -387,29 +387,29 @@ ShortbowGameManager.prototype = {
         // Move this somewhere else?
         this.checkSpawnQueue();
 
-        return;
+        //return;
 
         var enemiesEscaped = false;
         for (var i = this.enemyIDs.length - 1; i >= 0; --i) {
             var position = Entities.getEntityProperties(this.enemyIDs[i], 'position').position;
             if (position === undefined) {
                 // If the enemy can no longer be found, assume it was hit 
-                //this.enemyIDs.splice(i, 1);
-                //Audio.playSound(TARGET_HIT_SOUND, {
-                //    volume: 1.0,
-                //    position: this.rootPosition,
-                //});
-                //this.setScore(this.score + 100);
-                //enemiesEscaped = true;
-            } else if (position.z < this.gatePosition.z) {
-                Entities.deleteEntity(this.enemyIDs[i]);
                 this.enemyIDs.splice(i, 1);
-                this.setLivesLeft(this.livesLeft - 1);
-                Audio.playSound(ESCAPE_SOUND, {
+                Audio.playSound(TARGET_HIT_SOUND, {
                     volume: 1.0,
-                    position: this.rootPosition
+                    position: this.rootPosition,
                 });
+                this.setScore(this.score + 100);
                 enemiesEscaped = true;
+            //} else if (position.z < this.gatePosition.z) {
+                //Entities.deleteEntity(this.enemyIDs[i]);
+                //this.enemyIDs.splice(i, 1);
+                //this.setLivesLeft(this.livesLeft - 1);
+                //Audio.playSound(ESCAPE_SOUND, {
+                    //volume: 1.0,
+                    //position: this.rootPosition
+                //});
+                //enemiesEscaped = true;
             }
         }
         //print("LIVES LEFT: ", this.livesLeft, this.numberOfEntitiesLeftForWave);
