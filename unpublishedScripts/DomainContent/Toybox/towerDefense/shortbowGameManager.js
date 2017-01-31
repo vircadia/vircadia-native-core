@@ -272,7 +272,7 @@ ShortbowGameManager.prototype = {
         // Initialize game state
         this.waveNumber = 0;
         this.setScore(0);
-        this.setLivesLeft(60);
+        this.setLivesLeft(6);
 
         this.nextWaveTimer = Script.setTimeout(this.startNextWave.bind(this), 100);
         this.spawnEnemyTimers = [];
