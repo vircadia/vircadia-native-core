@@ -63,6 +63,10 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     const auto background = items[RenderFetchCullSortTask::BACKGROUND];
     const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
 
+    // Filter the non antialiaased overlays
+    const int LAYER_NO_AA = 3;
+    const auto nonAAOverlays = addJob<FilterItemLayer>("Filter2DWebOverlays", overlayOpaques, LAYER_NO_AA);
+
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
     const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
@@ -194,6 +198,10 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
 
     // AA job to be revisited
     addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
+
+    // Draw 2DWeb non AA
+    const auto nonAAOverlaysInputs = DrawOverlay3D::Inputs(nonAAOverlays, lightingModel).hasVarying();
+    addJob<DrawOverlay3D>("Draw2DWebSurfaces", nonAAOverlaysInputs, false);
 
     addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
 

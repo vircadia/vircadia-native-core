@@ -1032,7 +1032,7 @@ AACube SpatiallyNestable::getQueryAACube() const {
     return result;
 }
 
-bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
+bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) const {
     bool success;
     SpatiallyNestablePointer parent = getParentPointer(success);
     if (!success || !parent) {
@@ -1044,6 +1044,20 @@ bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
     }
 
     return parent->hasAncestorOfType(nestableType);
+}
+
+const QUuid SpatiallyNestable::findAncestorOfType(NestableType nestableType) const {
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (!success || !parent) {
+        return QUuid();
+    }
+
+    if (parent->_nestableType == nestableType) {
+        return parent->getID();
+    }
+
+    return parent->findAncestorOfType(nestableType);
 }
 
 void SpatiallyNestable::getLocalTransformAndVelocities(

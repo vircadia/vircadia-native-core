@@ -62,6 +62,7 @@
 #include "WebSocketClass.h"
 #include "RecordingScriptingInterface.h"
 #include "ScriptEngines.h"
+#include "TabletScriptingInterface.h"
 
 #include "MIDIEvent.h"
 
@@ -582,6 +583,7 @@ void ScriptEngine::init() {
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
+    registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 }

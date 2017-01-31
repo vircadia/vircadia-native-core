@@ -36,11 +36,14 @@ public:
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
 
+    virtual bool isAA() const { return _isAA; }
+
     void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     void setDrawInFront(bool value) { _drawInFront = value; }
+    void setIsAA(bool value) { _isAA = value; }
 
     virtual AABox getBounds() const override = 0;
 
@@ -64,6 +67,7 @@ protected:
     bool _isDashedLine;
     bool _ignoreRayIntersection;
     bool _drawInFront;
+    bool _isAA;
 };
 
 #endif // hifi_Base3DOverlay_h

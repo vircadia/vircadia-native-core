@@ -505,6 +505,7 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
             _model = _myRenderer->allocateModel(getModelURL(), renderer->getEntityLoadingPriority(*this));
+            _model->setSpatiallyNestableOverride(shared_from_this());
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {
@@ -1189,8 +1190,7 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
     PerformanceTimer pertTimer("locationChanged");
     EntityItem::locationChanged(tellPhysics);
     if (_model && _model->isActive()) {
-        _model->setRotation(getRotation());
-        _model->setTranslation(getPosition());
+        _model->updateRenderItems();
 
         void* key = (void*)this;
         std::weak_ptr<RenderableModelEntityItem> weakSelf =
