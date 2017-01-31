@@ -40,6 +40,9 @@ function filter(p) {
         when deciding whether to apply or reject the server's physical properties.
         If a physical property's value doesn't change, Interface will reject the server's property value,
         and Bullet will continue simulating the entity with stale physical properties.
+        Ensure that this value is not changed by such a small amount such that new values
+        fall within floating point precision boundaries. If you accidentally do this, prepare for many
+        hours of frustrating debugging :).
     */
     /******************************************************/
 	/* Clamp velocity to maxVelocity units/second. Zeroing each component of acceleration keeps us from slamming.*/
