@@ -1,5 +1,5 @@
 //
-//  ModelMeshPartPayload.h
+//  MeshPartPayload.h
 //  interface/src/renderer
 //
 //  Created by Sam Gateau on 10/3/15.
@@ -61,6 +61,7 @@ public:
     bool _hasColorAttrib { false };
 
     model::Box _localBound;
+    model::Box _adjustedLocalBound;
     mutable model::Box _worldBound;
     std::shared_ptr<const model::Mesh> _drawMesh;
 
@@ -104,6 +105,8 @@ public:
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
     void initCache();
+
+    void computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices);
 
     Model* _model;
 
