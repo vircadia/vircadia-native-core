@@ -1278,7 +1278,6 @@ void EntityItem::pokeSimulationOwnership() {
         // we don't own it yet
         _simulationOwner.setPendingPriority(SCRIPT_POKE_SIMULATION_PRIORITY, usecTimestampNow());
     }
-    checkForFirstSimulationBid(_simulationOwner);
 }
 
 void EntityItem::grabSimulationOwnership() {
@@ -1291,7 +1290,6 @@ void EntityItem::grabSimulationOwnership() {
         // we don't own it yet
         _simulationOwner.setPendingPriority(SCRIPT_GRAB_SIMULATION_PRIORITY, usecTimestampNow());
     }
-    checkForFirstSimulationBid(_simulationOwner);
 }
 
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
@@ -1862,7 +1860,6 @@ void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id << priority;
     }
     _simulationOwner.set(id, priority);
-    checkForFirstSimulationBid(_simulationOwner);
 }
 
 void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
@@ -1871,7 +1868,6 @@ void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
     }
 
     _simulationOwner.set(owner);
-    checkForFirstSimulationBid(_simulationOwner);
 }
 
 void EntityItem::updateSimulationOwner(const SimulationOwner& owner) {
@@ -1882,7 +1878,6 @@ void EntityItem::updateSimulationOwner(const SimulationOwner& owner) {
     if (_simulationOwner.set(owner)) {
         _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
     }
-    checkForFirstSimulationBid(_simulationOwner);
 }
 
 void EntityItem::clearSimulationOwnership() {
@@ -1899,7 +1894,10 @@ void EntityItem::clearSimulationOwnership() {
 
 void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& timestamp) {
     _simulationOwner.setPendingPriority(priority, timestamp);
-    checkForFirstSimulationBid(_simulationOwner);
+}
+
+void EntityItem::rememberHasSimulationOwnershipBid() const {
+    _hasBidOnSimulation = true;
 }
 
 QString EntityItem::actionsToDebugString() {
@@ -2155,12 +2153,6 @@ void EntityItem::setActionDataInternal(QByteArray actionData) {
         deserializeActionsInternal();
     }
     checkWaitingToRemove();
-}
-
-void EntityItem::checkForFirstSimulationBid(const SimulationOwner& simulationOwner) const {
-    if (!_hasBidOnSimulation && simulationOwner.matchesValidID(DependencyManager::get<NodeList>()->getSessionUUID())) {
-        _hasBidOnSimulation = true;
-    }
 }
 
 void EntityItem::serializeActions(bool& success, QByteArray& result) const {
