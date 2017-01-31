@@ -343,6 +343,7 @@ public:
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     virtual void updateRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
+    void updateParentID(const QUuid& value);
     void updatePositionFromNetwork(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
@@ -419,7 +420,7 @@ public:
     const QUuid& getSourceUUID() const { return _sourceUUID; }
     bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
 
-    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
+    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet) const;
 
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }

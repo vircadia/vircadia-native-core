@@ -76,6 +76,9 @@ signals:
 
     void messageBoxClosed(int id, int button);
 
+    // triggered when window size or position changes
+    void geometryChanged(QRect geometry);
+
 private:
     QString getPreviousBrowseLocation() const;
     void setPreviousBrowseLocation(const QString& location);

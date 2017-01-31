@@ -129,7 +129,7 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
+void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool enableTextures) const {
     if (!_drawMaterial) {
         return;
     }
@@ -145,6 +145,17 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     int numUnlit = 0;
     if (materialKey.isUnlit()) {
         numUnlit++;
+    }
+
+    if (!enableTextures) {
+        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, nullptr);
+        return;
     }
 
     // Albedo
@@ -271,7 +282,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
     bindMesh(batch);
 
     // apply material properties
-    bindMaterial(batch, locations);
+    bindMaterial(batch, locations, args->_enableTexturing);
 
     if (args) {
         args->_details._materialSwitches++;
@@ -588,7 +599,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     bindMesh(batch);
 
     // apply material properties
-    bindMaterial(batch, locations);
+    bindMaterial(batch, locations, args->_enableTexturing);
 
     args->_details._materialSwitches++;
 

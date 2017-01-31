@@ -38,6 +38,9 @@ namespace render {
             if (std::static_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
                 builder.withLayered();
             }
+            if (!std::static_pointer_cast<Base3DOverlay>(overlay)->isAA()) {
+                builder.withLayered();
+            }
             if (overlay->getAlphaPulse() != 0.0f || overlay->getAlpha() != 1.0f) {
                 builder.withTransparent();
             }
@@ -51,11 +54,17 @@ namespace render {
     }
     template <> int payloadGetLayer(const Overlay::Pointer& overlay) {
         // MAgic number while we are defining the layering mechanism:
-        const int LAYER_2D =  2;
+        const int LAYER_NO_AA = 3;
+        const int LAYER_2D = 2;
         const int LAYER_3D_FRONT = 1;
         const int LAYER_3D = 0;
+
         if (overlay->is3D()) {
-            return (std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront() ? LAYER_3D_FRONT : LAYER_3D);
+            auto overlay3D = std::dynamic_pointer_cast<Base3DOverlay>(overlay);
+            if (overlay3D->isAA())
+                return (overlay3D->getDrawInFront() ? LAYER_3D_FRONT : LAYER_3D);
+            else
+                return LAYER_NO_AA;
         } else {
             return LAYER_2D;
         }

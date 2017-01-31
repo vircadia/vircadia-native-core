@@ -158,11 +158,11 @@ public:
     gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
 
-    void bindOpaqueWebBrowserProgram(gpu::Batch& batch);
-    gpu::PipelinePointer getOpaqueWebBrowserProgram();
+    void bindOpaqueWebBrowserProgram(gpu::Batch& batch, bool isAA);
+    gpu::PipelinePointer getOpaqueWebBrowserProgram(bool isAA);
 
-    void bindTransparentWebBrowserProgram(gpu::Batch& batch);
-    gpu::PipelinePointer getTransparentWebBrowserProgram();
+    void bindTransparentWebBrowserProgram(gpu::Batch& batch, bool isAA);
+    gpu::PipelinePointer getTransparentWebBrowserProgram(bool isAA);
 
     render::ShapePipelinePointer getOpaqueShapePipeline() { return GeometryCache::_simpleOpaquePipeline; }
     render::ShapePipelinePointer getTransparentShapePipeline() { return GeometryCache::_simpleTransparentPipeline; }
@@ -420,15 +420,21 @@ private:
     gpu::ShaderPointer _unlitShader;
     static render::ShapePipelinePointer _simpleOpaquePipeline;
     static render::ShapePipelinePointer _simpleTransparentPipeline;
+    static render::ShapePipelinePointer _simpleOpaqueOverlayPipeline;
+    static render::ShapePipelinePointer _simpleTransparentOverlayPipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
     gpu::PipelinePointer _glowLinePipeline;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
     gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
     gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
-
     gpu::ShaderPointer _simpleTransparentWebBrowserShader;
     gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
+
+    gpu::ShaderPointer _simpleOpaqueWebBrowserOverlayShader;
+    gpu::PipelinePointer _simpleOpaqueWebBrowserOverlayPipeline;
+    gpu::ShaderPointer _simpleTransparentWebBrowserOverlayShader;
+    gpu::PipelinePointer _simpleTransparentWebBrowserOverlayPipeline;
 };
 
 #endif // hifi_GeometryCache_h

@@ -175,6 +175,19 @@ namespace render {
             }
         }
     };
+
+    class FilterItemLayer {
+    public:
+        using JobModel = Job::ModelIO<FilterItemLayer, ItemBounds, ItemBounds>;
+
+        FilterItemLayer() {}
+        FilterItemLayer(int keepLayer) :
+            _keepLayer(keepLayer) {}
+
+        int _keepLayer { 0 };
+
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+    };
 }
 
 #endif // hifi_render_CullTask_h;

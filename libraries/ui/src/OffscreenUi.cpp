@@ -130,6 +130,15 @@ void OffscreenUi::hide(const QString& name) {
     }
 }
 
+bool OffscreenUi::isVisible(const QString& name) {
+    QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
+    if (item) {
+        return QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).read().toBool();
+    } else {
+        return false;
+    }
+}
+
 class ModalDialogListener : public QObject {
     Q_OBJECT
     friend class OffscreenUi;
@@ -524,6 +533,10 @@ QQuickItem* OffscreenUi::getDesktop() {
     return _desktop;
 }
 
+QObject* OffscreenUi::getRootMenu() {
+    return getRootItem()->findChild<QObject*>("rootMenu");
+}
+
 QQuickItem* OffscreenUi::getToolWindow() {
     return _toolWindow;
 }
@@ -531,11 +544,6 @@ QQuickItem* OffscreenUi::getToolWindow() {
 void OffscreenUi::unfocusWindows() {
     bool invokeResult = QMetaObject::invokeMethod(_desktop, "unfocusWindows");
     Q_ASSERT(invokeResult);
-}
-
-void OffscreenUi::toggleMenu(const QPoint& screenPosition) { // caller should already have mapped using getReticlePosition
-    emit showDesktop(); // we really only want to do this if you're showing the menu, but for now this works
-    QMetaObject::invokeMethod(_desktop, "toggleMenu", Q_ARG(QVariant, screenPosition));
 }
 
 
