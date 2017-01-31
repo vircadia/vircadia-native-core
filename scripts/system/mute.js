@@ -13,39 +13,50 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-
-var button = toolBar.addButton({
-    objectName: "mute",
-    imageURL: Script.resolvePath("assets/images/tools/mic.svg"),
-    visible: true,
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 3,
-    alpha: 0.9
-});
+var button;
+var buttonName = "MUTE";
+var toolBar = null;
+var tablet = null;
 
 function onMuteToggled() {
-    // We could just toggle state, but we're less likely to get out of wack if we read the AudioDevice.
-    // muted => button "on" state => 1. go figure.
-    var state = AudioDevice.getMuted() ? 0 : 1;
-    var hoverState = AudioDevice.getMuted() ? 2 : 3;
-    button.writeProperty('buttonState', state);
-    button.writeProperty('defaultState', state);
-    button.writeProperty('hoverState', hoverState);
+    button.editProperties({isActive: AudioDevice.getMuted()});
 }
-onMuteToggled();
 function onClicked(){
     var menuItem = "Mute Microphone";
     Menu.setIsOptionChecked(menuItem, !Menu.isOptionChecked(menuItem));
 }
+
+if (Settings.getValue("HUDUIEnabled")) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/mic.svg"),
+        visible: true,
+        alpha: 0.9
+    });
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        icon: "icons/tablet-icons/mic-a.svg",
+        text: buttonName,
+        activeIcon: "icons/tablet-icons/mic-i.svg",
+        activeText: "UNMUTE"
+    });
+}
+onMuteToggled();
+
 button.clicked.connect(onClicked);
 AudioDevice.muteToggled.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
-    toolBar.removeButton("mute");
     button.clicked.disconnect(onClicked);
     AudioDevice.muteToggled.disconnect(onMuteToggled);
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
 });
 
 }()); // END LOCAL_SCOPE

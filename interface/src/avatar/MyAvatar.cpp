@@ -797,8 +797,14 @@ void MyAvatar::saveData() {
 
     settings.beginWriteArray("avatarEntityData");
     int avatarEntityIndex = 0;
+    auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     _avatarEntitiesLock.withReadLock([&] {
         for (auto entityID : _avatarEntityData.keys()) {
+            if (hmdInterface->getCurrentTableUIID() == entityID) {
+                // don't persist the tablet between domains / sessions
+                continue;
+            }
+
             settings.setArrayIndex(avatarEntityIndex);
             settings.setValue("id", entityID);
             settings.setValue("properties", _avatarEntityData.value(entityID));
@@ -2388,6 +2394,13 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
             return glmExtractRotation(result);
         }
+        case CAMERA_MATRIX_INDEX: {
+            bool success;
+            Transform avatarTransform;
+            Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+            glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+            return glmExtractRotation(invAvatarMat * qApp->getCamera()->getTransform());
+        }
         default: {
             return Avatar::getAbsoluteJointRotationInObjectFrame(index);
         }
@@ -2413,6 +2426,13 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
             glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
             glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
             return extractTranslation(result);
+        }
+        case CAMERA_MATRIX_INDEX: {
+            bool success;
+            Transform avatarTransform;
+            Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+            glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+            return extractTranslation(invAvatarMat * qApp->getCamera()->getTransform());
         }
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);

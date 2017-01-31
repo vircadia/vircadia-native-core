@@ -56,6 +56,9 @@
         { "from": "GamePad.A", "to": "Standard.A" },
         { "from": "GamePad.B", "to": "Standard.B" },
         { "from": "GamePad.X", "to": "Standard.X" },
-        { "from": "GamePad.Y", "to": "Standard.Y" }
+        { "from": "GamePad.Y", "to": "Standard.Y" },
+
+        { "from": [ "Standard.A", "Standard.X" ], "to": "Actions.UiNavSelect" },
+        { "from": [ "Standard.B", "Standard.Y" ], "to": "Actions.UiNavBack" }
     ]
 }

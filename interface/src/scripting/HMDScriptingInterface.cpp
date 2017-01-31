@@ -18,6 +18,7 @@
 #include <display-plugins/CompositorHelper.h>
 #include <OffscreenUi.h>
 #include <plugins/PluginUtils.h>
+#include <QUuid>
 
 #include "Application.h"
 
@@ -74,6 +75,10 @@ void HMDScriptingInterface::requestHideHandControllers() {
 
 bool HMDScriptingInterface::shouldShowHandControllers() const {
     return _showHandControllersCount > 0;
+}
+
+void  HMDScriptingInterface::closeTablet() {
+    _showTablet = false;
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {

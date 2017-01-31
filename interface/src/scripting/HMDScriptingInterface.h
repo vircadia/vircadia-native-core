@@ -28,6 +28,10 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(glm::vec3 position READ getPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation)
     Q_PROPERTY(bool mounted READ isMounted)
+    Q_PROPERTY(bool showTablet READ getShouldShowTablet)
+    Q_PROPERTY(QUuid tabletID READ getCurrentTableUIID WRITE setCurrentTabletUIID)
+    Q_PROPERTY(unsigned int homeButtonID READ getCurrentHomeButtonUUID WRITE setCurrentHomeButtonUUID)
+    
 
 public:
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
@@ -53,11 +57,11 @@ public:
     Q_INVOKABLE void disableExtraLaser() const;
 
 
-    /// Suppress the activation of any on-screen keyboard so that a script operation will 
+    /// Suppress the activation of any on-screen keyboard so that a script operation will
     /// not be interrupted by a keyboard popup
     /// Returns false if there is already an active keyboard displayed.
     /// Clients should re-enable the keyboard when the operation is complete and ensure
-    /// that they balance any call to suppressKeyboard() that returns true with a corresponding 
+    /// that they balance any call to suppressKeyboard() that returns true with a corresponding
     /// call to unsuppressKeyboard() within a reasonable amount of time
     Q_INVOKABLE bool suppressKeyboard();
 
@@ -70,6 +74,8 @@ public:
     // rotate the overlay UI sphere so that it is centered about the the current HMD position and orientation
     Q_INVOKABLE void centerUI();
 
+    Q_INVOKABLE void closeTablet();
+
 signals:
     bool shouldShowHandControllersChanged();
 
@@ -80,10 +86,25 @@ public:
 
     bool isMounted() const;
 
+    void toggleShouldShowTablet() { _showTablet = !_showTablet; }
+    void setShouldShowTablet(bool value) { _showTablet = value; }
+    bool getShouldShowTablet() const { return _showTablet; }
+
+    void setCurrentTabletUIID(QUuid tabletID) { _tabletUIID = tabletID; }
+    QUuid getCurrentTableUIID() const { return _tabletUIID; }
+
+    void setCurrentHomeButtonUUID(unsigned int homeButtonID) { _homeButtonID = homeButtonID; }
+    unsigned int getCurrentHomeButtonUUID() const { return _homeButtonID; }
+
 private:
+    bool _showTablet { false };
+    QUuid _tabletUIID; // this is the entityID of the WebEntity which is part of (a child of) the tablet-ui.
+    unsigned int _homeButtonID;
+    QUuid _tabletEntityID;
+
     // Get the position of the HMD
     glm::vec3 getPosition() const;
-    
+
     // Get the orientation of the HMD
     glm::quat getOrientation() const;
 

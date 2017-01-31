@@ -21,15 +21,19 @@
 
 const int DEFAULT_RING_BUFFER_FRAME_CAPACITY = 10;
 
-class AudioRingBuffer {
+template <class T>
+class AudioRingBufferTemplate {
+    using Sample = T;
+    static const int SampleSize = sizeof(Sample);
+
 public:
-    AudioRingBuffer(int numFrameSamples, int numFramesCapacity = DEFAULT_RING_BUFFER_FRAME_CAPACITY);
-    ~AudioRingBuffer();
+    AudioRingBufferTemplate(int numFrameSamples, int numFramesCapacity = DEFAULT_RING_BUFFER_FRAME_CAPACITY);
+    ~AudioRingBufferTemplate();
 
     // disallow copying
-    AudioRingBuffer(const AudioRingBuffer&) = delete;
-    AudioRingBuffer(AudioRingBuffer&&) = delete;
-    AudioRingBuffer& operator=(const AudioRingBuffer&) = delete;
+    AudioRingBufferTemplate(const AudioRingBufferTemplate&) = delete;
+    AudioRingBufferTemplate(AudioRingBufferTemplate&&) = delete;
+    AudioRingBufferTemplate& operator=(const AudioRingBufferTemplate&) = delete;
 
     /// Invalidate any data in the buffer
     void clear();
@@ -41,13 +45,27 @@ public:
     // FIXME: discards any data in the buffer
     void resizeForFrameSize(int numFrameSamples);
 
+    // Reading and writing to the buffer uses minimal shared data, such that
+    // in cases that avoid overwriting the buffer, a single producer/consumer
+    // may use this as a lock-free pipe (see audio-client/src/AudioClient.cpp).
+    // IMPORTANT: Avoid changes to the implementation that touch shared data unless you can
+    // maintain this behavior.
+
     /// Read up to maxSamples into destination (will only read up to samplesAvailable())
     /// Returns number of read samples
-    int readSamples(int16_t* destination, int maxSamples);
+    int readSamples(Sample* destination, int maxSamples);
+
+    /// Append up to maxSamples into destination (will only read up to samplesAvailable())
+    /// If append == false, behaves as readSamples
+    /// Returns number of appended samples
+    int appendSamples(Sample* destination, int maxSamples, bool append = true);
+
+    /// Skip up to maxSamples (will only skip up to samplesAvailable())
+    void skipSamples(int maxSamples) { shiftReadPosition(std::min(maxSamples, samplesAvailable())); }
 
     /// Write up to maxSamples from source (will only write up to sample capacity)
     /// Returns number of written samples
-    int writeSamples(const int16_t* source, int maxSamples);
+    int writeSamples(const Sample* source, int maxSamples);
 
     /// Write up to maxSamples silent samples (will only write until other data exists in the buffer)
     /// This method will not overwrite existing data in the buffer, instead dropping silent samples that would overflow
@@ -58,13 +76,17 @@ public:
     /// Returns number of read bytes
     int readData(char* destination, int maxSize);
 
+    /// Append up to maxSize into destination
+    /// Returns number of read bytes
+    int appendData(char* destination, int maxSize);
+
     /// Write up to maxSize from source
     /// Returns number of written bytes
     int writeData(const char* source, int maxSize);
 
     /// Returns a reference to the index-th sample offset from the current read sample
-    int16_t& operator[](const int index) { return *shiftedPositionAccomodatingWrap(_nextOutput, index); }
-    const int16_t& operator[] (const int index) const { return *shiftedPositionAccomodatingWrap(_nextOutput, index); }
+    Sample& operator[](const int index) { return *shiftedPositionAccomodatingWrap(_nextOutput, index); }
+    const Sample& operator[] (const int index) const { return *shiftedPositionAccomodatingWrap(_nextOutput, index); }
 
     /// Essentially discards the next numSamples from the ring buffer
     /// NOTE: This is not checked - it is possible to shift past written data
@@ -84,41 +106,104 @@ public:
 
     class ConstIterator {
     public:
-        ConstIterator();
-        ConstIterator(int16_t* bufferFirst, int capacity, int16_t* at);
+        ConstIterator() :
+            _bufferLength(0),
+            _bufferFirst(NULL),
+            _bufferLast(NULL),
+            _at(NULL) {}
+        ConstIterator(Sample* bufferFirst, int capacity, Sample* at) :
+            _bufferLength(capacity),
+            _bufferFirst(bufferFirst),
+            _bufferLast(bufferFirst + capacity - 1),
+            _at(at) {}
         ConstIterator(const ConstIterator& rhs) = default;
 
         bool isNull() const { return _at == NULL; }
 
         bool operator==(const ConstIterator& rhs) { return _at == rhs._at; }
         bool operator!=(const ConstIterator& rhs) { return _at != rhs._at; }
-        const int16_t& operator*() { return *_at; }
+        const Sample& operator*() { return *_at; }
 
-        ConstIterator& operator=(const ConstIterator& rhs);
-        ConstIterator& operator++();
-        ConstIterator operator++(int);
-        ConstIterator& operator--();
-        ConstIterator operator--(int);
-        const int16_t& operator[] (int i);
-        ConstIterator operator+(int i);
-        ConstIterator operator-(int i);
+        ConstIterator& operator=(const ConstIterator& rhs) {
+            _bufferLength = rhs._bufferLength;
+            _bufferFirst = rhs._bufferFirst;
+            _bufferLast = rhs._bufferLast;
+            _at = rhs._at;
+            return *this;
+        }
+        ConstIterator& operator++() {
+            _at = (_at == _bufferLast) ? _bufferFirst : _at + 1;
+            return *this;
+        }
+        ConstIterator operator++(int) {
+            ConstIterator tmp(*this);
+            ++(*this);
+            return tmp;
+        }
+        ConstIterator& operator--() {
+            _at = (_at == _bufferFirst) ? _bufferLast : _at - 1;
+            return *this;
+        }
+        ConstIterator operator--(int) {
+            ConstIterator tmp(*this);
+            --(*this);
+            return tmp;
+        }
+        const Sample& operator[] (int i) {
+            return *atShiftedBy(i);
+        }
+        ConstIterator operator+(int i) {
+            return ConstIterator(_bufferFirst, _bufferLength, atShiftedBy(i));
+        }
+        ConstIterator operator-(int i) {
+            return ConstIterator(_bufferFirst, _bufferLength, atShiftedBy(-i));
+        }
 
-        void readSamples(int16_t* dest, int numSamples);
-        void readSamplesWithFade(int16_t* dest, int numSamples, float fade);
-        void readSamplesWithUpmix(int16_t* dest, int numSamples, int numExtraChannels);
-        void readSamplesWithDownmix(int16_t* dest, int numSamples);
+        void readSamples(Sample* dest, int numSamples) {
+            auto samplesToEnd = _bufferLast - _at + 1;
+
+            if (samplesToEnd >= numSamples) {
+                memcpy(dest, _at, numSamples * SampleSize);
+                _at += numSamples;
+            } else {
+                auto samplesFromStart = numSamples - samplesToEnd;
+                memcpy(dest, _at, samplesToEnd * SampleSize);
+                memcpy(dest + samplesToEnd, _bufferFirst, samplesFromStart * SampleSize);
+
+                _at = _bufferFirst + samplesFromStart;
+            }
+        }
+        void readSamplesWithFade(Sample* dest, int numSamples, float fade) {
+            Sample* at = _at;
+            for (int i = 0; i < numSamples; i++) {
+                *dest = (float)*at * fade;
+                ++dest;
+                at = (at == _bufferLast) ? _bufferFirst : at + 1;
+            }
+        }
+
 
     private:
-        int16_t* atShiftedBy(int i);
+        Sample* atShiftedBy(int i) {
+            i = (_at - _bufferFirst + i) % _bufferLength;
+            if (i < 0) {
+                i += _bufferLength;
+            }
+            return _bufferFirst + i;
+        }
 
         int _bufferLength;
-        int16_t* _bufferFirst;
-        int16_t* _bufferLast;
-        int16_t* _at;
+        Sample* _bufferFirst;
+        Sample* _bufferLast;
+        Sample* _at;
     };
 
-    ConstIterator nextOutput() const;
-    ConstIterator lastFrameWritten() const;
+    ConstIterator nextOutput() const {
+        return ConstIterator(_buffer, _bufferLength, _nextOutput);
+    }
+    ConstIterator lastFrameWritten() const {
+        return ConstIterator(_buffer, _bufferLength, _endOfLastWrite) - _numFrameSamples;
+    }
 
     int writeSamples(ConstIterator source, int maxSamples);
     int writeSamplesWithFade(ConstIterator source, int maxSamples, float fade);
@@ -126,8 +211,8 @@ public:
     float getFrameLoudness(ConstIterator frameStart) const;
 
 protected:
-    int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
-    float getFrameLoudness(const int16_t* frameStart) const;
+    Sample* shiftedPositionAccomodatingWrap(Sample* position, int numSamplesShift) const;
+    float getFrameLoudness(const Sample* frameStart) const;
 
     int _numFrameSamples;
     int _frameCapacity;
@@ -135,138 +220,13 @@ protected:
     int _bufferLength; // actual _buffer length (_sampleCapacity + 1)
     int _overflowCount{ 0 }; // times the ring buffer has overwritten data
 
-    int16_t* _nextOutput{ nullptr };
-    int16_t* _endOfLastWrite{ nullptr };
-    int16_t* _buffer{ nullptr };
+    Sample* _nextOutput{ nullptr };
+    Sample* _endOfLastWrite{ nullptr };
+    Sample* _buffer{ nullptr };
 };
 
-// inline the iterator:
-inline AudioRingBuffer::ConstIterator::ConstIterator() :
-    _bufferLength(0),
-    _bufferFirst(NULL),
-    _bufferLast(NULL),
-    _at(NULL) {}
-
-inline AudioRingBuffer::ConstIterator::ConstIterator(int16_t* bufferFirst, int capacity, int16_t* at) :
-    _bufferLength(capacity),
-    _bufferFirst(bufferFirst),
-    _bufferLast(bufferFirst + capacity - 1),
-    _at(at) {}
-
-inline AudioRingBuffer::ConstIterator& AudioRingBuffer::ConstIterator::operator=(const ConstIterator& rhs) {
-    _bufferLength = rhs._bufferLength;
-    _bufferFirst = rhs._bufferFirst;
-    _bufferLast = rhs._bufferLast;
-    _at = rhs._at;
-    return *this;
-}
-
-inline AudioRingBuffer::ConstIterator& AudioRingBuffer::ConstIterator::operator++() {
-    _at = (_at == _bufferLast) ? _bufferFirst : _at + 1;
-    return *this;
-}
-
-inline AudioRingBuffer::ConstIterator AudioRingBuffer::ConstIterator::operator++(int) {
-    ConstIterator tmp(*this);
-    ++(*this);
-    return tmp;
-}
-
-inline AudioRingBuffer::ConstIterator& AudioRingBuffer::ConstIterator::operator--() {
-    _at = (_at == _bufferFirst) ? _bufferLast : _at - 1;
-    return *this;
-}
-
-inline AudioRingBuffer::ConstIterator AudioRingBuffer::ConstIterator::operator--(int) {
-    ConstIterator tmp(*this);
-    --(*this);
-    return tmp;
-}
-
-inline const int16_t& AudioRingBuffer::ConstIterator::operator[] (int i) {
-    return *atShiftedBy(i);
-}
-
-inline AudioRingBuffer::ConstIterator AudioRingBuffer::ConstIterator::operator+(int i) {
-    return ConstIterator(_bufferFirst, _bufferLength, atShiftedBy(i));
-}
-
-inline AudioRingBuffer::ConstIterator AudioRingBuffer::ConstIterator::operator-(int i) {
-    return ConstIterator(_bufferFirst, _bufferLength, atShiftedBy(-i));
-}
-
-inline int16_t* AudioRingBuffer::ConstIterator::atShiftedBy(int i) {
-    i = (_at - _bufferFirst + i) % _bufferLength;
-    if (i < 0) {
-        i += _bufferLength;
-    }
-    return _bufferFirst + i;
-}
-
-inline void AudioRingBuffer::ConstIterator::readSamples(int16_t* dest, int numSamples) {
-    auto samplesToEnd = _bufferLast - _at + 1;
-
-    if (samplesToEnd >= numSamples) {
-        memcpy(dest, _at, numSamples * sizeof(int16_t));
-        _at += numSamples;
-    } else {
-        auto samplesFromStart = numSamples - samplesToEnd;
-        memcpy(dest, _at, samplesToEnd * sizeof(int16_t));
-        memcpy(dest + samplesToEnd, _bufferFirst, samplesFromStart * sizeof(int16_t));
-
-        _at = _bufferFirst + samplesFromStart;
-    }
-}
-
-inline void AudioRingBuffer::ConstIterator::readSamplesWithFade(int16_t* dest, int numSamples, float fade) {
-    int16_t* at = _at;
-    for (int i = 0; i < numSamples; i++) {
-        *dest = (float)*at * fade;
-        ++dest;
-        at = (at == _bufferLast) ? _bufferFirst : at + 1;
-    }
-}
-
-inline void AudioRingBuffer::ConstIterator::readSamplesWithUpmix(int16_t* dest, int numSamples, int numExtraChannels) {
-    int16_t* at = _at;
-    for (int i = 0; i < numSamples/2; i++) {
-
-        // read 2 samples
-        int16_t left = *at;
-        at = (at == _bufferLast) ? _bufferFirst : at + 1;
-        int16_t right = *at;
-        at = (at == _bufferLast) ? _bufferFirst : at + 1;
-
-        // write 2 + N samples
-        *dest++ = left;
-        *dest++ = right;
-        for (int n = 0; n < numExtraChannels; n++) {
-            *dest++ = 0;
-        }
-    }
-}
-
-inline void AudioRingBuffer::ConstIterator::readSamplesWithDownmix(int16_t* dest, int numSamples) {
-    int16_t* at = _at;
-    for (int i = 0; i < numSamples/2; i++) {
-
-        // read 2 samples
-        int16_t left = *at;
-        at = (at == _bufferLast) ? _bufferFirst : at + 1;
-        int16_t right = *at;
-        at = (at == _bufferLast) ? _bufferFirst : at + 1;
-
-        // write 1 sample
-        *dest++ = (int16_t)((left + right) / 2);
-    }
-}
-
-inline AudioRingBuffer::ConstIterator AudioRingBuffer::nextOutput() const {
-    return ConstIterator(_buffer, _bufferLength, _nextOutput);
-}
-
-inline AudioRingBuffer::ConstIterator AudioRingBuffer::lastFrameWritten() const {
-    return ConstIterator(_buffer, _bufferLength, _endOfLastWrite) - _numFrameSamples;
-}
+// expose explicit instantiations for scratch/mix buffers
+using AudioRingBuffer = AudioRingBufferTemplate<int16_t>;
+using AudioMixRingBuffer = AudioRingBufferTemplate<float>;
 
 #endif // hifi_AudioRingBuffer_h
