@@ -1,5 +1,5 @@
 //
-//  ModelMeshPartPayload.h
+//  MeshPartPayload.h
 //  interface/src/renderer
 //
 //  Created by Sam Gateau on 10/3/15.
@@ -51,7 +51,7 @@ public:
     // ModelMeshPartPayload functions to perform render
     void drawCall(gpu::Batch& batch) const;
     virtual void bindMesh(gpu::Batch& batch) const;
-    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const;
+    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool enableTextures) const;
     virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const;
 
     // Payload resource cached values
@@ -61,6 +61,7 @@ public:
     bool _hasColorAttrib { false };
 
     model::Box _localBound;
+    model::Box _adjustedLocalBound;
     mutable model::Box _worldBound;
     std::shared_ptr<const model::Mesh> _drawMesh;
 
@@ -104,6 +105,8 @@ public:
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
     void initCache();
+
+    void computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices);
 
     Model* _model;
 

@@ -244,7 +244,6 @@ public:
     public:
         QVector<glm::mat4> clusterMatrices;
         gpu::BufferPointer clusterBuffer;
-
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -319,6 +318,7 @@ protected:
     void scaleToFit();
     void snapToRegistrationPoint();
 
+    void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Restores the indexed joint to its default position.
