@@ -190,11 +190,6 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         propertiesWithSimID.setOwningAvatarID(myNodeID);
     }
 
-    if (propertiesWithSimID.getParentID() == AVATAR_SELF_ID) {
-        qCDebug(entities) << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
-        propertiesWithSimID.setParentID(QUuid());
-    }
-
     auto dimensions = propertiesWithSimID.getDimensions();
     float volume = dimensions.x * dimensions.y * dimensions.z;
     auto density = propertiesWithSimID.getDensity();
@@ -371,9 +366,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
-            } else if (scriptSideProperties.getParentID() == AVATAR_SELF_ID) {
-                qCDebug(entities) << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
-                properties.setParentID(QUuid());
             }
             if (!scriptSideProperties.parentJointIndexChanged()) {
                 properties.setParentJointIndex(entity->getParentJointIndex());

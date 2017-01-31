@@ -281,7 +281,15 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getActionData());
-        APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, getParentID());
+
+        // convert AVATAR_SELF_ID to actual sessionUUID.
+        QUuid actualParentID = getParentID();
+        if (actualParentID == AVATAR_SELF_ID) {
+            auto nodeList = DependencyManager::get<NodeList>();
+            actualParentID = nodeList->getSessionUUID();
+        }
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, actualParentID);
+
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
