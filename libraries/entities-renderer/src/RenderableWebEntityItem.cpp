@@ -241,10 +241,11 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 
     batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
+    const bool IS_AA = true;
     if (fadeRatio < OPAQUE_ALPHA_THRESHOLD) {
-        DependencyManager::get<GeometryCache>()->bindTransparentWebBrowserProgram(batch);
+        DependencyManager::get<GeometryCache>()->bindTransparentWebBrowserProgram(batch, IS_AA);
     } else {
-        DependencyManager::get<GeometryCache>()->bindOpaqueWebBrowserProgram(batch);
+        DependencyManager::get<GeometryCache>()->bindOpaqueWebBrowserProgram(batch, IS_AA);
     }
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
 }

@@ -1,5 +1,5 @@
 //
-//  Created by Bradley Austin Davis on 2016-06-16
+//  Created by Anthony J. Thibault on 2016-12-12
 //  Copyright 2013-2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -10,13 +10,13 @@
 
 #include <QtCore/QThread>
 
-#include <AudioInjector.h>
 #include <AccountManager.h>
 #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
 #include "ScriptEngineLogging.h"
 #include "DependencyManager.h"
 #include "OffscreenUi.h"
+#include "SoundEffect.h"
 
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
@@ -413,48 +413,6 @@ void TabletButtonProxy::editProperties(QVariantMap properties) {
             QMetaObject::invokeMethod(_qmlButton, "changeProperty", Qt::AutoConnection, Q_ARG(QVariant, QVariant(iter.key())), Q_ARG(QVariant, iter.value()));
         }
         ++iter;
-    }
-}
-
-//
-// SoundEffect
-//
-
-SoundEffect::~SoundEffect() {
-    if (_sound) {
-        _sound->deleteLater();
-    }
-    if (_injector) {
-         // stop will cause the AudioInjector to delete itself.
-        _injector->stop();
-    }
-}
-
-QUrl SoundEffect::getSource() const {
-    return _url;
-}
-
-void SoundEffect::setSource(QUrl url) {
-    _url = url;
-    _sound = DependencyManager::get<SoundCache>()->getSound(_url);
-}
-
-void SoundEffect::play(QVariant position) {
-    auto tsi = DependencyManager::get<TabletScriptingInterface>();
-    if (tsi) {
-        TabletProxy* tablet = qobject_cast<TabletProxy*>(tsi->getTablet("com.highfidelity.interface.tablet.system"));
-        if (tablet) {
-            AudioInjectorOptions options;
-            options.position = vec3FromVariant(position);
-            options.localOnly = true;
-            if (_injector) {
-                _injector->setOptions(options);
-                _injector->restart();
-            } else {
-                QByteArray samples = _sound->getByteArray();
-                _injector = AudioInjector::playSound(samples, options);
-            }
-        }
     }
 }
 

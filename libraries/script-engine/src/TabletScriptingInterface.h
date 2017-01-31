@@ -23,11 +23,9 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <DependencyManager.h>
-#include <SoundCache.h>
 
 class TabletProxy;
 class TabletButtonProxy;
-class AudioInjector;
 
 /**jsdoc
  * @namespace Tablet
@@ -200,25 +198,5 @@ protected:
     QQuickItem* _qmlButton { nullptr };
     QVariantMap _properties;
 };
-
-
-// Exposed to qml only, not java script
-class SoundEffect : public QQuickItem {
-    Q_OBJECT
-    Q_PROPERTY(QUrl source READ getSource WRITE setSource)
-public:
-
-    virtual ~SoundEffect();
-
-    QUrl getSource() const;
-    void setSource(QUrl url);
-
-    Q_INVOKABLE void play(QVariant position);
-protected:
-    QUrl _url;
-    SharedSoundPointer _sound;
-    AudioInjector* _injector { nullptr };
-};
-
 
 #endif // hifi_TabletScriptingInterface_h
