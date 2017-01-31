@@ -30,7 +30,7 @@
                 font-weight: bold;
             }
 
-            .top-bar .container {
+            .top-bar .myContainer {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -100,51 +100,97 @@
                 cursor: pointer;
             }
 
+            input[type=button].red {
+                color: #fff;
+                background-color: #94132e;
+                background: linear-gradient(#d42043 20%, #94132e 100%);
+            }
             input[type=button].blue {
                 color: #fff;
                 background-color: #1080b8;
                 background: linear-gradient(#00b4ef 20%, #1080b8 100%);
             }
-
-            input[type=button].blue:hover {
-                background: linear-gradient(#00b4ef, #00b4ef);
-                border: none;
-            }
-
-            input[type=button].blue:active {
-                background: linear-gradient(#1080b8, #1080b8);
-            }
-
             input[type=button].white {
                 color: #121212;
                 background-color: #afafaf;
                 background: linear-gradient(#fff 20%, #afafaf 100%);
             }
 
-            input[type=button].white:hover {
+            input[type=button]:enabled:hover {
+                background: linear-gradient(#000, #000);
+                border: none;
+            }
+            input[type=button].red:enabled:hover {
+                background: linear-gradient(#d42043, #d42043);
+                border: none;
+            }
+            input[type=button].blue:enabled:hover {
+                background: linear-gradient(#00b4ef, #00b4ef);
+                border: none;
+            }
+            input[type=button].white:enabled:hover {
                 background: linear-gradient(#fff, #fff);
                 border: none;
             }
 
+            input[type=button]:active {
+                background: linear-gradient(#343434, #343434);
+            }
+            input[type=button].red:active {
+                background: linear-gradient(#94132e, #94132e);
+            }
+            input[type=button].blue:active {
+                background: linear-gradient(#1080b8, #1080b8);
+            }
             input[type=button].white:active {
                 background: linear-gradient(#afafaf, #afafaf);
+            }
+
+            input[type=button]:disabled {
+                color: #252525;
+                background: linear-gradient(#575757 20%, #252525 100%);
+            }
+
+            input[type=button][pressed=pressed] {
+                color: #00b4ef;
             }
 
             #friends-button {
                 margin: 0px 0px 15px 10px;
             }
 
+            /*Vertically Center Modal*/
+            .modal {
+              color: black;
+              text-align: center;
+              padding: 0!important;
+            }
+
+            .modal:before {
+              content: '';
+              display: inline-block;
+              height: 100%;
+              vertical-align: middle;
+              margin-right: -4px;
+            }
+
+            .modal-dialog {
+              display: inline-block;
+              text-align: left;
+              vertical-align: middle;
+            }
+
         </style>
     </head>
     <body>
         <div class="top-bar">
-            <div class="container">
+            <div class="myContainer">
                 <div>Users Online</div>
                 <img id="refresh-button" onclick="pollUsers()" src="https://hifi-content.s3.amazonaws.com/faye/tablet-dev/refresh-icon.svg"></img>
             </div>
         </div>
         <div class="main">
-            <input type="button" class="white" id="visibility-toggle" value="Online">
+<!--             <input type="button" class="white" id="visibility-toggle" value="Online"> -->
             <ul class="tabs">
                 <li tab-id="tab-1" class="current">Everyone (0)</li>
                 <li tab-id="tab-2">Friends (0)</li>
@@ -157,6 +203,26 @@
                 <input type="button" class="blue" id="friends-button" value="Add/Remove Friends">
             </div>
         </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Jump to username @ Placename</h4>
+              </div>
+              <div class="modal-body">
+                This will teleport you to new location and possibly another domain. Are you sure?
+              </div>
+              <div class="modal-footer">
+                <input type="button" data-dismiss="modal" value="Cancel">
+                <input type="button" data-dismiss="modal" value="OK">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
         <script>
@@ -177,7 +243,7 @@
                         // Don't display yourself
                         if (data.users[i].username !== myUsername) {
                             console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
-                            element.append("<li>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
+                            element.append("<li data-toggle='modal' data-target='#myModal'>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
                         }
                     }
                 }
