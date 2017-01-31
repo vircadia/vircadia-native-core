@@ -927,13 +927,21 @@ void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function
     _entityEditFilterHadUncaughtExceptions = entityEditFilterHadUncaughtExceptions;
     auto global = _entityEditFilterEngine->globalObject();
     _entityEditFilterFunction = global.property("filter");
-    _hasEntityEditFilter = _entityEditFilterFunction.isFunction();
+    if (!_entityEditFilterFunction.isFunction()) {
+        qCDebug(entities) << "Filter function specified but not found. Will reject all edits.";
+        _entityEditFilterEngine = nullptr; // So that we don't try to call it. See filterProperties.
+    }
+    _hasEntityEditFilter = true;
 }
 
 bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
-    if (!_hasEntityEditFilter || !_entityEditFilterEngine) {
+    if (!_entityEditFilterEngine) {
         propertiesOut = propertiesIn;
         wasChanged = false; // not changed
+        if (_hasEntityEditFilter) {
+            qCDebug(entities) << "Rejecting properties because filter has not been set.";
+            return false;
+        }
         return true; // allowed
     }
     auto oldProperties = propertiesIn.getDesiredProperties();

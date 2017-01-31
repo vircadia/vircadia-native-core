@@ -80,7 +80,6 @@ private:
 
     QString _entityEditFilter{};
     QScriptEngine _entityEditFilterEngine{};
-    QEventLoop _scriptRequestLoop{};
 };
 
 #endif // hifi_EntityServer_h
