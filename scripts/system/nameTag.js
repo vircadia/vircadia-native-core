@@ -7,6 +7,7 @@
 // Created by Triplelexx on 17/01/31
 // Copyright 2017 High Fidelity, Inc.
 //
+// Running the script creates a text entity that will hover over the user's head showing their display name.
 //
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -38,6 +39,7 @@ function addNameTag() {
     var nametagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getFront(MyAvatar.orientation)));
     nametagPosition.y += HEIGHT_ABOVE_HEAD;
     var modelNameTagProperties = {
+        name: MyAvatar.displayName + ' Name Tag',
         type: 'Text',
         text: MyAvatar.displayName,
         parentID: MyAvatar.sessionUUID,
@@ -62,7 +64,7 @@ function cleanup() {
 
 Script.update.connect(update);
 function update() {
-    // bail if no entity
+    // if no entity we return
     if(nametagEntityID == NULL_UUID) {
         return;
     }
@@ -76,12 +78,12 @@ function update() {
 function checkForEntity() {
     var nametagProps = Entities.getEntityProperties(nametagEntityID);
 
-    // it is possible for the age to not be a valid number, we check for this and bail accordingly
+    // it is possible for the age to not be a valid number, we check for this and return accordingly
     if(nametagProps.age < 1) {
         return;
     }
     
-    // it's too old make a new one, otherwise update
+    // it's too old or we receive undefined make a new one, otherwise update
     if(nametagProps.age > OLD_AGE || nametagProps.age == undefined) {
         deleteNameTag();
         addNameTag();
