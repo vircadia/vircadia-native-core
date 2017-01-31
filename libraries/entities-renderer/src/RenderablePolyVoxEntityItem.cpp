@@ -1167,6 +1167,14 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
                                            vertexBufferPtr->getSize() ,
                                            sizeof(PolyVox::PositionMaterialNormal),
                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+
+        std::vector<model::Mesh::Part> parts;
+        parts.emplace_back(model::Mesh::Part(0, // startIndex
+                                             vecIndices.size(), // numIndices
+                                             0, // baseVertex
+                                             model::Mesh::TRIANGLES)); // topology
+        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+                                                            (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
         entity->setMesh(mesh);
     });
 }

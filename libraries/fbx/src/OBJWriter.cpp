@@ -1,5 +1,5 @@
 //
-//  FBXReader.h
+//  OBJWriter.cpp
 //  libraries/fbx/src/
 //
 //  Created by Seth Alves on 2017-1-27.
@@ -9,63 +9,126 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QFile>
+#include <QFileInfo>
+#include "model/Geometry.h"
 #include "OBJWriter.h"
 
 
-bool writeOBJ(QString outFileName, QVector<model::Mesh>) {
-//bool writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart) {
-    // QFile file(outFileName);
-    // if (!file.open(QIODevice::WriteOnly)) {
-    //     qWarning() << "unable to write to" << outFileName;
-    //     return false;
-    // }
 
-    // QTextStream out(&file);
-    // if (outputCentimeters) {
-    //     out << "# This file uses centimeters as units\n\n";
-    // }
+static QString formatFloat(double n) {
+    // limit precision to 6, but don't output trailing zeros.
+    QString s = QString::number(n, 'f', 6);
+    while (s.endsWith("0")) {
+        s.remove(s.size() - 1, 1);
+    }
+    if (s.endsWith(".")) {
+        s.remove(s.size() - 1, 1);
+    }
+    return s;
+}
 
-    // unsigned int nth = 0;
 
-    // // vertex indexes in obj files span the entire file
-    // // vertex indexes in a mesh span just that mesh
 
-    // int vertexIndexOffset = 0;
+bool writeOBJToTextStream(QTextStream& out, std::vector<MeshPointer> meshes) {
+    qDebug() << "writeOBJToTextStream mesh count is" << meshes.size();
 
-    // foreach (const FBXMesh& mesh, geometry.meshes) {
-    //     bool verticesHaveBeenOutput = false;
-    //     foreach (const FBXMeshPart &meshPart, mesh.parts) {
-    //         if (whichMeshPart >= 0 && nth != (unsigned int) whichMeshPart) {
-    //             nth++;
-    //             continue;
-    //         }
+    // each mesh's vertices are numbered from zero.  We're combining all their vertices into one list here,
+    // so keep track of the start index for each mesh.
+    QList<int> meshVertexStartOffset;
+    int currentVertexStartOffset = 0;
 
-    //         if (!verticesHaveBeenOutput) {
-    //             for (int i = 0; i < mesh.vertices.size(); i++) {
-    //                 glm::vec4 v = mesh.modelTransform * glm::vec4(mesh.vertices[i], 1.0f);
-    //                 out << "v ";
-    //                 out << formatFloat(v[0]) << " ";
-    //                 out << formatFloat(v[1]) << " ";
-    //                 out << formatFloat(v[2]) << "\n";
-    //             }
-    //             verticesHaveBeenOutput = true;
-    //         }
+    // write out all vertices
+    foreach (const MeshPointer& mesh, meshes) {
+        meshVertexStartOffset.append(currentVertexStartOffset);
+        const gpu::BufferView& vertexBuffer = mesh->getVertexBuffer();
+        int vertexCount = 0;
+        gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertexBuffer.cbegin<const glm::vec3>();
+        while (vertexItr != vertexBuffer.cend<const glm::vec3>()) {
+            glm::vec3 v = *vertexItr;
+            out << "v ";
+            out << formatFloat(v[0]) << " ";
+            out << formatFloat(v[1]) << " ";
+            out << formatFloat(v[2]) << "\n";
+            vertexItr++;
+            vertexCount++;
+        }
+        currentVertexStartOffset += vertexCount;
+    }
+    out << "\n";
 
-    //         out << "g hull-" << nth++ << "\n";
-    //         int triangleCount = meshPart.triangleIndices.size() / 3;
-    //         for (int i = 0; i < triangleCount; i++) {
-    //             out << "f ";
-    //             out << vertexIndexOffset + meshPart.triangleIndices[i*3] + 1 << " ";
-    //             out << vertexIndexOffset + meshPart.triangleIndices[i*3+1] + 1  << " ";
-    //             out << vertexIndexOffset + meshPart.triangleIndices[i*3+2] + 1  << "\n";
-    //         }
-    //         out << "\n";
-    //     }
+    // write out faces
+    int nth = 0;
+    foreach (const MeshPointer& mesh, meshes) {
+        currentVertexStartOffset = meshVertexStartOffset.takeFirst();
 
-    //     if (verticesHaveBeenOutput) {
-    //         vertexIndexOffset += mesh.vertices.size();
-    //     }
-    // }
+        const gpu::BufferView& partBuffer = mesh->getPartBuffer();
+        const gpu::BufferView& indexBuffer = mesh->getIndexBuffer();
+        // const gpu::BufferView& vertexBuffer = mesh->getVertexBuffer();
+
+        int partCount = mesh->getNumParts();
+        qDebug() << "writeOBJToTextStream part count is" << partCount;
+        for (int partIndex = 0; partIndex < partCount; partIndex++) {
+            const model::Mesh::Part& part = partBuffer.get<model::Mesh::Part>(partIndex);
+
+            out << "g part-" << nth++ << "\n";
+
+            // model::Mesh::TRIANGLES
+            // XXX handle other formats
+            gpu::BufferView::Iterator<const uint32_t> indexItr = indexBuffer.cbegin<uint32_t>();
+            indexItr += part._startIndex;
+
+            int indexCount = 0;
+            while (indexItr != indexBuffer.cend<uint32_t>() && indexItr != part._numIndices) {
+                uint32_t index0 = *indexItr;
+                indexItr++;
+                indexCount++;
+                if (indexItr == indexBuffer.cend<uint32_t>() || indexItr == part._numIndices) {
+                    qDebug() << "OBJWriter -- index buffer length isn't multiple of 3";
+                    break;
+                }
+                uint32_t index1 = *indexItr;
+                indexItr++;
+                indexCount++;
+                if (indexItr == indexBuffer.cend<uint32_t>() || indexItr == part._numIndices) {
+                    qDebug() << "OBJWriter -- index buffer length isn't multiple of 3";
+                    break;
+                }
+                uint32_t index2 = *indexItr;
+                indexItr++;
+                indexCount++;
+
+                out << "f ";
+                out << currentVertexStartOffset + index0 + 1 << " ";
+                out << currentVertexStartOffset + index1 + 1 << " ";
+                out << currentVertexStartOffset + index2 + 1 << "\n";
+            }
+            out << "\n";
+        }
+    }
 
     return true;
+}
+
+
+bool writeOBJToFile(QString path, MeshPointer mesh) {
+    if (QFileInfo(path).exists() && !QFile::remove(path)) {
+        qDebug() << "OBJ writer failed, file exists:" << path; // XXX qCDebug
+        return false;
+    }
+
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qDebug() << "OBJ writer failed to open output file:" << path; // XXX qCDebug
+        return false;
+    }
+
+    QTextStream outStream(&file);
+
+    bool success;
+    std::vector<MeshPointer> meshes { mesh };
+    success = writeOBJToTextStream(outStream, meshes);
+
+    file.close();
+    return success;
 }

@@ -17,6 +17,7 @@
 #include <QScriptValue>
 #include <OBJWriter.h>
 #include <model/Geometry.h>
+#include "MeshProxy.h"
 
 using MeshPointer = std::shared_ptr<model::Mesh>;
 
@@ -25,30 +26,12 @@ class ModelScriptingInterface : public QObject {
 
 public:
     ModelScriptingInterface(QObject* parent);
+
+    Q_INVOKABLE QString meshToOBJ(MeshProxy* const &in);
 };
-
-class MeshProxy : public QObject {
-    Q_OBJECT
-
-public:
-    MeshProxy(MeshPointer mesh);
-    // MeshProxy(const MeshProxy& meshProxy) { _mesh = meshProxy.getMeshPointer(); }
-    ~MeshProxy();
-
-    MeshPointer getMeshPointer() const { return _mesh; }
-
-    Q_INVOKABLE int getNumVertices() const { return _mesh->getNumVertices(); }
-
-protected:
-    MeshPointer _mesh;
-};
-
-
-Q_DECLARE_METATYPE(MeshProxy*);
-
 
 QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in);
-// QScriptValue meshToScriptValue(QScriptEngine* engine, const MeshPointer& in);
 void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out);
+
 
 #endif // hifi_ModelScriptingInterface_h

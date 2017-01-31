@@ -12,17 +12,11 @@
 #include <QScriptEngine>
 #include <QtScript/QScriptValue>
 #include "ModelScriptingInterface.h"
+#include "OBJWriter.h"
+
 
 ModelScriptingInterface::ModelScriptingInterface(QObject* parent) : QObject(parent) {
 }
-
-
-MeshProxy::MeshProxy(MeshPointer mesh) : _mesh(mesh) {
-}
-
-MeshProxy::~MeshProxy() {
-}
-
 
 QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in) {
     return engine->newQObject(in, QScriptEngine::QtOwnership,
@@ -31,4 +25,14 @@ QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in) {
 
 void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out) {
     out = qobject_cast<MeshProxy*>(value.toQObject());
+}
+
+QString ModelScriptingInterface::meshToOBJ(MeshProxy* const &in) {
+    bool success;
+    QString filename = "/tmp/okokok.obj";
+    success = writeOBJToFile(filename, in->getMeshPointer());
+    if (!success) {
+        return "";
+    }
+    return filename;
 }
