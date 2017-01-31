@@ -256,6 +256,16 @@ bool Menu::isOptionChecked(const QString& menuOption) const {
     return false;
 }
 
+void Menu::closeInfoView(const QString& path) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->hide(path);
+}
+
+bool Menu::isInfoViewVisible(const QString& path) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->isVisible(path);
+}
+
 void Menu::triggerOption(const QString& menuOption) {
     QAction* action = _actionHash.value(menuOption);
     if (action) {

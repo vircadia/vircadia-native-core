@@ -114,6 +114,9 @@ public slots:
 
     void toggleDeveloperMenus();
     void toggleAdvancedMenus();
+
+    bool isInfoViewVisible(const QString& path);
+    void closeInfoView(const QString& path);
     
     void triggerOption(const QString& menuOption);
 

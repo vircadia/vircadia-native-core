@@ -6,7 +6,7 @@ Item {
     property alias alpha: image.opacity
     property var subImage;
     property int yOffset: 0
-    property int buttonState: 0
+    property int buttonState: 1
     property real size: 50
     width: size; height: size
     property bool pinned: false

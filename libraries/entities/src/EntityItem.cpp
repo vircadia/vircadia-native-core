@@ -1329,7 +1329,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setActionData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, updateParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
 
@@ -1586,6 +1586,14 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     }
 }
 
+void EntityItem::updateParentID(const QUuid& value) {
+    if (_parentID != value) {
+        setParentID(value);
+        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; // children are forced to be kinematic
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+    }
+}
+
 void EntityItem::updatePositionFromNetwork(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
@@ -1794,7 +1802,6 @@ void EntityItem::updateCreated(uint64_t value) {
 }
 
 void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
-    // TODO: detect attachment status and adopt group of wearer
     if (_collisionless) {
         group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         mask = 0;
@@ -1808,10 +1815,33 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         }
 
         uint8_t userMask = getCollisionMask();
+        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
+            // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
+            // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
+            // and holding it against your own avatar.
+            QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
+            if (!ancestorID.isNull() && ancestorID == Physics::getSessionUUID()) {
+                userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
+            }
+        }
+        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
+            // also, don't bootstrap our own avatar with a hold action
+            QList<EntityActionPointer> holdActions = getActionsOfType(ACTION_TYPE_HOLD);
+            QList<EntityActionPointer>::const_iterator i = holdActions.begin();
+            while (i != holdActions.end()) {
+                EntityActionPointer action = *i;
+                if (action->isMine()) {
+                    userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
+                    break;
+                }
+                i++;
+            }
+        }
+
         if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
                 (bool)(userMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
             // asymmetric avatar collision mask bits
-            if (!getSimulatorID().isNull() && (!getSimulatorID().isNull()) && getSimulatorID() != Physics::getSessionUUID()) {
+            if (!getSimulatorID().isNull() && getSimulatorID() != Physics::getSessionUUID()) {
                 // someone else owns the simulation, so we toggle the avatar bits (swap interpretation)
                 userMask ^= USER_COLLISION_MASK_AVATARS | ~userMask;
             }
@@ -1910,6 +1940,7 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityAct
     if (success) {
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
     }
@@ -1932,6 +1963,7 @@ bool EntityItem::updateAction(EntitySimulationPointer simulation, const QUuid& a
             action->setIsMine(true);
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         } else {
             qCDebug(entities) << "EntityItem::updateAction failed";
         }
@@ -1969,6 +2001,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         setActionDataNeedsTransmit(true);
         return success;
     }
@@ -1989,6 +2022,7 @@ bool EntityItem::clearActions(EntitySimulationPointer simulation) {
         _actionsToRemove.clear();
         _allActionsDataCache.clear();
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
     });
     return true;
 }
@@ -2195,7 +2229,7 @@ bool EntityItem::shouldSuppressLocationEdits() const {
     return false;
 }
 
-QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) {
+QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) const {
     QList<EntityActionPointer> result;
 
     QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();

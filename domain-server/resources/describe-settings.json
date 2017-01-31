@@ -373,6 +373,13 @@
           "value-hidden": true
         },
         {
+            "name": "verify_http_password",
+            "label": "Verify HTTP Password",
+            "type": "password",
+            "help": "Must match the password entered above for change to be saved.",
+            "value-hidden": true
+        },
+        {
           "name": "maximum_user_capacity",
           "label": "Maximum User Capacity",
           "help": "The limit on how many users can be connected at once (0 means no limit). Avatars connected from the same machine will not count towards this limit.",

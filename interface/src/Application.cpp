@@ -111,6 +111,7 @@
 #include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
+#include <TabletScriptingInterface.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -492,6 +493,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
+    DependencyManager::set<TabletScriptingInterface>();
     DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
@@ -977,7 +979,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        if (offscreenUi->navigationFocused()) {
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
             static int lastKey = Qt::Key_unknown;
@@ -1021,25 +1024,28 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                     break;
             }
 
-            if (navAxis) {
+            auto window = tabletScriptingInterface->getTabletWindow();
+            if (navAxis && window) {
                 if (lastKey != Qt::Key_unknown) {
                     QKeyEvent event(QEvent::KeyRelease, lastKey, Qt::NoModifier);
-                    sendEvent(offscreenUi->getWindow(), &event);
+                    sendEvent(window, &event);
                     lastKey = Qt::Key_unknown;
                 }
 
                 if (key != Qt::Key_unknown) {
                     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
-                    sendEvent(offscreenUi->getWindow(), &event);
+                    sendEvent(window, &event);
+                    tabletScriptingInterface->processEvent(&event);
                     lastKey = key;
                 }
-            } else if (key != Qt::Key_unknown) {
+            } else if (key != Qt::Key_unknown && window) {
                 if (state) {
                     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
-                    sendEvent(offscreenUi->getWindow(), &event);
+                    sendEvent(window, &event);
+                    tabletScriptingInterface->processEvent(&event);
                 } else {
                     QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);
-                    sendEvent(offscreenUi->getWindow(), &event);
+                    sendEvent(window, &event);
                 }
                 return;
             }
@@ -1065,12 +1071,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 DependencyManager::get<AudioClient>()->toggleMute();
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
-            } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
-                if (!offscreenUi->navigationFocused()) {
-                    toggleMenuUnderReticle();
-                }
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                toggleMenuUnderReticle();
+                toggleTabletUI();
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = getApplicationCompositor().getReticlePosition();
                 getApplicationCompositor().setReticlePosition({ oldPos.x + state, oldPos.y });
@@ -1589,15 +1591,17 @@ QString Application::getUserAgent() {
     return userAgent;
 }
 
-void Application::toggleMenuUnderReticle() const {
-    // In HMD, if the menu is near the mouse but not under it, the reticle can be at a significantly
-    // different depth. When you focus on the menu, the cursor can appear to your crossed eyes as both
-    // on the menu and off.
-    // Even in 2D, it is arguable whether the user would want the menu to be to the side.
-    const float X_LEFT_SHIFT = 50.0;
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto reticlePosition = getApplicationCompositor().getReticlePosition();
-    offscreenUi->toggleMenu(QPoint(reticlePosition.x - X_LEFT_SHIFT, reticlePosition.y));
+uint64_t lastTabletUIToggle { 0 };
+const uint64_t toggleTabletUILockout { 500000 };
+void Application::toggleTabletUI() const {
+    uint64_t now = usecTimestampNow();
+    if (now - lastTabletUIToggle < toggleTabletUILockout) {
+        return;
+    }
+    lastTabletUIToggle = now;
+
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    HMD->toggleShouldShowTablet();
 }
 
 void Application::checkChangeCursor() {
@@ -2933,10 +2937,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
-    if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
-        toggleMenuUnderReticle();
-    }
-
     _keysPressed.remove(event->key());
 
     _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
@@ -4161,9 +4161,11 @@ void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
             }
             _lastAcceptedKeyPress = usecTimestampNow();
 
-            auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
-            const float OVERLAY_DEPTH = 0.0105f;
-            setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
+            if (overlay->getProperty("showKeyboardFocusHighlight").toBool()) {
+                auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
+                const float OVERLAY_DEPTH = 0.0105f;
+                setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
+            }
         }
     }
 }
@@ -4377,6 +4379,10 @@ void Application::update(float deltaTime) {
             PROFILE_RANGE_EX(simulation_physics, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("harvestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
+                // grab the collision events BEFORE handleOutgoingChanges() because at this point
+                // we have a better idea of which objects we own or should own.
+                auto& collisionEvents = _physicsEngine->getCollisionEvents();
+
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
@@ -4384,11 +4390,10 @@ void Application::update(float deltaTime) {
                     avatarManager->handleOutgoingChanges(outgoingChanges);
                 });
 
-                auto collisionEvents = _physicsEngine->getCollisionEvents();
-                avatarManager->handleCollisionEvents(collisionEvents);
-
                 if (!_aboutToQuit) {
+                    // handleCollisionEvents() AFTER handleOutgoinChanges()
                     PerformanceTimer perfTimer("entities");
+                    avatarManager->handleCollisionEvents(collisionEvents);
                     // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                     // deadlock.)
                     _entitySimulation->handleCollisionEvents(collisionEvents);
