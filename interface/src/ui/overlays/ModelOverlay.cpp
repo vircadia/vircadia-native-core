@@ -18,23 +18,21 @@
 QString const ModelOverlay::TYPE = "model";
 
 ModelOverlay::ModelOverlay()
-    : _model(std::make_shared<Model>(std::make_shared<Rig>())),
+    : _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
       _modelTextures(QVariantMap())
 {
     _model->init();
-    _model->setSpatiallyNestableOverride(this);
     _isLoaded = false;
 }
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     Volume3DOverlay(modelOverlay),
-    _model(std::make_shared<Model>(std::make_shared<Rig>())),
+    _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
     _updateModel(false)
 {
     _model->init();
-    _model->setSpatiallyNestableOverride(this);
     if (_url.isValid()) {
         _updateModel = true;
         _isLoaded = false;

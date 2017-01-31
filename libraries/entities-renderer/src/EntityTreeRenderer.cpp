@@ -540,7 +540,7 @@ void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const Sha
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
-ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loadingPriority) {
+ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loadingPriority, SpatiallyNestable* spatiallyNestableOverride) {
     ModelPointer model = nullptr;
 
     // Only create and delete models on the thread that owns the EntityTreeRenderer
@@ -552,7 +552,7 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
         return model;
     }
 
-    model = std::make_shared<Model>(std::make_shared<Rig>());
+    model = std::make_shared<Model>(std::make_shared<Rig>(), nullptr, spatiallyNestableOverride);
     model->setLoadingPriority(loadingPriority);
     model->init();
     model->setURL(QUrl(url));
