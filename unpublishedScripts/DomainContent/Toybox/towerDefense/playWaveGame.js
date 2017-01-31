@@ -120,22 +120,26 @@ function createLocalGame() {
     goalPosition.y += BASES_HEIGHT - ROOF_HEIGHT;
 
     waveDisplayID = spawnTemplate("SB.DisplayWave", {
-        parentID: scoreboardID
+        parentID: scoreboardID,
+        serverScripts: "null"
     });
     entityIDs.push(waveDisplayID);
 
     scoreDisplayID = spawnTemplate("SB.DisplayScore", {
-        parentID: scoreboardID
+        parentID: scoreboardID,
+        serverScripts: "null"
     });
     entityIDs.push(scoreDisplayID);
 
     livesDisplayID = spawnTemplate("SB.DisplayLives", {
-        parentID: scoreboardID
+        parentID: scoreboardID,
+        serverScripts: "null"
     });
     entityIDs.push(livesDisplayID);
 
     highScoreDisplayID = spawnTemplate("SB.DisplayHighScore", {
-        parentID: scoreboardID
+        parentID: scoreboardID,
+        serverScripts: "null"
     });
     entityIDs.push(highScoreDisplayID);
 
