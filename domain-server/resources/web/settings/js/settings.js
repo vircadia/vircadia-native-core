@@ -216,8 +216,8 @@ $(document).ready(function(){
             sibling = sibling.next();
           }
 
-          if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click();
+          // for tables with categories we add the entry and setup the new row on enter
+          if (sibling.find("." + Settings.ADD_CATEGORY_BUTTON_CLASS).length) {
             sibling.find("." + Settings.ADD_CATEGORY_BUTTON_CLASS).click();
 
             // set focus to the first input in the new row
