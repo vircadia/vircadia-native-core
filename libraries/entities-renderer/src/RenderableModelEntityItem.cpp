@@ -320,12 +320,9 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                         glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
                                               rotationMat * fbxJoints[index].postTransform);
                         _localJointTranslations[j] = extractTranslation(finalMat);
-                        _localJointTranslationsSet[j] = true;
                         _localJointTranslationsDirty[j] = true;
 
                         _localJointRotations[j] = glmExtractRotation(finalMat);
-
-                        _localJointRotationsSet[j] = true;
                         _localJointRotationsDirty[j] = true;
                     }
                 }
