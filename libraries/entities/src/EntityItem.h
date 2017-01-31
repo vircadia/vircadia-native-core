@@ -478,6 +478,8 @@ protected:
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
+    void checkForFirstSimulationBid(const SimulationOwner& simulationOwner) const;
+
     virtual void locationChanged(bool tellPhysics = true) override;
     virtual void dimensionsChanged() override;
 
@@ -586,6 +588,9 @@ protected:
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
 
+    // per entity keep state if it ever bid on simulation, so that we can ignore false simulation ownership
+    mutable bool _hasBidOnSimulation = false;
+
     QUuid _sourceUUID; /// the server node UUID we came from
 
     bool _clientOnly { false };
@@ -594,7 +599,7 @@ protected:
     // physics related changes from the network to suppress any duplicates and make
     // sure redundant applications are idempotent
     glm::vec3 _lastUpdatedPositionValue;
-    glm::quat  _lastUpdatedRotationValue;
+    glm::quat _lastUpdatedRotationValue;
     glm::vec3 _lastUpdatedVelocityValue;
     glm::vec3 _lastUpdatedAngularVelocityValue;
     glm::vec3 _lastUpdatedAccelerationValue;
