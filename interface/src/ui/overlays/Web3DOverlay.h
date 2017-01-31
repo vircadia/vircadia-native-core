@@ -29,6 +29,8 @@ public:
     Web3DOverlay(const Web3DOverlay* Web3DOverlay);
     virtual ~Web3DOverlay();
 
+    QString pickURL();
+    void loadSourceURL();
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
 
@@ -47,7 +49,7 @@ public:
 
     glm::vec2 getSize();
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
         BoxFace& face, glm::vec3& surfaceNormal) override;
 
     virtual Web3DOverlay* createClone() const override;
@@ -68,6 +70,7 @@ private:
     float _dpi;
     vec2 _resolution{ 640, 480 };
     int _geometryId { 0 };
+    bool _showKeyboardFocusHighlight{ true };
 
     bool _pressed{ false };
     QTouchDevice _touchDevice;

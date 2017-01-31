@@ -92,6 +92,15 @@ bool LightingModel::isAlbedoEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableAlbedo;
 }
 
+void LightingModel::setMaterialTexturing(bool enable) {
+    if (enable != isMaterialTexturingEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableMaterialTexturing = (float)enable;
+    }
+}
+bool LightingModel::isMaterialTexturingEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableMaterialTexturing;
+}
+
 void LightingModel::setAmbientLight(bool enable) {
     if (enable != isAmbientLightEnabled()) {
         _parametersBuffer.edit<Parameters>().enableAmbientLight = (float)enable;
@@ -150,6 +159,8 @@ void MakeLightingModel::configure(const Config& config) {
     _lightingModel->setSpecular(config.enableSpecular);
     _lightingModel->setAlbedo(config.enableAlbedo);
 
+    _lightingModel->setMaterialTexturing(config.enableMaterialTexturing);
+
     _lightingModel->setAmbientLight(config.enableAmbientLight);
     _lightingModel->setDirectionalLight(config.enableDirectionalLight);
     _lightingModel->setPointLight(config.enablePointLight);
@@ -160,5 +171,8 @@ void MakeLightingModel::configure(const Config& config) {
 
 void MakeLightingModel::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel) {
 
-    lightingModel = _lightingModel; 
+    lightingModel = _lightingModel;
+
+    // make sure the enableTexturing flag of the render ARgs is in sync
+    renderContext->args->_enableTexturing = _lightingModel->isMaterialTexturingEnabled();
 }

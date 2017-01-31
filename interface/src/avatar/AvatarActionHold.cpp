@@ -128,32 +128,44 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
         glm::quat palmRotation;
 
         if (holdingAvatar->isMyAvatar()) {
+            std::shared_ptr<MyAvatar> myAvatar = avatarManager->getMyAvatar();
 
             // fetch the hand controller pose
             controller::Pose pose;
             if (isRightHand) {
-                pose = avatarManager->getMyAvatar()->getRightHandControllerPoseInWorldFrame();
+                pose = myAvatar->getRightHandControllerPoseInWorldFrame();
             } else {
-                pose = avatarManager->getMyAvatar()->getLeftHandControllerPoseInWorldFrame();
+                pose = myAvatar->getLeftHandControllerPoseInWorldFrame();
             }
 
             if (pose.isValid()) {
                 linearVelocity = pose.getVelocity();
                 angularVelocity = pose.getAngularVelocity();
-
-                if (isRightHand) {
-                    pose = avatarManager->getMyAvatar()->getRightHandControllerPoseInAvatarFrame();
-                } else {
-                    pose = avatarManager->getMyAvatar()->getLeftHandControllerPoseInAvatarFrame();
-                }
             }
 
             if (_ignoreIK && pose.isValid()) {
+
+                // this position/rotation should be the same as the one in scripts/system/libraries/controllers.js
+                // otherwise things will do a little hop when you grab them.
+
+                // if (isRightHand) {
+                //     pose = myAvatar->getRightHandControllerPoseInAvatarFrame();
+                // } else {
+                //     pose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
+                // }
+                // glm::vec3 camRelPos = pose.getTranslation();
+                // glm::quat camRelRot = pose.getRotation();
+
+                int camRelIndex = isRightHand ?
+                    CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX :
+                    CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX;
+                glm::vec3 camRelPos = myAvatar->getAbsoluteJointTranslationInObjectFrame(camRelIndex);
+                glm::quat camRelRot = myAvatar->getAbsoluteJointRotationInObjectFrame(camRelIndex);
+
                 Transform avatarTransform;
-                auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
                 avatarTransform = myAvatar->getTransform();
-                palmPosition = avatarTransform.transform(pose.getTranslation() / myAvatar->getDomainLimitedScale());
-                palmRotation = avatarTransform.getRotation() * pose.getRotation();
+                palmPosition = avatarTransform.transform(camRelPos / myAvatar->getDomainLimitedScale());
+                palmRotation = avatarTransform.getRotation() * camRelRot;
             } else {
                 glm::vec3 avatarRigidBodyPosition;
                 glm::quat avatarRigidBodyRotation;
@@ -223,6 +235,11 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         qDebug() << "AvatarActionHold::doKinematicUpdate -- no owning entity";
         return;
     }
+    if (ownerEntity->getParentID() != QUuid()) {
+        // if the held entity has been given a parent, stop acting on it.
+        return;
+    }
+
     void* physicsInfo = ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
         qDebug() << "AvatarActionHold::doKinematicUpdate -- no owning physics info";

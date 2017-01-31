@@ -133,6 +133,29 @@ void Model::setRotation(const glm::quat& rotation) {
     updateRenderItems();
 }
 
+void Model::setSpatiallyNestableOverride(SpatiallyNestablePointer override) {
+    _spatiallyNestableOverride = override;
+    updateRenderItems();
+}
+
+Transform Model::getTransform() const {
+    SpatiallyNestablePointer spatiallyNestableOverride = _spatiallyNestableOverride.lock();
+    if (spatiallyNestableOverride) {
+        bool success;
+        Transform transform = spatiallyNestableOverride->getTransform(success);
+        if (success) {
+            transform.setScale(getScale());
+            return transform;
+        }
+    }
+
+    Transform transform;
+    transform.setScale(getScale());
+    transform.setTranslation(getTranslation());
+    transform.setRotation(getRotation());
+    return transform;
+}
+
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
     // if anyone sets scale manually, then we are no longer scaled to fit
@@ -214,21 +237,17 @@ void Model::updateRenderItems() {
 
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-        Transform modelTransform;
-        modelTransform.setTranslation(self->_translation);
-        modelTransform.setRotation(self->_rotation);
-
-        Transform scaledModelTransform(modelTransform);
-        scaledModelTransform.setScale(scale);
-
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
-            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](ModelMeshPartPayload& data) {
+            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
                 if (data._model && data._model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
+                        Transform modelTransform = data._model->getTransform();
+                        modelTransform.setScale(glm::vec3(1.0f));
+
                         // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
                         data._model->updateClusterMatrices();
 
@@ -243,10 +262,11 @@ void Model::updateRenderItems() {
         // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
+        Transform modelTransform = self->getTransform();
         foreach (auto itemID, self->_collisionRenderItems.keys()) {
-            pendingChanges.updateItem<MeshPartPayload>(itemID, [scaledModelTransform, collisionMeshOffset](MeshPartPayload& data) {
+            pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
-                data.updateTransform(scaledModelTransform, collisionMeshOffset);
+                data.updateTransform(modelTransform, collisionMeshOffset);
             });
         }
 

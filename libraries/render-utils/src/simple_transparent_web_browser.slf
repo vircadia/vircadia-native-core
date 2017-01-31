@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple_transparent_web_browser.frag
+//  simple_transparent_web_browser.slf
 //  fragment shader
 //
 //  Created by Anthony Thibault on 7/25/16.
@@ -33,4 +33,3 @@ void main(void) {
         DEFAULT_FRESNEL,
         DEFAULT_ROUGHNESS);
 }
-
