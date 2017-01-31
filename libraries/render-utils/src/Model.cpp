@@ -78,11 +78,12 @@ void initCollisionMaterials() {
     }
 }
 
-Model::Model(RigPointer rig, QObject* parent) :
+Model::Model(RigPointer rig, QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     QObject(parent),
     _renderGeometry(),
     _collisionGeometry(),
     _renderWatcher(_renderGeometry),
+    _spatiallyNestableOverride(spatiallyNestableOverride),
     _translation(0.0f),
     _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
@@ -133,16 +134,10 @@ void Model::setRotation(const glm::quat& rotation) {
     updateRenderItems();
 }
 
-void Model::setSpatiallyNestableOverride(SpatiallyNestablePointer override) {
-    _spatiallyNestableOverride = override;
-    updateRenderItems();
-}
-
 Transform Model::getTransform() const {
-    SpatiallyNestablePointer spatiallyNestableOverride = _spatiallyNestableOverride.lock();
-    if (spatiallyNestableOverride) {
+    if (_spatiallyNestableOverride) {
         bool success;
-        Transform transform = spatiallyNestableOverride->getTransform(success);
+        Transform transform = _spatiallyNestableOverride->getTransform(success);
         if (success) {
             transform.setScale(getScale());
             return transform;
