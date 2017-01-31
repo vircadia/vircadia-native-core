@@ -374,12 +374,7 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transf
     _transform = transform;
 
     if (clusterMatrices.size() > 0) {
-        _worldBound = AABox();
-        for (auto& clusterMatrix : clusterMatrices) {
-            AABox clusterBound = _localBound;
-            clusterBound.transform(clusterMatrix);
-            _worldBound += clusterBound;
-        }
+        _worldBound = _adjustedLocalBound;
         _worldBound.transform(_transform);
         if (clusterMatrices.size() == 1) {
             _transform = _transform.worldTransform(Transform(clusterMatrices[0]));
@@ -611,4 +606,16 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     const int INDICES_PER_TRIANGLE = 3;
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
+}
+
+void ModelMeshPartPayload::computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices) {
+    _adjustedLocalBound = _localBound;
+    if (clusterMatrices.size() > 0) {
+        _adjustedLocalBound.transform(clusterMatrices[0]);
+        for (int i = 1; i < clusterMatrices.size(); ++i) {
+            AABox clusterBound = _localBound;
+            clusterBound.transform(clusterMatrices[i]);
+            _adjustedLocalBound += clusterBound;
+        }
+    }
 }
