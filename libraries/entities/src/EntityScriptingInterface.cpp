@@ -1367,12 +1367,14 @@ bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
 
     _entityTree->withReadLock([&] {
         EntityItemPointer parent = _entityTree->findEntityByEntityItemID(parentID);
-        parent->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-            if(descendant->getID() == childID) {
-                isChild = true;
-                return;
-            }
-        });
+        if (parent) {
+            parent->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                if (descendant->getID() == childID) {
+                    isChild = true;
+                    return;
+                }
+            });
+        }
     });
 
     return isChild;

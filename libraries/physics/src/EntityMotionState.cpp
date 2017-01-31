@@ -762,6 +762,11 @@ void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& ma
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 
+bool EntityMotionState::shouldBeLocallyOwned() const {
+    return (_outgoingPriority > VOLUNTEER_SIMULATION_PRIORITY && _outgoingPriority > _entity->getSimulationPriority()) ||
+        _entity->getSimulatorID() == Physics::getSessionUUID();
+}
+
 void EntityMotionState::upgradeOutgoingPriority(uint8_t priority) {
     _outgoingPriority = glm::max<uint8_t>(_outgoingPriority, priority);
 }
