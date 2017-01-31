@@ -664,6 +664,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
             qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
         }
+        // This is used in the custom physics setters, below. When an entity-server filter alters
+        // or rejects a set of properties, it clears this. In such cases, we don't want those custom
+        // setters to ignore what the server says.
         filterRejection = newSimOwner.getID().isNull();
         if (weOwnSimulation) {
             if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
