@@ -742,6 +742,12 @@ void collisionFromScriptValue(const QScriptValue &object, Collision& collision) 
     // TODO: implement this when we know what it means to accept collision events from JS
 }
 
+void Collision::invert() {
+    std::swap(idA, idB);
+    contactPoint += penetration;
+    penetration *= -1.0f;
+}
+
 QScriptValue quuidToScriptValue(QScriptEngine* engine, const QUuid& uuid) {
     if (uuid.isNull()) {
         return QScriptValue::NullValue;
