@@ -1038,7 +1038,7 @@ SelectionDisplay = (function() {
                         if (entityIntersection.intersects &&
                             (!overlayIntersection.intersects || (entityIntersection.distance < overlayIntersection.distance))) {
 
-                            if (HMD.tabletID == entityIntersection.entityID) {
+                            if (HMD.tabletID === entityIntersection.entityID) {
                                 return;
                             }
 
