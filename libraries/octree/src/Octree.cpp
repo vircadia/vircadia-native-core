@@ -1084,17 +1084,17 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             params.stopReason = EncodeBitstreamParams::WAS_IN_VIEW;
             return bytesAtThisLevel;
         }
+    }
 
-        // If we're not in delta sending mode, and we weren't asked to do a force send, and the voxel hasn't changed,
-        // then we can also bail early and save bits
-        if (!params.forceSendScene && !params.deltaView &&
-            !element->hasChangedSince(params.lastQuerySent - CHANGE_FUDGE)) {
-            if (params.stats) {
-                params.stats->skippedNoChange(element);
-            }
-            params.stopReason = EncodeBitstreamParams::NO_CHANGE;
-            return bytesAtThisLevel;
+    // If we're not in delta sending mode, and we weren't asked to do a force send, and the octree element hasn't changed,
+    // then we can also bail early and save bits
+    if (!params.forceSendScene && !params.deltaView &&
+        !element->hasChangedSince(params.lastQuerySent - CHANGE_FUDGE)) {
+        if (params.stats) {
+            params.stats->skippedNoChange(element);
         }
+        params.stopReason = EncodeBitstreamParams::NO_CHANGE;
+        return bytesAtThisLevel;
     }
 
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
