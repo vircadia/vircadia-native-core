@@ -904,10 +904,18 @@ function saveSettings() {
   var formJSON = form2js('settings-form', ".", false, cleanupFormValues, true);
 
   // check if we've set the basic http password - if so convert it to base64
+  var canPost = true;
   if (formJSON["security"]) {
     var password = formJSON["security"]["http_password"];
+    var verify_password = formJSON["security"]["verify_http_password"];
     if (password && password.length > 0) {
-      formJSON["security"]["http_password"] = sha256_digest(password);
+      if (password != verify_password) {
+        bootbox.alert({"message": "Passwords must match!", "title":"Password Error"});
+        canPost = false;
+      } else {
+        formJSON["security"]["http_password"] = sha256_digest(password);
+        delete formJSON["security"]["verify_http_password"];
+      }
     }
   }
 
@@ -923,7 +931,9 @@ function saveSettings() {
   $(this).blur();
 
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  postSettings(formJSON);
+  if (canPost) {
+    postSettings(formJSON);
+  }
 }
 
 $('body').on('click', '.save-button', function(e){
