@@ -17,13 +17,12 @@
 #include <QThread>
 
 #include "PathUtils.h"
+#include "SettingHelpers.h"
 #include "SettingManager.h"
 #include "SharedLogging.h"
 
 namespace Setting {
     static QSharedPointer<Manager> globalManager;
-    
-    const QString Interface::FIRST_RUN { "firstRun" };
 
     // cleans up the settings private instance. Should only be run once at closing down.
     void cleanupPrivateInstance() {
@@ -40,30 +39,27 @@ namespace Setting {
         settingsManagerThread->quit();
         settingsManagerThread->wait();
     }
+    
+    // Sets up the settings private instance. Should only be run once at startup. preInit() must be run beforehand,
+    void init() {
+        // Set settings format
+        QSettings::setDefaultFormat(JSON_FORMAT);
+        QSettings settings;
+        qCDebug(shared) << "Settings file:" << settings.fileName();
 
-    // Set up application settings. Should only be run once at startup.
-    void preInit() {
-        // read the ApplicationInfo.ini file for Name/Version/Domain information
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
-        // set the associated application properties
-        applicationInfo.beginGroup("INFO");
-        QCoreApplication::setApplicationName(applicationInfo.value("name").toString());
-        QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
-        QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+        if (settings.allKeys().isEmpty()) {
+            loadOldINIFile(settings);
+        }
 
         // Delete Interface.ini.lock file if it exists, otherwise Interface freezes.
-        QSettings settings;
         QString settingsLockFilename = settings.fileName() + ".lock";
         QFile settingsLockFile(settingsLockFilename);
         if (settingsLockFile.exists()) {
             bool deleted = settingsLockFile.remove();
             qCDebug(shared) << (deleted ? "Deleted" : "Failed to delete") << "settings lock file" << settingsLockFilename;
         }
-    }
-    
-    // Sets up the settings private instance. Should only be run once at startup. preInit() must be run beforehand,
-    void init() {
+
+
         // Let's set up the settings Private instance on its own thread
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);

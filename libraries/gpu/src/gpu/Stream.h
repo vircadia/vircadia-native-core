@@ -14,6 +14,7 @@
 #include <vector>
 #include <map>
 #include <array>
+#include <string>
 
 #include <assert.h>
 
@@ -73,6 +74,9 @@ public:
 
         // Size of the 
         uint32 getSize() const { return _element.getSize(); }
+
+        // Generate a string key describing the attribute uniquely
+        std::string getKey() const;
     };
 
     // Stream Format is describing how to feed a list of attributes from a bunch of stream buffer channels
@@ -106,10 +110,15 @@ public:
 
         bool hasAttribute(Slot slot) const { return (_attributes.find(slot) != _attributes.end()); }
 
+        const std::string& getKey() const { return _key; }
+
+        const GPUObjectPointer gpuObject{};
+
     protected:
         AttributeMap _attributes;
         ChannelMap _channels;
         uint32 _elementTotalSize { 0 };
+        std::string _key;
 
         void evaluateCache();
     };

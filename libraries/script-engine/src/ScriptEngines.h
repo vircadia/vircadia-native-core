@@ -20,6 +20,7 @@
 #include <SettingHandle.h>
 #include <DependencyManager.h>
 
+#include "ScriptEngine.h"
 #include "ScriptsModel.h"
 #include "ScriptsModelFilter.h"
 
@@ -34,7 +35,7 @@ class ScriptEngines : public QObject, public Dependency {
 public:
     using ScriptInitializer = std::function<void(ScriptEngine*)>;
 
-    ScriptEngines();
+    ScriptEngines(ScriptEngine::Context context);
     void registerScriptInitializer(ScriptInitializer initializer);
 
     void loadScripts();
@@ -74,6 +75,18 @@ signals:
     void scriptCountChanged();
     void scriptsReloading();
     void scriptLoadError(const QString& filename, const QString& error);
+    void printedMessage(const QString& message, const QString& engineName);
+    void errorMessage(const QString& message, const QString& engineName);
+    void warningMessage(const QString& message, const QString& engineName);
+    void infoMessage(const QString& message, const QString& engineName);
+    void errorLoadingScript(const QString& url, const QString& engineName);
+
+public slots:
+    void onPrintedMessage(const QString& message);
+    void onErrorMessage(const QString& message);
+    void onWarningMessage(const QString& message);
+    void onInfoMessage(const QString& message);
+    void onErrorLoadingScript(const QString& url);
 
 protected slots:
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
@@ -88,6 +101,7 @@ protected:
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
 
+    ScriptEngine::Context _context;
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
     QSet<ScriptEngine*> _allKnownScriptEngines;

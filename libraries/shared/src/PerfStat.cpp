@@ -129,7 +129,7 @@ void PerformanceTimer::setActive(bool active) {
             _records.clear();
         }
 
-        qDebug() << "PerformanceTimer has been turned" << ((active) ? "on" : "off");
+        qCDebug(shared) << "PerformanceTimer has been turned" << ((active) ? "on" : "off");
     }
 }
 

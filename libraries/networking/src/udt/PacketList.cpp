@@ -11,6 +11,8 @@
 
 #include "PacketList.h"
 
+#include "../NetworkLogging.h"
+
 #include <QDebug>
 
 using namespace udt;
@@ -102,7 +104,7 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
     if (!_extendedHeader.isEmpty()) {
         // add the extended header to the front of the packet
         if (packet->write(_extendedHeader) == -1) {
-            qDebug() << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
+            qCDebug(networking) << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
                 << "- make sure that _extendedHeader is not larger than the payload capacity.";
         }
     }
@@ -195,7 +197,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                     if (segmentSize + sizeRemaining > newPacket->getPayloadCapacity()) {
                         // this is an unsupported case - the segment is bigger than the size of an individual packet
                         // but the PacketList is not going to be sent ordered
-                        qDebug() << "Error in PacketList::writeData - attempted to write a segment to an unordered packet that is"
+                        qCDebug(networking) << "Error in PacketList::writeData - attempted to write a segment to an unordered packet that is"
                             << "larger than the payload size.";
                         Q_ASSERT(false);
                         
@@ -220,7 +222,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                 if (sizeRemaining > newPacket->getPayloadCapacity()) {
                     // this is an unsupported case - attempting to write a block of data larger
                     // than the capacity of a new packet in an unordered PacketList
-                    qDebug() << "Error in PacketList::writeData - attempted to write data to an unordered packet that is"
+                    qCDebug(networking) << "Error in PacketList::writeData - attempted to write data to an unordered packet that is"
                         << "larger than the payload size.";
                     Q_ASSERT(false);
                     

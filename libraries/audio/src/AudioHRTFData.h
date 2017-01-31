@@ -30,6 +30,14 @@
 // 6) Truncate filter length to 2.5ms using rectangular window with 8-tap Hanning taper
 //
 
+#if defined(_MSC_VER)
+#define ALIGN32 __declspec(align(32))
+#elif defined(__GNUC__)
+#define ALIGN32 __attribute__((aligned(32)))
+#else
+#define ALIGN32
+#endif
+
 static const float itd_1002_table[HRTF_AZIMUTHS] = {
      -0.07851f,   0.85414f,   1.77170f,   2.71137f,   3.71065f,   4.74907f,   5.79892f,   6.82396f, 
       7.82837f,   8.80796f,   9.75426f,  10.68332f,  11.59979f,  12.48520f,  13.36135f,  14.19234f, 
@@ -42,7 +50,7 @@ static const float itd_1002_table[HRTF_AZIMUTHS] = {
      -8.39670f,  -7.23606f,  -6.09663f,  -5.05593f,  -4.06186f,  -3.07465f,  -2.06122f,  -1.05417f, 
 };
 
-static const float ir_1002_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1002_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          8.341559e-01f,  1.886116e-02f,  2.677664e-01f, -7.037183e-02f, -4.147236e-02f, -2.761588e-01f,  2.310035e-01f, -1.643133e-01f, 
@@ -1497,7 +1505,7 @@ static const float itd_1003_table[HRTF_AZIMUTHS] = {
      -6.64380f,  -5.73462f,  -4.83364f,  -3.97025f,  -3.08925f,  -2.16621f,  -1.19364f,  -0.20709f, 
 };
 
-static const float ir_1003_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1003_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          9.266240e-01f,  1.260510e-01f,  5.051008e-02f, -3.536678e-01f,  2.462246e-02f,  4.465557e-02f,  6.813228e-02f, -6.063477e-02f, 
@@ -2952,7 +2960,7 @@ static const float itd_1004_table[HRTF_AZIMUTHS] = {
      -7.55720f,  -6.55578f,  -5.59246f,  -4.69657f,  -3.80733f,  -2.88567f,  -1.90337f,  -0.89923f, 
 };
 
-static const float ir_1004_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1004_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.326633e-01f,  4.279429e-01f, -5.910516e-02f, -2.480760e-01f, -9.903029e-02f,  9.215562e-02f, -2.893536e-02f,  5.464364e-02f, 
@@ -4407,7 +4415,7 @@ static const float itd_1005_table[HRTF_AZIMUTHS] = {
      -6.80079f,  -6.03878f,  -5.25100f,  -4.34973f,  -3.39268f,  -2.41226f,  -1.45444f,  -0.50375f, 
 };
 
-static const float ir_1005_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1005_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          8.515557e-01f,  1.208618e-01f,  3.238278e-01f, -3.605847e-01f, -3.354420e-02f, -1.829174e-01f,  2.309960e-01f, -1.744711e-01f, 
@@ -5862,7 +5870,7 @@ static const float itd_1007_table[HRTF_AZIMUTHS] = {
      -7.68135f,  -6.69801f,  -5.72186f,  -4.72708f,  -3.74413f,  -2.77373f,  -1.79032f,  -0.81823f, 
 };
 
-static const float ir_1007_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1007_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          6.544936e-01f,  2.820574e-01f,  1.850652e-01f, -2.597811e-01f, -5.585250e-02f, -7.975905e-02f,  8.143960e-02f, -5.044548e-02f, 
@@ -7317,7 +7325,7 @@ static const float itd_1012_table[HRTF_AZIMUTHS] = {
      -7.32159f,  -6.30684f,  -5.31969f,  -4.40260f,  -3.50567f,  -2.60925f,  -1.70893f,  -0.80401f, 
 };
 
-static const float ir_1012_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1012_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          8.505165e-01f,  9.074762e-02f,  3.296598e-01f, -5.213905e-01f,  1.348379e-01f, -1.828924e-01f,  1.400077e-01f, -4.071996e-02f, 
@@ -8772,7 +8780,7 @@ static const float itd_1014_table[HRTF_AZIMUTHS] = {
      -7.51312f,  -6.52705f,  -5.56262f,  -4.72113f,  -3.90664f,  -3.07768f,  -2.22719f,  -1.37514f, 
 };
 
-static const float ir_1014_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1014_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          6.542071e-01f,  4.575563e-01f,  1.118072e-02f, -1.823464e-01f, -2.222339e-01f,  1.371357e-01f,  7.027919e-03f, -5.534852e-02f, 
@@ -10227,7 +10235,7 @@ static const float itd_1017_table[HRTF_AZIMUTHS] = {
      -7.46925f,  -6.49073f,  -5.52501f,  -4.62178f,  -3.74041f,  -2.86207f,  -1.97362f,  -1.07512f, 
 };
 
-static const float ir_1017_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1017_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.470867e-01f,  2.686078e-01f,  2.097923e-01f, -2.935018e-01f, -8.687224e-02f, -4.547367e-02f,  6.920631e-03f,  3.752071e-02f, 
@@ -11682,7 +11690,7 @@ static const float itd_1020_table[HRTF_AZIMUTHS] = {
      -8.28071f,  -7.36311f,  -6.43732f,  -5.49298f,  -4.53728f,  -3.57601f,  -2.59830f,  -1.63297f, 
 };
 
-static const float ir_1020_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1020_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          6.953847e-01f,  3.081256e-01f,  2.474324e-01f, -3.025226e-01f, -1.119181e-01f, -4.966299e-02f,  5.727889e-02f,  6.715016e-03f, 
@@ -13137,7 +13145,7 @@ static const float itd_1021_table[HRTF_AZIMUTHS] = {
      -8.12772f,  -7.17689f,  -6.23068f,  -5.27554f,  -4.32391f,  -3.38489f,  -2.46445f,  -1.54407f, 
 };
 
-static const float ir_1021_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1021_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.807186e-01f,  3.835520e-01f,  1.208801e-01f, -4.044311e-01f, -5.188029e-02f, -7.750225e-02f,  1.739668e-01f, -6.599168e-02f, 
@@ -14592,7 +14600,7 @@ static const float itd_1022_table[HRTF_AZIMUTHS] = {
      -7.19675f,  -6.30334f,  -5.39609f,  -4.47018f,  -3.53964f,  -2.62393f,  -1.75389f,  -0.90222f, 
 };
 
-static const float ir_1022_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1022_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.053226e-01f,  2.645844e-01f,  2.462055e-01f, -2.145682e-01f, -1.333283e-01f, -1.751403e-01f,  2.721890e-01f, -1.743790e-01f, 
@@ -16047,7 +16055,7 @@ static const float itd_1026_table[HRTF_AZIMUTHS] = {
      -7.45209f,  -6.46598f,  -5.49746f,  -4.54220f,  -3.60610f,  -2.68084f,  -1.74087f,  -0.80841f, 
 };
 
-static const float ir_1026_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1026_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.150396e-01f,  3.144234e-01f,  9.132840e-02f, -2.128668e-01f, -1.899010e-01f,  1.362356e-01f, -4.105226e-02f,  4.896281e-02f, 
@@ -17502,7 +17510,7 @@ static const float itd_1028_table[HRTF_AZIMUTHS] = {
      -7.80099f,  -6.89255f,  -5.95721f,  -5.04107f,  -4.11968f,  -3.20233f,  -2.33316f,  -1.46289f, 
 };
 
-static const float ir_1028_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1028_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          9.491360e-01f,  2.952796e-01f, -1.585342e-01f, -3.497386e-01f,  1.204260e-01f, -4.886012e-02f,  5.238760e-02f, -8.209077e-03f, 
@@ -18957,7 +18965,7 @@ static const float itd_1038_table[HRTF_AZIMUTHS] = {
      -6.69661f,  -5.65906f,  -4.62851f,  -3.63493f,  -2.66802f,  -1.71997f,  -0.76853f,   0.18497f, 
 };
 
-static const float ir_1038_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1038_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          9.325991e-01f,  1.817283e-01f,  5.397613e-02f, -4.121773e-01f, -7.921759e-03f, -4.009945e-02f,  1.499187e-01f, -1.838252e-02f, 
@@ -20412,7 +20420,7 @@ static const float itd_1041_table[HRTF_AZIMUTHS] = {
      -7.03257f,  -6.07458f,  -5.13664f,  -4.24453f,  -3.37177f,  -2.49083f,  -1.55807f,  -0.62014f, 
 };
 
-static const float ir_1041_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1041_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.012368e-01f,  2.006662e-01f,  3.173636e-01f, -2.865733e-01f,  1.345042e-01f, -5.030394e-01f,  3.717757e-01f, -1.138039e-01f, 
@@ -21867,7 +21875,7 @@ static const float itd_1042_table[HRTF_AZIMUTHS] = {
      -7.79822f,  -6.84403f,  -5.88862f,  -4.94525f,  -3.99704f,  -3.03547f,  -2.06207f,  -1.07916f, 
 };
 
-static const float ir_1042_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1042_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          9.114429e-01f,  2.201994e-03f,  3.703525e-01f, -4.825957e-01f,  1.210277e-01f, -2.471091e-01f,  1.766662e-01f, -5.840113e-03f, 
@@ -23322,7 +23330,7 @@ static const float itd_1043_table[HRTF_AZIMUTHS] = {
      -6.81973f,  -5.86664f,  -4.92096f,  -3.99232f,  -3.07973f,  -2.16321f,  -1.20142f,  -0.22538f, 
 };
 
-static const float ir_1043_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1043_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.339447e-01f,  1.339343e-01f,  4.031645e-01f, -4.891909e-01f,  8.751389e-02f, -2.110783e-01f,  2.573841e-01f, -1.050324e-01f, 
@@ -24777,7 +24785,7 @@ static const float itd_1044_table[HRTF_AZIMUTHS] = {
      -7.31965f,  -6.37963f,  -5.45379f,  -4.54748f,  -3.59370f,  -2.59525f,  -1.67705f,  -0.73882f, 
 };
 
-static const float ir_1044_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1044_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.028871e-01f,  2.381998e-01f,  4.686725e-01f, -5.412304e-01f,  1.262568e-01f, -3.198619e-01f,  1.963468e-01f, -4.016186e-02f, 
@@ -26232,7 +26240,7 @@ static const float itd_1047_table[HRTF_AZIMUTHS] = {
      -9.01225f,  -7.93667f,  -6.85884f,  -5.78919f,  -4.72064f,  -3.66640f,  -2.66295f,  -1.65780f, 
 };
 
-static const float ir_1047_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1047_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          7.788578e-01f,  1.598904e-01f,  2.366520e-01f, -3.524184e-01f, -8.784474e-03f, -5.144472e-02f,  8.679429e-02f, -1.634258e-02f, 
@@ -27687,7 +27695,7 @@ static const float itd_1048_table[HRTF_AZIMUTHS] = {
      -7.15985f,  -6.30472f,  -5.41513f,  -4.54994f,  -3.62385f,  -2.66142f,  -1.79111f,  -0.94033f, 
 };
 
-static const float ir_1048_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1048_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          8.865287e-01f,  2.972076e-01f, -1.305391e-01f, -1.213860e-01f, -1.948535e-01f,  1.458427e-01f, -8.912857e-02f,  9.493978e-02f, 
@@ -29142,7 +29150,7 @@ static const float itd_1050_table[HRTF_AZIMUTHS] = {
      -6.52690f,  -5.58085f,  -4.64474f,  -3.71658f,  -2.80444f,  -1.92096f,  -1.07543f,  -0.23450f, 
 };
 
-static const float ir_1050_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1050_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          9.005889e-01f, -6.452200e-02f,  3.675525e-01f, -4.309962e-01f,  7.086621e-02f, -9.161573e-02f, -4.290351e-02f,  9.057393e-02f, 
@@ -30597,7 +30605,7 @@ static const float itd_1052_table[HRTF_AZIMUTHS] = {
      -6.50194f,  -5.61262f,  -4.72534f,  -3.84869f,  -2.97504f,  -2.10269f,  -1.23783f,  -0.36766f, 
 };
 
-static const float ir_1052_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1052_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          6.650009e-01f,  3.507944e-01f, -3.274164e-02f, -1.830690e-01f, -7.720853e-02f,  1.030789e-01f,  3.877069e-02f, -5.674440e-02f, 
@@ -32052,7 +32060,7 @@ static const float itd_1054_table[HRTF_AZIMUTHS] = {
      -7.35642f,  -6.36606f,  -5.37262f,  -4.40394f,  -3.44967f,  -2.51333f,  -1.59834f,  -0.68300f, 
 };
 
-static const float ir_1054_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1054_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          8.629450e-01f,  1.677356e-01f,  1.467365e-01f, -3.248726e-01f, -5.105235e-02f, -5.031096e-02f,  1.796471e-01f, -1.298094e-01f, 
@@ -33507,7 +33515,7 @@ static const float itd_1056_table[HRTF_AZIMUTHS] = {
      -6.99437f,  -5.82430f,  -4.73408f,  -3.76713f,  -2.88870f,  -2.05251f,  -1.18172f,  -0.32736f, 
 };
 
-static const float ir_1056_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1056_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          8.031418e-01f,  2.411323e-01f,  1.417951e-01f, -2.476192e-01f, -1.076012e-01f,  1.009190e-01f,  7.761394e-02f, -1.250722e-01f, 
@@ -34962,7 +34970,7 @@ static const float itd_1058_table[HRTF_AZIMUTHS] = {
      -7.78555f,  -6.81447f,  -5.85685f,  -4.89466f,  -3.93902f,  -2.98660f,  -2.01925f,  -1.05758f, 
 };
 
-static const float ir_1058_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
+ALIGN32 static const float ir_1058_table[HRTF_AZIMUTHS][2][HRTF_TAPS] = {
     // azimuth = 0
     {{
          9.307292e-01f,  5.592706e-02f,  2.567367e-01f, -4.525413e-01f,  1.378666e-01f, -2.503950e-01f,  1.983286e-01f,  5.925522e-03f, 

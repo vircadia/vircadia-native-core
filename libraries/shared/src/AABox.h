@@ -96,6 +96,9 @@ public:
     void embiggen(float scale);
     void embiggen(const glm::vec3& scale);
 
+    // Set a new scale for the Box, but keep it centered at its current location
+    void setScaleStayCentered(const glm::vec3& scale);
+
     // Transform the extents with transform
     void transform(const Transform& transform);
 

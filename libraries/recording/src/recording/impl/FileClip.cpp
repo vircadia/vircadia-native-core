@@ -23,7 +23,7 @@ using namespace recording;
 
 FileClip::FileClip(const QString& fileName) : _file(fileName) {
     auto size = _file.size();
-    qDebug() << "Opening file of size: " << size;
+    qDebug(recordingLog) << "Opening file of size: " << size;
     bool opened = _file.open(QIODevice::ReadOnly);
     if (!opened) {
         qCWarning(recordingLog) << "Unable to open file " << fileName;

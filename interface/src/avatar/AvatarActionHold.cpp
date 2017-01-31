@@ -152,7 +152,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
                 Transform avatarTransform;
                 auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
                 avatarTransform = myAvatar->getTransform();
-                palmPosition = avatarTransform.transform(pose.getTranslation() / myAvatar->getTargetScale());
+                palmPosition = avatarTransform.transform(pose.getTranslation() / myAvatar->getDomainLimitedScale());
                 palmRotation = avatarTransform.getRotation() * pose.getRotation();
             } else {
                 glm::vec3 avatarRigidBodyPosition;
@@ -503,8 +503,8 @@ void AvatarActionHold::lateAvatarUpdate(const AnimPose& prePhysicsRoomPose, cons
     // then transform it back into world uisng the postAvatarUpdate sensor-to-world matrix.
     AnimPose newWorldBodyPose = postAvatarUpdateRoomPose * prePhysicsRoomPose.inverse() * worldBodyPose;
 
-    worldTrans.setOrigin(glmToBullet(newWorldBodyPose.trans));
-    worldTrans.setRotation(glmToBullet(newWorldBodyPose.rot));
+    worldTrans.setOrigin(glmToBullet(newWorldBodyPose.trans()));
+    worldTrans.setRotation(glmToBullet(newWorldBodyPose.rot()));
     rigidBody->setWorldTransform(worldTrans);
 
     bool positionSuccess;

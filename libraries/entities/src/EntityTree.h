@@ -31,6 +31,9 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 class EntitySimulation;
 
+namespace EntityQueryFilterSymbol {
+    static const QString NonDefault = "+";
+}
 
 class NewlyCreatedEntityHook {
 public:
@@ -64,6 +67,7 @@ public:
 
 
     void setEntityMaxTmpLifetime(float maxTmpEntityLifetime) { _maxTmpEntityLifetime = maxTmpEntityLifetime; }
+    void setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist);
 
     /// Implements our type specific root element factory
     virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;
@@ -120,6 +124,8 @@ public:
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
     bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
+    // check if the avatar is a child of this entity, If so set the avatar parentID to null
+    void unhookChildAvatar(const EntityItemID entityID);
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
 
@@ -198,7 +204,8 @@ public:
 
     void entityChanged(EntityItemPointer entity);
 
-    void emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload);
+    void emitEntityScriptChanging(const EntityItemID& entityItemID, bool reload);
+    void emitEntityServerScriptChanging(const EntityItemID& entityItemID, bool reload);
 
     void setSimulation(EntitySimulationPointer simulation);
     EntitySimulationPointer getSimulation() const { return _simulation; }
@@ -232,6 +239,7 @@ public:
     virtual quint64 getAverageUpdateTime() const override { return _totalUpdates == 0 ? 0 : _totalUpdateTime / _totalUpdates; }
     virtual quint64 getAverageCreateTime() const override { return _totalCreates == 0 ? 0 : _totalCreateTime / _totalCreates; }
     virtual quint64 getAverageLoggingTime() const override { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
+    virtual quint64 getAverageFilterTime() const override { return _totalEditMessages == 0 ? 0 : _totalFilterTime / _totalEditMessages; }
 
     void trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead);
     quint64 getAverageEditDeltas() const
@@ -258,6 +266,9 @@ public:
 
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
 
+    void initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions);
+    void setHasEntityFilter(bool hasFilter) { _hasEntityEditFilter = hasFilter; }
+
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
 public slots:
@@ -267,6 +278,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
+    void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
 
@@ -282,6 +294,7 @@ protected:
     static bool findInBoxOperation(OctreeElementPointer element, void* extraData);
     static bool findInFrustumOperation(OctreeElementPointer element, void* extraData);
     static bool sendEntitiesOperation(OctreeElementPointer element, void* extraData);
+    static void bumpTimestamp(EntityItemProperties& properties);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
@@ -324,6 +337,7 @@ protected:
     quint64 _totalUpdateTime = 0;
     quint64 _totalCreateTime = 0;
     quint64 _totalLoggingTime = 0;
+    quint64 _totalFilterTime = 0;
 
     // these performance statistics are only used in the client
     void resetClientEditStats();
@@ -342,6 +356,15 @@ protected:
     QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
+
+    bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged);
+    bool _hasEntityEditFilter{ false };
+    QScriptEngine* _entityEditFilterEngine{};
+    QScriptValue _entityEditFilterFunction{};
+    QScriptValue _nullObjectForFilter{};
+    std::function<bool()> _entityEditFilterHadUncaughtExceptions;
+
+    QStringList _entityScriptSourceWhitelist;
 };
 
 #endif // hifi_EntityTree_h

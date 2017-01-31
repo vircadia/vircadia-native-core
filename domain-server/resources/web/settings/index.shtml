@@ -12,7 +12,7 @@
       <div id="setup-sidebar" class="hidden-xs" data-spy="affix" data-offset-top="55" data-clampedwidth="#setup-sidebar-col">
         <script id="list-group-template" type="text/template">
           <% _.each(descriptions, function(group){ %>
-            <% panelID = group.name ? group.name : group.label %>
+            <% panelID = group.name ? group.name : group.html_id %>
             <li>
               <a href="#<%- panelID %>" class="list-group-item">
                 <span class="badge"></span>

@@ -15,6 +15,8 @@
 #include <StreamUtils.h>
 
 #include <../QTestExtensions.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/simd/matrix.h>
 
 
 QTEST_MAIN(GLMHelpersTests)
@@ -101,4 +103,40 @@ void GLMHelpersTests::testSixByteOrientationCompression() {
     testQuatCompression(-(ROT_X_90 * ROT_Y_180 * ROT_Z_30));
     testQuatCompression(-(ROT_Y_180 * ROT_Z_30 * ROT_X_90));
     testQuatCompression(-(ROT_Z_30 * ROT_X_90 * ROT_Y_180));
+}
+
+#define LOOPS 500000
+
+void GLMHelpersTests::testSimd() {
+    glm::mat4 a = glm::translate(glm::mat4(), vec3(1, 4, 9));
+    glm::mat4 b = glm::rotate(glm::mat4(), PI / 3, vec3(0, 1, 0));
+    glm::mat4 a1, b1;
+    glm::mat4 a2, b2;
+
+    a1 = a * b;
+    b1 = b * a;
+    glm_mat4_mul((glm_vec4*)&a, (glm_vec4*)&b, (glm_vec4*)&a2);
+    glm_mat4_mul((glm_vec4*)&b, (glm_vec4*)&a, (glm_vec4*)&b2);
+
+
+    {
+        QElapsedTimer timer;
+        timer.start();
+        for (size_t i = 0; i < LOOPS; ++i) {
+            a1 = a * b;
+            b1 = b * a;
+        }
+        qDebug() << "Native " << timer.elapsed();
+    }
+
+    {
+        QElapsedTimer timer;
+        timer.start();
+        for (size_t i = 0; i < LOOPS; ++i) {
+            glm_mat4_mul((glm_vec4*)&a, (glm_vec4*)&b, (glm_vec4*)&a2);
+            glm_mat4_mul((glm_vec4*)&b, (glm_vec4*)&a, (glm_vec4*)&b2);
+        }
+        qDebug() << "SIMD " << timer.elapsed();
+    }
+    qDebug() << "Done ";
 }

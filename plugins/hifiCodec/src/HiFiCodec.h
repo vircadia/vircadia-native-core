@@ -16,11 +16,11 @@
 
 class HiFiCodec : public CodecPlugin {
     Q_OBJECT
-    
+
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     void init() override;
     void deinit() override;
@@ -36,7 +36,7 @@ public:
     virtual void releaseDecoder(Decoder* decoder) override;
 
 private:
-    static const QString NAME;
+    static const char* NAME;
 };
 
 #endif // hifi_HiFiCodec_h

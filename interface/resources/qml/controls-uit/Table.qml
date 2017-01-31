@@ -20,6 +20,7 @@ TableView {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool expandSelectedRow: false
+    property bool centerHeaderText: false
 
     model: ListModel { }
 
@@ -34,9 +35,12 @@ TableView {
             size: hifi.fontSizes.tableHeading
             font.capitalization: Font.AllUppercase
             color: hifi.colors.baseGrayHighlight
+            horizontalAlignment: (centerHeaderText ? Text.AlignHCenter : Text.AlignLeft)
             anchors {
                 left: parent.left
                 leftMargin: hifi.dimensions.tablePadding
+                right: parent.right
+                rightMargin: hifi.dimensions.tablePadding
                 verticalCenter: parent.verticalCenter
             }
         }
@@ -48,7 +52,7 @@ TableView {
             size: hifi.fontSizes.tableHeadingIcon
             anchors {
                 left: titleText.right
-                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3
+                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 3 : 0)
                 right: parent.right
                 rightMargin: hifi.dimensions.tablePadding
                 verticalCenter: titleText.verticalCenter
@@ -105,35 +109,46 @@ TableView {
 
         handle: Item {
             id: scrollbarHandle
-            implicitWidth: 6
+            implicitWidth: hifi.dimensions.scrollbarHandleWidth
             Rectangle {
                 anchors {
                     fill: parent
                     topMargin: 3
                     bottomMargin: 3     // ""
-                    leftMargin: 2       // Move it right
-                    rightMargin: -2     // ""
+                    leftMargin: 1       // Move it right
+                    rightMargin: -1     // ""
                 }
-                radius: 3
+                radius: hifi.dimensions.scrollbarHandleWidth/2
                 color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
             }
         }
 
         scrollBarBackground: Item {
-            implicitWidth: 9
+            implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
             Rectangle {
                 anchors {
                     fill: parent
                     margins: -1     // Expand
-                    topMargin: headerVisible ? -hifi.dimensions.tableHeaderHeight : -1
+                    topMargin: -1
                 }
-                color: isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
-
+                color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight : hifi.colors.tableScrollBackgroundDark
+                
+                // Extend header color above scrollbar background
+                Rectangle {
+                    anchors {
+                        top: parent.top
+                        topMargin: -hifi.dimensions.tableHeaderHeight
+                        left: parent.left
+                        right: parent.right
+                    }
+                    height: hifi.dimensions.tableHeaderHeight
+                    color: tableView.isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
+                    visible: headerVisible
+                }
                 Rectangle {
                     // Extend header bottom border
                     anchors {
                         top: parent.top
-                        topMargin: hifi.dimensions.tableHeaderHeight - 1
                         left: parent.left
                         right: parent.right
                     }

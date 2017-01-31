@@ -18,9 +18,9 @@ var DEFAULT_SCRIPTS = [
     "system/mute.js",
     "system/goto.js",
     "system/hmd.js",
-    "system/marketplaces/marketplace.js",
+    "system/marketplaces/marketplaces.js",
     "system/edit.js",
-    "system/mod.js",
+    "system/pal.js", //"system/mod.js", // older UX, if you prefer
     "system/selectAudioDevice.js",
     "system/notifications.js",
     "system/controllers/controllerDisplayManager.js",
@@ -33,7 +33,8 @@ var DEFAULT_SCRIPTS = [
     "system/dialTone.js",
     "system/firstPersonHMD.js",
     "system/snapshot.js",
-    "system/help.js"
+    "system/help.js",
+    "system/bubble.js"
 ];
 
 // add a menu item for debugging

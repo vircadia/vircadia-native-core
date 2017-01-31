@@ -9,9 +9,30 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Context.h"
+
+#include <shared/GlobalAppProperties.h>
+
 #include "Frame.h"
 #include "GPULogging.h"
+
 using namespace gpu;
+
+
+void ContextStats::evalDelta(const ContextStats& begin, const ContextStats& end) {
+    _ISNumFormatChanges = end._ISNumFormatChanges - begin._ISNumFormatChanges;
+    _ISNumInputBufferChanges = end._ISNumInputBufferChanges - begin._ISNumInputBufferChanges;
+    _ISNumIndexBufferChanges = end._ISNumIndexBufferChanges - begin._ISNumIndexBufferChanges;
+
+    _RSNumTextureBounded = end._RSNumTextureBounded - begin._RSNumTextureBounded;
+    _RSAmountTextureMemoryBounded = end._RSAmountTextureMemoryBounded - begin._RSAmountTextureMemoryBounded;
+
+    _DSNumAPIDrawcalls = end._DSNumAPIDrawcalls - begin._DSNumAPIDrawcalls;
+    _DSNumDrawcalls = end._DSNumDrawcalls - begin._DSNumDrawcalls;
+    _DSNumTriangles= end._DSNumTriangles - begin._DSNumTriangles;
+
+    _PSNumSetPipelines = end._PSNumSetPipelines - begin._PSNumSetPipelines;
+}
+
 
 Context::CreateBackend Context::_createBackendCallback = nullptr;
 Context::MakeProgram Context::_makeProgramCallback = nullptr;
@@ -34,6 +55,10 @@ void Context::beginFrame(const glm::mat4& renderPose) {
     _frameActive = true;
     _currentFrame = std::make_shared<Frame>();
     _currentFrame->pose = renderPose;
+
+    if (!_frameRangeTimer) {
+        _frameRangeTimer = std::make_shared<RangeTimer>("gpu::Context::Frame");
+    }
 }
 
 void Context::appendFrameBatch(Batch& batch) {
@@ -56,6 +81,7 @@ FramePointer Context::endFrame() {
 }
 
 void Context::executeBatch(Batch& batch) const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     batch.flush();
     _backend->render(batch);
 }
@@ -69,18 +95,42 @@ void Context::consumeFrameUpdates(const FramePointer& frame) const {
 }
 
 void Context::executeFrame(const FramePointer& frame) const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
+
+    // Grab the stats at the around the frame and delta to have a consistent sampling
+    ContextStats beginStats;
+    getStats(beginStats);
+
     // FIXME? probably not necessary, but safe
     consumeFrameUpdates(frame);
     _backend->setStereoState(frame->stereoState);
     {
+        Batch beginBatch;
+        _frameRangeTimer->begin(beginBatch);
+        _backend->render(beginBatch);
+
         // Execute the frame rendering commands
         for (auto& batch : frame->batches) {
             _backend->render(batch);
         }
+
+        Batch endBatch;
+        _frameRangeTimer->end(endBatch);
+        _backend->render(endBatch);
     }
+
+    ContextStats endStats;
+    getStats(endStats);
+    _frameStats.evalDelta(beginStats, endStats);
 }
 
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
+    // If we're running in another DLL context, we need to fetch the program callback out of the application
+    // FIXME find a way to do this without reliance on Qt app properties
+    if (!_makeProgramCallback) {
+        void* rawCallback = qApp->property(hifi::properties::gl::MAKE_PROGRAM_CALLBACK).value<void*>();
+        _makeProgramCallback = reinterpret_cast<Context::MakeProgram>(rawCallback);
+    }
     if (shader.isProgram() && _makeProgramCallback) {
         return _makeProgramCallback(shader, bindings);
     }
@@ -123,8 +173,30 @@ void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, cons
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
 
+void Context::resetStats() const {
+    _backend->resetStats();
+}
+
 void Context::getStats(ContextStats& stats) const {
     _backend->getStats(stats);
+}
+
+void Context::getFrameStats(ContextStats& stats) const {
+    stats = _frameStats;
+}
+
+double Context::getFrameTimerGPUAverage() const {
+    if (_frameRangeTimer) {
+        return _frameRangeTimer->getGPUAverage();
+    }
+    return 0.0;
+}
+
+double Context::getFrameTimerBatchAverage() const {
+    if (_frameRangeTimer) {
+        return _frameRangeTimer->getBatchAverage();
+    }
+    return 0.0;
 }
 
 const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& xformView) const {
@@ -182,6 +254,10 @@ void Context::setFreeGPUMemory(Size size) {
 Size Context::getFreeGPUMemory() {
     return _freeGPUMemory.load();
 }
+
+Size Context::getUsedGPUMemory() {
+    return getTextureGPUMemoryUsage() + getBufferGPUMemoryUsage();
+};
 
 void Context::incrementBufferGPUCount() {
     static std::atomic<uint32_t> max { 0 };
@@ -349,3 +425,5 @@ void Backend::updateTextureGPUFramebufferMemoryUsage(Resource::Size prevObjectSi
 void Backend::updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUSparseMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::incrementTextureGPUTransferCount() { Context::incrementTextureGPUTransferCount(); }
 void Backend::decrementTextureGPUTransferCount() { Context::decrementTextureGPUTransferCount(); }
+
+

@@ -15,6 +15,7 @@
 #include <memory>
 #include <functional>
 #include <vector>
+#include <string>
 #include <SimpleMovingAverage.h>
 
 #include "Format.h"
@@ -27,11 +28,13 @@ namespace gpu {
     public:
         using Handler = std::function<void(const Query&)>;
 
-        Query(const Handler& returnHandler);
+        Query(const Handler& returnHandler, const std::string& name = "gpu::query");
         ~Query();
 
         double getGPUElapsedTime() const;
         double getBatchElapsedTime() const;
+
+        const std::string& getName() const { return _name; }
 
         // Only for gpu::Context
         const GPUObjectPointer gpuObject {};
@@ -39,6 +42,7 @@ namespace gpu {
     protected:
         Handler _returnHandler;
 
+        const std::string _name;
         uint64_t _queryResult { 0 };
         uint64_t _usecBatchElapsedTime { 0 };
     };
@@ -52,7 +56,7 @@ namespace gpu {
     // The result is always a late average of the time spent for that same task a few cycles ago.
     class RangeTimer {
     public:
-        RangeTimer();
+        RangeTimer(const std::string& name);
         void begin(gpu::Batch& batch);
         void end(gpu::Batch& batch);
         
@@ -63,12 +67,14 @@ namespace gpu {
         
         static const int QUERY_QUEUE_SIZE { 4 };
 
+        const std::string _name;
         gpu::Queries _timerQueries;
         int _headIndex = -1;
         int _tailIndex = -1;
+
         MovingAverage<double, QUERY_QUEUE_SIZE * 2> _movingAverageGPU;
         MovingAverage<double, QUERY_QUEUE_SIZE * 2> _movingAverageBatch;
-        
+
         int rangeIndex(int index) const { return (index % QUERY_QUEUE_SIZE); }
     };
     

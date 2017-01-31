@@ -19,8 +19,9 @@
 
 #include "AudioConstants.h"
 
-void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, 
-                                const Transform& transform, PacketType packetType, QString codecName) {
+void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber,
+                                             const Transform& transform, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
+                                             PacketType packetType, QString codecName) {
     static std::mutex _mutex;
     using Locker = std::unique_lock<std::mutex>;
     auto nodeList = DependencyManager::get<NodeList>();
@@ -54,6 +55,10 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
         audioPacket->writePrimitive(transform.getTranslation());
         // pack the orientation
         audioPacket->writePrimitive(transform.getRotation());
+
+        audioPacket->writePrimitive(avatarBoundingBoxCorner);
+        audioPacket->writePrimitive(avatarBoundingBoxScale);
+
 
         if (audioPacket->getType() != PacketType::SilentAudioFrame) {
             // audio samples have already been packed (written to networkAudioSamples)

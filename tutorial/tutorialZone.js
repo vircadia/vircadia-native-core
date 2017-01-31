@@ -45,7 +45,7 @@ if (!Function.prototype.bind) {
         keyReleaseHandler: function(event) {
             print(event.text);
             if (event.isShifted && event.isAlt) {
-                if (event.text == ",") {
+                if (event.text == "F12") {
                     if (!this.tutorialManager.startNextStep()) {
                         this.tutorialManager.startTutorial();
                     }

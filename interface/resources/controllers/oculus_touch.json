@@ -3,6 +3,8 @@
     "channels": [
         { "from": "OculusTouch.A", "to": "Standard.RightPrimaryThumb", "peek": true },
         { "from": "OculusTouch.X", "to": "Standard.LeftPrimaryThumb", "peek": true },
+        { "from": "OculusTouch.B", "to": "Standard.RightSecondaryThumb", "peek": true},
+        { "from": "OculusTouch.Y", "to": "Standard.LeftSecondaryThumb", "peek": true},
 
         { "from": "OculusTouch.A", "to": "Standard.A" },
         { "from": "OculusTouch.B", "to": "Standard.B" },

@@ -234,7 +234,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         static QString repeatedMessage =
             LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
                                                               "setPosition failed.*");
-        qDebug() << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
+        qCDebug(physics) << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
     }
     bool orientationSuccess;
     _entity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
@@ -242,7 +242,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         static QString repeatedMessage =
             LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
                                                               "setOrientation failed.*");
-        qDebug() << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
+        qCDebug(physics) << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
     }
     _entity->setVelocity(getBodyLinearVelocity());
     _entity->setAngularVelocity(getBodyAngularVelocity());

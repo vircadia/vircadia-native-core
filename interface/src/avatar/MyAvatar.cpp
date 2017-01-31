@@ -57,7 +57,6 @@
 
 using namespace std;
 
-const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
 const float MAX_WALKING_SPEED = 2.6f; // human walking speed
@@ -117,11 +116,11 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _hmdAtRestDetector(glm::vec3(0), glm::quat())
 {
     using namespace recording;
+    _skeletonModel->flagAsCauterized();
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-
 
     // Necessary to select the correct slot
     using SlotType = void(MyAvatar::*)(const glm::vec3&, bool, const glm::quat&, bool);
@@ -129,6 +128,15 @@ MyAvatar::MyAvatar(RigPointer rig) :
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, static_cast<SlotType>(&MyAvatar::goToLocation));
+
+    // handle scale constraints imposed on us by the domain-server
+    auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+
+    // when we connect to a domain and retrieve its settings, we restrict our max/min scale based on those settings
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &MyAvatar::restrictScaleFromDomainSettings);
+
+    // when we leave a domain we lift whatever restrictions that domain may have placed on our scale
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &MyAvatar::clearScaleRestriction);
 
     _characterController.setEnabled(true);
 
@@ -218,19 +226,24 @@ void MyAvatar::simulateAttachments(float deltaTime) {
     // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
 }
 
-QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
+QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+                        bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
     CameraMode mode = qApp->getCamera()->getMode();
     _globalPosition = getPosition();
+    _globalBoundingBoxDimensions.x = _characterController.getCapsuleRadius();
+    _globalBoundingBoxDimensions.y = _characterController.getCapsuleHalfHeight();
+    _globalBoundingBoxDimensions.z = _characterController.getCapsuleRadius();
+    _globalBoundingBoxOffset = _characterController.getCapsuleLocalOffset();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getPosition();
         setPosition(getSkeletonPosition());
-        QByteArray array = AvatarData::toByteArray(cullSmallChanges, sendAll);
+        QByteArray array = AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
         // copy the correct position back
         setPosition(oldPosition);
         return array;
     }
-    return AvatarData::toByteArray(cullSmallChanges, sendAll);
+    return AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
 }
 
 void MyAvatar::centerBody() {
@@ -351,9 +364,17 @@ void MyAvatar::update(float deltaTime) {
     updateFromTrackers(deltaTime);
 
     //  Get audio loudness data from audio input device
+    // Also get the AudioClient so we can update the avatar bounding box data
+    // on the AudioClient side.
     auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
+
+    glm::vec3 halfBoundingBoxDimensions(_characterController.getCapsuleRadius(), _characterController.getCapsuleHalfHeight(), _characterController.getCapsuleRadius());
+    halfBoundingBoxDimensions += _characterController.getCapsuleLocalOffset();
+    QMetaObject::invokeMethod(audio.data(), "setAvatarBoundingBoxParameters",
+        Q_ARG(glm::vec3, (getPosition() - halfBoundingBoxDimensions)),
+        Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
     if (_avatarEntityDataLocallyEdited) {
         sendIdentityPacket();
@@ -1572,7 +1593,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
-        _skeletonModel->setCauterizeBones(!shouldDrawHead);
+        _skeletonModel->setEnableCauterization(!shouldDrawHead);
     }
     _prevShouldDrawHead = shouldDrawHead;
 }
@@ -1823,25 +1844,104 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
-void MyAvatar::increaseSize() {
-    if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
-        _targetScale *= (1.0f + SCALING_RATIO);
-        qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
+// There can be a separation between the _targetScale and the actual scale of the rendered avatar in a domain.
+// When the avatar enters a domain where their target scale is not allowed according to the min/max
+// we do not change their saved target scale. Instead, we use getDomainLimitedScale() to render the avatar
+// at a domain appropriate size. When the avatar leaves the limiting domain, we'll return them to their previous target scale.
+// While connected to a domain that limits avatar scale if the user manually changes their avatar scale, we change
+// target scale to match the new scale they have chosen. When they leave the domain they will not return to the scale they were
+// before they entered the limiting domain.
+
+void MyAvatar::clampTargetScaleToDomainLimits() {
+    // when we're about to change the target scale because the user has asked to increase or decrease their scale,
+    // we first make sure that we're starting from a target scale that is allowed by the current domain
+
+    auto clampedTargetScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
+
+    if (clampedTargetScale != _targetScale) {
+        qCDebug(interfaceapp, "Clamped scale to %f since original target scale %f was not allowed by domain",
+                (double)clampedTargetScale, (double)_targetScale);
+
+        setTargetScale(clampedTargetScale);
     }
+}
+
+void MyAvatar::clampScaleChangeToDomainLimits(float desiredScale) {
+    auto clampedTargetScale = glm::clamp(desiredScale, _domainMinimumScale, _domainMaximumScale);
+
+    if (clampedTargetScale != desiredScale) {
+        qCDebug(interfaceapp, "Forcing scale to %f since %f is not allowed by domain",
+                clampedTargetScale, desiredScale);
+    }
+
+    setTargetScale(clampedTargetScale);
+    qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
+}
+
+void MyAvatar::increaseSize() {
+    // make sure we're starting from an allowable scale
+    clampTargetScaleToDomainLimits();
+
+    // calculate what our new scale should be
+    float updatedTargetScale = _targetScale * (1.0f + SCALING_RATIO);
+
+    // attempt to change to desired scale (clamped to the domain limits)
+    clampScaleChangeToDomainLimits(updatedTargetScale);
 }
 
 void MyAvatar::decreaseSize() {
-    if (MIN_AVATAR_SCALE < (1.0f - SCALING_RATIO) * _targetScale) {
-        _targetScale *= (1.0f - SCALING_RATIO);
-        qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
-    }
+    // make sure we're starting from an allowable scale
+    clampTargetScaleToDomainLimits();
+
+    // calculate what our new scale should be
+    float updatedTargetScale = _targetScale * (1.0f - SCALING_RATIO);
+
+    // attempt to change to desired scale (clamped to the domain limits)
+    clampScaleChangeToDomainLimits(updatedTargetScale);
 }
 
 void MyAvatar::resetSize() {
-    _targetScale = 1.0f;
-    qCDebug(interfaceapp, "Reset scale to %f", (double)_targetScale);
+    // attempt to reset avatar size to the default (clamped to domain limits)
+    const float DEFAULT_AVATAR_SCALE = 1.0f;
+
+    clampScaleChangeToDomainLimits(DEFAULT_AVATAR_SCALE);
 }
 
+void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject) {
+    // pull out the minimum and maximum scale and set them to restrict our scale
+
+    static const QString AVATAR_SETTINGS_KEY = "avatars";
+    auto avatarsObject = domainSettingsObject[AVATAR_SETTINGS_KEY].toObject();
+
+    static const QString MIN_SCALE_OPTION = "min_avatar_scale";
+    float settingMinScale = avatarsObject[MIN_SCALE_OPTION].toDouble(MIN_AVATAR_SCALE);
+    setDomainMinimumScale(settingMinScale);
+
+    static const QString MAX_SCALE_OPTION = "max_avatar_scale";
+    float settingMaxScale = avatarsObject[MAX_SCALE_OPTION].toDouble(MAX_AVATAR_SCALE);
+    setDomainMaximumScale(settingMaxScale);
+
+    // make sure that the domain owner didn't flip min and max
+    if (_domainMinimumScale > _domainMaximumScale) {
+        std::swap(_domainMinimumScale, _domainMaximumScale);
+    }
+
+    qCDebug(interfaceapp, "This domain requires a minimum avatar scale of %f and a maximum avatar scale of %f",
+            (double)_domainMinimumScale, (double)_domainMaximumScale);
+
+    // debug to log if this avatar's scale in this domain will be clamped
+    auto clampedScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
+
+    if (_targetScale != clampedScale) {
+        qCDebug(interfaceapp, "Avatar scale will be clamped to %f because %f is not allowed by current domain",
+                (double)clampedScale, (double)_targetScale);
+    }
+}
+
+void MyAvatar::clearScaleRestriction() {
+    _domainMinimumScale = MIN_AVATAR_SCALE;
+    _domainMaximumScale = MAX_AVATAR_SCALE;
+}
 
 void MyAvatar::goToLocation(const QVariant& propertiesVar) {
     qCDebug(interfaceapp, "MyAvatar QML goToLocation");
@@ -1992,10 +2092,10 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     glm::vec3 rigMiddleEyePos = DEFAULT_RIG_MIDDLE_EYE_POS;
     if (leftEyeIndex >= 0 && rightEyeIndex >= 0) {
-        rigMiddleEyePos = (_rig->getAbsoluteDefaultPose(leftEyeIndex).trans + _rig->getAbsoluteDefaultPose(rightEyeIndex).trans) / 2.0f;
+        rigMiddleEyePos = (_rig->getAbsoluteDefaultPose(leftEyeIndex).trans() + _rig->getAbsoluteDefaultPose(rightEyeIndex).trans()) / 2.0f;
     }
-    glm::vec3 rigNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans : DEFAULT_RIG_NECK_POS;
-    glm::vec3 rigHipsPos = hipsIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans : DEFAULT_RIG_HIPS_POS;
+    glm::vec3 rigNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans() : DEFAULT_RIG_NECK_POS;
+    glm::vec3 rigHipsPos = hipsIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans() : DEFAULT_RIG_HIPS_POS;
 
     glm::vec3 localEyes = (rigMiddleEyePos - rigHipsPos);
     glm::vec3 localNeck = (rigNeckPos - rigHipsPos);
@@ -2175,16 +2275,16 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
     AnimPose followWorldPose(currentWorldMatrix);
     if (isActive(Rotation)) {
-        followWorldPose.rot = glmExtractRotation(desiredWorldMatrix);
+        followWorldPose.rot() = glmExtractRotation(desiredWorldMatrix);
     }
     if (isActive(Horizontal)) {
         glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
-        followWorldPose.trans.x = desiredTranslation.x;
-        followWorldPose.trans.z = desiredTranslation.z;
+        followWorldPose.trans().x = desiredTranslation.x;
+        followWorldPose.trans().z = desiredTranslation.z;
     }
     if (isActive(Vertical)) {
         glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
-        followWorldPose.trans.y = desiredTranslation.y;
+        followWorldPose.trans().y = desiredTranslation.y;
     }
 
     myAvatar.getCharacterController()->setFollowParameters(followWorldPose, getMaxTimeRemaining());
@@ -2245,13 +2345,48 @@ bool MyAvatar::hasDriveInput() const {
     return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
 }
 
+// The resulting matrix is used to render the hand controllers, even if the camera is decoupled from the avatar.
+// Specificly, if we are rendering using a third person camera.  We would like to render the hand controllers in front of the camera,
+// not in front of the avatar.
+glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const {
+
+    // Fetch the current camera transform.
+    glm::mat4 cameraWorldMatrix = qApp->getCamera()->getTransform();
+    if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+        cameraWorldMatrix *= createMatFromScaleQuatAndPos(vec3(-1.0f, 1.0f, 1.0f), glm::quat(), glm::vec3());
+    }
+
+    // compute a NEW sensorToWorldMatrix for the camera.  The equation is cameraWorldMatrix = cameraSensorToWorldMatrix * _hmdSensorMatrix.
+    // here we solve for the unknown cameraSensorToWorldMatrix.
+    glm::mat4 cameraSensorToWorldMatrix = cameraWorldMatrix * glm::inverse(_hmdSensorMatrix);
+
+    // Using the new cameraSensorToWorldMatrix, compute where the controller is in world space.
+    glm::mat4 controllerWorldMatrix = cameraSensorToWorldMatrix * controllerSensorMatrix;
+
+    // move it into avatar space
+    glm::mat4 avatarMatrix = createMatFromQuatAndPos(getOrientation(), getPosition());
+    return glm::inverse(avatarMatrix) * controllerWorldMatrix;
+}
+
 glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
-    switch(index) {
+    switch (index) {
         case CONTROLLER_LEFTHAND_INDEX: {
             return getLeftHandControllerPoseInAvatarFrame().getRotation();
         }
         case CONTROLLER_RIGHTHAND_INDEX: {
             return getRightHandControllerPoseInAvatarFrame().getRotation();
+        }
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX: {
+            auto pose = _leftHandControllerPoseInSensorFrameCache.get();
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return glmExtractRotation(result);
+        }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX: {
+            auto pose = _rightHandControllerPoseInSensorFrameCache.get();
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return glmExtractRotation(result);
         }
         default: {
             return Avatar::getAbsoluteJointRotationInObjectFrame(index);
@@ -2260,12 +2395,24 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 }
 
 glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
-    switch(index) {
+    switch (index) {
         case CONTROLLER_LEFTHAND_INDEX: {
             return getLeftHandControllerPoseInAvatarFrame().getTranslation();
         }
         case CONTROLLER_RIGHTHAND_INDEX: {
             return getRightHandControllerPoseInAvatarFrame().getTranslation();
+        }
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX: {
+            auto pose = _leftHandControllerPoseInSensorFrameCache.get();
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return extractTranslation(result);
+        }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX: {
+            auto pose = _rightHandControllerPoseInSensorFrameCache.get();
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return extractTranslation(result);
         }
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);

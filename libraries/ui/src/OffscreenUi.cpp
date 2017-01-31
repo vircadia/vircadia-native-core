@@ -23,6 +23,8 @@
 #include "FileDialogHelper.h"
 #include "VrMenu.h"
 
+#include "ui/Logging.h"
+
 
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
@@ -73,7 +75,6 @@ bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
     QObject* focusObject = getWindow()->focusObject();
     if (focusObject != getWindow() && focusObject != getRootItem()) {
-        //qDebug() << "Swallowed shortcut " << static_cast<QKeyEvent*>(event)->key();
         event->accept();
         return true;
     }
@@ -493,7 +494,7 @@ private:
 
 void OffscreenUi::createDesktop(const QUrl& url) {
     if (_desktop) {
-        qDebug() << "Desktop already created";
+        qCDebug(uiLogging) << "Desktop already created";
         return;
     }
 
@@ -573,7 +574,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
     if (!result.isValid()) {
         return QString();
     }
-    qDebug() << result.toString();
+    qCDebug(uiLogging) << result.toString();
     return result.toUrl().toLocalFile();
 }
 

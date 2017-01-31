@@ -19,8 +19,12 @@
 #include "NetworkLogging.h"
 #include "NodeList.h"
 #include "ResourceCache.h"
+#include <Trace.h>
+
+static int requestID = 0;
 
 AssetRequest::AssetRequest(const QString& hash) :
+    _requestID(++requestID),
     _hash(hash)
 {
 }
@@ -73,7 +77,7 @@ void AssetRequest::start() {
     _assetInfoRequestID = assetClient->getAssetInfo(_hash,
             [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
 
-        _assetInfoRequestID = AssetClient::INVALID_MESSAGE_ID;
+        _assetInfoRequestID = INVALID_MESSAGE_ID;
 
         _info = info;
 
@@ -115,7 +119,7 @@ void AssetRequest::start() {
                 // If the request is dead, return
                 return;
             }
-            _assetRequestID = AssetClient::INVALID_MESSAGE_ID;
+            _assetRequestID = INVALID_MESSAGE_ID;
 
             if (!responseReceived) {
                 _error = NetworkError;

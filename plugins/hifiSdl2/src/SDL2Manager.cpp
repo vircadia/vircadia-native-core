@@ -41,7 +41,7 @@ static_assert(
     "SDL2 equvalence: Enums and values from StandardControls.h are assumed to match enums from SDL_gamecontroller.h");
 
 
-const QString SDL2Manager::NAME = "SDL2";
+const char* SDL2Manager::NAME = "SDL2";
 
 SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
     SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);

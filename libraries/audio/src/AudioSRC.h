@@ -14,10 +14,10 @@
 
 #include <stdint.h>
 
-static const int SRC_MAX_CHANNELS = 2;
+static const int SRC_MAX_CHANNELS = 4;
 
 // polyphase filter
-static const int SRC_PHASEBITS = 8;
+static const int SRC_PHASEBITS = 9;
 static const int SRC_PHASES = (1 << SRC_PHASEBITS);
 static const int SRC_FRACBITS = 32 - SRC_PHASEBITS;
 static const uint32_t SRC_FRACMASK = (1 << SRC_FRACBITS) - 1;
@@ -31,7 +31,13 @@ static const int SRC_BLOCK = 256;
 class AudioSRC {
 
 public:
-    AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels);
+    enum Quality {
+        LOW_QUALITY,
+        MEDIUM_QUALITY,
+        HIGH_QUALITY
+    };
+
+    AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels, Quality quality = MEDIUM_QUALITY);
     ~AudioSRC();
 
     // deinterleaved float input/output (native format)
@@ -47,8 +53,6 @@ public:
     int getMaxOutput(int inputFrames);
     int getMinInput(int outputFrames);
     int getMaxInput(int outputFrames);
-
-    int getExactInput(int outputFrames);
 
 private:
     float* _polyphaseFilter;
@@ -72,17 +76,23 @@ private:
     int64_t _offset;
     int64_t _step;
 
-    int createRationalFilter(int upFactor, int downFactor, float gain);
-    int createIrrationalFilter(int upFactor, int downFactor, float gain);
+    int createRationalFilter(int upFactor, int downFactor, float gain, Quality quality);
+    int createIrrationalFilter(int upFactor, int downFactor, float gain, Quality quality);
 
     int multirateFilter1(const float* input0, float* output0, int inputFrames);
     int multirateFilter2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+    int multirateFilter4(const float* input0, const float* input1, const float* input2, const float* input3, 
+                         float* output0, float* output1, float* output2, float* output3, int inputFrames);
 
-    int multirateFilter1_SSE(const float* input0, float* output0, int inputFrames);
-    int multirateFilter2_SSE(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+    int multirateFilter1_ref(const float* input0, float* output0, int inputFrames);
+    int multirateFilter2_ref(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+    int multirateFilter4_ref(const float* input0, const float* input1, const float* input2, const float* input3, 
+                             float* output0, float* output1, float* output2, float* output3, int inputFrames);
 
     int multirateFilter1_AVX2(const float* input0, float* output0, int inputFrames);
     int multirateFilter2_AVX2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+    int multirateFilter4_AVX2(const float* input0, const float* input1, const float* input2, const float* input3, 
+                              float* output0, float* output1, float* output2, float* output3, int inputFrames);
 
     void convertInput(const int16_t* input, float** outputs, int numFrames);
     void convertOutput(float** inputs, int16_t* output, int numFrames);

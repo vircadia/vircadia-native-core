@@ -39,8 +39,8 @@ namespace render {
         RenderContextPointer getRenderContext() const { return _renderContext; }
 
         // Render a frame
-        // A frame must have a scene registered and a context set to render
-        void run();
+        // Must have a scene registered and a context set
+        void run() { assert(_sceneContext && _renderContext);  Task::run(_sceneContext, _renderContext); }
 
     protected:
         SceneContextPointer _sceneContext;

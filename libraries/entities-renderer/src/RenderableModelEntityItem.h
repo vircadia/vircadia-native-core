@@ -52,6 +52,7 @@ public:
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
     ModelPointer getModel(QSharedPointer<EntityTreeRenderer> renderer);
+    ModelPointer getModelNotSafe();
 
     virtual bool needsToCallUpdate() const override;
     virtual void update(const quint64& now) override;
@@ -73,6 +74,12 @@ public:
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override;
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override;
+
+
+    virtual glm::quat getLocalJointRotation(int index) const override;
+    virtual glm::vec3 getLocalJointTranslation(int index) const override;
+    virtual bool setLocalJointRotation(int index, const glm::quat& rotation) override;
+    virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) override;
 
     virtual void setJointRotations(const QVector<glm::quat>& rotations) override;
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet) override;

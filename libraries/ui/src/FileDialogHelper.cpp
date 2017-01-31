@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "FileDialogHelper.h"
+#include "ui/Logging.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QFile>
@@ -47,7 +48,7 @@ QUrl FileDialogHelper::pathToUrl(const QString& path) {
 
 
 QUrl FileDialogHelper::saveHelper(const QString& saveText, const QUrl& currentFolder, const QStringList& selectionFilters) {
-    qDebug() << "Calling save helper with " << saveText << " " << currentFolder << " " << selectionFilters;
+    qDebug(uiLogging) << "Calling save helper with " << saveText << " " << currentFolder << " " << selectionFilters;
 
     QFileInfo fileInfo(saveText);
 

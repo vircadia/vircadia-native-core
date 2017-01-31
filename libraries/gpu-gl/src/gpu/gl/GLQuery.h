@@ -49,6 +49,8 @@ public:
     const GLuint _beginqo = { 0 };
     GLuint64 _result { (GLuint64)-1 };
     GLuint64 _batchElapsedTime { (GLuint64) 0 };
+    uint64_t _profileRangeId { 0 };
+    uint32_t _rangeQueryDepth { 0 };
 
 protected:
     GLQuery(const std::weak_ptr<GLBackend>& backend, const Query& query, GLuint endId, GLuint beginId) : Parent(backend, query, endId), _beginqo(beginId) {}

@@ -77,6 +77,8 @@ int PositionalAudioStream::parsePositionalData(const QByteArray& positionalByteA
 
     packetStream.readRawData(reinterpret_cast<char*>(&_position), sizeof(_position));
     packetStream.readRawData(reinterpret_cast<char*>(&_orientation), sizeof(_orientation));
+    packetStream.readRawData(reinterpret_cast<char*>(&_avatarBoundingBoxCorner), sizeof(_avatarBoundingBoxCorner));
+    packetStream.readRawData(reinterpret_cast<char*>(&_avatarBoundingBoxScale), sizeof(_avatarBoundingBoxScale));
 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
     if (glm::isnan(_orientation.x)) {

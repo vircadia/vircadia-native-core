@@ -58,10 +58,8 @@ function info() {
     }
 }
 
-// Return a number between min (inclusive) and max (exclusive)
-function randomInt(min, max) {
-    return min + Math.floor(Math.random() * (max - min))
-}
+const CONTROLLER_TOUCH = 'touch';
+const CONTROLLER_VIVE = 'vive';
 
 var NEAR_BOX_SPAWN_NAME = "tutorial/nearGrab/box_spawn";
 var FAR_BOX_SPAWN_NAME = "tutorial/farGrab/box_spawn";
@@ -76,10 +74,6 @@ var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
 function setAwayEnabled(value) {
     var message = value ? 'enable' : 'disable';
     Messages.sendLocalMessage(CHANNEL_AWAY_ENABLE, message);
-}
-
-function beginsWithFilter(value, key) {
-    return value.indexOf(properties[key]) == 0;
 }
 
 findEntity = function(properties, searchRadius, filterFn) {
@@ -116,32 +110,30 @@ findEntities = function(properties, searchRadius, filterFn) {
     return matchedEntities;
 }
 
-function setControllerPartsVisible(parts) {
-    Messages.sendLocalMessage('Controller-Display-Parts', JSON.stringify(parts));
+function findEntitiesWithTag(tag) {
+    return findEntities({ userData: "" }, 10000, function(properties, key, value) {
+        data = parseJSON(value);
+        return data.tag === tag;
+    });
 }
 
+/**
+ * A controller in made up of parts, and each part can have multiple "layers,"
+ * which are really just different texures. For example, the "trigger" part
+ * has "normal" and "highlight" layers.
+ */
 function setControllerPartLayer(part, layer) {
     data = {};
     data[part] = layer;
     Messages.sendLocalMessage('Controller-Set-Part-Layer', JSON.stringify(data));
 }
 
-function triggerHapticPulse() {
-    function scheduleHaptics(delay, strength, duration) {
-        Script.setTimeout(function() {
-            Controller.triggerHapticPulse(strength, duration, 0);
-            Controller.triggerHapticPulse(strength, duration, 1);
-        }, delay);
-    }
-    scheduleHaptics(0, 0.8, 100);
-    scheduleHaptics(300, 0.5, 100);
-    scheduleHaptics(600, 0.3, 100);
-    scheduleHaptics(900, 0.2, 100);
-    scheduleHaptics(1200, 0.1, 100);
-}
-
-function spawn(entityData, transform, modifyFn) {
-    debug("Creating: ", entityData);
+/**
+ * Spawn entities and return the newly created entity's ids.
+ * @param {object[]} entityPropertiesList A list of properties of the entities
+ * to spawn.
+ */
+function spawn(entityPropertiesList, transform, modifyFn) {
     if (!transform) {
         transform = {
             position: { x: 0, y: 0, z: 0 },
@@ -149,9 +141,8 @@ function spawn(entityData, transform, modifyFn) {
         }
     }
     var ids = [];
-    for (var i = 0; i < entityData.length; ++i) {
-        var data = entityData[i];
-        debug("Creating: ", data.name);
+    for (var i = 0; i < entityPropertiesList.length; ++i) {
+        var data = entityPropertiesList[i];
         data.position = Vec3.sum(transform.position, data.position);
         data.rotation = Quat.multiply(data.rotation, transform.rotation);
         if (modifyFn) {
@@ -159,11 +150,16 @@ function spawn(entityData, transform, modifyFn) {
         }
         var id = Entities.addEntity(data);
         ids.push(id);
-        debug(id, "data:", JSON.stringify(data));
     }
     return ids;
 }
 
+/**
+ * @function parseJSON
+ * @param {string} jsonString The string to parse.
+ * @return {object} Return an empty if the string was not valid JSON, otherwise
+ *   the parsed object is returned.
+ */
 function parseJSON(jsonString) {
     var data;
     try {
@@ -174,6 +170,10 @@ function parseJSON(jsonString) {
     return data;
 }
 
+/**
+ * Spawn entities with `tag` in the userData.
+ * @function spawnWithTag
+ */
 function spawnWithTag(entityData, transform, tag) {
     function modifyFn(data) {
         var userData = parseJSON(data.userData);
@@ -185,6 +185,10 @@ function spawnWithTag(entityData, transform, tag) {
     return spawn(entityData, transform, modifyFn);
 }
 
+/**
+ * Delete all entities with the tag `tag` in their userData.
+ * @function deleteEntitiesWithTag
+ */
 function deleteEntitiesWithTag(tag) {
     debug("searching for...:", tag);
     var entityIDs = findEntitiesWithTag(tag);
@@ -192,6 +196,7 @@ function deleteEntitiesWithTag(tag) {
         Entities.deleteEntity(entityIDs[i]);
     }
 }
+
 function editEntitiesWithTag(tag, propertiesOrFn) {
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
 
@@ -208,17 +213,128 @@ function editEntitiesWithTag(tag, propertiesOrFn) {
     }
 }
 
-function findEntitiesWithTag(tag) {
-    return findEntities({ userData: "" }, 10000, function(properties, key, value) {
-        data = parseJSON(value);
-        return data.tag == tag;
-    });
-}
-
 // From http://stackoverflow.com/questions/5999998/how-can-i-check-if-a-javascript-variable-is-function-type
 function isFunction(functionToCheck) {
     var getType = {};
     return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
+}
+
+/**
+ * Return `true` if `entityID` can be found in the local entity tree, otherwise `false`.
+ */
+function isEntityInLocalTree(entityID) {
+    return Entities.getEntityProperties(entityID, 'visible').visible !== undefined;
+}
+
+/**
+ *
+ */
+function showEntitiesWithTags(tags) {
+    for (var i = 0; i < tags.length; ++i) {
+        showEntitiesWithTag(tags[i]);
+    }
+}
+
+function showEntitiesWithTag(tag) {
+    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
+    if (entities) {
+        for (entityID in entities) {
+            var data = entities[entityID];
+
+            var collisionless = data.visible === false ? true : false;
+            if (data.collidable !== undefined) {
+                collisionless = data.collidable === true ? false : true;
+            }
+            if (data.soundKey) {
+                data.soundKey.playing = true;
+            }
+            var newProperties = {
+                visible: data.visible == false ? false : true,
+                collisionless: collisionless,
+                userData: JSON.stringify(data),
+            };
+            debug("Showing: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
+            Entities.editEntity(entityID, newProperties);
+        }
+    } else {
+        debug("ERROR | No entities for tag: ", tag);
+    }
+
+    return;
+    // Dynamic method, suppressed for now
+    //editEntitiesWithTag(tag, function(entityID) {
+    //    var userData = Entities.getEntityProperties(entityID, "userData").userData;
+    //    var data = parseJSON(userData);
+    //    var collisionless = data.visible === false ? true : false;
+    //    if (data.collidable !== undefined) {
+    //        collisionless = data.collidable === true ? false : true;
+    //    }
+    //    if (data.soundKey) {
+    //        data.soundKey.playing = true;
+    //    }
+    //    var newProperties = {
+    //        visible: data.visible == false ? false : true,
+    //        collisionless: collisionless,
+    //        userData: JSON.stringify(data),
+    //    };
+    //    Entities.editEntity(entityID, newProperties);
+    //});
+}
+
+function hideEntitiesWithTags(tags) {
+    for (var i = 0; i < tags.length; ++i) {
+        hideEntitiesWithTag(tags[i]);
+    }
+}
+
+function hideEntitiesWithTag(tag) {
+    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
+    if (entities) {
+        for (entityID in entities) {
+            var data = entities[entityID];
+
+            if (data.soundKey) {
+                data.soundKey.playing = false;
+            }
+            var newProperties = {
+                visible: false,
+                collisionless: 1,
+                ignoreForCollisions: 1,
+                userData: JSON.stringify(data),
+            };
+
+            debug("Hiding: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
+            Entities.editEntity(entityID, newProperties);
+        }
+    }
+
+    return;
+    // Dynamic method, suppressed for now
+    //editEntitiesWithTag(tag, function(entityID) {
+    //    var userData = Entities.getEntityProperties(entityID, "userData").userData;
+    //    var data = parseJSON(userData);
+    //    if (data.soundKey) {
+    //        data.soundKey.playing = false;
+    //    }
+    //    var newProperties = {
+    //        visible: false,
+    //        collisionless: 1,
+    //        ignoreForCollisions: 1,
+    //        userData: JSON.stringify(data),
+    //    };
+    //    Entities.editEntity(entityID, newProperties);
+    //});
+}
+
+/**
+ * Return the entity properties for an entity with a given name if it is in our
+ * cached list of entities. Otherwise, return undefined.
+ */
+function getEntityWithName(name) {
+    debug("Getting entity with name:", name);
+    var entityID = TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP[name];
+    debug("Entity id: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
+    return entityID;
 }
 
 function playSuccessSound() {
@@ -229,13 +345,77 @@ function playSuccessSound() {
     });
 }
 
-
 function playFirecrackerSound(position) {
     Audio.playSound(firecrackerSound, {
         position: position,
-        volume: 0.7,
+        volume: 0.5,
         loop: false
     });
+}
+
+/**
+ * This disables everything, including:
+ *
+ *   - The door to leave the tutorial
+ *   - Overlays
+ *   - Hand controlelrs
+ *   - Teleportation
+ *   - Advanced movement
+ *   - Equip and far grab
+ *   - Away mode
+ */
+function disableEverything() {
+    editEntitiesWithTag('door', { visible: true, collisionless: false });
+    Menu.setIsOptionChecked("Overlays", false);
+    Controller.disableMapping('handControllerPointer-click');
+    Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'disable');
+    Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
+    Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
+        nearGrabEnabled: true,
+        holdEnabled: false,
+        farGrabEnabled: false,
+        myAvatarScalingEnabled: false,
+        objectScalingEnabled: false,
+    }));
+    setControllerPartLayer('touchpad', 'blank');
+    setControllerPartLayer('trigger', 'blank');
+    setControllerPartLayer('joystick', 'blank');
+    setControllerPartLayer('grip', 'blank');
+    setControllerPartLayer('button_a', 'blank');
+    setControllerPartLayer('button_b', 'blank');
+    setControllerPartLayer('tips', 'blank');
+
+    hideEntitiesWithTag('finish');
+
+    setAwayEnabled(false);
+}
+
+/**
+ * This reenables everything that disableEverything() disables. This can be
+ * used when leaving the tutorial to ensure that nothing is left disabled.
+ */
+function reenableEverything() {
+    editEntitiesWithTag('door', { visible: false, collisionless: true });
+    Menu.setIsOptionChecked("Overlays", true);
+    Controller.enableMapping('handControllerPointer-click');
+    Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'enable');
+    Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
+    Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
+        nearGrabEnabled: true,
+        holdEnabled: true,
+        farGrabEnabled: true,
+        myAvatarScalingEnabled: true,
+        objectScalingEnabled: true,
+    }));
+    setControllerPartLayer('touchpad', 'blank');
+    setControllerPartLayer('trigger', 'blank');
+    setControllerPartLayer('joystick', 'blank');
+    setControllerPartLayer('grip', 'blank');
+    setControllerPartLayer('button_a', 'blank');
+    setControllerPartLayer('button_b', 'blank');
+    setControllerPartLayer('tips', 'blank');
+    MyAvatar.shouldRenderLocally = true;
+    setAwayEnabled(true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -244,9 +424,9 @@ function playFirecrackerSound(position) {
 // STEP: DISABLE CONTROLLERS                                                 //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepStart = function(name) {
-    this.tag = name;
-}
+var stepStart = function() {
+    this.name = 'start';
+};
 stepStart.prototype = {
     start: function(onFinish) {
         disableEverything();
@@ -259,41 +439,7 @@ stepStart.prototype = {
     }
 };
 
-function disableEverything() {
-    editEntitiesWithTag('door', { visible: true, collisionless: false });
-    Menu.setIsOptionChecked("Overlays", false);
-    Controller.disableMapping('handControllerPointer-click');
-    Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'disable');
-    Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
-    Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
-        nearGrabEnabled: true,
-        holdEnabled: false,
-        farGrabEnabled: false,
-    }));
-    setControllerPartLayer('touchpad', 'blank');
-    setControllerPartLayer('tips', 'blank');
 
-    hideEntitiesWithTag('finish');
-
-    setAwayEnabled(false);
-}
-
-function reenableEverything() {
-    editEntitiesWithTag('door', { visible: false, collisionless: true });
-    Menu.setIsOptionChecked("Overlays", true);
-    Controller.enableMapping('handControllerPointer-click');
-    Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'enable');
-    Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
-    Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
-        nearGrabEnabled: true,
-        holdEnabled: true,
-        farGrabEnabled: true,
-    }));
-    setControllerPartLayer('touchpad', 'blank');
-    setControllerPartLayer('tips', 'blank');
-    MyAvatar.shouldRenderLocally = true;
-    setAwayEnabled(true);
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -302,10 +448,9 @@ function reenableEverything() {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-var stepEnableControllers = function(name) {
-    this.tag = name;
+var stepEnableControllers = function() {
     this.shouldLog = false;
-}
+};
 stepEnableControllers.prototype = {
     start: function(onFinish) {
         reenableEverything();
@@ -316,28 +461,6 @@ stepEnableControllers.prototype = {
     }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// STEP: Welcome                                                             //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
-var stepWelcome = function(name) {
-    this.tag = name;
-}
-stepWelcome.prototype = {
-    start: function(onFinish) {
-        this.timerID = Script.setTimeout(onFinish, 8000);
-        showEntitiesWithTag(this.tag);
-    },
-    cleanup: function() {
-        if (this.timerID) {
-            Script.clearTimeout(this.timerID);
-            this.timerID = null;
-        }
-        hideEntitiesWithTag(this.tag);
-    }
-};
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -346,9 +469,9 @@ stepWelcome.prototype = {
 // STEP: Orient and raise hands above head                                   //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepOrient = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepOrient = function(tutorialManager) {
+    this.name = 'orient';
+    this.tags = ["orient", "orient-" + tutorialManager.controllerName];
 }
 stepOrient.prototype = {
     start: function(onFinish) {
@@ -357,7 +480,8 @@ stepOrient.prototype = {
         var tag = this.tag;
 
         // Spawn content set
-        editEntitiesWithTag(this.tag, { visible: true });
+        //editEntitiesWithTag(this.tag, { visible: true });
+        showEntitiesWithTags(this.tags);
 
         this.checkIntervalID = null;
         function checkForHandsAboveHead() {
@@ -386,8 +510,8 @@ stepOrient.prototype = {
             Script.clearInterval(this.checkIntervalID);
             this.checkIntervalID = null;
         }
-        editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
-        deleteEntitiesWithTag(this.tempTag);
+        //editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
+        hideEntitiesWithTags(this.tags);
     }
 };
 
@@ -399,10 +523,13 @@ stepOrient.prototype = {
 // STEP: Near Grab                                                           //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepNearGrab = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepNearGrab = function(tutorialManager) {
+    this.name = 'nearGrab';
+    this.tags = ["bothGrab", "nearGrab", "nearGrab-" + tutorialManager.controllerName];
+    this.tempTag = "nearGrab-temporary";
     this.birdIDs = [];
+
+    this.controllerName = tutorialManager.controllerName;
 
     Messages.subscribe("Entity-Exploded");
     Messages.messageReceived.connect(this.onMessage.bind(this));
@@ -412,13 +539,17 @@ stepNearGrab.prototype = {
         this.finished = false;
         this.onFinish = onFinish;
 
-        setControllerPartLayer('tips', 'trigger');
-        setControllerPartLayer('trigger', 'highlight');
-        var tag = this.tag;
+        if (this.controllerName === CONTROLLER_TOUCH) {
+            setControllerPartLayer('tips', 'both_triggers');
+            setControllerPartLayer('trigger', 'highlight');
+            setControllerPartLayer('grip', 'highlight');
+        } else {
+            setControllerPartLayer('tips', 'trigger');
+            setControllerPartLayer('trigger', 'highlight');
+        }
 
-        // Spawn content set
-        showEntitiesWithTag(this.tag, { visible: true });
-        showEntitiesWithTag('bothGrab', { visible: true });
+        // Show content set
+        showEntitiesWithTags(this.tags);
 
         var boxSpawnPosition = getEntityWithName(NEAR_BOX_SPAWN_NAME).position;
         function createBlock(fireworkNumber) {
@@ -456,7 +587,8 @@ stepNearGrab.prototype = {
         this.finished = true;
         setControllerPartLayer('tips', 'blank');
         setControllerPartLayer('trigger', 'normal');
-        hideEntitiesWithTag(this.tag, { visible: false});
+        setControllerPartLayer('grip', 'normal');
+        hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
         if (this.positionWatcher) {
             this.positionWatcher.destroy();
@@ -473,9 +605,10 @@ stepNearGrab.prototype = {
 // STEP: Far Grab                                                            //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepFarGrab = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepFarGrab = function() {
+    this.name = 'farGrab';
+    this.tag = "farGrab";
+    this.tempTag = "farGrab-temporary";
     this.finished = true;
     this.birdIDs = [];
 
@@ -535,7 +668,6 @@ stepFarGrab.prototype = {
         setControllerPartLayer('tips', 'blank');
         setControllerPartLayer('trigger', 'normal');
         hideEntitiesWithTag(this.tag, { visible: false});
-        hideEntitiesWithTag('bothGrab', { visible: false});
         deleteEntitiesWithTag(this.tempTag);
         if (this.positionWatcher) {
             this.positionWatcher.destroy();
@@ -576,11 +708,17 @@ PositionWatcher.prototype = {
 // STEP: Equip                                                               //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepEquip = function(name) {
-    this.tag = name;
-    this.tagPart1 = name + "-part1";
-    this.tagPart2 = name + "-part2";
-    this.tempTag = name + "-temporary";
+var stepEquip = function(tutorialManager) {
+    const controllerName = tutorialManager.controllerName;
+    this.controllerName = controllerName;
+
+    this.name = 'equip';
+
+    this.tags = ["equip", "equip-" + controllerName];
+    this.tagsPart1 = ["equip-part1", "equip-part1-" + controllerName];
+    this.tagsPart2 = ["equip-part2", "equip-part2-" + controllerName];
+    this.tempTag = "equip-temporary";
+
     this.PART1 = 0;
     this.PART2 = 1;
     this.PART3 = 2;
@@ -591,8 +729,14 @@ var stepEquip = function(name) {
 }
 stepEquip.prototype = {
     start: function(onFinish) {
-        setControllerPartLayer('tips', 'trigger');
-        setControllerPartLayer('trigger', 'highlight');
+        if (this.controllerName === CONTROLLER_TOUCH) {
+            setControllerPartLayer('tips', 'grip');
+            setControllerPartLayer('grip', 'highlight');
+        } else {
+            setControllerPartLayer('tips', 'trigger');
+            setControllerPartLayer('trigger', 'highlight');
+        }
+
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             holdEnabled: true,
         }));
@@ -600,8 +744,8 @@ stepEquip.prototype = {
         var tag = this.tag;
 
         // Spawn content set
-        showEntitiesWithTag(this.tag);
-        showEntitiesWithTag(this.tagPart1);
+        showEntitiesWithTags(this.tags);
+        showEntitiesWithTags(this.tagsPart1);
 
         this.currentPart = this.PART1;
 
@@ -658,9 +802,10 @@ stepEquip.prototype = {
                 Script.setTimeout(function() {
                     debug("Equip | Starting part 3");
                     this.currentPart = this.PART3;
-                    hideEntitiesWithTag(this.tagPart1);
-                    showEntitiesWithTag(this.tagPart2);
+                    hideEntitiesWithTags(this.tagsPart1);
+                    showEntitiesWithTags(this.tagsPart2);
                     setControllerPartLayer('trigger', 'normal');
+                    setControllerPartLayer('grip', 'highlight');
                     setControllerPartLayer('tips', 'grip');
                     Messages.subscribe('Hifi-Object-Manipulation');
                     debug("Equip | Finished starting part 3");
@@ -687,16 +832,19 @@ stepEquip.prototype = {
         }
 
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('grip', 'normal');
         setControllerPartLayer('trigger', 'normal');
         this.stopWatchingGun();
         this.currentPart = this.COMPLETE;
 
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);
+            this.checkColllidesTimer = null;
         }
-        hideEntitiesWithTag(this.tagPart1);
-        hideEntitiesWithTag(this.tagPart2);
-        hideEntitiesWithTag(this.tag);
+
+        hideEntitiesWithTags(this.tagsPart1);
+        hideEntitiesWithTags(this.tagsPart2);
+        hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -710,9 +858,11 @@ stepEquip.prototype = {
 // STEP: Turn Around                                                         //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepTurnAround = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepTurnAround = function(tutorialManager) {
+    this.name = 'turnAround';
+
+    this.tags = ["turnAround", "turnAround-" + tutorialManager.controllerName];
+    this.tempTag = "turnAround-temporary";
 
     this.onActionBound = this.onAction.bind(this);
     this.numTimesSnapTurnPressed = 0;
@@ -720,10 +870,11 @@ var stepTurnAround = function(name) {
 }
 stepTurnAround.prototype = {
     start: function(onFinish) {
+        setControllerPartLayer('joystick', 'highlight');
         setControllerPartLayer('touchpad', 'arrows');
         setControllerPartLayer('tips', 'arrows');
 
-        showEntitiesWithTag(this.tag);
+        showEntitiesWithTags(this.tags);
 
         this.numTimesSnapTurnPressed = 0;
         this.numTimesSmoothTurnPressed = 0;
@@ -776,13 +927,14 @@ stepTurnAround.prototype = {
         } catch (e) {
         }
 
+        setControllerPartLayer('joystick', 'normal');
         setControllerPartLayer('touchpad', 'blank');
         setControllerPartLayer('tips', 'blank');
 
         if (this.interval) {
             Script.clearInterval(this.interval);
         }
-        hideEntitiesWithTag(this.tag);
+        hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -796,12 +948,15 @@ stepTurnAround.prototype = {
 // STEP: Teleport                                                            //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepTeleport = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepTeleport = function(tutorialManager) {
+    this.name = 'teleport';
+
+    this.tags = ["teleport", "teleport-" + tutorialManager.controllerName];
+    this.tempTag = "teleport-temporary";
 }
 stepTeleport.prototype = {
     start: function(onFinish) {
+        setControllerPartLayer('button_a', 'highlight');
         setControllerPartLayer('touchpad', 'teleport');
         setControllerPartLayer('tips', 'teleport');
 
@@ -831,17 +986,18 @@ stepTeleport.prototype = {
         }
         this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
 
-        showEntitiesWithTag(this.tag);
+        showEntitiesWithTags(this.tags);
     },
     cleanup: function() {
         debug("Teleport | Cleanup");
+        setControllerPartLayer('button_a', 'normal');
         setControllerPartLayer('touchpad', 'blank');
         setControllerPartLayer('tips', 'blank');
 
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);
         }
-        hideEntitiesWithTag(this.tag);
+        hideEntitiesWithTags(this.tags);
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -856,9 +1012,11 @@ stepTeleport.prototype = {
 // STEP: Finish                                                              //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepFinish = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
+var stepFinish = function() {
+    this.name = 'finish';
+
+    this.tag = "finish";
+    this.tempTag = "finish-temporary";
 }
 stepFinish.prototype = {
     start: function(onFinish) {
@@ -872,6 +1030,8 @@ stepFinish.prototype = {
 };
 
 var stepCleanupFinish = function() {
+    this.name = 'cleanup';
+
     this.shouldLog = false;
 }
 stepCleanupFinish.prototype = {
@@ -885,101 +1045,6 @@ stepCleanupFinish.prototype = {
 
 
 
-function isEntityInLocalTree(entityID) {
-    return Entities.getEntityProperties(entityID, 'visible').visible !== undefined;
-}
-
-function showEntitiesWithTag(tag) {
-    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
-    if (entities) {
-        for (entityID in entities) {
-            var data = entities[entityID];
-
-            var collisionless = data.visible === false ? true : false;
-            if (data.collidable !== undefined) {
-                collisionless = data.collidable === true ? false : true;
-            }
-            if (data.soundKey) {
-                data.soundKey.playing = true;
-            }
-            var newProperties = {
-                visible: data.visible == false ? false : true,
-                collisionless: collisionless,
-                userData: JSON.stringify(data),
-            };
-            debug("Showing: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
-            Entities.editEntity(entityID, newProperties);
-        }
-    }
-
-    // Dynamic method, suppressed for now
-    return;
-    editEntitiesWithTag(tag, function(entityID) {
-        var userData = Entities.getEntityProperties(entityID, "userData").userData;
-        var data = parseJSON(userData);
-        var collisionless = data.visible === false ? true : false;
-        if (data.collidable !== undefined) {
-            collisionless = data.collidable === true ? false : true;
-        }
-        if (data.soundKey) {
-            data.soundKey.playing = true;
-        }
-        var newProperties = {
-            visible: data.visible == false ? false : true,
-            collisionless: collisionless,
-            userData: JSON.stringify(data),
-        };
-        Entities.editEntity(entityID, newProperties);
-    });
-}
-
-function hideEntitiesWithTag(tag) {
-    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
-    if (entities) {
-        for (entityID in entities) {
-            var data = entities[entityID];
-
-            if (data.soundKey) {
-                data.soundKey.playing = false;
-            }
-            var newProperties = {
-                visible: false,
-                collisionless: 1,
-                ignoreForCollisions: 1,
-                userData: JSON.stringify(data),
-            };
-
-            debug("Hiding: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
-            Entities.editEntity(entityID, newProperties);
-        }
-    }
-
-    // Dynamic method, suppressed for now
-    return;
-    editEntitiesWithTag(tag, function(entityID) {
-        var userData = Entities.getEntityProperties(entityID, "userData").userData;
-        var data = parseJSON(userData);
-        if (data.soundKey) {
-            data.soundKey.playing = false;
-        }
-        var newProperties = {
-            visible: false,
-            collisionless: 1,
-            ignoreForCollisions: 1,
-            userData: JSON.stringify(data),
-        };
-        Entities.editEntity(entityID, newProperties);
-    });
-}
-
-// Return the entity properties for an entity with a given name if it is in our
-// cached list of entities. Otherwise, return undefined.
-function getEntityWithName(name) {
-    debug("Getting entity with name:", name);
-    var entityID = TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP[name];
-    debug("Entity id: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
-    return entityID;
-}
 
 
 TutorialManager = function() {
@@ -992,10 +1057,24 @@ TutorialManager = function() {
     var didFinishTutorial = false;
 
     var wentToEntryStepNum;
-    var VERSION = 1;
+    var VERSION = 2;
     var tutorialID;
 
     var self = this;
+
+    // The real controller name is the actual detected controller name, or 'unknown'
+    // if one is not found.
+    if (HMD.isSubdeviceContainingNameAvailable("OculusTouch")) {
+        this.controllerName = "touch";
+        this.realControllerName = "touch";
+    } else if (HMD.isHandControllerAvailable("OpenVR")) {
+        this.controllerName = "vive";
+        this.realControllerName = "vive";
+    } else {
+        info("ERROR, no known hand controller found, defaulting to Vive");
+        this.controllerName = "vive";
+        this.realControllerName = "unknown";
+    }
 
     this.startTutorial = function() {
         currentStepNum = -1;
@@ -1006,15 +1085,15 @@ TutorialManager = function() {
         // If Script.generateUUID is not available, default to an empty string.
         tutorialID = Script.generateUUID ? Script.generateUUID() : "";
         STEPS = [
-            new stepStart("start"),
-            new stepOrient("orient"),
-            new stepNearGrab("nearGrab"),
-            new stepFarGrab("farGrab"),
-            new stepEquip("equip"),
-            new stepTurnAround("turnAround"),
-            new stepTeleport("teleport"),
-            new stepFinish("finish"),
-            new stepEnableControllers("enableControllers"),
+            new stepStart(this),
+            new stepOrient(this),
+            new stepFarGrab(this),
+            new stepNearGrab(this),
+            new stepEquip(this),
+            new stepTurnAround(this),
+            new stepTeleport(this),
+            new stepFinish(this),
+            new stepEnableControllers(this),
         ];
         wentToEntryStepNum = STEPS.length;
         for (var i = 0; i < STEPS.length; ++i) {
@@ -1027,7 +1106,7 @@ TutorialManager = function() {
     this.onFinish = function() {
         debug("onFinish", currentStepNum);
         if (currentStep && currentStep.shouldLog !== false) {
-            self.trackStep(currentStep.tag, currentStepNum);
+            self.trackStep(currentStep.name, currentStepNum);
         }
 
         self.startNextStep();
@@ -1083,7 +1162,7 @@ TutorialManager = function() {
         var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
         UserActivityLogger.tutorialProgress(
                 name, stepNum, timeToFinishStep, tutorialTimeElapsed,
-                tutorialID, VERSION);
+                tutorialID, VERSION, this.realControllerName);
     }
 
     // This is a message sent from the "entry" portal in the courtyard,
@@ -1099,6 +1178,25 @@ TutorialManager = function() {
 
 // To run the tutorial:
 //
-// var tutorialManager = new TutorialManager();
-// tutorialManager.startTutorial();
+//var tutorialManager = new TutorialManager();
+//tutorialManager.startTutorial();
 //
+//
+//var keyReleaseHandler = function(event) {
+//    if (event.isShifted && event.isAlt) {
+//        print('here', event.text);
+//        if (event.text == "F12") {
+//            if (!tutorialManager.startNextStep()) {
+//                tutorialManager.startTutorial();
+//            }
+//        } else if (event.text == "F11") {
+//            tutorialManager.restartStep();
+//        } else if (event.text == "F10") {
+//            MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
+//        } else if (event.text == "r") {
+//            tutorialManager.stopTutorial();
+//            tutorialManager.startTutorial();
+//        }
+//    }
+//};
+//Controller.keyReleaseEvent.connect(keyReleaseHandler);

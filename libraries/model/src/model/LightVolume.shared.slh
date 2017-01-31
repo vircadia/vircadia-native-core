@@ -1,0 +1,66 @@
+// glsl / C++ compatible source as interface for Light
+#ifndef LightVolume_Shared_slh
+#define LightVolume_Shared_slh
+
+//  Light.shared.slh
+//  libraries/model/src/model
+//
+//  Created by Sam Gateau on 14/9/2016.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+#define LightVolumeConstRef LightVolume
+
+struct LightVolume {
+    vec4 positionRadius;
+    vec4 directionSpotCos;
+};
+
+bool lightVolume_isPoint(LightVolume lv) { return bool(lv.directionSpotCos.w < 0.f); }
+bool lightVolume_isSpot(LightVolume lv) { return bool(lv.directionSpotCos.w >= 0.f); }
+
+vec3 lightVolume_getPosition(LightVolume lv) { return lv.positionRadius.xyz; }
+float lightVolume_getRadius(LightVolume lv) { return lv.positionRadius.w; }
+float lightVolume_getRadiusSquare(LightVolume lv) { return lv.positionRadius.w * lv.positionRadius.w; }
+vec3 lightVolume_getDirection(LightVolume lv) { return lv.directionSpotCos.xyz; } // direction is -Z axis
+
+float lightVolume_getSpotAngleCos(LightVolume lv) { return lv.directionSpotCos.w; }
+vec2 lightVolume_getSpotOutsideNormal2(LightVolume lv) { return vec2(-sqrt(1.0 - lv.directionSpotCos.w * lv.directionSpotCos.w), lv.directionSpotCos.w); }
+
+
+bool lightVolume_clipFragToLightVolumePoint(LightVolume lv, vec3 fragPos, out vec4 fragLightVecLen2) {
+    fragLightVecLen2.xyz = lightVolume_getPosition(lv) - fragPos.xyz;
+    fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
+
+    // Kill if too far from the light center
+    return (fragLightVecLen2.w <= lightVolume_getRadiusSquare(lv));
+}
+
+bool lightVolume_clipFragToLightVolumeSpotSide(LightVolume lv, vec4 fragLightDirLen, out float cosSpotAngle) {
+    // Kill if not in the spot light (ah ah !)
+    cosSpotAngle = max(-dot(fragLightDirLen.xyz, lightVolume_getDirection(lv)), 0.0);
+    return (cosSpotAngle >= lightVolume_getSpotAngleCos(lv));
+}
+
+bool lightVolume_clipFragToLightVolumeSpot(LightVolume lv, vec3 fragPos, out vec4 fragLightVecLen2, out vec4 fragLightDirLen, out float cosSpotAngle) {
+    if (!lightVolume_clipFragToLightVolumePoint(lv, fragPos, fragLightVecLen2)) {
+        return false;
+    }
+
+    // Allright we re valid in the volume
+    fragLightDirLen.w = length(fragLightVecLen2.xyz);
+    fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
+
+    return lightVolume_clipFragToLightVolumeSpotSide(lv, fragLightDirLen, cosSpotAngle);
+}
+
+#endif
+
+
+// <@if 1@>
+// Trigger Scribe include 
+// <@endif@> <!def that !>

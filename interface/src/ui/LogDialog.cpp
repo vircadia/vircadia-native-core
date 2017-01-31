@@ -44,7 +44,7 @@ const QString HIGHLIGHT_COLOR = "#3366CC";
 int qTextCursorMeta = qRegisterMetaType<QTextCursor>("QTextCursor");
 int qTextBlockMeta = qRegisterMetaType<QTextBlock>("QTextBlock");
 
-LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog(parent, Qt::Dialog) {
+LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog(parent, Qt::Window) {
 
     _logger = logger;
     setWindowTitle("Log");

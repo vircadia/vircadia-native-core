@@ -25,6 +25,7 @@
 #include "AudioLogging.h"
 #include "SoundCache.h"
 #include "AudioSRC.h"
+#include "AudioHelpers.h"
 
 int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
 
@@ -58,8 +59,10 @@ void AudioInjector::setOptions(const AudioInjectorOptions& options) {
     // since options.stereo is computed from the audio stream,
     // we need to copy it from existing options just in case.
     bool currentlyStereo = _options.stereo;
+    bool currentlyAmbisonic = _options.ambisonic;
     _options = options;
     _options.stereo = currentlyStereo;
+    _options.ambisonic = currentlyAmbisonic;
 }
 
 void AudioInjector::finishNetworkInjection() {
@@ -134,7 +137,8 @@ bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(AudioInjector*
 
     int byteOffset = 0;
     if (_options.secondOffset > 0.0f) {
-        byteOffset = (int)floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+        int numChannels = _options.ambisonic ? 4 : (_options.stereo ? 2 : 1);
+        byteOffset = (int)(AudioConstants::SAMPLE_RATE * _options.secondOffset * numChannels);
         byteOffset *= sizeof(AudioConstants::SAMPLE_SIZE);
     }
     _currentSendOffset = byteOffset;
@@ -163,13 +167,12 @@ bool AudioInjector::injectLocally() {
 
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
-            _localBuffer->setVolume(_options.volume);
 
             // give our current send position to the local buffer
             _localBuffer->setCurrentOffset(_currentSendOffset);
 
             // call this function on the AudioClient's thread
-            success = QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector", Q_ARG(bool, _options.stereo), Q_ARG(AudioInjector*, this));
+            success = QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector", Q_ARG(AudioInjector*, this));
 
             if (!success) {
                 qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
@@ -177,15 +180,12 @@ bool AudioInjector::injectLocally() {
         } else {
             qCDebug(audio) << "AudioInjector::injectLocally called without any data in Sound QByteArray";
         }
-
-    } else {
-        qCDebug(audio) << "AudioInjector::injectLocally cannot inject locally with no local audio interface present.";
     }
 
     return success;
 }
 
-const uchar MAX_INJECTOR_VOLUME = 0xFF;
+const uchar MAX_INJECTOR_VOLUME = packFloatGainToByte(1.0f);
 static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
 static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
@@ -206,7 +206,7 @@ qint64 writeStringToStream(const QString& string, QDataStream& stream) {
 
 int64_t AudioInjector::injectNextFrame() {
     if (stateHas(AudioInjectorState::NetworkInjectionFinished)) {
-        qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
+        qCDebug(audio)  << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
 
@@ -229,7 +229,7 @@ int64_t AudioInjector::injectNextFrame() {
             auto numSamples = static_cast<int>(_audioData.size() / sampleSize);
             auto targetSize = numSamples * sampleSize;
             if (targetSize != _audioData.size()) {
-                qDebug() << "Resizing audio that doesn't end at multiple of sample size, resizing from "
+                qCDebug(audio)  << "Resizing audio that doesn't end at multiple of sample size, resizing from "
                     << _audioData.size() << " to " << targetSize;
                 _audioData.resize(targetSize);
             }
@@ -275,6 +275,12 @@ int64_t AudioInjector::injectNextFrame() {
             audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
                                            sizeof(_options.orientation));
 
+            audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
+                sizeof(_options.position));
+            glm::vec3 boxCorner = glm::vec3(0);
+            audioPacketStream.writeRawData(reinterpret_cast<const char*>(&boxCorner),
+                sizeof(glm::vec3));
+
             // pack zero for radius
             float radius = 0;
             audioPacketStream << radius;
@@ -289,7 +295,7 @@ int64_t AudioInjector::injectNextFrame() {
 
         } else {
             // no samples to inject, return immediately
-            qDebug() << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
+            qCDebug(audio)  << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
@@ -325,7 +331,7 @@ int64_t AudioInjector::injectNextFrame() {
     _currentPacket->writePrimitive(_options.position);
     _currentPacket->writePrimitive(_options.orientation);
 
-    quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
+    quint8 volume = packFloatGainToByte(_options.volume);
     _currentPacket->seek(volumeOptionOffset);
     _currentPacket->writePrimitive(volume);
 
@@ -380,7 +386,7 @@ int64_t AudioInjector::injectNextFrame() {
 
     if (currentFrameBasedOnElapsedTime - _nextFrame > MAX_ALLOWED_FRAMES_TO_FALL_BEHIND) {
         // If we are falling behind by more frames than our threshold, let's skip the frames ahead
-        qDebug() << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
+        qCDebug(audio)  << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
         _nextFrame = currentFrameBasedOnElapsedTime;
         _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData.size();
     }

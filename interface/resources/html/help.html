@@ -47,25 +47,69 @@
             }
         </style>
         <script>
+            var handControllerImageURL = null;
+
             function showKbm() {
                 document.getElementById("main_image").setAttribute("src", "img/controls-help-keyboard.png");
             }
-            function showViveControllers() {
-                document.getElementById("main_image").setAttribute("src", "img/controls-help-vive.png");
+
+            function showHandControllers() {
+                document.getElementById("main_image").setAttribute("src", handControllerImageURL);
             }
-            function showXboxController() {
+
+            function showGamepad() {
                 document.getElementById("main_image").setAttribute("src", "img/controls-help-gamepad.png");
             }
-            function load() {
-                console.log("In help.html: ", window.location.href);
-                parts = window.location.href.split("?");
-                if (parts.length > 0) {
-                    var defaultTab = parts[1];
-                    if (defaultTab == "xbox") {
-                        showXboxController();
-                    } else if (defaultTab == "vive") {
-                        showViveControllers();
+
+            // This is not meant to be a complete or hardened query string parser - it only
+            // needs to handle the values we send in and have control over.
+            //
+            // queryString is a string of the form "key1=value1&key2=value2&key3&key4=value4"
+            function parseQueryString(queryString) {
+                var params = {};
+                var paramsParts = queryString.split("&");
+                for (var i = 0; i < paramsParts.length; ++i) {
+                    var paramKeyValue = paramsParts[i].split("=");
+                    if (paramKeyValue.length == 1) {
+                        params[paramKeyValue[0]] = undefined;
+                    } else if (paramKeyValue.length == 2) {
+                        params[paramKeyValue[0]] = paramKeyValue[1];
+                    } else {
+                        console.error("Error parsing param keyvalue: ", paramParts);
                     }
+                }
+                return params;
+            }
+
+            function load() {
+                var parts = window.location.href.split("?");
+                var params = {};
+                if (parts.length > 0) {
+                    params = parseQueryString(parts[1]);
+                }
+
+                switch (params.handControllerName) {
+                    case "oculus":
+                        handControllerImageURL = "img/controls-help-oculus.png";
+                        break;
+
+                    case "vive":
+                    default:
+                        handControllerImageURL = "img/controls-help-vive.png";
+                }
+
+                switch (params.defaultTab) {
+                    case "gamepad":
+                        showGamepad();
+                        break;
+
+                    case "handControllers":
+                        showHandControllers();
+                        break;
+
+                    case "kbm":
+                    default:
+                        showKbm();
                 }
             }
         </script>
@@ -75,8 +119,8 @@
         <div id="image_area">
             <img id="main_image" src="img/controls-help-keyboard.png" width="1024px" height="720px"></img>
             <a href="#" id="kbm_button" onmousedown="showKbm()"></a>
-            <a href="#" id="hand_controllers_button" onmousedown="showViveControllers()"></a>
-            <a href="#" id="game_controller_button" onmousedown="showXboxController()"></a>
+            <a href="#" id="hand_controllers_button" onmousedown="showHandControllers()"></a>
+            <a href="#" id="game_controller_button" onmousedown="showGamepad()"></a>
         </div>
     </body>
 

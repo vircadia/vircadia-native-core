@@ -324,8 +324,6 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                     listenerIsDead = true;
                 }
             } else {
-                // qDebug() << "Got verified unsourced packet list: " << QString(nlPacketList->getMessage());
-                
                 // one final check on the QPointer before we invoke
                 if (listener.object) {
                     success = listener.method.invoke(listener.object,

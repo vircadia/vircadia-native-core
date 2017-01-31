@@ -39,11 +39,11 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
         
-        _handPoses[0] = glm::translate(mat4(), vec3(-0.3f, 0.0f, 0.0f));
+        _handPoses[0] = glm::translate(mat4(), vec3(0.3f * cosf(secTimestampNow() * 3.0f), -0.3f * sinf(secTimestampNow() * 5.0f), 0.0f));
         _handLasers[0].color = vec4(1, 0, 0, 1);
         _handLasers[0].mode = HandLaserMode::Overlay;
 
-        _handPoses[1] = glm::translate(mat4(), vec3(0.3f, 0.0f, 0.0f));
+        _handPoses[1] = glm::translate(mat4(), vec3(0.3f * sinf(secTimestampNow() * 3.0f), -0.3f * cosf(secTimestampNow() * 5.0f), 0.0f));
         _handLasers[1].color = vec4(0, 1, 1, 1);
         _handLasers[1].mode = HandLaserMode::Overlay;
     });

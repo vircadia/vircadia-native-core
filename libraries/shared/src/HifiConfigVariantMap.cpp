@@ -156,13 +156,13 @@ void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
                 auto dataDirectory = ServerPathUtils::getDataDirectory();
                 if (QDir().mkpath(dataDirectory)) {
                     if (oldConfigFile.copy(_userConfigFilename)) {
-                        qDebug() << "Migrated config file from" << oldConfigFilename << "to" << _userConfigFilename;
+                        qCDebug(shared) << "Migrated config file from" << oldConfigFilename << "to" << _userConfigFilename;
                     } else {
-                        qWarning() << "Could not copy previous config file from" << oldConfigFilename << "to" << _userConfigFilename
+                        qCWarning(shared) << "Could not copy previous config file from" << oldConfigFilename << "to" << _userConfigFilename
                         << "- please try to copy manually and restart.";
                     }
                 } else {
-                    qWarning() << "Could not create application data directory" << dataDirectory << "- unable to migrate previous config file.";
+                    qCWarning(shared) << "Could not create application data directory" << dataDirectory << "- unable to migrate previous config file.";
                 }
             }
         }
@@ -226,5 +226,5 @@ QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath, bool 
                                shouldCreateIfMissing);
     }
 
-    return NULL;
+    return nullptr;
 }

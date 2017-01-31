@@ -13,7 +13,7 @@ class DebugHmdDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 
 public:
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
     grouping getGrouping() const override { return DEVELOPER; }
 
     bool isSupported() const override;

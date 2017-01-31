@@ -70,10 +70,30 @@ Item {
                         text: "Present Drop Rate: " + root.presentdroprate.toFixed(2);
                     }
                     StatText {
+                        text: "Stutter Rate: " + root.stutterrate.toFixed(3);
+                        visible: root.stutterrate != -1;
+                    }
+                    StatText {
                         text: "Simrate: " + root.simrate
                     }
                     StatText {
                         text: "Avatar Simrate: " + root.avatarSimrate
+                    }
+                    StatText {
+                        text: "Missed Frame Count: " + root.appdropped;
+                        visible: root.appdropped > 0;
+                    }
+                    StatText {
+                        text: "Long Render Count: " + root.longrenders;
+                        visible: root.longrenders > 0;
+                    }
+                    StatText {
+                        text: "Long Submit Count: " + root.longsubmits;
+                        visible: root.longsubmits > 0;
+                    }
+                    StatText {
+                        text: "Long Frame Count: " + root.longframes;
+                        visible: root.longframes > 0;
                     }
                     StatText {
                         text: "Packets In/Out: " + root.packetInCount + "/" + root.packetOutCount
@@ -150,7 +170,8 @@ Item {
                     StatText {
                         visible: root.expanded;
                         text: "Avatar Mixer Out: " + root.avatarMixerOutKbps + " kbps, " +
-                            root.avatarMixerOutPps + "pps";
+                            root.avatarMixerOutPps + "pps, " +
+                            root.myAvatarSendRate.toFixed(2) + "hz";
                     }
                     StatText {
                         visible: root.expanded;
@@ -189,6 +210,15 @@ Item {
                 Column {
                     id: octreeCol
                     spacing: 4; x: 4; y: 4;
+                    StatText {
+                        text: "  Frame timing:"
+                    }
+                    StatText {
+                        text: "      Batch: " + root.batchFrameTime.toFixed(1) + " ms"
+                    }
+                    StatText {
+                        text: "      GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                    }
                     StatText {
                         text: "Triangles: " + root.triangles +
                             " / Material Switches: " + root.materialSwitches
@@ -232,7 +262,7 @@ Item {
                         text: "GPU Buffers: "
                     }
                     StatText {
-                        text: "  Count: " + root.gpuTextures;
+                        text: "  Count: " + root.gpuBuffers;
                     }
                     StatText {
                         text: "  Memory: " + root.gpuBufferMemory;

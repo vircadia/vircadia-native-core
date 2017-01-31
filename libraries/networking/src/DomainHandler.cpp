@@ -41,12 +41,12 @@ DomainHandler::DomainHandler(QObject* parent) :
     
     // setup a timeout for failure on settings requests
     static const int DOMAIN_SETTINGS_TIMEOUT_MS = 5000;
-    _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS);
+    _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS); // 5s, Qt::CoarseTimer acceptable
     connect(&_settingsTimer, &QTimer::timeout, this, &DomainHandler::settingsReceiveFail);
 
     // setup the API refresh timer for auto connection information refresh from API when failing to connect
     const int API_REFRESH_TIMEOUT_MSEC = 2500;
-    _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC);
+    _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC); // 2.5s, Qt::CoarseTimer acceptable
 
     auto addressManager = DependencyManager::get<AddressManager>();
     connect(&_apiRefreshTimer, &QTimer::timeout, addressManager.data(), &AddressManager::refreshPreviousLookup);
@@ -247,7 +247,7 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
 }
 
 void DomainHandler::completedIceServerHostnameLookup() {
-    qDebug() << "ICE server socket is at" << _iceServerSockAddr;
+    qCDebug(networking) << "ICE server socket is at" << _iceServerSockAddr;
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetICEServerSocket);
 
@@ -272,27 +272,17 @@ void DomainHandler::setIsConnected(bool isConnected) {
 }
 
 void DomainHandler::requestDomainSettings() {
-    // TODO: the nodes basically lock if they don't get a response - add a timeout to this so that they at least restart
-    // if they can't get settings
-    
-    NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
-    if (owningNodeType == NodeType::Agent) {
-        // for now the agent nodes don't need any domain settings
-        _settingsObject = QJsonObject();
-        emit settingsReceived(_settingsObject);
-    } else {
-        qCDebug(networking) << "Requesting settings from domain server";
-        
-        Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
-        
-        auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
-        packet->writePrimitive(assignmentType);
-        
-        auto nodeList = DependencyManager::get<LimitedNodeList>();
-        nodeList->sendPacket(std::move(packet), _sockAddr);
-        
-        _settingsTimer.start();
-    }
+    qCDebug(networking) << "Requesting settings from domain server";
+
+    Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
+
+    auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
+    packet->writePrimitive(assignmentType);
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->sendPacket(std::move(packet), _sockAddr);
+
+    _settingsTimer.start();
 }
 
 void DomainHandler::processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList) {
@@ -345,7 +335,7 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<ReceivedMessage>
 
 void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> message) {
     if (_icePeer.hasSockets()) {
-        qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
+        qCDebug(networking) << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
         // bail on processing this packet if our ice peer already has sockets
         return;
     }

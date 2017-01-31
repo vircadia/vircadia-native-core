@@ -17,6 +17,8 @@
 
 #include "Socket.h"
 
+#include "../NetworkLogging.h"
+
 using namespace udt;
 
 int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
@@ -106,7 +108,7 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
         }
 
         static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Unobfuscating packet .*");
-        qDebug() << qPrintable(debugString);
+        qCDebug(networking) << qPrintable(debugString);
 #endif
 
         obfuscate(NoObfuscation); // Undo obfuscation

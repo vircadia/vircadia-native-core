@@ -13,6 +13,9 @@
 
 #include "ObjectActionOffset.h"
 
+#include "PhysicsLogging.h"
+
+
 const uint16_t ObjectActionOffset::offsetVersion = 1;
 
 ObjectActionOffset::ObjectActionOffset(const QUuid& id, EntityItemPointer ownerEntity) :
@@ -22,13 +25,13 @@ ObjectActionOffset::ObjectActionOffset(const QUuid& id, EntityItemPointer ownerE
     _linearTimeScale(FLT_MAX),
     _positionalTargetSet(false) {
     #if WANT_DEBUG
-    qDebug() << "ObjectActionOffset::ObjectActionOffset";
+    qCDebug(physics) << "ObjectActionOffset::ObjectActionOffset";
     #endif
 }
 
 ObjectActionOffset::~ObjectActionOffset() {
     #if WANT_DEBUG
-    qDebug() << "ObjectActionOffset::~ObjectActionOffset";
+    qCDebug(physics) << "ObjectActionOffset::~ObjectActionOffset";
     #endif
 }
 
@@ -47,7 +50,7 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         btRigidBody* rigidBody = motionState->getRigidBody();
         if (!rigidBody) {
-            qDebug() << "ObjectActionOffset::updateActionWorker no rigidBody";
+            qCDebug(physics) << "ObjectActionOffset::updateActionWorker no rigidBody";
             return;
         }
 

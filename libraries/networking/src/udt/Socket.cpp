@@ -26,6 +26,7 @@
 #include "../NLPacket.h"
 #include "../NLPacketList.h"
 #include "PacketList.h"
+#include <Trace.h>
 
 using namespace udt;
 
@@ -165,6 +166,12 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
         // hand this packetList off to writeReliablePacketList
         // because Qt can't invoke with the unique_ptr we have to release it here and re-construct in writeReliablePacketList
 
+        if (packetList->getNumPackets() == 0) {
+            qCWarning(networking) << "Trying to send packet list with 0 packets, bailing.";
+            return 0;
+        }
+
+
         if (QThread::currentThread() != thread()) {
             auto ptr = packetList.release();
             QMetaObject::invokeMethod(this, "writeReliablePacketList", Qt::AutoConnection,
@@ -275,7 +282,7 @@ void Socket::clearConnections() {
 
     if (_connectionsHash.size() > 0) {
         // clear all of the current connections in the socket
-        qDebug() << "Clearing all remaining connections in Socket.";
+        qCDebug(networking) << "Clearing all remaining connections in Socket.";
         _connectionsHash.clear();
     }
 }

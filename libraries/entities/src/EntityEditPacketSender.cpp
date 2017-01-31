@@ -52,12 +52,12 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     assert(_myAvatar);
 
     if (!entityTree) {
-        qDebug() << "EntityEditPacketSender::queueEditEntityMessage null entityTree.";
+        qCDebug(entities) << "EntityEditPacketSender::queueEditEntityMessage null entityTree.";
         return;
     }
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(entityItemID);
     if (!entity) {
-        qDebug() << "EntityEditPacketSender::queueEditEntityMessage can't find entity.";
+        qCDebug(entities) << "EntityEditPacketSender::queueEditEntityMessage can't find entity.";
         return;
     }
 

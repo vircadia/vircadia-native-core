@@ -56,6 +56,7 @@ signals:
     void progress(qint64 totalReceived, qint64 total);
 
 private:
+    int _requestID;
     State _state = NotStarted;
     Error _error = NoError;
     AssetInfo _info;
@@ -63,8 +64,8 @@ private:
     QString _hash;
     QByteArray _data;
     int _numPendingRequests { 0 };
-    MessageID _assetRequestID { AssetClient::INVALID_MESSAGE_ID };
-    MessageID _assetInfoRequestID { AssetClient::INVALID_MESSAGE_ID };
+    MessageID _assetRequestID { INVALID_MESSAGE_ID };
+    MessageID _assetInfoRequestID { INVALID_MESSAGE_ID };
 };
 
 #endif

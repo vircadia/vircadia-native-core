@@ -44,6 +44,8 @@ public:
         return false;
     }
 
+    float stutterRate() const override;
+
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
@@ -78,8 +80,6 @@ protected:
 
     Transform _presentUiModelTransform;
     std::array<HandLaserInfo, 2> _presentHandLasers;
-    std::array<int, 2> _geometryIds;
-    int _extraLaserID;
     std::array<mat4, 2> _presentHandPoses;
     std::array<std::pair<vec3, vec3>, 2> _presentHandLaserPoints;
 
@@ -108,8 +108,9 @@ protected:
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
+    RateCounter<> _stutterRate;
 
-    bool _disablePreview{ true };
+    bool _disablePreview { true };
 private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
     float getLeftCenterPixel() const;
@@ -117,6 +118,9 @@ private:
     bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
+    std::array<gpu::BufferPointer, 2> _handLaserUniforms;
+    gpu::BufferPointer _extraLaserUniforms;
+    gpu::PipelinePointer _glowLinePipeline;
     gpu::TexturePointer _previewTexture;
     glm::vec2 _lastWindowSize;
 

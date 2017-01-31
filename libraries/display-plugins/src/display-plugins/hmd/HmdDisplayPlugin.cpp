@@ -23,7 +23,6 @@
 #include <CursorManager.h>
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>
-#include <GeometryCache.h>
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 #include <gpu/gl/GLBackend.h>
@@ -32,6 +31,9 @@
 
 #include "../Logging.h"
 #include "../CompositorHelper.h"
+#include <../render-utils/shaders/render-utils/glowLine_vert.h>
+#include <../render-utils/shaders/render-utils/glowLine_frag.h>
+
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString DISABLE_PREVIEW = "Disable Preview";
@@ -46,6 +48,12 @@ static const size_t NUMBER_OF_HANDS = 2;
 
 //#define LIVE_SHADER_RELOAD 1
 extern glm::vec3 getPoint(float yaw, float pitch);
+
+struct HandLaserData {
+    vec4 p1;
+    vec4 p2;
+    vec4 color;
+};
 
 static QString readFile(const QString& filename) {
     QFile file(filename);
@@ -109,14 +117,31 @@ void HmdDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
 }
 
+static const int32_t LINE_DATA_SLOT = 1;
+
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
     _overlayRenderer.build();
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    for (size_t i = 0; i < _geometryIds.size(); ++i) {
-        _geometryIds[i] = geometryCache->allocateID();
-    }
-    _extraLaserID = geometryCache->allocateID();
+
+    {
+        auto state = std::make_shared<gpu::State>();
+        auto VS = gpu::Shader::createVertex(std::string(glowLine_vert));
+        auto PS = gpu::Shader::createPixel(std::string(glowLine_frag));
+        auto program = gpu::Shader::createProgram(VS, PS);
+        state->setCullMode(gpu::State::CULL_NONE);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        
+        gpu::Shader::BindingSet bindings;
+        bindings.insert({ "lineData", LINE_DATA_SLOT });;
+        gpu::Shader::makeProgram(*program, bindings);
+        _glowLinePipeline = gpu::Pipeline::create(program, state);
+        _handLaserUniforms = std::array<gpu::BufferPointer, 2>{ { std::make_shared<gpu::Buffer>(), std::make_shared<gpu::Buffer>() } };
+        _extraLaserUniforms = std::make_shared<gpu::Buffer>();
+    };
+
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
@@ -131,12 +156,10 @@ void HmdDisplayPlugin::uncustomizeContext() {
     });
     _overlayRenderer = OverlayRenderer();
     _previewTexture.reset();
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    for (size_t i = 0; i < _geometryIds.size(); ++i) {
-        geometryCache->releaseID(_geometryIds[i]);
-    }
-    geometryCache->releaseID(_extraLaserID);
+    _handLaserUniforms[0].reset();
+    _handLaserUniforms[1].reset();
+    _extraLaserUniforms.reset();
+    _glowLinePipeline.reset();
     Parent::uncustomizeContext();
 }
 
@@ -183,7 +206,7 @@ float HmdDisplayPlugin::getLeftCenterPixel() const {
 }
 
 void HmdDisplayPlugin::internalPresent() {
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
     // Composite together the scene, overlay and mouse cursor
     hmdPresent();
@@ -682,12 +705,16 @@ void HmdDisplayPlugin::compositeExtra() {
     if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX && !_presentExtraLaser.valid()) {
         return;
     }
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
+    
     render([&](gpu::Batch& batch) {
         batch.setFramebuffer(_compositeFramebuffer);
+        batch.setModelTransform(Transform());
         batch.setViewportTransform(ivec4(uvec2(0), _renderTargetSize));
         batch.setViewTransform(_currentPresentFrameInfo.presentPose, false);
+        // Compile the shaders
+        batch.setPipeline(_glowLinePipeline);
+
+
         bilateral::for_each_side([&](bilateral::Side side){
             auto index = bilateral::index(side);
             if (_presentHandPoses[index] == IDENTITY_MATRIX) {
@@ -696,17 +723,26 @@ void HmdDisplayPlugin::compositeExtra() {
             const auto& laser = _presentHandLasers[index];
             if (laser.valid()) {
                 const auto& points = _presentHandLaserPoints[index];
-                geometryCache->renderGlowLine(batch, points.first, points.second, laser.color, _geometryIds[index]);
+                _handLaserUniforms[index]->resize(sizeof(HandLaserData));
+                _handLaserUniforms[index]->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _handLasers[index].color });
+                batch.setUniformBuffer(LINE_DATA_SLOT, _handLaserUniforms[index]);
+                batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
             }
         });
 
         if (_presentExtraLaser.valid()) {
             const auto& points = _presentExtraLaserPoints;
-            geometryCache->renderGlowLine(batch, points.first, points.second, _presentExtraLaser.color, _extraLaserID);
+            _extraLaserUniforms->resize(sizeof(HandLaserData));
+            _extraLaserUniforms->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _presentExtraLaser.color });
+            batch.setUniformBuffer(LINE_DATA_SLOT, _extraLaserUniforms);
+            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
         }
     });
 }
 
 HmdDisplayPlugin::~HmdDisplayPlugin() {
-    qDebug() << "Destroying HmdDisplayPlugin";
+}
+
+float HmdDisplayPlugin::stutterRate() const {
+    return _stutterRate.rate();
 }

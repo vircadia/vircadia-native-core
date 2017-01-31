@@ -25,11 +25,11 @@
 Q_DECLARE_LOGGING_CATEGORY(oculus)
 
 
-static const QString MENU_PARENT = "Avatar";
-static const QString MENU_NAME = "Oculus Touch Controllers";
-static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+static const char* MENU_PARENT = "Avatar";
+static const char* MENU_NAME = "Oculus Touch Controllers";
+static const char* MENU_PATH = "Avatar" ">" "Oculus Touch Controllers";
 
-const QString OculusControllerManager::NAME = "Oculus";
+const char* OculusControllerManager::NAME = "Oculus";
 
 bool OculusControllerManager::isSupported() const {
     return oculusAvailable();
@@ -206,7 +206,7 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
     }
 
     int numTrackedControllers = 0;
-    static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
+    static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked | ovrStatus_PositionTracked;
     auto tracking = ovr_GetTrackingState(_parent._session, 0, false);
     ovr_for_each_hand([&](ovrHandType hand) {
         ++numTrackedControllers;

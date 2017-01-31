@@ -44,7 +44,7 @@ public:
     }
 
     virtual void apply(const Pose& value, const Pointer& source) override {
-        if (value != Pose()) {
+        if (value != Pose() && value.isValid()) {
             _written = true;
         }
         VirtualEndpoint::apply(value, source);

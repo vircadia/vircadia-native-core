@@ -80,6 +80,7 @@ public:
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
+    void setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -98,10 +99,13 @@ public:
 
     bool isVisible() const { return _isVisible; }
 
-    void updateRenderItems();
+    bool isLayeredInFront() const { return _isLayeredInFront; }
+
+    virtual void updateRenderItems();
     void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
     bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
+    const render::ItemIDs& fetchRenderItemIDs() const;
 
     bool maybeStartBlender();
 
@@ -123,7 +127,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    virtual void updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation);
+    virtual void updateClusterMatrices();
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
@@ -211,12 +215,6 @@ public:
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
     glm::vec3 getScaleToFitDimensions() const; /// the dimensions model is scaled to, including inferred y/z
 
-    void setCauterizeBones(bool flag) { _cauterizeBones = flag; }
-    bool getCauterizeBones() const { return _cauterizeBones; }
-
-    const std::unordered_set<int>& getCauterizeBoneSet() const { return _cauterizeBoneSet; }
-    void setCauterizeBoneSet(const std::unordered_set<int>& boneSet) { _cauterizeBoneSet = boneSet; }
-
     int getBlendshapeCoefficientsNum() const { return _blendshapeCoefficients.size(); }
     float getBlendshapeCoefficient(int index) const {
         return ((index < 0) && (index >= _blendshapeCoefficients.size())) ? 0.0f : _blendshapeCoefficients.at(index);
@@ -227,7 +225,7 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
 
     // returns 'true' if needs fullUpdate after geometry change
-    bool updateGeometry();
+    virtual bool updateGeometry();
     void setCollisionMesh(model::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
@@ -238,6 +236,18 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
+    class MeshState {
+    public:
+        QVector<glm::mat4> clusterMatrices;
+        gpu::BufferPointer clusterBuffer;
+
+    };
+
+    const MeshState& getMeshState(int index) { return _meshStates.at(index); }
+
+    uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
+    const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItems; }
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -247,9 +257,6 @@ signals:
 
 protected:
     bool addedToScene() const { return _addedToScene; }
-
-    void setPupilDilation(float dilation) { _pupilDilation = dilation; }
-    float getPupilDilation() const { return _pupilDilation; }
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
@@ -297,18 +304,7 @@ protected:
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
 
-    class MeshState {
-    public:
-        QVector<glm::mat4> clusterMatrices;
-        QVector<glm::mat4> cauterizedClusterMatrices;
-        gpu::BufferPointer clusterBuffer;
-        gpu::BufferPointer cauterizedClusterBuffer;
-
-    };
-
     QVector<MeshState> _meshStates;
-    std::unordered_set<int> _cauterizeBoneSet;
-    bool _cauterizeBones;
 
     virtual void initJointStates();
 
@@ -316,7 +312,6 @@ protected:
     void scaleToFit();
     void snapToRegistrationPoint();
 
-    void simulateInternal(float deltaTime);
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Restores the indexed joint to its default position.
@@ -341,10 +336,9 @@ protected:
 
 protected:
 
-    void deleteGeometry();
+    virtual void deleteGeometry();
     void initJointTransforms();
 
-    float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
@@ -371,11 +365,10 @@ protected:
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
 
     void createRenderItemSet();
-    void createVisibleRenderItemSet();
-    void createCollisionRenderItemSet();
+    virtual void createVisibleRenderItemSet();
+    virtual void createCollisionRenderItemSet();
 
     bool _isWireframe;
-
 
     // debug rendering support
     void renderDebugMeshBoxes(gpu::Batch& batch);
@@ -389,6 +382,8 @@ protected:
 
     QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
+
+    render::ItemIDs _modelMeshRenderItemIDs;
 
     bool _addedToScene { false }; // has been added to scene
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
@@ -412,6 +407,8 @@ protected:
     bool _hasCalculatedTextureInfo { false };
     int _renderInfoDrawCalls { 0 };
     int _renderInfoHasTransparent { false };
+
+    bool _isLayeredInFront { false };
 
 private:
     float _loadingPriority { 0.0f };

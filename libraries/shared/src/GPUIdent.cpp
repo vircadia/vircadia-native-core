@@ -197,7 +197,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
 
     ULONG uNumOfInstances = 0;
     CComPtr<IWbemClassObject> spInstance = NULL;
-    hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance, &uNumOfInstances);
+    hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance.p, &uNumOfInstances);
     while (hr == S_OK && spInstance && uNumOfInstances) {
         // Get properties from the object
         CComVariant var;

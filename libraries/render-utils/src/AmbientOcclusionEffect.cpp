@@ -184,46 +184,46 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     const double RADIUS_POWER = 6.0;
     const auto& radius = config.radius;
     if (radius != _parametersBuffer->getRadius()) {
-        auto& current = _parametersBuffer->radiusInfo;
+        auto& current = _parametersBuffer.edit().radiusInfo;
         current.x = radius;
         current.y = radius * radius;
         current.z = (float)(1.0 / pow((double)radius, RADIUS_POWER));
     }
 
     if (config.obscuranceLevel != _parametersBuffer->getObscuranceLevel()) {
-        auto& current = _parametersBuffer->radiusInfo;
+        auto& current = _parametersBuffer.edit().radiusInfo;
         current.w = config.obscuranceLevel;
     }
 
     if (config.falloffBias != _parametersBuffer->getFalloffBias()) {
-        auto& current = _parametersBuffer->ditheringInfo;
+        auto& current = _parametersBuffer.edit().ditheringInfo;
         current.z = config.falloffBias;
     }
 
     if (config.edgeSharpness != _parametersBuffer->getEdgeSharpness()) {
-        auto& current = _parametersBuffer->blurInfo;
+        auto& current = _parametersBuffer.edit().blurInfo;
         current.x = config.edgeSharpness;
     }
 
     if (config.blurDeviation != _parametersBuffer->getBlurDeviation()) {
-        auto& current = _parametersBuffer->blurInfo;
+        auto& current = _parametersBuffer.edit().blurInfo;
         current.z = config.blurDeviation;
         shouldUpdateGaussian = true;
     }
 
     if (config.numSpiralTurns != _parametersBuffer->getNumSpiralTurns()) {
-        auto& current = _parametersBuffer->sampleInfo;
+        auto& current = _parametersBuffer.edit().sampleInfo;
         current.z = config.numSpiralTurns;
     }
 
     if (config.numSamples != _parametersBuffer->getNumSamples()) {
-        auto& current = _parametersBuffer->sampleInfo;
+        auto& current = _parametersBuffer.edit().sampleInfo;
         current.x = config.numSamples;
         current.y = 1.0f / config.numSamples;
     }
 
     if (config.fetchMipsEnabled != _parametersBuffer->isFetchMipsEnabled()) {
-        auto& current = _parametersBuffer->sampleInfo;
+        auto& current = _parametersBuffer.edit().sampleInfo;
         current.w = (float)config.fetchMipsEnabled;
     }
 
@@ -232,26 +232,26 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     }
     
     if (config.perspectiveScale != _parametersBuffer->getPerspectiveScale()) {
-        _parametersBuffer->resolutionInfo.z = config.perspectiveScale;
+        _parametersBuffer.edit().resolutionInfo.z = config.perspectiveScale;
     }
     if (config.resolutionLevel != _parametersBuffer->getResolutionLevel()) {
-        auto& current = _parametersBuffer->resolutionInfo;
+        auto& current = _parametersBuffer.edit().resolutionInfo;
         current.x = (float) config.resolutionLevel;
     }
  
     if (config.blurRadius != _parametersBuffer->getBlurRadius()) {
-        auto& current = _parametersBuffer->blurInfo;
+        auto& current = _parametersBuffer.edit().blurInfo;
         current.y = (float)config.blurRadius;
         shouldUpdateGaussian = true;
     }
 
     if (config.ditheringEnabled != _parametersBuffer->isDitheringEnabled()) {
-        auto& current = _parametersBuffer->ditheringInfo;
+        auto& current = _parametersBuffer.edit().ditheringInfo;
         current.x = (float)config.ditheringEnabled;
     }
 
     if (config.borderingEnabled != _parametersBuffer->isBorderingEnabled()) {
-        auto& current = _parametersBuffer->ditheringInfo;
+        auto& current = _parametersBuffer.edit().ditheringInfo;
         current.w = (float)config.borderingEnabled;
     }
 
@@ -334,7 +334,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
 }
 
 void AmbientOcclusionEffect::updateGaussianDistribution() {
-    auto coefs = _parametersBuffer->_gaussianCoefs;
+    auto coefs = _parametersBuffer.edit()._gaussianCoefs;
     GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, _parametersBuffer->getBlurRadius(), _parametersBuffer->getBlurDeviation());
 }
 
@@ -350,6 +350,10 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
     auto sourceViewport = args->_viewport;
     auto occlusionViewport = sourceViewport;
+
+    if (!_gpuTimer) {
+        _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
+    }
 
     if (!_framebuffer) {
         _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
@@ -384,7 +388,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
-        _gpuTimer.begin(batch);
+        _gpuTimer->begin(batch);
 
         batch.setViewportTransform(occlusionViewport);
         batch.setProjectionTransform(glm::mat4());
@@ -428,12 +432,12 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);
         batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, nullptr);
         
-        _gpuTimer.end(batch);
+        _gpuTimer->end(batch);
     });
 
     // Update the timer
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
+    config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
 
 
@@ -447,7 +451,7 @@ void DebugAmbientOcclusion::configure(const Config& config) {
 
     auto cursorPos = glm::vec2(_parametersBuffer->pixelInfo);
     if (cursorPos != config.debugCursorTexcoord) {
-        _parametersBuffer->pixelInfo = glm::vec4(config.debugCursorTexcoord, 0.0f, 0.0f);
+        _parametersBuffer.edit().pixelInfo = glm::vec4(config.debugCursorTexcoord, 0.0f, 0.0f);
     }
 }
 

@@ -46,6 +46,25 @@ vec3 colorWheel(float normalizedHue) {
         return vec3(1.f, 0.f, 0.f);
     }
 }
+
+vec3 colorRamp(float normalizedHue) {
+    float v = normalizedHue * 5.f;
+    if (v < 0.f) {
+        return vec3(1.f, 0.f, 0.f);
+    } else if (v < 1.f) {
+        return vec3(1.f, v, 0.f);
+    } else if (v < 2.f) {
+        return vec3(1.f - (v - 1.f), 1.f, 0.f);
+    } else if (v < 3.f) {
+        return vec3(0.f, 1.f, (v - 2.f));
+    } else if (v < 4.f) {
+        return vec3(0.f, 1.f - (v - 3.f), 1.f);
+    } else if (v < 5.f) {
+        return vec3((v - 4.f), 0.f, 1.f);
+    } else {
+        return vec3(1.f, 0.f, 1.f);
+    }
+}
 <@endfunc@>
 
 <@endif@>

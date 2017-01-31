@@ -17,6 +17,7 @@
 
 #include "AudioConstants.h"
 #include "AudioInjector.h"
+#include "AudioLogging.h"
 
 AudioInjectorManager::~AudioInjectorManager() {
     _shouldStop = true;
@@ -131,7 +132,7 @@ static const int MAX_INJECTORS_PER_THREAD = 40; // calculated based on AudioInje
 
 bool AudioInjectorManager::wouldExceedLimits() { // Should be called inside of a lock.
     if (_injectors.size() >= MAX_INJECTORS_PER_THREAD) {
-        qDebug() << "AudioInjectorManager::threadInjector could not thread AudioInjector - at max of"
+        qCDebug(audio)  << "AudioInjectorManager::threadInjector could not thread AudioInjector - at max of"
             << MAX_INJECTORS_PER_THREAD << "current audio injectors.";
         return true;
     }
@@ -140,7 +141,7 @@ bool AudioInjectorManager::wouldExceedLimits() { // Should be called inside of a
 
 bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
     if (_shouldStop) {
-        qDebug() << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
+        qCDebug(audio)  << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
         return false;
     }
     
@@ -169,7 +170,7 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
 
 bool AudioInjectorManager::restartFinishedInjector(AudioInjector* injector) {
     if (_shouldStop) {
-        qDebug() << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
+        qCDebug(audio)  << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
         return false;
     }
 

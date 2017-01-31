@@ -396,7 +396,6 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
-        const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -418,8 +417,13 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
             batch.setResourceTexture(Depth, deferredFramebuffer->getPrimaryDepthTexture());
             batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
         }
-        if (!lightStage.lights.empty()) {
-            batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
+
+        auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+        assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
+        auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
+        const auto& globalShadow = lightAndShadow.second;
+        if (globalShadow) {
+            batch.setResourceTexture(Shadow, globalShadow->map);
         }
 
         if (linearDepthTarget) {

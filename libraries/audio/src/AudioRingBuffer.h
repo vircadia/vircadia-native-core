@@ -105,6 +105,8 @@ public:
 
         void readSamples(int16_t* dest, int numSamples);
         void readSamplesWithFade(int16_t* dest, int numSamples, float fade);
+        void readSamplesWithUpmix(int16_t* dest, int numSamples, int numExtraChannels);
+        void readSamplesWithDownmix(int16_t* dest, int numSamples);
 
     private:
         int16_t* atShiftedBy(int i);
@@ -222,6 +224,40 @@ inline void AudioRingBuffer::ConstIterator::readSamplesWithFade(int16_t* dest, i
         *dest = (float)*at * fade;
         ++dest;
         at = (at == _bufferLast) ? _bufferFirst : at + 1;
+    }
+}
+
+inline void AudioRingBuffer::ConstIterator::readSamplesWithUpmix(int16_t* dest, int numSamples, int numExtraChannels) {
+    int16_t* at = _at;
+    for (int i = 0; i < numSamples/2; i++) {
+
+        // read 2 samples
+        int16_t left = *at;
+        at = (at == _bufferLast) ? _bufferFirst : at + 1;
+        int16_t right = *at;
+        at = (at == _bufferLast) ? _bufferFirst : at + 1;
+
+        // write 2 + N samples
+        *dest++ = left;
+        *dest++ = right;
+        for (int n = 0; n < numExtraChannels; n++) {
+            *dest++ = 0;
+        }
+    }
+}
+
+inline void AudioRingBuffer::ConstIterator::readSamplesWithDownmix(int16_t* dest, int numSamples) {
+    int16_t* at = _at;
+    for (int i = 0; i < numSamples/2; i++) {
+
+        // read 2 samples
+        int16_t left = *at;
+        at = (at == _bufferLast) ? _bufferFirst : at + 1;
+        int16_t right = *at;
+        at = (at == _bufferLast) ? _bufferFirst : at + 1;
+
+        // write 1 sample
+        *dest++ = (int16_t)((left + right) / 2);
     }
 }
 

@@ -202,14 +202,21 @@ void ScriptCache::scriptContentAvailable() {
                 finished = true;
                 qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
             } else {
-                if (scriptRequest.numRetries < MAX_RETRIES) {
+                auto result = req->getResult();
+                bool irrecoverable =
+                    result == ResourceRequest::AccessDenied ||
+                    result == ResourceRequest::InvalidURL ||
+                    result == ResourceRequest::NotFound ||
+                    scriptRequest.numRetries >= MAX_RETRIES;
+
+                if (!irrecoverable) {
                     ++scriptRequest.numRetries;
 
-                    qDebug() << "Script request failed: " << url;
+                    qCDebug(scriptengine) << "Script request failed: " << url;
 
                     int timeout = exp(scriptRequest.numRetries) * START_DELAY_BETWEEN_RETRIES;
                     QTimer::singleShot(timeout, this, [this, url]() {
-                        qDebug() << "Retrying script request: " << url;
+                        qCDebug(scriptengine) << "Retrying script request: " << url;
 
                         auto request = ResourceManager::createResourceRequest(nullptr, url);
                         Q_ASSERT(request);
@@ -222,6 +229,9 @@ void ScriptCache::scriptContentAvailable() {
                     });
                 } else {
                     // Dubious, but retained here because it matches the behavior before fixing the threading
+
+                    allCallbacks = scriptRequest.scriptUsers;
+
                     scriptContent = _scriptCache[url];
                     finished = true;
                     qCWarning(scriptengine) << "Error loading script from URL " << url;

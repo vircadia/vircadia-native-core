@@ -18,6 +18,8 @@
 #include <cctype>
 #include <time.h>
 #include <mutex>
+#include <thread>
+#include <set>
 
 #include <glm/glm.hpp>
 
@@ -26,6 +28,15 @@
 #include <windows.h>
 #include "CPUIdent.h"
 #include <Psapi.h>
+
+#if _MSC_VER >= 1900
+#pragma comment(lib, "legacy_stdio_definitions.lib")
+FILE _iob[] = {*stdin, *stdout, *stderr};
+extern "C" FILE * __cdecl __iob_func(void) {
+    return _iob;
+}
+#endif
+
 #endif
 
 
@@ -920,7 +931,7 @@ bool getProcessorInfo(ProcessorInfo& info) {
         GetModuleHandle(TEXT("kernel32")),
         "GetLogicalProcessorInformation");
     if (nullptr == glpi) {
-        qDebug() << "GetLogicalProcessorInformation is not supported.";
+        qCDebug(shared) << "GetLogicalProcessorInformation is not supported.";
         return false;
     }
 
@@ -937,11 +948,11 @@ bool getProcessorInfo(ProcessorInfo& info) {
                     returnLength);
 
                 if (NULL == buffer) {
-                    qDebug() << "Error: Allocation failure";
+                    qCDebug(shared) << "Error: Allocation failure";
                     return false;
                 }
             } else {
-                qDebug() << "Error " << GetLastError();
+                qCDebug(shared) << "Error " << GetLastError();
                 return false;
             }
         } else {
@@ -983,19 +994,19 @@ bool getProcessorInfo(ProcessorInfo& info) {
             break;
 
         default:
-            qDebug() << "\nError: Unsupported LOGICAL_PROCESSOR_RELATIONSHIP value.\n";
+            qCDebug(shared) << "\nError: Unsupported LOGICAL_PROCESSOR_RELATIONSHIP value.\n";
             break;
         }
         byteOffset += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
         ptr++;
     }
 
-    qDebug() << "GetLogicalProcessorInformation results:";
-    qDebug() << "Number of NUMA nodes:" << numaNodeCount;
-    qDebug() << "Number of physical processor packages:" << processorPackageCount;
-    qDebug() << "Number of processor cores:" << processorCoreCount;
-    qDebug() << "Number of logical processors:" << logicalProcessorCount;
-    qDebug() << "Number of processor L1/L2/L3 caches:"
+    qCDebug(shared) << "GetLogicalProcessorInformation results:";
+    qCDebug(shared) << "Number of NUMA nodes:" << numaNodeCount;
+    qCDebug(shared) << "Number of physical processor packages:" << processorPackageCount;
+    qCDebug(shared) << "Number of processor cores:" << processorCoreCount;
+    qCDebug(shared) << "Number of logical processors:" << logicalProcessorCount;
+    qCDebug(shared) << "Number of processor L1/L2/L3 caches:"
         << processorL1CacheCount
         << "/" << processorL2CacheCount
         << "/" << processorL3CacheCount;
@@ -1013,4 +1024,54 @@ bool getProcessorInfo(ProcessorInfo& info) {
 #endif
 
     return false;
+}
+
+
+const QString& getInterfaceSharedMemoryName() {
+    static const QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
+    return applicationName;
+}
+
+const std::vector<uint8_t>& getAvailableCores() {
+    static std::vector<uint8_t> availableCores;
+#ifdef Q_OS_WIN
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        DWORD_PTR defaultProcessAffinity = 0, defaultSystemAffinity = 0;
+        HANDLE process = GetCurrentProcess();
+        GetProcessAffinityMask(process, &defaultProcessAffinity, &defaultSystemAffinity);
+        for (uint64_t i = 0; i < sizeof(DWORD_PTR) * BITS_IN_BYTE; ++i) {
+            DWORD_PTR coreMask = 1;
+            coreMask <<= i;
+            if (0 != (defaultSystemAffinity & coreMask)) {
+                availableCores.push_back(i);
+            }
+        }
+    });
+#endif
+    return availableCores;
+}
+
+void setMaxCores(uint8_t maxCores) {
+#ifdef Q_OS_WIN
+    HANDLE process = GetCurrentProcess();
+    auto availableCores = getAvailableCores();
+    if (availableCores.size() <= maxCores) {
+        DWORD_PTR currentProcessAffinity = 0, currentSystemAffinity = 0;
+        GetProcessAffinityMask(process, &currentProcessAffinity, &currentSystemAffinity);
+        SetProcessAffinityMask(GetCurrentProcess(), currentSystemAffinity);
+        return;
+    }
+
+    DWORD_PTR newProcessAffinity = 0;
+    while (maxCores) {
+        int index = randIntInRange(0, (int)availableCores.size() - 1);
+        DWORD_PTR coreMask = 1;
+        coreMask <<= availableCores[index];
+        newProcessAffinity |= coreMask;
+        availableCores.erase(availableCores.begin() + index);
+        maxCores--;
+    }
+    SetProcessAffinityMask(process, newProcessAffinity);
+#endif
 }

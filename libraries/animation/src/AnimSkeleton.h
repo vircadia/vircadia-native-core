@@ -63,15 +63,14 @@ public:
     void mirrorRelativePoses(AnimPoseVec& poses) const;
     void mirrorAbsolutePoses(AnimPoseVec& poses) const;
 
-#ifndef NDEBUG
-    void dump() const;
+    void dump(bool verbose) const;
     void dump(const AnimPoseVec& poses) const;
-#endif
 
 protected:
     void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
 
     std::vector<FBXJoint> _joints;
+    int _jointsSize { 0 };
     AnimPoseVec _absoluteBindPoses;
     AnimPoseVec _relativeBindPoses;
     AnimPoseVec _relativeDefaultPoses;
@@ -81,6 +80,7 @@ protected:
     mutable AnimPoseVec _nonMirroredPoses;
     std::vector<int> _nonMirroredIndices;
     std::vector<int> _mirrorMap;
+    QHash<QString, int> _jointIndicesByName;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

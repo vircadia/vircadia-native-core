@@ -9,18 +9,50 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Inputs.slh@>
-<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
+
+layout(std140) uniform lineData {
+    vec4 p1;
+    vec4 p2;
+    vec4 color;
+};
 
 layout(location = 0) out vec4 _color;
 
 void main(void) {
-    _color = inColor;
+    _color = color;
 
-    // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+
+    vec4 p1eye, p2eye;
+    <$transformModelToEyePos(cam, obj, p1, p1eye)$> 
+    <$transformModelToEyePos(cam, obj, p2, p2eye)$>
+    p1eye /= p1eye.w;
+    p2eye /= p2eye.w; 
+
+    // Find the line direction
+    vec3 v1 = normalize(p1eye.xyz - p2eye.xyz);
+    // Find the vector from the eye to one of the points
+    vec3 v2 = normalize(p1eye.xyz);
+    // The orthogonal vector is the cross product of these two
+    vec3 orthogonal = cross(v1, v2) * 0.02;
+    
+    // Deteremine which end to emit based on the vertex id (even / odd)
+    vec4 eye = (0 == gl_VertexID % 2) ? p1eye : p2eye;
+
+    // Add or subtract the orthogonal vector based on a different vertex ID 
+    // calculation
+    if (gl_VertexID < 2) {
+        // Use the alpha channel to store the distance from the center in 'quad space'
+        _color.a = -1.0;
+        eye.xyz -= orthogonal;
+    } else {
+        _color.a = 1.0;
+        eye.xyz += orthogonal;
+    }
+
+    // Finally, put the eyespace vertex into clip space
+    <$transformEyeToClipPos(cam, eye, gl_Position)$>
 }

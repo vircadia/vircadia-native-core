@@ -41,7 +41,7 @@ public:
     int _movingItems;
 };
 
-class EntityTreeElementExtraEncodeData {
+class EntityTreeElementExtraEncodeData : public OctreeElementExtraEncodeDataBase {
 public:
     EntityTreeElementExtraEncodeData() :
         elementCompleted(false),
@@ -54,8 +54,9 @@ public:
     bool childCompleted[NUMBER_OF_CHILDREN];
     QMap<EntityItemID, EntityPropertyFlags> entities;
 };
+using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
 
-inline QDebug operator<<(QDebug debug, const EntityTreeElementExtraEncodeData* data) {
+inline QDebug operator<<(QDebug debug, const EntityTreeElementExtraEncodeDataPointer data) {
     debug << "{";
     debug << " elementCompleted: " << data->elementCompleted << ", ";
     debug << " subtreeCompleted: " << data->subtreeCompleted << ", ";
@@ -125,7 +126,6 @@ public:
     virtual void elementEncodeComplete(EncodeBitstreamParams& params) const override;
 
     bool alreadyFullyEncoded(EncodeBitstreamParams& params) const;
-
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
     virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData,

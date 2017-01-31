@@ -202,6 +202,11 @@ public:
 
     glm::vec3 rotationMin;  // radians
     glm::vec3 rotationMax;  // radians
+
+    bool hasGeometricOffset;
+    glm::vec3 geometricTranslation;
+    glm::quat geometricRotation;
+    glm::vec3 geometricScaling;
 };
 
 glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
@@ -550,8 +555,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             }
                         } else if (subobject.name == "Properties70") {
                             foreach (const FBXNode& subsubobject, subobject.children) {
+                                static const QVariant APPLICATION_NAME = QVariant(QByteArray("Original|ApplicationName"));
                                 if (subsubobject.name == "P" && subsubobject.properties.size() >= 5 &&
-                                        subsubobject.properties.at(0) == "Original|ApplicationName") {
+                                        subsubobject.properties.at(0) == APPLICATION_NAME) {
                                     geometry.applicationName = subsubobject.properties.at(4).toString();
                                 }
                             }
@@ -566,10 +572,12 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     int index = 4;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == propertyName) {
-                            QString subpropName = subobject.properties.at(0).toString();
-                            if (subpropName == "UnitScaleFactor") {
+                            static const QVariant UNIT_SCALE_FACTOR = QByteArray("UnitScaleFactor");
+                            static const QVariant AMBIENT_COLOR = QByteArray("AmbientColor");
+                            const auto& subpropName = subobject.properties.at(0);
+                            if (subpropName == UNIT_SCALE_FACTOR) {
                                 unitScaleFactor = subobject.properties.at(index).toFloat();
-                            } else if (subpropName == "AmbientColor") {
+                            } else if (subpropName == AMBIENT_COLOR) {
                                 ambientColor = getVec3(subobject.properties, index);
                             }
                         }
@@ -639,9 +647,17 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     glm::vec3 scalePivot, rotationPivot, scaleOffset;
                     bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
                     bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
+
+                    // local offset transforms from 3ds max
+                    bool hasGeometricOffset = false;
+                    glm::vec3 geometricTranslation;
+                    glm::vec3 geometricScaling(1.0f, 1.0f, 1.0f);
+                    glm::vec3 geometricRotation;
+
                     glm::vec3 rotationMin, rotationMax;
                     FBXModel model = { name, -1, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(), glm::quat(),
-                                       glm::mat4(), glm::vec3(), glm::vec3()};
+                                       glm::mat4(), glm::vec3(), glm::vec3(),
+                                       false, glm::vec3(), glm::quat(), glm::vec3(1.0f) };
                     ExtractedMesh* mesh = NULL;
                     QVector<ExtractedBlendshape> blendshapes;
                     foreach (const FBXNode& subobject, object.children) {
@@ -659,59 +675,89 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             index = 4;
                         }
                         if (properties) {
-                            foreach (const FBXNode& property, subobject.children) {
+                            static const QVariant GEOMETRIC_TRANSLATION = QByteArray("GeometricTranslation");
+                            static const QVariant GEOMETRIC_ROTATION = QByteArray("GeometricRotation");
+                            static const QVariant GEOMETRIC_SCALING = QByteArray("GeometricScaling");
+                            static const QVariant LCL_TRANSLATION = QByteArray("Lcl Translation");
+                            static const QVariant LCL_ROTATION = QByteArray("Lcl Rotation");
+                            static const QVariant LCL_SCALING = QByteArray("Lcl Scaling");
+                            static const QVariant ROTATION_MAX = QByteArray("RotationMax");
+                            static const QVariant ROTATION_MAX_X = QByteArray("RotationMaxX");
+                            static const QVariant ROTATION_MAX_Y = QByteArray("RotationMaxY");
+                            static const QVariant ROTATION_MAX_Z = QByteArray("RotationMaxZ");
+                            static const QVariant ROTATION_MIN = QByteArray("RotationMin");
+                            static const QVariant ROTATION_MIN_X = QByteArray("RotationMinX");
+                            static const QVariant ROTATION_MIN_Y = QByteArray("RotationMinY");
+                            static const QVariant ROTATION_MIN_Z = QByteArray("RotationMinZ");
+                            static const QVariant ROTATION_OFFSET = QByteArray("RotationOffset");
+                            static const QVariant ROTATION_PIVOT = QByteArray("RotationPivot");
+                            static const QVariant SCALING_OFFSET = QByteArray("ScalingOffset");
+                            static const QVariant SCALING_PIVOT = QByteArray("ScalingPivot");
+                            static const QVariant PRE_ROTATION = QByteArray("PreRotation");
+                            static const QVariant POST_ROTATION = QByteArray("PostRotation");
+                            foreach(const FBXNode& property, subobject.children) {
+                                const auto& childProperty = property.properties.at(0);
                                 if (property.name == propertyName) {
-                                    if (property.properties.at(0) == "Lcl Translation") {
+                                    if (childProperty == LCL_TRANSLATION) {
                                         translation = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "RotationOffset") {
+                                    } else if (childProperty == ROTATION_OFFSET) {
                                         rotationOffset = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "RotationPivot") {
+                                    } else if (childProperty == ROTATION_PIVOT) {
                                         rotationPivot = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "PreRotation") {
+                                    } else if (childProperty == PRE_ROTATION) {
                                         preRotation = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "Lcl Rotation") {
+                                    } else if (childProperty == LCL_ROTATION) {
                                         rotation = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "PostRotation") {
+                                    } else if (childProperty == POST_ROTATION) {
                                         postRotation = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "ScalingPivot") {
+                                    } else if (childProperty == SCALING_PIVOT) {
                                         scalePivot = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "Lcl Scaling") {
+                                    } else if (childProperty == LCL_SCALING) {
                                         scale = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "ScalingOffset") {
+                                    } else if (childProperty == SCALING_OFFSET) {
                                         scaleOffset = getVec3(property.properties, index);
 
                                     // NOTE: these rotation limits are stored in degrees (NOT radians)
-                                    } else if (property.properties.at(0) == "RotationMin") {
+                                    } else if (childProperty == ROTATION_MIN) {
                                         rotationMin = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "RotationMax") {
+                                    } else if (childProperty == ROTATION_MAX) {
                                         rotationMax = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "RotationMinX") {
+                                    } else if (childProperty == ROTATION_MIN_X) {
                                         rotationMinX = property.properties.at(index).toBool();
 
-                                    } else if (property.properties.at(0) == "RotationMinY") {
+                                    } else if (childProperty == ROTATION_MIN_Y) {
                                         rotationMinY = property.properties.at(index).toBool();
 
-                                    } else if (property.properties.at(0) == "RotationMinZ") {
+                                    } else if (childProperty == ROTATION_MIN_Z) {
                                         rotationMinZ = property.properties.at(index).toBool();
 
-                                    } else if (property.properties.at(0) == "RotationMaxX") {
+                                    } else if (childProperty == ROTATION_MAX_X) {
                                         rotationMaxX = property.properties.at(index).toBool();
 
-                                    } else if (property.properties.at(0) == "RotationMaxY") {
+                                    } else if (childProperty == ROTATION_MAX_Y) {
                                         rotationMaxY = property.properties.at(index).toBool();
 
-                                    } else if (property.properties.at(0) == "RotationMaxZ") {
+                                    } else if (childProperty == ROTATION_MAX_Z) {
                                         rotationMaxZ = property.properties.at(index).toBool();
+                                    } else if (childProperty == GEOMETRIC_TRANSLATION) {
+                                        geometricTranslation = getVec3(property.properties, index);
+                                        hasGeometricOffset = true;
+                                    } else if (childProperty == GEOMETRIC_ROTATION) {
+                                        geometricRotation = getVec3(property.properties, index);
+                                        hasGeometricOffset = true;
+                                    } else if (childProperty == GEOMETRIC_SCALING) {
+                                        geometricScaling = getVec3(property.properties, index);
+                                        hasGeometricOffset = true;
                                     }
                                 }
                             }
@@ -768,8 +814,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f));
                     model.rotationMax = glm::radians(glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
                         rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f));
-                    models.insert(getID(object.properties), model);
 
+                    model.hasGeometricOffset = hasGeometricOffset;
+                    model.geometricTranslation = geometricTranslation;
+                    model.geometricRotation = glm::quat(glm::radians(geometricRotation));
+                    model.geometricScaling = geometricScaling;
+
+                    models.insert(getID(object.properties), model);
                 } else if (object.name == "Texture") {
                     TextureParam tex;
                     foreach (const FBXNode& subobject, object.children) {
@@ -815,20 +866,26 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                 propertyName = "P";
                                 index = 4;
                                 foreach (const FBXNode& property, subobject.children) {
+                                    static const QVariant UV_SET = QByteArray("UVSet");
+                                    static const QVariant CURRENT_TEXTURE_BLEND_MODE = QByteArray("CurrentTextureBlendMode");
+                                    static const QVariant USE_MATERIAL = QByteArray("UseMaterial");
+                                    static const QVariant TRANSLATION = QByteArray("Translation");
+                                    static const QVariant ROTATION = QByteArray("Rotation");
+                                    static const QVariant SCALING = QByteArray("Scaling");
                                     if (property.name == propertyName) {
                                         QString v = property.properties.at(0).toString();
-                                        if (property.properties.at(0) == "UVSet") {
+                                        if (property.properties.at(0) == UV_SET) {
                                             std::string uvName = property.properties.at(index).toString().toStdString();
                                             tex.assign(tex.UVSet, property.properties.at(index).toString());
-                                        } else if (property.properties.at(0) == "CurrentTextureBlendMode") {
+                                        } else if (property.properties.at(0) == CURRENT_TEXTURE_BLEND_MODE) {
                                             tex.assign<uint8_t>(tex.currentTextureBlendMode, property.properties.at(index).value<int>());
-                                        } else if (property.properties.at(0) == "UseMaterial") {
+                                        } else if (property.properties.at(0) == USE_MATERIAL) {
                                             tex.assign<bool>(tex.useMaterial, property.properties.at(index).value<int>());
-                                        } else if (property.properties.at(0) == "Translation") {
+                                        } else if (property.properties.at(0) == TRANSLATION) {
                                             tex.assign(tex.translation, getVec3(property.properties, index));
-                                        } else if (property.properties.at(0) == "Rotation") {
+                                        } else if (property.properties.at(0) == ROTATION) {
                                             tex.assign(tex.rotation, getVec3(property.properties, index));
-                                        } else if (property.properties.at(0) == "Scaling") {
+                                        } else if (property.properties.at(0) == SCALING) {
                                             tex.assign(tex.scaling, getVec3(property.properties, index));
                                             if (tex.scaling.x == 0.0f) {
                                                 tex.scaling.x = 1.0f;
@@ -904,87 +961,114 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                         if (properties) {
                             std::vector<std::string> unknowns;
+                            static const QVariant DIFFUSE_COLOR = QByteArray("DiffuseColor");
+                            static const QVariant DIFFUSE_FACTOR = QByteArray("DiffuseFactor");
+                            static const QVariant DIFFUSE = QByteArray("Diffuse");
+                            static const QVariant SPECULAR_COLOR = QByteArray("SpecularColor");
+                            static const QVariant SPECULAR_FACTOR = QByteArray("SpecularFactor");
+                            static const QVariant SPECULAR = QByteArray("Specular");
+                            static const QVariant EMISSIVE_COLOR = QByteArray("EmissiveColor");
+                            static const QVariant EMISSIVE_FACTOR = QByteArray("EmissiveFactor");
+                            static const QVariant EMISSIVE = QByteArray("Emissive");
+                            static const QVariant AMBIENT_FACTOR = QByteArray("AmbientFactor");
+                            static const QVariant SHININESS = QByteArray("Shininess");
+                            static const QVariant OPACITY = QByteArray("Opacity");
+                            static const QVariant MAYA_USE_NORMAL_MAP = QByteArray("Maya|use_normal_map");
+                            static const QVariant MAYA_BASE_COLOR = QByteArray("Maya|base_color");
+                            static const QVariant MAYA_USE_COLOR_MAP = QByteArray("Maya|use_color_map");
+                            static const QVariant MAYA_ROUGHNESS = QByteArray("Maya|roughness");
+                            static const QVariant MAYA_USE_ROUGHNESS_MAP = QByteArray("Maya|use_roughness_map");
+                            static const QVariant MAYA_METALLIC = QByteArray("Maya|metallic");
+                            static const QVariant MAYA_USE_METALLIC_MAP = QByteArray("Maya|use_metallic_map");
+                            static const QVariant MAYA_EMISSIVE = QByteArray("Maya|emissive");
+                            static const QVariant MAYA_EMISSIVE_INTENSITY = QByteArray("Maya|emissive_intensity");
+                            static const QVariant MAYA_USE_EMISSIVE_MAP = QByteArray("Maya|use_emissive_map");
+                            static const QVariant MAYA_USE_AO_MAP = QByteArray("Maya|use_ao_map");
+
+
+
+
                             foreach(const FBXNode& property, subobject.children) {
                                 if (property.name == propertyName) {
-                                    if (property.properties.at(0) == "DiffuseColor") {
+                                    if (property.properties.at(0) == DIFFUSE_COLOR) {
                                         material.diffuseColor = getVec3(property.properties, index);
-                                    } else if (property.properties.at(0) == "DiffuseFactor") {
+                                    } else if (property.properties.at(0) == DIFFUSE_FACTOR) {
                                         material.diffuseFactor = property.properties.at(index).value<double>();
-                                    } else if (property.properties.at(0) == "Diffuse") {
+                                    } else if (property.properties.at(0) == DIFFUSE) {
                                         // NOTE: this is uneeded but keep it for now for debug
                                         //  material.diffuseColor = getVec3(property.properties, index);
                                         //  material.diffuseFactor = 1.0;
 
-                                    } else if (property.properties.at(0) == "SpecularColor") {
+                                    } else if (property.properties.at(0) == SPECULAR_COLOR) {
                                         material.specularColor = getVec3(property.properties, index);
-                                    } else if (property.properties.at(0) == "SpecularFactor") {
+                                    } else if (property.properties.at(0) == SPECULAR_FACTOR) {
                                         material.specularFactor = property.properties.at(index).value<double>();
-                                    } else if (property.properties.at(0) == "Specular") {
+                                    } else if (property.properties.at(0) == SPECULAR) {
                                         // NOTE: this is uneeded but keep it for now for debug
                                         //  material.specularColor = getVec3(property.properties, index);
                                         //  material.specularFactor = 1.0;
 
-                                    } else if (property.properties.at(0) == "EmissiveColor") {
+                                    } else if (property.properties.at(0) == EMISSIVE_COLOR) {
                                         material.emissiveColor = getVec3(property.properties, index);
-                                    } else if (property.properties.at(0) == "EmissiveFactor") {
+                                    } else if (property.properties.at(0) == EMISSIVE_FACTOR) {
                                         material.emissiveFactor = property.properties.at(index).value<double>();
-                                    } else if (property.properties.at(0) == "Emissive") {
+                                    } else if (property.properties.at(0) == EMISSIVE) {
                                         // NOTE: this is uneeded but keep it for now for debug
                                         //  material.emissiveColor = getVec3(property.properties, index);
                                         //  material.emissiveFactor = 1.0;
 
-                                    } else if (property.properties.at(0) == "AmbientFactor") {
+                                    } else if (property.properties.at(0) == AMBIENT_FACTOR) {
                                         material.ambientFactor = property.properties.at(index).value<double>();
                                         // Detected just for BLender AO vs lightmap
-                                    } else if (property.properties.at(0) == "Shininess") {
+                                    } else if (property.properties.at(0) == SHININESS) {
                                         material.shininess = property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Opacity") {
+                                    } else if (property.properties.at(0) == OPACITY) {
                                         material.opacity = property.properties.at(index).value<double>();
                                     }
 
                                     // Sting Ray Material Properties!!!!
-                                    else if (property.properties.at(0) == "Maya|use_normal_map") {
+                                    else if (property.properties.at(0) == MAYA_USE_NORMAL_MAP) {
                                         material.isPBSMaterial = true;
                                         material.useNormalMap = (bool)property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Maya|base_color") {
+                                    } else if (property.properties.at(0) == MAYA_BASE_COLOR) {
                                         material.isPBSMaterial = true;
                                         material.diffuseColor = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "Maya|use_color_map") {
+                                    } else if (property.properties.at(0) == MAYA_USE_COLOR_MAP) {
                                         material.isPBSMaterial = true;
                                         material.useAlbedoMap = (bool) property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Maya|roughness") {
+                                    } else if (property.properties.at(0) == MAYA_ROUGHNESS) {
                                         material.isPBSMaterial = true;
                                         material.roughness = property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Maya|use_roughness_map") {
+                                    } else if (property.properties.at(0) == MAYA_USE_ROUGHNESS_MAP) {
                                         material.isPBSMaterial = true;
                                         material.useRoughnessMap = (bool)property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Maya|metallic") {
+                                    } else if (property.properties.at(0) == MAYA_METALLIC) {
                                         material.isPBSMaterial = true;
                                         material.metallic = property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Maya|use_metallic_map") {
+                                    } else if (property.properties.at(0) == MAYA_USE_METALLIC_MAP) {
                                         material.isPBSMaterial = true;
                                         material.useMetallicMap = (bool)property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Maya|emissive") {
+                                    } else if (property.properties.at(0) == MAYA_EMISSIVE) {
                                         material.isPBSMaterial = true;
                                         material.emissiveColor = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "Maya|emissive_intensity") {
+                                    } else if (property.properties.at(0) == MAYA_EMISSIVE_INTENSITY) {
                                         material.isPBSMaterial = true;
                                         material.emissiveIntensity = property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Maya|use_emissive_map") {
+                                    } else if (property.properties.at(0) == MAYA_USE_EMISSIVE_MAP) {
                                         material.isPBSMaterial = true;
                                         material.useEmissiveMap = (bool)property.properties.at(index).value<double>();
 
-                                    } else if (property.properties.at(0) == "Maya|use_ao_map") {
+                                    } else if (property.properties.at(0) == MAYA_USE_AO_MAP) {
                                         material.isPBSMaterial = true;
                                         material.useOcclusionMap = (bool)property.properties.at(index).value<double>();
 
@@ -1089,9 +1173,11 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 #endif
             }
         } else if (child.name == "Connections") {
+            static const QVariant OO = QByteArray("OO");
+            static const QVariant OP = QByteArray("OP");
             foreach (const FBXNode& connection, child.children) {
                 if (connection.name == "C" || connection.name == "Connect") {
-                    if (connection.properties.at(0) == "OO") {
+                    if (connection.properties.at(0) == OO) {
                         QString childID = getID(connection.properties, 1);
                         QString parentID = getID(connection.properties, 2);
                         ooChildToParent.insert(childID, parentID);
@@ -1105,8 +1191,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                 _lightmapOffset = glm::clamp((*lightIt).second.color.x, 0.f, 1.f);
                             }
                         }
-                    }
-                    if (connection.properties.at(0) == "OP") {
+                    } else if (connection.properties.at(0) == OP) {
                         int counter = 0;
                         QByteArray type = connection.properties.at(3).toByteArray().toLower();
                         if (type.contains("DiffuseFactor")) {
@@ -1286,7 +1371,14 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         joint.postTransform = model.postTransform;
         joint.rotationMin = model.rotationMin;
         joint.rotationMax = model.rotationMax;
+
+        joint.hasGeometricOffset = model.hasGeometricOffset;
+        joint.geometricTranslation = model.geometricTranslation;
+        joint.geometricRotation = model.geometricRotation;
+        joint.geometricScaling = model.geometricScaling;
+
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
+
         if (joint.parentIndex == -1) {
             joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
@@ -1602,6 +1694,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 points.push_back(extractTranslation(vertexTransform) * clusterScale);
             }
 
+            // Apply geometric offset, if present, by transforming the vertices directly
+            if (joint.hasGeometricOffset) {
+                glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
+                for (int i = 0; i < extracted.mesh.vertices.size(); i++) {
+                    extracted.mesh.vertices[i] = transformPoint(geometricOffset, extracted.mesh.vertices[i]);
+                }
+            }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
 

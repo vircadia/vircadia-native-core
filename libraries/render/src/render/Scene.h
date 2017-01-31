@@ -34,7 +34,7 @@ public:
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);
     void updateItem(ItemID id) { updateItem(id, nullptr); }
 
-    void merge(PendingChanges& changes);
+    void merge(const PendingChanges& changes);
 
     ItemIDs _resetItems; 
     Payloads _resetPayloads;
@@ -61,7 +61,7 @@ public:
     ItemID allocateID();
 
     // Check that the ID is valid and allocated for this scene, this a threadsafe call
-    bool isAllocatedID(const ItemID& id);
+    bool isAllocatedID(const ItemID& id) const;
 
     // THis is the total number of allocated items, this a threadsafe call
     size_t getNumItems() const { return _numAllocatedItems.load(); }
@@ -77,6 +77,9 @@ public:
     // Access a particular item form its ID
     // WARNING, There is No check on the validity of the ID, so this could return a bad Item
     const Item& getItem(const ItemID& id) const { return _items[id]; }
+
+    // Same as getItem, checking if the id is valid
+    const Item getItemSafe(const ItemID& id) const { if (isAllocatedID(id)) { return _items[id]; } else { return Item(); } }
 
     // Access the spatialized items
     const ItemSpatialTree& getSpatialTree() const { return _masterSpatialTree; }

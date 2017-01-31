@@ -13,6 +13,8 @@
 //
 
 <@include model/Light.slh@>
+<$declareLightBuffer()$>
+<$declareLightAmbientBuffer()$>
 
 <@include LightingModel.slh@>
 
@@ -26,6 +28,11 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 a
 
     // Need the light now
     Light light = getLight();
+    vec3 lightDirection = getLightDirection(light);
+    vec3 lightIrradiance = getLightIrradiance(light);
+
+    LightAmbient ambient = getLightAmbient();
+
     TransformCamera cam = getTransformCamera();
     vec3 fragNormal;
     <$transformEyeToWorldDir(cam, normal, fragNormal)$>
@@ -33,12 +40,12 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 a
     vec3 fragEyeDir;
     <$transformEyeToWorldDir(cam, fragEyeVectorView, fragEyeDir)$>
 
-    vec3 color = opacity * albedo * getLightColor(light) * getLightAmbientIntensity(light);
+    vec3 color = opacity * albedo * getLightColor(light) * getLightAmbientIntensity(ambient);
 
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
-    evalLightingDirectional(directionalDiffuse, directionalSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
+    evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
     color += directionalDiffuse;
     color += directionalSpecular / opacity;
 

@@ -152,7 +152,6 @@ CompositorHelper::CompositorHelper() :
     //        auto cursor = Cursor::Manager::instance().getCursor();
     //        cursor->setIcon(Cursor::Icon::DEFAULT);
     //        if (!_tooltipId.isEmpty()) {
-    //            qDebug() << "Closing tooltip " << _tooltipId;
     //            Tooltip::closeTip(_tooltipId);
     //            _tooltipId.clear();
     //        }

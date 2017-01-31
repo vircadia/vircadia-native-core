@@ -25,6 +25,7 @@ public:
     bool loop;
     glm::quat orientation;
     bool stereo;
+    bool ambisonic;
     bool ignorePenumbra;
     bool localOnly;
     float secondOffset;

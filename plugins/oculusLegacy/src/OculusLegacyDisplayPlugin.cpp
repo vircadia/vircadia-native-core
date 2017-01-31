@@ -30,7 +30,7 @@
 
 #include "OculusHelpers.h"
 
-const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
+const char* OculusLegacyDisplayPlugin::NAME { "Oculus Rift" };
 
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
 }

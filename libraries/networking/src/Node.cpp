@@ -41,6 +41,7 @@ void NodeType::init() {
     TypeNameHash.insert(NodeType::AvatarMixer, "Avatar Mixer");
     TypeNameHash.insert(NodeType::MessagesMixer, "Messages Mixer");
     TypeNameHash.insert(NodeType::AssetServer, "Asset Server");
+    TypeNameHash.insert(NodeType::EntityScriptServer, "Entity Script Server");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
 }
 
@@ -64,6 +65,7 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
 {
     // Update socket's object name
     setType(_type);
+    _ignoreRadiusEnabled = false;
 }
 
 void Node::setType(char type) {
@@ -80,17 +82,24 @@ void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
-void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {    
+void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {
+    bool addToIgnore;
+    message->readPrimitive(&addToIgnore);
     while (message->getBytesLeftToRead()) {
         // parse out the UUID being ignored from the packet
         QUuid ignoredUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-        addIgnoredNode(ignoredUUID);
+        if (addToIgnore) {
+            addIgnoredNode(ignoredUUID);
+        } else {
+            removeIgnoredNode(ignoredUUID);
+        }
     }
 }
 
 void Node::addIgnoredNode(const QUuid& otherNodeID) {
     if (!otherNodeID.isNull() && otherNodeID != _uuid) {
+        QReadLocker lock { &_ignoredNodeIDSetLock };
         qCDebug(networking) << "Adding" << uuidStringWithoutCurlyBraces(otherNodeID) << "to ignore set for"
         << uuidStringWithoutCurlyBraces(_uuid);
 
@@ -99,6 +108,26 @@ void Node::addIgnoredNode(const QUuid& otherNodeID) {
     } else {
         qCWarning(networking) << "Node::addIgnoredNode called with null ID or ID of ignoring node.";
     }
+}
+
+void Node::removeIgnoredNode(const QUuid& otherNodeID) {
+    if (!otherNodeID.isNull() && otherNodeID != _uuid) {
+        // insert/find are read locked concurrently. unsafe_erase is not concurrent, and needs a write lock.
+        QWriteLocker lock { &_ignoredNodeIDSetLock };
+        qCDebug(networking) << "Removing" << uuidStringWithoutCurlyBraces(otherNodeID) << "from ignore set for"
+        << uuidStringWithoutCurlyBraces(_uuid);
+
+        // remove the session UUID from the set of ignored ones for this listening node
+        _ignoredNodeIDSet.unsafe_erase(otherNodeID);
+    } else {
+        qCWarning(networking) << "Node::removeIgnoredNode called with null ID or ID of ignoring node.";
+    }
+}
+
+void Node::parseIgnoreRadiusRequestMessage(QSharedPointer<ReceivedMessage> message) {
+    bool enabled;
+    message->readPrimitive(&enabled);
+    _ignoreRadiusEnabled = enabled;
 }
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {

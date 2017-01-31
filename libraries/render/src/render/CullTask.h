@@ -170,7 +170,6 @@ namespace render {
                 for (size_t i = 0; i < NUM_FILTERS; i++) {
                     if (_filters[i].test(itemKey)) {
                         outItems[i].template edit<ItemBounds>().emplace_back(itemBound);
-                        break;
                     }
                 }
             }

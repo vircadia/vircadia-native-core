@@ -14,6 +14,9 @@
 class NetworkShader : public Resource {
 public:
     NetworkShader(const QUrl& url);
+
+    QString getType() const override { return "NetworkShader"; }
+
     virtual void downloadFinished(const QByteArray& data) override;
 
     QString _source;

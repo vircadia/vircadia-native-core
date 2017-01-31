@@ -10,11 +10,14 @@
 //
 
 
-#include <QtCore/QDebug>
-
 #include "Texture.h"
 
 #include <glm/gtc/constants.hpp>
+#include <glm/gtx/component_wise.hpp>
+
+#include <QtCore/QDebug>
+#include <QtCore/QThread>
+#include <Trace.h>
 
 #include <NumericalConstants.h>
 
@@ -31,33 +34,28 @@ std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
 std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
-std::atomic<bool> Texture::_enableSparseTextures { false };
-std::atomic<bool> Texture::_enableIncrementalTextureTransfers { false };
+
+#define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
+bool recommendedSparseTextures = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
+
+std::atomic<bool> Texture::_enableSparseTextures { recommendedSparseTextures };
+
+struct ReportTextureState {
+    ReportTextureState() {
+        qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT]"
+            << "\n\tidealThreadCount:" << QThread::idealThreadCount()
+            << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures;
+    }
+} report;
 
 void Texture::setEnableSparseTextures(bool enabled) {
 #ifdef Q_OS_WIN
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
+    qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
     _enableSparseTextures = enabled;
-    if (!_enableIncrementalTextureTransfers && _enableSparseTextures) {
-        qDebug() << "[TEXTURE TRANSFER SUPPORT] WARNING - Sparse texture management requires incremental texture transfer enabled.";
-    }
 #else
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
+    qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT] Sparse Textures and Dynamic Texture Management not supported on this platform.";
 #endif
 }
-
-void Texture::setEnableIncrementalTextureTransfers(bool enabled) {
-#ifdef Q_OS_WIN
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Incremental Texture Transfer:" << enabled;
-    _enableIncrementalTextureTransfers = enabled;
-    if (!_enableIncrementalTextureTransfers && _enableSparseTextures) {
-        qDebug() << "[TEXTURE TRANSFER SUPPORT] WARNING - Sparse texture management requires incremental texture transfer enabled.";
-    }
-#else
-    qDebug() << "[TEXTURE TRANSFER SUPPORT] Incremental Texture Transfer not supported on this platform.";
-#endif
-}
-
 
 void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
@@ -72,10 +70,6 @@ void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSiz
 
 bool Texture::getEnableSparseTextures() { 
     return _enableSparseTextures.load(); 
-}
-
-bool Texture::getEnableIncrementalTextureTransfers() { 
-    return _enableIncrementalTextureTransfers.load(); 
 }
 
 uint32_t Texture::getTextureCPUCount() {
@@ -120,7 +114,7 @@ Texture::Size Texture::getAllowedGPUMemoryUsage() {
 }
 
 void Texture::setAllowedGPUMemoryUsage(Size size) {
-    qDebug() << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
+    qCDebug(gpulogging) << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
     _allowedCPUMemoryUsage = size;
 }
 
@@ -418,12 +412,18 @@ uint16 Texture::evalDimNumMips(uint16 size) {
     return 1 + (uint16) val;
 }
 
+static const double LOG_2 = log(2.0);
+
+uint16 Texture::evalNumMips(const Vec3u& dimensions) {
+    double largerDim = glm::compMax(dimensions);
+    double val = log(largerDim) / LOG_2;
+    return 1 + (uint16)val;
+}
+
 // The number mips that the texture could have if all existed
 // = log2(max(width, height, depth))
 uint16 Texture::evalNumMips() const {
-    double largerDim = std::max(std::max(_width, _height), _depth);
-    double val = log(largerDim)/log(2.0);
-    return 1 + (uint16) val;
+    return evalNumMips({ _width, _height, _depth });
 }
 
 bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes) {
@@ -758,6 +758,9 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     if(width != cubeTexture.getHeight()) {
         return false;
     }
+
+    PROFILE_RANGE(render_gpu, "sphericalHarmonicsFromTexture");
+
     const uint sqOrder = order*order;
 
     // allocate memory for calculations
@@ -789,6 +792,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
 
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
+        PROFILE_RANGE(render_gpu, "ProcessFace");
 
         auto numComponents = cubeTexture.accessStoredMipFace(0,face)->getFormat().getScalarCount();
         auto data = cubeTexture.accessStoredMipFace(0,face)->readData();

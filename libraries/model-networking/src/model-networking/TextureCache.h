@@ -63,10 +63,13 @@ public:
     NetworkTexture(const QUrl& url, Type type, const QByteArray& content);
     NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
 
+    QString getType() const override { return "NetworkTexture"; }
+
     int getOriginalWidth() const { return _originalWidth; }
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
+    Type getTextureType() const { return _type;  }
     
     TextureLoaderFunc getTextureLoader() const;
 

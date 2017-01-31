@@ -25,6 +25,7 @@
 #include "QVariantGLM.h"
 #include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
+#include <EntityScriptClient.h>
 
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
@@ -35,6 +36,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
     connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
+    connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -61,6 +63,11 @@ bool EntityScriptingInterface::canRez() {
 bool EntityScriptingInterface::canRezTmp() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRezTmp();
+}
+
+bool EntityScriptingInterface::canWriteAssets() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanWriteAssets();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -183,7 +190,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 
     if (propertiesWithSimID.getParentID() == AVATAR_SELF_ID) {
-        qDebug() << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
+        qCDebug(entities) << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
         propertiesWithSimID.setParentID(QUuid());
     }
 
@@ -364,7 +371,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
             } else if (scriptSideProperties.getParentID() == AVATAR_SELF_ID) {
-                qDebug() << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
+                qCDebug(entities) << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
                 properties.setParentID(QUuid());
             }
             if (!scriptSideProperties.parentJointIndexChanged()) {
@@ -664,6 +671,38 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     return result;
 }
 
+bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
+    auto client = DependencyManager::get<EntityScriptClient>();
+    return client->reloadServerScript(entityID);
+}
+
+bool EntityScriptingInterface::getServerScriptStatus(QUuid entityID, QScriptValue callback) {
+    auto client = DependencyManager::get<EntityScriptClient>();
+    auto request = client->createScriptStatusRequest(entityID);
+    connect(request, &GetScriptStatusRequest::finished, callback.engine(), [callback](GetScriptStatusRequest* request) mutable {
+        QString statusString;
+        switch (request->getStatus()) {
+            case RUNNING:
+                statusString = "running";
+                break;
+            case ERROR_LOADING_SCRIPT:
+                statusString = "error_loading_script";
+                break;
+            case ERROR_RUNNING_SCRIPT:
+                statusString = "error_running_script";
+                break;
+            default:
+                statusString = "";
+                break;
+        }
+        QScriptValueList args { request->getResponseReceived(), request->getIsRunning(), statusString, request->getErrorInfo() };
+        callback.call(QScriptValue(), args);
+        request->deleteLater();
+    });
+    request->start();
+    return true;
+}
+
 void EntityScriptingInterface::setLightsArePickable(bool value) {
     LightEntityItem::setLightsArePickable(value);
 }
@@ -925,12 +964,12 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         EntitySimulationPointer simulation = _entityTree->getSimulation();
         entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {
-            qDebug() << "actionWorker -- unknown entity" << entityID;
+            qCDebug(entities) << "actionWorker -- unknown entity" << entityID;
             return;
         }
 
         if (!simulation) {
-            qDebug() << "actionWorker -- no simulation" << entityID;
+            qCDebug(entities) << "actionWorker -- no simulation" << entityID;
             return;
         }
 
@@ -1045,7 +1084,7 @@ EntityItemPointer EntityScriptingInterface::checkForTreeEntityAndTypeMatch(const
     
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
-        qDebug() << "EntityScriptingInterface::checkForTreeEntityAndTypeMatch - no entity with ID" << entityID;
+        qCDebug(entities) << "EntityScriptingInterface::checkForTreeEntityAndTypeMatch - no entity with ID" << entityID;
         return entity;
     }
     
@@ -1154,17 +1193,76 @@ bool EntityScriptingInterface::setAbsoluteJointRotationInObjectFrame(const QUuid
     return false;
 }
 
+glm::vec3 EntityScriptingInterface::getLocalJointTranslation(const QUuid& entityID, int jointIndex) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->getLocalJointTranslation(jointIndex);
+    } else {
+        return glm::vec3(0.0f);
+    }
+}
+
+glm::quat EntityScriptingInterface::getLocalJointRotation(const QUuid& entityID, int jointIndex) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->getLocalJointRotation(jointIndex);
+    } else {
+        return glm::quat();
+    }
+}
+
+bool EntityScriptingInterface::setLocalJointTranslation(const QUuid& entityID, int jointIndex, glm::vec3 translation) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        bool result = modelEntity->setLocalJointTranslation(jointIndex, translation);
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withWriteLock([&] {
+                properties = entity->getProperties();
+                entity->setLastBroadcast(now);
+            });
+
+            properties.setJointTranslationsDirty();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool EntityScriptingInterface::setLocalJointRotation(const QUuid& entityID, int jointIndex, glm::quat rotation) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        bool result = modelEntity->setLocalJointRotation(jointIndex, rotation);
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withWriteLock([&] {
+                properties = entity->getProperties();
+                entity->setLastBroadcast(now);
+            });
+
+            properties.setJointRotationsDirty();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
+    }
+    return false;
+}
 
 
-bool EntityScriptingInterface::setAbsoluteJointRotationsInObjectFrame(const QUuid& entityID,
-                                                                      const QVector<glm::quat>& rotations) {
+
+bool EntityScriptingInterface::setLocalJointRotations(const QUuid& entityID, const QVector<glm::quat>& rotations) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto now = usecTimestampNow();
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
 
         bool result = false;
         for (int index = 0; index < rotations.size(); index++) {
-            result |= modelEntity->setAbsoluteJointRotationInObjectFrame(index, rotations[index]);
+            result |= modelEntity->setLocalJointRotation(index, rotations[index]);
         }
         if (result) {
             EntityItemProperties properties;
@@ -1184,15 +1282,14 @@ bool EntityScriptingInterface::setAbsoluteJointRotationsInObjectFrame(const QUui
 }
 
 
-bool EntityScriptingInterface::setAbsoluteJointTranslationsInObjectFrame(const QUuid& entityID,
-                                                                         const QVector<glm::vec3>& translations) {
+bool EntityScriptingInterface::setLocalJointTranslations(const QUuid& entityID, const QVector<glm::vec3>& translations) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto now = usecTimestampNow();
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
 
         bool result = false;
         for (int index = 0; index < translations.size(); index++) {
-            result |= modelEntity->setAbsoluteJointTranslationInObjectFrame(index, translations[index]);
+            result |= modelEntity->setLocalJointTranslation(index, translations[index]);
         }
         if (result) {
             EntityItemProperties properties;
@@ -1211,12 +1308,12 @@ bool EntityScriptingInterface::setAbsoluteJointTranslationsInObjectFrame(const Q
     return false;
 }
 
-bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
-                                                                  const QVector<glm::quat>& rotations,
-                                                                  const QVector<glm::vec3>& translations) {
+bool EntityScriptingInterface::setLocalJointsData(const QUuid& entityID,
+                                                  const QVector<glm::quat>& rotations,
+                                                  const QVector<glm::vec3>& translations) {
     // for a model with 80 joints, sending both these in one edit packet causes the packet to be too large.
-    return setAbsoluteJointRotationsInObjectFrame(entityID, rotations) ||
-        setAbsoluteJointTranslationsInObjectFrame(entityID, translations);
+    return setLocalJointRotations(entityID, rotations) ||
+        setLocalJointTranslations(entityID, translations);
 }
 
 int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString& name) {
@@ -1247,7 +1344,7 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
 
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
     if (!entity) {
-        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        qCDebug(entities) << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
         return result;
     }
 
@@ -1258,6 +1355,26 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
     });
 
     return result;
+}
+
+bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
+    bool isChild = false;
+
+    if (!_entityTree) {
+        return isChild;
+    }
+
+    _entityTree->withReadLock([&] {
+        EntityItemPointer parent = _entityTree->findEntityByEntityItemID(parentID);
+        parent->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+            if(descendant->getID() == childID) {
+                isChild = true;
+                return; 
+            }
+        });
+    });
+    
+    return isChild;
 }
 
 QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex) {

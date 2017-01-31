@@ -11,6 +11,8 @@
 
 #include "AssignmentParentFinder.h"
 
+#include <AvatarHashMap.h>
+
 SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID, bool& success, SpatialParentTree* entityTree) const {
     SpatiallyNestableWeakPointer parent;
 
@@ -25,10 +27,21 @@ SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID, bool& 
     } else {
         parent = _tree->findEntityByEntityItemID(parentID);
     }
-    if (parent.expired()) {
-        success = false;
-    } else {
+    if (!parent.expired()) {
         success = true;
+        return parent;
     }
+
+    // search avatars
+    if (DependencyManager::isSet<AvatarHashMap>()) {
+        auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+        parent = avatarHashMap->getAvatarBySessionID(parentID);
+        if (!parent.expired()) {
+            success = true;
+            return parent;
+        }
+    }
+
+    success = false;
     return parent;
 }

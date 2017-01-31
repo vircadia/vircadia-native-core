@@ -35,21 +35,21 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     config->textureGPUVirtualMemoryUsage = gpu::Texture::getTextureGPUVirtualMemoryUsage();
     config->textureGPUTransferCount = gpu::Texture::getTextureGPUTransferCount();
 
-    gpu::ContextStats gpuStats(_gpuStats);
-    renderContext->args->_context->getStats(_gpuStats);
+    renderContext->args->_context->getFrameStats(_gpuStats);
 
-    config->frameAPIDrawcallCount = _gpuStats._DSNumAPIDrawcalls - gpuStats._DSNumAPIDrawcalls;
-    config->frameDrawcallCount = _gpuStats._DSNumDrawcalls - gpuStats._DSNumDrawcalls;
+    config->frameAPIDrawcallCount = _gpuStats._DSNumAPIDrawcalls;
+    config->frameDrawcallCount = _gpuStats._DSNumDrawcalls;
     config->frameDrawcallRate = config->frameDrawcallCount * frequency;
 
-    config->frameTriangleCount = _gpuStats._DSNumTriangles - gpuStats._DSNumTriangles;
+    config->frameTriangleCount = _gpuStats._DSNumTriangles;
     config->frameTriangleRate = config->frameTriangleCount * frequency;
 
-    config->frameTextureCount = _gpuStats._RSNumTextureBounded - gpuStats._RSNumTextureBounded;
+    config->frameTextureCount = _gpuStats._RSNumTextureBounded;
     config->frameTextureRate = config->frameTextureCount * frequency;
-    config->frameTextureMemoryUsage = _gpuStats._RSAmountTextureMemoryBounded - gpuStats._RSAmountTextureMemoryBounded;
+    config->frameTextureMemoryUsage = _gpuStats._RSAmountTextureMemoryBounded;
 
-    config->frameSetPipelineCount = _gpuStats._PSNumSetPipelines - gpuStats._PSNumSetPipelines;
+    config->frameSetPipelineCount = _gpuStats._PSNumSetPipelines;
+    config->frameSetInputFormatCount = _gpuStats._ISNumFormatChanges;
 
     config->emitDirty();
 }
