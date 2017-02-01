@@ -27,9 +27,30 @@
 #include "ClientServerUtils.h"
 #include "../entities/AssignmentParentFinder.h"
 
+
+#include <LogHandler.h>
+#include <mutex>
+
+using Mutex = std::mutex;
+using Lock = std::lock_guard<Mutex>;
+
+static std::mutex logBufferMutex;
+static std::string logBuffer;
+
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    auto logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
+
+    if (!logMessage.isEmpty()) {
+        Lock lock(logBufferMutex);
+        logBuffer.append(logMessage.toStdString() + '\n');
+    }
+}
+
 int EntityScriptServer::_entitiesScriptEngineCount = 0;
 
 EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssignment(message) {
+    qInstallMessageHandler(messageHandler);
+
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     ResourceManager::init();
@@ -57,6 +78,18 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 
     packetReceiver.registerListener(PacketType::ReloadEntityServerScript, this, "handleReloadEntityServerScriptPacket");
     packetReceiver.registerListener(PacketType::EntityScriptGetStatus, this, "handleEntityScriptGetStatusPacket");
+    packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
+
+    static const int LOG_INTERVAL = MSECS_PER_SECOND / 50;
+    auto timer = new QTimer(this);
+    timer->setTimerType(Qt::PreciseTimer);
+    timer->setInterval(LOG_INTERVAL);
+    connect(timer, &QTimer::timeout, this, &EntityScriptServer::pushLogs);
+    timer->start();
+}
+
+EntityScriptServer::~EntityScriptServer() {
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
 }
 
 static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
@@ -144,6 +177,60 @@ void EntityScriptServer::updateEntityPPS() {
     }
     _entityEditSender.setPacketsPerSecond(pps);
     qDebug() << QString("Updating entity PPS to: %1 @ %2 PPS per script = %3 PPS").arg(numRunningScripts).arg(_entityPPSPerScript).arg(pps);
+}
+
+void EntityScriptServer::handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
+    // about each other.
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+        bool enable = false;
+        message->readPrimitive(&enable);
+        qInfo() << "======== Got log packet:" << enable;
+
+        if (enable) {
+            _logListeners.insert(senderNode->getUUID());
+        } else {
+            _logListeners.erase(senderNode->getUUID());
+        }
+    }
+}
+
+void EntityScriptServer::pushLogs() {
+    std::string buffer;
+    {
+        Lock lock(logBufferMutex);
+        std::swap(logBuffer, buffer);
+    }
+
+    if (buffer.empty()) {
+        return;
+    }
+    if (_logListeners.empty()) {
+        return;
+    }
+
+    auto packet = NLPacket::create(PacketType::EntityServerScriptLog, buffer.size(), true);
+    packet->write(buffer.data(), buffer.size());
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    auto last = --std::end(_logListeners);
+    for (auto it = std::begin(_logListeners); it != last; ++it) {
+        auto node = nodeList->nodeWithUUID(*it);
+        if (node && node->getActiveSocket()) {
+            auto copy = NLPacket::createCopy(*packet);
+            nodeList->sendPacket(std::move(copy), *node);
+        } else {
+            qWarning() << "Node not found";
+        }
+    }
+
+    auto node = nodeList->nodeWithUUID(*last);
+    if (node && node->getActiveSocket()) {
+        nodeList->sendPacket(std::move(packet), *node);
+    } else {
+        qWarning() << "Node not found";
+    }
 }
 
 void EntityScriptServer::run() {
@@ -347,15 +434,27 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const
 }
 
 void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
-    if (!_shuttingDown && killedNode->getType() == NodeType::EntityServer) {
-        if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->unloadAllEntityScripts();
-            _entitiesScriptEngine->stop();
+    switch (killedNode->getType()) {
+        case NodeType::EntityServer: {
+            if (!_shuttingDown) {
+                if (_entitiesScriptEngine) {
+                    _entitiesScriptEngine->unloadAllEntityScripts();
+                    _entitiesScriptEngine->stop();
+                }
+
+                resetEntitiesScriptEngine();
+                
+                _entityViewer.clear();
+            }
+            break;
         }
-
-        resetEntitiesScriptEngine();
-
-        _entityViewer.clear();
+        case NodeType::Agent: {
+            _logListeners.erase(killedNode->getUUID());
+            break;
+        }
+        default:
+            // Do nothing
+            break;
     }
 }
 

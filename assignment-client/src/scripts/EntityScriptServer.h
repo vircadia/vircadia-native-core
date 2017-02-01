@@ -12,7 +12,10 @@
 #ifndef hifi_EntityScriptServer_h
 #define hifi_EntityScriptServer_h
 
+#include <set>
+
 #include <QtCore/QObject>
+#include <QtCore/QUuid>
 
 #include <EntityEditPacketSender.h>
 #include <EntityTreeHeadlessViewer.h>
@@ -28,6 +31,7 @@ class EntityScriptServer : public ThreadedAssignment {
 
 public:
     EntityScriptServer(ReceivedMessage& message);
+    ~EntityScriptServer();
 
     virtual void aboutToFinish() override;
 
@@ -47,6 +51,10 @@ private slots:
 
     void handleSettings();
     void updateEntityPPS();
+
+    void handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
+    void pushLogs();
 
 private:
     void negotiateAudioFormat();
@@ -70,6 +78,8 @@ private:
 
     int _maxEntityPPS { DEFAULT_MAX_ENTITY_PPS };
     int _entityPPSPerScript { DEFAULT_ENTITY_PPS_PER_SCRIPT };
+
+    std::set<QUuid> _logListeners;
 
     QString _selectedCodecName;
     CodecPluginPointer _codec;

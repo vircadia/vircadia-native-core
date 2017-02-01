@@ -46,6 +46,9 @@ int qTextBlockMeta = qRegisterMetaType<QTextBlock>("QTextBlock");
 
 LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog(parent, Qt::Window) {
 
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
+
     _logger = logger;
     setWindowTitle("Log");
     setAttribute(Qt::WA_DeleteOnClose);
@@ -64,7 +67,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog
     move(screen.center() - rect().center());
     setMinimumWidth(MINIMAL_WIDTH);
 
-    connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)), Qt::QueuedConnection);
+    //connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)), Qt::QueuedConnection);
 }
 
 LogDialog::~LogDialog() {
@@ -97,7 +100,8 @@ void LogDialog::initControls() {
         _extraDebuggingBox->setCheckState(Qt::Checked);
     }
     _extraDebuggingBox->show();
-    connect(_extraDebuggingBox, SIGNAL(stateChanged(int)), SLOT(handleExtraDebuggingCheckbox(int)));
+    //connect(_extraDebuggingBox, SIGNAL(stateChanged(int)), SLOT(handleExtraDebuggingCheckbox(int)));
+    connect(_extraDebuggingBox, &QCheckBox::stateChanged, this, &LogDialog::enableToEntityServerScriptLog);
 
     _revealLogButton = new QPushButton("Reveal log file", this);
     // set object name for css styling
@@ -154,6 +158,31 @@ void LogDialog::showLogData() {
     _logTextBox->clear();
     _logTextBox->insertPlainText(_logger->getLogData());
     _logTextBox->ensureCursorVisible();
+}
+
+
+void LogDialog::enableToEntityServerScriptLog(bool enable) {
+    qDebug() << Q_FUNC_INFO << enable;
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    if (auto node = nodeList->soloNodeOfType(NodeType::EntityScriptServer)) {
+        auto packet = NLPacket::create(PacketType::EntityServerScriptLog, sizeof(bool), true);
+        packet->writePrimitive(enable);
+        nodeList->sendPacket(std::move(packet), *node);
+
+        if (enable) {
+            appendLogLine("====================== Subscribded to the Entity Script Server's log ======================");
+        } else {
+            appendLogLine("==================== Unsubscribded from the Entity Script Server's log ====================");
+        }
+    } else {
+        qWarning() << "Entity Script Server not found";
+    }
+}
+
+void LogDialog::handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto lines = QString::fromUtf8(message->readAll());
+    QMetaObject::invokeMethod(this, "appendLogLine", Q_ARG(QString, lines));
 }
 
 KeywordHighlighter::KeywordHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent), keywordFormat() {

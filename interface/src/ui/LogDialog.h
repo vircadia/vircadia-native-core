@@ -53,6 +53,9 @@ private slots:
     void handleExtraDebuggingCheckbox(const int);
     void handleSearchTextChanged(const QString);
 
+    void enableToEntityServerScriptLog(bool enable);
+    void handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
 protected:
     void resizeEvent(QResizeEvent*) override;
     void showEvent(QShowEvent*) override;
