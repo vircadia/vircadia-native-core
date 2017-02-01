@@ -385,7 +385,13 @@
                     myVisibility = event.data.visibility;
                     $("#dev-div").append("<p>myUsername is " + myUsername + "</p>");
                     $("#dev-div").append("<p>myVisibility is " + myVisibility + "</p>");
-                    $("#visibility-toggle").html(myVisibility + "<span class='glyphicon glyphicon-menu-down'></span>")
+                    var buttonText = "Online";
+                    if (myVisibility === "none") {
+                        buttonText = "Appear Offline";
+                    } else if (myVisibility === "friends") {
+                        buttonText = "Available To Friends Only";
+                    }
+                    $("#visibility-toggle").html(buttonText + "<span class='glyphicon glyphicon-menu-down'></span>")
                 }
             }
 
@@ -428,12 +434,13 @@
 
                 // Click listener for toggling who can see me
                 $(".visibility-option").click(function() {
+                    myVisibility = $(this).data("visibility");
                     var newButtonText = $(this).find("h6").text();
                     $("#visibility-toggle").html(newButtonText + "<span class='glyphicon glyphicon-menu-down'></span>");
                     var visibilityObject = {
                         "type": "toggle-visibility",
                         "data": {
-                            "visibility": $(this).data("visibility")
+                            "visibility": myVisibility
                         }
                     }
                     EventBridge.emitWebEvent(JSON.stringify(visibilityObject));
