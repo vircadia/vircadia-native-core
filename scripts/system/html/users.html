@@ -55,7 +55,7 @@
                 padding-bottom: 40px;
             }
 
-            #visibility-toggle-button {
+            #visibility-toggle {
                 font-family: 'Raleway';
                 font-weight: bold;
                 font-size: 13px;
@@ -73,16 +73,16 @@
                 cursor: pointer;
             }
 
-            #visibility-toggle-button:enabled:hover {
+            #visibility-toggle:enabled:hover {
                 background: linear-gradient(#fff, #fff);
                 border: none;
             }
 
-            #visibility-toggle-button:active {
+            #visibility-toggle:active {
                 background: linear-gradient(#afafaf, #afafaf);
             }
 
-            #visibility-toggle-button span {
+            #visibility-toggle span {
                 padding-left: 10px;
             }
 
@@ -218,6 +218,31 @@
               vertical-align: middle;
             }
 
+            .dropdown-menu {
+                width: 280px;
+            }
+
+            .dropdown-menu li {
+                color: #333;
+                padding: 10px;
+            }
+
+            .dropdown-menu .divider {
+                padding: 0px;
+            }
+
+            .dropdown-menu li:hover {
+                background: #dcdcdc;
+            }
+
+            .dropdown-menu li h6 {
+                font-weight: bold;
+            }
+
+            .dropdown-menu li p {
+                font-size: 11px;
+            }
+
         </style>
     </head>
     <body>
@@ -230,7 +255,28 @@
         <div class="main">
             <div id="user-info-div">
                 <h4>faye @ dev-welcome</h4>
-                <button id="visibility-toggle-button">Online<span class="glyphicon glyphicon-menu-down"></span></button>
+                <div class="dropdown">
+                    <button id="visibility-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Online
+                        <span class="glyphicon glyphicon-menu-down"></span>
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="visibility-toggle">
+                        <li>
+                            <h6>Online</h6>
+                            <p>You will be shown online to everyone else. Anybody will be able to find you from the users online list and jump to your current location.</p>
+                        </li>
+                        <li role="separator" class="divider"></li>
+                        <li>
+                            <h6>Available to Friends Only</h6>
+                            <p>You will be shown online only to users you have added as friends. Other users may still interact with you in the same domain, but they won't be able to find you from the users online list.</p>
+                        </li>
+                        <li role="separator" class="divider"></li>
+                        <li>
+                            <h6>Appear Offline</h6>
+                            <p>No one will be able to find you from the users online list. However, this does not prevent other users in the same domain from interacting with you. For a complete "Do not disturb" mode, you may want to your own private domain and set allow entering to no one.</p>
+                        </li>
+                    </ul>
+                </div>
             </div>
             <ul class="tabs">
                 <li tab-id="tab-1" class="current">Everyone (0)</li>
