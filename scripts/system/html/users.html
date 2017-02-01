@@ -217,7 +217,7 @@
               </div>
               <div class="modal-footer">
                 <input type="button" data-dismiss="modal" value="Cancel">
-                <input type="button" data-dismiss="modal" value="OK">
+                <input type="button" data-dismiss="modal" id="jump-to-confirm-button" value="OK">
               </div>
             </div>
           </div>
@@ -327,6 +327,16 @@
                     var modal = $(this);
                     modal.find(".modal-title").text("Jump to " + username + " @ " + placename);
                 })
+
+                $("#jump-to-confirm-button").click(function() {
+                    var jumpToObject = {
+                        "type": "jump-to",
+                        "data": {
+                            "username": "Alan_"
+                        }
+                    }
+                    EventBridge.emitWebEvent(JSON.stringify(jumpToObject));
+                });
 
                 // Listen for events from hifi
                 EventBridge.scriptEventReceived.connect(onScriptEventReceived);
