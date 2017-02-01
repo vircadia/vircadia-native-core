@@ -198,6 +198,11 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         _this.geometryChanged(geometry);
     };
     Window.geometryChanged.connect(this.myGeometryChanged);
+
+    this.myCameraModeChanged = function(newMode) {
+        _this.cameraModeChanged(newMode);
+    };
+    Camera.modeUpdated.connect(this.myCameraModeChanged);
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
@@ -228,6 +233,7 @@ WebTablet.prototype.destroy = function () {
     Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
 
     Window.geometryChanged.disconnect(this.myGeometryChanged);
+    Camera.modeUpdated.disconnect(this.myCameraModeChanged);
 };
 
 WebTablet.prototype.geometryChanged = function (geometry) {
@@ -368,6 +374,19 @@ WebTablet.prototype.mousePressEvent = function (event) {
             this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
         }
     }
+};
+
+WebTablet.prototype.cameraModeChanged = function (newMode) {
+    // reposition the tablet, after a small delay.
+    // This allows HMD.position to reflect the new camera mode.
+    var self = this;
+    Script.setTimeout(function () {
+        var NO_HANDS = -1;
+        var tabletProperties = {};
+        // compute position, rotation & parentJointIndex of the tablet
+        self.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+        Entities.editEntity(self.tabletEntityID, tabletProperties);
+    }, 10);
 };
 
 function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
