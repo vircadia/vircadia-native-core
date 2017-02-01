@@ -102,6 +102,7 @@ function createLocalGame() {
     buttonID = spawnTemplate("SB.StartButton", {
         parentID: scoreboardID,
         script: Script.resolvePath("startGameButton.js"),
+        serverScripts: Script.resolvePath("startGameButtonServerEntity.js"),
         userData: JSON.stringify({
             grabbableKey: { 
                 wantsTrigger: true
@@ -121,25 +122,37 @@ function createLocalGame() {
 
     waveDisplayID = spawnTemplate("SB.DisplayWave", {
         parentID: scoreboardID,
-        serverScripts: "null"
+        userData: JSON.stringify({
+            displayType: "wave"
+        }),
+        serverScripts: Script.resolvePath("scoreboardEntity.js")
     });
     entityIDs.push(waveDisplayID);
 
     scoreDisplayID = spawnTemplate("SB.DisplayScore", {
         parentID: scoreboardID,
-        serverScripts: "null"
+        userData: JSON.stringify({
+            displayType: "score"
+        }),
+        serverScripts: Script.resolvePath("scoreboardEntity.js")
     });
     entityIDs.push(scoreDisplayID);
 
     livesDisplayID = spawnTemplate("SB.DisplayLives", {
         parentID: scoreboardID,
-        serverScripts: "null"
+        userData: JSON.stringify({
+            displayType: "lives"
+        }),
+        serverScripts: Script.resolvePath("scoreboardEntity.js")
     });
     entityIDs.push(livesDisplayID);
 
     highScoreDisplayID = spawnTemplate("SB.DisplayHighScore", {
         parentID: scoreboardID,
-        serverScripts: "null"
+        userData: JSON.stringify({
+            displayType: "highscore"
+        }),
+        serverScripts: Script.resolvePath("scoreboardEntity.js")
     });
     entityIDs.push(highScoreDisplayID);
 

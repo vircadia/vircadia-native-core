@@ -37,7 +37,7 @@ function encodeURLParams(params) {
     return paramPairs.join("&");
 }
 
-function sendAndUpdateHighScore(highScoreDisplayID, entityID, score, wave, numPlayers) {
+function sendAndUpdateHighScore(highScoreChannel, entityID, score, wave, numPlayers) {
     const URL = 'https://script.google.com/macros/s/AKfycbwbjCm9mGd1d5BzfAHmVT_XKmWyUYRkjCEqDOKm1368oM8nqWni/exec';
     print("Sending high score");
 
@@ -55,9 +55,10 @@ function sendAndUpdateHighScore(highScoreDisplayID, entityID, score, wave, numPl
             print("Got response for high score: ", req.response);
             var response = JSON.parse(req.responseText);
             if (response.highScore !== undefined) {
-                Entities.editEntity(highScoreDisplayID, {
-                    text: response.highScore
-                });
+                Messages.sendMessage(highScoreChannel, response.highScore);
+                //Entities.editEntity(highScoreDisplayID, {
+                    //text: response.highScore
+                //});
             }
         }
     };
@@ -112,6 +113,7 @@ var baseEnemyProperties = {
         "y": -15,
         "z": 0
     },
+    lifetime: 180,
     "id": "{ed8f7339-8bbd-4750-968e-c3ceb9d64721}",
     "modelURL": "http://hifi-content.s3.amazonaws.com/Examples%20Content/production/marblecollection/Amber.fbx?2",
     "name": "SB.Enemy",
@@ -137,11 +139,12 @@ var baseEnemyProperties = {
         z: -3
     },
     script: Script.resolvePath('enemyEntity.js'),
-    serverScripts: "null"
+    serverScripts: Script.resolvePath('enemyServerEntity.js')
 };
 
 
 ShortbowGameManager = function(rootPosition, gatePosition, bowPositions, spawnPositions, rootEntityID, startButtonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID) {
+    print("Starting game manager");
     this.gameState = GAME_STATES.IDLE;
 
     this.bowPositions = bowPositions;
@@ -149,12 +152,11 @@ ShortbowGameManager = function(rootPosition, gatePosition, bowPositions, spawnPo
     this.spawnPositions = spawnPositions;
     this.gatePosition = gatePosition;
     this.rootEntityID = rootEntityID;
-    this.startButtonID = startButtonID;
-    this.waveDisplayID = waveDisplayID;
-    this.scoreDisplayID = scoreDisplayID;
-    this.livesDisplayID = livesDisplayID;
-    this.highScoreDisplayID = highScoreDisplayID;
-    print(waveDisplayID, scoreDisplayID, livesDisplayID);
+    //this.startButtonID = startButtonID;
+    //this.waveDisplayID = waveDisplayID;
+    //this.scoreDisplayID = scoreDisplayID;
+    //this.livesDisplayID = livesDisplayID;
+    //this.highScoreDisplayID = highScoreDisplayID;
 
     // Gameplay state
     this.waveNumber = 0;
@@ -162,24 +164,32 @@ ShortbowGameManager = function(rootPosition, gatePosition, bowPositions, spawnPo
     this.score = 0;
     this.nextWaveTimer = null;
     this.spawnEnemyTimers = [];
-    this.enemyIDs = [];
+    //this.enemyIDs = [];
+    this.remainingEnemies = [];
     this.entityIDs = [];
     this.bowIDs = [];
 
     this.commChannelName = "shortbow-" + this.rootEntityID;
     print("Listening on: ", this.commChannelName);
 
+    //this.scoreChannelName = "score-" + this.rootEntityID;
+    this.highscoreChannelName = "highscore-" + this.rootEntityID;
+    //this.waveChannelName = "wave-" + this.rootEntityID;
+    //this.livesChannelName = "lives-" + this.rootEntityID;
+    this.startButtonChannelName = 'button-' + this.rootEntityID;
+
     Messages.subscribe(this.commChannelName);
     Messages.messageReceived.connect(this, this.onReceivedMessage);
 
     this.reset();
-    sendAndUpdateHighScore(this.highScoreDisplayID, this.rootEntityID, this.score, this.waveNumber, 1);
+    sendAndUpdateHighScore(this.highscoreChannelName, this.rootEntityID, this.score, this.waveNumber, 1);
 }
 ShortbowGameManager.prototype = {
     reset: function() {
-        Entities.editEntity(this.startButtonID, {
-            visible: true
-        });
+        //Entities.editEntity(this.startButtonID, {
+            //visible: true
+        //});
+        Messages.sendMessage(this.startButtonChannelName, 'show');
     },
     cleanup: function() {
         Messages.unsubscribe(this.commChannelName);
@@ -193,10 +203,10 @@ ShortbowGameManager.prototype = {
             Entities.deleteEntity(this.bowIDs[i]);
         }
         this.bowIDs = [];
-        for (var i = 0; i < this.enemyIDs.length; i++) {
-            Entities.deleteEntity(this.enemyIDs[i]);
+        for (var i = 0; i < this.remainingEnemies.length; i++) {
+            Entities.deleteEntity(this.remainingEnemies[i].id);
         }
-        this.enemyIDs = [];
+        this.remainingEnemies = [];
     },
     onReceivedMessage: function(channel, messageJSON, senderID) {
         print("playWaveGame.js | Recieved: " + messageJSON + " from " + senderID, channel, this.commChannelName);
@@ -204,7 +214,7 @@ ShortbowGameManager.prototype = {
         if (channel === this.commChannelName) {
             var message = utils.parseJSON(messageJSON);
             if (message === undefined) {
-                print("playWaveGame.js | Received non-json message");
+                print("playWaveGame.js | Received non-json message:", JSON.stringify(messageJSON));
                 return;
             }
             switch (message.type) {
@@ -216,6 +226,16 @@ ShortbowGameManager.prototype = {
                     break;
                 case 'enemy-escaped':
                     this.onEnemyEscaped(message.entityID);
+                    break;
+                case 'enemy-heartbeat':
+                    for (var i = 0; i < this.remainingEnemies.length; i++) {
+                        var enemy = this.remainingEnemies[i];
+                        if (enemy.id == message.entityID) {
+                            enemy.lastHeartbeat = Date.now();
+                            enemy.lastKnownPosition = message.position;
+                            break;
+                        }
+                    }
                     break;
                 default:
                     print("playWaveGame.js | Ignoring unknown message type: ", message.type);
@@ -231,7 +251,8 @@ ShortbowGameManager.prototype = {
 
         print("Game started!!");
 
-        Entities.editEntity(this.startButtonID, { visible: false });
+        //Entities.editEntity(this.startButtonID, { visible: false });
+        Messages.sendMessage(this.startButtonChannelName, 'hide');
 
 
         // Spawn bows
@@ -277,7 +298,8 @@ ShortbowGameManager.prototype = {
         this.nextWaveTimer = Script.setTimeout(this.startNextWave.bind(this), 100);
         this.spawnEnemyTimers = [];
         this.checkEnemyPositionsTimer = null;
-        this.enemyIDs = [];
+        //this.enemyIDs = [];
+        this.remainingEnemies = [];
 
         // SpawnQueue is a list of enemies left to spawn. Each entry looks like:
         //
@@ -294,18 +316,32 @@ ShortbowGameManager.prototype = {
             position: this.rootPosition
         });
 
+        var self = this;
+        //Script.setInterval(function() {
+            //print("Remaining enemies:");
+            //for (var i = 0; i < self.remainingEnemies.length; ++i) {
+                //print("    ", i, self.remainingEnemies[i].id);
+            //}
+        //}, 3000);
+
+    },
+    setDisplayText: function(type, value) {
+        var channel = type + '-' + this.rootEntityID;
+        Messages.sendMessage(channel, value);
     },
     startNextWave: function() {
         print("Starting next wave");
         this.gameState = GAME_STATES.PLAYING;
         this.waveNumber++;
-        this.enemyIDs = [];
+        //this.enemyIDs = [];
+        this.remainingEnemies= [];
         this.spawnQueue = [];
         this.spawnStartTime = Date.now();
 
-        Entities.editEntity(this.waveDisplayID, {
-            text: this.waveNumber
-        });
+        //Entities.editEntity(this.waveDisplayID, {
+            //text: this.waveNumber
+        //});
+        this.setDisplayText('wave', this.waveNumber);
 
         var numberOfEnemiesLeftToSpawn = this.waveNumber * 2;
         var delayBetweenSpawns = 2000 / Math.max(1, Math.log(this.waveNumber));
@@ -329,7 +365,7 @@ ShortbowGameManager.prototype = {
             return;
         }
 
-        if (this.spawnQueue.length <= 0 && this.enemyIDs.length === 0) {
+        if (this.spawnQueue.length <= 0 && this.remainingEnemies.length === 0) {
             this.gameState = GAME_STATES.BETWEEN_WAVES;
             Script.setTimeout(this.startNextWave.bind(this), 5000);
 
@@ -349,15 +385,17 @@ ShortbowGameManager.prototype = {
     setLivesLeft: function(lives) {
         lives = Math.max(0, lives);
         this.livesLeft = lives;
-        Entities.editEntity(this.livesDisplayID, {
-            text: this.livesLeft
-        });
+        //Entities.editEntity(this.livesDisplayID, {
+            //text: this.livesLeft
+        //});
+        this.setDisplayText('lives', this.livesLeft);
     },
     setScore: function(score) {
         this.score = score;
-        Entities.editEntity(this.scoreDisplayID, {
-            text: utils.formatNumberWithCommas(this.score)
-        });
+        //Entities.editEntity(this.scoreDisplayID, {
+            //text: utils.formatNumberWithCommas(this.score)
+        //});
+        this.setDisplayText('score', this.score);
     },
     checkSpawnQueue: function() {
         var waveElapsedTime = Date.now() - this.spawnStartTime;
@@ -372,7 +410,12 @@ ShortbowGameManager.prototype = {
             });
 
             var entityID = Entities.addEntity(baseEnemyProperties);
-            this.enemyIDs.push(entityID);
+            //this.enemyIDs.push(entityID);
+            this.remainingEnemies.push({
+                id: entityID,
+                lastKnownPosition: baseEnemyProperties.position,
+                lastHeartbeat: Date.now()
+            });
             this.spawnQueue.splice(0, 1);
             Script.setTimeout(function() {
                 var velocity = Entities.getEntityProperties(entityID, 'velocity').velocity;
@@ -390,17 +433,33 @@ ShortbowGameManager.prototype = {
         //return;
 
         var enemiesEscaped = false;
-        for (var i = this.enemyIDs.length - 1; i >= 0; --i) {
-            var position = Entities.getEntityProperties(this.enemyIDs[i], 'position').position;
-            if (position === undefined) {
-                // If the enemy can no longer be found, assume it was hit 
-                this.enemyIDs.splice(i, 1);
+        for (var i = this.remainingEnemies.length - 1; i >= 0; --i) {
+            var enemy = this.remainingEnemies[i];
+            var timeSinceLastHeartbeat = Date.now() - enemy.lastHeartbeat;
+            var distance = Vec3.distance(enemy.lastKnownPosition, this.rootPosition);
+            if (timeSinceLastHeartbeat > 5000 || distance > 500) {
+                print("EXPIRING: ", enemy.id);
+                Entities.deleteEntity(enemy.id);
+                //this.enemyIDs.splice(i, 1);
+                this.remainingEnemies.splice(i, 1);
                 Audio.playSound(TARGET_HIT_SOUND, {
                     volume: 1.0,
                     position: this.rootPosition,
                 });
                 this.setScore(this.score + 100);
                 enemiesEscaped = true;
+            }
+
+            //var position = Entities.getEntityProperties(this.enemyIDs[i], 'position').position;
+            //if (position === undefined || Vec3.distance(position, this.rootPosition) > 100) {
+                // If the enemy can no longer be found, assume it was hit 
+                //this.enemyIDs.splice(i, 1);
+                //Audio.playSound(TARGET_HIT_SOUND, {
+                    //volume: 1.0,
+                    //position: this.rootPosition,
+                //});
+                //this.setScore(this.score + 100);
+                //enemiesEscaped = true;
             //} else if (position.z < this.gatePosition.z) {
                 //Entities.deleteEntity(this.enemyIDs[i]);
                 //this.enemyIDs.splice(i, 1);
@@ -410,7 +469,6 @@ ShortbowGameManager.prototype = {
                     //position: this.rootPosition
                 //});
                 //enemiesEscaped = true;
-            }
         }
         //print("LIVES LEFT: ", this.livesLeft, this.numberOfEntitiesLeftForWave);
         if (this.livesLeft <= 0) {
@@ -437,7 +495,7 @@ ShortbowGameManager.prototype = {
         print("GAME OVER");
 
         // Update high score
-        sendAndUpdateHighScore(this.highScoreDisplayID, this.rootEntityID, this.score, this.waveNumber, 1);
+        sendAndUpdateHighScore(this.highscoreChannelName, this.rootEntityID, this.score, this.waveNumber, 1);
 
         // Cleanup
         Script.clearTimeout(this.nextWaveTimer);
@@ -464,42 +522,63 @@ ShortbowGameManager.prototype = {
         }
 
         Script.setTimeout(function() {
-            Entities.editEntity(this.startButtonID, { visible: true });
+            //Entities.editEntity(this.startButtonID, { visible: true });
+            Messages.sendMessage(this.startButtonChannelName, 'show');
             this.gameState = GAME_STATES.IDLE;
         }.bind(this), 3000);
 
-        for (var i = 0; i < this.enemyIDs.length; i++) {
-            Entities.deleteEntity(this.enemyIDs[i]);
+        for (var i = 0; i < this.remainingEnemies.length; i++) {
+            Entities.deleteEntity(this.remainingEnemies[i].id);
         }
-        this.enemyIDs = [];
+        this.remainingEnemies = [];
     },
     onEnemyKilled: function(entityID, position) {
         if (this.gameState !== GAME_STATES.PLAYING) {
             return;
         }
 
-        var idx = this.enemyIDs.indexOf(entityID);
-        if (idx >= 0) {
-            this.enemyIDs.splice(idx, 1);
-            Audio.playSound(TARGET_HIT_SOUND, {
-                volume: 1.0,
-                //position: position,
-                position: this.rootPosition,
-            });
+        for (var i = this.remainingEnemies.length - 1; i >= 0; --i) {
+            var enemy = this.remainingEnemies[i];
+            if (enemy.id === entityID) {
+                this.remainingEnemies.splice(i, 1);
+                Audio.playSound(TARGET_HIT_SOUND, {
+                    volume: 1.0,
+                    //position: position,
+                    position: this.rootPosition,
+                });
 
-            // Update score
-            this.setScore(this.score + 100);
-            print("SCORE: ", this.score);
+                // Update score
+                this.setScore(this.score + 100);
+                print("SCORE: ", this.score);
 
-            this.checkWaveComplete();
+                this.checkWaveComplete();
+                break;
+            }
         }
+
+        //var idx = this.enemyIDs.indexOf(entityID);
+        //if (idx >= 0) {
+        //    this.enemyIDs.splice(idx, 1);
+        //    Audio.playSound(TARGET_HIT_SOUND, {
+        //        volume: 1.0,
+        //        //position: position,
+        //        position: this.rootPosition,
+        //    });
+
+        //    // Update score
+        //    this.setScore(this.score + 100);
+        //    print("SCORE: ", this.score);
+
+        //    this.checkWaveComplete();
+        //}
     },
     onEnemyEscaped: function(entityID, position) {
         var enemiesEscaped = false;
-        for (var i = this.enemyIDs.length - 1; i >= 0; --i) {
-            if (this.enemyIDs[i] == entityID) {
-                Entities.deleteEntity(this.enemyIDs[i]);
-                this.enemyIDs.splice(i, 1);
+        for (var i = this.remainingEnemies.length - 1; i >= 0; --i) {
+            var enemy = this.remainingEnemies[i];
+            if (enemy.id == entityID) {
+                Entities.deleteEntity(enemy.id);
+                this.remainingEnemies.splice(i, 1);
                 this.setLivesLeft(this.livesLeft - 1);
                 Audio.playSound(ESCAPE_SOUND, {
                     volume: 1.0,
