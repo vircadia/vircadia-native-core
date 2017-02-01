@@ -1202,8 +1202,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
             [this](const EntityItemID& entityItemID, const PointerEvent& event) {
-        setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
-        setKeyboardFocusEntity(entityItemID);
+        auto entity = getEntities()->getTree()->findEntityByID(entityItemID);
+        if (entity && entity->wantsKeyboardFocus()) {
+            setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+            setKeyboardFocusEntity(entityItemID);
+        }
     });
 
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [=](const EntityItemID& entityItemID) {
