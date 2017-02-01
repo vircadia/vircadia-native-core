@@ -69,15 +69,11 @@ function deleteNameTag() {
 }
 
 function dimensionsFromName() {
-    var nameTagDimensions = {
-        x: 0.0,
+    return {
+        x: LETTER_OFFSET * MyAvatar.displayName.length,
         y: SIZE_Y,
         z: 0.0
-    }
-    for(var letter in MyAvatar.displayName) {
-        nameTagDimensions.x += LETTER_OFFSET;
-    }
-    return nameTagDimensions;
+    };
 };
 
 // cleanup on ending
