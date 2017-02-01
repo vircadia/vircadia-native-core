@@ -75,6 +75,14 @@ Item {
         source: buttonOutline
     }
 
+    function urlHelper(src) {
+        if (src.match(/\bhttp/)) {
+            return src;
+        } else {
+            return "../../../" + src;
+        }
+    }
+
     Image {
         id: icon
         width: 50
@@ -84,7 +92,7 @@ Item {
         anchors.bottomMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         fillMode: Image.Stretch
-        source: "../../../" + tabletButton.icon
+        source: tabletButton.urlHelper(tabletButton.icon)
     }
 
     ColorOverlay {
@@ -185,7 +193,7 @@ Item {
 
             PropertyChanges {
                 target: icon
-                source: "../../../" + tabletButton.activeIcon
+                source: tabletButton.urlHelper(tabletButton.activeIcon)
             }
         },
         State {
