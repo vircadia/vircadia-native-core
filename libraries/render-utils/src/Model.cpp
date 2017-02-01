@@ -1144,6 +1144,8 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         // update the world space transforms for all joints
         glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
         updateRig(deltaTime, parentTransform);
+
+        computeMeshPartLocalBounds();
     }
 }
 
@@ -1151,6 +1153,14 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
     _rig->updateAnimations(deltaTime, parentTransform);
+}
+
+void Model::computeMeshPartLocalBounds() {
+	for (auto& part : _modelMeshRenderItemsSet) {
+        assert(part->_meshIndex < _modelMeshRenderItemsSet.size());
+        const Model::MeshState& state = _meshStates.at(part->_meshIndex);
+        part->computeAdjustedLocalBound(state.clusterMatrices);
+    }
 }
 
 // virtual
@@ -1329,6 +1339,7 @@ void Model::createVisibleRenderItemSet() {
             shapeID++;
         }
     }
+    computeMeshPartLocalBounds();
 }
 
 void Model::createCollisionRenderItemSet() {

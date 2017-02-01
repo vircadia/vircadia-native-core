@@ -119,7 +119,7 @@ public:
      * @param msg {object|string}
      */
     Q_INVOKABLE void emitScriptEvent(QVariant msg);
-    
+
     Q_INVOKABLE bool onHomeScreen();
 
     QObject* getTabletSurface();
@@ -170,14 +170,14 @@ public:
     /**jsdoc
      * Returns the current value of this button's properties
      * @function TabletButtonProxy#getProperties
-     * @returns {object}
+     * @returns {ButtonProperties}
      */
     Q_INVOKABLE QVariantMap getProperties() const;
 
     /**jsdoc
      * Replace the values of some of this button's properties
      * @function TabletButtonProxy#editProperties
-     * @param properties {object} set of properties to change
+     * @param {ButtonProperties} properties - set of properties to change
      */
     Q_INVOKABLE void editProperties(QVariantMap properties);
 
@@ -198,5 +198,14 @@ protected:
     QQuickItem* _qmlButton { nullptr };
     QVariantMap _properties;
 };
+
+/**jsdoc
+ * @typedef TabletButtonProxy.ButtonProperties
+ * @property {string} text - button caption
+ * @property {string} icon - url to button icon. (50 x 50)
+ * @property {string} activeText - button caption when button is active
+ * @property {string} activeIcon - url to button icon used when button is active. (50 x 50)
+ * @property {string} isActive - true when button is active.
+ */
 
 #endif // hifi_TabletScriptingInterface_h

@@ -57,7 +57,6 @@
                     "visibility": myVisibility
                 }
             };
-            print("sending user info: " + JSON.stringify(object));
             tablet.emitScriptEvent(JSON.stringify(object));
         }
         if (event.type === "manage-friends") {
