@@ -908,31 +908,11 @@ function validateInputs() {
   }
 
   _.each(tables, function(table) {
-    var inputs = $(table).find('tr.' + Settings.NEW_ROW_CLASS + ':not([data-category]) input[data-changed="true"]');
-
-    var empty = false;
-
-    _.each(inputs, function(input){
-      var inputVal = $(input).val();
-
-      if (inputVal.length === 0) {
-        empty = true
-
-        markParentRowInvalid(input);
-        return;
-      }
-    });
-
-    if (empty) {
-      showErrorMessage("Error", "Empty field(s)");
-      inputsValid = false;
-      return
-    }
-
     // validate keys specificially for spaces and equality to an existing key
     var newKeys = $(table).find('tr.' + Settings.NEW_ROW_CLASS + ' td.key');
 
     var keyWithSpaces = false;
+    var empty = false;
     var duplicateKey = false;
 
     _.each(newKeys, function(keyCell) {
@@ -941,6 +921,14 @@ function validateInputs() {
       if (keyVal.indexOf(' ') !== -1) {
         keyWithSpaces = true;
         markParentRowInvalid(keyCell);
+        return;
+      }
+
+      // make sure the key isn't empty
+      if (keyVal.length === 0) {
+        empty = true
+
+        markParentRowInvalid(input);
         return;
       }
 
@@ -967,6 +955,12 @@ function validateInputs() {
 
     if (keyWithSpaces) {
       showErrorMessage("Error", "Key contains spaces");
+      inputsValid = false;
+      return
+    }
+
+    if (empty) {
+      showErrorMessage("Error", "Empty field(s)");
       inputsValid = false;
       return
     }
