@@ -379,14 +379,16 @@ WebTablet.prototype.mousePressEvent = function (event) {
 WebTablet.prototype.cameraModeChanged = function (newMode) {
     // reposition the tablet, after a small delay.
     // This allows HMD.position to reflect the new camera mode.
-    var self = this;
-    Script.setTimeout(function () {
-        var NO_HANDS = -1;
-        var tabletProperties = {};
-        // compute position, rotation & parentJointIndex of the tablet
-        self.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
-        Entities.editEntity(self.tabletEntityID, tabletProperties);
-    }, 10);
+    if (HMD.active) {
+        var self = this;
+        Script.setTimeout(function () {
+            var NO_HANDS = -1;
+            var tabletProperties = {};
+            // compute position, rotation & parentJointIndex of the tablet
+            self.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+            Entities.editEntity(self.tabletEntityID, tabletProperties);
+        }, 10);
+    }
 };
 
 function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
