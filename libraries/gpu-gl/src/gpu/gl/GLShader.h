@@ -19,6 +19,8 @@ public:
 
     enum Version {
         Mono = 0,
+        Stereo,
+
         NumVersions
     };
 
@@ -38,10 +40,14 @@ public:
         return _shaderObjects[version].glprogram;
     }
 
-    GLint getUniformLocation(GLint srcLoc, Version version = Mono) {
-        // THIS will be used in the future PR as we grow the number of versions
-        // return _uniformMappings[version][srcLoc];
-        return srcLoc;
+    GLint getUniformLocation(GLint srcLoc, Version version = Mono) const {
+        // This check protect against potential invalid src location for this shader, if unknown then return -1.
+        const auto& mapping = _uniformMappings[version];
+        auto found = mapping.find(srcLoc);
+        if (found == mapping.end()) {
+            return -1;
+        }
+        return found->second;
     }
 
     const std::weak_ptr<GLBackend> _backend;

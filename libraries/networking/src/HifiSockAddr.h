@@ -53,6 +53,8 @@ public:
     static int packSockAddr(unsigned char* packetData, const HifiSockAddr& packSockAddr);
     static int unpackSockAddr(const unsigned char* packetData, HifiSockAddr& unpackDestSockAddr);
 
+    QString toString() const;
+
     friend QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr);
     friend QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr);
     friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);

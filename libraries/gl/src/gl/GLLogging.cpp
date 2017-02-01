@@ -11,4 +11,4 @@
 
 #include "GLLogging.h"
 
-Q_LOGGING_CATEGORY(glLogging, "hifi.glLogging")
+Q_LOGGING_CATEGORY(glLogging, "hifi.gl")

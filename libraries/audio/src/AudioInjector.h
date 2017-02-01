@@ -27,6 +27,7 @@
 #include "AudioInjectorLocalBuffer.h"
 #include "AudioInjectorOptions.h"
 #include "AudioHRTF.h"
+#include "AudioFOA.h"
 #include "Sound.h"
 
 class AbstractAudioInterface;
@@ -59,11 +60,14 @@ public:
     
     AudioInjectorLocalBuffer* getLocalBuffer() const { return _localBuffer; }
     AudioHRTF& getLocalHRTF() { return _localHRTF; }
+    AudioFOA& getLocalFOA() { return _localFOA; }
 
     bool isLocalOnly() const { return _options.localOnly; }
     float getVolume() const { return _options.volume; }
     glm::vec3 getPosition() const { return _options.position; }
+    glm::quat getOrientation() const { return _options.orientation; }
     bool isStereo() const { return _options.stereo; }
+    bool isAmbisonic() const { return _options.ambisonic; }
 
     bool stateHas(AudioInjectorState state) const ;
     static void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
@@ -113,6 +117,7 @@ private:
     
     // when the injector is local, we need this
     AudioHRTF _localHRTF;
+    AudioFOA _localFOA;
     friend class AudioInjectorManager;
 };
 

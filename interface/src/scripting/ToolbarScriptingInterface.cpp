@@ -8,69 +8,44 @@
 
 #include "ToolbarScriptingInterface.h"
 
+
 #include <QtCore/QThread>
 
 #include <OffscreenUi.h>
-
-class QmlWrapper : public QObject {
-    Q_OBJECT
-public:
-    QmlWrapper(QObject* qmlObject, QObject* parent = nullptr)
-        : QObject(parent), _qmlObject(qmlObject) {
-    }
-
-    Q_INVOKABLE void writeProperty(QString propertyName, QVariant propertyValue) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->executeOnUiThread([=] {
-            _qmlObject->setProperty(propertyName.toStdString().c_str(), propertyValue);
-        });
-    }
-
-    Q_INVOKABLE void writeProperties(QVariant propertyMap) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->executeOnUiThread([=] {
-            QVariantMap map = propertyMap.toMap();
-            for (const QString& key : map.keys()) {
-                _qmlObject->setProperty(key.toStdString().c_str(), map[key]);
-            }
-        });
-    }
-
-    Q_INVOKABLE QVariant readProperty(const QString& propertyName) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        return offscreenUi->returnFromUiThread([&]()->QVariant {
-            return _qmlObject->property(propertyName.toStdString().c_str());
-        });
-    }
-
-    Q_INVOKABLE QVariant readProperties(const QVariant& propertyList) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        return offscreenUi->returnFromUiThread([&]()->QVariant {
-            QVariantMap result;
-            for (const QVariant& property : propertyList.toList()) {
-                QString propertyString = property.toString();
-                result.insert(propertyString, _qmlObject->property(propertyString.toStdString().c_str()));
-            }
-            return result;
-        });
-    }
-
-
-protected:
-    QObject* _qmlObject{ nullptr };
-};
-
+#include "QmlWrapper.h"
 
 class ToolbarButtonProxy : public QmlWrapper {
     Q_OBJECT
 
 public:
     ToolbarButtonProxy(QObject* qmlObject, QObject* parent = nullptr) : QmlWrapper(qmlObject, parent) {
+        std::lock_guard<std::mutex> guard(_mutex);
+        _qmlButton = qobject_cast<QQuickItem*>(qmlObject);
         connect(qmlObject, SIGNAL(clicked()), this, SIGNAL(clicked()));
+    }
+
+    Q_INVOKABLE void editProperties(QVariantMap properties) {
+        std::lock_guard<std::mutex> guard(_mutex);
+        QVariantMap::const_iterator iter = properties.constBegin();
+        while (iter != properties.constEnd()) {
+            _properties[iter.key()] = iter.value();
+            if (_qmlButton) {
+                // [01/25 14:26:20] [WARNING] [default] QMetaObject::invokeMethod: No such method ToolbarButton_QMLTYPE_195::changeProperty(QVariant,QVariant)
+
+                QMetaObject::invokeMethod(_qmlButton, "changeProperty", Qt::AutoConnection,
+                                          Q_ARG(QVariant, QVariant(iter.key())), Q_ARG(QVariant, iter.value()));
+            }
+            ++iter;
+        }
     }
 
 signals:
     void clicked();
+
+protected:
+    mutable std::mutex _mutex;
+    QQuickItem* _qmlButton { nullptr };
+    QVariantMap _properties;
 };
 
 class ToolbarProxy : public QmlWrapper {

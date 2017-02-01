@@ -27,6 +27,7 @@
 
 #include "SandboxUtils.h"
 #include "NetworkAccessManager.h"
+#include "NetworkLogging.h"
 
 
 void SandboxUtils::ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
@@ -61,15 +62,16 @@ void SandboxUtils::ifLocalSandboxRunningElse(std::function<void()> localSandboxR
 }
 
 
-void SandboxUtils::runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName) {
+void SandboxUtils::runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName, bool noUpdater) {
     QString applicationDirPath = QFileInfo(QCoreApplication::applicationFilePath()).path();
     QString serverPath = applicationDirPath + "/server-console/server-console.exe";
-    qDebug() << "Application dir path is: " << applicationDirPath;
-    qDebug() << "Server path is: " << serverPath;
-    qDebug() << "autoShutdown: " << autoShutdown;
+    qCDebug(networking) << "Application dir path is: " << applicationDirPath;
+    qCDebug(networking) << "Server path is: " << serverPath;
+    qCDebug(networking) << "autoShutdown: " << autoShutdown;
+    qCDebug(networking) << "noUpdater: " << noUpdater;
 
     bool hasContentPath = !contentPath.isEmpty();
-    bool passArgs = autoShutdown || hasContentPath;
+    bool passArgs = autoShutdown || hasContentPath || noUpdater;
 
     QStringList args;
 
@@ -87,9 +89,13 @@ void SandboxUtils::runLocalSandbox(QString contentPath, bool autoShutdown, QStri
         args << "--shutdownWatcher" << interfaceRunningStateFile;
     }
 
-    qDebug() << applicationDirPath;
-    qDebug() << "Launching sandbox with:" << args;
-    qDebug() << QProcess::startDetached(serverPath, args);
+    if (noUpdater) {
+        args << "--noUpdater";
+    }
+
+    qCDebug(networking) << applicationDirPath;
+    qCDebug(networking) << "Launching sandbox with:" << args;
+    qCDebug(networking) << QProcess::startDetached(serverPath, args);
 
     // Sleep a short amount of time to give the server a chance to start
     usleep(2000000); /// do we really need this??

@@ -69,9 +69,24 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
+class AudioInjectorsThread : public QThread {
+    Q_OBJECT
+
+public:
+    AudioInjectorsThread(AudioClient* audio) : _audio(audio) {}
+
+public slots :
+    void prepare();
+
+private:
+    AudioClient* _audio;
+};
+
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+
+    using LocalInjectorsStream = AudioMixRingBuffer;
 public:
     static const int MIN_BUFFER_FRAMES;
     static const int MAX_BUFFER_FRAMES;
@@ -84,8 +99,10 @@ public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, AudioClient* audio) :
-            _receivedAudioStream(receivedAudioStream), _audio(audio), _unfulfilledReads(0) {};
+        AudioOutputIODevice(LocalInjectorsStream& localInjectorsStream, MixedProcessedAudioStream& receivedAudioStream,
+                AudioClient* audio) :
+            _localInjectorsStream(localInjectorsStream), _receivedAudioStream(receivedAudioStream),
+            _audio(audio), _unfulfilledReads(0) {}
 
         void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
         void stop() { close(); }
@@ -93,6 +110,7 @@ public:
         qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
+        LocalInjectorsStream& _localInjectorsStream;
         MixedProcessedAudioStream& _receivedAudioStream;
         AudioClient* _audio;
         int _unfulfilledReads;
@@ -127,7 +145,7 @@ public:
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
-    QVector<AudioInjector*>& getActiveLocalAudioInjectors() { return _activeLocalAudioInjectors; }
+    Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
     void checkDevices();
 
@@ -169,7 +187,8 @@ public slots:
 
     int setOutputBufferSize(int numFrames, bool persist = true);
 
-    bool outputLocalInjector(bool isStereo, AudioInjector* injector) override;
+    void prepareLocalAudioInjectors();
+    bool outputLocalInjector(AudioInjector* injector) override;
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
@@ -216,7 +235,7 @@ protected:
 
 private:
     void outputFormatChanged();
-    void mixLocalAudioInjectors(float* mixBuffer);
+    bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
 
@@ -260,6 +279,10 @@ private:
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
     AudioRingBuffer _inputRingBuffer;
+    LocalInjectorsStream _localInjectorsStream;
+    // In order to use _localInjectorsStream as a lock-free pipe,
+    // use it with a single producer/consumer, and track available samples
+    std::atomic<int> _localSamplesAvailable { 0 };
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
@@ -290,14 +313,28 @@ private:
     AudioEffectOptions* _reverbOptions;
     AudioReverb _sourceReverb { AudioConstants::SAMPLE_RATE };
     AudioReverb _listenerReverb { AudioConstants::SAMPLE_RATE };
+    AudioReverb _localReverb { AudioConstants::SAMPLE_RATE };
 
     // possible streams needed for resample
     AudioSRC* _inputToNetworkResampler;
     AudioSRC* _networkToOutputResampler;
+    AudioSRC* _localToOutputResampler;
 
-    // for local hrtf-ing
-    float _mixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-    int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    // for network audio (used by network audio thread)
+    int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
+
+    // for local audio (used by audio injectors thread)
+    float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
+    float* _localOutputMixBuffer { NULL };
+    AudioInjectorsThread _localAudioThread;
+    Mutex _localAudioMutex;
+
+    // for output audio (used by this thread)
+    int _outputPeriod { 0 };
+    float* _outputMixBuffer { NULL };
+    int16_t* _outputScratchBuffer { NULL };
+
     AudioLimiter _audioLimiter;
 
     // Adds Reverb
@@ -323,6 +360,9 @@ private:
 
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;
+
+    glm::vec3 avatarBoundingBoxCorner;
+    glm::vec3 avatarBoundingBoxScale;
 
     QVector<QString> _inputDevices;
     QVector<QString> _outputDevices;

@@ -248,7 +248,7 @@
     }
 
     function update() {
-        var viewport, diff, x;
+        var viewport, diff, x, gpuTextures;
 
         initialDelayCooldown -= 30;
 
@@ -261,26 +261,28 @@
             }
         }
 
+        gpuTextures = Render.getConfig("Stats").textureGPUTransferCount;
+
         // Update state
         if (!visible) { // Not visible because no recent downloads
-            if (displayProgress < 100) { // Have started downloading so fade in
+            if (displayProgress < 100 || gpuTextures > 0) { // Have started downloading so fade in
                 visible = true;
                 alphaDelta = ALPHA_DELTA_IN;
                 fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
             }
         } else if (alphaDelta !== 0.0) { // Fading in or out
             if (alphaDelta > 0) {
-                if (rawProgress === 100) { // Was downloading but now have finished so fade out
+                if (rawProgress === 100 && gpuTextures === 0) { // Was downloading but now have finished so fade out
                     alphaDelta = ALPHA_DELTA_OUT;
                 }
             } else {
-                if (displayProgress < 100) { // Was finished downloading but have resumed so fade in
+                if (displayProgress < 100 || gpuTextures > 0) { // Was finished downloading but have resumed so fade in
                     alphaDelta = ALPHA_DELTA_IN;
                 }
             }
         } else { // Fully visible because downloading or recently so
             if (fadeWaitTimer === null) {
-                if (rawProgress === 100) { // Was downloading but have finished so fade out soon
+                if (rawProgress === 100 && gpuTextures === 0) { // Was downloading but have finished so fade out soon
                     fadeWaitTimer = Script.setTimeout(function () {
                         alphaDelta = ALPHA_DELTA_OUT;
                         fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
@@ -288,7 +290,8 @@
                     }, FADE_OUT_WAIT);
                 }
             } else {
-                if (displayProgress < 100) { // Was finished and waiting to fade out but have resumed so don't fade out
+                if (displayProgress < 100 || gpuTextures > 0) { // Was finished and waiting to fade out but have resumed so 
+                                                                // don't fade out
                     Script.clearInterval(fadeWaitTimer);
                     fadeWaitTimer = null;
                 }

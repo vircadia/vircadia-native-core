@@ -10,8 +10,8 @@
 #include "IKTarget.h"
 
 void IKTarget::setPose(const glm::quat& rotation, const glm::vec3& translation) {
-    _pose.rot = rotation;
-    _pose.trans = translation;
+    _pose.rot() = rotation;
+    _pose.trans() = translation;
 }
 
 void IKTarget::setType(int type) {

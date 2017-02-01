@@ -153,7 +153,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                     auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
                     parseAudioData(message.getType(), afterProperties);
                 } else {
-                    qDebug() << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
+                    qDebug(audio) << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
                     writeDroppableSilentFrames(networkFrames);
                     // inform others of the mismatch
                     auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());

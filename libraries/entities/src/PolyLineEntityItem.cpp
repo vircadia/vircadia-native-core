@@ -89,12 +89,12 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
 
 bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
-        qDebug() << "MAX POINTS REACHED!";
+        qCDebug(entities) << "MAX POINTS REACHED!";
         return false;
     }
     glm::vec3 halfBox = getDimensions() * 0.5f;
     if ((point.x < -halfBox.x || point.x > halfBox.x) || (point.y < -halfBox.y || point.y > halfBox.y) || (point.z < -halfBox.z || point.z > halfBox.z)) {
-        qDebug() << "Point is outside entity's bounding box";
+        qCDebug(entities) << "Point is outside entity's bounding box";
         return false;
     }
     _points << point;
@@ -142,7 +142,7 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
         if ((point.x < -halfBox.x || point.x > halfBox.x) ||
             (point.y < -halfBox.y || point.y > halfBox.y) ||
             (point.z < -halfBox.z || point.z > halfBox.z)) {
-            qDebug() << "Point is outside entity's bounding box";
+            qCDebug(entities) << "Point is outside entity's bounding box";
             return false;
         }
     }
@@ -170,7 +170,7 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
 }
 
 
-// TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+// TODO: eventually only include properties changed since the params.lastQuerySent time
 EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
@@ -183,7 +183,7 @@ EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParam
 }
 
 void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                            EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                            EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
                                             EntityPropertyFlags& requestedProperties,
                                             EntityPropertyFlags& propertyFlags,
                                             EntityPropertyFlags& propertiesDidntFit,

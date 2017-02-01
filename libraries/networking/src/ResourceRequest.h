@@ -42,6 +42,7 @@ public:
     QByteArray getData() { return _data; }
     State getState() const { return _state; }
     Result getResult() const { return _result; }
+    QString getResultString() const;
     QUrl getUrl() const { return _url; }
     bool loadedFromCache() const { return _loadedFromCache; }
 

@@ -173,6 +173,11 @@ Item {
                     prop: "frameSetPipelineCount",
                     label: "Pipelines",
                     color: "#E2334D"
+                },
+                {
+                    prop: "frameSetInputFormatCount",
+                    label: "Input Formats",
+                    color: "#1AC567"
                 }
             ]
         }  

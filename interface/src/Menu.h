@@ -97,8 +97,6 @@ namespace MenuOption {
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableIncrementalTextureTransfer = "Enable Incremental Texture Transfer";
-    const QString EnableDynamicTextureManagement = "Enable Dynamic Texture Management";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
@@ -121,7 +119,7 @@ namespace MenuOption {
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
-    const QString Login = "Login";
+    const QString Login = "Login / Sign Up";
     const QString Log = "Log";
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
@@ -153,6 +151,7 @@ namespace MenuOption {
     const QString RenderOtherLookAtVectors = "Show Other Eye Vectors";
     const QString RenderMaxTextureMemory = "Maximum Texture Memory";
     const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
+    const QString RenderMaxTexture4MB = "4 MB";
     const QString RenderMaxTexture64MB = "64 MB";
     const QString RenderMaxTexture256MB = "256 MB";
     const QString RenderMaxTexture512MB = "512 MB";
@@ -168,6 +167,7 @@ namespace MenuOption {
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";
+    const QString RunClientScriptTests = "Run Client Script Tests";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
@@ -180,6 +180,7 @@ namespace MenuOption {
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
+    const QString SparseTextureManagement = "Enable Sparse Texture Management";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";

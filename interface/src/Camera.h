@@ -37,7 +37,17 @@ static int cameraModeId = qRegisterMetaType<CameraMode>();
 
 class Camera : public QObject {
     Q_OBJECT
-    
+
+    /**jsdoc
+     * @namespace Camera
+     * @property position {Vec3} The position of the camera.
+     * @property orientation {Quat} The orientation of the camera.
+     * @property mode {string} The current camera mode.
+     * @property cameraEntity {EntityID} The position and rotation properties of
+     *     the entity specified by this ID are then used as the camera's position and
+     *     orientation. Only works when <code>mode</code> is "entity".
+     * @property frustum {Object} The frustum of the camera.
+     */
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString)
@@ -47,13 +57,13 @@ class Camera : public QObject {
 public:
     Camera();
 
-    void initialize(); // instantly put the camera at the ideal position and orientation. 
+    void initialize(); // instantly put the camera at the ideal position and orientation.
 
     void update( float deltaTime );
 
     CameraMode getMode() const { return _mode; }
     void setMode(CameraMode m);
-    
+
     void loadViewFrustum(ViewFrustum& frustum) const;
     ViewFrustum toViewFrustum() const;
 
@@ -80,20 +90,44 @@ public slots:
     QUuid getCameraEntity() const;
     void setCameraEntity(QUuid entityID);
 
+    /**jsdoc
+     * Compute a {PickRay} based on the current camera configuration and the position x,y on the screen.
+     * @function Camera.computePickRay
+     * @param {float} x X-coordinate on screen.
+     * @param {float} y Y-coordinate on screen.
+     * @return {PickRay} The computed {PickRay}.
+     */
     PickRay computePickRay(float x, float y);
 
-    // These only work on independent cameras
-    /// one time change to what the camera is looking at
-    void lookAt(const glm::vec3& value);
+    /**jsdoc
+     * Set the camera to look at position <code>position</code>. Only works while in <code>independent</code>.
+     * camera mode.
+     * @function Camera.lookAt
+     * @param {Vec3} Position Position to look at.
+     */
+    void lookAt(const glm::vec3& position);
 
-    /// fix what the camera is looking at, and keep the camera looking at this even if position changes
-    void keepLookingAt(const glm::vec3& value);
+    /**jsdoc
+     * Set the camera to continue looking at position <code>position</code>.
+     * Only works while in `independent` camera mode.
+     * @function Camera.keepLookingAt
+     * @param {Vec3} position Position to keep looking at.
+     */
+    void keepLookingAt(const glm::vec3& position);
 
-    /// stops the keep looking at feature, doesn't change what's being looked at, but will stop camera from
-    /// continuing to update it's orientation to keep looking at the item
+    /**jsdoc
+     * Stops the camera from continually looking at a position that was set with
+     * `keepLookingAt`
+     * @function Camera.stopLookingAt
+     */
     void stopLooking() { _isKeepLookingAt = false; }
 
 signals:
+    /**jsdoc
+     * Triggered when camera mode has changed.
+     * @function Camera.modeUpdated
+     * @return {Signal}
+     */
     void modeUpdated(const QString& newMode);
 
 private:

@@ -292,6 +292,9 @@ public slots:
                       bool shouldFaceLocation = false);
     void goToLocation(const QVariant& properties);
 
+    void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
+    void clearScaleRestriction();
+
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
@@ -330,7 +333,11 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    QByteArray toByteArray(bool cullSmallChanges, bool sendAll) override;
+
+
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+                            bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr) override;
+
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
@@ -369,6 +376,9 @@ private:
     virtual void updatePalms() override {}
     void lateUpdatePalms();
 
+    void clampTargetScaleToDomainLimits();
+    void clampScaleChangeToDomainLimits(float desiredScale);
+    glm::mat4 computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const;
 
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;

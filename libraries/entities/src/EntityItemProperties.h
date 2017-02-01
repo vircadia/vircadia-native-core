@@ -73,7 +73,7 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
+    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false, bool strictSemantics = false) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
     static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
@@ -83,6 +83,7 @@ public:
     quint64 getLastEdited() const { return _lastEdited; }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
+
     EntityPropertyFlags getChangedProperties() const;
 
     bool parentDependentPropertyChanged() const; // was there a changed in a property that requires parent info to interpret?
@@ -92,6 +93,8 @@ public:
 
     void debugDump() const;
     void setLastEdited(quint64 usecTime);
+    EntityPropertyFlags getDesiredProperties() { return _desiredProperties; }
+    void setDesiredProperties(EntityPropertyFlags properties) {  _desiredProperties = properties; }
 
     // Note:  DEFINE_PROPERTY(PROP_FOO, Foo, foo, type, value) creates the following methods and variables:
     // type getFoo() const;
@@ -218,6 +221,10 @@ public:
 
     DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
 
+    DEFINE_PROPERTY_REF(PROP_LAST_EDITED_BY, LastEditedBy, lastEditedBy, QUuid, ENTITY_ITEM_DEFAULT_LAST_EDITED_BY);
+
+    DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
+
     static QString getBackgroundModeString(BackgroundMode mode);
 
 
@@ -313,7 +320,7 @@ private:
     float _localRenderAlpha;
     bool _localRenderAlphaChanged;
     bool _defaultSettings;
-    bool _dimensionsInitialized = true; // Only false if creating an entity localy with no dimensions properties
+    bool _dimensionsInitialized = true; // Only false if creating an entity locally with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
@@ -455,9 +462,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ClientOnly, clientOnly, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, OwningAvatarID, owningAvatarID, "");
 
-    properties.getAnimation().debugDump();
-    properties.getSkybox().debugDump();
-    properties.getStage().debugDump();
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LastEditedBy, lastEditedBy, "");
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";

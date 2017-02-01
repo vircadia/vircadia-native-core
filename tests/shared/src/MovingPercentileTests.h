@@ -25,7 +25,7 @@ private slots:
 
 private:
     // Utilities and helper functions
-    float random();
+    int64_t random();
     void testRunningMinForN (int n);
     void testRunningMaxForN (int n);
     void testRunningMedianForN (int n);

@@ -35,6 +35,7 @@ const bool ENTITY_ITEM_DEFAULT_VISIBLE = true;
 
 const QString ENTITY_ITEM_DEFAULT_SCRIPT = QString("");
 const quint64 ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP = 0;
+const QString ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS = QString("");
 const QString ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL = QString("");
 const glm::vec3 ENTITY_ITEM_DEFAULT_REGISTRATION_POINT = ENTITY_ITEM_HALF_VEC3; // center
 
@@ -74,5 +75,7 @@ const bool ENTITY_ITEM_DEFAULT_BILLBOARDED = false;
 const QString ENTITY_ITEM_DEFAULT_NAME = QString("");
 
 const uint16_t ENTITY_ITEM_DEFAULT_DPI = 30;
+
+const QUuid ENTITY_ITEM_DEFAULT_LAST_EDITED_BY = QUuid();
 
 #endif // hifi_EntityItemPropertiesDefaults_h

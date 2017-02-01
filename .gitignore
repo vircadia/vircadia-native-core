@@ -4,6 +4,10 @@ CMakeFiles/
 CMakeScripts/
 cmake_install.cmake
 build*/
+release*/
+debug*/
+gprof*/
+valgrind*/
 ext/
 Makefile
 *.user

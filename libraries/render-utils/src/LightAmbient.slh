@@ -30,16 +30,16 @@ vec3 fresnelSchlickAmbient(vec3 fresnelColor, vec3 lightDir, vec3 halfDir, float
 <$declareSkyboxMap()$>
 <@endif@>
 
-vec3 evalAmbientSpecularIrradiance(Light light, vec3 fragEyeDir, vec3 fragNormal, float roughness, vec3 fresnel) {
+vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, vec3 fragEyeDir, vec3 fragNormal, float roughness, vec3 fresnel) {
     vec3 direction = -reflect(fragEyeDir, fragNormal);
     vec3 ambientFresnel = fresnelSchlickAmbient(fresnel, fragEyeDir, fragNormal, 1.0 - roughness);
     vec3 specularLight;
     <@if supportIfAmbientMapElseAmbientSphere@>
-        if (getLightHasAmbientMap(light))
+        if (getLightHasAmbientMap(ambient))
             <@endif@>
             <@if supportAmbientMap@>
         {
-            float levels = getLightAmbientMapNumMips(light);
+            float levels = getLightAmbientMapNumMips(ambient);
             float lod = min(floor((roughness)* levels), levels);
             specularLight = evalSkyboxLight(direction, lod).xyz;
         }
@@ -49,7 +49,7 @@ vec3 evalAmbientSpecularIrradiance(Light light, vec3 fragEyeDir, vec3 fragNormal
         <@endif@>
         <@if supportAmbientSphere@>
     {
-        specularLight = evalSphericalLight(getLightAmbientSphere(light), direction).xyz;
+        specularLight = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), direction).xyz;
     }
     <@endif@>
 
@@ -67,19 +67,18 @@ float curvatureAO(in float k) {
 }
 <@endif@>
 
-void evalLightingAmbient(out vec3 diffuse, out vec3 specular, Light light, vec3 eyeDir, vec3 normal,
+void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambient, vec3 eyeDir, vec3 normal,
     float roughness, float metallic, vec3 fresnel, vec3 albedo, float obscurance
 <@if supportScattering@>
     , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
 <@endif@>
     ) {
 
-
     // Diffuse from ambient
-    diffuse = (1.0 - metallic) * evalSphericalLight(getLightAmbientSphere(light), normal).xyz;
+    diffuse = (1.0 - metallic) * sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), normal).xyz;
 
     // Specular highlight from ambient
-    specular = evalAmbientSpecularIrradiance(light, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(light);
+    specular = evalAmbientSpecularIrradiance(ambient, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(ambient);
 
 
 <@if supportScattering@>
@@ -92,7 +91,7 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, Light light, vec3 
     if (scattering * isScatteringEnabled() > 0.0) {
 
         // Diffuse from ambient
-        diffuse =  evalSphericalLight(getLightAmbientSphere(light), lowNormalCurvature.xyz).xyz;
+        diffuse = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), lowNormalCurvature.xyz).xyz;
 
         specular = vec3(0.0);
     }
@@ -102,7 +101,7 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, Light light, vec3 
         obscurance = 1.0;
     }
 
-    float lightEnergy = obscurance * getLightAmbientIntensity(light);
+    float lightEnergy = obscurance * getLightAmbientIntensity(ambient);
 
     if (isAlbedoEnabled() > 0.0) {
         diffuse *= albedo;

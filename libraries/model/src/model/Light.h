@@ -26,8 +26,47 @@ typedef glm::vec3 Vec3;
 typedef glm::vec4 Vec4;
 typedef glm::quat Quat;
 
+
 class Light {
 public:
+
+    struct LightVolume {
+        vec3 position { 0.f };
+        float radius { 1.0f };
+        vec3 direction { 0.f, 0.f, -1.f };
+        float spotCos { -1.f };
+
+        bool isPoint() const { return bool(spotCos < 0.f); }
+        bool isSpot() const { return bool(spotCos >= 0.f); }
+
+        vec3 getPosition() const { return position; }
+        float getRadius() const { return radius; }
+        float getRadiusSquare() const { return radius * radius; }
+        vec3 getDirection() const { return direction; }
+
+        float getSpotAngleCos() const { return spotCos; }
+        vec2 getSpotAngleCosSin() const { return vec2(spotCos, sqrt(1.f - spotCos * spotCos)); }
+    };
+
+
+    struct LightIrradiance {
+        vec3 color { 1.f };
+        float intensity { 1.f };
+        float falloffRadius { 0.1f };
+        float cutoffRadius { 0.1f };
+        float falloffSpot { 1.f };
+        float spare1;
+
+        vec3 getColor() const { return color; }
+        float getIntensity() const { return intensity; }
+        vec3 getIrradiance() const { return color * intensity; }
+        float getFalloffRadius() const { return falloffRadius; }
+        float getCutoffRadius() const { return cutoffRadius; }
+        float getFalloffSpot() const { return falloffSpot; }
+    };
+
+
+ 
     enum Type {
         SUN = 0,
         POINT,
@@ -54,8 +93,8 @@ public:
     Light& operator= (const Light& light);
     virtual ~Light();
 
-    void setType(Type type) { editSchema()._control.x = float(type); }
-    Type getType() const { return Type((int) getSchema()._control.x); }
+    void setType(Type type);
+    Type getType() const { return _type; }
 
     void setPosition(const Vec3& position);
     const Vec3& getPosition() const { return _transform.getTranslation(); }
@@ -66,86 +105,88 @@ public:
     void setOrientation(const Quat& orientation);
     const glm::quat& getOrientation() const { return _transform.getRotation(); }
 
-    const Color& getColor() const { return getSchema()._color; }
+    const Color& getColor() const { return _lightSchemaBuffer->irradiance.color; }
     void setColor(const Color& color);
 
-    float getIntensity() const { return getSchema()._intensity; }
+    float getIntensity() const { return _lightSchemaBuffer->irradiance.intensity; }
     void setIntensity(float intensity);
 
-    bool isRanged() const { return (getType() == POINT) || (getType() == SPOT ); }
+    bool isRanged() const { return (getType() == POINT) || (getType() == SPOT); }
+    bool hasAmbient() const { return (getType() == SUN); }
  
     // FalloffRradius is the physical radius of the light sphere through which energy shines,
     // expressed in meters. It is used only to calculate the falloff curve of the light.
     // Actual rendered lights will all have surface radii approaching 0.
     void setFalloffRadius(float radius);
-    float getFalloffRadius() const { return getSchema()._attenuation.x; }
+    float getFalloffRadius() const { return _lightSchemaBuffer->irradiance.falloffRadius; }
 
     // Maximum radius is the cutoff radius of the light energy, expressed in meters.
     // It is used to bound light entities, and *will not* affect the falloff curve of the light.
     // Setting it low will result in a noticeable cutoff.
     void setMaximumRadius(float radius);
-    float getMaximumRadius() const { return getSchema()._attenuation.y; }
+    float getMaximumRadius() const { return _lightSchemaBuffer->volume.radius; }
 
     // Spot properties
     bool isSpot() const { return getType() == SPOT; }
     void setSpotAngle(float angle);
-    float getSpotAngle() const { return getSchema()._spot.z; }
-    glm::vec2 getSpotAngleCosSin() const { return glm::vec2(getSchema()._spot.x, getSchema()._spot.y); }
+    float getSpotAngle() const { return acos(_lightSchemaBuffer->volume.getSpotAngleCos()); }
+    glm::vec2 getSpotAngleCosSin() const { return _lightSchemaBuffer->volume.getSpotAngleCosSin(); }
     void setSpotExponent(float exponent);
-    float getSpotExponent() const { return getSchema()._spot.w; }
-
-    // For editing purpose, show the light volume contour.
-    // Set to non 0 to show it, the value is used as the intensity of the contour color
-    void setShowContour(float show);
-    float getShowContour() const { return getSchema()._control.z; }
+    float getSpotExponent() const { return _lightSchemaBuffer->irradiance.falloffSpot; }
 
     // If the light has an ambient (Indirect) component, then the Ambientintensity can be used to control its contribution to the lighting
     void setAmbientIntensity(float intensity);
-    float getAmbientIntensity() const { return getSchema()._ambientIntensity; }
+    float getAmbientIntensity() const { return _ambientSchemaBuffer->intensity; }
 
     // Spherical Harmonics storing the Ambient lighting approximation used for the Sun typed light
     void setAmbientSphere(const gpu::SphericalHarmonics& sphere);
-    const gpu::SphericalHarmonics& getAmbientSphere() const { return getSchema()._ambientSphere; }
+    const gpu::SphericalHarmonics& getAmbientSphere() const { return _ambientSchemaBuffer->ambientSphere; }
     void setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset);
 
     void setAmbientMap(gpu::TexturePointer ambientMap);
     gpu::TexturePointer getAmbientMap() const { return _ambientMap; }
 
     void setAmbientMapNumMips(uint16_t numMips);
-    uint16_t getAmbientMapNumMips() const { return (uint16_t) getSchema()._ambientMapNumMips; }
+    uint16_t getAmbientMapNumMips() const { return (uint16_t) _ambientSchemaBuffer->mapNumMips; }
 
-    // Schema to access the attribute values of the light
-    class Schema {
+    // Light Schema
+    class LightSchema {
     public:
-        Vec4 _position{0.0f, 0.0f, 0.0f, 1.0f}; 
-        Vec3 _direction{0.0f, 0.0f, -1.0f};
-        float _ambientIntensity{0.0f};
-        Color _color{1.0f};
-        float _intensity{1.0f};
-        Vec4 _attenuation{0.1f, 1.0f, 0.0f, 0.0f};
-        Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
-        Vec4 _shadow{0.0f};
-
-        float _ambientMapNumMips{ 0.0f };
-        Vec3 _control{ 0.0f, 0.0f, 0.0f };
-
-        gpu::SphericalHarmonics _ambientSphere;
+        LightVolume volume;
+        LightIrradiance irradiance;
     };
 
-    const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
+    class AmbientSchema {
+    public:
+        float intensity { 0.0f };
+        float mapNumMips { 0.0f };
+        float spare1;
+        float spare2;
+        gpu::SphericalHarmonics ambientSphere;
+    };
+
+    using LightSchemaBuffer = gpu::StructBuffer<LightSchema>;
+    using AmbientSchemaBuffer = gpu::StructBuffer<AmbientSchema>;
+
+    const LightSchemaBuffer& getLightSchemaBuffer() const { return _lightSchemaBuffer; }
+    const AmbientSchemaBuffer& getAmbientSchemaBuffer() const { return _ambientSchemaBuffer; }
 
 protected:
 
     Flags _flags{ 0 };
-    UniformBufferView _schemaBuffer;
+
+    LightSchemaBuffer _lightSchemaBuffer;
+    AmbientSchemaBuffer _ambientSchemaBuffer;
+
     Transform _transform;
 
     gpu::TexturePointer _ambientMap;
 
-    const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
-    Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }
+    Type _type { SUN };
+    float _spotCos { -1.0f }; // stored here to be able to reset the spot angle when turning the type spot on/off
 
     void updateLightRadius();
+
 };
 typedef std::shared_ptr< Light > LightPointer;
 

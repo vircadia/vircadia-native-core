@@ -1,0 +1,7 @@
+{
+    "name": "Kinect to Standard",
+    "channels": [
+        { "from": "Kinect.LeftHand", "to": "Standard.LeftHand" },
+        { "from": "Kinect.RightHand", "to": "Standard.RightHand" }
+    ]
+}

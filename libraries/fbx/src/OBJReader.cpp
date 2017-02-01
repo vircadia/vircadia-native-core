@@ -420,7 +420,7 @@ done:
 
 
 FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url) {
-    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, nullptr);
+    PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
     QBuffer buffer { &model };
     buffer.open(QIODevice::ReadOnly);
 

@@ -18,7 +18,7 @@
 
 #include "HiFiCodec.h"
 
-const QString HiFiCodec::NAME = "hifiAC";
+const char* HiFiCodec::NAME { "hifiAC" };
 
 void HiFiCodec::init() {
 }

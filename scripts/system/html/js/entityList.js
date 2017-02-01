@@ -39,6 +39,7 @@ function loaded() {
       elInView = document.getElementById("in-view")
       elRadius = document.getElementById("radius");
       elTeleport = document.getElementById("teleport");
+      elPal = document.getElementById("pal");
       elEntityTable = document.getElementById("entity-table");
       elInfoToggle = document.getElementById("info-toggle");
       elInfoToggleGlyph = elInfoToggle.firstChild;
@@ -273,6 +274,9 @@ function loaded() {
       }
       elTeleport.onclick = function () {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'teleport' }));
+      }
+      elPal.onclick = function () {
+          EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
       }
       elDelete.onclick = function() {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));

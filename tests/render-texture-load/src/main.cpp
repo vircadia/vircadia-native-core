@@ -355,7 +355,7 @@ public:
         }
 
         QTimer* timer = new QTimer(this);
-        timer->setInterval(0);
+        timer->setInterval(0); // Qt::CoarseTimer acceptable
         connect(timer, &QTimer::timeout, this, [this] {
             draw();
         });
@@ -563,7 +563,6 @@ private:
         gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
-        PROFILE_RANGE(__FUNCTION__);
         auto framebuffer = DependencyManager::get<FramebufferCache>()->getFramebuffer();
 
         gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {

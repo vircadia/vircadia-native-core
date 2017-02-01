@@ -69,7 +69,7 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
     controllers: [
         {
             modelURL: viveModelURL,
-            jointIndex: MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND"),
+            jointIndex: MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"),
             naturalPosition: viveNaturalPosition,
             rotation: leftBaseRotation,
             position: Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 0, 45), leftBasePosition),
@@ -83,7 +83,6 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     naturalPosition: {"x":-0.004377640783786774,"y":-0.034371938556432724,"z":0.06769277155399323},
 
                     textureName: "Tex.Blank",
-
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
@@ -195,8 +194,7 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
     controllers: [
         {
             modelURL: viveModelURL,
-            jointIndex: MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND"),
-
+            jointIndex: MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"),
             rotation: rightBaseRotation,
             position: Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 0, -45), rightBasePosition),
 

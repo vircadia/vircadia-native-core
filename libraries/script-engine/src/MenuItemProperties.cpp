@@ -28,7 +28,7 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
 {
 }
 
-MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& menuItemName, 
+MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& menuItemName,
                         const KeyEvent& shortcutKeyEvent, bool checkable, bool checked, bool separator) :
     menuName(menuName),
     menuItemName(menuItemName),
@@ -50,13 +50,31 @@ QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuIt
     return obj;
 }
 
+/**jsdoc
+ * `MenuItemProperties` is a list of properties that can be passed to Menu.addMenuItem
+ * to create a new menu item.
+ *
+ * If none of position, beforeItem, afterItem, or grouping are specified, the
+ * menu item will be placed in the last position.
+ *
+ * @typedef {Object} Menu.MenuItemProperties
+ * @property {string} menuName Name of the top-level menu
+ * @property {string} menuItemName Name of the menu item
+ * @property {bool} isCheckable Whether the menu item is checkable or not
+ * @property {bool} isChecked Where the menu item is checked or not
+ * @property {string} shortcutKey An optional shortcut key to trigger the menu item.
+ * @property {int} position The position to place the new menu item. `0` is the first menu item.
+ * @property {string} beforeItem The name of the menu item to place this menu item before.
+ * @property {string} afterItem The name of the menu item to place this menu item after.
+ * @property {string} grouping The name of grouping to add this menu item to.
+ */
 void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemProperties& properties) {
     properties.menuName = object.property("menuName").toVariant().toString();
     properties.menuItemName = object.property("menuItemName").toVariant().toString();
     properties.isCheckable = object.property("isCheckable").toVariant().toBool();
     properties.isChecked = object.property("isChecked").toVariant().toBool();
     properties.isSeparator = object.property("isSeparator").toVariant().toBool();
-    
+
     // handle the shortcut key options in order...
     QScriptValue shortcutKeyValue = object.property("shortcutKey");
     if (shortcutKeyValue.isValid()) {

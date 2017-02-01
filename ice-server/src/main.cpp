@@ -19,8 +19,9 @@ int main(int argc, char* argv[]) {
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
-    
+
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    qInfo() << "Starting.";
     
     IceServer iceServer(argc, argv);
     return iceServer.exec();

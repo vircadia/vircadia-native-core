@@ -522,14 +522,18 @@ function onEditError(msg) {
 }
 
 
-function onSnapshotTaken(path, notify) {
+function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     if (notify) {
         var imageProperties = {
-            path: "file:///" + path,
+            path: "file:///" + pathStillSnapshot,
             aspectRatio: Window.innerWidth / Window.innerHeight
         };
-        createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
+        createNotification(wordWrap("Snapshot saved to " + pathStillSnapshot), NotificationType.SNAPSHOT, imageProperties);
     }
+}
+
+function processingGif() {
+    createNotification("Processing GIF snapshot...", NotificationType.SNAPSHOT);
 }
 
 //  handles mouse clicks on buttons
@@ -631,6 +635,7 @@ Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
+Window.processingGif.connect(processingGif);
 Window.notifyEditError = onEditError;
 
 setup();

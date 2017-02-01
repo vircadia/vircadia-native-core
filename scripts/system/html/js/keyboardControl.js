@@ -56,7 +56,7 @@ function setUpKeyboardControl() {
         }
     }
 
-    var inputs = document.querySelectorAll("input[type=text], input[type=number], textarea");
+    var inputs = document.querySelectorAll("input[type=text], input[type=password], input[type=number], textarea");
     for (var i = 0, length = inputs.length; i < length; i++) {
         inputs[i].addEventListener("focus", raiseKeyboard);
         inputs[i].addEventListener("blur", lowerKeyboard);

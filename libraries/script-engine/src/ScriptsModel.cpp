@@ -156,39 +156,42 @@ void ScriptsModel::reloadDefaultFiles() {
 void ScriptsModel::requestDefaultFiles(QString marker) {
     QUrl url(defaultScriptsLocation());
 
-    if (url.isLocalFile()) {
-        // if the url indicates a local directory, use QDirIterator
-        QString localDir = expandScriptUrl(url).toLocalFile();
-        int localDirPartCount = localDir.split("/").size();
-        if (localDir.endsWith("/")) {
-            localDirPartCount--;
-        }
-        #ifdef Q_OS_WIN
-        localDirPartCount++; // one for the drive letter
-        #endif
-        QDirIterator it(localDir, QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
-        while (it.hasNext()) {
-            QUrl jsFullPath = QUrl::fromLocalFile(it.next());
-            QString jsPartialPath = jsFullPath.path().split("/").mid(localDirPartCount).join("/");
-            jsFullPath = normalizeScriptURL(jsFullPath);
-            _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath.toString(), SCRIPT_ORIGIN_DEFAULT));
-        }
-        _loadingScripts = false;
-    } else {
-        // the url indicates http(s), use QNetworkRequest
-        QUrlQuery query;
-        query.addQueryItem(PREFIX_PARAMETER_NAME, ".");
-        if (!marker.isEmpty()) {
-            query.addQueryItem(MARKER_PARAMETER_NAME, marker);
-        }
-        url.setQuery(query);
+    // targets that don't have a scripts folder in the appropriate location will have an empty URL here
+    if (!url.isEmpty()) {
+        if (url.isLocalFile()) {
+            // if the url indicates a local directory, use QDirIterator
+            QString localDir = expandScriptUrl(url).toLocalFile();
+            int localDirPartCount = localDir.split("/").size();
+            if (localDir.endsWith("/")) {
+                localDirPartCount--;
+            }
+#ifdef Q_OS_WIN
+            localDirPartCount++; // one for the drive letter
+#endif
+            QDirIterator it(localDir, QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
+            while (it.hasNext()) {
+                QUrl jsFullPath = QUrl::fromLocalFile(it.next());
+                QString jsPartialPath = jsFullPath.path().split("/").mid(localDirPartCount).join("/");
+                jsFullPath = normalizeScriptURL(jsFullPath);
+                _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath.toString(), SCRIPT_ORIGIN_DEFAULT));
+            }
+            _loadingScripts = false;
+        } else {
+            // the url indicates http(s), use QNetworkRequest
+            QUrlQuery query;
+            query.addQueryItem(PREFIX_PARAMETER_NAME, ".");
+            if (!marker.isEmpty()) {
+                query.addQueryItem(MARKER_PARAMETER_NAME, marker);
+            }
+            url.setQuery(query);
 
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkRequest request(url);
-        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        QNetworkReply* reply = networkAccessManager.get(request);
-        connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkRequest request(url);
+            request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+            request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            QNetworkReply* reply = networkAccessManager.get(request);
+            connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
+        }
     }
 }
 
@@ -205,7 +208,7 @@ void ScriptsModel::downloadFinished() {
             qCDebug(scriptengine) << "Error: Received no data when loading default scripts";
         }
     } else {
-        qDebug() << "Error: when loading default scripts --" << reply->error();
+        qCDebug(scriptengine) << "Error: when loading default scripts --" << reply->error();
     }
 
     reply->deleteLater();

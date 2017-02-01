@@ -139,7 +139,8 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CLIENT_DESKTOP_SHORTCUT_REG_KEY "ClientDesktopShortcut")
     set(CONSOLE_DESKTOP_SHORTCUT_REG_KEY "ConsoleDesktopShortcut")
     set(CONSOLE_STARTUP_REG_KEY "ConsoleStartupShortcut")
-    set(LAUNCH_NOW_REG_KEY "LaunchAfterInstall")
+    set(CLIENT_LAUNCH_NOW_REG_KEY "ClientLaunchAfterInstall")
+    set(SERVER_LAUNCH_NOW_REG_KEY "ServerLaunchAfterInstall")
   endif ()
 
   # setup component categories for installer

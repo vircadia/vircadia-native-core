@@ -30,6 +30,10 @@
 #include "PacketList.h"
 #include "../UserActivityLogger.h"
 #include "Socket.h"
+#include <Trace.h>
+#include <Profile.h>
+
+#include "../NetworkLogging.h"
 
 using namespace udt;
 using namespace std::chrono;
@@ -84,7 +88,6 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _socket(socket),
     _destination(dest)
 {
-
     // setup psuedo-random number generation for all instances of SendQueue
     static std::random_device rd;
     static std::mt19937 generator(rd());
@@ -100,6 +103,9 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
 
     // default the last receiver response to the current time
     _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
+}
+
+SendQueue::~SendQueue() {
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -220,7 +226,6 @@ void SendQueue::sendHandshake() {
     if (!_hasReceivedHandshakeACK) {
         // we haven't received a handshake ACK from the client, send another now
         auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, sizeof(SequenceNumber));
-
         handshakePacket->writePrimitive(_initialSequenceNumber);
         _socket->writeBasePacket(*handshakePacket, _destination);
         
@@ -236,7 +241,6 @@ void SendQueue::handshakeACK(SequenceNumber initialSequenceNumber) {
             std::lock_guard<std::mutex> locker { _handshakeMutex };
             _hasReceivedHandshakeACK = true;
         }
-
         // Notify on the handshake ACK condition
         _handshakeACKCondition.notify_one();
     }
@@ -290,12 +294,12 @@ void SendQueue::run() {
         // we've already been asked to stop before we even got a chance to start
         // don't start now
 #ifdef UDT_CONNECTION_DEBUG
-        qDebug() << "SendQueue asked to run after being told to stop. Will not run.";
+        qCDebug(networking) << "SendQueue asked to run after being told to stop. Will not run.";
 #endif
         return;
     } else if (_state == State::Running) {
 #ifdef UDT_CONNECTION_DEBUG
-        qDebug() << "SendQueue asked to run but is already running (according to state). Will not re-run.";
+        qCDebug(networking) << "SendQueue asked to run but is already running (according to state). Will not re-run.";
 #endif
         return;
     }

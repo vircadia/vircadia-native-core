@@ -170,11 +170,23 @@ namespace render {
                 for (size_t i = 0; i < NUM_FILTERS; i++) {
                     if (_filters[i].test(itemKey)) {
                         outItems[i].template edit<ItemBounds>().emplace_back(itemBound);
-                        break;
                     }
                 }
             }
         }
+    };
+
+    class FilterItemLayer {
+    public:
+        using JobModel = Job::ModelIO<FilterItemLayer, ItemBounds, ItemBounds>;
+
+        FilterItemLayer() {}
+        FilterItemLayer(int keepLayer) :
+            _keepLayer(keepLayer) {}
+
+        int _keepLayer { 0 };
+
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 }
 

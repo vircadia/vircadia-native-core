@@ -76,8 +76,8 @@ class SpacemouseManager : public InputPlugin, public QAbstractNativeEventFilter 
     Q_OBJECT
 public:
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
-    const QString& getID() const override { return NAME; }
+    const QString getName() const override { return NAME; }
+    const QString getID() const override { return NAME; }
 
     bool activate() override;
     void deactivate() override;
@@ -127,7 +127,7 @@ private:
     // use to calculate distance traveled since last event
     DWORD fLast3dmouseInputTime;
 
-    static const QString NAME;
+    static const char* NAME;
     friend class SpacemouseDevice;
 };
 

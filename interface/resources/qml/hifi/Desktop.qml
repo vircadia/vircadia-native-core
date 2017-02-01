@@ -48,14 +48,7 @@ OriginalDesktop.Desktop {
     // This used to create sysToolbar dynamically with a call to getToolbar() within onCompleted.
     // Beginning with QT 5.6, this stopped working, as anything added to toolbars too early got
     // wiped during startup.
-    Toolbar {
-        id: sysToolbar;
-        objectName: "com.highfidelity.interface.toolbar.system";
-        anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
-        // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
-        x: sysToolbar.x
-        y: 50
-    }
+    
     Settings {
         id: settings;
         category: "toolbar";
@@ -65,7 +58,6 @@ OriginalDesktop.Desktop {
         settings.constrainToolbarToCenterX = constrain;
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
-        map[sysToolbar.objectName] = sysToolbar;
         return map; })({});
 
 
@@ -74,47 +66,30 @@ OriginalDesktop.Desktop {
         WebEngine.settings.javascriptCanAccessClipboard = false;
         WebEngine.settings.spatialNavigationEnabled = false;
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
-
-        [ // Allocate the standard buttons in the correct order. They will get images, etc., via scripts.
-            "hmdToggle", "mute", "mod", "help",
-            "hudToggle",
-            "com.highfidelity.interface.system.editButton", "marketplace", "snapshot", "goto"
-        ].forEach(function (name) {
-            sysToolbar.addButton({objectName: name});
-        });
-        var toggleHudButton = sysToolbar.findButton("hudToggle");
-        toggleHudButton.imageURL = "../../../icons/hud.svg";
-        toggleHudButton.pinned = true;
-        sysToolbar.updatePinned(); // automatic when adding buttons only IFF button is pinned at creation.
-
-        toggleHudButton.buttonState = Qt.binding(function(){
-            return desktop.pinned ? 1 : 0
-        });
-        toggleHudButton.clicked.connect(function(){
-            console.log("Clicked on hud button")
-            var overlayMenuItem = "Overlays"
-            MenuInterface.setIsOptionChecked(overlayMenuItem, !MenuInterface.isOptionChecked(overlayMenuItem));
-        });
     }
 
     // Accept a download through the webview
     property bool webViewProfileSetup: false
     property string currentUrl: ""
+    property string downloadUrl: ""
     property string adaptedPath: ""
     property string tempDir: ""
+    property bool autoAdd: false
 
     function initWebviewProfileHandlers(profile) {
         console.log("The webview url in desktop is: " + currentUrl);
+        downloadUrl = currentUrl;
         if (webViewProfileSetup) return;
         webViewProfileSetup = true;
 
         profile.downloadRequested.connect(function(download){
             console.log("Download start: " + download.state);
-            adaptedPath = File.convertUrlToPath(currentUrl);
+            adaptedPath = File.convertUrlToPath(downloadUrl);
             tempDir = File.getTempDir();
             console.log("Temp dir created: " + tempDir);
             download.path = tempDir + "/" + adaptedPath;
             console.log("Path where object should download: " + download.path);
+            console.log("Auto add: " + autoAdd);
             download.accept();
             if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
                 console.log("download failed to complete");
@@ -123,11 +98,16 @@ OriginalDesktop.Desktop {
 
         profile.downloadFinished.connect(function(download){
             if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-                File.runUnzip(download.path, currentUrl);
+                File.runUnzip(download.path, downloadUrl, autoAdd);
             } else {
                 console.log("The download was corrupted, state: " + download.state);
             }
+            autoAdd = false;
         })
+    }
+
+    function setAutoAdd(auto) {
+        autoAdd = auto;
     }
 
     // Create or fetch a toolbar with the given name

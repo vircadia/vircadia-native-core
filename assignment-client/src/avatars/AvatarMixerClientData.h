@@ -27,6 +27,7 @@
 #include <PortableHighResolutionClock.h>
 #include <SimpleMovingAverage.h>
 #include <UUIDHasher.h>
+#include <ViewFrustum.h>
 
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
 const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
@@ -34,6 +35,8 @@ const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
+    AvatarMixerClientData(const QUuid& nodeID = QUuid()) : NodeData(nodeID) { _currentViewFrustum.invalidate(); }
+    virtual ~AvatarMixerClientData() {}
     using HRCTime = p_high_resolution_clock::time_point;
 
     int parseData(ReceivedMessage& message) override;
@@ -50,6 +53,8 @@ public:
 
     HRCTime getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void flagIdentityChange() { _identityChangeTimestamp = p_high_resolution_clock::now(); }
+    bool getAvatarSessionDisplayNameMustChange() const { return _avatarSessionDisplayNameMustChange; }
+    void setAvatarSessionDisplayNameMustChange(bool set = true) { _avatarSessionDisplayNameMustChange = set; }
 
     void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
     float getFullRateDistance() const { return _fullRateDistance; }
@@ -79,6 +84,42 @@ public:
         { return _avgOtherAvatarDataRate.getAverageSampleValuePerSecond() / (float) BYTES_PER_KILOBIT; }
 
     void loadJSONStats(QJsonObject& jsonObject) const;
+
+    glm::vec3 getPosition() { return _avatar ? _avatar->getPosition() : glm::vec3(0); }
+    glm::vec3 getGlobalBoundingBoxCorner() { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
+    bool isRadiusIgnoring(const QUuid& other) { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
+    void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
+    void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
+    void ignoreOther(SharedNodePointer self, SharedNodePointer other);
+
+    void readViewFrustumPacket(const QByteArray& message);
+
+    bool otherAvatarInView(const AABox& otherAvatarBox);
+
+    void resetInViewStats() { _recentOtherAvatarsInView = _recentOtherAvatarsOutOfView = 0; }
+    void incrementAvatarInView() { _recentOtherAvatarsInView++; }
+    void incrementAvatarOutOfView() { _recentOtherAvatarsOutOfView++; }
+    const QString& getBaseDisplayName() { return _baseDisplayName; }
+    void setBaseDisplayName(const QString& baseDisplayName) { _baseDisplayName = baseDisplayName; }
+    bool getRequestsDomainListData() { return _requestsDomainListData; }
+    void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
+
+    quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
+        quint64 result = 0;
+        if (_lastOtherAvatarEncodeTime.find(otherAvatar) != _lastOtherAvatarEncodeTime.end()) {
+            result = _lastOtherAvatarEncodeTime[otherAvatar];
+        }
+        _lastOtherAvatarEncodeTime[otherAvatar] = usecTimestampNow();
+        return result;
+    }
+
+    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) {
+        _lastOtherAvatarSentJoints[otherAvatar].resize(_avatar->getJointCount());
+        return _lastOtherAvatarSentJoints[otherAvatar];
+    }
+
+    
+
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
@@ -86,7 +127,13 @@ private:
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
+    // this is a map of the last time we encoded an "other" avatar for
+    // sending to "this" node
+    std::unordered_map<QUuid, quint64> _lastOtherAvatarEncodeTime;
+    std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
+
     HRCTime _identityChangeTimestamp;
+    bool _avatarSessionDisplayNameMustChange{ false };
 
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;
@@ -99,6 +146,13 @@ private:
     int _numOutOfOrderSends = 0;
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
+    std::unordered_set<QUuid> _radiusIgnoredOthers;
+    ViewFrustum _currentViewFrustum;
+
+    int _recentOtherAvatarsInView { 0 };
+    int _recentOtherAvatarsOutOfView { 0 };
+    QString _baseDisplayName{}; // The santized key used in determinging unique sessionDisplayName, so that we can remove from dictionary.
+    bool _requestsDomainListData { false };
 };
 
 #endif // hifi_AvatarMixerClientData_h

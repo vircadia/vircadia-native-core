@@ -1,0 +1,8 @@
+{
+    "templates": {
+        "default": {
+            "outputSourceFiles": false
+        }
+    },
+    "plugins": ["plugins/hifi"]
+}

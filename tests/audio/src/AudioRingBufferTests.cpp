@@ -36,7 +36,7 @@ void AudioRingBufferTests::runAllTests() {
     int readIndexAt;
 
 
-    AudioRingBuffer ringBuffer(10, false, 10); // makes buffer of 100 int16_t samples
+    AudioRingBuffer ringBuffer(10, 10); // makes buffer of 100 int16_t samples
     for (int T = 0; T < 300; T++) {
 
         writeIndexAt = 0;

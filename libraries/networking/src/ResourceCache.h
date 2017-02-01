@@ -73,6 +73,7 @@ public:
     uint32_t getPendingRequestsCount() const;
     QList<QSharedPointer<Resource>> getLoadingRequests();
     QSharedPointer<Resource> getHighestPendingRequest();
+    uint32_t getLoadingRequestsCount() const;
 
 private:
     ResourceCacheSharedItems() = default;
@@ -88,7 +89,24 @@ class ScriptableResource : public QObject {
     Q_PROPERTY(QUrl url READ getUrl)
     Q_PROPERTY(int state READ getState NOTIFY stateChanged)
 
+    /**jsdoc
+     * @constructor Resource
+     * @property url {string} url of this resource
+     * @property state {Resource.State} current loading state
+     */
+
 public:
+
+    /**jsdoc
+     * @name Resource.State
+     * @static
+     * @property QUEUED {int} The resource is queued up, waiting to be loaded.
+     * @property LOADING {int} The resource is downloading
+     * @property LOADED {int} The resource has finished downloaded by is not complete
+     * @property FINISHED {int} The resource has completly finished loading and is ready.
+     * @property FAILED {int} Downloading the resource has failed.
+     */
+
     enum State {
         QUEUED,
         LOADING,
@@ -101,6 +119,10 @@ public:
     ScriptableResource(const QUrl& url);
     virtual ~ScriptableResource() = default;
 
+    /**jsdoc
+     * Release this resource
+     * @function Resource#release
+     */
     Q_INVOKABLE void release();
 
     const QUrl& getUrl() const { return _url; }
@@ -111,7 +133,22 @@ public:
     void setInScript(bool isInScript);
 
 signals:
+
+    /**jsdoc
+     * Signaled when download progress for this resource has changed
+     * @function Resource#progressChanged
+     * @param bytesReceived {int} bytes downloaded so far
+     * @param bytesTotal {int} total number of bytes in the resource
+     * @returns {Signal}
+     */
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
+
+    /**jsdoc
+     * Signaled when resource loading state has changed
+     * @function Resource#stateChanged
+     * @param bytesReceived {Resource.State} new state
+     * @returns {Signal}
+     */
     void stateChanged(int state);
 
 protected:
@@ -148,14 +185,49 @@ class ResourceCache : public QObject {
     Q_PROPERTY(size_t numCached READ getNumCachedResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
-    
+
+    /**jsdoc
+     * @namespace ResourceCache
+     * @property numTotal {number} total number of total resources
+     * @property numCached {number} total number of cached resource
+     * @property sizeTotal {number} size in bytes of all resources
+     * @property sizeCached {number} size in bytes of all cached resources
+     */
+
 public:
+    /**jsdoc
+     * Returns the total number of resources
+     * @function ResourceCache.getNumTotalResources
+     * @return {number}
+     */
     size_t getNumTotalResources() const { return _numTotalResources; }
+
+    /**jsdoc
+     * Returns the total size in bytes of all resources
+     * @function ResourceCache.getSizeTotalResources
+     * @return {number}
+     */
     size_t getSizeTotalResources() const { return _totalResourcesSize; }
 
+    /**jsdoc
+     * Returns the total number of cached resources
+     * @function ResourceCache.getNumCachedResources
+     * @return {number}
+     */
     size_t getNumCachedResources() const { return _numUnusedResources; }
+
+    /**jsdoc
+     * Returns the total size in bytes of cached resources
+     * @function ResourceCache.getSizeCachedResources
+     * @return {number}
+     */
     size_t getSizeCachedResources() const { return _unusedResourcesSize; }
 
+    /**jsdoc
+     * Returns list of all resource urls
+     * @function ResourceCache.getResourceList
+     * @return {string[]}
+     */
     Q_INVOKABLE QVariantList getResourceList();
 
     static void setRequestLimit(int limit);
@@ -169,6 +241,8 @@ public:
     static QList<QSharedPointer<Resource>> getLoadingRequests();
 
     static int getPendingRequestCount();
+
+    static int getLoadingRequestCount();
 
     ResourceCache(QObject* parent = nullptr);
     virtual ~ResourceCache();
@@ -192,6 +266,13 @@ protected slots:
     /// returns an empty smart pointer and loads its asynchronously.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param extra extra data to pass to the creator, if appropriate
+    /**jsdoc
+     * Asynchronously loads a resource from the spedified URL and returns it.
+     * @param url {string} url of resource to load
+     * @param fallback {string} fallback URL if load of the desired url fails
+     * @function ResourceCache.getResource
+     * @return {Resource}
+     */
     QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
         void* extra = NULL);
 
@@ -203,6 +284,12 @@ protected:
     // Pointers created through this method should be owned by the caller,
     // which should be a QScriptEngine with ScriptableResource registered, so that
     // the QScriptEngine will delete the pointer when it is garbage collected.
+    /**jsdoc
+     * Prefetches a resource.
+     * @param url {string} url of resource to load
+     * @function ResourceCache.prefetch
+     * @return {Resource}
+     */
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
 
     /// Creates a new resource.
@@ -258,6 +345,8 @@ public:
     
     Resource(const QUrl& url);
     ~Resource();
+
+    virtual QString getType() const { return "Resource"; }
     
     /// Returns the key last used to identify this resource in the unused map.
     int getLRUKey() const { return _lruKey; }
@@ -377,6 +466,7 @@ private:
     bool isInScript() const { return _isInScript; }
     void setInScript(bool isInScript) { _isInScript = isInScript; }
     
+    int _requestID;
     ResourceRequest* _request{ nullptr };
     int _lruKey{ 0 };
     QTimer* _replyTimer{ nullptr };

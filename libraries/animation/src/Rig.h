@@ -105,6 +105,8 @@ public:
 
     void clearIKJointLimitHistory();
 
+    int getJointParentIndex(int childIndex) const;
+
     // geometry space
     void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
 
@@ -133,6 +135,7 @@ public:
     // rig space (thread-safe)
     bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const;
     bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
+    bool getAbsoluteJointPoseInRigFrame(int jointIndex, AnimPose& returnPose) const;
 
     // legacy
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
@@ -308,6 +311,7 @@ protected:
 
     std::map<QString, AnimNode::Pointer> _origRoleAnimations;
 
+    int32_t _numOverrides { 0 };
     bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };
 

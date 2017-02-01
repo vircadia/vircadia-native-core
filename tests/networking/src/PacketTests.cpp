@@ -12,29 +12,29 @@
 #include "PacketTests.h"
 #include "../QTestExtensions.h"
 
-#include <udt/Packet.h>
+#include <NLPacket.h>
 
 QTEST_MAIN(PacketTests)
 
-std::unique_ptr<Packet> copyToReadPacket(std::unique_ptr<Packet>& packet) {
+std::unique_ptr<NLPacket> copyToReadPacket(std::unique_ptr<NLPacket>& packet) {
     auto size = packet->getDataSize();
     auto data = std::unique_ptr<char[]>(new char[size]);
     memcpy(data.get(), packet->getData(), size);
-    return Packet::fromReceivedPacket(std::move(data), size, HifiSockAddr());
+    return NLPacket::fromReceivedPacket(std::move(data), size, HifiSockAddr());
 }
 
 void PacketTests::emptyPacketTest() {
-    auto packet = Packet::create(PacketType::Unknown);
+    auto packet = NLPacket::create(PacketType::Unknown);
 
     QCOMPARE(packet->getType(), PacketType::Unknown);
     QCOMPARE(packet->getPayloadSize(), 0);
-    QCOMPARE(packet->getDataSize(), packet->totalHeadersSize());
+    QCOMPARE(packet->getDataSize(), NLPacket::totalHeaderSize(packet->getType()));
     QCOMPARE(packet->bytesLeftToRead(), 0);
     QCOMPARE(packet->bytesAvailableForWrite(), packet->getPayloadCapacity());
 }
 
 void PacketTests::packetTypeTest() {
-    auto packet = Packet::create(PacketType::EntityAdd);
+    auto packet = NLPacket::create(PacketType::EntityAdd);
 
     QCOMPARE(packet->getType(), PacketType::EntityAdd);
 
@@ -46,7 +46,7 @@ void PacketTests::packetTypeTest() {
 }
 
 void PacketTests::writeTest() {
-    auto packet = Packet::create(PacketType::Unknown);
+    auto packet = NLPacket::create(PacketType::Unknown);
 
     QCOMPARE(packet->getPayloadSize(), 0);
 
@@ -62,7 +62,7 @@ void PacketTests::writeTest() {
 void PacketTests::readTest() {
     // Test reads for several different size packets
     for (int i = 1; i < 4; i++) {
-        auto packet = Packet::create(PacketType::Unknown);
+        auto packet = NLPacket::create(PacketType::Unknown);
 
         auto size = packet->getPayloadCapacity();
         size /= i;
@@ -91,7 +91,7 @@ void PacketTests::readTest() {
 }
 
 void PacketTests::writePastCapacityTest() {
-    auto packet = Packet::create(PacketType::Unknown);
+    auto packet = NLPacket::create(PacketType::Unknown);
 
     auto size = packet->getPayloadCapacity();
     char* data = new char[size];
@@ -111,20 +111,20 @@ void PacketTests::writePastCapacityTest() {
     QCOMPARE(packet->bytesAvailableForWrite(), 0);
     QCOMPARE(packet->getPayloadSize(), size);
 
-    QCOMPARE(Packet::PACKET_WRITE_ERROR, packet->write("data"));
- 
-    // Packet::write() shouldn't allow the caller to write if no space is left
+    QCOMPARE(NLPacket::PACKET_WRITE_ERROR, packet->write("data")); // asserts in DEBUG
+
+    // NLPacket::write() shouldn't allow the caller to write if no space is left
     QCOMPARE(packet->getPayloadSize(), size);
 }
 
 void PacketTests::primitiveTest() {
-    auto packet = Packet::create(PacketType::Unknown);
+    auto packet = NLPacket::create(PacketType::Unknown);
 
     int value1 = 5;
     char value2 = 10;
     bool value3 = true;
     qint64 value4 = -93404;
-     
+
     packet->writePrimitive(value1);
     packet->writePrimitive(value2);
     packet->writePrimitive(value3);
@@ -133,7 +133,7 @@ void PacketTests::primitiveTest() {
     auto recvPacket = copyToReadPacket(packet);
 
     // Peek & read first value
-    { 
+    {
         int peekValue = 0;
         QCOMPARE(recvPacket->peekPrimitive(&peekValue), (int)sizeof(peekValue));
         QCOMPARE(peekValue, value1);

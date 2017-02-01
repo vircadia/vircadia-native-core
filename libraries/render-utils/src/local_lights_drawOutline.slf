@@ -1,0 +1,153 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  local_lights_drawOutline.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 9/6/2016.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+// Everything about deferred buffer
+<@include DeferredBufferRead.slh@>
+
+<$declareDeferredCurvature()$>
+
+// Everything about light
+<@include model/Light.slh@>
+<$declareLightBuffer(128)$>
+<@include LightingModel.slh@>
+
+
+<@include LightPoint.slh@>
+<$declareDrawPointOutline()$>
+<@include LightSpot.slh@>
+<$declareDrawSpotOutline()$>
+
+<@include LightClusterGrid.slh@>
+
+
+
+in vec2 _texCoord0;
+out vec4 _fragColor;
+
+void main(void) {
+
+    // Grab the fragment data from the uv
+    vec2 texCoord = _texCoord0.st;
+
+    vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
+    DeferredFragment frag = unpackDeferredFragmentNoPosition(texCoord);
+
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        discard;
+    }
+
+    frag.position = fragPosition;
+
+
+    // Frag pos in world
+    mat4 invViewMat = getViewInverse();
+    vec4 fragPos = invViewMat * fragPosition;
+    
+    // From frag world pos find the cluster
+    vec4 clusterEyePos = frustumGrid_worldToEye(fragPos);
+    ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
+
+    ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
+    int numLights = cluster.x + cluster.y;
+    if (numLights <= 0) {
+        discard;
+    }
+    int lightClusterOffset = cluster.z;
+
+    ivec3 dims = frustumGrid.dims.xyz;
+    if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
+        discard;
+    }
+
+    if (clusterPos.y < 0 || clusterPos.y >= dims.y) {
+        discard;
+    }
+    if (clusterPos.z < 0 || clusterPos.z > dims.z) {
+        discard;
+    }
+
+    // Frag to eye vec
+    vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
+    vec3 fragEyeDir = normalize(fragEyeVector.xyz);
+    
+    int numLightTouching = 0;
+    for (int i = 0; i < cluster.x; i++) {
+        // Need the light now
+        int theLightIndex = clusterGrid_getClusterLightId(i, lightClusterOffset);
+        Light light = getLight(theLightIndex);
+
+        // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
+        vec4 fragLightVecLen2;
+        vec4 fragLightDirLen;
+
+        if (!lightVolume_clipFragToLightVolumePoint(light.volume, fragPos.xyz, fragLightVecLen2)) {
+            continue;
+        }
+
+        // Allright we re in the light sphere volume
+        fragLightDirLen.w = length(fragLightVecLen2.xyz);
+        fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
+        if (dot(frag.normal, fragLightDirLen.xyz) < 0.0) {
+            continue;
+        }
+
+        numLightTouching++;
+
+        // Allright we re valid in the volume
+        float fragLightDistance = fragLightDirLen.w;
+        vec3 fragLightDir = fragLightDirLen.xyz;
+
+        vec3 color = vec3(0.0);
+        if (evalLightPointEdge(color, light, fragLightDirLen, fragEyeDir)) {
+            _fragColor.rgb += color;
+        }
+    }
+
+    for (int i = cluster.x; i < numLights; i++) {
+        // Need the light now
+        int theLightIndex = clusterGrid_getClusterLightId(i, lightClusterOffset);
+        Light light = getLight(theLightIndex);
+
+        // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
+        vec4 fragLightVecLen2;
+        vec4 fragLightDirLen;
+        float cosSpotAngle;
+
+        if (!lightVolume_clipFragToLightVolumePoint(light.volume, fragPos.xyz, fragLightVecLen2)) {
+            continue;
+        }
+
+        // Allright we re in the light sphere volume
+        fragLightDirLen.w = length(fragLightVecLen2.xyz);
+        fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
+        if (dot(frag.normal, fragLightDirLen.xyz) < 0.0) {
+            continue;
+        }
+
+        // Check spot
+        if (!lightVolume_clipFragToLightVolumeSpotSide(light.volume, fragLightDirLen, cosSpotAngle)) {
+            continue;
+        }
+
+        numLightTouching++;
+
+        vec3 color = vec3(0.0);
+
+        if (evalLightSpotEdge(color, light, fragLightDirLen, cosSpotAngle, fragEyeDir)) {
+            _fragColor.rgb += color;
+        }
+    }
+
+}
+

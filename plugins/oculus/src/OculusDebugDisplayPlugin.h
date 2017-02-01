@@ -11,7 +11,7 @@
 
 class OculusDebugDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
     grouping getGrouping() const override { return DEVELOPER; }
     bool isSupported() const override;
 
@@ -20,6 +20,6 @@ protected:
     bool isHmdMounted() const override { return true; }
 
 private:
-    static const QString NAME;
+    static const char* NAME;
 };
 

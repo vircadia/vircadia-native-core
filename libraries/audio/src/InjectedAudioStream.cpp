@@ -18,14 +18,13 @@
 #include <UUID.h>
 
 #include "InjectedAudioStream.h"
+#include "AudioHelpers.h"
 
 InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, bool isStereo, int numStaticJitterFrames) :
     PositionalAudioStream(PositionalAudioStream::Injector, isStereo, numStaticJitterFrames),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0) {} 
-
-const uchar MAX_INJECTOR_VOLUME = 255;
 
 int InjectedAudioStream::parseStreamProperties(PacketType type,
                                                const QByteArray& packetAfterSeqNum,
@@ -62,7 +61,7 @@ int InjectedAudioStream::parseStreamProperties(PacketType type,
 
     quint8 attenuationByte = 0;
     packetStream >> attenuationByte;
-    _attenuationRatio = attenuationByte / (float)MAX_INJECTOR_VOLUME;
+    _attenuationRatio = unpackFloatGainFromByte(attenuationByte);
     
     packetStream >> _ignorePenumbra;
     

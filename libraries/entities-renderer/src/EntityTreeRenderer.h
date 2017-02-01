@@ -77,7 +77,7 @@ public:
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE ModelPointer allocateModel(const QString& url, float loadingPriority = 0.0f);
+    Q_INVOKABLE ModelPointer allocateModel(const QString& url, float loadingPriority = 0.0f, SpatiallyNestable* spatiallyNestableOverride = nullptr);
 
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
     Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl);
@@ -122,7 +122,7 @@ signals:
 public slots:
     void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
-    void entitySciptChanging(const EntityItemID& entityID, const bool reload);
+    void entityScriptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void updateEntityRenderStatus(bool shouldRenderEntities);
     void updateZone(const EntityItemID& id);
@@ -170,11 +170,7 @@ private:
     bool _wantScripts;
     QSharedPointer<ScriptEngine> _entitiesScriptEngine;
 
-    bool isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree,
-                          const EntityItemID& id, const Collision& collision);
-
-    void playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
-                                  const EntityItemID& id, const Collision& collision);
+    static void playEntityCollisionSound(EntityItemPointer entity, const Collision& collision);
 
     bool _lastPointerEventValid;
     PointerEvent _lastPointerEvent;

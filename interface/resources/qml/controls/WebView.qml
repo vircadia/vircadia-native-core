@@ -6,6 +6,7 @@ import HFWebEngineProfile 1.0
 
 Item {
     property alias url: root.url
+    property alias scriptURL: root.userScriptUrl
     property alias eventBridge: eventBridgeWrapper.eventBridge
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
@@ -38,6 +39,8 @@ Item {
             storageName: "qmlWebEngine"
         }
 
+        property string userScriptUrl: ""
+
         // creates a global EventBridge object.
         WebEngineScript {
             id: createGlobalEventBridge
@@ -54,7 +57,15 @@ Item {
             worldId: WebEngineScript.MainWorld
         }
 
-        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
+        // User script.
+        WebEngineScript {
+            id: userScript
+            sourceUrl: root.userScriptUrl
+            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
+            worldId: WebEngineScript.MainWorld
+        }
+
+        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
         property string newUrl: ""
 

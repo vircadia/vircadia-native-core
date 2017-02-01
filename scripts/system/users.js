@@ -10,8 +10,39 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/*globals HMD, Toolbars, Script, Menu, Overlays, Tablet, Controller, Settings, OverlayWebWindow, Account, GlobalServices */
 
 (function() { // BEGIN LOCAL_SCOPE
+var button;
+var buttonName = "USERS";
+var toolBar = null;
+var tablet = null;
+
+var MENU_ITEM = "Users Online";
+
+if (Settings.getValue("HUDUIEnabled")) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/people.svg"),
+        visible: true,
+        alpha: 0.9
+    });
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        icon: "icons/tablet-icons/users-i.svg",
+        text: "USERS",
+        isActive: Menu.isOptionChecked(MENU_ITEM)
+    });
+}
+
+
+function onClicked() {
+    Menu.setIsOptionChecked(MENU_ITEM, !Menu.isOptionChecked(MENU_ITEM));
+    button.editProperties({isActive: Menu.isOptionChecked(MENU_ITEM)});
+}
+button.clicked.connect(onClicked);
 
 // resolve these paths immediately
 var MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
@@ -228,7 +259,7 @@ var usersWindow = (function () {
 
     var WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
-        WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
+        WINDOW_BASE_MARGIN = 24, // A little less is needed in order look correct
         WINDOW_FONT = {
             size: 12
         },
@@ -253,11 +284,17 @@ var usersWindow = (function () {
         windowPane,
         windowHeading,
 
+        // Margin on the left and right side of the window to keep
+        // it from getting too close to the edge of the screen which
+        // is unclickable.
+        WINDOW_MARGIN_X = 20,
+
         // Window border is similar to that of edit.js.
-        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_BASE_MARGIN,
-        WINDOW_BORDER_LEFT_MARGIN = WINDOW_BASE_MARGIN,
+        WINDOW_MARGIN_HALF = WINDOW_MARGIN / 2,
+        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_MARGIN_HALF,
+        WINDOW_BORDER_LEFT_MARGIN = WINDOW_MARGIN_HALF,
         WINDOW_BORDER_RADIUS = 4,
         WINDOW_BORDER_COLOR = { red: 255, green: 255, blue: 255 },
         WINDOW_BORDER_ALPHA = 0.5,
@@ -371,7 +408,8 @@ var usersWindow = (function () {
 
         MENU_NAME = "View",
         MENU_ITEM = "Users Online",
-        MENU_ITEM_AFTER = "Overlays",
+        MENU_ITEM_OVERLAYS = "Overlays",
+        MENU_ITEM_AFTER = MENU_ITEM_OVERLAYS,
 
         SETTING_USERS_SHOW_ME = "UsersWindow.ShowMe",
         SETTING_USERS_VISIBLE_TO = "UsersWindow.VisibleTo",
@@ -399,6 +437,10 @@ var usersWindow = (function () {
         scrollbarBarClickedAt, // 0.0 .. 1.0
         scrollbarValue = 0.0; // 0.0 .. 1.0
 
+    function isWindowDisabled() {
+        return !Menu.isOptionChecked(MENU_ITEM) || !Menu.isOptionChecked(MENU_ITEM_OVERLAYS);
+    }
+
     function isValueTrue(value) {
         // Work around Boolean Settings values being read as string when Interface starts up but as Booleans when re-read after
         // Being written if refresh script.
@@ -418,11 +460,11 @@ var usersWindow = (function () {
         }
 
         // Reserve space for title, friends button, and option controls
-        nonUsersHeight = WINDOW_MARGIN + windowLineHeight
-            + (shouldShowFriendsButton() ? FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT : 0)
-            + DISPLAY_SPACER
-            + windowLineHeight + VISIBILITY_SPACER
-            + windowLineHeight + WINDOW_BASE_MARGIN;
+        nonUsersHeight = WINDOW_MARGIN + windowLineHeight +
+            (shouldShowFriendsButton() ? FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT : 0) +
+            DISPLAY_SPACER +
+            windowLineHeight + VISIBILITY_SPACER +
+            windowLineHeight + WINDOW_BASE_MARGIN;
 
         // Limit window to height of viewport above window position minus VU meter and mirror if displayed
         windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;
@@ -445,7 +487,7 @@ var usersWindow = (function () {
     }
 
     function saturateWindowPosition() {
-        windowPosition.x = Math.max(0, Math.min(viewport.x - WINDOW_WIDTH, windowPosition.x));
+        windowPosition.x = Math.max(WINDOW_MARGIN_X, Math.min(viewport.x - WINDOW_WIDTH - WINDOW_MARGIN_X, windowPosition.x));
         windowPosition.y = Math.max(windowMinimumHeight, Math.min(viewport.y, windowPosition.y));
     }
 
@@ -480,8 +522,8 @@ var usersWindow = (function () {
             x: scrollbarBackgroundPosition.x,
             y: scrollbarBackgroundPosition.y
         });
-        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1
-            + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1 +
+            scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
         Overlays.editOverlay(scrollbarBar, {
             x: scrollbarBackgroundPosition.x + 1,
             y: scrollbarBarPosition.y
@@ -489,10 +531,10 @@ var usersWindow = (function () {
 
 
         x = windowLeft + WINDOW_MARGIN;
-        y = windowPosition.y
-            - DISPLAY_SPACER
-            - windowLineHeight - VISIBILITY_SPACER
-            - windowLineHeight - WINDOW_BASE_MARGIN;
+        y = windowPosition.y -
+            DISPLAY_SPACER -
+            windowLineHeight - VISIBILITY_SPACER -
+            windowLineHeight - WINDOW_BASE_MARGIN;
         if (shouldShowFriendsButton()) {
             y -= FRIENDS_BUTTON_HEIGHT;
             Overlays.editOverlay(friendsButton, {
@@ -744,7 +786,7 @@ var usersWindow = (function () {
             userClicked,
             delta;
 
-        if (!isVisible) {
+        if (!isVisible || isWindowDisabled()) {
             return;
         }
 
@@ -787,8 +829,8 @@ var usersWindow = (function () {
 
             userClicked = firstUserToDisplay + lineClicked;
 
-            if (0 <= userClicked && userClicked < linesOfUsers.length && 0 <= overlayX
-                    && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
+            if (0 <= userClicked && userClicked < linesOfUsers.length && 0 <= overlayX &&
+                overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
                 //print("Go to " + usersOnline[linesOfUsers[userClicked]].username);
                 location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
@@ -856,17 +898,17 @@ var usersWindow = (function () {
     function onMouseMoveEvent(event) {
         var isVisible;
 
-        if (!isLoggedIn) {
+        if (!isLoggedIn || isWindowDisabled()) {
             return;
         }
 
         if (isMovingScrollbar) {
-            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
-                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
-                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y
-                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
-                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y)
-                    / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x &&
+                event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN &&
+                scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y &&
+                event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
+                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y) /
+                    (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
                 scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
                 firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
                 updateOverlayPositions();
@@ -894,13 +936,13 @@ var usersWindow = (function () {
 
             isVisible = isBorderVisible;
             if (isVisible) {
-                isVisible = windowPosition.x - WINDOW_BORDER_LEFT_MARGIN <= event.x
-                    && event.x <= windowPosition.x - WINDOW_BORDER_LEFT_MARGIN + WINDOW_BORDER_WIDTH
-                    && windowPosition.y - windowHeight - WINDOW_BORDER_TOP_MARGIN <= event.y
-                    && event.y <= windowPosition.y + WINDOW_BORDER_BOTTOM_MARGIN;
+                isVisible = windowPosition.x - WINDOW_BORDER_LEFT_MARGIN <= event.x &&
+                    event.x <= windowPosition.x - WINDOW_BORDER_LEFT_MARGIN + WINDOW_BORDER_WIDTH &&
+                    windowPosition.y - windowHeight - WINDOW_BORDER_TOP_MARGIN <= event.y &&
+                    event.y <= windowPosition.y + WINDOW_BORDER_BOTTOM_MARGIN;
             } else {
-                isVisible = windowPosition.x <= event.x && event.x <= windowPosition.x + WINDOW_WIDTH
-                    && windowPosition.y - windowHeight <= event.y && event.y <= windowPosition.y;
+                isVisible = windowPosition.x <= event.x && event.x <= windowPosition.x + WINDOW_WIDTH &&
+                    windowPosition.y - windowHeight <= event.y && event.y <= windowPosition.y;
             }
             if (isVisible !== isBorderVisible) {
                 isBorderVisible = isVisible;
@@ -914,6 +956,10 @@ var usersWindow = (function () {
     function onMouseReleaseEvent() {
         var offset = {};
 
+        if (isWindowDisabled()) {
+            return;
+        }
+
         if (isMovingScrollbar) {
             Overlays.editOverlay(scrollbarBar, {
                 backgroundAlpha: SCROLLBAR_BAR_ALPHA
@@ -923,10 +969,10 @@ var usersWindow = (function () {
 
         if (isMovingWindow) {
             // Save offset of bottom of window to nearest edge of the window.
-            offset.x = (windowPosition.x + WINDOW_WIDTH / 2 < viewport.x / 2)
-                ? windowPosition.x : windowPosition.x - viewport.x;
-            offset.y = (windowPosition.y < viewport.y / 2)
-                ? windowPosition.y : windowPosition.y - viewport.y;
+            offset.x = (windowPosition.x + WINDOW_WIDTH / 2 < viewport.x / 2) ?
+                windowPosition.x : windowPosition.x - viewport.x;
+            offset.y = (windowPosition.y < viewport.y / 2) ?
+                windowPosition.y : windowPosition.y - viewport.y;
             Settings.setValue(SETTING_USERS_WINDOW_OFFSET, JSON.stringify(offset));
             isMovingWindow = false;
         }
@@ -939,12 +985,16 @@ var usersWindow = (function () {
             MIRROR_MENU_ITEM = "Mirror",
             FULLSCREEN_MIRROR_MENU_ITEM = "Fullscreen Mirror";
 
+        if (isWindowDisabled()) {
+            return;
+        }
+
         viewport = Controller.getViewportDimensions();
         isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);
         isFullscreenMirror = Menu.isOptionChecked(FULLSCREEN_MIRROR_MENU_ITEM);
 
-        if (viewport.y !== oldViewport.y || isMirrorDisplay !== oldIsMirrorDisplay
-                || isFullscreenMirror !== oldIsFullscreenMirror) {
+        if (viewport.y !== oldViewport.y || isMirrorDisplay !== oldIsMirrorDisplay ||
+            isFullscreenMirror !== oldIsFullscreenMirror) {
             calculateWindowHeight();
             updateUsersDisplay();
         }
@@ -1214,5 +1264,17 @@ var usersWindow = (function () {
     setUp();
     Script.scriptEnding.connect(tearDown);
 }());
+
+function cleanup () {
+    //remove tablet button
+    button.clicked.disconnect(onClicked);
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
+}
+Script.scriptEnding.connect(cleanup);
 
 }()); // END LOCAL_SCOPE

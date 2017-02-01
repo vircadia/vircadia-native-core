@@ -10,7 +10,7 @@
 //
 
 #include "DependencyManager.h"
-
+#include "Logging.h"
 #include "ShapePipeline.h"
 
 #include <PerfStat.h>
@@ -63,6 +63,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::MAP::OCCLUSION));
     slotBindings.insert(gpu::Shader::Binding(std::string("scatteringMap"), Slot::MAP::SCATTERING));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slot::NORMAL_FITTING));
 
@@ -85,8 +86,9 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations->texMapArrayBufferUnit = program->getBuffers().findLocation("texMapArrayBuffer");
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
+    locations->lightAmbientBufferUnit = program->getBuffers().findLocation("lightAmbientBuffer");
     locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
-
+    
     ShapeKey key{filter._flags};
     auto gpuPipeline = gpu::Pipeline::create(program, state);
     auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter);
@@ -105,7 +107,7 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
         // The first time we can't find a pipeline, we should log it
         if (_missingKeys.find(key) == _missingKeys.end()) {
             _missingKeys.insert(key);
-            qDebug() << "Couldn't find a pipeline for" << key;
+            qCDebug(renderlogging) << "Couldn't find a pipeline for" << key;
         }
         return PipelinePointer(nullptr);
     }

@@ -28,11 +28,12 @@ class AbstractAudioInterface : public QObject {
 public:
     AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
     
-    static void emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, const Transform& transform, 
+    static void emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber,
+                                const Transform& transform, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
                                 PacketType packetType, QString codecName = QString(""));
 
 public slots:
-    virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector) = 0;
+    virtual bool outputLocalInjector(AudioInjector* injector) = 0;
     virtual bool shouldLoopbackInjectors() { return false; }
     
     virtual void setIsStereoInput(bool stereo) = 0;

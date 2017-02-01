@@ -23,6 +23,7 @@
 #include "Packet.h"
 #include "PacketList.h"
 #include "Socket.h"
+#include <Trace.h>
 
 using namespace udt;
 using namespace std::chrono;

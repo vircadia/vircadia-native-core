@@ -18,7 +18,7 @@ class Plugin : public QObject {
     Q_OBJECT
 public:
     /// \return human-readable name
-    virtual const QString& getName() const = 0;
+    virtual const QString getName() const = 0;
 
     typedef enum { STANDARD, ADVANCED, DEVELOPER } grouping;
 
@@ -26,10 +26,10 @@ public:
     virtual grouping getGrouping() const { return STANDARD; }
 
     /// \return string ID (not necessarily human-readable)
-    virtual const QString& getID() const { assert(false); return UNKNOWN_PLUGIN_ID; }
+    virtual const QString getID() const { assert(false); return UNKNOWN_PLUGIN_ID; }
 
     virtual bool isSupported() const;
-    
+
     void setContainer(PluginContainer* container);
 
     /// Called when plugin is initially loaded, typically at application start
@@ -74,6 +74,6 @@ signals:
 protected:
     bool _active { false };
     PluginContainer* _container { nullptr };
-    static QString UNKNOWN_PLUGIN_ID;
+    static const char* UNKNOWN_PLUGIN_ID;
 
 };

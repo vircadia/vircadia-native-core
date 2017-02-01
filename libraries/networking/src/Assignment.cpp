@@ -19,6 +19,7 @@
 #include <BuildInfo.h>
 #include "Assignment.h"
 #include <QtCore/QStandardPaths>
+#include <QtCore/QDir>
 
 Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
     switch (nodeType) {
@@ -34,6 +35,8 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::AssetServerType;
         case NodeType::MessagesMixer:
             return Assignment::MessagesMixerType;
+        case NodeType::EntityScriptServer:
+            return Assignment::EntityScriptServerType;
         default:
             return Assignment::AllTypes;
     }
@@ -51,7 +54,7 @@ Assignment::Assignment() :
     
 }
 
-Assignment::Assignment(Assignment::Command command, Assignment::Type type, const QString& pool, Assignment::Location location) :
+Assignment::Assignment(Assignment::Command command, Assignment::Type type, const QString& pool, Assignment::Location location, QString dataDirectory) :
     _uuid(),
     _command(command),
     _type(type),
@@ -60,7 +63,8 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     _payload(),
     _isStatic(false),
     _walletUUID(),
-    _nodeVersion()
+    _nodeVersion(),
+    _dataDirectory(dataDirectory)
 {
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID
@@ -137,6 +141,8 @@ const char* Assignment::getTypeName() const {
             return "entity-server";
         case Assignment::MessagesMixerType:
             return "messages-mixer";
+        case Assignment::EntityScriptServerType:
+            return "entity-script-server";
         default:
             return "unknown";
     }

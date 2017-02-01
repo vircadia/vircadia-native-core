@@ -20,13 +20,16 @@ class AbstractLoggerInterface : public QObject {
     Q_OBJECT
 
 public:
-    AbstractLoggerInterface(QObject* parent = NULL) : QObject(parent) {}
+    static AbstractLoggerInterface* get();
+    AbstractLoggerInterface(QObject* parent = NULL);
+    ~AbstractLoggerInterface();
     inline bool extraDebugging() { return _extraDebugging; }
     inline void setExtraDebugging(bool debugging) { _extraDebugging = debugging; }
 
     virtual void addMessage(const QString&) = 0;
     virtual QString getLogData() = 0;
     virtual void locateLog() = 0;
+    virtual void sync() {}
 
 signals:
     void logReceived(QString message);

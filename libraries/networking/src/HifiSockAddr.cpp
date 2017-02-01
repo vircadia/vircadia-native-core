@@ -109,6 +109,10 @@ void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
     }
 }
 
+QString HifiSockAddr::toString() const {
+    return _address.toString() + ":" + QString::number(_port);
+}
+
 QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr) {
     debug.nospace() << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();

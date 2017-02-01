@@ -1,0 +1,57 @@
+// glsl / C++ compatible source as interface for Light
+#ifndef SphericalHarmonics_Shared_slh
+#define SphericalHarmonics_Shared_slh
+
+//  SphericalHarmonics.shared.slh
+//  libraries/model/src/model
+//
+//  Created by Sam Gateau on 14/9/2016.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+#define SphericalHarmonicsConstRef SphericalHarmonics
+
+struct SphericalHarmonics {
+    vec4 L00;
+    vec4 L1m1;
+    vec4 L10;
+    vec4 L11;
+    vec4 L2m2;
+    vec4 L2m1;
+    vec4 L20;
+    vec4 L21;
+    vec4 L22;
+};
+
+vec4 sphericalHarmonics_evalSphericalLight(SphericalHarmonicsConstRef sh, vec3 direction) {
+
+    vec3 dir = direction.xyz;
+
+    const float C1 = 0.429043;
+    const float C2 = 0.511664;
+    const float C3 = 0.743125;
+    const float C4 = 0.886227;
+    const float C5 = 0.247708;
+
+    vec4 value = C1 * sh.L22 * (dir.x * dir.x - dir.y * dir.y) +
+        C3 * sh.L20 * dir.z * dir.z +
+        C4 * sh.L00 - C5 * sh.L20 +
+        2.0 * C1 * (sh.L2m2 * dir.x * dir.y +
+        sh.L21  * dir.x * dir.z +
+        sh.L2m1 * dir.y * dir.z) +
+        2.0 * C2 * (sh.L11  * dir.x +
+        sh.L1m1 * dir.y +
+        sh.L10  * dir.z);
+    return value;
+}
+
+#endif
+
+
+// <@if 1@>
+// Trigger Scribe include 
+// <@endif@> <!def that !> End C++ compatible

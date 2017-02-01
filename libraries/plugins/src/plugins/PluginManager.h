@@ -19,6 +19,7 @@ public:
     const DisplayPluginList& getDisplayPlugins();
     const InputPluginList& getInputPlugins();
     const CodecPluginList& getCodecPlugins();
+    const SteamClientPluginPointer getSteamClientPlugin();
 
     DisplayPluginList getPreferredDisplayPlugins();
     void setPreferredDisplayPlugins(const QStringList& displays);

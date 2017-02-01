@@ -14,6 +14,8 @@
 #include "../gl/GLBackend.h"
 #include "../gl/GLTexture.h"
 
+#define INCREMENTAL_TRANSFER 0
+
 namespace gpu { namespace gl45 {
     
 using namespace gpu::gl;
@@ -46,34 +48,18 @@ public:
             void update();
             uvec3 getPageCounts(const uvec3& dimensions) const;
             uint32_t getPageCount(const uvec3& dimensions) const;
+            uint32_t getSize() const;
 
             GL45Texture& texture;
             bool sparse { false };
             uvec3 pageDimensions { DEFAULT_PAGE_DIMENSION };
             GLuint maxSparseLevel { DEFAULT_MAX_SPARSE_LEVEL };
+            uint32_t allocatedPages { 0 };
             uint32_t maxPages { 0 };
             uint32_t pageBytes { 0 };
             GLint pageDimensionsIndex { 0 };
         };
 
-        struct TransferState {
-            TransferState(GL45Texture& texture);
-            uvec3 currentPageSize() const;
-            void updateMip();
-            void populatePage(std::vector<uint8_t>& dest);
-            bool increment();
-
-            GL45Texture& texture;
-            GLTexelFormat texelFormat;
-            uint8_t face { 0 };
-            uint16_t mipLevel { 0 };
-            uint32_t bytesPerLine { 0 };
-            uint32_t bytesPerPixel { 0 };
-            uint32_t bytesPerPage { 0 };
-            uvec3 mipDimensions;
-            uvec3 mipOffset;
-            const uint8_t* srcPointer { nullptr };
-        };
     protected:
         void updateMips() override;
         void stripToMip(uint16_t newMinMip);
@@ -91,9 +77,7 @@ public:
         void derez();
 
         SparseInfo _sparseInfo;
-        TransferState _transferState;
-        uint32_t _allocatedPages { 0 };
-        uint32_t _lastMipAllocatedPages { 0 };
+        uint16_t _mipOffset { 0 };
         friend class GL45Backend;
     };
 
@@ -123,13 +107,13 @@ protected:
     void do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) override;
 
     // Input Stage
+    void resetInputStage() override;
     void updateInput() override;
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void transferTransformState(const Batch& batch) const override;
     void initTransform() override;
-    void updateTransform(const Batch& batch);
-    void resetTransformStage();
+    void updateTransform(const Batch& batch) override;
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;

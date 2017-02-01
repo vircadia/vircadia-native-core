@@ -234,7 +234,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         static QString repeatedMessage =
             LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
                                                               "setPosition failed.*");
-        qDebug() << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
+        qCDebug(physics) << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
     }
     bool orientationSuccess;
     _entity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
@@ -242,7 +242,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         static QString repeatedMessage =
             LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
                                                               "setOrientation failed.*");
-        qDebug() << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
+        qCDebug(physics) << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
     }
     _entity->setVelocity(getBodyLinearVelocity());
     _entity->setAngularVelocity(getBodyAngularVelocity());
@@ -582,6 +582,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
         // copy _outgoingPriority into pendingPriority...
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
+        // don't forget to remember that we have made a bid
+        _entity->rememberHasSimulationOwnershipBid();
         // ...then reset _outgoingPriority in preparation for the next frame
         _outgoingPriority = 0;
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
@@ -760,6 +762,11 @@ QString EntityMotionState::getName() const {
 void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
     assert(_entity);
     _entity->computeCollisionGroupAndFinalMask(group, mask);
+}
+
+bool EntityMotionState::shouldBeLocallyOwned() const {
+    return (_outgoingPriority > VOLUNTEER_SIMULATION_PRIORITY && _outgoingPriority > _entity->getSimulationPriority()) ||
+        _entity->getSimulatorID() == Physics::getSessionUUID();
 }
 
 void EntityMotionState::upgradeOutgoingPriority(uint8_t priority) {

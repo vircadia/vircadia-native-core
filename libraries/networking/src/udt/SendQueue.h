@@ -51,6 +51,8 @@ public:
     };
     
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
+
+    virtual ~SendQueue();
     
     void queuePacket(std::unique_ptr<Packet> packet);
     void queuePacketList(std::unique_ptr<PacketList> packetList);

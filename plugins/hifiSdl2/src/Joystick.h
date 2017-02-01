@@ -29,7 +29,7 @@ class Joystick : public QObject, public controller::InputDevice {
 public:
     using Pointer = std::shared_ptr<Joystick>;
 
-    const QString& getName() const { return _name; }
+    const QString getName() const { return _name; }
 
     SDL_GameController* getGameController() { return _sdlGameController; }
 

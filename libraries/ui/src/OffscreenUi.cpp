@@ -23,6 +23,8 @@
 #include "FileDialogHelper.h"
 #include "VrMenu.h"
 
+#include "ui/Logging.h"
+
 
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
@@ -73,7 +75,6 @@ bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
     QObject* focusObject = getWindow()->focusObject();
     if (focusObject != getWindow() && focusObject != getRootItem()) {
-        //qDebug() << "Swallowed shortcut " << static_cast<QKeyEvent*>(event)->key();
         event->accept();
         return true;
     }
@@ -126,6 +127,15 @@ void OffscreenUi::hide(const QString& name) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     if (item) {
         QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(false);
+    }
+}
+
+bool OffscreenUi::isVisible(const QString& name) {
+    QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
+    if (item) {
+        return QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).read().toBool();
+    } else {
+        return false;
     }
 }
 
@@ -493,7 +503,7 @@ private:
 
 void OffscreenUi::createDesktop(const QUrl& url) {
     if (_desktop) {
-        qDebug() << "Desktop already created";
+        qCDebug(uiLogging) << "Desktop already created";
         return;
     }
 
@@ -523,6 +533,10 @@ QQuickItem* OffscreenUi::getDesktop() {
     return _desktop;
 }
 
+QObject* OffscreenUi::getRootMenu() {
+    return getRootItem()->findChild<QObject*>("rootMenu");
+}
+
 QQuickItem* OffscreenUi::getToolWindow() {
     return _toolWindow;
 }
@@ -530,11 +544,6 @@ QQuickItem* OffscreenUi::getToolWindow() {
 void OffscreenUi::unfocusWindows() {
     bool invokeResult = QMetaObject::invokeMethod(_desktop, "unfocusWindows");
     Q_ASSERT(invokeResult);
-}
-
-void OffscreenUi::toggleMenu(const QPoint& screenPosition) { // caller should already have mapped using getReticlePosition
-    emit showDesktop(); // we really only want to do this if you're showing the menu, but for now this works
-    QMetaObject::invokeMethod(_desktop, "toggleMenu", Q_ARG(QVariant, screenPosition));
 }
 
 
@@ -573,7 +582,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
     if (!result.isValid()) {
         return QString();
     }
-    qDebug() << result.toString();
+    qCDebug(uiLogging) << result.toString();
     return result.toUrl().toLocalFile();
 }
 

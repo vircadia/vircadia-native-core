@@ -34,6 +34,7 @@ TestWindow::TestWindow() {
 
 
     auto timer = new QTimer(this);
+    timer->setTimerType(Qt::PreciseTimer);
     timer->setInterval(5);
     connect(timer, &QTimer::timeout, [&] { draw(); });
     timer->start();

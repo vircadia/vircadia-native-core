@@ -125,11 +125,20 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(framerate, qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
         auto displayPlugin = qApp->getActiveDisplayPlugin();
+        auto stats = displayPlugin->getHardwareStats();
+        STAT_UPDATE(appdropped, stats["app_dropped_frame_count"].toInt());
+        STAT_UPDATE(longrenders, stats["long_render_count"].toInt());
+        STAT_UPDATE(longsubmits, stats["long_submit_count"].toInt());
+        STAT_UPDATE(longframes, stats["long_frame_count"].toInt());
         STAT_UPDATE(renderrate, displayPlugin->renderRate());
         STAT_UPDATE(presentrate, displayPlugin->presentRate());
         STAT_UPDATE(presentnewrate, displayPlugin->newFramePresentRate());
-        STAT_UPDATE(presentdroprate, qApp->getActiveDisplayPlugin()->droppedFrameRate());
+        STAT_UPDATE(presentdroprate, displayPlugin->droppedFrameRate());
+        STAT_UPDATE(stutterrate, displayPlugin->stutterRate());
     } else {
+        STAT_UPDATE(appdropped, -1);
+        STAT_UPDATE(longrenders, -1);
+        STAT_UPDATE(longsubmits, -1);
         STAT_UPDATE(presentrate, -1);
         STAT_UPDATE(presentnewrate, -1);
         STAT_UPDATE(presentdroprate, -1);
@@ -187,11 +196,13 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(avatarMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer)));
             STAT_UPDATE(avatarMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
             STAT_UPDATE(avatarMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(myAvatarSendRate, avatarManager->getMyAvatarSendRate());
         } else {
             STAT_UPDATE(avatarMixerInKbps, -1);
             STAT_UPDATE(avatarMixerInPps, -1);
             STAT_UPDATE(avatarMixerOutKbps, -1);
             STAT_UPDATE(avatarMixerOutPps, -1);
+            STAT_UPDATE(myAvatarSendRate, avatarManager->getMyAvatarSendRate());
         }
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         if (audioMixerNode || force) {
@@ -290,6 +301,12 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(sendingMode, sendingModeResult);
     }
 
+    auto gpuContext = qApp->getGPUContext();
+
+    // Update Frame timing (in ms)
+    STAT_UPDATE(gpuFrameTime, (float)gpuContext->getFrameTimerGPUAverage());
+    STAT_UPDATE(batchFrameTime, (float)gpuContext->getFrameTimerBatchAverage());
+
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemoryUsage()));
     STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
@@ -302,7 +319,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(gpuTextureVirtualMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUVirtualMemoryUsage()));
     STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUFramebufferMemoryUsage()));
     STAT_UPDATE(gpuTextureSparseMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUSparseMemoryUsage()));
-    STAT_UPDATE(gpuSparseTextureEnabled, qApp->getGPUContext()->getBackend()->isTextureManagementSparseEnabled() ? 1 : 0);
+    STAT_UPDATE(gpuSparseTextureEnabled, gpuContext->getBackend()->isTextureManagementSparseEnabled() ? 1 : 0);
     STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory()));
     STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
     STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());

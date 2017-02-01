@@ -57,6 +57,7 @@ private slots:
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processExitingSpaceBubble(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 protected:
     AvatarHashMap();
@@ -65,9 +66,9 @@ protected:
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID); // uses a QReadLocker on the hashLock
-    virtual void removeAvatar(const QUuid& sessionUUID);
+    virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason);
     
-    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     AvatarHash _avatarHash;
     // "Case-based safety": Most access to the _avatarHash is on the same thread. Write access is protected by a write-lock.

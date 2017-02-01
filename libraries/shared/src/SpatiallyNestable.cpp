@@ -13,6 +13,7 @@
 
 #include "DependencyManager.h"
 #include "SharedUtil.h"
+#include "SharedLogging.h"
 #include "SpatiallyNestable.h"
 
 const float defaultAACubeSize = 1.0f;
@@ -25,6 +26,9 @@ SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
     // set flags in _transform
     _transform.setTranslation(glm::vec3(0.0f));
     _transform.setRotation(glm::quat());
+    _scaleChanged = usecTimestampNow();
+    _translationChanged = usecTimestampNow();
+    _rotationChanged = usecTimestampNow();
 }
 
 SpatiallyNestable::~SpatiallyNestable() {
@@ -372,7 +376,7 @@ glm::vec3 SpatiallyNestable::getPosition() const {
     auto result = getPosition(success);
     #ifdef WANT_DEBUG
     if (!success) {
-        qDebug() << "Warning -- getPosition failed" << getID();
+        qCDebug(shared) << "Warning -- getPosition failed" << getID();
     }
     #endif
     return result;
@@ -398,6 +402,7 @@ void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success, bo
             changed = true;
             myWorldTransform.setTranslation(position);
             Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+            _translationChanged = usecTimestampNow();
         }
     });
     if (success && changed) {
@@ -410,7 +415,7 @@ void SpatiallyNestable::setPosition(const glm::vec3& position) {
     setPosition(position, success);
     #ifdef WANT_DEBUG
     if (!success) {
-        qDebug() << "Warning -- setPosition failed" << getID();
+        qCDebug(shared) << "Warning -- setPosition failed" << getID();
     }
     #endif
 }
@@ -424,7 +429,7 @@ glm::quat SpatiallyNestable::getOrientation() const {
     auto result = getOrientation(success);
     #ifdef WANT_DEBUG
     if (!success) {
-        qDebug() << "Warning -- getOrientation failed" << getID();
+        qCDebug(shared) << "Warning -- getOrientation failed" << getID();
     }
     #endif
     return result;
@@ -450,6 +455,7 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& succe
             changed = true;
             myWorldTransform.setRotation(orientation);
             Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+            _rotationChanged = usecTimestampNow();
         }
     });
     if (success && changed) {
@@ -462,7 +468,7 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
     setOrientation(orientation, success);
     #ifdef WANT_DEBUG
     if (!success) {
-        qDebug() << "Warning -- setOrientation failed" << getID();
+        qCDebug(shared) << "Warning -- setOrientation failed" << getID();
     }
     #endif
 }
@@ -488,7 +494,7 @@ glm::vec3 SpatiallyNestable::getVelocity() const {
     bool success;
     glm::vec3 result = getVelocity(success);
     if (!success) {
-        qDebug() << "Warning -- setVelocity failed" << getID();
+        qCDebug(shared) << "Warning -- getVelocity failed" << getID();
     }
     return result;
 }
@@ -516,7 +522,7 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity) {
     bool success;
     setVelocity(velocity, success);
     if (!success) {
-        qDebug() << "Warning -- setVelocity failed" << getID();
+        qCDebug(shared) << "Warning -- setVelocity failed" << getID();
     }
 }
 
@@ -552,7 +558,7 @@ glm::vec3 SpatiallyNestable::getAngularVelocity() const {
     bool success;
     glm::vec3 result = getAngularVelocity(success);
     if (!success) {
-        qDebug() << "Warning -- getAngularVelocity failed" << getID();
+        qCDebug(shared) << "Warning -- getAngularVelocity failed" << getID();
     }
     return result;
 }
@@ -569,7 +575,7 @@ void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity) {
     bool success;
     setAngularVelocity(angularVelocity, success);
     if (!success) {
-        qDebug() << "Warning -- setAngularVelocity failed" << getID();
+        qCDebug(shared) << "Warning -- setAngularVelocity failed" << getID();
     }
 }
 
@@ -599,7 +605,7 @@ const Transform SpatiallyNestable::getTransform() const {
     bool success;
     Transform result = getTransform(success);
     if (!success) {
-        qDebug() << "getTransform failed for" << getID();
+        qCDebug(shared) << "getTransform failed for" << getID();
     }
     return result;
 }
@@ -612,7 +618,7 @@ const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success, i
     if (depth > maxParentingChain) {
         success = false;
         // someone created a loop.  break it...
-        qDebug() << "Parenting loop detected.";
+        qCDebug(shared) << "Parenting loop detected.";
         SpatiallyNestablePointer _this = getThisPointer();
         _this->setParentID(QUuid());
         bool setPositionSuccess;
@@ -648,6 +654,8 @@ void SpatiallyNestable::setTransform(const Transform& transform, bool& success) 
         Transform::inverseMult(_transform, parentTransform, transform);
         if (_transform != beforeTransform) {
             changed = true;
+            _translationChanged = usecTimestampNow();
+            _rotationChanged = usecTimestampNow();
         }
     });
     if (success && changed) {
@@ -678,7 +686,7 @@ glm::vec3 SpatiallyNestable::getScale(int jointIndex) const {
 void SpatiallyNestable::setScale(const glm::vec3& scale) {
     // guard against introducing NaN into the transform
     if (isNaN(scale)) {
-        qDebug() << "SpatiallyNestable::setScale -- scale contains NaN";
+        qCDebug(shared) << "SpatiallyNestable::setScale -- scale contains NaN";
         return;
     }
 
@@ -688,6 +696,7 @@ void SpatiallyNestable::setScale(const glm::vec3& scale) {
         if (_transform.getScale() != scale) {
             _transform.setScale(scale);
             changed = true;
+            _scaleChanged = usecTimestampNow();
         }
     });
     if (changed) {
@@ -698,7 +707,7 @@ void SpatiallyNestable::setScale(const glm::vec3& scale) {
 void SpatiallyNestable::setScale(float value) {
     // guard against introducing NaN into the transform
     if (value <= 0.0f) {
-        qDebug() << "SpatiallyNestable::setScale -- scale is zero or negative value";
+        qCDebug(shared) << "SpatiallyNestable::setScale -- scale is zero or negative value";
         return;
     }
 
@@ -709,6 +718,7 @@ void SpatiallyNestable::setScale(float value) {
         _transform.setScale(value);
         if (_transform.getScale() != beforeScale) {
             changed = true;
+            _scaleChanged = usecTimestampNow();
         }
     });
 
@@ -728,7 +738,7 @@ const Transform SpatiallyNestable::getLocalTransform() const {
 void SpatiallyNestable::setLocalTransform(const Transform& transform) {
     // guard against introducing NaN into the transform
     if (transform.containsNaN()) {
-        qDebug() << "SpatiallyNestable::setLocalTransform -- transform contains NaN";
+        qCDebug(shared) << "SpatiallyNestable::setLocalTransform -- transform contains NaN";
         return;
     }
 
@@ -737,6 +747,9 @@ void SpatiallyNestable::setLocalTransform(const Transform& transform) {
         if (_transform != transform) {
             _transform = transform;
             changed = true;
+            _scaleChanged = usecTimestampNow();
+            _translationChanged = usecTimestampNow();
+            _rotationChanged = usecTimestampNow();
         }
     });
 
@@ -756,7 +769,7 @@ glm::vec3 SpatiallyNestable::getLocalPosition() const {
 void SpatiallyNestable::setLocalPosition(const glm::vec3& position, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(position)) {
-        qDebug() << "SpatiallyNestable::setLocalPosition -- position contains NaN";
+        qCDebug(shared) << "SpatiallyNestable::setLocalPosition -- position contains NaN";
         return;
     }
     bool changed = false;
@@ -764,6 +777,7 @@ void SpatiallyNestable::setLocalPosition(const glm::vec3& position, bool tellPhy
         if (_transform.getTranslation() != position) {
             _transform.setTranslation(position);
             changed = true;
+            _translationChanged = usecTimestampNow();
         }
     });
     if (changed) {
@@ -782,7 +796,7 @@ glm::quat SpatiallyNestable::getLocalOrientation() const {
 void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
     // guard against introducing NaN into the transform
     if (isNaN(orientation)) {
-        qDebug() << "SpatiallyNestable::setLocalOrientation -- orientation contains NaN";
+        qCDebug(shared) << "SpatiallyNestable::setLocalOrientation -- orientation contains NaN";
         return;
     }
     bool changed = false;
@@ -790,6 +804,7 @@ void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
         if (_transform.getRotation() != orientation) {
             _transform.setRotation(orientation);
             changed = true;
+            _rotationChanged = usecTimestampNow();
         }
     });
     if (changed) {
@@ -837,7 +852,7 @@ glm::vec3 SpatiallyNestable::getLocalScale() const {
 void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
     // guard against introducing NaN into the transform
     if (isNaN(scale)) {
-        qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
+        qCDebug(shared) << "SpatiallyNestable::setLocalScale -- scale contains NaN";
         return;
     }
 
@@ -847,9 +862,12 @@ void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
         if (_transform.getScale() != scale) {
             _transform.setScale(scale);
             changed = true;
+            _scaleChanged = usecTimestampNow();
         }
     });
-    dimensionsChanged();
+    if (changed) {
+        dimensionsChanged();
+    }
 }
 
 QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
@@ -935,7 +953,7 @@ void SpatiallyNestable::checkAndAdjustQueryAACube() {
 
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
     if (queryAACube.containsNaN()) {
-        qDebug() << "SpatiallyNestable::setQueryAACube -- cube contains NaN";
+        qCDebug(shared) << "SpatiallyNestable::setQueryAACube -- cube contains NaN";
         return;
     }
     _queryAACube = queryAACube;
@@ -948,7 +966,7 @@ bool SpatiallyNestable::queryAABoxNeedsUpdate() const {
     bool success;
     AACube currentAACube = getMaximumAACube(success);
     if (!success) {
-        qDebug() << "can't getMaximumAACube for" << getID();
+        qCDebug(shared) << "can't getMaximumAACube for" << getID();
         return false;
     }
 
@@ -1009,12 +1027,12 @@ AACube SpatiallyNestable::getQueryAACube() const {
     bool success;
     auto result = getQueryAACube(success);
     if (!success) {
-        qDebug() << "getQueryAACube failed for" << getID();
+        qCDebug(shared) << "getQueryAACube failed for" << getID();
     }
     return result;
 }
 
-bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
+bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) const {
     bool success;
     SpatiallyNestablePointer parent = getParentPointer(success);
     if (!success || !parent) {
@@ -1026,6 +1044,20 @@ bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
     }
 
     return parent->hasAncestorOfType(nestableType);
+}
+
+const QUuid SpatiallyNestable::findAncestorOfType(NestableType nestableType) const {
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (!success || !parent) {
+        return QUuid();
+    }
+
+    if (parent->_nestableType == nestableType) {
+        return parent->getID();
+    }
+
+    return parent->findAncestorOfType(nestableType);
 }
 
 void SpatiallyNestable::getLocalTransformAndVelocities(
@@ -1058,6 +1090,9 @@ void SpatiallyNestable::setLocalTransformAndVelocities(
         if (_transform != localTransform) {
             _transform = localTransform;
             changed = true;
+            _scaleChanged = usecTimestampNow();
+            _translationChanged = usecTimestampNow();
+            _rotationChanged = usecTimestampNow();
         }
     });
     // linear velocity

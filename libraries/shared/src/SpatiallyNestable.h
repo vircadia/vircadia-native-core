@@ -26,6 +26,8 @@ using SpatiallyNestableWeakConstPointer = std::weak_ptr<const SpatiallyNestable>
 using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
 using SpatiallyNestableConstPointer = std::shared_ptr<const SpatiallyNestable>;
 
+static const uint16_t INVALID_JOINT_INDEX = -1;
+
 enum class NestableType {
     Entity,
     Avatar,
@@ -144,6 +146,11 @@ public:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {return false; }
 
+    virtual glm::quat getLocalJointRotation(int index) const {return glm::quat(); }
+    virtual glm::vec3 getLocalJointTranslation(int index) const {return glm::vec3(); }
+    virtual bool setLocalJointRotation(int index, const glm::quat& rotation) { return false; }
+    virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) { return false; }
+
     SpatiallyNestablePointer getThisPointer() const;
 
     void markAncestorMissing(bool value) { _missingAncestor = value; }
@@ -158,7 +165,8 @@ public:
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
-    bool hasAncestorOfType(NestableType nestableType);
+    bool hasAncestorOfType(NestableType nestableType) const;
+    const QUuid findAncestorOfType(NestableType nestableType) const;
     SpatiallyNestablePointer getParentPointer(bool& success) const;
     static SpatiallyNestablePointer findByID(QUuid id, bool& success);
 
@@ -171,11 +179,15 @@ public:
             const glm::vec3& localVelocity,
             const glm::vec3& localAngularVelocity);
 
+    bool scaleChangedSince(quint64 time) { return _scaleChanged > time; }
+    bool tranlationChangedSince(quint64 time) { return _translationChanged > time; }
+    bool rotationChangedSince(quint64 time) { return _rotationChanged > time; }
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
-    quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
+    quint16 _parentJointIndex { INVALID_JOINT_INDEX }; // which joint of the parent is this relative to?
 
     mutable SpatiallyNestableWeakPointer _parent;
 
@@ -194,6 +206,9 @@ protected:
     mutable bool _queryAACubeSet { false };
 
     bool _missingAncestor { false };
+    quint64 _scaleChanged { 0 };
+    quint64 _translationChanged { 0 };
+    quint64 _rotationChanged { 0 };
 
 private:
     mutable ReadWriteLockable _transformLock;

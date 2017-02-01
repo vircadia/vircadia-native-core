@@ -160,7 +160,7 @@ Menu::Menu() {
         audioIO.data(), SLOT(toggleMute()));
 
     // Audio > Show Level Meter
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, true);
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, false);
 
 
     // Avatar menu ----------------------------------
@@ -363,6 +363,7 @@ Menu::Menu() {
     QActionGroup* textureGroup = new QActionGroup(textureMenu);
     textureGroup->setExclusive(true);
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTextureAutomatic, 0, true));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture4MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture64MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture256MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture512MB, 0, false));
@@ -372,7 +373,9 @@ Menu::Menu() {
         auto checked = textureGroup->checkedAction();
         auto text = checked->text();
         gpu::Context::Size newMaxTextureMemory { 0 };
-        if (MenuOption::RenderMaxTexture64MB == text) {
+        if (MenuOption::RenderMaxTexture4MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(4);
+        } else if (MenuOption::RenderMaxTexture64MB == text) {
             newMaxTextureMemory = MB_TO_BYTES(64);
         } else if (MenuOption::RenderMaxTexture256MB == text) {
             newMaxTextureMemory = MB_TO_BYTES(256);
@@ -387,33 +390,12 @@ Menu::Menu() {
     });
 
 #ifdef Q_OS_WIN
-    #define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
-    bool recommendedIncrementalTransfers = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
-    bool recommendedSparseTextures = recommendedIncrementalTransfers;
-
-    qDebug() << "[TEXTURE TRANSFER SUPPORT]"
-        << "\n\tidealThreadCount:" << QThread::idealThreadCount()
-        << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures
-        << "\n\tRECOMMENDED enableIncrementalTextures:" << recommendedIncrementalTransfers;
-
-    gpu::Texture::setEnableIncrementalTextureTransfers(recommendedIncrementalTransfers);
-    gpu::Texture::setEnableSparseTextures(recommendedSparseTextures);
-
-    // Developer > Render > Enable Dynamic Texture Management
+    // Developer > Render > Enable Sparse Textures
     {
-        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableDynamicTextureManagement, 0, recommendedSparseTextures);
+        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::SparseTextureManagement, 0, gpu::Texture::getEnableSparseTextures());
         connect(action, &QAction::triggered, [&](bool checked) {
             qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Dynamic Texture Management menu option:" << checked;
             gpu::Texture::setEnableSparseTextures(checked);
-        });
-    }
-
-    // Developer > Render > Enable Incremental Texture Transfer
-    {
-        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableIncrementalTextureTransfer, 0, recommendedIncrementalTransfers);
-        connect(action, &QAction::triggered, [&](bool checked) {
-            qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Incremental Texture Transfer menu option:" << checked;
-            gpu::Texture::setEnableIncrementalTextureTransfers(checked);
         });
     }
 
@@ -596,7 +578,9 @@ Menu::Menu() {
     #endif
 
     
-
+    // Developer >> Tests >>>
+    MenuWrapper* testMenu = developerMenu->addMenu("Tests");
+    addActionToQMenuAndActionHash(testMenu, MenuOption::RunClientScriptTests, 0, dialogsManager.data(), SLOT(showTestingResults()));
 
     // Developer > Timing >>>
     MenuWrapper* timingMenu = developerMenu->addMenu("Timing");
@@ -719,6 +703,15 @@ Menu::Menu() {
     // Developer > Log...
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
          qApp, SLOT(toggleLogDialog()));
+
+    action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...");
+    connect(action, &QAction::triggered, [] {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        QUrl defaultScriptsLoc = defaultScriptsLocation();
+        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
+        scriptEngines->loadScript(defaultScriptsLoc.toString());
+    });
+
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);

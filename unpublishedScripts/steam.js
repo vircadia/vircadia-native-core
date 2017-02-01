@@ -16,9 +16,6 @@ var steamInviteButton = toolBar.addButton({
     objectName: "steamInvite",
     imageURL: Script.resolvePath("assets/images/tools/steam-invite.svg"),
     visible: Steam.isRunning,
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 3,
     alpha: 0.9
 });
 

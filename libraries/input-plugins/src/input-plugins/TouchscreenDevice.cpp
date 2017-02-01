@@ -21,7 +21,7 @@
 #include <PathUtils.h>
 #include <NumericalConstants.h>
 
-const QString TouchscreenDevice::NAME = "Touchscreen";
+const char* TouchscreenDevice::NAME = "Touchscreen";
 
 bool TouchscreenDevice::isSupported() const {
     for (auto touchDevice : QTouchDevice::devices()) {

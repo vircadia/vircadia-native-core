@@ -44,7 +44,7 @@ elseif (WIN32)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/quazip5d.lib CACHE FILEPATH "Location of QuaZip release library")
 else ()
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip5.so CACHE FILEPATH "Location of QuaZip release library")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/libquazip5d.so CACHE FILEPATH "Location of QuaZip release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/libquazip5.so CACHE FILEPATH "Location of QuaZip release library")
 endif ()
 
 include(SelectLibraryConfigurations)

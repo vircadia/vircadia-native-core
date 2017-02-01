@@ -14,7 +14,6 @@
 
 #include <type_traits>
 
-#include <QtCore/QSettings>
 #include <QtCore/QStack>
 #include <QtCore/QString>
 #include <QtCore/QVariant>
@@ -32,7 +31,8 @@ class Settings {
 public:
     static const QString firstRun;
     Settings();
-    ~Settings();
+
+    QString fileName() const;
 
     void remove(const QString& key);
     QStringList childGroups() const;
@@ -61,8 +61,6 @@ public:
 
 private:
     QSharedPointer<Setting::Manager> _manager;
-    QWriteLocker _locker;
-    QStack<QString> _prefixes;
 };
 
 namespace Setting {

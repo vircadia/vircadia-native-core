@@ -24,7 +24,6 @@
 class ScriptCacheSignalProxy : public QObject {
     Q_OBJECT
 public:
-    ScriptCacheSignalProxy(QObject* parent) : QObject(parent) { }
     void receivedContent(const QString& url, const QString& contents, bool isURL, bool success);
 
 signals:

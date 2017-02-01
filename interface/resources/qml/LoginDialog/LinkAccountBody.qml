@@ -19,11 +19,13 @@ import "../styles-uit"
 Item {
     id: linkAccountBody
     clip: true
-    width: root.pane.width
     height: root.pane.height
+    width: root.pane.width
+    property bool failAfterSignUp: false
 
     function login() {
         mainTextContainer.visible = false
+        toggleLoading(true)
         loginDialog.login(usernameField.text, passwordField.text)
     }
 
@@ -51,10 +53,38 @@ Item {
                 targetHeight += hifi.dimensions.contentSpacing.y + additionalInformation.height
             }
 
-            root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
-            root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }
+    }
+
+    function toggleLoading(isLoading) {
+        linkAccountSpinner.visible = isLoading
+        form.visible = !isLoading
+
+        if (loginDialog.isSteamRunning()) {
+            additionalInformation.visible = !isLoading
+        }
+
+        leftButton.visible = !isLoading
+        buttons.visible = !isLoading
+    }
+
+    BusyIndicator {
+        id: linkAccountSpinner
+
+        anchors {
+            top: parent.top
+            horizontalCenter: parent.horizontalCenter
+            topMargin: hifi.dimensions.contentSpacing.y
+        }
+
+        visible: false
+        running: true
+
+        width: 48
+        height: 48
     }
 
     ShortcutText {
@@ -96,7 +126,7 @@ Item {
                 }
                 width: 350
 
-                label: "User Name or Email"
+                label: "Username or Email"
             }
 
             ShortcutText {
@@ -108,6 +138,7 @@ Item {
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+                linkColor: hifi.colors.blueAccent
 
                 onLinkActivated: loginDialog.openUrl(link)
             }
@@ -135,6 +166,7 @@ Item {
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+                linkColor: hifi.colors.blueAccent
 
                 onLinkActivated: loginDialog.openUrl(link)
             }
@@ -174,6 +206,31 @@ Item {
     }
 
     Row {
+        id: leftButton
+        anchors {
+            left: parent.left
+            bottom: parent.bottom
+            bottomMargin: hifi.dimensions.contentSpacing.y
+        }
+
+        spacing: hifi.dimensions.contentSpacing.x
+        onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
+        Button {
+          anchors.verticalCenter: parent.verticalCenter
+
+          text: qsTr("Sign Up")
+          visible: !loginDialog.isSteamRunning()
+
+          onClicked: {
+              bodyLoader.setSource("SignUpBody.qml")
+              bodyLoader.item.width = root.pane.width
+              bodyLoader.item.height = root.pane.height
+          }
+        }
+    }
+
+    Row {
         id: buttons
         anchors {
             right: parent.right
@@ -209,6 +266,11 @@ Item {
         keyboardEnabled = HMD.active;
         d.resize();
 
+        if (failAfterSignUp) {
+            mainTextContainer.text = "Account created successfully."
+            mainTextContainer.visible = true
+        }
+
         usernameField.forceActiveFocus();
     }
 
@@ -228,6 +290,7 @@ Item {
         onHandleLoginFailed: {
             console.log("Login Failed")
             mainTextContainer.visible = true
+            toggleLoading(false)
         }
         onHandleLinkCompleted: {
             console.log("Link Succeeded")
@@ -238,7 +301,7 @@ Item {
         }
         onHandleLinkFailed: {
             console.log("Link Failed")
-
+            toggleLoading(false)
         }
     }
 

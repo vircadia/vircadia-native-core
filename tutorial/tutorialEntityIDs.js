@@ -1,8 +1,25 @@
 TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
-    "teleport": {
+    "teleport-vive": {
+        "{7df1abc4-1b7c-4352-985c-f3f6ad8d65b7}": {
+            "tag": "teleport-vive"
+        }
+    },
+    "teleport-touch": {
         "{ff064b9e-7fa4-4693-a386-a67b9f92a948}": {
-            "tag": "teleport"
-        },
+            "tag": "teleport-touch"
+        }
+    },
+    "turnAround-vive": {
+        "{9b14f224-b2f6-447f-bb86-f5d875cf4c33}": {
+            "tag": "turnAround-vive"
+        }
+    },
+    "turnAround-touch": {
+        "{ce74b3ca-d1c7-4980-bd98-2d488095a39e}": {
+            "tag": "turnAround-touch"
+        }
+    },
+    "teleport": {
         "{4478f7b5-d3ac-4213-9a7b-ad8cd69575b8}": {
             "tag": "teleport"
         }
@@ -35,14 +52,21 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "farGrab"
         }
     },
+    "nearGrab-vive": {
+        "{88221a22-b710-4d35-852b-5257b0aa77dc}": {
+            "tag": "nearGrab-vive"
+        }
+    },
+    "nearGrab-touch": {
+        "{7c0f2fde-6c5c-459b-bf82-421979cebf2e}": {
+            "tag": "nearGrab-touch"
+        }
+    },
     "nearGrab": {
         "{55c861ef-60ca-4722-a6c5-9c6967966ec5}": {
             "tag": "nearGrab"
         },
         "{644d655b-ae66-43b1-9bab-a44b9a8ad632}": {
-            "tag": "nearGrab"
-        },
-        "{88221a22-b710-4d35-852b-5257b0aa77dc}": {
             "tag": "nearGrab"
         },
         "{8bf0baa1-88d0-448a-a782-100d4413bd82}": {
@@ -53,11 +77,18 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "nearGrab"
         }
     },
+    "equip-part1-touch": {
+        "{470f0634-8be7-4b52-a8bd-5183d489fcb6}": {
+            "tag": "equip-part1-touch"
+        }
+    },
+    "equip-part1-vive": {
+        "{97ced5e7-fc81-40f9-a9e8-f85b4b30f24c}": {
+            "tag": "equip-part1-vive"
+        }
+    },
     "equip-part1": {
         "{d73822ca-0a34-4cf4-a530-3258ac459a14}": {
-            "tag": "equip-part1"
-        },
-        "{97ced5e7-fc81-40f9-a9e8-f85b4b30f24c}": {
             "tag": "equip-part1"
         },
         "{8572d991-5777-45df-97bf-7243d7b12f81}": {
@@ -82,17 +113,20 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "equip-part1"
         }
     },
-    "equip-part2": {
+    "equip-part2-vive": {
         "{b5d17eda-90ab-40cf-b973-efcecb2e992e}": {
-            "tag": "equip-part2"
+            "tag": "equip-part2-vive"
         },
         "{6307cd16-dd1d-4988-a339-578178436b45}": {
-            "tag": "equip-part2"
+            "tag": "equip-part2-vive"
         }
     },
-    "turnAround": {
-        "{ce74b3ca-d1c7-4980-bd98-2d488095a39e}": {
-            "tag": "turnAround"
+    "equip-part2-touch": {
+        "{69195139-e020-4739-bb2c-50faebc6860a}": {
+            "tag": "equip-part2-touch"
+        },
+        "{9b0a99ae-221b-4e59-ba3c-d8e64a083774}": {
+            "tag": "equip-part2-touch"
         }
     },
     "bothGrab": {
@@ -143,133 +177,144 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
             "tag": "equip"
         }
     },
-    "orient": {
+    "orient-vive": {
         "{95d233ab-ed0a-46e1-b047-1c542688ef3f}": {
-            "tag": "orient"
+            "tag": "orient-vive"
+        }
+    },
+    "orient-touch": {
+        "{1c95f945-ec46-4aac-b0f1-e64e073dbfaa}": {
+            "tag": "orient-touch"
         }
     }
 };
 
 TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP = {
     "tutorial/gun_spawn": {
-        "userData": "{\"tag\":\"equip\",\"visible\":false}",
-        "dimensions": {
-            "y": 0.0649842768907547,
-            "x": 0.0649842768907547,
-            "z": 0.0649842768907547
-        },
+        "clientOnly": 0,
         "collisionless": 1,
-        "created": "2016-09-08T18:38:24Z",
         "color": {
             "blue": 0,
             "green": 0,
             "red": 255
         },
-        "queryAACube": {
-            "y": 0.6283726096153259,
-            "x": 0.6865367293357849,
-            "scale": 0.11255607008934021,
-            "z": 0.3359576463699341
+        "created": "2016-09-08T18:38:24Z",
+        "dimensions": {
+            "x": 0.0649842768907547,
+            "y": 0.0649842768907547,
+            "z": 0.0649842768907547
         },
-        "visible": 0,
-        "shape": "Cube",
-        "clientOnly": 0,
+        "id": "{9df518da-9e65-4b76-8a79-eeefdb0b7310}",
+        "ignoreForCollisions": 1,
+        "lastEdited": 1481926907366120,
+        "lastEditedBy": "{b80185ea-0936-4397-a5a4-3a64004f545f}",
+        "name": "tutorial/gun_spawn",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "position": {
-            "y": 0.6846506595611572,
-            "x": 0.7428147792816162,
-            "z": 0.3922356963157654
+            "x": 0.60231781005859375,
+            "y": 0.68465065956115723,
+            "z": 0.39223569631576538
+        },
+        "queryAACube": {
+            "scale": 0.11255607008934021,
+            "x": 0.54603976011276245,
+            "y": 0.62837260961532593,
+            "z": 0.33595764636993408
         },
         "rotation": {
-            "y": 0.7066605091094971,
-            "x": 0.7066605091094971,
-            "z": -0.025131583213806152,
-            "w": -0.025101065635681152
+            "w": -0.025101065635681152,
+            "x": 0.70666050910949707,
+            "y": 0.70666050910949707,
+            "z": -0.025131583213806152
         },
-        "ignoreForCollisions": 1,
+        "shape": "Cube",
         "type": "Box",
-        "id": "{9df518da-9e65-4b76-8a79-eeefdb0b7310}",
-        "name": "tutorial/gun_spawn"
+        "userData": "{\"visible\":false,\"tag\":\"equip\"}",
+        "visible": 0
     },
     "tutorial/nearGrab/box_spawn": {
-        "userData": "{\"tag\":\"nearGrab\",\"visible\":false}",
-        "dimensions": {
-            "y": 0.08225371688604355,
-            "x": 0.08225371688604355,
-            "z": 0.08225371688604355
-        },
+        "clientOnly": 0,
         "collisionless": 1,
-        "created": "2016-09-08T18:38:24Z",
         "color": {
             "blue": 255,
             "green": 0,
             "red": 255
         },
-        "queryAACube": {
-            "y": 0.738319456577301,
-            "x": 0.8985498547554016,
-            "scale": 0.14246761798858643,
-            "z": 0.29067665338516235
+        "created": "2016-09-08T18:38:24Z",
+        "dimensions": {
+            "x": 0.082253716886043549,
+            "y": 0.082253716886043549,
+            "z": 0.082253716886043549
         },
-        "visible": 0,
-        "shape": "Cube",
-        "clientOnly": 0,
+        "id": "{5cf22b9c-fb22-4854-8821-554422980b24}",
+        "ignoreForCollisions": 1,
+        "lastEdited": 1481926907334206,
+        "lastEditedBy": "{b80185ea-0936-4397-a5a4-3a64004f545f}",
+        "name": "tutorial/nearGrab/box_spawn",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "position": {
-            "y": 0.8095532655715942,
-            "x": 0.9697836637496948,
+            "x": 0.61857688426971436,
+            "y": 0.80955326557159424,
             "z": 0.36191046237945557
         },
-        "rotation": {
-            "y": -1.52587890625e-05,
-            "x": -1.52587890625e-05,
-            "z": -1.52587890625e-05,
-            "w": 1
+        "queryAACube": {
+            "scale": 0.14246761798858643,
+            "x": 0.54734307527542114,
+            "y": 0.73831945657730103,
+            "z": 0.29067665338516235
         },
-        "ignoreForCollisions": 1,
+        "rotation": {
+            "w": 1,
+            "x": -1.52587890625e-05,
+            "y": -1.52587890625e-05,
+            "z": -1.52587890625e-05
+        },
+        "shape": "Cube",
         "type": "Box",
-        "id": "{5cf22b9c-fb22-4854-8821-554422980b24}",
-        "name": "tutorial/nearGrab/box_spawn"
+        "userData": "{\"visible\":false,\"tag\":\"nearGrab\"}",
+        "visible": 0
     },
     "tutorial/farGrab/box_spawn": {
-        "userData": "{\"tag\":\"farGrab\",\"visible\":false}",
-        "dimensions": {
-            "y": 0.37358683347702026,
-            "x": 0.37358683347702026,
-            "z": 0.37358683347702026
-        },
+        "clientOnly": 0,
         "collisionless": 1,
-        "created": "2016-09-08T18:38:24Z",
         "color": {
             "blue": 255,
             "green": 0,
             "red": 255
         },
-        "queryAACube": {
-            "y": 0.3304251432418823,
-            "x": 3.0951309204101562,
-            "scale": 0.647071361541748,
-            "z": 0.18027013540267944
+        "created": "2016-09-08T18:38:24Z",
+        "dimensions": {
+            "x": 0.16850528120994568,
+            "y": 0.16850528120994568,
+            "z": 0.16850528120994568
         },
-        "visible": 0,
-        "shape": "Cube",
-        "clientOnly": 0,
+        "id": "{70fcd96c-cd59-4f23-9ca5-a167f2f85680}",
+        "ignoreForCollisions": 1,
+        "lastEdited": 1481926908795578,
+        "lastEditedBy": "{b80185ea-0936-4397-a5a4-3a64004f545f}",
+        "name": "tutorial/farGrab/box_spawn",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "position": {
-            x: 3.4866,
-            y: 0.6716,
-            z: 0.4789
+            "x": 3.4866282939910889,
+            "y": 0.67159509658813477,
+            "z": 0.47892442345619202
+        },
+        "queryAACube": {
+            "scale": 0.64707136154174805,
+            "x": 3.2037394046783447,
+            "y": 0.33042514324188232,
+            "z": 0.14542555809020996
         },
         "rotation": {
-            "y": -1.52587890625e-05,
+            "w": 1,
             "x": -1.52587890625e-05,
-            "z": -1.52587890625e-05,
-            "w": 1
+            "y": -1.52587890625e-05,
+            "z": -1.52587890625e-05
         },
-        "ignoreForCollisions": 1,
+        "shape": "Cube",
         "type": "Box",
-        "id": "{70fcd96c-cd59-4f23-9ca5-a167f2f85680}",
-        "name": "tutorial/farGrab/box_spawn"
+        "userData": "{\"visible\":false,\"tag\":\"farGrab\"}",
+        "visible": 0
     },
     "tutorial/teleport/pad": {
         "userData": "{\"tag\":\"teleport\"}",

@@ -11,7 +11,7 @@
 
 <@func declareLightingDirectional(supportScattering)@>
 
-void evalLightingDirectional(out vec3 diffuse, out vec3 specular, Light light,
+void evalLightingDirectional(out vec3 diffuse, out vec3 specular, vec3 lightDir, vec3 lightIrradiance,
     vec3 eyeDir, vec3 normal, float roughness,
     float metallic, vec3 fresnel, vec3 albedo, float shadow
 <@if supportScattering@>
@@ -20,9 +20,9 @@ void evalLightingDirectional(out vec3 diffuse, out vec3 specular, Light light,
     ) {
 
     // Attenuation
-    vec3 lightEnergy = shadow * getLightColor(light) * getLightIntensity(light);
+    vec3 lightEnergy = shadow * lightIrradiance;
 
-    evalFragShading(diffuse, specular, normal, -getLightDirection(light), eyeDir, metallic, fresnel, roughness, albedo
+    evalFragShading(diffuse, specular, normal, -lightDir, eyeDir, metallic, fresnel, roughness, albedo
 <@if supportScattering@>
     ,scattering, midNormalCurvature, lowNormalCurvature
 <@endif@>

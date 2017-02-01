@@ -19,7 +19,6 @@ QString const Line3DOverlay::TYPE = "line3d";
 Line3DOverlay::Line3DOverlay() :
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
-    qDebug() << "Building line3D overlay";
 }
 
 Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
@@ -28,11 +27,9 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
     _end(line3DOverlay->_end),
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
-    qDebug() << "Building line3D overlay";
 }
 
 Line3DOverlay::~Line3DOverlay() {
-    qDebug() << "Destryoing line3D overlay";
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (_geometryCacheID && geometryCache) {
         geometryCache->releaseID(_geometryCacheID);

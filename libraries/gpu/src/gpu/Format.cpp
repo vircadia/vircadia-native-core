@@ -18,6 +18,7 @@ const Element Element::VEC2F_UV{ VEC2, FLOAT, UV };
 const Element Element::VEC2F_XY{ VEC2, FLOAT, XY };
 const Element Element::VEC3F_XYZ{ VEC3, FLOAT, XYZ };
 const Element Element::VEC4F_XYZW{ VEC4, FLOAT, XYZW };
-const Element Element::INDEX_UINT16{ SCALAR, UINT16, INDEX };
+const Element Element::INDEX_UINT16 { SCALAR, UINT16, INDEX };
+const Element Element::INDEX_INT32 { SCALAR, INT32, INDEX };
 const Element Element::PART_DRAWCALL{ VEC4, UINT32, PART };
 

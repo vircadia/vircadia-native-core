@@ -106,11 +106,17 @@ public slots:
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
+    bool isMenuEnabled(const QString& menuName);
+    void setMenuEnabled(const QString& menuName, bool isEnabled);
+
     bool getGroupingIsVisible(const QString& grouping);
     void setGroupingIsVisible(const QString& grouping, bool isVisible); /// NOTE: the "" grouping is always visible
 
     void toggleDeveloperMenus();
     void toggleAdvancedMenus();
+
+    bool isInfoViewVisible(const QString& path);
+    void closeInfoView(const QString& path);
     
     void triggerOption(const QString& menuOption);
 

@@ -1,5 +1,5 @@
 //
-//  ModelMeshPartPayload.h
+//  MeshPartPayload.h
 //  interface/src/renderer
 //
 //  Created by Sam Gateau on 10/3/15.
@@ -21,6 +21,10 @@
 
 #include <model/Geometry.h>
 
+const uint8_t FADE_WAITING_TO_START = 0;
+const uint8_t FADE_IN_PROGRESS = 1;
+const uint8_t FADE_COMPLETE = 2;
+
 class Model;
 
 class MeshPartPayload {
@@ -34,7 +38,7 @@ public:
     virtual void updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
-    virtual void updateTransform(const Transform& transform, const Transform& offsetTransform);
+    void updateTransform(const Transform& transform, const Transform& offsetTransform);
 
     virtual void updateMaterial(model::MaterialPointer drawMaterial);
 
@@ -47,23 +51,22 @@ public:
     // ModelMeshPartPayload functions to perform render
     void drawCall(gpu::Batch& batch) const;
     virtual void bindMesh(gpu::Batch& batch) const;
-    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const;
-    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize = true) const;
+    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool enableTextures) const;
+    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const;
 
     // Payload resource cached values
-    std::shared_ptr<const model::Mesh> _drawMesh;
-    int _partIndex = 0;
-    model::Mesh::Part _drawPart;
-
-    std::shared_ptr<const model::Material> _drawMaterial;
-    
-    model::Box _localBound;
     Transform _drawTransform;
     Transform _transform;
-    Transform _offsetTransform;
+    int _partIndex = 0;
+    bool _hasColorAttrib { false };
+
+    model::Box _localBound;
+    model::Box _adjustedLocalBound;
     mutable model::Box _worldBound;
-    
-    bool _hasColorAttrib = false;
+    std::shared_ptr<const model::Mesh> _drawMesh;
+
+    std::shared_ptr<const model::Material> _drawMaterial;
+    model::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
     size_t getMaterialTextureSize() { return _drawMaterial ? _drawMaterial->getTextureSize() : 0; }
@@ -86,23 +89,24 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
+    void updateTransformForSkinnedMesh(const Transform& transform,
+            const QVector<glm::mat4>& clusterMatrices);
 
-    // Entity fade in
-    void startFade();
-    bool hasStartedFade() { return _hasStartedFade; }
-    bool isStillFading() const { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
+    float computeFadeAlpha() const;
 
     // Render Item interface
     render::ItemKey getKey() const override;
+    int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) const override;
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) const override;
-    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize) const override;
+    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
     void initCache();
+
+    void computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices);
 
     Model* _model;
 
@@ -113,15 +117,14 @@ public:
     bool _isBlendShaped{ false };
 
 private:
-    quint64 _fadeStartTime { 0 };
-    bool _hasStartedFade { false };
-    mutable bool _hasFinishedFade { false };
-    mutable bool _isFading { false };
+    mutable quint64 _fadeStartTime { 0 };
+    mutable uint8_t _fadeState { FADE_WAITING_TO_START };
 };
 
 namespace render {
     template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload);
     template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
+    template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
 }

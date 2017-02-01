@@ -16,6 +16,7 @@
 #include <gl/OffscreenQmlSurface.h>
 
 #include <WebEntityItem.h>
+#include <gl/OffscreenQmlSurface.h>
 
 #include "RenderableEntityItem.h"
 
@@ -33,6 +34,7 @@ public:
     ~RenderableWebEntityItem();
 
     virtual void render(RenderArgs* args) override;
+    void loadSourceURL();
     virtual void setSourceUrl(const QString& value) override;
 
     virtual bool wantsHandControllerPointerEvents() const override { return true; }
@@ -51,6 +53,10 @@ public:
 
     virtual bool isTransparent() override;
 
+ public:
+
+    virtual QObject* getRootItem() override;
+
 private:
     bool buildWebSurface(QSharedPointer<EntityTreeRenderer> renderer);
     void destroyWebSurface();
@@ -59,9 +65,7 @@ private:
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
-    ivec2  _lastPress { INT_MIN };
     bool _pressed{ false };
-    QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
     QTouchDevice _touchDevice;
 
@@ -69,6 +73,14 @@ private:
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
+
+    QString _javaScriptToInject;
+
+    enum contentType {
+        htmlContent,
+        qmlContent
+    };
+    contentType _contentType;
     int _geometryId { 0 };
 };
 

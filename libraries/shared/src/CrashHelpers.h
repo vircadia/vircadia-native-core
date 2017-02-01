@@ -14,6 +14,8 @@
 #ifndef hifi_CrashHelpers_h
 #define hifi_CrashHelpers_h
 
+#include "SharedLogging.h"
+
 namespace crash {
 
 class B;
@@ -38,36 +40,36 @@ A::~A() {
 }
 
 void pureVirtualCall() {
-    qDebug() << "About to make a pure virtual call";
+    qCDebug(shared) << "About to make a pure virtual call";
     B b;
 }
     
 void doubleFree() {
-    qDebug() << "About to double delete memory";
+    qCDebug(shared) << "About to double delete memory";
     int* blah = new int(200);
     delete blah;
     delete blah;
 }
 
 void nullDeref() {
-    qDebug() << "About to dereference a null pointer";
+    qCDebug(shared) << "About to dereference a null pointer";
     int* p = nullptr;
     *p = 1;
 }
 
 void doAbort() {
-    qDebug() << "About to abort";
+    qCDebug(shared) << "About to abort";
     abort();
 }
 
 void outOfBoundsVectorCrash() {
-    qDebug() << "std::vector out of bounds crash!";
+    qCDebug(shared) << "std::vector out of bounds crash!";
     std::vector<int> v;
     v[0] = 42;
 }
 
 void newFault() {
-    qDebug() << "About to crash inside new fault";
+    qCDebug(shared) << "About to crash inside new fault";
 
     // Force crash with multiple large allocations
     while (true) {

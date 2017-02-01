@@ -23,10 +23,11 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
     float fragLightDistance = fragLightDirLen.w;
     vec3 fragLightDir = fragLightDirLen.xyz;
 
+
     // Eval attenuation  
-    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
-    float angularAttenuation = evalLightSpotAttenuation(light, cosSpotAngle);
-    vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
+    float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);
+    float angularAttenuation = lightIrradiance_evalLightSpotAttenuation(light.irradiance, cosSpotAngle);
+    vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow *getLightIrradiance(light);
 
     // Eval shading
     evalFragShading(diffuse, specular, normal, fragLightDir, fragEyeDir, metallic, fresnel, roughness, albedo
@@ -40,8 +41,8 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
 
     if (isShowLightContour() > 0.0) {
         // Show edges
-        float edgeDistR = (getLightRadius(light) - fragLightDistance);
-        float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -getLightSpotOutsideNormal2(light));
+        float edgeDistR = (lightVolume_getRadius(light.volume) - fragLightDistance);
+        float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -lightVolume_getSpotOutsideNormal2(light.volume));
         float edgeDist = min(edgeDistR, edgeDistS);
         float edge = abs(2.0 * (edgeDist / (0.1)) - 1.0);
         if (edge < 1.0) {
@@ -49,6 +50,28 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
             diffuse = vec3(edgeCoord * edgeCoord * getLightColor(light));
         }
     }
+}
+
+<@endfunc@>
+
+<@func declareDrawSpotOutline()@>
+
+bool evalLightSpotEdge(out vec3 color, Light light, vec4 fragLightDirLen, float cosSpotAngle, vec3 fragEyeDir) {
+    // Allright we re valid in the volume
+    float fragLightDistance = fragLightDirLen.w;
+    vec3 fragLightDir = fragLightDirLen.xyz;
+    
+    // Show edges
+    float edgeDistR = (lightVolume_getRadius(light.volume) - fragLightDistance);
+    float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -lightVolume_getSpotOutsideNormal2(light.volume));
+    float edgeDist = min(edgeDistR, edgeDistS);
+    float edge = abs(2.0 * (edgeDist / (0.1)) - 1.0);
+    if (edge < 1) {
+        float edgeCoord = exp2(-8.0*edge*edge);
+        color = vec3(edgeCoord * edgeCoord * getLightColor(light));
+    }
+
+    return (edge < 1);
 }
 
 <@endfunc@>

@@ -13,6 +13,7 @@
 
 #include "QVariantGLM.h"
 #include "ObjectActionTravelOriented.h"
+#include "PhysicsLogging.h"
 
 const uint16_t ObjectActionTravelOriented::actionVersion = 1;
 
@@ -20,13 +21,13 @@ const uint16_t ObjectActionTravelOriented::actionVersion = 1;
 ObjectActionTravelOriented::ObjectActionTravelOriented(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectAction(ACTION_TYPE_TRAVEL_ORIENTED, id, ownerEntity) {
     #if WANT_DEBUG
-    qDebug() << "ObjectActionTravelOriented::ObjectActionTravelOriented";
+    qCDebug(physics) << "ObjectActionTravelOriented::ObjectActionTravelOriented";
     #endif
 }
 
 ObjectActionTravelOriented::~ObjectActionTravelOriented() {
     #if WANT_DEBUG
-    qDebug() << "ObjectActionTravelOriented::~ObjectActionTravelOriented";
+    qCDebug(physics) << "ObjectActionTravelOriented::~ObjectActionTravelOriented";
     #endif
 }
 
@@ -43,7 +44,7 @@ void ObjectActionTravelOriented::updateActionWorker(btScalar deltaTimeStep) {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         btRigidBody* rigidBody = motionState->getRigidBody();
         if (!rigidBody) {
-            qDebug() << "ObjectActionTravelOriented::updateActionWorker no rigidBody";
+            qCDebug(physics) << "ObjectActionTravelOriented::updateActionWorker no rigidBody";
             return;
         }
         const float MAX_TIMESCALE = 600.0f; // 10 min is a long time

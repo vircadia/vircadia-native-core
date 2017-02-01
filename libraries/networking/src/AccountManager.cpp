@@ -633,7 +633,7 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
         _isWaitingForKeypairResponse = true;
 
         // clear the current private key
-        qDebug() << "Clearing current private key in DataServerAccountInfo";
+        qCDebug(networking) << "Clearing current private key in DataServerAccountInfo";
         _accountInfo.setPrivateKey(QByteArray());
 
         // setup a new QThread to generate the keypair on, in case it takes a while
@@ -727,7 +727,7 @@ void AccountManager::processGeneratedKeypair() {
 }
 
 void AccountManager::publicKeyUploadSucceeded(QNetworkReply& reply) {
-    qDebug() << "Uploaded public key to Metaverse API. RSA keypair generation is completed.";
+    qCDebug(networking) << "Uploaded public key to Metaverse API. RSA keypair generation is completed.";
 
     // public key upload complete - store the matching private key and persist the account to settings
     _accountInfo.setPrivateKey(_pendingPrivateKey);

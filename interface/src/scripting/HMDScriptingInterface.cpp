@@ -18,6 +18,7 @@
 #include <display-plugins/CompositorHelper.h>
 #include <OffscreenUi.h>
 #include <plugins/PluginUtils.h>
+#include <QUuid>
 
 #include "Application.h"
 
@@ -49,12 +50,17 @@ glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) 
     return qApp->getApplicationCompositor().overlayToSpherical(position);
 }
 
-bool HMDScriptingInterface::isHMDAvailable() {
-    return PluginUtils::isHMDAvailable();
+bool HMDScriptingInterface::isHMDAvailable(const QString& name) {
+    return PluginUtils::isHMDAvailable(name);
 }
 
-bool HMDScriptingInterface::isHandControllerAvailable() {
-    return PluginUtils::isHandControllerAvailable();
+bool HMDScriptingInterface::isHandControllerAvailable(const QString& name) {
+    return PluginUtils::isHandControllerAvailable(name);
+}
+
+
+bool HMDScriptingInterface::isSubdeviceContainingNameAvailable(const QString& name) {
+    return PluginUtils::isSubdeviceContainingNameAvailable(name);
 }
 
 void HMDScriptingInterface::requestShowHandControllers() {
@@ -69,6 +75,10 @@ void HMDScriptingInterface::requestHideHandControllers() {
 
 bool HMDScriptingInterface::shouldShowHandControllers() const {
     return _showHandControllersCount > 0;
+}
+
+void  HMDScriptingInterface::closeTablet() {
+    _showTablet = false;
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {

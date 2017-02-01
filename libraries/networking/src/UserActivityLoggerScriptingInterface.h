@@ -24,8 +24,9 @@ public:
     Q_INVOKABLE void openedMarketplace();
     Q_INVOKABLE void toggledAway(bool isAway);
     Q_INVOKABLE void tutorialProgress(QString stepName, int stepNumber, float secondsToComplete,
-        float tutorialElapsedTime, QString tutorialRunID = "", int tutorialVersion = 0);
-
+        float tutorialElapsedTime, QString tutorialRunID = "", int tutorialVersion = 0, QString controllerType = "");
+    Q_INVOKABLE void palAction(QString action, QString target);
+    Q_INVOKABLE void palOpened(float secondsOpen);
 private:
     void logAction(QString action, QJsonObject details = {});
 };

@@ -22,7 +22,7 @@
 #include "FileResourceRequest.h"
 #include "HTTPResourceRequest.h"
 #include "NetworkAccessManager.h"
-
+#include "NetworkLogging.h"
 
 QThread ResourceManager::_thread;
 ResourceManager::PrefixMap ResourceManager::_prefixMap;
@@ -51,7 +51,7 @@ QString ResourceManager::normalizeURL(const QString& urlString) {
         const auto& prefix = entry.first;
         const auto& replacement = entry.second;
         if (result.startsWith(prefix)) {
-            qDebug() << "Replacing " << prefix << " with " << replacement;
+            qCDebug(networking) << "Replacing " << prefix << " with " << replacement;
             result.replace(0, prefix.size(), replacement);
         }
     }
@@ -105,7 +105,7 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
     } else if (scheme == URL_SCHEME_ATP) {
         request = new AssetResourceRequest(normalizedURL);
     } else {
-        qDebug() << "Unknown scheme (" << scheme << ") for URL: " << url.url();
+        qCDebug(networking) << "Unknown scheme (" << scheme << ") for URL: " << url.url();
         return nullptr;
     }
     Q_ASSERT(request);

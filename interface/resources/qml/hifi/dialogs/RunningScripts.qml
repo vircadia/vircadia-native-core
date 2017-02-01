@@ -22,7 +22,7 @@ ScrollingWindow {
     objectName: "RunningScripts"
     title: "Running Scripts"
     resizable: true
-    destroyOnHidden: true
+    destroyOnHidden: false
     implicitWidth: 424
     implicitHeight: isHMD ? 695 : 728
     minSize: Qt.vector2d(424, 300)
