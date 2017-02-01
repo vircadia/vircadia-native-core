@@ -48,6 +48,44 @@
                 padding: 30px;
             }
 
+            #user-info-div {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding-bottom: 40px;
+            }
+
+            #visibility-toggle-button {
+                font-family: 'Raleway';
+                font-weight: bold;
+                font-size: 13px;
+                text-transform: uppercase;
+                vertical-align: top;
+                height: 28px;
+                min-width: 120px;
+                padding: 0px 18px;
+                margin-right: 0px;
+                border-radius: 5px;
+                border: none;
+                color: #121212;
+                background-color: #afafaf;
+                background: linear-gradient(#fff 20%, #afafaf 100%);
+                cursor: pointer;
+            }
+
+            #visibility-toggle-button:enabled:hover {
+                background: linear-gradient(#fff, #fff);
+                border: none;
+            }
+
+            #visibility-toggle-button:active {
+                background: linear-gradient(#afafaf, #afafaf);
+            }
+
+            #visibility-toggle-button span {
+                padding-left: 10px;
+            }
+
             .tabs {
                 list-style: none;
                 padding: 0;
@@ -190,6 +228,10 @@
             </div>
         </div>
         <div class="main">
+            <div id="user-info-div">
+                <h4>faye @ dev-welcome</h4>
+                <button id="visibility-toggle-button">Online<span class="glyphicon glyphicon-menu-down"></span></button>
+            </div>
             <ul class="tabs">
                 <li tab-id="tab-1" class="current">Everyone (0)</li>
                 <li tab-id="tab-2">Friends (0)</li>
@@ -212,7 +254,7 @@
                 <h4 class="modal-title" id="myModalLabel">Jump to username @ Placename</h4>
               </div>
               <div class="modal-body">
-                This will teleport you to new location and possibly another domain. Are you sure?
+                This will teleport you to a new location and possibly another domain. Are you sure?
               </div>
               <div class="modal-footer">
                 <input type="button" data-dismiss="modal" value="Cancel">
@@ -297,7 +339,7 @@
                     myVisibility = event.data.visibility;
                     $("#dev-div").append("<p>myUsername is " + myUsername + "</p>");
                     $("#dev-div").append("<p>myVisibility is " + myVisibility + "</p>");
-                    $("#visibility-toggle").prop("value", myVisibility);
+                    //$("#visibility-toggle").prop("value", myVisibility);
                 }
             }
 
