@@ -58,9 +58,9 @@ In a new Terminal window, run:
 
 Any target can be terminated with Ctrl-C (SIGINT) in the associated Terminal window.
 
-This assignment-client will grab one assignment from the domain-server. You can tell the assignment-client what type you want it to be with the `-t` option. You can also run an assignment-client that forks off *n* assignment-clients with the `-n` option.
+This assignment-client will grab one assignment from the domain-server. You can tell the assignment-client what type you want it to be with the `-t` option. You can also run an assignment-client that forks off *n* assignment-clients with the `-n` option. The `-min` and `-max` options allow you to set a range of required assignment-clients, this allows you to have flexibility in the number of assignment-clients that are running. See `--help` for more options.
 
-    ./assignment-client -n 4
+    ./assignment-client --min 6 --max 20
 
 To test things out you'll want to run the Interface client.
 
