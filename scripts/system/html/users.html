@@ -190,7 +190,6 @@
             </div>
         </div>
         <div class="main">
-<!--             <input type="button" class="white" id="visibility-toggle" value="Online"> -->
             <ul class="tabs">
                 <li tab-id="tab-1" class="current">Everyone (0)</li>
                 <li tab-id="tab-2">Friends (0)</li>
@@ -326,13 +325,14 @@
                     // Write info to the modal
                     var modal = $(this);
                     modal.find(".modal-title").text("Jump to " + username + " @ " + placename);
+                    $("#jump-to-confirm-button").data("username", username);
                 })
 
                 $("#jump-to-confirm-button").click(function() {
                     var jumpToObject = {
                         "type": "jump-to",
                         "data": {
-                            "username": "Alan_"
+                            "username": $(this).data("username")
                         }
                     }
                     EventBridge.emitWebEvent(JSON.stringify(jumpToObject));
