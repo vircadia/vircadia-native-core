@@ -1398,7 +1398,7 @@ function addTableRow(row) {
         var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
 
         if (isCheckbox) {
-          $(input).find("input").attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+          input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
         } else {
           input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
         }
