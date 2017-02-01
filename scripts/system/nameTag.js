@@ -12,12 +12,6 @@
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-const NAMETAG_DIMENSIONS = {
-    x: 1.0,
-    y: 0.2,
-    z: 1.0
-}
-
 const CLIENTONLY = false;
 const NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 const ENTITY_CHECK_INTERVAL = 5000; // ms = 5 seconds
@@ -26,8 +20,11 @@ const OLD_AGE = 3500; // we recreate the entity if older than this time in secon
 const TTL = 2; // time to live in seconds if script is not running
 const HEIGHT_ABOVE_HEAD = 0.2;
 const HEAD_OFFSET = -0.025;
+const SIZE_Y = 0.075;
+const LETTER_OFFSET = 0.0225;
+const LINE_HEIGHT = 0.05;
 
-var nametagEntityID = NULL_UUID;
+var nameTagEntityID = NULL_UUID;
 var lastCheckForEntity = 0;
 
 // create the name tag entity after a brief delay
@@ -36,25 +33,52 @@ Script.setTimeout(function() {
 }, STARTUP_DELAY);
 
 function addNameTag() {
-    var nametagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getFront(MyAvatar.orientation)));
-    nametagPosition.y += HEIGHT_ABOVE_HEAD;
+    var nameTagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getFront(MyAvatar.orientation)));
+    nameTagPosition.y += HEIGHT_ABOVE_HEAD;
     var modelNameTagProperties = {
         name: MyAvatar.displayName + ' Name Tag',
         type: 'Text',
         text: MyAvatar.displayName,
+        lineHeight: LINE_HEIGHT,
         parentID: MyAvatar.sessionUUID,
-        dimensions: NAMETAG_DIMENSIONS,
-        position: nametagPosition
+        dimensions: dimensionsFromName(),
+        position: nameTagPosition
     }
-    nametagEntityID = Entities.addEntity(modelNameTagProperties, CLIENTONLY);
+    nameTagEntityID = Entities.addEntity(modelNameTagProperties, CLIENTONLY);
 }
 
+function updateNameTag() {
+    var nameTagProps = Entities.getEntityProperties(nameTagEntityID);
+    var nameTagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getFront(MyAvatar.orientation)));
+    nameTagPosition.y += HEIGHT_ABOVE_HEAD;
+
+    Entities.editEntity(nameTagEntityID, {
+        position: nameTagPosition,
+        dimensions: dimensionsFromName(),
+        // lifetime is in seconds we add TTL on top of the next poll time
+        lifetime: Math.round(nameTagProps.age) + (ENTITY_CHECK_INTERVAL / 1000) + TTL,
+        text: MyAvatar.displayName
+    });
+};
+
 function deleteNameTag() {
-    if(nametagEntityID !== NULL_UUID) {
-        Entities.deleteEntity(nametagEntityID);
-        nametagEntityID = NULL_UUID;
+    if(nameTagEntityID !== NULL_UUID) {
+        Entities.deleteEntity(nameTagEntityID);
+        nameTagEntityID = NULL_UUID;
     }
 }
+
+function dimensionsFromName() {
+    var nameTagDimensions = {
+        x: 0.0,
+        y: SIZE_Y,
+        z: 0.0
+    }
+    for(var letter in MyAvatar.displayName) {
+        nameTagDimensions.x += LETTER_OFFSET;
+    }
+    return nameTagDimensions;
+};
 
 // cleanup on ending
 Script.scriptEnding.connect(cleanup);
@@ -65,7 +89,7 @@ function cleanup() {
 Script.update.connect(update);
 function update() {
     // if no entity we return
-    if(nametagEntityID == NULL_UUID) {
+    if(nameTagEntityID == NULL_UUID) {
         return;
     }
 
@@ -76,25 +100,17 @@ function update() {
 }
 
 function checkForEntity() {
-    var nametagProps = Entities.getEntityProperties(nametagEntityID);
-
+    var nameTagProps = Entities.getEntityProperties(nameTagEntityID);
     // it is possible for the age to not be a valid number, we check for this and return accordingly
-    if(nametagProps.age < 1) {
+    if(nameTagProps.age < 1) {
         return;
     }
-    
+
     // it's too old or we receive undefined make a new one, otherwise update
-    if(nametagProps.age > OLD_AGE || nametagProps.age == undefined) {
+    if(nameTagProps.age > OLD_AGE || nameTagProps.age == undefined) {
         deleteNameTag();
         addNameTag();
     } else {
-        var nametagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getFront(MyAvatar.orientation)));
-        nametagPosition.y += HEIGHT_ABOVE_HEAD;
-        Entities.editEntity(nametagEntityID, {
-            position: nametagPosition,
-            // lifetime is in seconds we add TTL on top of the next poll time
-            lifetime: Math.round(nametagProps.age) + (ENTITY_CHECK_INTERVAL / 1000) + TTL,
-            text: MyAvatar.displayName
-        });
+        updateNameTag();
     }
 }
