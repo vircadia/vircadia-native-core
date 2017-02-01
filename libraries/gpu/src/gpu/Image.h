@@ -122,7 +122,7 @@ namespace image {
         public:
             using Format = typename P::Format;
             using Storage = typename P::Storage;
-            using Block = typename PixelBlock<P, tileW * tileH>;
+            using Block = PixelBlock<P, tileW * tileH>;
             
             constexpr uint16_t getWidth() const { return tileW; }
             constexpr uint16_t getHeight() const { return tileH; }
@@ -250,9 +250,10 @@ namespace image {
     class Pixmap {
     public:
         using Tile = T;
+        using Block = typename Tile::Block;
         
         Grid _grid;
-        PixelBlockArray<T::Block> _blocks;
+        PixelBlockArray<Block> _blocks;
         
         void resize(const Grid::Coord2& widthHeight) {
             _grid = Grid(widthHeight, Coord2(Tile::getWidth(), Tile::getHeight()));
