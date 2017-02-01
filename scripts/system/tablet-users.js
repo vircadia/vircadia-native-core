@@ -77,6 +77,13 @@
                 location.goToUser(event.data.username);
             }
         }
+        if (event.type === "toggle-visibility") {
+            if (typeof event.data.visibility !== undefined) {
+                // update your visibility (all, friends, or none)
+                myVisibility = event.data.visibility;
+                GlobalServices.findableBy = myVisibility;
+            } 
+        }
     }
 
     button.clicked.connect(onClicked);
