@@ -582,6 +582,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
         // copy _outgoingPriority into pendingPriority...
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
+        // don't forget to remember that we have made a bid
+        _entity->rememberHasSimulationOwnershipBid();
         // ...then reset _outgoingPriority in preparation for the next frame
         _outgoingPriority = 0;
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
