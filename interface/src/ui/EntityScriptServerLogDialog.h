@@ -30,6 +30,11 @@ private slots:
     void enableToEntityServerScriptLog(bool enable);
     void handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
+    void nodeActivated(SharedNodePointer activatedNode);
+    void nodeKilled(SharedNodePointer killedNode);
+
+    void shouldEnableLog();
+
 private:
     bool _subscribed { false };
 };

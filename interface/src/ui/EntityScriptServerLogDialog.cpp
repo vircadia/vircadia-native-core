@@ -18,18 +18,21 @@ EntityScriptServerLogDialog::EntityScriptServerLogDialog(QWidget* parent) : Base
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
 
-    auto shouldEnableLog = [this] {
-        auto nodeList = DependencyManager::get<NodeList>();
-        enableToEntityServerScriptLog(nodeList->getThisNodeCanRez() || nodeList->getThisNodeCanRezTmp());
-    };
-    QObject::connect(nodeList.data(), &NodeList::canRezChanged, this, shouldEnableLog);
-    QObject::connect(nodeList.data(), &NodeList::canRezTmpChanged, this, shouldEnableLog);
+    QObject::connect(nodeList.data(), &NodeList::nodeActivated, this, &EntityScriptServerLogDialog::nodeActivated);
+    QObject::connect(nodeList.data(), &NodeList::nodeKilled, this, &EntityScriptServerLogDialog::nodeKilled);
+
+    QObject::connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptServerLogDialog::shouldEnableLog);
+    QObject::connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptServerLogDialog::shouldEnableLog);
     shouldEnableLog();
 }
 
 EntityScriptServerLogDialog::~EntityScriptServerLogDialog() {
     enableToEntityServerScriptLog(false);
 }
+void EntityScriptServerLogDialog::shouldEnableLog() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    enableToEntityServerScriptLog(nodeList->getThisNodeCanRez() || nodeList->getThisNodeCanRezTmp());
+};
 
 void EntityScriptServerLogDialog::enableToEntityServerScriptLog(bool enable) {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -55,4 +58,17 @@ void EntityScriptServerLogDialog::enableToEntityServerScriptLog(bool enable) {
 void EntityScriptServerLogDialog::handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto lines = QString::fromUtf8(message->readAll());
     QMetaObject::invokeMethod(this, "appendLogLine", Q_ARG(QString, lines));
+}
+
+void EntityScriptServerLogDialog::nodeActivated(SharedNodePointer activatedNode) {
+    if (_subscribed && activatedNode->getType() == NodeType::EntityScriptServer) {
+        _subscribed = false;
+        shouldEnableLog();
+    }
+}
+
+void EntityScriptServerLogDialog::nodeKilled(SharedNodePointer killedNode) {
+    if (killedNode->getType() == NodeType::EntityScriptServer) {
+        appendLogLine("====================== Connection to the Entity Script Server lost ======================");
+    }
 }
