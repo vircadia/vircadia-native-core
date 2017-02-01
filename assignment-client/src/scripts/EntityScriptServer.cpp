@@ -185,12 +185,20 @@ void EntityScriptServer::handleEntityServerScriptLogPacket(QSharedPointer<Receiv
     if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
         bool enable = false;
         message->readPrimitive(&enable);
-        qInfo() << "======== Got log packet:" << enable;
+
+        auto senderUUID = senderNode->getUUID();
+        auto it = _logListeners.find(senderUUID);
 
         if (enable) {
-            _logListeners.insert(senderNode->getUUID());
+            if (it == std::end(_logListeners)) {
+                _logListeners.insert(senderUUID);
+                qInfo() << "Node" << senderUUID << "subscribed to log stream";
+            }
         } else {
-            _logListeners.erase(senderNode->getUUID());
+            if (it != std::end(_logListeners)) {
+                _logListeners.erase(it);
+                qInfo() << "Node" << senderUUID << "unsubscribed from log stream";
+            }
         }
     }
 }
@@ -290,9 +298,67 @@ void EntityScriptServer::run() {
     connect(tree, &EntityTree::entityServerScriptChanging, this, &EntityScriptServer::entityServerScriptChanging, Qt::QueuedConnection);
 }
 
+void EntityScriptServer::cleanupOldKilledListeners() {
+    auto threshold = usecTimestampNow() - 5 * USECS_PER_SECOND;
+    using ValueType = std::pair<QUuid, quint64>;
+    auto it = std::remove_if(std::begin(_killedListeners), std::end(_killedListeners), [&](ValueType value) {
+        return value.second < threshold;
+    });
+    _killedListeners.erase(it, std::end(_killedListeners));
+}
+
 void EntityScriptServer::nodeActivated(SharedNodePointer activatedNode) {
-    if (activatedNode->getType() == NodeType::AudioMixer) {
-        negotiateAudioFormat();
+    switch (activatedNode->getType()) {
+        case NodeType::AudioMixer:
+            negotiateAudioFormat();
+            break;
+        case NodeType::Agent: {
+            auto activatedNodeUUID = activatedNode->getUUID();
+            using ValueType = std::pair<QUuid, quint64>;
+            auto it = std::find_if(std::begin(_killedListeners), std::end(_killedListeners), [&](ValueType value) {
+                return value.first == activatedNodeUUID;
+            });
+            if (it != std::end(_killedListeners)) {
+                _killedListeners.erase(it);
+                _logListeners.insert(activatedNodeUUID);
+            }
+            break;
+        }
+        default:
+            // Do nothing
+            break;
+    }
+}
+
+void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
+    switch (killedNode->getType()) {
+        case NodeType::EntityServer: {
+            if (!_shuttingDown) {
+                if (_entitiesScriptEngine) {
+                    _entitiesScriptEngine->unloadAllEntityScripts();
+                    _entitiesScriptEngine->stop();
+                }
+
+                resetEntitiesScriptEngine();
+
+                _entityViewer.clear();
+            }
+            break;
+        }
+        case NodeType::Agent: {
+            cleanupOldKilledListeners();
+
+            auto killedNodeUUID = killedNode->getUUID();
+            auto it = _logListeners.find(killedNodeUUID);
+            if (it != std::end(_logListeners)) {
+                _logListeners.erase(killedNodeUUID);
+                _killedListeners.emplace_back(killedNodeUUID, usecTimestampNow());
+            }
+            break;
+        }
+        default:
+            // Do nothing
+            break;
     }
 }
 
@@ -430,31 +496,6 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const
                 ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
             }
         }
-    }
-}
-
-void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
-    switch (killedNode->getType()) {
-        case NodeType::EntityServer: {
-            if (!_shuttingDown) {
-                if (_entitiesScriptEngine) {
-                    _entitiesScriptEngine->unloadAllEntityScripts();
-                    _entitiesScriptEngine->stop();
-                }
-
-                resetEntitiesScriptEngine();
-                
-                _entityViewer.clear();
-            }
-            break;
-        }
-        case NodeType::Agent: {
-            _logListeners.erase(killedNode->getUUID());
-            break;
-        }
-        default:
-            // Do nothing
-            break;
     }
 }
 

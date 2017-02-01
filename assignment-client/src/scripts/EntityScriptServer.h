@@ -13,6 +13,7 @@
 #define hifi_EntityScriptServer_h
 
 #include <set>
+#include <vector>
 
 #include <QtCore/QObject>
 #include <QtCore/QUuid>
@@ -69,6 +70,8 @@ private:
     void entityServerScriptChanging(const EntityItemID& entityID, const bool reload);
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
 
+    void cleanupOldKilledListeners();
+
     bool _shuttingDown { false };
 
     static int _entitiesScriptEngineCount;
@@ -80,6 +83,7 @@ private:
     int _entityPPSPerScript { DEFAULT_ENTITY_PPS_PER_SCRIPT };
 
     std::set<QUuid> _logListeners;
+    std::vector<std::pair<QUuid, quint64>> _killedListeners;
 
     QString _selectedCodecName;
     CodecPluginPointer _codec;

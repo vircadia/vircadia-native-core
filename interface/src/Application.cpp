@@ -6284,6 +6284,17 @@ void Application::toggleLogDialog() {
     }
 }
 
+void Application::toggleEntityScriptServerLogDialog() {
+    if (! _entityScriptServerLogDialog) {
+        _entityScriptServerLogDialog = new EntityScriptServerLogDialog(nullptr);
+    }
+
+    if (_entityScriptServerLogDialog->isVisible()) {
+        _entityScriptServerLogDialog->hide();
+    } else {
+        _entityScriptServerLogDialog->show();
+    }
+}
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, this] {

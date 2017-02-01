@@ -95,10 +95,8 @@ void BaseLogDialog::resizeEvent(QResizeEvent* event) {
 }
 
 void BaseLogDialog::appendLogLine(QString logLine) {
-    if (isVisible()) {
-        if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
-            _logTextBox->appendPlainText(logLine.trimmed());
-        }
+    if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
+        _logTextBox->appendPlainText(logLine.trimmed());
     }
 }
 
@@ -109,16 +107,13 @@ void BaseLogDialog::handleSearchButton() {
 void BaseLogDialog::handleSearchTextChanged(QString searchText) {
     _searchTerm = searchText;
     _highlighter->keyword = searchText;
-    showLogData();
+    _highlighter->rehighlight();
 }
 
 void BaseLogDialog::showLogData() {
-    _logTextBox->clear();
-    _logTextBox->insertPlainText(getCurrentLog());
+    _logTextBox->setPlainText(getCurrentLog());
     _logTextBox->ensureCursorVisible();
 }
-
-
 
 KeywordHighlighter::KeywordHighlighter(QTextDocument* parent) : QSyntaxHighlighter(parent) {
     keywordFormat.setForeground(HIGHLIGHT_COLOR);

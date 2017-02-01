@@ -14,8 +14,6 @@
 
 #include "BaseLogDialog.h"
 
-#include <NodeList.h>
-
 class QCheckBox;
 class QPushButton;
 class QResizeEvent;
@@ -29,10 +27,7 @@ public:
 
 private slots:
     void handleRevealButton();
-    void handleExtraDebuggingCheckbox(const int);
-
-    void enableToEntityServerScriptLog(bool enable);
-    void handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleExtraDebuggingCheckbox(int);
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
