@@ -41,6 +41,7 @@
 
 #include <QtMultimedia/QMediaPlayer>
 
+#include <QFontDatabase>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
 
