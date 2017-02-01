@@ -14,13 +14,13 @@
 
 
 #include <QString>
-#include <QVector>
+#include <QList>
 #include <model/Geometry.h>
 
 using MeshPointer = std::shared_ptr<model::Mesh>;
 
-bool writeOBJToTextStream(QTextStream& out, std::vector<MeshPointer> meshes);
-bool writeOBJToFile(QString path, MeshPointer mesh);
+bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes);
+bool writeOBJToFile(QString path, QList<MeshPointer> meshes);
 
 
 #endif // hifi_objwriter_h

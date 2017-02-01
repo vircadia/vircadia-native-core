@@ -33,7 +33,9 @@ protected:
     MeshPointer _mesh;
 };
 
-
 Q_DECLARE_METATYPE(MeshProxy*);
+
+class MeshProxyList : public QList<MeshProxy*> {}; // typedef and using fight with the Qt macros/templates, do this instead
+Q_DECLARE_METATYPE(MeshProxyList);
 
 #endif // hifi_MeshProxy_h

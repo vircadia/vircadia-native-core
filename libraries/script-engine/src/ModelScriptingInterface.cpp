@@ -10,6 +10,7 @@
 //
 
 #include <QScriptEngine>
+#include <QScriptValueIterator>
 #include <QtScript/QScriptValue>
 #include "ModelScriptingInterface.h"
 #include "OBJWriter.h"
@@ -27,10 +28,31 @@ void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out) {
     out = qobject_cast<MeshProxy*>(value.toQObject());
 }
 
-QString ModelScriptingInterface::meshToOBJ(MeshProxy* const &in) {
+QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in) {
+    return engine->toScriptValue(in);
+}
+
+void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out) {
+    QScriptValueIterator itr(value);
+    while(itr.hasNext()) {
+        itr.next();
+        MeshProxy* meshProxy = qscriptvalue_cast<MeshProxyList::value_type>(itr.value());
+        if (meshProxy) {
+            out.append(meshProxy);
+        }
+    }
+}
+
+QString ModelScriptingInterface::meshToOBJ(MeshProxyList in) {
     bool success;
     QString filename = "/tmp/okokok.obj";
-    success = writeOBJToFile(filename, in->getMeshPointer());
+
+    QList<MeshPointer> meshes;
+    foreach (const MeshProxy* meshProxy, in) {
+        meshes.append(meshProxy->getMeshPointer());
+    }
+
+    success = writeOBJToFile(filename, meshes);
     if (!success) {
         return "";
     }

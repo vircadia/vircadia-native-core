@@ -591,6 +591,7 @@ void ScriptEngine::init() {
 
     registerGlobalObject("Model", new ModelScriptingInterface(this));
     qScriptRegisterMetaType(this, meshToScriptValue, meshFromScriptValue);
+    qScriptRegisterMetaType(this, meshesToScriptValue, meshesFromScriptValue);
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {

@@ -27,11 +27,13 @@ class ModelScriptingInterface : public QObject {
 public:
     ModelScriptingInterface(QObject* parent);
 
-    Q_INVOKABLE QString meshToOBJ(MeshProxy* const &in);
+    Q_INVOKABLE QString meshToOBJ(MeshProxyList in);
 };
 
 QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in);
 void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out);
 
+QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in);
+void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out);
 
 #endif // hifi_ModelScriptingInterface_h

@@ -14,8 +14,6 @@
 #include "model/Geometry.h"
 #include "OBJWriter.h"
 
-
-
 static QString formatFloat(double n) {
     // limit precision to 6, but don't output trailing zeros.
     QString s = QString::number(n, 'f', 6);
@@ -28,9 +26,7 @@ static QString formatFloat(double n) {
     return s;
 }
 
-
-
-bool writeOBJToTextStream(QTextStream& out, std::vector<MeshPointer> meshes) {
+bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
     qDebug() << "writeOBJToTextStream mesh count is" << meshes.size();
 
     // each mesh's vertices are numbered from zero.  We're combining all their vertices into one list here,
@@ -110,8 +106,7 @@ bool writeOBJToTextStream(QTextStream& out, std::vector<MeshPointer> meshes) {
     return true;
 }
 
-
-bool writeOBJToFile(QString path, MeshPointer mesh) {
+bool writeOBJToFile(QString path, QList<MeshPointer> meshes) {
     if (QFileInfo(path).exists() && !QFile::remove(path)) {
         qDebug() << "OBJ writer failed, file exists:" << path; // XXX qCDebug
         return false;
@@ -126,7 +121,6 @@ bool writeOBJToFile(QString path, MeshPointer mesh) {
     QTextStream outStream(&file);
 
     bool success;
-    std::vector<MeshPointer> meshes { mesh };
     success = writeOBJToTextStream(outStream, meshes);
 
     file.close();
