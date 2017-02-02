@@ -118,8 +118,10 @@ public:
 
 protected:
     QPoint _lastCursor;
+    QPoint _mousePressPos;
     quint64 _mousePressTime;
     bool _mouseMoved;
+    bool _clickDeadspotActive;
     glm::vec2 _lastTouch;
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 

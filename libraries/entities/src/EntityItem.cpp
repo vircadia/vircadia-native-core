@@ -651,6 +651,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
 
+    bool filterRejection = false;
     if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
 
         QByteArray simOwnerData;
@@ -663,6 +664,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
             qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
         }
+        // This is used in the custom physics setters, below. When an entity-server filter alters
+        // or rejects a set of properties, it clears this. In such cases, we don't want those custom
+        // setters to ignore what the server says.
+        filterRejection = newSimOwner.getID().isNull();
         if (weOwnSimulation) {
             if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
                 // entity-server is trying to clear our ownership (probably at our own request)
@@ -715,55 +720,45 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // Note: duplicate packets are expected and not wrong. They may be sent for any number of 
         // reasons and the contract is that the client handles them in an idempotent manner.
         auto lastEdited = lastEditedFromBufferAdjusted;
-        auto customUpdatePositionFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
-            bool simulationChanged = lastEdited > _lastUpdatedPositionTimestamp;
-            bool valueChanged = value != _lastUpdatedPositionValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
+        auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+            bool simulationChanged = lastEdited > updatedTimestamp;
+            return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
+        };
+        auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+            if (shouldUpdate(_lastUpdatedPositionTimestamp, value != _lastUpdatedPositionValue)) {
                 updatePositionFromNetwork(value);
                 _lastUpdatedPositionTimestamp = lastEdited;
                 _lastUpdatedPositionValue = value;
             }
         };
 
-        auto customUpdateRotationFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::quat value){
-            bool simulationChanged = lastEdited > _lastUpdatedRotationTimestamp;
-            bool valueChanged = value != _lastUpdatedRotationValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        auto customUpdateRotationFromNetwork = [this, shouldUpdate, lastEdited](glm::quat value){
+            if (shouldUpdate(_lastUpdatedRotationTimestamp, value != _lastUpdatedRotationValue)) {
                 updateRotationFromNetwork(value);
                 _lastUpdatedRotationTimestamp = lastEdited;
                 _lastUpdatedRotationValue = value;
             }
         };
 
-        auto customUpdateVelocityFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
-            bool simulationChanged = lastEdited > _lastUpdatedVelocityTimestamp;
-            bool valueChanged = value != _lastUpdatedVelocityValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        auto customUpdateVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+             if (shouldUpdate(_lastUpdatedVelocityTimestamp, value != _lastUpdatedVelocityValue)) {
                 updateVelocityFromNetwork(value);
                 _lastUpdatedVelocityTimestamp = lastEdited;
                 _lastUpdatedVelocityValue = value;
             }
         };
 
-        auto customUpdateAngularVelocityFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
-            bool simulationChanged = lastEdited > _lastUpdatedAngularVelocityTimestamp;
-            bool valueChanged = value != _lastUpdatedAngularVelocityValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        auto customUpdateAngularVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+            if (shouldUpdate(_lastUpdatedAngularVelocityTimestamp, value != _lastUpdatedAngularVelocityValue)) {
                 updateAngularVelocityFromNetwork(value);
                 _lastUpdatedAngularVelocityTimestamp = lastEdited;
                 _lastUpdatedAngularVelocityValue = value;
             }
         };
 
-        auto customSetAcceleration = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
-            bool simulationChanged = lastEdited > _lastUpdatedAccelerationTimestamp;
-            bool valueChanged = value != _lastUpdatedAccelerationValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        auto customSetAcceleration = [this, shouldUpdate, lastEdited](glm::vec3 value){
+            if (shouldUpdate(_lastUpdatedAccelerationTimestamp, value != _lastUpdatedAccelerationValue)) {
                 setAcceleration(value);
                 _lastUpdatedAccelerationTimestamp = lastEdited;
                 _lastUpdatedAccelerationValue = value;
