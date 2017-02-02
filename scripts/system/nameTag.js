@@ -98,7 +98,7 @@ function update() {
 function checkForEntity() {
     var nameTagProps = Entities.getEntityProperties(nameTagEntityID);
     // it is possible for the age to not be a valid number, we check for this and return accordingly
-    if(nameTagProps.age < 1) {
+    if(nameTagProps.age == -1) {
         return;
     }
 
