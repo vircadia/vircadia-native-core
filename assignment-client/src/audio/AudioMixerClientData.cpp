@@ -59,6 +59,40 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     return NULL;
 }
 
+AABox& AudioMixerClientData::getIgnoreBox(unsigned int frame) {
+    // check for a memoized box
+    if (frame != _ignoreBoxMemo.frame.load(std::memory_order_acquire) {
+        // create the box
+        AABox box(getAvatarBoundingBoxCorner(), getAvatarBoundingBoxScale());
+
+        // enforce a minimum scale
+        static const glm::vec3 MIN_IGNORE_BOX_SCALE = glm::vec3(0.3f, 1.3f, 0.3f);
+        if (glm::any(glm::lessThan(getAvatarBoundingBoxScale(), MIN_IGNORE_BOX_SCALE))) {
+            box.setScaleStayCentered(MIN_IGNORE_BOX_SCALE);
+        }
+
+        // quadruple the scale
+        const float IGNORE_BOX_SCALE_FACTOR = 4.0f;
+        box.embiggen(IGNORE_BOX_SCALE_FACTOR);
+
+        // update the memoized box
+        // this may be called by multiple threads concurrently,
+        // so take a lock and only update the memo if this call is first.
+        // this prevents concurrent updates from invalidating the returned reference
+        // (contingent on the preconditions listed in the header).
+        std::lock_guard lock(_ignoreBoxMemo.mutex);
+        if (frame != _ignoreBoxMemo.frame.load(std::memory_order_acquire)) {
+            _ignoreBoxMemo.box = box;
+            unsigned int oldFrame = _ignoreBoxMemo.frame.exchange(frame, std::memory_order_release);
+
+            // check the precondition
+            assert(frame == (oldFrame + 1));
+        }
+    }
+
+    return _ignoreBoxMemo.box;
+}
+
 void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID) {
     auto it = _nodeSourcesHRTFMap.find(nodeID);
     if (it != _nodeSourcesHRTFMap.end()) {

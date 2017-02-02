@@ -38,6 +38,12 @@ public:
     AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream();
 
+    // returns an ignore box, memoized by frame (lockless if the box is already memoized)
+    // preconditions:
+    //  - frame is monotonically increasing
+    //  - calls are only made to getIgnoreBox(frame + 1) when there are no references left from calls to getIgnoreBox(frame)
+    AABox& AudioMixerClientData::getIgnoreBox(unsigned int frame);
+
     // the following methods should be called from the AudioMixer assignment thread ONLY
     // they are not thread-safe
 
@@ -86,7 +92,7 @@ public:
     bool shouldFlushEncoder() { return _shouldFlushEncoder; }
 
     QString getCodecName() { return _selectedCodecName; }
-    
+
     bool shouldMuteClient() { return _shouldMuteClient; }
     void setShouldMuteClient(bool shouldMuteClient) { _shouldMuteClient = shouldMuteClient; }
     glm::vec3 getPosition() { return getAvatarAudioStream() ? getAvatarAudioStream()->getPosition() : glm::vec3(0); }
@@ -105,6 +111,13 @@ public slots:
 private:
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
+
+    struct IgnoreBoxMemo {
+        AABox box;
+        std::atomic<unsigned int> frame { 0 };
+        std::mutex mutex;
+    };
+    IgnoreBoxMemo _ignoreBoxMemo;
 
     using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
     using NodeSourcesHRTFMap = std::unordered_map<QUuid, HRTFMap>;

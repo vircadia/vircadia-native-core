@@ -146,7 +146,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                     mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
                 }
             }
-        } else if (!shouldIgnoreNode(listener, node)) {
+        } else if (!shouldIgnoreNode(listener, node, _frame)) {
             if (!isThrottling) {
                 allStreams(node, &AudioMixerSlave::mixStream);
             } else {
@@ -452,7 +452,7 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
     }
 }
 
-bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node) {
+bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node, unsigned int frame) {
     AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
 
@@ -469,27 +469,8 @@ bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer
 
         // is either node enabling the space bubble / ignore radius?
         if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
-            // define the minimum bubble size
-            static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
-
-            // set up the bounding box for the listener
-            AABox listenerBox(listenerData->getAvatarBoundingBoxCorner(), listenerData->getAvatarBoundingBoxScale());
-            if (glm::any(glm::lessThan(listenerData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                listenerBox.setScaleStayCentered(minBubbleSize);
-            }
-
-            // set up the bounding box for the node
-            AABox nodeBox(nodeData->getAvatarBoundingBoxCorner(), nodeData->getAvatarBoundingBoxScale());
-            // Clamp the size of the bounding box to a minimum scale
-            if (glm::any(glm::lessThan(nodeData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                nodeBox.setScaleStayCentered(minBubbleSize);
-            }
-
-            // quadruple the scale of both bounding boxes
-            listenerBox.embiggen(4.0f);
-            nodeBox.embiggen(4.0f);
-
-            // perform the collision check between the two bounding boxes
+            AABox& listenerBox = listenerData->getIgnoreBox(frame);
+            AABox& nodeBox = nodeData->getIgnoreBox(frame);
             ignore = listenerBox.touches(nodeBox);
         } else {
             ignore = false;
