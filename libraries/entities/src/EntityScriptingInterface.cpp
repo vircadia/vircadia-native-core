@@ -223,17 +223,6 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                     }
                 }
 
-                if (_bidOnSimulationOwnership) {
-                    // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-                    auto nodeList = DependencyManager::get<NodeList>();
-                    const QUuid myNodeID = nodeList->getSessionUUID();
-
-                    // and make note of it now, so we can act on it right away.
-                    propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->rememberHasSimulationOwnershipBid();
-                }
-
                 entity->setLastBroadcast(usecTimestampNow());
                 propertiesWithSimID.setLastEdited(entity->getLastEdited());
             } else {
