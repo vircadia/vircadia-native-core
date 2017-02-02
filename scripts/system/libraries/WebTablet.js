@@ -335,6 +335,7 @@ WebTablet.prototype.cleanUpOldTablets = function() {
     this.cleanUpOldTabletsOnJoint(SENSOR_TO_ROOM_MATRIX);
     this.cleanUpOldTabletsOnJoint(CAMERA_MATRIX);
     this.cleanUpOldTabletsOnJoint(65529);
+    this.cleanUpOldTabletsOnJoint(65534);
 };
 
 WebTablet.prototype.unregister = function() {
