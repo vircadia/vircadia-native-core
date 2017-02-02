@@ -21,19 +21,13 @@ EntityScriptServerLogDialog::EntityScriptServerLogDialog(QWidget* parent) : Base
     QObject::connect(nodeList.data(), &NodeList::nodeActivated, this, &EntityScriptServerLogDialog::nodeActivated);
     QObject::connect(nodeList.data(), &NodeList::nodeKilled, this, &EntityScriptServerLogDialog::nodeKilled);
 
-    QObject::connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptServerLogDialog::shouldEnableLog);
-    QObject::connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptServerLogDialog::shouldEnableLog);
-    shouldEnableLog();
+    QObject::connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptServerLogDialog::enableToEntityServerScriptLog);
+    enableToEntityServerScriptLog(nodeList->getThisNodeCanRez());
 }
 
 EntityScriptServerLogDialog::~EntityScriptServerLogDialog() {
     enableToEntityServerScriptLog(false);
 }
-void EntityScriptServerLogDialog::shouldEnableLog() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    enableToEntityServerScriptLog(nodeList->getThisNodeCanRez() || nodeList->getThisNodeCanRezTmp());
-};
-
 void EntityScriptServerLogDialog::enableToEntityServerScriptLog(bool enable) {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -63,7 +57,7 @@ void EntityScriptServerLogDialog::handleEntityServerScriptLogPacket(QSharedPoint
 void EntityScriptServerLogDialog::nodeActivated(SharedNodePointer activatedNode) {
     if (_subscribed && activatedNode->getType() == NodeType::EntityScriptServer) {
         _subscribed = false;
-        shouldEnableLog();
+        enableToEntityServerScriptLog(DependencyManager::get<NodeList>()->getThisNodeCanRez());
     }
 }
 

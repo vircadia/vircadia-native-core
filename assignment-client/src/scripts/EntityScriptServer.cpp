@@ -182,7 +182,7 @@ void EntityScriptServer::updateEntityPPS() {
 void EntityScriptServer::handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
     // about each other.
-    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+    if (senderNode->getCanRez()) {
         bool enable = false;
         message->readPrimitive(&enable);
 

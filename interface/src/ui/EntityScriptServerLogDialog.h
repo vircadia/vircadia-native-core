@@ -33,8 +33,6 @@ private slots:
     void nodeActivated(SharedNodePointer activatedNode);
     void nodeKilled(SharedNodePointer killedNode);
 
-    void shouldEnableLog();
-
 private:
     bool _subscribed { false };
 };
