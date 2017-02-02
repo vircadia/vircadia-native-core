@@ -22,6 +22,7 @@ class AudioInjector;
 class SoundEffect : public QQuickItem {
     Q_OBJECT
     Q_PROPERTY(QUrl source READ getSource WRITE setSource)
+    Q_PROPERTY(float volume READ getVolume WRITE setVolume)
 public:
 
     virtual ~SoundEffect();
@@ -29,9 +30,13 @@ public:
     QUrl getSource() const;
     void setSource(QUrl url);
 
+    float getVolume() const;
+    void setVolume(float volume);
+
     Q_INVOKABLE void play(QVariant position);
 protected:
     QUrl _url;
+    float _volume { 1.0f };
     SharedSoundPointer _sound;
     AudioInjector* _injector { nullptr };
 };

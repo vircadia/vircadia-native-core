@@ -471,8 +471,9 @@ public:
 
     static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
 
-    // returns true if identity has changed, false otherwise.
-    bool processAvatarIdentity(const Identity& identity);
+    // identityChanged returns true if identity has changed, false otherwise.
+    // displayNameChanged returns true if displayName has changed, false otherwise.
+    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
 
     QByteArray identityByteArray();
 

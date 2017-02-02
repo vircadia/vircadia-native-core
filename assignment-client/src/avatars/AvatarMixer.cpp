@@ -593,10 +593,15 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;
             AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
-            if (avatar.processAvatarIdentity(identity)) {
+            bool identityChanged = false;
+            bool displayNameChanged = false;
+            avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
+            if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
-                nodeData->setAvatarSessionDisplayNameMustChange(true);
+                if (displayNameChanged) {
+                    nodeData->setAvatarSessionDisplayNameMustChange(true);
+                }
             }
         }
     }

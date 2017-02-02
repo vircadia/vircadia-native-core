@@ -520,6 +520,7 @@ function onClicked() {
         Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
         triggerMapping.enable();
         triggerPressMapping.enable();
+        createAudioInterval();
     } else {
         off();
     }
