@@ -1341,6 +1341,9 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
         identityChanged = true;
+        if (_firstSkeletonCheck) {
+            displayNameChanged = true;
+        }
         _firstSkeletonCheck = false;
     }
 
