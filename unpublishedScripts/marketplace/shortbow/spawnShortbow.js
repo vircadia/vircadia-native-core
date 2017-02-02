@@ -101,13 +101,12 @@ function createLocalGame() {
     // Create start button
     buttonID = spawnTemplate("SB.StartButton", {
         parentID: scoreboardID,
-        script: Script.resolvePath("startGameButton.js"),
+        script: Script.resolvePath("startGameButtonClientEntity.js"),
         serverScripts: Script.resolvePath("startGameButtonServerEntity.js"),
         userData: JSON.stringify({
             grabbableKey: { 
                 wantsTrigger: true
-            },
-            gameChannel: 'shortbow-' + scoreboardID
+            }
         }),
     });
     entityIDs.push(buttonID);
@@ -125,7 +124,7 @@ function createLocalGame() {
         userData: JSON.stringify({
             displayType: "wave"
         }),
-        serverScripts: Script.resolvePath("scoreboardEntity.js")
+        serverScripts: Script.resolvePath("displayServerEntity.js")
     });
     entityIDs.push(waveDisplayID);
 
@@ -134,7 +133,7 @@ function createLocalGame() {
         userData: JSON.stringify({
             displayType: "score"
         }),
-        serverScripts: Script.resolvePath("scoreboardEntity.js")
+        serverScripts: Script.resolvePath("displayServerEntity.js")
     });
     entityIDs.push(scoreDisplayID);
 
@@ -143,7 +142,7 @@ function createLocalGame() {
         userData: JSON.stringify({
             displayType: "lives"
         }),
-        serverScripts: Script.resolvePath("scoreboardEntity.js")
+        serverScripts: Script.resolvePath("displayServerEntity.js")
     });
     entityIDs.push(livesDisplayID);
 
@@ -152,7 +151,7 @@ function createLocalGame() {
         userData: JSON.stringify({
             displayType: "highscore"
         }),
-        serverScripts: Script.resolvePath("scoreboardEntity.js")
+        serverScripts: Script.resolvePath("displayServerEntity.js")
     });
     entityIDs.push(highScoreDisplayID);
 
@@ -191,9 +190,6 @@ function createLocalGame() {
             Vec3.print("Pushing spawnposition", Vec3.sum(rootPosition, template.localPosition));
         }
     }
-
-    const BASES_SIZE = 15;
-    goalPositionFront = Vec3.sum(goalPosition, { x: 0, y: 0, z: BASES_SIZE / 2 });
 }
 
 if (Script.isClientScript()) {

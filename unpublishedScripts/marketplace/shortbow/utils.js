@@ -43,25 +43,5 @@ utils = {
             return result.intersection;
         }
         return pos;
-    },
-    formatNumberWithCommas: function(number) {
-        return number + "";
-        if (number === 0) {
-            return "0";
-        }
-
-        var str = "";
-
-        while (number > 0) {
-            // Grab the digits in the 
-            var belowThousand = number % 1000;
-            if (str !== "") {
-                str = "," + str;
-            }
-            str = belowThousand + str;
-            number = Math.floor(number / 1000);
-        }
-
-        return str;
     }
 };

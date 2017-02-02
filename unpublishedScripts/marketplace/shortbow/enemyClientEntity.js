@@ -5,18 +5,20 @@
     };
     Enemy.prototype = {
         preload: function(entityID) {
-            print("Loaded enemy entity");
             this.entityID = entityID;
-            Script.addEventHandler(entityID, "collisionWithEntity", this.onCollide.bind(this));
 
+            // To avoid sending extraneous messages and checking entities that we've already
+            // seen, we keep track of which entities we've collided with previously.
             this.entityIDsThatHaveCollidedWithMe = [];
+
+            Script.addEventHandler(entityID, "collisionWithEntity", this.onCollide.bind(this));
 
             var userData = Entities.getEntityProperties(this.entityID, 'userData').userData;
             var data = utils.parseJSON(userData);
             if (data !== undefined && data.gameChannel !== undefined) {
                 this.gameChannel = data.gameChannel;
             } else {
-                print("targetEntity.js | ERROR: userData does not contain a game channel and/or team number");
+                print("enemyEntity.js | ERROR: userData does not contain a game channel and/or team number");
             }
         },
         onCollide: function(entityA, entityB, collision) {
@@ -26,12 +28,8 @@
             this.entityIDsThatHaveCollidedWithMe.push(entityB);
 
             var colliderName = Entities.getEntityProperties(entityB, 'name').name;
-            print("Hit: ", entityB);
 
-            // If the other entity's name includes 'projectile' and we haven't hit it before,
-            // continue on.
             if (colliderName.indexOf("projectile") > -1) {
-                print("Collided with: ", entityB);
                 Messages.sendMessage(this.gameChannel, JSON.stringify({
                     type: "enemy-killed",
                     entityID: this.entityID,

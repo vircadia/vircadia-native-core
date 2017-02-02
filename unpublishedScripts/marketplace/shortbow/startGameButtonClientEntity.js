@@ -12,9 +12,8 @@
         },
         signalAC: function() {
             print("Button pressed");
-            var userData = Entities.getEntityProperties(this.entityID, ["userData"]).userData;
-            print("Sending message to: ", JSON.parse(userData).gameChannel);
-            Messages.sendMessage(JSON.parse(userData).gameChannel, JSON.stringify({
+            print("Sending message to: ", this.commChannel);
+            Messages.sendMessage(this.commChannel, JSON.stringify({
                 type: 'start-game'
             }));
         },

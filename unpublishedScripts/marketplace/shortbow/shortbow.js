@@ -1,4 +1,9 @@
-SHORTBOW_ENTITIES = 
+// This is a copy of the data in shortbow.json, which is an export of the shortbow
+// scene.
+//
+// Because .json can't be Script.include'd directly, the contents are copied over
+// to here and exposed as a global variable.
+SHORTBOW_ENTITIES =
 {
     "Entities": [
         {
