@@ -134,6 +134,7 @@
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
+#include "EntityScriptServerLogClient.h"
 #include "GLCanvas.h"
 #include "InterfaceActionFactory.h"
 #include "InterfaceLogging.h"
@@ -520,6 +521,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<CompositorHelper>();
     DependencyManager::set<OffscreenQmlSurfaceCache>();
     DependencyManager::set<EntityScriptClient>();
+    DependencyManager::set<EntityScriptServerLogClient>();
     return previousSessionCrashed;
 }
 
@@ -5523,6 +5525,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
+
+    auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
+    scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);

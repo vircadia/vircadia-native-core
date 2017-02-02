@@ -14,27 +14,14 @@
 
 #include "BaseLogDialog.h"
 
-#include <NodeList.h>
-
 class EntityScriptServerLogDialog : public BaseLogDialog {
     Q_OBJECT
 
 public:
     EntityScriptServerLogDialog(QWidget* parent = nullptr);
-    ~EntityScriptServerLogDialog();
 
 protected:
     QString getCurrentLog() override { return QString(); };
-
-private slots:
-    void enableToEntityServerScriptLog(bool enable);
-    void handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-
-    void nodeActivated(SharedNodePointer activatedNode);
-    void nodeKilled(SharedNodePointer killedNode);
-
-private:
-    bool _subscribed { false };
 };
 
 #endif // hifi_EntityScriptServerLogDialog_h
