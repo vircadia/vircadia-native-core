@@ -1,3 +1,11 @@
+//
+//  Created by Ryan Huffman on 1/10/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
     Script.include('utils.js?' + Date.now());
     Script.include('spawnShortbow.js?' + Date.now());
@@ -22,13 +30,9 @@
         for (var i = 0; i < TEMPLATES.length; ++i) {
             var template = TEMPLATES[i];
             if (template.name === "SB.BowSpawn") {
-                //bowPositions.push(Vec3.sum(rootPosition, template.localPosition));
                 bowPositions.push(template.localPosition);
-                //Vec3.print("Pushing bow position", Vec3.sum(rootPosition, template.localPosition));
             } else if (template.name === "SB.EnemySpawn") {
-                //spawnPositions.push(Vec3.sum(rootPosition, template.localPosition));
                 spawnPositions.push(template.localPosition);
-                //Vec3.print("Pushing spawnposition", template.localPosition));
             }
         }
 

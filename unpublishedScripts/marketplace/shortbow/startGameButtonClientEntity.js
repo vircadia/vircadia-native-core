@@ -1,3 +1,11 @@
+//
+//  Created by Ryan Huffman on 1/10/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
     Script.include('utils.js');
 
@@ -5,21 +13,16 @@
     };
     StartButton.prototype = {
         preload: function(entityID) {
-            print("Preloading start button");
             this.entityID = entityID;
             this.commChannel = "shortbow-" + Entities.getEntityProperties(entityID, 'parentID').parentID;
             Script.addEventHandler(entityID, "collisionWithEntity", this.onCollide.bind(this));
         },
         signalAC: function() {
-            print("Button pressed");
-            print("Sending message to: ", this.commChannel);
             Messages.sendMessage(this.commChannel, JSON.stringify({
                 type: 'start-game'
             }));
         },
         onCollide: function(entityA, entityB, collision) {
-            print("Collided with: ", entityB);
-
             var colliderName = Entities.getEntityProperties(entityB, 'name').name;
 
             if (colliderName.indexOf("projectile") > -1) {

@@ -1,8 +1,14 @@
-print("============= Script Starting =============");
+//
+//  Created by Ryan Huffman on 1/10/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-Script.include('utils.js?' + Date.now());
-Script.include('shortbow.js?' + Date.now());
-Script.include('shortbowGameManager.js?' + Date.now());
+Script.include('utils.js');
+Script.include('shortbow.js');
+Script.include('shortbowGameManager.js');
 TEMPLATES = SHORTBOW_ENTITIES.Entities;
 
 // Merge two objects into a new object. If a key name appears in both a and b,
