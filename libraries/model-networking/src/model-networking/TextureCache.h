@@ -23,7 +23,7 @@
 #include <ResourceCache.h>
 #include <model/TextureMap.h>
 
-const int ABSOLUTE_MAX_TEXTURE_SIZE = 8192 * 8192;
+const int ABSOLUTE_MAX_TEXTURE_NUM_PIXELS = 8192 * 8192;
 
 namespace gpu {
 class Batch;
@@ -62,7 +62,7 @@ public:
     typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
     using TextureLoaderFunc = std::function<TextureLoader>;
 
-    NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxSize);
+    NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels);
     NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
 
     QString getType() const override { return "NetworkTexture"; }
@@ -94,7 +94,7 @@ private:
     int _originalHeight { 0 };
     int _width { 0 };
     int _height { 0 };
-    int _maxSize { ABSOLUTE_MAX_TEXTURE_SIZE };
+    int _maxNumPixels { ABSOLUTE_MAX_TEXTURE_NUM_PIXELS };
 };
 
 using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
@@ -132,11 +132,11 @@ public:
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, Type type = Type::DEFAULT_TEXTURE,
-        const QByteArray& content = QByteArray(), int maxSize = ABSOLUTE_MAX_TEXTURE_SIZE);
+        const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxSize = ABSOLUTE_MAX_TEXTURE_SIZE);
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
         const void* extra) override;

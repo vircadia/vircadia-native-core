@@ -105,7 +105,7 @@ public:
     glm::mat4 inverseBindMatrix;
 };
 
-const int MAX_FBX_TEXTURE_SIZE = 1024 * 1024;
+const int MAX_FBX_TEXTURE_NUM_PIXELS = 1024 * 1024;
 
 /// A texture map in an FBX document.
 class FBXTexture {
@@ -115,7 +115,7 @@ public:
     QByteArray content;
 
     Transform transform;
-    int maxSize { MAX_FBX_TEXTURE_SIZE };
+    int maxNumPixels { MAX_FBX_TEXTURE_NUM_PIXELS };
     int texcoordSet;
     QString texcoordSetName;
 

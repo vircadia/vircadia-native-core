@@ -167,17 +167,17 @@ class TextureExtra {
 public:
     NetworkTexture::Type type;
     const QByteArray& content;
-    int maxSize;
+    int maxNumPixels;
 };
 
-ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxSize) {
+ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNumPixels) {
     auto byteArray = QByteArray();
-    TextureExtra extra = { (Type)type, byteArray, maxSize };
+    TextureExtra extra = { (Type)type, byteArray, maxNumPixels };
     return ResourceCache::prefetch(url, &extra);
 }
 
-NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content, int maxSize) {
-    TextureExtra extra = { type, content, maxSize };
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels) {
+    TextureExtra extra = { type, content, maxNumPixels };
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
 }
 
@@ -252,15 +252,15 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     auto type = textureExtra ? textureExtra->type : Type::DEFAULT_TEXTURE;
     auto content = textureExtra ? textureExtra->content : QByteArray();
-    auto maxSize = textureExtra ? textureExtra->maxSize : ABSOLUTE_MAX_TEXTURE_SIZE;
-    return QSharedPointer<Resource>(new NetworkTexture(url, type, content, maxSize),
+    auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
+    return QSharedPointer<Resource>(new NetworkTexture(url, type, content, maxNumPixels),
         &Resource::deleter);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxSize) :
+NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels) :
     Resource(url),
     _type(type),
-    _maxSize(maxSize)
+    _maxNumPixels(maxNumPixels)
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
 
@@ -277,7 +277,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& con
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content) :
-    NetworkTexture(url, CUSTOM_TEXTURE, content, ABSOLUTE_MAX_TEXTURE_SIZE)
+    NetworkTexture(url, CUSTOM_TEXTURE, content, ABSOLUTE_MAX_TEXTURE_NUM_PIXELS)
 {
     _textureLoader = textureLoader;
 }
@@ -294,7 +294,7 @@ class ImageReader : public QRunnable {
 public:
 
     ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data,
-            const QUrl& url = QUrl(), int maxSize = ABSOLUTE_MAX_TEXTURE_SIZE);
+            const QUrl& url = QUrl(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
     virtual void run() override;
 
@@ -304,7 +304,7 @@ private:
     QWeakPointer<Resource> _resource;
     QUrl _url;
     QByteArray _content;
-    int _maxSize;
+    int _maxNumPixels;
 };
 
 void NetworkTexture::downloadFinished(const QByteArray& data) {
@@ -313,15 +313,15 @@ void NetworkTexture::downloadFinished(const QByteArray& data) {
 }
 
 void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, content, _url, _maxSize));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, content, _url, _maxNumPixels));
 }
 
 ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data,
-        const QUrl& url, int maxSize) :
+        const QUrl& url, int maxNumPixels) :
     _resource(resource),
     _url(url),
     _content(data),
-    _maxSize(maxSize)
+    _maxNumPixels(maxNumPixels)
 {
 #if DEBUG_DUMP_TEXTURE_LOADS
     static auto start = usecTimestampNow() / USECS_PER_MSEC;
@@ -393,13 +393,12 @@ void ImageReader::run() {
         return;
     }
 
-    if (imageWidth * imageHeight > _maxSize) {
-        float scaleFactor = sqrtf(_maxSize / (float)(imageWidth * imageHeight));
+    if (imageWidth * imageHeight > _maxNumPixels) {
+        float scaleFactor = sqrtf(_maxNumPixels / (float)(imageWidth * imageHeight));
         int originalWidth = imageWidth;
         int originalHeight = imageHeight;
         imageWidth = (int)(scaleFactor * (float)imageWidth + 0.5f);
         imageHeight = (int)(scaleFactor * (float)imageHeight + 0.5f);
-        //QSize newSize(imageWidth, imageHeight);
         QImage newImage = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio);
         image.swap(newImage);
         qCDebug(modelnetworking) << "Downscale image" << _url
