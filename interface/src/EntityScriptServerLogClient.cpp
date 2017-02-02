@@ -33,7 +33,6 @@ void EntityScriptServerLogClient::disconnectNotify(const QMetaMethod& signal) {
 }
 
 void EntityScriptServerLogClient::connectionsChanged() {
-    qDebug() << Q_FUNC_INFO << _subscribed << receivers(SIGNAL(receivedNewLogLines(QString)));
     auto numReceivers = receivers(SIGNAL(receivedNewLogLines(QString)));
     if (!_subscribed && numReceivers > 0) {
         enableToEntityServerScriptLog(DependencyManager::get<NodeList>()->getThisNodeCanRez());
@@ -58,8 +57,6 @@ void EntityScriptServerLogClient::enableToEntityServerScriptLog(bool enable) {
             }
         }
         _subscribed = enable;
-    } else {
-        qWarning() << "Entity Script Server not found";
     }
 }
 

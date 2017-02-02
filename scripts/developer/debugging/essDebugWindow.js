@@ -13,7 +13,7 @@
 // Set up the qml ui
 var qml = Script.resolvePath('debugWindow.qml');
 var window = new OverlayWindow({
-    title: 'Debug Window',
+    title: 'Entity Script Server Log Window',
     source: qml,
     width: 400, height: 900,
 });

@@ -11,9 +11,13 @@
 
 #include "EntityScriptServer.h"
 
+#include <mutex>
+
 #include <AudioConstants.h>
 #include <AudioInjectorManager.h>
+#include <ClientServerUtils.h>
 #include <EntityScriptingInterface.h>
+#include <LogHandler.h>
 #include <MessagesClient.h>
 #include <plugins/CodecPlugin.h>
 #include <plugins/PluginManager.h>
@@ -24,12 +28,8 @@
 #include <UUID.h>
 #include <WebSocketServerClass.h>
 
-#include "ClientServerUtils.h"
+#include "EntityScriptServerLogging.h"
 #include "../entities/AssignmentParentFinder.h"
-
-
-#include <LogHandler.h>
-#include <mutex>
 
 using Mutex = std::mutex;
 using Lock = std::lock_guard<Mutex>;
@@ -101,7 +101,7 @@ void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<Rec
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
         if (_entityViewer.getTree() && !_shuttingDown) {
-            qDebug() << "Reloading: " << entityID;
+            qCDebug(entity_script_server) << "Reloading: " << entityID;
             _entitiesScriptEngine->unloadEntityScript(entityID);
             checkAndCallPreload(entityID, true);
         }
@@ -191,12 +191,12 @@ void EntityScriptServer::handleEntityServerScriptLogPacket(QSharedPointer<Receiv
     if (enable && senderNode->getCanRez()) {
         if (it == std::end(_logListeners)) {
             _logListeners.insert(senderUUID);
-            qInfo() << "Node" << senderUUID << "subscribed to log stream";
+            qCInfo(entity_script_server) << "Node" << senderUUID << "subscribed to log stream";
         }
     } else {
         if (it != std::end(_logListeners)) {
             _logListeners.erase(it);
-            qInfo() << "Node" << senderUUID << "unsubscribed from log stream";
+            qCInfo(entity_script_server) << "Node" << senderUUID << "unsubscribed from log stream";
         }
     }
 }
@@ -226,16 +226,12 @@ void EntityScriptServer::pushLogs() {
         if (node && node->getActiveSocket()) {
             auto copy = NLPacket::createCopy(*packet);
             nodeList->sendPacket(std::move(copy), *node);
-        } else {
-            qWarning() << "Node not found";
         }
     }
 
     auto node = nodeList->nodeWithUUID(*last);
     if (node && node->getActiveSocket()) {
         nodeList->sendPacket(std::move(packet), *node);
-    } else {
-        qWarning() << "Node not found";
     }
 }
 
@@ -388,7 +384,7 @@ void EntityScriptServer::handleSelectedAudioFormat(QSharedPointer<ReceivedMessag
 void EntityScriptServer::selectAudioFormat(const QString& selectedCodecName) {
     _selectedCodecName = selectedCodecName;
 
-    qDebug() << "Selected Codec:" << _selectedCodecName;
+    qCDebug(entity_script_server) << "Selected Codec:" << _selectedCodecName;
 
     // release any old codec encoder/decoder first...
     if (_codec && _encoder) {
@@ -402,7 +398,7 @@ void EntityScriptServer::selectAudioFormat(const QString& selectedCodecName) {
         if (_selectedCodecName == plugin->getName()) {
             _codec = plugin;
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
-            qDebug() << "Selected Codec Plugin:" << _codec.get();
+            qCDebug(entity_script_server) << "Selected Codec Plugin:" << _codec.get();
             break;
         }
     }
@@ -490,7 +486,7 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const
             QString scriptUrl = entity->getServerScripts();
             if (!scriptUrl.isEmpty()) {
                 scriptUrl = ResourceManager::normalizeURL(scriptUrl);
-                qDebug() << "Loading entity server script" << scriptUrl << "for" << entityID;
+                qCDebug(entity_script_server) << "Loading entity server script" << scriptUrl << "for" << entityID;
                 ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
             }
         }
