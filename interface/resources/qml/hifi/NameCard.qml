@@ -34,6 +34,7 @@ Item {
     property bool isMyCard: false
     property bool selected: false
     property bool isAdmin: false
+    property bool currentlyEditingDisplayName: false
 
     /* User image commented out for now - will probably be re-introduced later.
     Column {
@@ -104,6 +105,7 @@ Item {
                     focus = false
                     myDisplayName.border.width = 0
                     color = hifi.colors.darkGray
+                    currentlyEditingDisplayName = false
                 }
             }
             MouseArea {
@@ -115,10 +117,12 @@ Item {
                     myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
                     myDisplayNameText.focus = true
                     myDisplayNameText.color = "black"
+                    currentlyEditingDisplayName = true
                 }
                 onDoubleClicked: {
                     myDisplayNameText.selectAll();
                     myDisplayNameText.focus = true;
+                    currentlyEditingDisplayName = true
                 }
                 onEntered: myDisplayName.color = hifi.colors.lightGrayText
                 onExited: myDisplayName.color = hifi.colors.textFieldLightBackground

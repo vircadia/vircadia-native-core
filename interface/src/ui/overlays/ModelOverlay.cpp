@@ -18,7 +18,7 @@
 QString const ModelOverlay::TYPE = "model";
 
 ModelOverlay::ModelOverlay()
-    : _model(std::make_shared<Model>(std::make_shared<Rig>())),
+    : _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
       _modelTextures(QVariantMap())
 {
     _model->init();
@@ -27,7 +27,7 @@ ModelOverlay::ModelOverlay()
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     Volume3DOverlay(modelOverlay),
-    _model(std::make_shared<Model>(std::make_shared<Rig>())),
+    _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
     _updateModel(false)

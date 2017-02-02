@@ -231,6 +231,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                     // and make note of it now, so we can act on it right away.
                     propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
+                    entity->rememberHasSimulationOwnershipBid();
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
@@ -444,6 +445,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->pokeSimulationOwnership();
+                    entity->rememberHasSimulationOwnershipBid();
                 }
             }
             if (properties.parentRelatedPropertyChanged() && entity->computePuffedQueryAACube()) {

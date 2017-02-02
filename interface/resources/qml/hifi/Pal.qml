@@ -51,6 +51,7 @@ Rectangle {
 
     // This is the container for the PAL
     Rectangle {
+        property bool punctuationMode: false
         id: palContainer
         // Size
         width: pal.width - 50
@@ -419,6 +420,16 @@ Rectangle {
                                  "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.")
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
+        }
+    }
+    HifiControls.Keyboard {
+        id: keyboard
+        raised: myCard.currentlyEditingDisplayName && HMD.active
+        numeric: parent.punctuationMode
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
         }
     }
     }
