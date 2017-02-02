@@ -20,6 +20,7 @@ Item {
 
     SoundEffect {
         id: buttonClickSound
+        volume: 0.1
         source: "../../../sounds/Gamemaster-Audio-button-click.wav"
     }
 
