@@ -95,7 +95,12 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
     this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
-    this.dpi = dpi || DEFAULT_DPI;
+
+    if (dpi) {
+        this.dpi = dpi;
+    } else {
+        this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
+    }
 
     var tabletProperties = {
         name: "WebTablet Tablet",
@@ -252,13 +257,14 @@ WebTablet.prototype.geometryChanged = function (geometry) {
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
 // with a bit of padding on the top and bottom.
 WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
-
+    var DEFAULT_DESKTOP_TABLET_SCALE = 75;
+    var DESKTOP_TABLET_SCALE = Settings.getValue("desktopTabletScale") || DEFAULT_DESKTOP_TABLET_SCALE;
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
     var MAX_PADDING_FACTOR = 2.2;
     var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
     var TABLET_HEIGHT = (TABLET_TEXTURE_RESOLUTION.y / this.dpi) * INCHES_TO_METERS;
     var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
-    var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2)) - WEB_ENTITY_Z_OFFSET;
+    var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2) * (DESKTOP_TABLET_SCALE / 100)) - WEB_ENTITY_Z_OFFSET;
     return {
         position: Vec3.sum(Camera.position, Vec3.multiply(dist, Quat.getFront(Camera.orientation))),
         rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
