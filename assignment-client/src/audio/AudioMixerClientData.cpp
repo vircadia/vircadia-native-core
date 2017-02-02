@@ -62,18 +62,21 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
 AABox& AudioMixerClientData::getIgnoreBox(unsigned int frame) {
     // check for a memoized box
     if (frame != _ignoreBoxMemo.frame.load(std::memory_order_acquire) {
-        // create the box
-        AABox box(getAvatarBoundingBoxCorner(), getAvatarBoundingBoxScale());
+        stream = getAvatarAudioStream();
+        glm::vec3 corner = stream ? stream->getAvatarBoundingBoxCorner() : glm::vec3(0);
+        glm::vec3 scale = stream ? stream->getAvatarBoundingBoxScale() : glm::vec3(0);
 
         // enforce a minimum scale
         static const glm::vec3 MIN_IGNORE_BOX_SCALE = glm::vec3(0.3f, 1.3f, 0.3f);
-        if (glm::any(glm::lessThan(getAvatarBoundingBoxScale(), MIN_IGNORE_BOX_SCALE))) {
-            box.setScaleStayCentered(MIN_IGNORE_BOX_SCALE);
+        if (glm::any(glm::lessThan(scale, MIN_IGNORE_BOX_SCALE))) {
+            scale = MIN_IGNORE_BOX_SCALE;
         }
-
         // quadruple the scale
         const float IGNORE_BOX_SCALE_FACTOR = 4.0f;
-        box.embiggen(IGNORE_BOX_SCALE_FACTOR);
+        scale *= IGNORE_BOX_SCALE_FACTOR;
+
+        // create the box
+        AABox box(corner, scale);
 
         // update the memoized box
         // this may be called by multiple threads concurrently,
