@@ -73,7 +73,8 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     }
 
     if (targetSize != srcImageSize) {
-        qDebug(modelLog) << "Resizing texture from " << srcImageSize.x << "x" << srcImageSize.y << " to " << targetSize.x << "x" << targetSize.y;
+         PROFILE_RANGE(resource_parse, "processSourceImage Rectify");
+         qDebug(modelLog) << "Resizing texture from " << srcImageSize.x << "x" << srcImageSize.y << " to " << targetSize.x << "x" << targetSize.y;
         return srcImage.scaled(fromGlm(targetSize));
     }
 
@@ -282,6 +283,7 @@ gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImag
 
 
 gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
+    PROFILE_RANGE(resource_parse, "createNormalTextureFromNormalImage");
     QImage image = processSourceImage(srcImage, false);
 
     if (image.format() != QImage::Format_RGB888) {
@@ -316,6 +318,7 @@ double mapComponent(double sobelValue) {
 }
 
 gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
+    PROFILE_RANGE(resource_parse, "createNormalTextureFromBumpImage");
     QImage image = processSourceImage(srcImage, false);
 
     if (image.format() != QImage::Format_RGB888) {
@@ -388,6 +391,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
 }
 
 gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    PROFILE_RANGE(resource_parse, "createRoughnessTextureFromImage");
     QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
@@ -422,6 +426,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
 }
 
 gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& srcImage, const std::string& srcImageName) {
+    PROFILE_RANGE(resource_parse, "createRoughnessTextureFromGlossImage");
     QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
@@ -460,6 +465,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
 }
 
 gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    PROFILE_RANGE(resource_parse, "createMetallicTextureFromImage");
     QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
