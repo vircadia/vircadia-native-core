@@ -38,14 +38,15 @@ var Settings = {
   DOMAIN_ID_SELECTOR: '[name="metaverse.id"]',
   ACCESS_TOKEN_SELECTOR: '[name="metaverse.access_token"]',
   PLACES_TABLE_ID: 'places-table',
-  FORM_ID: 'settings-form'
+  FORM_ID: 'settings-form',
+  INVALID_ROW_CLASS: 'invalid-input'
 };
 
 var viewHelpers = {
   getFormGroup: function(keypath, setting, values, isAdvanced) {
     form_group = "<div class='form-group " +
         (isAdvanced ? Settings.ADVANCED_CLASS : "") + " " +
-        (setting.deprecated ? Settings.DEPRECATED_CLASS : "" ) + "' " + 
+        (setting.deprecated ? Settings.DEPRECATED_CLASS : "" ) + "' " +
         "data-keypath='" + keypath + "'>";
     setting_value = _(values).valueForKeyPath(keypath);
 
@@ -215,8 +216,8 @@ $(document).ready(function(){
             sibling = sibling.next();
           }
 
-          if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click();
+          // for tables with categories we add the entry and setup the new row on enter
+          if (sibling.find("." + Settings.ADD_CATEGORY_BUTTON_CLASS).length) {
             sibling.find("." + Settings.ADD_CATEGORY_BUTTON_CLASS).click();
 
             // set focus to the first input in the new row
@@ -891,48 +892,145 @@ function reloadSettings(callback) {
   });
 }
 
+function validateInputs() {
+  // check if any new values are bad
+  var tables = $('table');
+
+  var inputsValid = true;
+
+  var tables = $('table');
+
+  // clear any current invalid rows
+  $('tr.' + Settings.INVALID_ROW_CLASS).removeClass(Settings.INVALID_ROW_CLASS);
+
+  function markParentRowInvalid(rowChild) {
+    $(rowChild).closest('tr').addClass(Settings.INVALID_ROW_CLASS);
+  }
+
+  _.each(tables, function(table) {
+    // validate keys specificially for spaces and equality to an existing key
+    var newKeys = $(table).find('tr.' + Settings.NEW_ROW_CLASS + ' td.key');
+
+    var keyWithSpaces = false;
+    var empty = false;
+    var duplicateKey = false;
+
+    _.each(newKeys, function(keyCell) {
+      var keyVal = $(keyCell).children('input').val();
+
+      if (keyVal.indexOf(' ') !== -1) {
+        keyWithSpaces = true;
+        markParentRowInvalid(keyCell);
+        return;
+      }
+
+      // make sure the key isn't empty
+      if (keyVal.length === 0) {
+        empty = true
+
+        markParentRowInvalid(input);
+        return;
+      }
+
+      // make sure we don't have duplicate keys in the table
+      var otherKeys = $(table).find('td.key').not(keyCell);
+      _.each(otherKeys, function(otherKeyCell) {
+        var keyInput = $(otherKeyCell).children('input');
+
+        if (keyInput.length) {
+          if ($(keyInput).val() == keyVal) {
+            duplicateKey = true;
+          }
+        } else if ($(otherKeyCell).html() == keyVal) {
+            duplicateKey = true;
+        }
+
+        if (duplicateKey) {
+          markParentRowInvalid(keyCell);
+          return;
+        }
+      });
+
+    });
+
+    if (keyWithSpaces) {
+      showErrorMessage("Error", "Key contains spaces");
+      inputsValid = false;
+      return
+    }
+
+    if (empty) {
+      showErrorMessage("Error", "Empty field(s)");
+      inputsValid = false;
+      return
+    }
+
+    if (duplicateKey) {
+      showErrorMessage("Error", "Two keys cannot be identical");
+      inputsValid = false;
+      return;
+    }
+  });
+
+  return inputsValid;
+}
 
 var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please try again!";
 
 function saveSettings() {
-  // disable any inputs not changed
-  $("input:not([data-changed])").each(function(){
-    $(this).prop('disabled', true);
-  });
 
-  // grab a JSON representation of the form via form2js
-  var formJSON = form2js('settings-form', ".", false, cleanupFormValues, true);
+  if (validateInputs()) {
+    // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
 
-  // check if we've set the basic http password - if so convert it to base64
-  var canPost = true;
-  if (formJSON["security"]) {
-    var password = formJSON["security"]["http_password"];
-    var verify_password = formJSON["security"]["verify_http_password"];
-    if (password && password.length > 0) {
-      if (password != verify_password) {
-        bootbox.alert({"message": "Passwords must match!", "title":"Password Error"});
-        canPost = false;
-      } else {
+    // disable any inputs not changed
+    $("input:not([data-changed])").each(function(){
+      $(this).prop('disabled', true);
+    });
+
+    // grab a JSON representation of the form via form2js
+    var formJSON = form2js('settings-form', ".", false, cleanupFormValues, true);
+
+    // check if we've set the basic http password - if so convert it to base64
+    if (formJSON["security"]) {
+      var password = formJSON["security"]["http_password"];
+      if (password && password.length > 0) {
         formJSON["security"]["http_password"] = sha256_digest(password);
-        delete formJSON["security"]["verify_http_password"];
       }
     }
-  }
 
-  console.log("----- SAVING ------");
-  console.log(formJSON);
+    // verify that the password and confirmation match before saving
+    var canPost = true;
 
-  // re-enable all inputs
-  $("input").each(function(){
-    $(this).prop('disabled', false);
-  });
+    if (formJSON["security"]) {
+      var password = formJSON["security"]["http_password"];
+      var verify_password = formJSON["security"]["verify_http_password"];
 
-  // remove focus from the button
-  $(this).blur();
+      if (password && password.length > 0) {
+        if (password != verify_password) {
+          bootbox.alert({"message": "Passwords must match!", "title":"Password Error"});
+          canPost = false;
+        } else {
+          formJSON["security"]["http_password"] = sha256_digest(password);
+          delete formJSON["security"]["verify_http_password"];
+        }
+      }
+    }
 
-  // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  if (canPost) {
-    postSettings(formJSON);
+    console.log("----- SAVING ------");
+    console.log(formJSON);
+
+    // re-enable all inputs
+    $("input").each(function(){
+      $(this).prop('disabled', false);
+    });
+
+    // remove focus from the button
+    $(this).blur();
+
+    if (canPost) {
+      // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+      postSettings(formJSON);
+    }
   }
 }
 
@@ -1110,8 +1208,9 @@ function makeTable(setting, keypath, setting_value) {
     if (setting.can_add_new_categories) {
       html += makeTableCategoryInput(setting, numVisibleColumns);
     }
+
     if (setting.can_add_new_rows || setting.can_add_new_categories) {
-      html += makeTableInputs(setting, {}, "");
+      html += makeTableHiddenInputs(setting, {}, "");
     }
   }
   html += "</table>"
@@ -1137,7 +1236,7 @@ function makeTableCategoryHeader(categoryKey, categoryValue, numVisibleColumns, 
   return html;
 }
 
-function makeTableInputs(setting, initialValues, categoryValue) {
+function makeTableHiddenInputs(setting, initialValues, categoryValue) {
   var html = "<tr class='inputs'" + (setting.can_add_new_categories && !categoryValue ? " hidden" : "") + " " +
                   (categoryValue ? ("data-category='" + categoryValue + "'") : "") + " " +
                   (setting.categorize_by_key ? ("data-keep-field='" + setting.categorize_by_key + "'") : "") + ">";
@@ -1148,7 +1247,7 @@ function makeTableInputs(setting, initialValues, categoryValue) {
 
   if (setting.key) {
     html += "<td class='key' name='" + setting.key.name + "'>\
-             <input type='text' class='form-control' placeholder='" + (_.has(setting.key, 'placeholder') ? setting.key.placeholder : "") + "' value=''>\
+             <input type='text' style='display: none;' class='form-control' placeholder='" + (_.has(setting.key, 'placeholder') ? setting.key.placeholder : "") + "' value=''>\
              </td>"
   }
 
@@ -1157,14 +1256,14 @@ function makeTableInputs(setting, initialValues, categoryValue) {
     if (col.type === "checkbox") {
       html +=
         "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
-          "<input type='checkbox' class='form-control table-checkbox' " +
+          "<input type='checkbox' style='display: none;' class='form-control table-checkbox' " +
                  "name='" + col.name + "'" + (defaultValue ? " checked" : "") + "/>" +
         "</td>";
     } else {
       html +=
         "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
             "name='" + col.name + "'>" +
-          "<input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' " +
+          "<input type='text' style='display: none;' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' " +
                  "value='" + (defaultValue || "") + "' data-default='" + (defaultValue || "") + "'" +
                  (col.readonly ? " readonly" : "") + ">" +
         "</td>";
@@ -1244,49 +1343,17 @@ function addTableRow(row) {
 
   var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS);
 
+  var input_clone = row.clone();
+
   if (!isArray) {
-    // Check key spaces
-    var key = row.children(".key").children("input").val()
-    if (key.indexOf(' ') !== -1) {
-      showErrorMessage("Error", "Key contains spaces")
-      return
-    }
-    // Check keys with the same name
-    var equals = false;
-    _.each(columns.children(".key"), function(element) {
-      if ($(element).text() === key) {
-        equals = true
-        return
-      }
-    })
-    if (equals) {
-      showErrorMessage("Error", "Two keys cannot be identical")
-      return
-    }
+    // show the key input
+    var keyInput = row.children(".key").children("input");
   }
-
-  // Check empty fields
-  var empty = false;
-  _.each(row.children('.' + Settings.DATA_COL_CLASS + ' input'), function(element) {
-    if ($(element).val().length === 0) {
-      empty = true
-      return
-    }
-  })
-
-  if (empty) {
-    showErrorMessage("Error", "Empty field(s)")
-    return
-  }
-
-  var input_clone = row.clone()
 
   // Change input row to data row
-  var table = row.parents("table")
-  var setting_name = table.attr("name")
-  var full_name = setting_name + "." + key
-  row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS)
-  row.removeClass("inputs")
+  var table = row.parents("table");
+  var setting_name = table.attr("name");
+  row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS);
 
   _.each(row.children(), function(element) {
     if ($(element).hasClass("numbered")) {
@@ -1308,56 +1375,43 @@ function addTableRow(row) {
       anchor.addClass(Settings.DEL_ROW_SPAN_CLASSES)
     } else if ($(element).hasClass("key")) {
       var input = $(element).children("input")
-      $(element).html(input.val())
-      input.remove()
+      input.show();
     } else if ($(element).hasClass(Settings.DATA_COL_CLASS)) {
-      // Hide inputs
-      var input = $(element).find("input")
-      var isCheckbox = false;
-      var isTime = false;
-      if (input.hasClass("table-checkbox")) {
-        input = $(input).parent();
-        isCheckbox = true;
-      } else if (input.hasClass("table-time")) {
-        input = $(input).parent();
-        isTime = true;
-      }
+      // show inputs
+      var input = $(element).find("input");
+      input.show();
 
-      var val = input.val();
-      if (isCheckbox) {
-        // don't hide the checkbox
-        val = $(input).find("input").is(':checked');
-      } else if (isTime) {
-        // don't hide the time
-      } else {
-        input.attr("type", "hidden")
-      }
+      var isCheckbox = input.hasClass("table-checkbox");
 
       if (isArray) {
         var row_index = row.siblings('.' + Settings.DATA_ROW_CLASS).length
-        var key = $(element).attr('name')
+        var key = $(element).attr('name');
 
         // are there multiple columns or just one?
         // with multiple we have an array of Objects, with one we have an array of whatever the value type is
         var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
 
         if (isCheckbox) {
-          $(input).find("input").attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+          input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
         } else {
           input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
         }
       } else {
-        input.attr("name", full_name + "." + $(element).attr("name"))
+        // because the name of the setting in question requires the key
+        // setup a hook to change the HTML name of the element whenever the key changes
+        var colName = $(element).attr("name");
+        keyInput.on('change', function(){
+          input.attr("name", setting_name + "." +  $(this).val() + "." + colName);
+        });
       }
 
       if (isCheckbox) {
         $(input).find("input").attr("data-changed", "true");
       } else {
         input.attr("data-changed", "true");
-        $(element).append(val);
       }
     } else {
-      console.log("Unknown table element")
+      console.log("Unknown table element");
     }
   });
 
@@ -1387,7 +1441,12 @@ function deleteTableRow($row) {
   $row.empty();
 
   if (!isArray) {
-    $row.html("<input type='hidden' class='form-control' name='" + $row.attr('name') + "' data-changed='true' value=''>");
+    if ($row.attr('name')) {
+      $row.html("<input type='hidden' class='form-control' name='" + $row.attr('name') + "' data-changed='true' value=''>");
+    } else {
+      // for rows that didn't have a key, simply remove the row
+      $row.remove();
+    }
   } else {
     if ($table.find('.' + Settings.DATA_ROW_CLASS + "[data-category='" + categoryName + "']").length <= 1) {
       // This is the last row of the category, so delete the header
