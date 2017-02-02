@@ -54,7 +54,10 @@ FocusScope {
                 onEntered: iconColorOverlay.color = "#1fc6a6";
                 onExited: iconColorOverlay.color = "#ffffff";
                 // navigate back to root level menu
-                onClicked: buildMenu();
+                onClicked: {
+                    buildMenu();
+                    tabletRoot.playButtonClickSound();
+                }
             }
         }
 
@@ -79,10 +82,12 @@ FocusScope {
                 onEntered: breadcrumbText.color = "#1fc6a6";
                 onExited: breadcrumbText.color = "#34a2c7";
                 // navigate back to parent level menu if there is one
-                onClicked: 
+                onClicked: { 
                     if (breadcrumbText.text !== "Menu") {
                         menuPopperUpper.closeLastMenu();
                     }
+                    tabletRoot.playButtonClickSound();
+                }
             }
         }
     }
