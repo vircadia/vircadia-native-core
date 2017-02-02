@@ -252,6 +252,7 @@ WebTablet.prototype.geometryChanged = function (geometry) {
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
 // with a bit of padding on the top and bottom.
 WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
+
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
     var MAX_PADDING_FACTOR = 2.2;
     var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
@@ -357,7 +358,7 @@ WebTablet.prototype.getPosition = function () {
 
 WebTablet.prototype.mousePressEvent = function (event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
-    var entityPickResults = Entities.findRayIntersection(pickRay, true); // non-accurate picking
+    var entityPickResults = Entities.findRayIntersection(pickRay, true, [this.tabletEntityID]); // non-accurate picking
     if (entityPickResults.intersects && entityPickResults.entityID === this.tabletEntityID) {
         var overlayPickResults = Overlays.findRayIntersection(pickRay);
         if (overlayPickResults.intersects && overlayPickResults.overlayID === HMD.homeButtonID) {
