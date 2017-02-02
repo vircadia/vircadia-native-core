@@ -100,10 +100,12 @@ public:
 /// A single binding to a joint in an FBX document.
 class FBXCluster {
 public:
-    
+
     int jointIndex;
     glm::mat4 inverseBindMatrix;
 };
+
+const int MAX_FBX_TEXTURE_SIZE = 1024 * 1024;
 
 /// A texture map in an FBX document.
 class FBXTexture {
@@ -111,11 +113,12 @@ public:
     QString name;
     QByteArray filename;
     QByteArray content;
-    
+
     Transform transform;
+    int maxSize { MAX_FBX_TEXTURE_SIZE };
     int texcoordSet;
     QString texcoordSetName;
-    
+
     bool isBumpmap{ false };
 
     bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
