@@ -25,6 +25,7 @@
 #include "QVariantGLM.h"
 #include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
+#include "WebEntityItem.h"
 #include <EntityScriptClient.h>
 
 
@@ -230,6 +231,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                     // and make note of it now, so we can act on it right away.
                     propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
+                    entity->rememberHasSimulationOwnershipBid();
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
@@ -443,6 +445,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->pokeSimulationOwnership();
+                    entity->rememberHasSimulationOwnershipBid();
                 }
             }
             if (properties.parentRelatedPropertyChanged() && entity->computePuffedQueryAACube()) {
@@ -1366,14 +1369,16 @@ bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
 
     _entityTree->withReadLock([&] {
         EntityItemPointer parent = _entityTree->findEntityByEntityItemID(parentID);
-        parent->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-            if(descendant->getID() == childID) {
-                isChild = true;
-                return; 
-            }
-        });
+        if (parent) {
+            parent->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                if (descendant->getID() == childID) {
+                    isChild = true;
+                    return;
+                }
+            });
+        }
     });
-    
+
     return isChild;
 }
 
@@ -1397,7 +1402,8 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& pare
             return;
         }
         parent->forEachChild([&](SpatiallyNestablePointer child) {
-            if (child->getParentJointIndex() == jointIndex) {
+            if (child->getParentJointIndex() == jointIndex &&
+                child->getNestableType() != NestableType::Overlay) {
                 result.push_back(child->getID());
             }
         });
@@ -1492,3 +1498,12 @@ void EntityScriptingInterface::setCostMultiplier(float value) {
     costMultiplier = value;
 }
 
+QObject* EntityScriptingInterface::getWebViewRoot(const QUuid& entityID) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Web)) {
+        auto webEntity = std::dynamic_pointer_cast<WebEntityItem>(entity);
+        QObject* root = webEntity->getRootItem();
+        return root;
+    } else {
+        return nullptr;
+    }
+}

@@ -33,6 +33,7 @@ Item {
         propagateComposedEvents: true
         acceptedButtons: "AllButtons"
         onClicked: {
+            menu.visible = false;
             menu.done();
             mouse.accepted = false;
         }

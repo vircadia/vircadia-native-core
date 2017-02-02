@@ -187,9 +187,6 @@ Window {
             ToolbarButton {
                 id: homeButton
                 imageURL: "../images/home.svg"
-                buttonState: 1
-                defaultState: 1
-                hoverState: 2
                 onClicked: {
                     addressBarDialog.loadHome();
                     root.shown = false;
@@ -204,9 +201,6 @@ Window {
             ToolbarButton {
                 id: backArrow;
                 imageURL: "../images/backward.svg";
-                hoverState: addressBarDialog.backEnabled ? 2 : 0;
-                defaultState: addressBarDialog.backEnabled ? 1 : 0;
-                buttonState: addressBarDialog.backEnabled ? 1 : 0;
                 onClicked: addressBarDialog.loadBack();
                 anchors {
                     left: homeButton.right
@@ -216,9 +210,6 @@ Window {
             ToolbarButton {
                 id: forwardArrow;
                 imageURL: "../images/forward.svg";
-                hoverState: addressBarDialog.forwardEnabled ? 2 : 0;
-                defaultState: addressBarDialog.forwardEnabled ? 1 : 0;
-                buttonState: addressBarDialog.forwardEnabled ? 1 : 0;
                 onClicked: addressBarDialog.loadForward();
                 anchors {
                     left: backArrow.right

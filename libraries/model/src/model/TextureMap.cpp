@@ -52,6 +52,7 @@ std::atomic<size_t> DECIMATED_TEXTURE_COUNT { 0 };
 std::atomic<size_t> RECTIFIED_TEXTURE_COUNT { 0 };
 
 QImage processSourceImage(const QImage& srcImage, bool cubemap) {
+    PROFILE_RANGE(resource_parse, "processSourceImage");
     const uvec2 srcImageSize = toGlm(srcImage.size());
     uvec2 targetSize = srcImageSize;
 
@@ -109,6 +110,7 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
 }
 
 const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask) {
+    PROFILE_RANGE(resource_parse, "process2DImageColor");
     QImage image = processSourceImage(srcImage, false);
     validAlpha = false;
     alphaAsMask = true;
@@ -197,10 +199,11 @@ const QImage& image, bool isLinear, bool doCompress) {
     }
 }
 
-#define CPU_MIPMAPS 0
+#define CPU_MIPMAPS 1
 
 void generateMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip) {
 #if CPU_MIPMAPS
+    PROFILE_RANGE(resource_parse, "generateMips");
     auto numMips = texture->evalNumMips();
     for (uint16 level = 1; level < numMips; ++level) {
         QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
@@ -214,6 +217,7 @@ void generateMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip) 
 
 void generateFaceMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip, uint8 face) {
 #if CPU_MIPMAPS
+    PROFILE_RANGE(resource_parse, "generateFaceMips");
     auto numMips = texture->evalNumMips();
     for (uint16 level = 1; level < numMips; ++level) {
         QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
@@ -226,6 +230,7 @@ void generateFaceMips(gpu::Texture* texture, QImage& image, gpu::Element formatM
 }
 
 gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips) {
+    PROFILE_RANGE(resource_parse, "process2DTextureColorFromImage");
     bool validAlpha = false;
     bool alphaAsMask = true;
     QImage image = process2DImageColor(srcImage, validAlpha, alphaAsMask);

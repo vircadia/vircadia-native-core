@@ -129,7 +129,7 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
+void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool enableTextures) const {
     if (!_drawMaterial) {
         return;
     }
@@ -145,6 +145,17 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     int numUnlit = 0;
     if (materialKey.isUnlit()) {
         numUnlit++;
+    }
+
+    if (!enableTextures) {
+        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, textureCache->getBlueTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, textureCache->getBlackTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
+        return;
     }
 
     // Albedo
@@ -271,7 +282,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
     bindMesh(batch);
 
     // apply material properties
-    bindMaterial(batch, locations);
+    bindMaterial(batch, locations, args->_enableTexturing);
 
     if (args) {
         args->_details._materialSwitches++;
@@ -363,12 +374,7 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transf
     _transform = transform;
 
     if (clusterMatrices.size() > 0) {
-        _worldBound = AABox();
-        for (auto& clusterMatrix : clusterMatrices) {
-            AABox clusterBound = _localBound;
-            clusterBound.transform(clusterMatrix);
-            _worldBound += clusterBound;
-        }
+        _worldBound = _adjustedLocalBound;
         _worldBound.transform(_transform);
         if (clusterMatrices.size() == 1) {
             _transform = _transform.worldTransform(Transform(clusterMatrices[0]));
@@ -588,7 +594,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     bindMesh(batch);
 
     // apply material properties
-    bindMaterial(batch, locations);
+    bindMaterial(batch, locations, args->_enableTexturing);
 
     args->_details._materialSwitches++;
 
@@ -600,4 +606,16 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     const int INDICES_PER_TRIANGLE = 3;
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
+}
+
+void ModelMeshPartPayload::computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices) {
+    _adjustedLocalBound = _localBound;
+    if (clusterMatrices.size() > 0) {
+        _adjustedLocalBound.transform(clusterMatrices[0]);
+        for (int i = 1; i < clusterMatrices.size(); ++i) {
+            AABox clusterBound = _localBound;
+            clusterBound.transform(clusterMatrices[i]);
+            _adjustedLocalBound += clusterBound;
+        }
+    }
 }

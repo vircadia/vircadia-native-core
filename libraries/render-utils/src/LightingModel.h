@@ -49,6 +49,8 @@ public:
     void setAlbedo(bool enable);
     bool isAlbedoEnabled() const;
 
+    void setMaterialTexturing(bool enable);
+    bool isMaterialTexturingEnabled() const;
 
     void setAmbientLight(bool enable);
     bool isAmbientLightEnabled() const;
@@ -88,9 +90,12 @@ protected:
         float enableSpotLight{ 1.0f };
 
         float showLightContour{ 0.0f }; // false by default
+
         float enableObscurance{ 1.0f };
 
-        glm::vec2 spares{ 0.0f };
+        float enableMaterialTexturing { 1.0f };
+
+        float spares{ 0.0f };
 
         Parameters() {}
     };
@@ -117,6 +122,8 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enableSpecular MEMBER enableSpecular NOTIFY dirty)
     Q_PROPERTY(bool enableAlbedo MEMBER enableAlbedo NOTIFY dirty)
 
+    Q_PROPERTY(bool enableMaterialTexturing MEMBER enableMaterialTexturing NOTIFY dirty)
+
     Q_PROPERTY(bool enableAmbientLight MEMBER enableAmbientLight NOTIFY dirty)
     Q_PROPERTY(bool enableDirectionalLight MEMBER enableDirectionalLight NOTIFY dirty)
     Q_PROPERTY(bool enablePointLight MEMBER enablePointLight NOTIFY dirty)
@@ -136,12 +143,15 @@ public:
     bool enableScattering{ true };
     bool enableDiffuse{ true };
     bool enableSpecular{ true };
+
     bool enableAlbedo{ true };
+    bool enableMaterialTexturing { true };
 
     bool enableAmbientLight{ true };
     bool enableDirectionalLight{ true };
     bool enablePointLight{ true };
     bool enableSpotLight{ true };
+
 
     bool showLightContour { false }; // false by default
 

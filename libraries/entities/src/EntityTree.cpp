@@ -64,7 +64,7 @@ EntityTree::~EntityTree() {
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
-    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',');
+    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',', QString::SkipEmptyParts);
 }
 
 
@@ -1111,7 +1111,15 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
                 } else if (message.getType() == PacketType::EntityAdd) {
-                    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+                    bool failedAdd = !allowed;
+                    if (!allowed) {
+                        qCDebug(entities) << "Filtered entity add. ID:" << entityItemID;
+                    } else if (!senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
+                        failedAdd = true;
+                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
+                                          << "] attempted to add an entity ID:" << entityItemID;
+
+                    } else {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
                         properties.setLastEditedBy(senderNode->getUUID());
@@ -1126,7 +1134,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                             startLogging = usecTimestampNow();
                             if (wantEditLogging()) {
                                 qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:"
-                                                << newEntity->getEntityItemID();
+                                                  << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
                             if (wantTerseEditLogging()) {
@@ -1136,10 +1144,14 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                             }
                             endLogging = usecTimestampNow();
 
+                        } else {
+                            failedAdd = true;
+                            qCDebug(entities) << "Add entity failed ID:" << entityItemID;
                         }
-                    } else {
-                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
-                                          << "] attempted to add an entity.";
+                    }
+                    if (failedAdd) { // Let client know it failed, so that they don't have an entity that no one else sees.
+                        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                     }
                 } else {
                     static QString repeatedMessage =
@@ -1560,6 +1572,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
             return args->map->value(oldID);
         }
         EntityItemID newID = QUuid::createUuid();
+        args->map->insert(oldID, newID);
+
         EntityItemProperties properties = item->getProperties();
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
@@ -1572,6 +1586,43 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 // But do not add root offset in this case.
             } else { // Should not happen, but let's try to be helpful...
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
+            }
+        }
+
+        if (!properties.getXNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXNNeighborID());
+            if (neighborEntity) {
+                properties.setXNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getXPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXPNeighborID());
+            if (neighborEntity) {
+                properties.setXPNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getYNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYNNeighborID());
+            if (neighborEntity) {
+                properties.setYNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getYPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYPNeighborID());
+            if (neighborEntity) {
+                properties.setYPNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getZNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZNNeighborID());
+            if (neighborEntity) {
+                properties.setZNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getZPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZPNeighborID());
+            if (neighborEntity) {
+                properties.setZPNeighborID(getMapped(neighborEntity));
             }
         }
 
@@ -1592,7 +1643,6 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 args->otherTree->addEntity(newID, properties);
             });
         }
-        args->map->insert(oldID, newID);
         return newID;
     };
 
