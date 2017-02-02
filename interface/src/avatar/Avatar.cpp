@@ -900,7 +900,7 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
                     _skeletonModel->getAbsoluteJointRotationInRigFrame(headJointIndex, rotation);
                 }
             }
-            return rotation;
+            return Quaternions::Y_180 * rotation * Quaternions::Y_180;
         }
         default: {
             glm::quat rotation;
@@ -936,7 +936,7 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
                     _skeletonModel->getAbsoluteJointTranslationInRigFrame(headJointIndex, translation);
                 }
             }
-            return translation;
+            return Quaternions::Y_180 * translation * Quaternions::Y_180;
         }
         default: {
             glm::vec3 translation;
