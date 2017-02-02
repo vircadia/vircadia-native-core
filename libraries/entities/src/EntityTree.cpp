@@ -934,7 +934,7 @@ void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function
     _hasEntityEditFilter = true;
 }
 
-bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
+bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, bool isAdd) {
     if (!_entityEditFilterEngine) {
         propertiesOut = propertiesIn;
         wasChanged = false; // not changed
@@ -953,6 +953,7 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
     auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
     QScriptValueList args;
     args << inputValues;
+    args << isAdd;
 
     QScriptValue result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
     if (_entityEditFilterHadUncaughtExceptions()) {
@@ -989,6 +990,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
     }
 
     int processedBytes = 0;
+    bool isAdd = false;
     // we handle these types of "edit" packets
     switch (message.getType()) {
         case PacketType::EntityErase: {
@@ -998,6 +1000,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
         }
 
         case PacketType::EntityAdd:
+            isAdd = true;  // fall through to next case
         case PacketType::EntityEdit: {
             quint64 startDecode = 0, endDecode = 0;
             quint64 startLookup = 0, endLookup = 0;
@@ -1040,7 +1043,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     }
 
                     // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
-                    if (message.getType() == PacketType::EntityAdd) {
+                    if (isAdd) {
                         QWriteLocker locker(&_recentlyDeletedEntitiesLock);
                         _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                         validEditPacket = passedWhiteList;
@@ -1050,7 +1053,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
-            if ((message.getType() == PacketType::EntityAdd ||
+            if ((isAdd ||
                  (message.getType() == PacketType::EntityEdit && properties.lifetimeChanged())) &&
                 !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
                 // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
@@ -1068,9 +1071,11 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 startFilter = usecTimestampNow();
                 bool wasChanged = false;
                 // Having (un)lock rights bypasses the filter.
-                bool allowed = senderNode->isAllowedEditor() || filterProperties(properties, properties, wasChanged);
+                bool allowed = senderNode->isAllowedEditor() || filterProperties(properties, properties, wasChanged, isAdd);
                 if (!allowed) {
+                    auto timestamp = properties.getLastEdited();
                     properties = EntityItemProperties();
+                    properties.setLastEdited(timestamp);
                 }
                 if (!allowed || wasChanged) {
                     bumpTimestamp(properties);
@@ -1110,7 +1115,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
-                } else if (message.getType() == PacketType::EntityAdd) {
+                } else if (isAdd) {
                     bool failedAdd = !allowed;
                     if (!allowed) {
                         qCDebug(entities) << "Filtered entity add. ID:" << entityItemID;
