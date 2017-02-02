@@ -148,7 +148,9 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
     if (!nodeList->isIgnoringNode(identity.uuid) || nodeList->getRequestsDomainListData()) {
         // mesh URL for a UUID, find avatar in our list
         auto avatar = newOrExistingAvatar(identity.uuid, sendingNode);
-        avatar->processAvatarIdentity(identity);
+        bool identityChanged = false;
+        bool displayNameChanged = false;
+        avatar->processAvatarIdentity(identity, identityChanged, displayNameChanged);
     }
 }
 
