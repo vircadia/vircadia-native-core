@@ -22,17 +22,22 @@ EntityScriptServerLogClient::EntityScriptServerLogClient() {
     QObject::connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptServerLogClient::canRezChanged);
 }
 
-
 void EntityScriptServerLogClient::connectNotify(const QMetaMethod& signal) {
-    auto numReceivers = receivers(SIGNAL(receivedNewLogLines(QString)));
-    if (!_subscribed && numReceivers > 0) {
-        enableToEntityServerScriptLog(DependencyManager::get<NodeList>()->getThisNodeCanRez());
-    }
+    // This needs to be delayed or "receivers()" will return completely inconsistent values
+    QMetaObject::invokeMethod(this, "connectionsChanged", Qt::QueuedConnection);
 }
 
 void EntityScriptServerLogClient::disconnectNotify(const QMetaMethod& signal) {
+    // This needs to be delayed or "receivers()" will return completely inconsistent values
+    QMetaObject::invokeMethod(this, "connectionsChanged", Qt::QueuedConnection);
+}
+
+void EntityScriptServerLogClient::connectionsChanged() {
+    qDebug() << Q_FUNC_INFO << _subscribed << receivers(SIGNAL(receivedNewLogLines(QString)));
     auto numReceivers = receivers(SIGNAL(receivedNewLogLines(QString)));
-    if (_subscribed && numReceivers == 0) {
+    if (!_subscribed && numReceivers > 0) {
+        enableToEntityServerScriptLog(DependencyManager::get<NodeList>()->getThisNodeCanRez());
+    } else if (_subscribed && numReceivers == 0) {
         enableToEntityServerScriptLog(false);
     }
 }

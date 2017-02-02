@@ -182,23 +182,21 @@ void EntityScriptServer::updateEntityPPS() {
 void EntityScriptServer::handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
     // about each other.
-    if (senderNode->getCanRez()) {
-        bool enable = false;
-        message->readPrimitive(&enable);
+    bool enable = false;
+    message->readPrimitive(&enable);
 
-        auto senderUUID = senderNode->getUUID();
-        auto it = _logListeners.find(senderUUID);
+    auto senderUUID = senderNode->getUUID();
+    auto it = _logListeners.find(senderUUID);
 
-        if (enable) {
-            if (it == std::end(_logListeners)) {
-                _logListeners.insert(senderUUID);
-                qInfo() << "Node" << senderUUID << "subscribed to log stream";
-            }
-        } else {
-            if (it != std::end(_logListeners)) {
-                _logListeners.erase(it);
-                qInfo() << "Node" << senderUUID << "unsubscribed from log stream";
-            }
+    if (enable && senderNode->getCanRez()) {
+        if (it == std::end(_logListeners)) {
+            _logListeners.insert(senderUUID);
+            qInfo() << "Node" << senderUUID << "subscribed to log stream";
+        }
+    } else {
+        if (it != std::end(_logListeners)) {
+            _logListeners.erase(it);
+            qInfo() << "Node" << senderUUID << "unsubscribed from log stream";
         }
     }
 }

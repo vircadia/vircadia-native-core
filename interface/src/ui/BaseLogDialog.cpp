@@ -111,7 +111,8 @@ void BaseLogDialog::handleSearchTextChanged(QString searchText) {
 }
 
 void BaseLogDialog::showLogData() {
-    _logTextBox->setPlainText(getCurrentLog());
+    _logTextBox->clear();
+    _logTextBox->appendPlainText(getCurrentLog());
     _logTextBox->ensureCursorVisible();
 }
 

@@ -37,6 +37,8 @@ private slots:
     void nodeKilled(SharedNodePointer killedNode);
     void canRezChanged(bool canRez);
 
+    void connectionsChanged();
+
 private:
     bool _subscribed { false };
 };

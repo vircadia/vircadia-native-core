@@ -705,13 +705,11 @@ Menu::Menu() {
                                   qApp, SLOT(toggleLogDialog()));
     auto essLogAction = addActionToQMenuAndActionHash(developerMenu, MenuOption::EntityScriptServerLog, 0,
                                                       qApp, SLOT(toggleEntityScriptServerLogDialog()));
-    auto shouldEnableLog = [essLogAction] {
+    QObject::connect(nodeList.data(), &NodeList::canRezChanged, essLogAction, [essLogAction] {
         auto nodeList = DependencyManager::get<NodeList>();
-        essLogAction->setEnabled(nodeList->getThisNodeCanRez() || nodeList->getThisNodeCanRezTmp());
-    };
-    QObject::connect(nodeList.data(), &NodeList::canRezChanged, essLogAction, shouldEnableLog);
-    QObject::connect(nodeList.data(), &NodeList::canRezTmpChanged, essLogAction, shouldEnableLog);
-    shouldEnableLog();
+        essLogAction->setEnabled(nodeList->getThisNodeCanRez());
+    });
+    essLogAction->setEnabled(nodeList->getThisNodeCanRez());
 
     action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...");
     connect(action, &QAction::triggered, [] {

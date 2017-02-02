@@ -21,7 +21,7 @@ window.setPosition(25, 50);
 window.closed.connect(function() { Script.stop(); });
 
 EntityScriptServerLog.receivedNewLogLines.connect(function(message) {
-    window.sendToQml(message);
+    window.sendToQml(message.trim());
 });
 
 
