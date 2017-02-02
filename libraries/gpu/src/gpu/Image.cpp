@@ -15,10 +15,6 @@ namespace image {
     }
     
 template <> void compress(const PB_RGB32& src, CB_BC1& dst) {
-    
-    for (auto& b : dst.bytes) {
-        b = 12;
-    }
 }
 
 template <> void uncompress(const CB_BC1& src, PB_RGB32& dst) {
@@ -27,7 +23,7 @@ template <> void uncompress(const CB_BC1& src, PB_RGB32& dst) {
     auto c0 = bc1.color0.val;
     auto c1 = bc1.color1.val;
     
-    for (int i = 0; i < PB_RGB32::SIZE; ++i) {
+    for (int i = 0; i < PB_RGB32::LENGTH; ++i) {
         //dst.pixels[i] = ;
         auto r = pixel::mix(
                        c0,

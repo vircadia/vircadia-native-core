@@ -82,40 +82,37 @@ namespace image {
         public:
             using Format = F;
             using Storage = S;
-            
-            union {
-                Storage raw;
-                Format val{ Format() }; // Format last to be initialized by Format's default constructor
-            };
-            
-            Pixel() {};
+
+            Format val { Format() };
+
+            Pixel() : val(Format()) {};
             Pixel(Format v) : val(v) {}
-            Pixel(Storage s) : raw(s) {}
+            Pixel(Storage s) : val(*static_cast<Format> (&s)) {}
+
+            const Storage* storage() const { return static_cast<Storage> (&val); }
         };
 
-        
         template <typename P, int length> class PixelBlock {
         public:
             using Format = typename P::Format;
             using Storage = typename P::Storage;
-            
-            constexpr uint16_t getLength() const { return length; }
-            uint32_t getSize() const { return length * sizeof(P); }
-            
+
+            static const uint16_t LENGTH { length };
+            static const uint32_t SIZE { length * sizeof(P) };
+
             P pixels[length];
-            
+
             PixelBlock() {}
-            
-            
+
             PixelBlock(const P* srcPixels) {
                 setPixels(srcPixels);
             }
-            
+
             void setPixels(const P* srcPixels) {
                 memcpy(pixels, srcPixels, getSize());
             }
-            
-            const Storage* getStorage() const { return static_cast<const Storage*> (&pixels->raw); }
+
+            const Storage* storage() const { return pixels->storage(); }
         };
         
         template <typename P, int tileW, int tileH> class Tile {
@@ -123,12 +120,12 @@ namespace image {
             using Format = typename P::Format;
             using Storage = typename P::Storage;
             using Block = typename PixelBlock<P, tileW * tileH>;
-            
-            constexpr uint16_t getWidth() const { return tileW; }
-            constexpr uint16_t getHeight() const { return tileH; }
-            
+
+            uint16_t getWidth() const { return tileW; }
+            uint16_t getHeight() const { return tileH; }
+
             Block _block;
-            
+
             Tile() {}
             Tile(const P* srcPixels) : _block(srcPixels) {}
             
@@ -162,15 +159,18 @@ namespace image {
         };
     };
     
-    template <typename T> class CompressedBlock {
+    template <typename F, typename S = typename storage<sizeof(F)>::type> class CompressedBlock {
     public:
-        static const uint32_t SIZE { sizeof(T) };
-        union {
-            Byte bytes[SIZE];
-            T bc;
-        };
-        
+        using Format = F;
+        using Storage = S;
+
+        static const uint32_t SIZE { sizeof(F) };
+
+        Format bc;
+
         CompressedBlock() {}
+
+        const Storage* storage() const { return static_cast<Storage> (&bc); }
     };
     
     
@@ -250,9 +250,10 @@ namespace image {
     class Pixmap {
     public:
         using Tile = T;
-        
+        using Block = typename T::Block;
+
         Grid _grid;
-        PixelBlockArray<T::Block> _blocks;
+        PixelBlockArray<Block> _blocks;
         
         void resize(const Grid::Coord2& widthHeight) {
             _grid = Grid(widthHeight, Coord2(Tile::getWidth(), Tile::getHeight()));

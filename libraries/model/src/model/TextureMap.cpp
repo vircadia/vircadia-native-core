@@ -265,7 +265,6 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         image::PixRGB565 pix3;
         
         image::PB_RGB32 pb0;
-        image::CB_BC1 cb;
         image::PB_RGB32 pb1;
         
         auto pix0_s = sizeof(pix0);
@@ -274,15 +273,11 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         auto pix3_s = sizeof(pix3);
         
         auto pb0_s = sizeof(pb0);
-        auto cb_s = sizeof(cb);
-        
-        auto cb_bytes = pb0.getStorage();
-        image::compress(pb0, cb);
-        image::uncompress(cb, pb1);
-        
-        image::Grid grid;
-        grid.
-        
+
+        image::Pixmap<image::PixRGB32> theMap();
+
+       // theMap(image.width(), image.height(), image.byteCount(), image.constBits());
+
         if (generateMips) {
             ::generateMips(theTexture, image, formatMip);
         }
