@@ -2572,7 +2572,7 @@ function MyController(hand) {
     };
 
     this.maybeScale = function(props) {
-        if (!objectScalingEnabled) {
+        if (!objectScalingEnabled || this.isTablet(this.grabbedEntity)) {
             return;
         }
 
