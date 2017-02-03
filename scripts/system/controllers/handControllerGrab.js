@@ -2882,7 +2882,6 @@ function MyController(hand) {
         this.touchingEnterTimer += dt;
 
         if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && this.triggerSmoothedSqueezed()) {
-            this.setState(STATE_OFF, "trigger squeezed");
             return;
         }
 
