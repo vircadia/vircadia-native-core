@@ -49,7 +49,7 @@ var id = Entities.addEntity({
         "y": -0.10469216108322144,
         "z": -0.14418250322341919
     },
-    "script": Script.resolvePath("bow.js") + "?" + Date.now(),
+    "script": Script.resolvePath("bow.js"),
     "shapeType": "compound",
     "type": "Model",
     //"userData": JSON.stringify(userData),

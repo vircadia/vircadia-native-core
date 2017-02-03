@@ -7,9 +7,9 @@
 //
 
 (function() {
-    Script.include('utils.js?' + Date.now());
-    Script.include('shortbow.js?' + Date.now());
-    Script.include('shortbowGameManager.js?' + Date.now());
+    Script.include('utils.js');
+    Script.include('shortbow.js');
+    Script.include('shortbowGameManager.js');
 
     TEMPLATES = SHORTBOW_ENTITIES.Entities;
 
