@@ -46,7 +46,6 @@ void sendMutePacket(const SharedNodePointer& node, AudioMixerClientData&);
 void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
 
 // mix helpers
-inline bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
 inline float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 inline float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
@@ -146,7 +145,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                     mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
                 }
             }
-        } else if (!shouldIgnoreNode(listener, node, _frame)) {
+        } else if (!listenerData->shouldIgnoreNode(listener, node, _frame)) {
             if (!isThrottling) {
                 allStreams(node, &AudioMixerSlave::mixStream);
             } else {
@@ -452,36 +451,6 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
     }
 }
 
-bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node, unsigned int frame) {
-    AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
-    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
-
-    // when this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
-    bool getsAnyIgnored = listenerData->getRequestsDomainListData() && listener->getCanKick();
-
-    bool ignore = true;
-
-    if (nodeData &&
-            // make sure that it isn't being ignored by our listening node
-            (!listener->isIgnoringNodeWithID(node->getUUID()) || (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
-            // and that it isn't ignoring our listening node
-            (!node->isIgnoringNodeWithID(listener->getUUID()) || getsAnyIgnored))  {
-
-        // is either node enabling the space bubble / ignore radius?
-        if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
-            auto& listenerZone = listenerData->getIgnoreZone(frame);
-            auto& nodeZone = nodeData->getIgnoreZone(frame);
-            ignore = listenerBox.touches(nodeZone);
-        } else {
-            ignore = false;
-        }
-    }
-
-    return ignore;
-}
-
-static const float ATTENUATION_START_DISTANCE = 1.0f;
-
 float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition) {
     float gain = 1.0f;
@@ -537,6 +506,7 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
     }
 
     // distance attenuation
+    const float ATTENUATION_START_DISTANCE = 1.0f;
     float distance = glm::length(relativePosition);
     assert(ATTENUATION_START_DISTANCE > EPSILON);
     if (distance >= ATTENUATION_START_DISTANCE) {

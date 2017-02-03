@@ -27,23 +27,22 @@
 
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
+    using IgnoreZone = AABox;
+
 public:
     AudioMixerClientData(const QUuid& nodeID);
     ~AudioMixerClientData();
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
-    using IgnoreZone = AABox;
 
     // locks the mutex to make a copy
     AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream();
 
-    // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
-    // preconditions:
-    //  - frame is monotonically increasing
-    //  - calls are only made to getIgnoreZone(frame + 1) when there are no references left from calls to getIgnoreZone(frame)
-    IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame);
+    // returns whether self (this data's node) should ignore node, memoized by frame
+    // preconditions: frame is monotonically increasing
+    bool shouldIgnore(SharedNodePointer self, SharedNodePointer node, unsigned int frame);
 
     // the following methods should be called from the AudioMixer assignment thread ONLY
     // they are not thread-safe
@@ -108,6 +107,12 @@ public slots:
     void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
+    // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
+    // preconditions:
+    //  - frame is monotonically increasing
+    //  - calls are only made to getIgnoreZone(frame + 1) when there are no references left from calls to getIgnoreZone(frame)
+    IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame);
+
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
 

@@ -59,6 +59,32 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     return NULL;
 }
 
+bool shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
+    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+    if (!nodeData) {
+        return false;
+    }
+
+    bool ignore = true;
+    if ( // the nodes are not ignoring each other explicitly (or are but get data regardless)
+            (!self->isIgnoringNodeWithID(node->getUUID()) ||
+             (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
+            (!node->isIgnoringNodeWithID(self->getUUID()) ||
+             (getsRequestsDomainListData() && self->getCanKick())))  {
+
+        // if either node is enabling an ignore radius, check their proximity
+        if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
+            auto& listenerZone = listenerData->getIgnoreZone(frame);
+            auto& nodeZone = nodeData->getIgnoreZone(frame);
+            ignore = listenerBox.touches(nodeZone);
+        } else {
+            ignore = false;
+        }
+    }
+
+    return ignore;
+}
+
 IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame) {
     // check for a memoized zone
     if (frame != _ignoreZoneMemo.frame.load(std::memory_order_acquire) {
