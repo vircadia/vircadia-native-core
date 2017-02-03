@@ -200,7 +200,7 @@ const QImage& image, bool isLinear, bool doCompress) {
     }
 }
 
-#define CPU_MIPMAPS 0
+#define CPU_MIPMAPS 1
 
 void generateMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip) {
 #if CPU_MIPMAPS

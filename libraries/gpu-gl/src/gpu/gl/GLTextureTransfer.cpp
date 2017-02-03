@@ -113,6 +113,7 @@ void GLTextureTransferHelper::queueExecution(VoidLambda lambda) {
 #define MAX_TRANSFERS_PER_PASS 2
 
 bool GLTextureTransferHelper::process() {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__)
     // Take any new textures or commands off the queue
     VoidLambdaList pendingCommands;
     TextureList newTransferTextures;
@@ -151,6 +152,7 @@ bool GLTextureTransferHelper::process() {
 #endif
         return true;
     }
+    PROFILE_COUNTER_IF_CHANGED(render_gpu_gl, "transferringTextures", size_t, _transferringTextures.size())
 
     static auto lastReport = usecTimestampNow();
     auto now = usecTimestampNow();
