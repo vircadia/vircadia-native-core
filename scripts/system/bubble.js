@@ -177,7 +177,8 @@
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         button = tablet.addButton({
             icon: "icons/tablet-icons/bubble-i.svg",
-            text: buttonName
+            text: buttonName,
+            sortOrder: 4
         });
     }
     onBubbleToggled();

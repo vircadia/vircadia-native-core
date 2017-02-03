@@ -132,7 +132,8 @@ if (Settings.getValue("HUDUIEnabled")) {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     marketplaceButton = tablet.addButton({
         icon: "icons/tablet-icons/market-i.svg",
-        text: "MARKET"
+        text: "MARKET",
+        sortOrder: 9
     });
 }
 

@@ -40,7 +40,8 @@ if (Settings.getValue("HUDUIEnabled")) {
         icon: "icons/tablet-icons/mic-a.svg",
         text: buttonName,
         activeIcon: "icons/tablet-icons/mic-i.svg",
-        activeText: "UNMUTE"
+        activeText: "UNMUTE",
+        sortOrder: 1
     });
 }
 onMuteToggled();

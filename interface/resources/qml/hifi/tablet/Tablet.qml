@@ -30,6 +30,24 @@ Item {
         return -1;
     }
 
+    function sortButtons() {
+        var children = [];
+        for (var i = 0; i < flowMain.children.length; i++) {
+            children[i] = flowMain.children[i];
+        }
+
+        children.sort(function (a, b) {
+            if (a.sortOrder === b.sortOrder) {
+                // subsort by stableOrder, because JS sort is not stable in qml.
+                return a.stableOrder - b.stableOrder;
+            } else {
+                return a.sortOrder - b.sortOrder;
+            }
+        });
+
+        flowMain.children = children;
+    }
+
     // called by C++ code when a button should be added to the tablet
     function addButtonProxy(properties) {
         var component = Qt.createComponent("TabletButton.qml");
@@ -42,6 +60,9 @@ Item {
 
         // pass a reference to the tabletRoot object to the button.
         button.tabletRoot = parent.parent;
+
+        sortButtons();
+
         return button;
     }
 
@@ -221,6 +242,7 @@ Item {
             flowMain.children[index].state = state;
         }
     }
+
     function nextItem() {
         setCurrentItemState("base state");
         var nextColumnIndex = (columnIndex + 3 + 1) % 3;
