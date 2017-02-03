@@ -74,7 +74,7 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
 
     if (targetSize != srcImageSize) {
          PROFILE_RANGE(resource_parse, "processSourceImage Rectify");
-         qDebug(modelLog) << "Resizing texture from " << srcImageSize.x << "x" << srcImageSize.y << " to " << targetSize.x << "x" << targetSize.y;
+         qCDebug(modelLog) << "Resizing texture from " << srcImageSize.x << "x" << srcImageSize.y << " to " << targetSize.x << "x" << targetSize.y;
         return srcImage.scaled(fromGlm(targetSize));
     }
 
