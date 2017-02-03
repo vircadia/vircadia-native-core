@@ -59,7 +59,8 @@ function onHmdChanged(isHmd) {
     } else {
         button.editProperties({
             icon: "icons/tablet-icons/switch-i.svg",
-            text: "VR"
+            text: "VR",
+            sortOrder: 2
         });
     }
     desktopOnlyViews.forEach(function (view) {
@@ -82,7 +83,8 @@ if (headset) {
     } else {
         button = tablet.addButton({
             icon: "icons/tablet-icons/switch-a.svg",
-            text: "SWITCH"
+            text: "SWITCH",
+            sortOrder: 2
         });
     }
     onHmdChanged(HMD.active);

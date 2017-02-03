@@ -253,7 +253,8 @@ var toolBar = (function () {
             tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             activeButton = tablet.addButton({
                 icon: "icons/tablet-icons/edit-i.svg",
-                text: "EDIT"
+                text: "EDIT",
+                sortOrder: 10
             });
         }
 

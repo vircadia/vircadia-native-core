@@ -194,6 +194,7 @@ signals:
 
 protected:
     QUuid _uuid;
+    int _stableOrder;
     mutable std::mutex _mutex;
     QQuickItem* _qmlButton { nullptr };
     QVariantMap _properties;
@@ -206,6 +207,7 @@ protected:
  * @property {string} activeText - button caption when button is active
  * @property {string} activeIcon - url to button icon used when button is active. (50 x 50)
  * @property {string} isActive - true when button is active.
+ * @property {number} sortOrder - determines sort order on tablet.  lower numbers will appear before larger numbers.  default is 100
  */
 
 #endif // hifi_TabletScriptingInterface_h
