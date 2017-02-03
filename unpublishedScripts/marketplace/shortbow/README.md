@@ -10,7 +10,7 @@ which are touched on below.
 It is recommended that you understand the basics of client entity scripts and server entity scripts (and their
 differences) if you plan on digging into the shortbow code.
 
- * Client entity scripts end in `ClientScript.js` and server entity scripts end in `ServerScript.js`.
+ * Client entity scripts end in `ClientEntity.js` and server entity scripts end in `ServerEntity.js`.
  * Server entity scripts are not guaranteed to have access to *other* entities, and should not rely on it.
    * You should not rely on using `Entities.getEntityProperties` to access the properties of entities
      other than the entity that the server entity script is running on. This also applies to other
@@ -44,7 +44,7 @@ the game is stored inside `shortbowGameManager.js`, in the `ShortbowGameManager`
 
 These scripts exist on each enemy that is spawned.
 
-### enemyClientScript.js
+### enemyClientEntity.js
 
 This script handles collision events on the client. There are two collisions events that it is interested in:
 
@@ -54,7 +54,7 @@ This script handles collision events on the client. There are two collisions eve
  1. Collisions with the gate that the enemies roll towards
    1. The gate entity has "GateCollider" in its name
 
-### enemyServerScript.js
+### enemyServerEntity.js
 
 This script acts as a fail-safe to work around some of the limitations that are mentioned under [Notes](#notes).
 In particular, if no client is running the physics simulation of an enemy entity, it may fall through the floor
@@ -64,7 +64,7 @@ the arena.
 
 To handle this, this script is used to periodically send heartbeats to the [ShortbowGameManager](#shortbow-game-manager)
 that runs the game. The heartbeats include the position of the enemy. If the script that received the
-heartbeats hasn't heard from `enemyServerScript.js` in too long, or the entity has moved too far away, it
+heartbeats hasn't heard from `enemyServerEntity.js` in too long, or the entity has moved too far away, it
 will remove it from it's local list of enemies that still need to be destroyed. This ensure that the game
 doesn't get into a "hung" state where it's waiting for an enemy that will never escape through the gate or be
 destroyed.
