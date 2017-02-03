@@ -44,6 +44,7 @@ typedef unsigned long long quint64;
 #include <QVariantMap>
 #include <QVector>
 #include <QtScript/QScriptable>
+#include <QtScript/QScriptValueIterator>
 #include <QReadWriteLock>
 
 #include <JointData.h>
@@ -815,6 +816,11 @@ Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
+
+Q_DECLARE_METATYPE(AvatarEntityMap)
+
+QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value);
+void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap& value);
 
 // faux joint indexes (-1 means invalid)
 const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534; // -2

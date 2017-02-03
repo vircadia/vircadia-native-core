@@ -2309,3 +2309,22 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
         vec3FromScriptValue(intersection, value.intersection);
     }
 }
+
+QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
+    QScriptValue obj = engine->newObject();
+    for (auto entityID : value.keys()) {
+        QScriptValue EntityProperties = engine->newVariant(QVariant::fromValue(value.value(entityID)));
+        QString key = entityID.toString();
+        obj.setProperty(key, EntityProperties);
+    }
+    return obj;
+}
+
+void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap& value) {
+    QScriptValueIterator itr(object);
+    while (itr.hasNext()) {
+        itr.next();
+        QUuid EntityID = QUuid(itr.name());
+        value[EntityID] = qvariant_cast<QByteArray>(itr.value().data().toVariant());
+    }
+}
