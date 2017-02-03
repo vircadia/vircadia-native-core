@@ -24,6 +24,8 @@ var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
+var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
+var TABLET_URL = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
 var NO_HANDS = -1;
 
 // will need to be recaclulated if dimensions of fbx model change.
@@ -103,7 +105,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: {x: this.width, y: this.height, z: this.depth},
-        parentID: MyAvatar.sessionUUID
+        parentID: AVATAR_SELF_ID
     };
 
     // compute position, rotation & parentJointIndex of the tablet
@@ -316,6 +318,7 @@ WebTablet.prototype.register = function() {
 
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
+    children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, jointIndex));
     print("cleanup " + children);
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
