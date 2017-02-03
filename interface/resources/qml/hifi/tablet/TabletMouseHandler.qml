@@ -16,11 +16,11 @@ import "."
 Item {
     id: root
     anchors.fill: parent
-    objectName: "MouseMenuHandlerItem"
+    objectName: "tabletMenuHandlerItem"
 
     MouseArea {
         id: menuRoot;
-        objectName: "MouseMenuHandlerMouseArea"
+        objectName: "tabletMenuHandlerMouseArea"
         anchors.fill: parent
         enabled: d.topMenu !== null
         onClicked: {
@@ -34,7 +34,7 @@ Item {
         property var topMenu: null;
         property var modelMaker: Component { ListModel { } }
         property var menuViewMaker: Component {
-            VrMenuView {
+            TabletMenuView {
                 id: subMenu
                 onSelected: d.handleSelection(subMenu, currentItem, item)
             }
@@ -54,7 +54,7 @@ Item {
         }
 
         function toModel(items) {
-            var result = modelMaker.createObject(desktop);
+            var result = modelMaker.createObject(tabletMenu);
             for (var i = 0; i < items.length; ++i) {
                 var item = items[i];
                 if (!item.visible) continue;
@@ -63,7 +63,9 @@ Item {
                     result.append({"name": item.title, "item": item})
                     break;
                 case MenuItemType.Item:
-                    result.append({"name": item.text, "item": item})
+                    if (item.text !== "Users Online") {
+                        result.append({"name": item.text, "item": item})
+                    }
                     break;
                 case MenuItemType.Separator:
                     result.append({"name": "", "item": item})
@@ -80,10 +82,16 @@ Item {
             if (menuStack.length) {
                 topMenu = menuStack[menuStack.length - 1];
                 topMenu.focus = true;
+                topMenu.forceActiveFocus();
+                // show current menu level on nav bar
+                if (topMenu.objectName === "") {
+                    breadcrumbText.text = "Menu";
+                } else {
+                    breadcrumbText.text = topMenu.objectName;
+                }
             } else {
+                breadcrumbText.text = "Menu";
                 topMenu = null;
-                offscreenFlags.navigationFocused = false;
-                menuRoot.enabled = false;
             }
         }
 
@@ -91,7 +99,7 @@ Item {
             menuStack.push(newMenu);
             topMenu = newMenu;
             topMenu.focus = true;
-            offscreenFlags.navigationFocused = true;
+            topMenu.forceActiveFocus();
         }
 
         function clearMenus() {
@@ -118,12 +126,7 @@ Item {
         function buildMenu(items, targetPosition) {
             var model = toModel(items);
             // Menus must be childed to desktop for Z-ordering
-            var newMenu = menuViewMaker.createObject(desktop, { model: model, z: topMenu ? topMenu.z + 1 : desktop.zLevels.menu, isSubMenu: topMenu !== null });
-            if (targetPosition) {
-                newMenu.x = targetPosition.x
-                newMenu.y = targetPosition.y - newMenu.height / 3 * 1
-            }
-            clampMenuPosition(newMenu);
+            var newMenu = menuViewMaker.createObject(tabletMenu, { model: model, isSubMenu: topMenu !== null });
             pushMenu(newMenu);
             return newMenu;
         }
@@ -137,39 +140,36 @@ Item {
                 case MenuItemType.Menu:
                     var target = Qt.vector2d(topMenu.x, topMenu.y).plus(Qt.vector2d(selectedItem.x + 96, selectedItem.y));
                     buildMenu(item.items, target).objectName = item.title;
+                    // show current menu level on nav bar
+                    breadcrumbText.text = item.title;
                     break;
 
                 case MenuItemType.Item:
                     console.log("Triggering " + item.text)
                     // Don't block waiting for modal dialogs and such that the menu might open.
                     delay.trigger(item);
-                    clearMenus();
                     break;
                 }
         }
 
     }
 
-    function popup(parent, items, point) {
+    function popup(parent, items) {
         d.clearMenus();
-        menuRoot.enabled = true;
         d.buildMenu(items, point);
     }
 
-    function toggle(parent, items, point) {
-        if (d.topMenu) {
-            d.clearMenus();
-            return;
-        }
-        popup(parent, items, point);
-    }
-
     function closeLastMenu() {
-        if (d.menuStack.length) {
+        if (d.menuStack.length > 1) {
             d.popMenu();
             return true;
         }
         return false;
     }
+
+    function previousItem() { d.topMenu.previousItem(); }
+    function nextItem() { d.topMenu.nextItem(); }
+    function selectCurrentItem() { d.topMenu.selectCurrentItem(); }
+    function previousPage() { d.topMenu.previousPage(); }
 
 }

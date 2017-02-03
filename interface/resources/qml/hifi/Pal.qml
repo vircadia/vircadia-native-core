@@ -51,6 +51,7 @@ Rectangle {
 
     // This is the container for the PAL
     Rectangle {
+        property bool punctuationMode: false
         id: palContainer
         // Size
         width: pal.width - 50
@@ -158,8 +159,9 @@ Rectangle {
         onSortIndicatorOrderChanged: sortModel()
 
         TableViewColumn {
+            id: displayNameHeader
             role: "displayName"
-            title: "NAMES"
+            title: table.rowCount + (table.rowCount === 1 ? " NAME" : " NAMES")
             width: nameCardWidth
             movable: false
             resizable: false
@@ -351,6 +353,11 @@ Rectangle {
         visible: iAmAdmin
         color: hifi.colors.lightGrayText
     }
+    TextMetrics {
+        id: displayNameHeaderMetrics
+        text: displayNameHeader.title
+        font: displayNameHeader.font
+    }
     // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
         color: hifi.colors.tableBackgroundLight
@@ -359,7 +366,7 @@ Rectangle {
         anchors.left: table.left
         anchors.top: table.top
         anchors.topMargin: 1
-        anchors.leftMargin: nameCardWidth/2 + 24
+        anchors.leftMargin: nameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6
         RalewayRegular {
             id: helpText
             text: "[?]"
@@ -413,6 +420,16 @@ Rectangle {
                                  "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.")
             onEntered: adminHelpText.color = "#94132e"
             onExited: adminHelpText.color = hifi.colors.redHighlight
+        }
+    }
+    HifiControls.Keyboard {
+        id: keyboard
+        raised: myCard.currentlyEditingDisplayName && HMD.active
+        numeric: parent.punctuationMode
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
         }
     }
     }

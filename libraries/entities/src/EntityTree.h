@@ -267,6 +267,7 @@ public:
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
 
     void initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions);
+    void setHasEntityFilter(bool hasFilter) { _hasEntityEditFilter = hasFilter; }
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
@@ -356,7 +357,7 @@ protected:
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 
-    bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged);
+    bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, bool isAdd);
     bool _hasEntityEditFilter{ false };
     QScriptEngine* _entityEditFilterEngine{};
     QScriptValue _entityEditFilterFunction{};

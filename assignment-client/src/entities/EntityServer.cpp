@@ -294,7 +294,9 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     }
 
     if (readOptionString("entityEditFilter", settingsSectionObject, _entityEditFilter) && !_entityEditFilter.isEmpty()) {
-        // Fetch script from file synchronously. We don't want the server processing edits while a restarting entity server is fetching from a DOS'd source.
+        // Tell the tree that we have a filter, so that it doesn't accept edits until we have a filter function set up.
+        std::static_pointer_cast<EntityTree>(_tree)->setHasEntityFilter(true);
+        // Now fetch script from file asynchronously.
         QUrl scriptURL(_entityEditFilter);
 
         // The following should be abstracted out for use in Agent.cpp (and maybe later AvatarMixer.cpp)
@@ -314,7 +316,7 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         // FIXME: handle atp rquests setup here. See Agent::requestScript()
         qInfo() << "Requesting script at URL" << qPrintable(scriptRequest->getUrl().toString());
         scriptRequest->send();
-        _scriptRequestLoop.exec(); // Block here, but allow the request to be processed and its signals to be handled.
+        qDebug() << "script request sent";
     }
 }
 
@@ -351,6 +353,7 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
     return false;
 }
 void EntityServer::scriptRequestFinished() {
+    qDebug() << "script request completed";
     auto scriptRequest = qobject_cast<ResourceRequest*>(sender());
     const QString urlString = scriptRequest->getUrl().toString();
     if (scriptRequest && scriptRequest->getResult() == ResourceRequest::Success) {
@@ -364,9 +367,7 @@ void EntityServer::scriptRequestFinished() {
                     return hadUncaughtExceptions(_entityEditFilterEngine, _entityEditFilter);
                 });
                 scriptRequest->deleteLater();
-                if (_scriptRequestLoop.isRunning()) {
-                    _scriptRequestLoop.quit();
-                }
+                qDebug() << "script request filter processed";
                 return;
             }
         }
@@ -379,10 +380,8 @@ void EntityServer::scriptRequestFinished() {
     }
     // Hard stop of the assignment client on failure. We don't want anyone to think they have a filter in place when they don't.
     // Alas, only indications will be the above logging with assignment client restarting repeatedly, and clients will not see any entities.
+    qDebug() << "script request failure causing stop";
     stop();
-    if (_scriptRequestLoop.isRunning()) {
-        _scriptRequestLoop.quit();
-    }
 }
 
 void EntityServer::nodeAdded(SharedNodePointer node) {

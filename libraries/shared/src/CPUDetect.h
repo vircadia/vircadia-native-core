@@ -134,7 +134,7 @@ static inline bool cpuSupportsAVX() {
             result = true;
         }
     }
-    return result;    
+    return result;
 }
 
 static inline bool cpuSupportsAVX2() {
@@ -143,11 +143,18 @@ static inline bool cpuSupportsAVX2() {
     bool result = false;
     if (cpuSupportsAVX()) {
 
-        if (__get_cpuid(0x7, &eax, &ebx, &ecx, &edx) && ((ebx & MASK_AVX2) == MASK_AVX2)) {
-            result = true;
+        // Work around a bug where __get_cpuid(0x7) returns wrong values on older GCC
+        // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=77756
+        if (__get_cpuid(0x0, &eax, &ebx, &ecx, &edx) && (eax >= 0x7)) {
+
+            __cpuid_count(0x7, 0x0, eax, ebx, ecx, edx);
+
+            if ((ebx & MASK_AVX2) == MASK_AVX2) {
+                result = true;
+            }
         }
     }
-    return result;    
+    return result;
 }
 
 #else

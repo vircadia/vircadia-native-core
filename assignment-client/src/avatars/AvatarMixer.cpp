@@ -423,12 +423,17 @@ void AvatarMixer::broadcastAvatarData() {
                         nodeData->incrementAvatarOutOfView();
                     } else {
                         detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
-                                        ? AvatarData::SendAllData : AvatarData::IncludeSmallData;
+                                        ? AvatarData::SendAllData : AvatarData::CullSmallData;
                         nodeData->incrementAvatarInView();
                     }
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-                    numAvatarDataBytes += avatarPacketList->write(otherAvatar.toByteArray(detail));
+                    auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
+                    QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+                    bool distanceAdjust = true;
+                    glm::vec3 viewerPosition = nodeData->getPosition();
+                    auto bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+                    numAvatarDataBytes += avatarPacketList->write(bytes);
 
                     avatarPacketList->endSegment();
             });
@@ -588,10 +593,15 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;
             AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
-            if (avatar.processAvatarIdentity(identity)) {
+            bool identityChanged = false;
+            bool displayNameChanged = false;
+            avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
+            if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
-                nodeData->setAvatarSessionDisplayNameMustChange(true);
+                if (displayNameChanged) {
+                    nodeData->setAvatarSessionDisplayNameMustChange(true);
+                }
             }
         }
     }

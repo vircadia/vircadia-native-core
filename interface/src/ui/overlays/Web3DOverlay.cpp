@@ -18,15 +18,17 @@
 #include <QtQuick/QQuickItem>
 #include <QtQml/QQmlContext>
 
+#include <AbstractViewStateInterface.h>
+#include <gpu/Batch.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
-#include <TextureCache.h>
+#include <gl/OffscreenQmlSurface.h>
 #include <PathUtils.h>
-#include <gpu/Batch.h>
 #include <RegisteredMetaTypes.h>
+#include <TabletScriptingInterface.h>
+#include <TextureCache.h>
 #include <AbstractViewStateInterface.h>
-
 #include <gl/OffscreenQmlSurface.h>
 #include <gl/OffscreenQmlSurfaceCache.h>
 
@@ -37,7 +39,7 @@ static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 const QString Web3DOverlay::TYPE = "web3d";
 const QString Web3DOverlay::QML = "Web3DOverlay.qml";
-Web3DOverlay::Web3DOverlay() : _dpi(DPI) { 
+Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
@@ -51,13 +53,31 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     _url(Web3DOverlay->_url),
     _scriptURL(Web3DOverlay->_scriptURL),
     _dpi(Web3DOverlay->_dpi),
-    _resolution(Web3DOverlay->_resolution)
+    _resolution(Web3DOverlay->_resolution),
+    _showKeyboardFocusHighlight(Web3DOverlay->_showKeyboardFocusHighlight)
 {
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Web3DOverlay::~Web3DOverlay() {
     if (_webSurface) {
+        QQuickItem* rootItem = _webSurface->getRootItem();
+
+        if (rootItem && rootItem->objectName() == "tabletRoot") {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr, nullptr);
+        }
+
+        // Fix for crash in QtWebEngineCore when rapidly switching domains
+        // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
+        if (rootItem) {
+            QObject* obj = rootItem->findChild<QObject*>("webEngineView");
+            if (obj) {
+                // stop loading
+                QMetaObject::invokeMethod(obj, "stop");
+            }
+        }
+
         _webSurface->pause();
         _webSurface->disconnect(_connection);
 
@@ -92,15 +112,54 @@ Web3DOverlay::~Web3DOverlay() {
 }
 
 void Web3DOverlay::update(float deltatime) {
-    // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
-    // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
-    /*
-    if (usecTimestampNow() > _transformExpiry) {
-        Transform transform = getTransform();
-        applyTransformTo(transform);
-        setTransform(transform);
+    if (_webSurface) {
+        // update globalPosition
+        _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
-    */
+}
+
+QString Web3DOverlay::pickURL() {
+    QUrl sourceUrl(_url);
+    if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
+        _url.toLower().endsWith(".htm") || _url.toLower().endsWith(".html")) {
+
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        return "Web3DOverlay.qml";
+    } else {
+        return QUrl::fromLocalFile(PathUtils::resourcesPath()).toString() + "/" + _url;
+    }
+}
+
+
+void Web3DOverlay::loadSourceURL() {
+
+    QUrl sourceUrl(_url);
+    if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
+        _url.toLower().endsWith(".htm") || _url.toLower().endsWith(".html")) {
+
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        _webSurface->load("Web3DOverlay.qml");
+        _webSurface->resume();
+        _webSurface->getRootItem()->setProperty("url", _url);
+        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
+        _webSurface->getRootContext()->setContextProperty("ApplicationInterface", qApp);
+
+    } else {
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
+        _webSurface->load(_url, [&](QQmlContext* context, QObject* obj) {});
+        _webSurface->resume();
+
+        if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            auto flags = tabletScriptingInterface->getFlags();
+            _webSurface->getRootContext()->setContextProperty("offscreenFlags", flags);
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
+
+            // Override min fps for tablet UI, for silky smooth scrolling
+            _webSurface->setMaxFps(90);
+        }
+    }
+    _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
@@ -111,10 +170,11 @@ void Web3DOverlay::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
-        _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(QML);
+        _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(pickURL());
         _webSurface->setMaxFps(10);
         // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
         // and the current rendering load)
+        loadSourceURL();
         _webSurface->resume();
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
         _webSurface->getRootItem()->setProperty("url", _url);
@@ -143,7 +203,7 @@ void Web3DOverlay::render(RenderArgs* args) {
                 point.setPos(windowPoint);
                 QList<QTouchEvent::TouchPoint> touchPoints;
                 touchPoints.push_back(point);
-                QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, 
+                QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased,
                     touchPoints);
                 touchEvent->setWindow(_webSurface->getWindow());
                 touchEvent->setDevice(&_touchDevice);
@@ -160,7 +220,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     vec4 color(toGlm(getColor()), getAlpha());
 
     Transform transform = getTransform();
-    
+
     // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
     // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
     /*
@@ -189,9 +249,9 @@ void Web3DOverlay::render(RenderArgs* args) {
     batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
-        geometryCache->bindTransparentWebBrowserProgram(batch);
+        geometryCache->bindTransparentWebBrowserProgram(batch, _isAA);
     } else {
-        geometryCache->bindOpaqueWebBrowserProgram(batch);
+        geometryCache->bindOpaqueWebBrowserProgram(batch, _isAA);
     }
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
@@ -230,7 +290,7 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
 
     if (event.getType() == PointerEvent::Move) {
         // Forward a mouse move event to the Web surface.
-        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, 
+        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton,
             Qt::NoButton, Qt::NoModifier);
         QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
     }
@@ -309,6 +369,11 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
     if (dpi.isValid()) {
         _dpi = dpi.toFloat();
     }
+
+    auto showKeyboardFocusHighlight = properties["showKeyboardFocusHighlight"];
+    if (showKeyboardFocusHighlight.isValid()) {
+        _showKeyboardFocusHighlight = showKeyboardFocusHighlight.toBool();
+    }
 }
 
 QVariant Web3DOverlay::getProperty(const QString& property) {
@@ -324,6 +389,9 @@ QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "dpi") {
         return _dpi;
     }
+    if (property == "showKeyboardFocusHighlight") {
+        return _showKeyboardFocusHighlight;
+    }
     return Billboard3DOverlay::getProperty(property);
 }
 
@@ -331,7 +399,7 @@ void Web3DOverlay::setURL(const QString& url) {
     _url = url;
     if (_webSurface) {
         AbstractViewStateInterface::instance()->postLambdaEvent([this, url] {
-            _webSurface->getRootItem()->setProperty("url", url);
+            loadSourceURL();
         });
     }
 }

@@ -468,7 +468,9 @@ std::chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_po
     timestamp = std::max(now, nextTimestamp);
 
     // sleep until the next frame should start
-    std::this_thread::sleep_until(timestamp);
+    // WIN32 sleep_until is broken until VS2015 Update 2
+    // instead, std::max (above) guarantees that timestamp >= now, so we can sleep_for
+    std::this_thread::sleep_for(timestamp - now);
 
     return duration;
 }

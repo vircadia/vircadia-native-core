@@ -55,7 +55,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::Unignore);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::VariableAvatarData);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:

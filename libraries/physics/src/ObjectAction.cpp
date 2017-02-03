@@ -133,6 +133,7 @@ QVariantMap ObjectAction::getArguments() {
                 arguments["::no-motion-state"] = true;
             }
         }
+        arguments["isMine"] = isMine();
     });
     return arguments;
 }

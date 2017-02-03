@@ -266,6 +266,9 @@ void Agent::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
 }
 
 void Agent::selectAudioFormat(const QString& selectedCodecName) {
+    if (_selectedCodecName == selectedCodecName) {
+        return;
+    }
     _selectedCodecName = selectedCodecName;
 
     qDebug() << "Selected Codec:" << _selectedCodecName;
@@ -351,9 +354,15 @@ void Agent::executeScript() {
         Transform audioTransform;
         audioTransform.setTranslation(scriptedAvatar->getPosition());
         audioTransform.setRotation(scriptedAvatar->getOrientation());
-        AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber,
+        QByteArray encodedBuffer;
+        if (_encoder) {
+            _encoder->encode(audio, encodedBuffer);
+        } else {
+            encodedBuffer = audio;
+        }
+        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber,
             audioTransform, scriptedAvatar->getPosition(), glm::vec3(0),
-            PacketType::MicrophoneAudioNoEcho);
+            PacketType::MicrophoneAudioNoEcho, _selectedCodecName);
     });
 
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
@@ -502,8 +511,8 @@ void Agent::processAgentAvatar() {
     if (!_scriptEngine->isFinished() && _isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
-        QByteArray avatarByteArray = scriptedAvatar->toByteArray((randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) 
-                                                                    ? AvatarData::SendAllData : AvatarData::CullSmallData);
+        AvatarData::AvatarDataDetail dataDetail = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? AvatarData::SendAllData : AvatarData::CullSmallData;
+        QByteArray avatarByteArray = scriptedAvatar->toByteArray(dataDetail, 0, scriptedAvatar->getLastSentJointData());
         scriptedAvatar->doneEncoding(true);
 
         static AvatarDataSequenceNumber sequenceNumber = 0;

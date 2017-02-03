@@ -892,6 +892,16 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
             return controllerRightHandTransform.getRotation();
         }
+        case CAMERA_MATRIX_INDEX: {
+            glm::quat rotation;
+            if (_skeletonModel && _skeletonModel->isActive()) {
+                int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
+                if (headJointIndex >= 0) {
+                    _skeletonModel->getAbsoluteJointRotationInRigFrame(headJointIndex, rotation);
+                }
+            }
+            return Quaternions::Y_180 * rotation * Quaternions::Y_180;
+        }
         default: {
             glm::quat rotation;
             _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
@@ -917,6 +927,16 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         case CONTROLLER_RIGHTHAND_INDEX: {
             Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
             return controllerRightHandTransform.getTranslation();
+        }
+        case CAMERA_MATRIX_INDEX: {
+            glm::vec3 translation;
+            if (_skeletonModel && _skeletonModel->isActive()) {
+                int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
+                if (headJointIndex >= 0) {
+                    _skeletonModel->getAbsoluteJointTranslationInRigFrame(headJointIndex, translation);
+                }
+            }
+            return Quaternions::Y_180 * translation * Quaternions::Y_180;
         }
         default: {
             glm::vec3 translation;

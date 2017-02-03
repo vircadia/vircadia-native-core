@@ -40,17 +40,17 @@ public:
     void createDesktop(const QUrl& url);
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void hide(const QString& name);
+    bool isVisible(const QString& name);
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);
     bool navigationFocused();
     void setNavigationFocused(bool focused);
     void unfocusWindows();
-    void toggleMenu(const QPoint& screenCoordinates);
 
 
     // Setting pinned to true will hide all overlay elements on the desktop that don't have a pinned flag
     void setPinned(bool pinned = true);
-
+    
     void togglePinned();
     void setConstrainToolbarToCenterX(bool constrained);
 
@@ -59,7 +59,7 @@ public:
     QObject* getFlags();
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
-
+    QObject* getRootMenu();
     enum Icon {
         ICON_NONE = 0,
         ICON_QUESTION,

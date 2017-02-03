@@ -170,8 +170,9 @@ var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
     var that = {},
         toolBar,
-        systemToolbar,
-        activeButton;
+        activeButton = null,
+        systemToolbar = null,
+        tablet = null;
 
     function createNewEntity(properties) {
         Settings.setValue(EDIT_SETTING, false);
@@ -196,7 +197,12 @@ var toolBar = (function () {
 
     function cleanup() {
         that.setActive(false);
-        systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
+        if (tablet) {
+            tablet.removeButton(activeButton);
+        }
+        if (systemToolbar) {
+            systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
+        }
     }
 
     function addButton(name, image, handler) {
@@ -204,7 +210,10 @@ var toolBar = (function () {
         var button = toolBar.addButton({
             objectName: name,
             imageURL: imageUrl,
-            buttonState: 1,
+            imageOffOut: 1,
+            imageOffIn: 2,
+            imageOnOut: 0,
+            imageOnIn: 2,
             alpha: 0.9,
             visible: true
         });
@@ -230,16 +239,24 @@ var toolBar = (function () {
             }
         });
 
-        systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
-        activeButton = systemToolbar.addButton({
-            objectName: EDIT_TOGGLE_BUTTON,
-            imageURL: TOOLS_PATH + "edit.svg",
-            visible: true,
-            alpha: 0.9,
-            buttonState: 1,
-            hoverState: 3,
-            defaultState: 1
-        });
+
+        if (Settings.getValue("HUDUIEnabled")) {
+            systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
+            activeButton = systemToolbar.addButton({
+                objectName: EDIT_TOGGLE_BUTTON,
+                imageURL: TOOLS_PATH + "edit.svg",
+                visible: true,
+                alpha: 0.9,
+                defaultState: 1
+            });
+        } else {
+            tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            activeButton = tablet.addButton({
+                icon: "icons/tablet-icons/edit-i.svg",
+                text: "EDIT"
+            });
+        }
+
         activeButton.clicked.connect(function() {
             that.toggle();
         });
@@ -439,9 +456,7 @@ var toolBar = (function () {
 
     that.toggle = function () {
         that.setActive(!isActive);
-        activeButton.writeProperty("buttonState", isActive ? 0 : 1);
-        activeButton.writeProperty("defaultState", isActive ? 0 : 1);
-        activeButton.writeProperty("hoverState", isActive ? 2 : 3);
+        activeButton.editProperties({isActive: isActive});
     };
 
     that.setActive = function (active) {
@@ -483,7 +498,6 @@ var toolBar = (function () {
             toolBar.writeProperty("shown", false);
             toolBar.writeProperty("shown", true);
         }
-        // toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
@@ -703,7 +717,9 @@ function mouseClickEvent(event) {
         toolBar.setActive(true);
         var pickRay = result.pickRay;
         var foundEntity = result.entityID;
-
+        if (foundEntity === HMD.tabletID) {
+            return;
+        }
         properties = Entities.getEntityProperties(foundEntity);
         if (isLocked(properties)) {
             if (wantDebug) {
