@@ -33,7 +33,8 @@ if (Settings.getValue("HUDUIEnabled")) {
     button = tablet.addButton({
         icon: "icons/tablet-icons/users-i.svg",
         text: "USERS",
-        isActive: Menu.isOptionChecked(MENU_ITEM)
+        isActive: Menu.isOptionChecked(MENU_ITEM),
+        sortOrder: 11
     });
 }
 

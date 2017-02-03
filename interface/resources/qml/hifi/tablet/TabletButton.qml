@@ -11,6 +11,8 @@ Item {
     property bool isActive: false
     property bool inDebugMode: false
     property bool isEntered: false
+    property double sortOrder: 100
+    property int stableOrder: 0
     property var tabletRoot;
     width: 129
     height: 129

@@ -388,10 +388,13 @@ QQuickItem* TabletProxy::getQmlMenu() const {
 //
 
 const QString UUID_KEY = "uuid";
+const QString STABLE_ORDER_KEY = "stableOrder";
+static int s_stableOrder = 1;
 
-TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) : _uuid(QUuid::createUuid()), _properties(properties) {
+TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) : _uuid(QUuid::createUuid()), _stableOrder(++s_stableOrder), _properties(properties) {
     // this is used to uniquely identify this button.
     _properties[UUID_KEY] = _uuid;
+    _properties[STABLE_ORDER_KEY] = _stableOrder;
 }
 
 void TabletButtonProxy::setQmlButton(QQuickItem* qmlButton) {
