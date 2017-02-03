@@ -143,6 +143,7 @@ var ONE_VEC = {
 };
 
 var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
+var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 
 var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
 var INCHES_TO_METERS = 1.0 / 39.3701;
@@ -895,9 +896,7 @@ function MyController(hand) {
         if (!SHOW_GRAB_POINT_SPHERE) {
             return;
         }
-        if (!MyAvatar.sessionUUID) {
-            return;
-        }
+
         if (!this.grabPointSphere) {
             this.grabPointSphere = Overlays.addOverlay("sphere", {
                 localPosition: getGrabPointSphereOffset(this.handToController()),
@@ -909,7 +908,7 @@ function MyController(hand) {
                 visible: true,
                 ignoreRayIntersection: true,
                 drawInFront: false,
-                parentID: MyAvatar.sessionUUID,
+                parentID: AVATAR_SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
                                                          "_CONTROLLER_RIGHTHAND" :
                                                          "_CONTROLLER_LEFTHAND")
@@ -961,9 +960,6 @@ function MyController(hand) {
         if (this.stylus) {
             return;
         }
-        if (!MyAvatar.sessionUUID) {
-            return;
-        }
 
         var stylusProperties = {
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
@@ -977,7 +973,7 @@ function MyController(hand) {
             visible: true,
             ignoreRayIntersection: true,
             drawInFront: false,
-            parentID: MyAvatar.sessionUUID,
+            parentID: AVATAR_SELF_ID,
             parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
                                                      "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
                                                      "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
@@ -2341,7 +2337,7 @@ function MyController(hand) {
             }
 
             var reparentProps = {
-                parentID: MyAvatar.sessionUUID,
+                parentID: AVATAR_SELF_ID,
                 parentJointIndex: handJointIndex,
                 velocity: {x: 0, y: 0, z: 0},
                 angularVelocity: {x: 0, y: 0, z: 0}
@@ -2478,7 +2474,7 @@ function MyController(hand) {
         if (this.state == STATE_HOLD && now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
             this.lastUnequipCheckTime = now;
 
-            if (props.parentID == MyAvatar.sessionUUID) {
+            if (props.parentID == AVATAR_SELF_ID) {
                 var handPosition;
                 if (this.ignoreIK) {
                     handPosition = getControllerWorldLocation(this.handToController(), false).position;
@@ -2572,7 +2568,7 @@ function MyController(hand) {
     };
 
     this.maybeScale = function(props) {
-        if (!objectScalingEnabled) {
+        if (!objectScalingEnabled || this.isTablet(this.grabbedEntity)) {
             return;
         }
 
@@ -2911,7 +2907,7 @@ function MyController(hand) {
             var pos3D = intersectInfo.point;
 
             if (this.state == STATE_OVERLAY_STYLUS_TOUCHING &&
-                !this.deadspotExpired &&
+                !this.tabletStabbed &&
                 intersectInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_TOO_CLOSE) {
                 // they've stabbed the tablet, don't send events until they pull back
                 this.tabletStabbed = true;
@@ -2919,8 +2915,15 @@ function MyController(hand) {
                 this.tabletStabbedPos3D = pos3D;
                 return;
             }
+
             if (this.tabletStabbed) {
-                return;
+                var origin = {x: this.tabletStabbedPos2D.x, y: this.tabletStabbedPos2D.y, z: 0};
+                var point = {x: pos2D.x, y: pos2D.y, z: 0};
+                var offset = Vec3.distance(origin, point);
+                var radius = 0.05;
+                if (offset < radius) {
+                    return;
+                }
             }
 
             if (Overlays.keyboardFocusOverlay != this.grabbedOverlay) {
@@ -3012,7 +3015,7 @@ function MyController(hand) {
     };
 
     this.thisHandIsParent = function(props) {
-        if (props.parentID != MyAvatar.sessionUUID) {
+        if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
             return false;
         }
 
@@ -3046,16 +3049,21 @@ function MyController(hand) {
         // find children of avatar's hand joint
         var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
         var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
+        children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, handJointIndex));
+
         // find children of faux controller joint
         var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
                                                           "_CONTROLLER_RIGHTHAND" :
                                                           "_CONTROLLER_LEFTHAND");
         children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
+        children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerJointIndex));
+
         // find children of faux camera-relative controller joint
         var controllerCRJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
                                                             "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
                                                             "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
         children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerCRJointIndex));
+        children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerCRJointIndex));
 
         children.forEach(function(childID) {
             if (childID !== _this.stylus) {

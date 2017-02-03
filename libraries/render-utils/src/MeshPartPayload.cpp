@@ -150,11 +150,11 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (!enableTextures) {
         batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
         batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, nullptr);
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, nullptr);
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, nullptr);
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, nullptr);
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, textureCache->getBlueTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, textureCache->getBlackTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
         return;
     }
 

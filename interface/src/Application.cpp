@@ -541,6 +541,9 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
+const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 100.0f;
+const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
+
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
     _shouldRunServer(runServer),
@@ -558,6 +561,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _hmdTabletScale("hmdTabletScale", DEFAULT_HMD_TABLET_SCALE_PERCENT),
+    _desktopTabletScale("desktopTabletScale", DEFAULT_DESKTOP_TABLET_SCALE_PERCENT),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
@@ -2317,6 +2322,14 @@ void Application::setFieldOfView(float fov) {
         _fieldOfView.set(fov);
         resizeGL();
     }
+}
+
+void Application::setHMDTabletScale(float hmdTabletScale) {
+    _hmdTabletScale.set(hmdTabletScale);
+}
+
+void Application::setDesktopTabletScale(float desktopTabletScale) {
+    _desktopTabletScale.set(desktopTabletScale);
 }
 
 void Application::setSettingConstrainToolbarPosition(bool setting) {
