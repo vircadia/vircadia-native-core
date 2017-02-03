@@ -50,11 +50,11 @@ public:
     // returns a new or existing HRTF object for the given stream from the given node
     AudioHRTF& hrtfForStream(const QUuid& nodeID, const QUuid& streamID = QUuid()) { return _nodeSourcesHRTFMap[nodeID][streamID]; }
 
-    // remove HRTFs for all sources from this node
-    void removeHRTFsForNode(const QUuid& nodeID) { _nodeSourcesHRTFMap.erase(nodeID); }
-
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
+
+    // remove all sources and data from this node
+    void removeNode(const QUuid& nodeID) { _nodeSourcesIgnoreMap.erase(nodeID); _nodeSourcesHRTFMap.erase(nodeID); }
 
     void removeAgentAvatarAudioStream();
 
@@ -122,6 +122,13 @@ private:
         std::mutex mutex;
     };
     IgnoreZoneMemo _ignoreZoneMemo;
+
+    struct IgnoreNodeData {
+        std::atomic<bool> flag { false };
+        bool ignore { false };
+    };
+    using NodeSourcesIgnoreMap = std::unordered_map<QUuid, IgnoreNodeData>;
+    NodeSourcesIgnoreMap _nodeSourcesIgnoreMap;
 
     using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
     using NodeSourcesHRTFMap = std::unordered_map<QUuid, HRTFMap>;

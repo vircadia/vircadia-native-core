@@ -60,12 +60,23 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
 }
 
 bool shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
+    // this is symmetric over self / node; they cache their computations to reduce work by 2x
+
+    auto& localCache = _nodeSourcesIgnoreMap[node->getUUID()];
+    if (localCache.isCached) {
+        assert(localCache.isCached.is_lock_free());
+        bool shouldIgnore = localCache.shouldIgnore;
+        localCache.isCached = false;
+        return shouldIgnore;
+    }
+
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
     if (!nodeData) {
         return false;
     }
 
-    bool ignore = true;
+    // compute shouldIgnore
+    bool shouldIgnore = true;
     if ( // the nodes are not ignoring each other explicitly (or are but get data regardless)
             (!self->isIgnoringNodeWithID(node->getUUID()) ||
              (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
@@ -76,13 +87,20 @@ bool shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, un
         if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
             auto& listenerZone = listenerData->getIgnoreZone(frame);
             auto& nodeZone = nodeData->getIgnoreZone(frame);
-            ignore = listenerBox.touches(nodeZone);
+            shouldIgnore = listenerBox.touches(nodeZone);
         } else {
-            ignore = false;
+            shouldIgnore = false;
         }
     }
 
-    return ignore;
+    remoteCache = nodeData._nodeSourcesIgnoreMap[self->getUUID()];
+    // do not reset the cache until it has been used to avoid a data race
+    if (!remoteCache.isCached) {
+        cache.shouldIgnore = shouldIgnore;
+        remoteCache.isCached = true;
+    }
+
+    return shouldIgnore;
 }
 
 IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame) {

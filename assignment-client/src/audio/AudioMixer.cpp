@@ -184,8 +184,7 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            QUuid killedUUID = killedNode->getUUID();
-            clientData->removeHRTFsForNode(killedUUID);
+            clientData->removeNode(killedNode->getUUID());
         }
     });
 }
