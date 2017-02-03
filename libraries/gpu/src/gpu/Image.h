@@ -37,8 +37,20 @@ namespace image {
     
     Byte mix5_4(const Byte x, const Byte y, const Byte a) { return mix<5, 4>(x, y, a); }
     Byte mix6_4(const Byte x, const Byte y, const Byte a) { return mix<6, 4>(x, y, a); }
-    
-    
+
+
+
+    // Coordinate and count types
+    using Coord = uint16_t;
+    using Coord2 = glm::u16vec2;
+    using Count = uint32_t;
+
+    // Maximum pixel along one direction coord is 32768 
+    static const Coord MAX_COORD { 32768 };
+    // Maximum number of pixels 
+    static const Count MAX_COUNT { MAX_COORD * MAX_COORD };
+
+
     namespace pixel {
         
         struct RGB32 {
@@ -82,6 +94,8 @@ namespace image {
         public:
             using Format = F;
             using Storage = S;
+
+            static const uint32_t SIZE { sizeof(S) };
 
             Format val { Format() };
 
@@ -191,14 +205,75 @@ namespace image {
     template <> void uncompress(const CB_BC4& src, PB_RGBA32& dst);
     
     
+    template <typename P>
+    class PixelArray {
+    public:
+        using Pixel = P;
+        using Storage = typename P::Storage;
+        using Storages = std::vector<Storage>;
+
+        static int evalNumPixels(size_t byteSize) {
+            size_t numPixels = byteSize / Pixel::SIZE;
+            if (byteSize > numPixels * Pixel::SIZE) {
+                numPixels++;
+            }
+            return (int)numPixels;
+        };
+        static size_t evalByteSize(int numPixels) {
+            return numPixels * Pixel::SIZE;
+        };
+
+        PixelArray(size_t byteSize, const void* bytes) {
+            setBytes(byteSize, bytes);
+        }
+
+        int numPixels() const { return _storages.size(); }
+        size_t byteSize() const { return evalByteSize(_storages.size()); }
+
+        Storages _storages;
+
+    private:
+        void setBytes(size_t byteSize, const void* bytes) {
+            _storages = Storages(evalNumPixels(byteSize));
+            if (bytes) {
+                memcpy(_storages.data(), bytes, byteSize);
+            }
+        }
+    };
+
     template <typename B>
     class PixelBlockArray {
     public:
         using Block = B;
-        
         using Blocks = std::vector<Block>;
-        
+
+        static int evalNumBlocks(size_t byteSize) {
+            size_t numBlocks = byteSize / Block::SIZE;
+            if (byteSize > numBlocks * Block::SIZE) {
+                numBlocks++;
+            }
+            return (int) numBlocks;
+        };
+        static size_t evalByteSize(int numBlocks) {
+            return numBlocks * Block::SIZE;
+        };
+
+        PixelBlockArray(size_t byteSize, const void* bytes) {
+            setBytes(byteSize, bytes);
+        }
+
+        int numBlocks() const { return evalByteSize(_blocks.size()); }
+        size_t byteSize() const { return evalByteSize(_blocks.size()); }
+
         Blocks _blocks;
+
+    private:
+        void setBytes(size_t byteSize, const void* bytes) {
+            _blocks = Blocks(evalNumBlocks(byteSize));
+            if (bytes) {
+                memcpy(_blocks.data(), bytes, byteSize);
+            }
+        }
     };
     
     class Grid {
@@ -247,7 +322,7 @@ namespace image {
     };
     
     template <typename T>
-    class Pixmap {
+    class Tilemap {
     public:
         using Tile = T;
         using Block = typename T::Block;
@@ -260,5 +335,55 @@ namespace image {
             
         }
        
+    };
+
+    class Dim {
+    public:
+
+        Coord2 _dims { 0 };
+
+        static Coord cap(Coord c) { return (c < MAX_COORD ? c : MAX_COORD); }
+        static Coord2 cap(const Coord2& dims) { return Coord2(cap(dims.x), cap(dims.y)); }
+
+        static Count numPixels(const Coord2& dims) { return Count(cap(dims.x)) * Count(cap(dims.y)); }
+
+
+        static Coord nextMip(Coord c) { return (c > 1 ? (c >> 1) : c); }
+        static Coord2 nextMip(const Coord2& dims) { return Coord2(nextMip(dims.x), nextMip(dims.y)); }
+
+        Dim(Coord w, Coord h) : _dims(w, h) {}
+        Dim(const Coord2& dims) : _dims(dims) {}
+
+        Count numPixels() const { return Dim::numPixels(_dims); }
+        Dim nextMip() const { return Dim(nextMip(_dims)); }
+    };
+
+    template < typename P > class Surface {
+    public:
+        using Pixel = P;
+        using Format = typename P::Format;
+        using Pixels = pixel::Pixels<P>;
+
+        Dim _dims { 0, 0 };
+        Pixels _pixels;
+
+        Surface(Coord width, Coord height, size_t byteSize, const void* bytes) :
+            _dims(width, height),
+            _pixels(byteSize, bytes)
+        {}
+
+        void downsample() {
+            Dim subDim = _dims.nextMip();
+
+            Surface next()
+
+
+            for (int y = 0; y < _dims.y; y++) {
+                for (int x = 0; x < _dims.x; x++) {
+
+                }
+            }
+        }
+
     };
 }

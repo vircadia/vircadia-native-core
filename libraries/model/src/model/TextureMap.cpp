@@ -274,7 +274,10 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         
         auto pb0_s = sizeof(pb0);
 
-        image::Pixmap<image::PixRGB32> theMap();
+        image::Surface<image::PixRGB32> surface(image.width(), image.height(), image.byteCount(), image.constBits());
+
+        auto sub = surface.downsample();
+
 
        // theMap(image.width(), image.height(), image.byteCount(), image.constBits());
 
