@@ -27,6 +27,56 @@
 
 #include "ModelFormatLogging.h"
 
+void FBXMaterial::getTextureNames(QSet<QString>& textureList) const {
+    if (!normalTexture.isNull()) {
+        textureList.insert(normalTexture.name);
+    }
+    if (!albedoTexture.isNull()) {
+        textureList.insert(albedoTexture.name);
+    }
+    if (!opacityTexture.isNull()) {
+        textureList.insert(opacityTexture.name);
+    }
+    if (!glossTexture.isNull()) {
+        textureList.insert(glossTexture.name);
+    }
+    if (!roughnessTexture.isNull()) {
+        textureList.insert(roughnessTexture.name);
+    }
+    if (!specularTexture.isNull()) {
+        textureList.insert(specularTexture.name);
+    }
+    if (!metallicTexture.isNull()) {
+        textureList.insert(metallicTexture.name);
+    }
+    if (!emissiveTexture.isNull()) {
+        textureList.insert(emissiveTexture.name);
+    }
+    if (!occlusionTexture.isNull()) {
+        textureList.insert(occlusionTexture.name);
+    }
+    if (!scatteringTexture.isNull()) {
+        textureList.insert(scatteringTexture.name);
+    }
+    if (!lightmapTexture.isNull()) {
+        textureList.insert(lightmapTexture.name);
+    }
+}
+
+void FBXMaterial::setMaxNumPixelsPerTexture(int maxNumPixels) {
+    normalTexture.maxNumPixels = maxNumPixels;
+    albedoTexture.maxNumPixels = maxNumPixels;
+    opacityTexture.maxNumPixels = maxNumPixels;
+    glossTexture.maxNumPixels = maxNumPixels;
+    roughnessTexture.maxNumPixels = maxNumPixels;
+    specularTexture.maxNumPixels = maxNumPixels;
+    metallicTexture.maxNumPixels = maxNumPixels;
+    emissiveTexture.maxNumPixels = maxNumPixels;
+    occlusionTexture.maxNumPixels = maxNumPixels;
+    scatteringTexture.maxNumPixels = maxNumPixels;
+    lightmapTexture.maxNumPixels = maxNumPixels;
+}
+
 bool FBXMaterial::needTangentSpace() const {
     return !normalTexture.isNull();
 }
