@@ -33,16 +33,17 @@ public:
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
+    using IgnoreZone = AABox;
 
     // locks the mutex to make a copy
     AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream();
 
-    // returns an ignore box, memoized by frame (lockless if the box is already memoized)
+    // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
     // preconditions:
     //  - frame is monotonically increasing
-    //  - calls are only made to getIgnoreBox(frame + 1) when there are no references left from calls to getIgnoreBox(frame)
-    AABox& AudioMixerClientData::getIgnoreBox(unsigned int frame);
+    //  - calls are only made to getIgnoreZone(frame + 1) when there are no references left from calls to getIgnoreZone(frame)
+    IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame);
 
     // the following methods should be called from the AudioMixer assignment thread ONLY
     // they are not thread-safe
@@ -110,12 +111,12 @@ private:
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
 
-    struct IgnoreBoxMemo {
-        AABox box;
+    struct IgnoreZoneMemo {
+        IgnoreZone zone;
         std::atomic<unsigned int> frame { 0 };
         std::mutex mutex;
     };
-    IgnoreBoxMemo _ignoreBoxMemo;
+    IgnoreZoneMemo _ignoreZoneMemo;
 
     using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
     using NodeSourcesHRTFMap = std::unordered_map<QUuid, HRTFMap>;

@@ -469,9 +469,9 @@ bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer
 
         // is either node enabling the space bubble / ignore radius?
         if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
-            AABox& listenerBox = listenerData->getIgnoreBox(frame);
-            AABox& nodeBox = nodeData->getIgnoreBox(frame);
-            ignore = listenerBox.touches(nodeBox);
+            auto& listenerZone = listenerData->getIgnoreZone(frame);
+            auto& nodeZone = nodeData->getIgnoreZone(frame);
+            ignore = listenerBox.touches(nodeZone);
         } else {
             ignore = false;
         }

@@ -59,10 +59,12 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     return NULL;
 }
 
-AABox& AudioMixerClientData::getIgnoreBox(unsigned int frame) {
-    // check for a memoized box
-    if (frame != _ignoreBoxMemo.frame.load(std::memory_order_acquire) {
+IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame) {
+    // check for a memoized zone
+    if (frame != _ignoreZoneMemo.frame.load(std::memory_order_acquire) {
         stream = getAvatarAudioStream();
+
+        // get the initial dimensions from the stream
         glm::vec3 corner = stream ? stream->getAvatarBoundingBoxCorner() : glm::vec3(0);
         glm::vec3 scale = stream ? stream->getAvatarBoundingBoxScale() : glm::vec3(0);
 
@@ -71,29 +73,30 @@ AABox& AudioMixerClientData::getIgnoreBox(unsigned int frame) {
         if (glm::any(glm::lessThan(scale, MIN_IGNORE_BOX_SCALE))) {
             scale = MIN_IGNORE_BOX_SCALE;
         }
-        // quadruple the scale
+
+        // quadruple the scale (this is arbitrary number chosen for comfort)
         const float IGNORE_BOX_SCALE_FACTOR = 4.0f;
         scale *= IGNORE_BOX_SCALE_FACTOR;
 
-        // create the box
+        // create the box (we use a box for the zone for convenience)
         AABox box(corner, scale);
 
-        // update the memoized box
+        // update the memoized zone
         // this may be called by multiple threads concurrently,
         // so take a lock and only update the memo if this call is first.
         // this prevents concurrent updates from invalidating the returned reference
         // (contingent on the preconditions listed in the header).
-        std::lock_guard lock(_ignoreBoxMemo.mutex);
-        if (frame != _ignoreBoxMemo.frame.load(std::memory_order_acquire)) {
-            _ignoreBoxMemo.box = box;
-            unsigned int oldFrame = _ignoreBoxMemo.frame.exchange(frame, std::memory_order_release);
+        std::lock_guard lock(_ignoreZoneMemo.mutex);
+        if (frame != _ignoreZoneMemo.frame.load(std::memory_order_acquire)) {
+            _ignoreZoneMemo.zone = box;
+            unsigned int oldFrame = _ignoreZoneMemo.frame.exchange(frame, std::memory_order_release);
 
             // check the precondition
             assert(frame == (oldFrame + 1));
         }
     }
 
-    return _ignoreBoxMemo.box;
+    return _ignoreZoneMemo.zone;
 }
 
 void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID) {
