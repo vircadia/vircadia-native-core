@@ -198,7 +198,7 @@ ShortbowGameManager.prototype = {
         // Spawn bows
         for (var i = 0; i < this.bowPositions.length; ++i) {
             const bowPosition = Vec3.sum(this.rootPosition, this.bowPositions[i]);
-            Vec3.print("Creating bow: ", bowPosition);
+            Vec3.print("Creating bow: " + i, this.bowPositions[i]);
             this.bowIDs.push(Entities.addEntity({
                 position: bowPosition,
                 "collisionsWillMove": 1,

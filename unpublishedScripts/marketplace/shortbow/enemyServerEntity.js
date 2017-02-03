@@ -23,7 +23,6 @@
             }
             var self = this;
             this.heartbeatTimerID = Script.setInterval(function() {
-                print("Sending heartbeat", self.gameChannel);
                 Messages.sendMessage(self.gameChannel, JSON.stringify({
                     type: "enemy-heartbeat",
                     entityID: self.entityID,

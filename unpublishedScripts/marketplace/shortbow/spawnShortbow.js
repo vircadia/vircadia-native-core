@@ -86,8 +86,6 @@ for (var i = 0; i < TEMPLATES.length; ++i) {
 
 var entityIDs = [];
 
-var rootPosition = null;
-var goalPosition = null;
 var scoreboardID = null;
 var buttonID = null;
 var waveDisplayID = null;
@@ -96,7 +94,7 @@ var highScoreDisplayID = null;
 var livesDisplayID = null;
 var platformID = null;
 function createLocalGame() {
-    rootPosition = utils.findSurfaceBelowPosition(MyAvatar.position);
+    var rootPosition = utils.findSurfaceBelowPosition(MyAvatar.position);
     rootPosition.y += 6.11;
 
     scoreboardID = spawnTemplate("SB.Scoreboard", {
@@ -110,20 +108,13 @@ function createLocalGame() {
         script: Script.resolvePath("startGameButtonClientEntity.js"),
         serverScripts: Script.resolvePath("startGameButtonServerEntity.js"),
         userData: JSON.stringify({
-            grabbableKey: { 
+            grabbableKey: {
                 wantsTrigger: true
             }
         }),
     });
     entityIDs.push(buttonID);
 
-
-    // Generate goal that the enemies try to get to
-    goalPosition = Vec3.sum(rootPosition, { x: 0, y: -10, z: -20 });
-    const BASES_HEIGHT = 16;
-    const ROOF_HEIGHT = 0.2;
-
-    goalPosition.y += BASES_HEIGHT - ROOF_HEIGHT;
 
     waveDisplayID = spawnTemplate("SB.DisplayWave", {
         parentID: scoreboardID,
@@ -200,7 +191,7 @@ function createLocalGame() {
 
 if (Script.isClientScript()) {
     createLocalGame();
-    //var gameManager = new ShortbowGameManager(rootPosition, goalPositionFront, bowPositions, spawnPositions, scoreboardID, buttonID, waveDisplayID, scoreDisplayID, livesDisplayID, highScoreDisplayID);
+    //var gameManager = new ShortbowGameManager(scoreboardID, bowPositions, spawnPositions);
 
     function cleanup() {
         for (var i = 0; i < entityIDs.length; ++i) {

@@ -832,3 +832,21 @@ SHORTBOW_ENTITIES =
     ],
     "Version": 65
 }
+
+// Add LocalPosition to entity data if parent properties are available
+var entities = SHORTBOW_ENTITIES.Entities;
+var entitiesByID = {}
+for (var i = 0; i < entities.length; ++i) {
+    var entity = entities[i];
+    entitiesByID[entity.id] = entity;
+}
+for (var i = 0; i < entities.length; ++i) {
+    var entity = entities[i];
+    if (entity.parentID !== undefined) {
+        var parent = entitiesByID[entity.parentID];
+        if (parent !== undefined) {
+            entity.localPosition = Vec3.subtract(entity.position, parent.position);
+            delete entity.position;
+        }
+    }
+}

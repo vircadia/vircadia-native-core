@@ -8,8 +8,10 @@
 
 (function() {
     Script.include('utils.js?' + Date.now());
-    Script.include('spawnShortbow.js?' + Date.now());
+    Script.include('shortbow.js?' + Date.now());
     Script.include('shortbowGameManager.js?' + Date.now());
+
+    TEMPLATES = SHORTBOW_ENTITIES.Entities;
 
     this.entityID = null;
     var gameManager = null;
