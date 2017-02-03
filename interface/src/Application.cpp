@@ -1202,8 +1202,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
             [this](const EntityItemID& entityItemID, const PointerEvent& event) {
-        setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
-        setKeyboardFocusEntity(entityItemID);
+        auto entity = getEntities()->getTree()->findEntityByID(entityItemID);
+        if (entity && entity->wantsKeyboardFocus()) {
+            setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+            setKeyboardFocusEntity(entityItemID);
+        }
     });
 
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [=](const EntityItemID& entityItemID) {
@@ -4165,6 +4168,8 @@ void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
                 auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
                 const float OVERLAY_DEPTH = 0.0105f;
                 setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
+            } else if (_keyboardFocusHighlight) {
+                _keyboardFocusHighlight->setVisible(false);
             }
         }
     }
@@ -4379,6 +4384,10 @@ void Application::update(float deltaTime) {
             PROFILE_RANGE_EX(simulation_physics, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("harvestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
+                // grab the collision events BEFORE handleOutgoingChanges() because at this point
+                // we have a better idea of which objects we own or should own.
+                auto& collisionEvents = _physicsEngine->getCollisionEvents();
+
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
@@ -4386,11 +4395,10 @@ void Application::update(float deltaTime) {
                     avatarManager->handleOutgoingChanges(outgoingChanges);
                 });
 
-                auto collisionEvents = _physicsEngine->getCollisionEvents();
-                avatarManager->handleCollisionEvents(collisionEvents);
-
                 if (!_aboutToQuit) {
+                    // handleCollisionEvents() AFTER handleOutgoinChanges()
                     PerformanceTimer perfTimer("entities");
+                    avatarManager->handleCollisionEvents(collisionEvents);
                     // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                     // deadlock.)
                     _entitySimulation->handleCollisionEvents(collisionEvents);

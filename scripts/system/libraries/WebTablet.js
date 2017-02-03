@@ -24,31 +24,33 @@ var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
-
 var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
-
 var TABLET_URL = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+var NO_HANDS = -1;
 
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
-var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
-var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
+var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
+var TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
 function calcSpawnInfo(hand, height) {
-    var noHands = -1;
     var finalPosition;
-    if (HMD.active && hand !== noHands) {
+
+    var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
+    var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
+
+    if (HMD.active && hand !== NO_HANDS) {
         var handController = getControllerWorldLocation(hand, true);
         var controllerPosition = handController.position;
 
         // compute the angle of the chord with length (height / 2)
-        var theta = Math.asin(height / (2 * Vec3.distance(HMD.position, controllerPosition)));
+        var theta = Math.asin(height / (2 * Vec3.distance(headPos, controllerPosition)));
 
         // then we can use this angle to rotate the vector between the HMD position and the center of the tablet.
         // this vector, u, will become our new look at direction.
-        var d = Vec3.normalize(Vec3.subtract(HMD.position, controllerPosition));
+        var d = Vec3.normalize(Vec3.subtract(headPos, controllerPosition));
         var w = Vec3.normalize(Vec3.cross(Y_AXIS, d));
         var q = Quat.angleAxis(theta * (180 / Math.PI), w);
         var u = Vec3.multiplyQbyV(q, d);
@@ -66,8 +68,8 @@ function calcSpawnInfo(hand, height) {
             rotation: lookAtRot
         };
     } else {
-        var front = Quat.getFront(Camera.orientation);
-        finalPosition = Vec3.sum(Camera.position, Vec3.multiply(0.6, front));
+        var front = Quat.getFront(headRot);
+        finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, front));
         var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, front, {x: 0, y: 1, z: 0});
         return {
             position: finalPosition,
@@ -200,6 +202,11 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         _this.geometryChanged(geometry);
     };
     Window.geometryChanged.connect(this.myGeometryChanged);
+
+    this.myCameraModeChanged = function(newMode) {
+        _this.cameraModeChanged(newMode);
+    };
+    Camera.modeUpdated.connect(this.myCameraModeChanged);
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
@@ -230,11 +237,11 @@ WebTablet.prototype.destroy = function () {
     Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
 
     Window.geometryChanged.disconnect(this.myGeometryChanged);
+    Camera.modeUpdated.disconnect(this.myCameraModeChanged);
 };
 
 WebTablet.prototype.geometryChanged = function (geometry) {
     if (!HMD.active) {
-        var NO_HANDS = -1;
         var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
@@ -290,7 +297,6 @@ WebTablet.prototype.onHmdChanged = function () {
         Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
     }
 
-    var NO_HANDS = -1;
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
@@ -330,6 +336,7 @@ WebTablet.prototype.cleanUpOldTablets = function() {
     this.cleanUpOldTabletsOnJoint(SENSOR_TO_ROOM_MATRIX);
     this.cleanUpOldTabletsOnJoint(CAMERA_MATRIX);
     this.cleanUpOldTabletsOnJoint(65529);
+    this.cleanUpOldTabletsOnJoint(65534);
 };
 
 WebTablet.prototype.unregister = function() {
@@ -370,6 +377,18 @@ WebTablet.prototype.mousePressEvent = function (event) {
             this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
             this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
         }
+    }
+};
+
+WebTablet.prototype.cameraModeChanged = function (newMode) {
+    // reposition the tablet.
+    // This allows HMD.position to reflect the new camera mode.
+    if (HMD.active) {
+        var self = this;
+        var tabletProperties = {};
+        // compute position, rotation & parentJointIndex of the tablet
+        self.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+        Entities.editEntity(self.tabletEntityID, tabletProperties);
     }
 };
 

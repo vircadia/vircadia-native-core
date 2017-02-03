@@ -210,7 +210,10 @@ var toolBar = (function () {
         var button = toolBar.addButton({
             objectName: name,
             imageURL: imageUrl,
-            buttonState: 1,
+            imageOffOut: 1,
+            imageOffIn: 2,
+            imageOnOut: 0,
+            imageOnIn: 2,
             alpha: 0.9,
             visible: true
         });

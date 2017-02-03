@@ -1336,24 +1336,27 @@ const QUrl& AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-bool AvatarData::processAvatarIdentity(const Identity& identity) {
-    bool hasIdentityChanged = false;
+void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
 
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
-        hasIdentityChanged = true;
+        identityChanged = true;
+        if (_firstSkeletonCheck) {
+            displayNameChanged = true;
+        }
         _firstSkeletonCheck = false;
     }
 
     if (identity.displayName != _displayName) {
         _displayName = identity.displayName;
-        hasIdentityChanged = true;
+        identityChanged = true;
+        displayNameChanged = true;
     }
     maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
 
     if (identity.attachmentData != _attachmentData) {
         setAttachmentData(identity.attachmentData);
-        hasIdentityChanged = true;
+        identityChanged = true;
     }
 
     bool avatarEntityDataChanged = false;
@@ -1362,10 +1365,8 @@ bool AvatarData::processAvatarIdentity(const Identity& identity) {
     });
     if (avatarEntityDataChanged) {
         setAvatarEntityData(identity.avatarEntityData);
-        hasIdentityChanged = true;
+        identityChanged = true;
     }
-
-    return hasIdentityChanged;
 }
 
 QByteArray AvatarData::identityByteArray() {

@@ -320,12 +320,9 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                         glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
                                               rotationMat * fbxJoints[index].postTransform);
                         _localJointTranslations[j] = extractTranslation(finalMat);
-                        _localJointTranslationsSet[j] = true;
                         _localJointTranslationsDirty[j] = true;
 
                         _localJointRotations[j] = glmExtractRotation(finalMat);
-
-                        _localJointRotationsSet[j] = true;
                         _localJointRotationsDirty[j] = true;
                     }
                 }
@@ -507,8 +504,7 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
     if (!getModelURL().isEmpty()) {
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
-            _model = _myRenderer->allocateModel(getModelURL(), renderer->getEntityLoadingPriority(*this));
-            _model->setSpatiallyNestableOverride(shared_from_this());
+            _model = _myRenderer->allocateModel(getModelURL(), renderer->getEntityLoadingPriority(*this), this);
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {

@@ -854,7 +854,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState, reason) {
-        if (isInEditMode() && (newState !== STATE_OFF &&
+        if ((isInEditMode() && this.grabbedEntity !== HMD.tabletID )&& (newState !== STATE_OFF &&
                                newState !== STATE_SEARCHING &&
                                newState !== STATE_OVERLAY_STYLUS_TOUCHING)) {
             return;
@@ -1699,7 +1699,7 @@ function MyController(hand) {
     };
 
     this.isTablet = function (entityID) {
-        if (entityID === HMD.tabletID) { // XXX what's a better way to know this?
+        if (entityID === HMD.tabletID) {
             return true;
         }
         return false;
@@ -2907,7 +2907,7 @@ function MyController(hand) {
             var pos3D = intersectInfo.point;
 
             if (this.state == STATE_OVERLAY_STYLUS_TOUCHING &&
-                !this.deadspotExpired &&
+                !this.tabletStabbed &&
                 intersectInfo.distance < WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_TOO_CLOSE) {
                 // they've stabbed the tablet, don't send events until they pull back
                 this.tabletStabbed = true;
@@ -2915,8 +2915,15 @@ function MyController(hand) {
                 this.tabletStabbedPos3D = pos3D;
                 return;
             }
+
             if (this.tabletStabbed) {
-                return;
+                var origin = {x: this.tabletStabbedPos2D.x, y: this.tabletStabbedPos2D.y, z: 0};
+                var point = {x: pos2D.x, y: pos2D.y, z: 0};
+                var offset = Vec3.distance(origin, point);
+                var radius = 0.05;
+                if (offset < radius) {
+                    return;
+                }
             }
 
             if (Overlays.keyboardFocusOverlay != this.grabbedOverlay) {

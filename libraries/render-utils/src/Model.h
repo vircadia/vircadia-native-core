@@ -67,7 +67,7 @@ public:
 
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
-    Model(RigPointer rig, QObject* parent = nullptr);
+    Model(RigPointer rig, QObject* parent = nullptr, SpatiallyNestable* spatiallyNestableOverride = nullptr);
     virtual ~Model();
 
     inline ModelPointer getThisPointer() const {
@@ -205,7 +205,6 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
-    void setSpatiallyNestableOverride(SpatiallyNestablePointer ptr);
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
@@ -244,7 +243,6 @@ public:
     public:
         QVector<glm::mat4> clusterMatrices;
         gpu::BufferPointer clusterBuffer;
-
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -293,12 +291,11 @@ protected:
 
     GeometryResourceWatcher _renderWatcher;
 
+    SpatiallyNestable* _spatiallyNestableOverride;
+
     glm::vec3 _translation;
     glm::quat _rotation;
     glm::vec3 _scale;
-
-    SpatiallyNestableWeakPointer _spatiallyNestableOverride;
-
     glm::vec3 _offset;
 
     static float FAKE_DIMENSION_PLACEHOLDER;
@@ -319,6 +316,7 @@ protected:
     void scaleToFit();
     void snapToRegistrationPoint();
 
+    void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Restores the indexed joint to its default position.
