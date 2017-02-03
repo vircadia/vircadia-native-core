@@ -472,7 +472,7 @@ QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& textu
 model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
                                                         TextureType type, MapChannel channel) {
     const auto url = getTextureUrl(baseUrl, fbxTexture);
-    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, fbxTexture.content);
+    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, fbxTexture.content, fbxTexture.maxNumPixels);
     _textures[channel] = Texture { fbxTexture.name, texture };
 
     auto map = std::make_shared<model::TextureMap>();

@@ -167,16 +167,17 @@ class TextureExtra {
 public:
     NetworkTexture::Type type;
     const QByteArray& content;
+    int maxNumPixels;
 };
 
-ScriptableResource* TextureCache::prefetch(const QUrl& url, int type) {
+ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNumPixels) {
     auto byteArray = QByteArray();
-    TextureExtra extra = { (Type)type, byteArray };
+    TextureExtra extra = { (Type)type, byteArray, maxNumPixels };
     return ResourceCache::prefetch(url, &extra);
 }
 
-NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content) {
-    TextureExtra extra = { type, content };
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels) {
+    TextureExtra extra = { type, content, maxNumPixels };
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
 }
 
@@ -251,13 +252,15 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     auto type = textureExtra ? textureExtra->type : Type::DEFAULT_TEXTURE;
     auto content = textureExtra ? textureExtra->content : QByteArray();
-    return QSharedPointer<Resource>(new NetworkTexture(url, type, content),
+    auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
+    return QSharedPointer<Resource>(new NetworkTexture(url, type, content, maxNumPixels),
         &Resource::deleter);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& content) :
+NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels) :
     Resource(url),
-    _type(type)
+    _type(type),
+    _maxNumPixels(maxNumPixels)
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
 
@@ -274,7 +277,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& con
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content) :
-    NetworkTexture(url, CUSTOM_TEXTURE, content)
+    NetworkTexture(url, CUSTOM_TEXTURE, content, ABSOLUTE_MAX_TEXTURE_NUM_PIXELS)
 {
     _textureLoader = textureLoader;
 }
@@ -290,7 +293,8 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data, const QUrl& url = QUrl());
+    ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data,
+            const QUrl& url = QUrl(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
     virtual void run() override;
 
@@ -300,6 +304,7 @@ private:
     QWeakPointer<Resource> _resource;
     QUrl _url;
     QByteArray _content;
+    int _maxNumPixels;
 };
 
 void NetworkTexture::downloadFinished(const QByteArray& data) {
@@ -308,14 +313,15 @@ void NetworkTexture::downloadFinished(const QByteArray& data) {
 }
 
 void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, content, _url));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, content, _url, _maxNumPixels));
 }
 
 ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data,
-        const QUrl& url) :
+        const QUrl& url, int maxNumPixels) :
     _resource(resource),
     _url(url),
-    _content(data)
+    _content(data),
+    _maxNumPixels(maxNumPixels)
 {
 #if DEBUG_DUMP_TEXTURE_LOADS
     static auto start = usecTimestampNow() / USECS_PER_MSEC;
@@ -375,10 +381,10 @@ void ImageReader::run() {
 
     // Note that QImage.format is the pixel format which is different from the "format" of the image file...
     auto imageFormat = image.format();
-    int originalWidth = image.width();
-    int originalHeight = image.height();
+    int imageWidth = image.width();
+    int imageHeight = image.height();
 
-    if (originalWidth == 0 || originalHeight == 0 || imageFormat == QImage::Format_Invalid) {
+    if (imageWidth == 0 || imageHeight == 0 || imageFormat == QImage::Format_Invalid) {
         if (filenameExtension.empty()) {
             qCDebug(modelnetworking) << "QImage failed to create from content, no file extension:" << _url;
         } else {
@@ -386,6 +392,20 @@ void ImageReader::run() {
         }
         return;
     }
+
+    if (imageWidth * imageHeight > _maxNumPixels) {
+        float scaleFactor = sqrtf(_maxNumPixels / (float)(imageWidth * imageHeight));
+        int originalWidth = imageWidth;
+        int originalHeight = imageHeight;
+        imageWidth = (int)(scaleFactor * (float)imageWidth + 0.5f);
+        imageHeight = (int)(scaleFactor * (float)imageHeight + 0.5f);
+        QImage newImage = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio);
+        image.swap(newImage);
+        qCDebug(modelnetworking) << "Downscale image" << _url
+            << "from" << originalWidth << "x" << originalHeight
+            << "to" << imageWidth << "x" << imageHeight;
+    }
+
     gpu::TexturePointer texture = nullptr;
     {
         // Double-check the resource still exists between long operations.
@@ -408,7 +428,7 @@ void ImageReader::run() {
     } else {
         QMetaObject::invokeMethod(resource.data(), "setImage",
             Q_ARG(gpu::TexturePointer, texture),
-            Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
+            Q_ARG(int, imageWidth), Q_ARG(int, imageHeight));
     }
 }
 
