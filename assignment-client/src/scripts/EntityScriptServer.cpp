@@ -80,9 +80,8 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     packetReceiver.registerListener(PacketType::EntityScriptGetStatus, this, "handleEntityScriptGetStatusPacket");
     packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
 
-    static const int LOG_INTERVAL = MSECS_PER_SECOND / 50;
+    static const int LOG_INTERVAL = MSECS_PER_SECOND / 10;
     auto timer = new QTimer(this);
-    timer->setTimerType(Qt::PreciseTimer);
     timer->setInterval(LOG_INTERVAL);
     connect(timer, &QTimer::timeout, this, &EntityScriptServer::pushLogs);
     timer->start();
@@ -215,23 +214,14 @@ void EntityScriptServer::pushLogs() {
         return;
     }
 
-    auto packet = NLPacket::create(PacketType::EntityServerScriptLog, buffer.size(), true);
-    packet->write(buffer.data(), buffer.size());
-
     auto nodeList = DependencyManager::get<NodeList>();
-
-    auto last = --std::end(_logListeners);
-    for (auto it = std::begin(_logListeners); it != last; ++it) {
-        auto node = nodeList->nodeWithUUID(*it);
+    for (auto uuid : _logListeners) {
+        auto node = nodeList->nodeWithUUID(uuid);
         if (node && node->getActiveSocket()) {
-            auto copy = NLPacket::createCopy(*packet);
-            nodeList->sendPacket(std::move(copy), *node);
+            auto packet = NLPacketList::create(PacketType::EntityServerScriptLog, QByteArray(), true, true);
+            packet->write(buffer.data(), buffer.size());
+            nodeList->sendPacketList(std::move(packet), *node);
         }
-    }
-
-    auto node = nodeList->nodeWithUUID(*last);
-    if (node && node->getActiveSocket()) {
-        nodeList->sendPacket(std::move(packet), *node);
     }
 }
 

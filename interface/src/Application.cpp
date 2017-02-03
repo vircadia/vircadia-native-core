@@ -63,6 +63,7 @@
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
 #include <EntityScriptClient.h>
+#include <EntityScriptServerLogClient.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
@@ -134,7 +135,6 @@
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
-#include "EntityScriptServerLogClient.h"
 #include "GLCanvas.h"
 #include "InterfaceActionFactory.h"
 #include "InterfaceLogging.h"
@@ -176,7 +176,6 @@
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
-#include <EntityScriptClient.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
