@@ -41,7 +41,7 @@ template<class Interface> inline void SafeRelease(Interface *& pInterfaceToRelea
 class KinectPlugin : public InputPlugin {
     Q_OBJECT
 public:
-    bool isHandController() const override { return true; }
+    bool isHandController() const override;
 
     // Plugin functions
     virtual void init() override;
@@ -79,6 +79,8 @@ protected:
 
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, 
                 const std::vector<KinectPlugin::KinectJoint>& joints, const std::vector<KinectPlugin::KinectJoint>& prevJoints);
+
+        void clearState();
     };
 
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
@@ -86,7 +88,8 @@ protected:
     static const char* NAME;
     static const char* KINECT_ID_STRING;
 
-    bool _enabled;
+    bool _enabled { false };
+    mutable bool _initialized { false };
 
     // copy of data directly from the KinectDataReader SDK
     std::vector<KinectJoint> _joints;
@@ -97,18 +100,18 @@ protected:
 
     // Kinect SDK related items...
 
-    bool KinectPlugin::initializeDefaultSensor();
+    bool KinectPlugin::initializeDefaultSensor() const;
     void updateBody();
 
 #ifdef HAVE_KINECT
     void ProcessBody(INT64 time, int bodyCount, IBody** bodies);
 
     // Current Kinect
-    IKinectSensor*          _kinectSensor { nullptr };
-    ICoordinateMapper*      _coordinateMapper { nullptr };
+    mutable IKinectSensor* _kinectSensor { nullptr };
+    mutable ICoordinateMapper* _coordinateMapper { nullptr };
 
     // Body reader
-    IBodyFrameReader*       _bodyFrameReader { nullptr };
+    mutable IBodyFrameReader* _bodyFrameReader { nullptr };
 #endif
 
 };
