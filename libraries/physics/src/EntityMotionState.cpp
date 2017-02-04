@@ -199,12 +199,15 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         return;
     }
     assert(entityTreeIsLocked());
-    if (_motionType == MOTION_TYPE_KINEMATIC && !_entity->hasAncestorOfType(NestableType::Avatar)) {
+    if (_motionType == MOTION_TYPE_KINEMATIC) {
         BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation and uses full gravity for acceleration.
-        _entity->setAcceleration(_entity->getGravity());
-
+        if (_entity->hasAncestorOfType(NestableType::Avatar)) {
+            _entity->setAcceleration(glm::vec3(0.0f));
+        } else {
+            _entity->setAcceleration(_entity->getGravity());
+        }
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _entity->stepKinematicMotion(dt);
