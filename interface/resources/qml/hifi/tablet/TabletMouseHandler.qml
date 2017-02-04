@@ -168,7 +168,6 @@ Item {
             d.popMenu();
             return true;
         }
-            
         return false;
     }
 
