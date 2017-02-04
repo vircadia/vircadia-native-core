@@ -99,8 +99,8 @@ namespace image {
             using Format = typename P::Format;
             using Storage = typename P::Storage;
             
-            constexpr uint16_t getLength() const { return length; }
-            uint32_t getSize() const { return length * sizeof(P); }
+            static const uint32_t LENGTH { length };
+            static const uint32_t SIZE { length * sizeof(P) };
             
             P pixels[length];
             
@@ -112,7 +112,7 @@ namespace image {
             }
             
             void setPixels(const P* srcPixels) {
-                memcpy(pixels, srcPixels, getSize());
+                memcpy(pixels, srcPixels, SIZE);
             }
             
             const Storage* getStorage() const { return static_cast<const Storage*> (&pixels->raw); }

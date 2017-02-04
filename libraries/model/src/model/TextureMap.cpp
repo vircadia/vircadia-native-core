@@ -255,7 +255,7 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
 
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
 
-        image::PixRGB32 pix0;
+       /* image::PixRGB32 pix0;
         
         image::PixRGBA32 pix1;
         
@@ -280,7 +280,7 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         image::uncompress(cb, pb1);
         
         image::Grid grid;
-        grid.
+        grid.*/
         
         if (generateMips) {
             ::generateMips(theTexture, image, formatMip);
