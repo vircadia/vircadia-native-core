@@ -1828,7 +1828,8 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
             // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
             // and holding it against your own avatar.
             QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
-            if (!ancestorID.isNull() && ancestorID == Physics::getSessionUUID()) {
+            if (!ancestorID.isNull() &&
+                (ancestorID == Physics::getSessionUUID() || ancestorID == AVATAR_SELF_ID)) {
                 userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
             }
         }
