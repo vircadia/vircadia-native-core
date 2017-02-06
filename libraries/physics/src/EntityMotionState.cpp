@@ -230,9 +230,6 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     assert(entityTreeIsLocked());
     measureBodyAcceleration();
     bool positionSuccess;
-    if (_entity->hasAncestorOfType(NestableType::Avatar)) {
-        return;
-    }
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
     if (!positionSuccess) {
         static QString repeatedMessage =
