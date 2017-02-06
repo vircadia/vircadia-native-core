@@ -932,10 +932,15 @@ void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function
         qCDebug(entities) << "Filter function specified but not found. Will reject all edits.";
         _entityEditFilterEngine = nullptr; // So that we don't try to call it. See filterProperties.
     }
+    auto entitiesObject = _entityEditFilterEngine->newObject();
+    entitiesObject.setProperty("ADD_FILTER_TYPE", FilterType::Add);
+    entitiesObject.setProperty("EDIT_FILTER_TYPE", FilterType::Edit);
+    entitiesObject.setProperty("PHYSICS_FILTER_TYPE", FilterType::Physics);
+    global.setProperty("Entities", entitiesObject);
     _hasEntityEditFilter = true;
 }
 
-bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, bool isAdd) {
+bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) {
     if (!_entityEditFilterEngine) {
         propertiesOut = propertiesIn;
         wasChanged = false; // not changed
@@ -954,7 +959,7 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
     auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
     QScriptValueList args;
     args << inputValues;
-    args << isAdd;
+    args << filterType;
 
     QScriptValue result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
     if (_entityEditFilterHadUncaughtExceptions()) {
@@ -1074,7 +1079,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 startFilter = usecTimestampNow();
                 bool wasChanged = false;
                 // Having (un)lock rights bypasses the filter, unless it's a physics result.
-                bool allowed = (!isPhysics && senderNode->isAllowedEditor()) || filterProperties(properties, properties, wasChanged, isAdd);
+                FilterType filterType = isPhysics ? FilterType::Physics : (isAdd ? FilterType::Add : FilterType::Edit);
+                bool allowed = (!isPhysics && senderNode->isAllowedEditor()) || filterProperties(properties, properties, wasChanged, filterType);
                 if (!allowed) {
                     auto timestamp = properties.getLastEdited();
                     properties = EntityItemProperties();
