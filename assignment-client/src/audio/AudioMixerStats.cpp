@@ -20,6 +20,9 @@ void AudioMixerStats::reset() {
     hrtfThrottleRenders = 0;
     manualStereoMixes = 0;
     manualEchoMixes = 0;
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+    throttleTime = 0;
+#endif
 }
 
 void AudioMixerStats::accumulate(const AudioMixerStats& otherStats) {
@@ -31,4 +34,7 @@ void AudioMixerStats::accumulate(const AudioMixerStats& otherStats) {
     hrtfThrottleRenders += otherStats.hrtfThrottleRenders;
     manualStereoMixes += otherStats.manualStereoMixes;
     manualEchoMixes += otherStats.manualEchoMixes;
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+    throttleTime += otherStats.throttleTime;
+#endif
 }

@@ -150,6 +150,10 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             if (!isThrottling) {
                 allStreams(node, &AudioMixerSlave::mixStream);
             } else {
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+                auto throttleStart = p_high_resolution_clock::now();
+#endif
+
                 AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
                 auto nodeID = node->getUUID();
 
@@ -175,6 +179,13 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 if (!throttledNodes.empty()) {
                     std::push_heap(throttledNodes.begin(), throttledNodes.end());
                 }
+
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+                auto throttleEnd = p_high_resolution_clock::now();
+                uint64_t throttleTime =
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(throttleEnd - throttleStart).count();
+                stats.throttleTime += throttleTime;
+#endif
             }
         }
     });
