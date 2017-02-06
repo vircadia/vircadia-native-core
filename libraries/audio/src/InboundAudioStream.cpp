@@ -129,14 +129,23 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkFrames);
     message.seek(prePropertyPosition + propertyBytes);
 
+    // simulate 1% packetloss
+    if (rand() < (RAND_MAX/100)) {
+        arrivalInfo._status = SequenceNumberStats::Unreasonable;
+        qDebug(audio) << "Simulated a lost packet...";
+    }
+
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
+        case SequenceNumberStats::Unreasonable: {
+            lostAudioData(1);
+            break;
+        }
         case SequenceNumberStats::Early: {
             // Packet is early; write droppable silent samples for each of the skipped packets.
             // NOTE: we assume that each dropped packet contains the same number of samples
             // as the packet we just received.
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
-            //writeFramesForDroppedPackets(packetsDropped * networkFrames);
             lostAudioData(packetsDropped);
 
             // fall through to OnTime case
