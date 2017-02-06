@@ -59,7 +59,7 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     return NULL;
 }
 
-bool shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
+bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
     // this is symmetric over self / node; they cache their computations to reduce work by 2x
 
     auto& localCache = _nodeSourcesIgnoreMap[node->getUUID()];
@@ -81,32 +81,32 @@ bool shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, un
             (!self->isIgnoringNodeWithID(node->getUUID()) ||
              (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
             (!node->isIgnoringNodeWithID(self->getUUID()) ||
-             (getsRequestsDomainListData() && self->getCanKick())))  {
+             (getRequestsDomainListData() && self->getCanKick())))  {
 
         // if either node is enabling an ignore radius, check their proximity
-        if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
-            auto& listenerZone = listenerData->getIgnoreZone(frame);
+        if ((self->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
+            auto& zone = getIgnoreZone(frame);
             auto& nodeZone = nodeData->getIgnoreZone(frame);
-            shouldIgnore = listenerBox.touches(nodeZone);
+            shouldIgnore = zone.touches(nodeZone);
         } else {
             shouldIgnore = false;
         }
     }
 
-    remoteCache = nodeData._nodeSourcesIgnoreMap[self->getUUID()];
+    auto& remoteCache = nodeData->_nodeSourcesIgnoreMap[self->getUUID()];
     // do not reset the cache until it has been used to avoid a data race
     if (!remoteCache.isCached) {
-        cache.shouldIgnore = shouldIgnore;
+        remoteCache.shouldIgnore = shouldIgnore;
         remoteCache.isCached = true;
     }
 
     return shouldIgnore;
 }
 
-IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame) {
+AudioMixerClientData::IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame) {
     // check for a memoized zone
-    if (frame != _ignoreZoneMemo.frame.load(std::memory_order_acquire) {
-        stream = getAvatarAudioStream();
+    if (frame != _ignoreZoneMemo.frame.load(std::memory_order_acquire)) {
+        auto stream = getAvatarAudioStream();
 
         // get the initial dimensions from the stream
         glm::vec3 corner = stream ? stream->getAvatarBoundingBoxCorner() : glm::vec3(0);
@@ -130,10 +130,11 @@ IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame) {
         // so take a lock and only update the memo if this call is first.
         // this prevents concurrent updates from invalidating the returned reference
         // (contingent on the preconditions listed in the header).
-        std::lock_guard lock(_ignoreZoneMemo.mutex);
+        std::lock_guard<std::mutex> lock(_ignoreZoneMemo.mutex);
         if (frame != _ignoreZoneMemo.frame.load(std::memory_order_acquire)) {
             _ignoreZoneMemo.zone = box;
             unsigned int oldFrame = _ignoreZoneMemo.frame.exchange(frame, std::memory_order_release);
+            Q_UNUSED(oldFrame);
 
             // check the precondition
             assert(frame == (oldFrame + 1));

@@ -145,7 +145,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                     mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
                 }
             }
-        } else if (!listenerData->shouldIgnoreNode(listener, node, _frame)) {
+        } else if (!listenerData->shouldIgnore(listener, node, _frame)) {
             if (!isThrottling) {
                 allStreams(node, &AudioMixerSlave::mixStream);
             } else {

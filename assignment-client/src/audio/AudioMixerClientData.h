@@ -27,7 +27,6 @@
 
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
-    using IgnoreZone = AABox;
 
 public:
     AudioMixerClientData(const QUuid& nodeID);
@@ -107,11 +106,13 @@ public slots:
     void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
+    using IgnoreZone = AABox;
+
     // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
     // preconditions:
     //  - frame is monotonically increasing
     //  - calls are only made to getIgnoreZone(frame + 1) when there are no references left from calls to getIgnoreZone(frame)
-    IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame);
+    IgnoreZone& getIgnoreZone(unsigned int frame);
 
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
@@ -124,8 +125,8 @@ private:
     IgnoreZoneMemo _ignoreZoneMemo;
 
     struct IgnoreNodeData {
-        std::atomic<bool> flag { false };
-        bool ignore { false };
+        std::atomic<bool> isCached { false };
+        bool shouldIgnore { false };
     };
     using NodeSourcesIgnoreMap = std::unordered_map<QUuid, IgnoreNodeData>;
     NodeSourcesIgnoreMap _nodeSourcesIgnoreMap;
