@@ -104,7 +104,7 @@ void setupPreferences() {
     {
         auto getter = []()->bool { return SnapshotAnimated::alsoTakeAnimatedSnapshot.get(); };
         auto setter = [](bool value) { SnapshotAnimated::alsoTakeAnimatedSnapshot.set(value); };
-        preferences->addPreference(new CheckPreference(SNAPSHOTS, "Take Animated GIF Snapshot with tablet button", getter, setter));
+        preferences->addPreference(new CheckPreference(SNAPSHOTS, "Take Animated GIF Snapshot", getter, setter));
     }
     {
         auto getter = []()->float { return SnapshotAnimated::snapshotAnimatedDuration.get(); };
