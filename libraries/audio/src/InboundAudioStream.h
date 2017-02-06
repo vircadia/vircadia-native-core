@@ -115,8 +115,6 @@ public slots:
 private:
     void packetReceivedUpdateTimingStats();
 
-    int writeFramesForDroppedPackets(int networkFrames);
-
     void popSamplesNoCheck(int samples);
     void framesAvailableChanged();
 

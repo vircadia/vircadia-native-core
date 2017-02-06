@@ -432,10 +432,6 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
     _lastPacketReceivedTime = now;
 }
 
-int InboundAudioStream::writeFramesForDroppedPackets(int networkFrames) {
-    return writeLastFrameRepeatedWithFade(networkFrames);
-}
-
 int InboundAudioStream::writeLastFrameRepeatedWithFade(int frames) {
     AudioRingBuffer::ConstIterator frameToRepeat = _ringBuffer.lastFrameWritten();
     int frameSize = _ringBuffer.getNumFrameSamples();
