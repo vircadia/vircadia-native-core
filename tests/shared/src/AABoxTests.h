@@ -24,6 +24,7 @@ private slots:
     void testContainsPoint();
     void testTouchesSphere();
     void testScale();
+    void testFindSpherePenetration();
 };
 
 #endif // hifi_AABoxTests_h
