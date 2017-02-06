@@ -104,6 +104,7 @@ bool EntityTree::handlesEditPacketType(PacketType packetType) const {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityErase:
+        case PacketType::EntityPhysics:
             return true;
         default:
             return false;
@@ -1001,6 +1002,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
         case PacketType::EntityAdd:
             isAdd = true;  // fall through to next case
+        case PacketType::EntityPhysics:
         case PacketType::EntityEdit: {
             quint64 startDecode = 0, endDecode = 0;
             quint64 startLookup = 0, endLookup = 0;
@@ -1010,6 +1012,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startLogging = 0, endLogging = 0;
 
             bool suppressDisallowedScript = false;
+            bool isPhysics = message.getType() == PacketType::EntityPhysics;
 
             _totalEditMessages++;
 
@@ -1020,6 +1023,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes,
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
+
 
             if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty() && !properties.getScript().isEmpty()) {
                 bool passedWhiteList = false;
@@ -1053,8 +1057,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
-            if ((isAdd ||
-                 (message.getType() == PacketType::EntityEdit && properties.lifetimeChanged())) &&
+            if ((isAdd || properties.lifetimeChanged()) &&
                 !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
                 // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
@@ -1070,8 +1073,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
                 startFilter = usecTimestampNow();
                 bool wasChanged = false;
-                // Having (un)lock rights bypasses the filter.
-                bool allowed = senderNode->isAllowedEditor() || filterProperties(properties, properties, wasChanged, isAdd);
+                // Having (un)lock rights bypasses the filter, unless it's a physics result.
+                bool allowed = (!isPhysics && senderNode->isAllowedEditor()) || filterProperties(properties, properties, wasChanged, isAdd);
                 if (!allowed) {
                     auto timestamp = properties.getLastEdited();
                     properties = EntityItemProperties();
@@ -1088,7 +1091,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
                 endLookup = usecTimestampNow();
-                if (existingEntity && message.getType() == PacketType::EntityEdit) {
+                if (existingEntity && !isAdd) {
 
                     if (suppressDisallowedScript) {
                         bumpTimestamp(properties);
