@@ -30,7 +30,8 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         button = tablet.addButton({
             icon: "icons/tablet-icons/help-i.svg",
-            text: buttonName
+            text: buttonName,
+            sortOrder: 6
         });
     }
     var enabled = false;

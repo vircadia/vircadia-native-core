@@ -227,15 +227,26 @@ void KinectPlugin::init() {
     static const QString KINECT_PLUGIN { "Kinect" };
     {
         auto getter = [this]()->bool { return _enabled; };
-        auto setter = [this](bool value) { _enabled = value; saveSettings(); };
+        auto setter = [this](bool value) { 
+            _enabled = value; saveSettings(); 
+            if (!_enabled) {
+                auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+                userInputMapper->withLock([&, this]() {
+                    _inputDevice->clearState();
+                });
+            }
+        };
         auto preference = new CheckPreference(KINECT_PLUGIN, "Enabled", getter, setter);
         preferences->addPreference(preference);
     }
 }
 
 bool KinectPlugin::isSupported() const {
-    // FIXME -- check to see if there's a camera or not...
-    return true;
+    bool supported = false;
+#ifdef HAVE_KINECT
+    supported = initializeDefaultSensor();
+#endif
+    return supported;
 }
 
 bool KinectPlugin::activate() {
@@ -250,13 +261,29 @@ bool KinectPlugin::activate() {
         userInputMapper->registerDevice(_inputDevice);
 
         return initializeDefaultSensor();
-    } else {
-        return false;
     }
+    return false;
 }
 
-bool KinectPlugin::initializeDefaultSensor() {
+bool KinectPlugin::isHandController() const { 
+    bool sensorAvailable = false;
 #ifdef HAVE_KINECT
+    if (_kinectSensor) {
+        BOOLEAN sensorIsAvailable = FALSE;
+        HRESULT hr = _kinectSensor->get_IsAvailable(&sensorIsAvailable);
+        sensorAvailable = SUCCEEDED(hr) && (sensorIsAvailable == TRUE);
+    }
+#endif
+    return _enabled && _initialized && sensorAvailable;
+}
+
+
+bool KinectPlugin::initializeDefaultSensor() const {
+#ifdef HAVE_KINECT
+    if (_initialized) {
+        return true;
+    }
+
     HRESULT hr;
 
     hr = GetDefaultKinectSensor(&_kinectSensor);
@@ -289,6 +316,7 @@ bool KinectPlugin::initializeDefaultSensor() {
         return false;
     }
 
+    _initialized = true;
     return true;
 #else
     return false;
@@ -527,3 +555,9 @@ void KinectPlugin::InputDevice::update(float deltaTime, const controller::InputC
     }
 }
 
+void KinectPlugin::InputDevice::clearState() {
+    for (size_t i = 0; i < KinectJointIndex::Size; i++) {
+        int poseIndex = KinectJointIndexToPoseIndex((KinectJointIndex)i);
+        _poseStateMap[poseIndex] = controller::Pose();
+    }
+}
