@@ -125,8 +125,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
     typedef void (AudioMixerSlave::*MixFunctor)(
             AudioMixerClientData&, const QUuid&, const AvatarAudioStream&, const PositionalAudioStream&);
-    auto allStreams = [&](const SharedNodePointer& node, MixFunctor mixFunctor) {
-        AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+    auto forAllStreams = [&](const SharedNodePointer& node, AudioMixerClientData* nodeData, MixFunctor mixFunctor) {
         auto nodeID = node->getUUID();
         for (auto& streamPair : nodeData->getAudioStreams()) {
             auto nodeStream = streamPair.second;
@@ -135,9 +134,12 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     };
 
     std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
-        if (*node == *listener) {
-            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        if (!nodeData) {
+            return;
+        }
 
+        if (*node == *listener) {
             // only mix the echo, if requested
             for (auto& streamPair : nodeData->getAudioStreams()) {
                 auto nodeStream = streamPair.second;
@@ -147,13 +149,12 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             }
         } else if (!listenerData->shouldIgnore(listener, node, _frame)) {
             if (!isThrottling) {
-                allStreams(node, &AudioMixerSlave::mixStream);
+                forAllStreams(node, nodeData, &AudioMixerSlave::mixStream);
             } else {
 #ifdef HIFI_AUDIO_THROTTLE_DEBUG
                 auto throttleStart = p_high_resolution_clock::now();
 #endif
 
-                AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
                 auto nodeID = node->getUUID();
 
                 // compute the node's max relative volume
@@ -200,7 +201,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             std::pop_heap(throttledNodes.begin(), throttledNodes.end());
 
             auto& node = throttledNodes.back().second;
-            allStreams(node, &AudioMixerSlave::mixStream);
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+            forAllStreams(node, nodeData, &AudioMixerSlave::mixStream);
 
             throttledNodes.pop_back();
         }
@@ -208,7 +210,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
         // throttle the remaining nodes' streams
         for (const std::pair<float, SharedNodePointer>& nodePair : throttledNodes) {
             auto& node = nodePair.second;
-            allStreams(node, &AudioMixerSlave::throttleStream);
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+            forAllStreams(node, nodeData, &AudioMixerSlave::throttleStream);
         }
     }
 
