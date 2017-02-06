@@ -31,13 +31,6 @@ int MixedProcessedAudioStream::writeDroppableSilentFrames(int silentFrames) {
     return deviceSilentFramesWritten;
 }
 
-int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int frames) {
-    int deviceFrames = networkToDeviceFrames(frames);
-    int deviceFramesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(deviceFrames);
-    emit addedLastFrameRepeatedWithFade(deviceToNetworkFrames(deviceFramesWritten));
-    return deviceFramesWritten;
-}
-
 int MixedProcessedAudioStream::lostAudioData(int numPackets) {
     QByteArray decodedBuffer;
     QByteArray outputBuffer;

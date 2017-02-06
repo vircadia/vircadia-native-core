@@ -432,25 +432,6 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
     _lastPacketReceivedTime = now;
 }
 
-int InboundAudioStream::writeLastFrameRepeatedWithFade(int frames) {
-    AudioRingBuffer::ConstIterator frameToRepeat = _ringBuffer.lastFrameWritten();
-    int frameSize = _ringBuffer.getNumFrameSamples();
-    int samplesToWrite = frames * _numChannels;
-    int indexOfRepeat = 0;
-    do {
-        int samplesToWriteThisIteration = std::min(samplesToWrite, frameSize);
-        float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
-        if (fade == 1.0f) {
-            samplesToWrite -= _ringBuffer.writeSamples(frameToRepeat, samplesToWriteThisIteration);
-        } else {
-            samplesToWrite -= _ringBuffer.writeSamplesWithFade(frameToRepeat, samplesToWriteThisIteration, fade);
-        }
-        indexOfRepeat++;
-    } while (samplesToWrite > 0);
-
-    return frames;
-}
-
 AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
     AudioStreamStats streamStats;
 
