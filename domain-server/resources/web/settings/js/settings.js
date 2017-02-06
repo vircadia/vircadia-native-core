@@ -1306,7 +1306,9 @@ function badgeSidebarForDifferences(changedElement) {
   var isGrouped = $('#' + panelParentID).hasClass('grouped');
 
   if (isGrouped) {
-    var initialPanelJSON = Settings.initialValues[panelParentID];
+    var initialPanelJSON = Settings.initialValues[panelParentID]
+      ? Settings.initialValues[panelParentID]
+      : {};
 
     // get a JSON representation of that section
     var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID];
@@ -1595,7 +1597,11 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
 
     // get a JSON representation of that section
     var panelSettingJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID][tableShortName]
-    var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
+    if (Settings.initialValues[panelParentID]) {
+      var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
+    } else {
+      var initialPanelSettingJSON = {};
+    }
 
     // if they are equal, we don't need data-changed
     isTrue = !_.isEqual(panelSettingJSON, initialPanelSettingJSON)
