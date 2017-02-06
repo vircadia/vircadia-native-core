@@ -129,12 +129,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkFrames);
     message.seek(prePropertyPosition + propertyBytes);
 
-    // simulate 1% packetloss
-    if (rand() < (RAND_MAX/100)) {
-        arrivalInfo._status = SequenceNumberStats::Unreasonable;
-        qDebug(audio) << "Simulated a lost packet...";
-    }
-
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Unreasonable: {
