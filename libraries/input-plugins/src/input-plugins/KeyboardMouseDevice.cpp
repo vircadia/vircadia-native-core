@@ -73,6 +73,9 @@ void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event) {
     _mousePressTime = usecTimestampNow();
     _mouseMoved = false;
 
+    _mousePressPos = event->pos();
+    _clickDeadspotActive = true;
+
     eraseMouseClicked();
 }
 
@@ -84,9 +87,11 @@ void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event) {
     // input for this button we might want to add some small tolerance to this so if you do a small drag it 
     // still counts as a click.
     static const int CLICK_TIME = USECS_PER_MSEC * 500; // 500 ms to click
-    if (!_mouseMoved && (usecTimestampNow() - _mousePressTime < CLICK_TIME)) {
+    if (_clickDeadspotActive && (usecTimestampNow() - _mousePressTime < CLICK_TIME)) {
         _inputDevice->_buttonPressedMap.insert(_inputDevice->makeInput((Qt::MouseButton) event->button(), true).getChannel());
     }
+
+    _clickDeadspotActive = false;
 }
 
 void KeyboardMouseDevice::eraseMouseClicked() {
@@ -109,9 +114,14 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
     // outside of the application window, because we don't get MouseEvents when the cursor is outside
     // of the application window.
     _lastCursor = currentPos;
+
     _mouseMoved = true;
 
-    eraseMouseClicked();
+    const int CLICK_EVENT_DEADSPOT = 6; // pixels
+    if (_clickDeadspotActive && (_mousePressPos - currentPos).manhattanLength() > CLICK_EVENT_DEADSPOT) {
+        eraseMouseClicked();
+        _clickDeadspotActive = false;
+    }
 }
 
 void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {

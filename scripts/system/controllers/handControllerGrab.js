@@ -853,7 +853,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState, reason) {
-        if (isInEditMode() && (newState !== STATE_OFF &&
+        if ((isInEditMode() && this.grabbedEntity !== HMD.tabletID )&& (newState !== STATE_OFF &&
                                newState !== STATE_SEARCHING &&
                                newState !== STATE_OVERLAY_STYLUS_TOUCHING)) {
             return;
@@ -1703,7 +1703,7 @@ function MyController(hand) {
     };
 
     this.isTablet = function (entityID) {
-        if (entityID === HMD.tabletID) { // XXX what's a better way to know this?
+        if (entityID === HMD.tabletID) {
             return true;
         }
         return false;
