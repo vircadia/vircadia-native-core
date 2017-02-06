@@ -828,7 +828,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     {   // parentID and parentJointIndex are also protected by simulation ownership
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
+        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, updateParentID);
         READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
         overwriteLocalData = oldOverwrite;
     }
