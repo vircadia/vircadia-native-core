@@ -36,6 +36,7 @@ protected:
     int writeDroppableSilentFrames(int silentFrames) override;
     int writeLastFrameRepeatedWithFade(int frames) override;
     int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) override;
+    int lostAudioData(int numPackets) override;
 
 private:
     int networkToDeviceFrames(int networkFrames);

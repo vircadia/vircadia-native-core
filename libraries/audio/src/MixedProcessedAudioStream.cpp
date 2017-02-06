@@ -38,6 +38,28 @@ int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int frames) {
     return deviceFramesWritten;
 }
 
+int MixedProcessedAudioStream::lostAudioData(int numPackets) {
+    QByteArray decodedBuffer;
+    QByteArray outputBuffer;
+
+    while (numPackets--) {
+        if (_decoder) {
+            _decoder->lostFrame(decodedBuffer);
+        } else {
+            decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+            memset(decodedBuffer.data(), 0, decodedBuffer.size());
+        }
+
+        emit addedStereoSamples(decodedBuffer);
+
+        emit processSamples(decodedBuffer, outputBuffer);
+
+        _ringBuffer.writeData(outputBuffer.data(), outputBuffer.size());
+        qCDebug(audiostream, "Wrote %d samples to buffer (%d available)", outputBuffer.size() / (int)sizeof(int16_t), getSamplesAvailable());
+    }
+    return 0;
+}
+
 int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
     if (_decoder) {

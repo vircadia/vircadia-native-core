@@ -136,7 +136,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             // NOTE: we assume that each dropped packet contains the same number of samples
             // as the packet we just received.
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
-            writeFramesForDroppedPackets(packetsDropped * networkFrames);
+            //writeFramesForDroppedPackets(packetsDropped * networkFrames);
+            lostAudioData(packetsDropped);
 
             // fall through to OnTime case
         }
@@ -208,6 +209,21 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
     }
 }
 
+int InboundAudioStream::lostAudioData(int numPackets) {
+    QByteArray decodedBuffer;
+
+    while (numPackets--) {
+        if (_decoder) {
+            _decoder->lostFrame(decodedBuffer);
+        } else {
+            decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+            memset(decodedBuffer.data(), 0, decodedBuffer.size());
+        }
+        _ringBuffer.writeData(decodedBuffer.data(), decodedBuffer.size());
+    }
+    return 0;
+}
+
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
     if (_decoder) {
@@ -220,9 +236,6 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
 }
 
 int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
-    if (_decoder) {
-        _decoder->trackLostFrames(silentFrames);
-    }
 
     // calculate how many silent frames we should drop.
     int silentSamples = silentFrames * _numChannels;
