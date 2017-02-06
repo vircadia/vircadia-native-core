@@ -124,9 +124,14 @@ private:
     };
     IgnoreZoneMemo _ignoreZoneMemo;
 
-    struct IgnoreNodeData {
-        std::atomic<bool> isCached { false };
-        bool shouldIgnore { false };
+    class IgnoreNodeData {
+    public:
+        void cache(bool shouldIgnore);
+        bool isCached();
+        bool shouldIgnore();
+    private:
+        std::atomic<bool> _flag { false };
+        bool _ignore { false };
     };
     using NodeSourcesIgnoreMap = std::unordered_map<QUuid, IgnoreNodeData>;
     NodeSourcesIgnoreMap _nodeSourcesIgnoreMap;

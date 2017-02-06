@@ -59,15 +59,33 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     return NULL;
 }
 
-bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
-    // this is symmetric over self / node; they cache their computations to reduce work by 2x
+void AudioMixerClientData::IgnoreNodeData::cache(bool shouldIgnore) {
+    // do not reset the cache until it has been used, to avoid a data race
+    if (!_flag) {
+        _ignore = shouldIgnore;
+        _flag = true;
+    }
+}
 
-    auto& localCache = _nodeSourcesIgnoreMap[node->getUUID()];
-    if (localCache.isCached) {
-        assert(localCache.isCached.is_lock_free());
-        bool shouldIgnore = localCache.shouldIgnore;
-        localCache.isCached = false;
-        return shouldIgnore;
+bool AudioMixerClientData::IgnoreNodeData::isCached() {
+    assert(_flag.is_lock_free());
+    return _flag;
+}
+
+bool AudioMixerClientData::IgnoreNodeData::shouldIgnore() {
+    // do not reset the cache until it has been used, to avoid a data race
+    bool ignore = _ignore;
+    _flag = false;
+    return ignore;
+}
+
+bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
+    // this is symmetric over self / node; if computed, it is cached in the other
+
+    // check the cache to avoid computation
+    auto& cache = _nodeSourcesIgnoreMap[node->getUUID()];
+    if (cache.isCached()) {
+        return cache.shouldIgnore();
     }
 
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
@@ -93,12 +111,8 @@ bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const Shar
         }
     }
 
-    auto& remoteCache = nodeData->_nodeSourcesIgnoreMap[self->getUUID()];
-    // do not reset the cache until it has been used to avoid a data race
-    if (!remoteCache.isCached) {
-        remoteCache.shouldIgnore = shouldIgnore;
-        remoteCache.isCached = true;
-    }
+    // cache in node
+    nodeData->_nodeSourcesIgnoreMap[self->getUUID()].cache(shouldIgnore);
 
     return shouldIgnore;
 }
