@@ -131,12 +131,16 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
+        case SequenceNumberStats::Unreasonable: {
+            lostAudioData(1);
+            break;
+        }
         case SequenceNumberStats::Early: {
             // Packet is early; write droppable silent samples for each of the skipped packets.
             // NOTE: we assume that each dropped packet contains the same number of samples
             // as the packet we just received.
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
-            writeFramesForDroppedPackets(packetsDropped * networkFrames);
+            lostAudioData(packetsDropped);
 
             // fall through to OnTime case
         }
@@ -208,6 +212,21 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
     }
 }
 
+int InboundAudioStream::lostAudioData(int numPackets) {
+    QByteArray decodedBuffer;
+
+    while (numPackets--) {
+        if (_decoder) {
+            _decoder->lostFrame(decodedBuffer);
+        } else {
+            decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+            memset(decodedBuffer.data(), 0, decodedBuffer.size());
+        }
+        _ringBuffer.writeData(decodedBuffer.data(), decodedBuffer.size());
+    }
+    return 0;
+}
+
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
     if (_decoder) {
@@ -220,9 +239,6 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
 }
 
 int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
-    if (_decoder) {
-        _decoder->trackLostFrames(silentFrames);
-    }
 
     // calculate how many silent frames we should drop.
     int silentSamples = silentFrames * _numChannels;
@@ -414,29 +430,6 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
     }
 
     _lastPacketReceivedTime = now;
-}
-
-int InboundAudioStream::writeFramesForDroppedPackets(int networkFrames) {
-    return writeLastFrameRepeatedWithFade(networkFrames);
-}
-
-int InboundAudioStream::writeLastFrameRepeatedWithFade(int frames) {
-    AudioRingBuffer::ConstIterator frameToRepeat = _ringBuffer.lastFrameWritten();
-    int frameSize = _ringBuffer.getNumFrameSamples();
-    int samplesToWrite = frames * _numChannels;
-    int indexOfRepeat = 0;
-    do {
-        int samplesToWriteThisIteration = std::min(samplesToWrite, frameSize);
-        float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
-        if (fade == 1.0f) {
-            samplesToWrite -= _ringBuffer.writeSamples(frameToRepeat, samplesToWriteThisIteration);
-        } else {
-            samplesToWrite -= _ringBuffer.writeSamplesWithFade(frameToRepeat, samplesToWriteThisIteration, fade);
-        }
-        indexOfRepeat++;
-    } while (samplesToWrite > 0);
-
-    return frames;
 }
 
 AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
