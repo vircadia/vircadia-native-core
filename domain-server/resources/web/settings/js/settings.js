@@ -1417,7 +1417,7 @@ function addTableRow(row) {
 
   input_clone.children('td').each(function () {
     if ($(this).attr("name") !== keepField) {
-      $(this).find("input").val($(this).attr('data-default'));
+      $(this).find("input").val($(this).children('input').attr('data-default'));
     }
   });
 
