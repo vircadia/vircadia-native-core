@@ -120,7 +120,7 @@ bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const Shar
 AudioMixerClientData::IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned int frame) {
     // check for a memoized zone
     if (frame != _ignoreZoneMemo.frame.load(std::memory_order_acquire)) {
-        auto stream = getAvatarAudioStream();
+        AvatarAudioStream* stream = getAvatarAudioStream();
 
         // get the initial dimensions from the stream
         glm::vec3 corner = stream ? stream->getAvatarBoundingBoxCorner() : glm::vec3(0);
