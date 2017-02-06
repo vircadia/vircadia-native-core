@@ -29,7 +29,7 @@ void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<Received
 }
 
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew) {
-    if (type == PacketType::EntityAdd || type == PacketType::EntityEdit) {
+    if (type == PacketType::EntityAdd || type == PacketType::EntityEdit || type == PacketType::EntityPhysics) {
         EntityItem::adjustEditPacketForClockSkew(buffer, clockSkew);
     }
 }
