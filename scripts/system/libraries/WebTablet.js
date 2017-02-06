@@ -24,14 +24,18 @@ var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
-var NO_HANDS = -1;
+var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 
-var TABLET_URL = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+var NO_HANDS = -1;
 
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
+
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
+// var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
+// var TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -95,7 +99,12 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
     this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
-    this.dpi = dpi || DEFAULT_DPI;
+
+    if (dpi) {
+        this.dpi = dpi;
+    } else {
+        this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
+    }
 
     var tabletProperties = {
         name: "WebTablet Tablet",
@@ -105,7 +114,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: {x: this.width, y: this.height, z: this.depth},
-        parentID: MyAvatar.sessionUUID
+        parentID: AVATAR_SELF_ID
     };
 
     // compute position, rotation & parentJointIndex of the tablet
@@ -252,12 +261,14 @@ WebTablet.prototype.geometryChanged = function (geometry) {
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
 // with a bit of padding on the top and bottom.
 WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
+    var DEFAULT_DESKTOP_TABLET_SCALE = 75;
+    var DESKTOP_TABLET_SCALE = Settings.getValue("desktopTabletScale") || DEFAULT_DESKTOP_TABLET_SCALE;
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
     var MAX_PADDING_FACTOR = 2.2;
     var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
     var TABLET_HEIGHT = (TABLET_TEXTURE_RESOLUTION.y / this.dpi) * INCHES_TO_METERS;
     var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
-    var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2)) - WEB_ENTITY_Z_OFFSET;
+    var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2) * (DESKTOP_TABLET_SCALE / 100)) - WEB_ENTITY_Z_OFFSET;
     return {
         position: Vec3.sum(Camera.position, Vec3.multiply(dist, Quat.getFront(Camera.orientation))),
         rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
@@ -318,6 +329,7 @@ WebTablet.prototype.register = function() {
 
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
+    children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, jointIndex));
     print("cleanup " + children);
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
@@ -335,6 +347,7 @@ WebTablet.prototype.cleanUpOldTablets = function() {
     this.cleanUpOldTabletsOnJoint(SENSOR_TO_ROOM_MATRIX);
     this.cleanUpOldTabletsOnJoint(CAMERA_MATRIX);
     this.cleanUpOldTabletsOnJoint(65529);
+    this.cleanUpOldTabletsOnJoint(65534);
 };
 
 WebTablet.prototype.unregister = function() {
@@ -357,7 +370,7 @@ WebTablet.prototype.getPosition = function () {
 
 WebTablet.prototype.mousePressEvent = function (event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
-    var entityPickResults = Entities.findRayIntersection(pickRay, true); // non-accurate picking
+    var entityPickResults = Entities.findRayIntersection(pickRay, true, [this.tabletEntityID]); // non-accurate picking
     if (entityPickResults.intersects && entityPickResults.entityID === this.tabletEntityID) {
         var overlayPickResults = Overlays.findRayIntersection(pickRay);
         if (overlayPickResults.intersects && overlayPickResults.overlayID === HMD.homeButtonID) {

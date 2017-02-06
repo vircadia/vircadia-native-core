@@ -493,7 +493,8 @@ if (Settings.getValue("HUDUIEnabled")) {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         text: buttonName,
-        icon: "icons/tablet-icons/people-i.svg"
+        icon: "icons/tablet-icons/people-i.svg",
+        sortOrder: 7
     });
 }
 var isWired = false;

@@ -19,7 +19,9 @@ var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
 var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+// var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
 // Event bridge messages.
 var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
@@ -132,7 +134,8 @@ if (Settings.getValue("HUDUIEnabled")) {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     marketplaceButton = tablet.addButton({
         icon: "icons/tablet-icons/market-i.svg",
-        text: "MARKET"
+        text: "MARKET",
+        sortOrder: 9
     });
 }
 
