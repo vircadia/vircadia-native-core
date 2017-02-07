@@ -23,8 +23,7 @@ public:
     virtual ~Decoder() { }
     virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) = 0;
 
-    // numFrames - number of samples (mono) or sample-pairs (stereo)
-    virtual void trackLostFrames(int numFrames) = 0;
+    virtual void lostFrame(QByteArray& decodedBuffer) = 0;
 };
 
 class CodecPlugin : public Plugin {

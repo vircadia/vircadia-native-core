@@ -827,18 +827,26 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
         });
 
         if (ignoreEnabled) {
-            QReadLocker ignoredSetLocker{ &_ignoredSetLock }; // read lock for insert
-            QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // read lock for insert 
-            // add this nodeID to our set of ignored IDs
-            _ignoredNodeIDs.insert(nodeID);
-            // add this nodeID to our set of personal muted IDs
-            _personalMutedNodeIDs.insert(nodeID);
+            {
+                QReadLocker ignoredSetLocker{ &_ignoredSetLock }; // read lock for insert
+                // add this nodeID to our set of ignored IDs
+                _ignoredNodeIDs.insert(nodeID);
+            }
+            {
+                QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // read lock for insert 
+                // add this nodeID to our set of personal muted IDs
+                _personalMutedNodeIDs.insert(nodeID);
+            }
             emit ignoredNode(nodeID, true);
         } else {
-            QWriteLocker ignoredSetLocker{ &_ignoredSetLock }; // write lock for unsafe_erase
-            QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock }; // write lock for unsafe_erase
-            _ignoredNodeIDs.unsafe_erase(nodeID);
-            _personalMutedNodeIDs.unsafe_erase(nodeID);
+            {
+                QWriteLocker ignoredSetLocker{ &_ignoredSetLock }; // write lock for unsafe_erase
+                _ignoredNodeIDs.unsafe_erase(nodeID);
+            }
+            {
+                QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock }; // write lock for unsafe_erase
+                _personalMutedNodeIDs.unsafe_erase(nodeID);
+            }
             emit ignoredNode(nodeID, false);
         }
 
@@ -850,10 +858,14 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
 void NodeList::removeFromIgnoreMuteSets(const QUuid& nodeID) {
     // don't remove yourself, or nobody
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
-        QWriteLocker ignoredSetLocker{ &_ignoredSetLock };
-        QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock };
-        _ignoredNodeIDs.unsafe_erase(nodeID);
-        _personalMutedNodeIDs.unsafe_erase(nodeID);
+        {
+            QWriteLocker ignoredSetLocker{ &_ignoredSetLock };
+            _ignoredNodeIDs.unsafe_erase(nodeID);
+        }
+        {
+            QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock };
+            _personalMutedNodeIDs.unsafe_erase(nodeID);
+        }
     }
 }
 

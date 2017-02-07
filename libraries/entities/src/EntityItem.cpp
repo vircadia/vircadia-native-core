@@ -828,7 +828,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     {   // parentID and parentJointIndex are also protected by simulation ownership
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
+        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, updateParentID);
         READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
         overwriteLocalData = oldOverwrite;
     }
@@ -1823,28 +1823,6 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         }
 
         uint8_t userMask = getCollisionMask();
-        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
-            // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
-            // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
-            // and holding it against your own avatar.
-            QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
-            if (!ancestorID.isNull() && ancestorID == Physics::getSessionUUID()) {
-                userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
-            }
-        }
-        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
-            // also, don't bootstrap our own avatar with a hold action
-            QList<EntityActionPointer> holdActions = getActionsOfType(ACTION_TYPE_HOLD);
-            QList<EntityActionPointer>::const_iterator i = holdActions.begin();
-            while (i != holdActions.end()) {
-                EntityActionPointer action = *i;
-                if (action->isMine()) {
-                    userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
-                    break;
-                }
-                i++;
-            }
-        }
 
         if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
                 (bool)(userMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
@@ -1852,6 +1830,33 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
             if (!getSimulatorID().isNull() && getSimulatorID() != Physics::getSessionUUID()) {
                 // someone else owns the simulation, so we toggle the avatar bits (swap interpretation)
                 userMask ^= USER_COLLISION_MASK_AVATARS | ~userMask;
+            }
+        }
+
+        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
+            bool iAmHoldingThis = false;
+            // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
+            // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
+            // and holding it against your own avatar.
+            QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
+            if (!ancestorID.isNull() &&
+                (ancestorID == Physics::getSessionUUID() || ancestorID == AVATAR_SELF_ID)) {
+                iAmHoldingThis = true;
+            }
+            // also, don't bootstrap our own avatar with a hold action
+            QList<EntityActionPointer> holdActions = getActionsOfType(ACTION_TYPE_HOLD);
+            QList<EntityActionPointer>::const_iterator i = holdActions.begin();
+            while (i != holdActions.end()) {
+                EntityActionPointer action = *i;
+                if (action->isMine()) {
+                    iAmHoldingThis = true;
+                    break;
+                }
+                i++;
+            }
+
+            if (iAmHoldingThis) {
+                userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
             }
         }
         mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);

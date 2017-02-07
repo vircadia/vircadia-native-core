@@ -60,6 +60,11 @@ public:
 class EntityTree : public Octree, public SpatialParentTree {
     Q_OBJECT
 public:
+    enum FilterType {
+        Add,
+        Edit,
+        Physics
+    };
     EntityTree(bool shouldReaverage = false);
     virtual ~EntityTree();
 
@@ -357,7 +362,7 @@ protected:
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 
-    bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, bool isAdd);
+    bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
     bool _hasEntityEditFilter{ false };
     QScriptEngine* _entityEditFilterEngine{};
     QScriptValue _entityEditFilterFunction{};

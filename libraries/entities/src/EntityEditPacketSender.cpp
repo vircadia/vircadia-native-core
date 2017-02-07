@@ -29,7 +29,7 @@ void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<Received
 }
 
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew) {
-    if (type == PacketType::EntityAdd || type == PacketType::EntityEdit) {
+    if (type == PacketType::EntityAdd || type == PacketType::EntityEdit || type == PacketType::EntityPhysics) {
         EntityItem::adjustEditPacketForClockSkew(buffer, clockSkew);
     }
 }
@@ -100,7 +100,18 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 
     QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
-    if (EntityItemProperties::encodeEntityEditPacket(type, entityItemID, properties, bufferOut)) {
+    bool success;
+    if (properties.parentIDChanged() && properties.getParentID() == AVATAR_SELF_ID) {
+        EntityItemProperties propertiesCopy = properties;
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid myNodeID = nodeList->getSessionUUID();
+        propertiesCopy.setParentID(myNodeID);
+        success = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut);
+    } else {
+        success = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, properties, bufferOut);
+    }
+
+    if (success) {
         #ifdef WANT_DEBUG
             qCDebug(entities) << "calling queueOctreeEditMessage()...";
             qCDebug(entities) << "    id:" << entityItemID;

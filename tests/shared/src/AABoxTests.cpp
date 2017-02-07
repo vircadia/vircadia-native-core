@@ -169,3 +169,17 @@ void AABoxTests::testScale() {
     box3 += glm::vec3(-1.0f, -1.0f, -1.0f);
     QCOMPARE(box3.contains(glm::vec3(0.5f, 0.5f, 0.5f)), true);
 }
+
+void AABoxTests::testFindSpherePenetration() {
+    vec3 searchPosition(-0.0141186f, 0.0640736f, -0.116081f);
+    float searchRadius = 0.5f;
+
+    vec3 boxMin(-0.800014f, -0.450025f, -0.00503815f);
+    vec3 boxDim(1.60003f, 0.900049f, 0.0100763f);
+    AABox testBox(boxMin, boxDim);
+
+    vec3 penetration;
+    bool hit = testBox.findSpherePenetration(searchPosition, searchRadius, penetration);
+    QCOMPARE(hit, true);
+}
+
