@@ -36,6 +36,7 @@
 #include <shared/JSONHelpers.h>
 #include <ShapeInfo.h>
 #include <AudioHelpers.h>
+#include <VariantMapToScriptValue.h>
 
 #include "AvatarLogging.h"
 
@@ -2313,9 +2314,18 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
     QScriptValue obj = engine->newObject();
     for (auto entityID : value.keys()) {
-        QScriptValue EntityProperties = engine->newVariant(QVariant::fromValue(value.value(entityID)));
+        QByteArray entityProperties = value.value(entityID);
+        QJsonDocument jsonEntityProperties = QJsonDocument::fromBinaryData(entityProperties);
+        if (!jsonEntityProperties.isObject()) {
+            qCDebug(avatars) << "bad AvatarEntityData in AvatarEntityMap" << QString(entityProperties.toHex());
+        }
+        
+        QVariant variantEntityProperties = jsonEntityProperties.toVariant();
+        QVariantMap entityPropertiesMap = variantEntityProperties.toMap();
+        QScriptValue scriptEntityProperties = variantMapToScriptValue(entityPropertiesMap, *engine);
+        
         QString key = entityID.toString();
-        obj.setProperty(key, EntityProperties);
+        obj.setProperty(key, scriptEntityProperties);
     }
     return obj;
 }
@@ -2325,6 +2335,12 @@ void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap&
     while (itr.hasNext()) {
         itr.next();
         QUuid EntityID = QUuid(itr.name());
-        value[EntityID] = qvariant_cast<QByteArray>(itr.value().data().toVariant());
+        
+        QScriptValue scriptEntityProperties = itr.value();
+        QVariant variantEntityProperties = scriptEntityProperties.toVariant();
+        QJsonDocument jsonEntityProperties = QJsonDocument::fromVariant(variantEntityProperties);
+        QByteArray binaryEntityProperties = jsonEntityProperties.toBinaryData();
+        
+        value[EntityID] = binaryEntityProperties;
     }
 }
