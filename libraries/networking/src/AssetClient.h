@@ -21,11 +21,10 @@
 #include <DependencyManager.h>
 
 #include "AssetUtils.h"
+#include "ClientServerUtils.h"
 #include "LimitedNodeList.h"
-#include "NLPacket.h"
 #include "Node.h"
 #include "ReceivedMessage.h"
-#include "ResourceCache.h"
 
 class GetMappingRequest;
 class SetMappingRequest;
@@ -59,8 +58,6 @@ public:
     Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data);
-
-    static const MessageID INVALID_MESSAGE_ID = 0;
 
 public slots:
     void init();

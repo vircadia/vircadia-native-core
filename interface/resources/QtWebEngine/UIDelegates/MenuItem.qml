@@ -32,6 +32,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         onClicked: {
+            menu.visible = false;
             root.triggered();
             menu.done();
         }

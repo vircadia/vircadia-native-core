@@ -15,8 +15,7 @@
 
 (function () { // BEGIN LOCAL_SCOPE
 
-    // grab the toolbar
-    var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    var button;
     // Used for animating and disappearing the bubble
     var bubbleOverlayTimestamp;
     // Used for flashing the HUD button upon activation
@@ -91,9 +90,7 @@
 
     // Used to set the state of the bubble HUD button
     function writeButtonProperties(parameter) {
-        button.writeProperty('buttonState', parameter ? 0 : 1);
-        button.writeProperty('defaultState', parameter ? 0 : 1);
-        button.writeProperty('hoverState', parameter ? 2 : 3);
+        button.editProperties({isActive: parameter});
     }
 
     // The bubble script's update function
@@ -166,13 +163,23 @@
         }
     }
 
-    // Setup the bubble button and add it to the toolbar
-    var button = toolbar.addButton({
-        objectName: 'bubble',
-        imageURL: buttonImageURL(),
-        visible: true,
-        alpha: 0.9
-    });
+    // Setup the bubble button
+    var buttonName = "BUBBLE";
+    if (Settings.getValue("HUDUIEnabled")) {
+        var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+        button = toolbar.addButton({
+            objectName: 'bubble',
+            imageURL: buttonImageURL(),
+            visible: true,
+            alpha: 0.9
+        });
+    } else {
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        button = tablet.addButton({
+            icon: "icons/tablet-icons/bubble-i.svg",
+            text: buttonName
+        });
+    }
     onBubbleToggled();
 
     button.clicked.connect(Users.toggleIgnoreRadius);
@@ -181,8 +188,13 @@
 
     // Cleanup the toolbar button and overlays when script is stopped
     Script.scriptEnding.connect(function () {
-        toolbar.removeButton('bubble');
         button.clicked.disconnect(Users.toggleIgnoreRadius);
+        if (tablet) {
+            tablet.removeButton(button);
+        }
+        if (toolbar) {
+            toolbar.removeButton('bubble');
+        }
         Users.ignoreRadiusEnabledChanged.disconnect(onBubbleToggled);
         Users.enteredIgnoreRadius.disconnect(enteredIgnoreRadius);
         Overlays.deleteOverlay(bubbleOverlay);

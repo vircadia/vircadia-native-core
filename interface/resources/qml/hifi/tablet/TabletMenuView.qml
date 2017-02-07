@@ -12,13 +12,13 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
-import "../styles-uit"
-
+import "../../styles-uit"
+import "."
 FocusScope {
     id: root
     implicitHeight: background.height
     implicitWidth: background.width
-
+    objectName: "root"
     property alias currentItem: listView.currentItem
     property alias model: listView.model
     property bool isSubMenu: false
@@ -32,15 +32,23 @@ FocusScope {
         radius: hifi.dimensions.borderRadius
         border.width: hifi.dimensions.borderWidth
         border.color: hifi.colors.lightGrayText80
-        color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
+        color: hifi.colors.faintGray
+        //color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
     }
+
 
     ListView {
         id: listView
-        x: 8; y: 8
-        width: 128
-        height: count * 32
+        x: 0
+        y: 0
+        width: 480
+        height: 720
+        contentWidth: 480
+        contentHeight: 720
+        objectName: "menuList"
+
         topMargin: hifi.dimensions.menuPadding.y
+        bottomMargin: hifi.dimensions.menuPadding.y
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
         onCountChanged: recalcSize();
@@ -57,7 +65,7 @@ FocusScope {
             color: hifi.colors.white
         }
 
-        delegate: VrMenuItem {
+        delegate: TabletMenuItem {
             text: name
             source: item
             onImplicitHeightChanged: listView.recalcSize()
@@ -67,7 +75,10 @@ FocusScope {
                 anchors.fill: parent
                 hoverEnabled: true
                 onEntered: listView.currentIndex = index
-                onClicked: root.selected(item)
+                onClicked: {
+                    root.selected(item)
+                    tabletRoot.playButtonClickSound();
+                }
             }
         }
 
@@ -91,26 +102,30 @@ FocusScope {
                     newHeight += currentItem.implicitHeight
                 }
             }
-            newHeight += 2 * hifi.dimensions.menuPadding.y;  // White space at top and bottom.
+            newHeight += hifi.dimensions.menuPadding.y * 2;  // White space at top and bottom.
             if (maxWidth > width) {
                 width = maxWidth;
             }
-            if (newHeight > height) {
-                height = newHeight
+            if (newHeight > contentHeight) {
+                contentHeight = newHeight;
             }
             currentIndex = originalIndex;
         }
-
-        function previousItem() { currentIndex = (currentIndex + count - 1) % count; }
-        function nextItem() { currentIndex = (currentIndex + count + 1) % count; }
-        function selectCurrentItem() { if (currentIndex != -1) root.selected(currentItem.source); }
-
+        
         Keys.onUpPressed: previousItem();
         Keys.onDownPressed: nextItem();
         Keys.onSpacePressed: selectCurrentItem();
         Keys.onRightPressed: selectCurrentItem();
         Keys.onReturnPressed: selectCurrentItem();
+        Keys.onLeftPressed: previousPage();
     }
+
+    function previousItem() { listView.currentIndex = (listView.currentIndex + listView.count - 1) % listView.count; }
+    function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
+    function selectCurrentItem() { if (listView.currentIndex != -1) root.selected(currentItem.source); }
+    function previousPage() { root.parent.pop(); }
+
+    
 }
 
 

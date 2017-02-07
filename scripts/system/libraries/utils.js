@@ -6,6 +6,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// note: this constant is currently duplicated in edit.js
+EDIT_SETTING = "io.highfidelity.isEditting";
+isInEditMode = function isInEditMode() {
+    return Settings.getValue(EDIT_SETTING) === "false" ? false : !!Settings.getValue(EDIT_SETTING);
+};
+
 if (!Function.prototype.bind) {
     Function.prototype.bind = function(oThis) {
         if (typeof this !== 'function') {

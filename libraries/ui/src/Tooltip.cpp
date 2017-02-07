@@ -114,7 +114,7 @@ void Tooltip::handleAPIResponse(QNetworkReply& requestReply) {
 
         if (_description.isEmpty()) {
             const QString DESCRIPTION_KEY = "description";
-            // we have an empty description - did a non-empty desciption come back?
+            // we have an empty description - did a non-empty description come back?
             if (placeObject.contains(DESCRIPTION_KEY)) {
                 QString placeDescription = placeObject[DESCRIPTION_KEY].toString();
 

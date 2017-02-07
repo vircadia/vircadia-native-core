@@ -53,8 +53,8 @@ public:
 
     HRCTime getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void flagIdentityChange() { _identityChangeTimestamp = p_high_resolution_clock::now(); }
-    bool getReceivedIdentity() const { return _gotIdentity; }
-    void setReceivedIdentity() { _gotIdentity = true;  }
+    bool getAvatarSessionDisplayNameMustChange() const { return _avatarSessionDisplayNameMustChange; }
+    void setAvatarSessionDisplayNameMustChange(bool set = true) { _avatarSessionDisplayNameMustChange = set; }
 
     void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
     float getFullRateDistance() const { return _fullRateDistance; }
@@ -104,6 +104,22 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
+    quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
+        quint64 result = 0;
+        if (_lastOtherAvatarEncodeTime.find(otherAvatar) != _lastOtherAvatarEncodeTime.end()) {
+            result = _lastOtherAvatarEncodeTime[otherAvatar];
+        }
+        _lastOtherAvatarEncodeTime[otherAvatar] = usecTimestampNow();
+        return result;
+    }
+
+    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) {
+        _lastOtherAvatarSentJoints[otherAvatar].resize(_avatar->getJointCount());
+        return _lastOtherAvatarSentJoints[otherAvatar];
+    }
+
+    
+
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
@@ -111,8 +127,13 @@ private:
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
+    // this is a map of the last time we encoded an "other" avatar for
+    // sending to "this" node
+    std::unordered_map<QUuid, quint64> _lastOtherAvatarEncodeTime;
+    std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
+
     HRCTime _identityChangeTimestamp;
-    bool _gotIdentity { false };
+    bool _avatarSessionDisplayNameMustChange{ false };
 
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;

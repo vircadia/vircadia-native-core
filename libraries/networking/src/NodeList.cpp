@@ -26,6 +26,7 @@
 #include "AccountManager.h"
 #include "AddressManager.h"
 #include "Assignment.h"
+#include "AudioHelpers.h"
 #include "HifiSockAddr.h"
 #include "FingerprintUtils.h"
 
@@ -846,6 +847,16 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     }
 }
 
+void NodeList::removeFromIgnoreMuteSets(const QUuid& nodeID) {
+    // don't remove yourself, or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        QWriteLocker ignoredSetLocker{ &_ignoredSetLock };
+        QWriteLocker personalMutedSetLocker{ &_personalMutedSetLock };
+        _ignoredNodeIDs.unsafe_erase(nodeID);
+        _personalMutedNodeIDs.unsafe_erase(nodeID);
+    }
+}
+
 bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
     QReadLocker ignoredSetLocker{ &_ignoredSetLock };
     return _ignoredNodeIDs.find(nodeID) != _ignoredNodeIDs.cend();
@@ -951,6 +962,30 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
     }
 }
 
+void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
+    // cannot set gain of yourself or nobody
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+        if (audioMixer) {
+            // setup the packet
+            auto setAvatarGainPacket = NLPacket::create(PacketType::PerAvatarGainSet, NUM_BYTES_RFC4122_UUID + sizeof(float), true);
+            
+            // write the node ID to the packet
+            setAvatarGainPacket->write(nodeID.toRfc4122());
+            // We need to convert the gain in dB (from the script) to an amplitude before packing it.
+            setAvatarGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.0206f)));
+
+            qCDebug(networking) << "Sending Set Avatar Gain packet UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
+
+            sendPacket(std::move(setAvatarGainPacket), *audioMixer);
+        } else {
+            qWarning() << "Couldn't find audio mixer to send set gain request";
+        }
+    } else {
+        qWarning() << "NodeList::setAvatarGain called with an invalid ID or an ID which matches the current session ID:" << nodeID;
+    }
+}
+
 void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)
@@ -1005,25 +1040,20 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
 }
 
 void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
-    // send a request to domain-server to get the username associated with the given session ID
-    if (getThisNodeCanKick() || nodeID.isNull()) {
-        // setup the packet
-        auto usernameFromIDRequestPacket = NLPacket::create(PacketType::UsernameFromIDRequest, NUM_BYTES_RFC4122_UUID, true);
+    // send a request to domain-server to get the username/machine fingerprint/admin status associated with the given session ID
+    // If the requesting user isn't an admin, the username and machine fingerprint will return "".
+    auto usernameFromIDRequestPacket = NLPacket::create(PacketType::UsernameFromIDRequest, NUM_BYTES_RFC4122_UUID, true);
 
-        // write the node ID to the packet
-        if (nodeID.isNull()) {
-            usernameFromIDRequestPacket->write(getSessionUUID().toRfc4122());
-        } else {
-            usernameFromIDRequestPacket->write(nodeID.toRfc4122());
-        }
-
-        qCDebug(networking) << "Sending packet to get username of node" << uuidStringWithoutCurlyBraces(nodeID);
-
-        sendPacket(std::move(usernameFromIDRequestPacket), _domainHandler.getSockAddr());
+    // write the node ID to the packet
+    if (nodeID.isNull()) {
+        usernameFromIDRequestPacket->write(getSessionUUID().toRfc4122());
     } else {
-        qWarning() << "You do not have permissions to kick in this domain."
-            << "Request to get the username of node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+        usernameFromIDRequestPacket->write(nodeID.toRfc4122());
     }
+
+    qCDebug(networking) << "Sending packet to get username/fingerprint/admin status of node" << uuidStringWithoutCurlyBraces(nodeID);
+
+    sendPacket(std::move(usernameFromIDRequestPacket), _domainHandler.getSockAddr());
 }
 
 void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message) {
@@ -1033,10 +1063,13 @@ void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> messag
     QString username = message->readString();
     // read the machine fingerprint from the packet
     QString machineFingerprintString = (QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID))).toString();
+    bool isAdmin;
+    message->readPrimitive(&isAdmin);
 
-    qCDebug(networking) << "Got username" << username << "and machine fingerprint" << machineFingerprintString << "for node" << nodeUUIDString;
+    qCDebug(networking) << "Got username" << username << "and machine fingerprint"
+        << machineFingerprintString << "for node" << nodeUUIDString << ". isAdmin:" << isAdmin;
 
-    emit usernameFromIDReply(nodeUUIDString, username, machineFingerprintString);
+    emit usernameFromIDReply(nodeUUIDString, username, machineFingerprintString, isAdmin);
 }
 
 void NodeList::setRequestsDomainListData(bool isRequesting) {

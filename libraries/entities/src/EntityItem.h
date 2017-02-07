@@ -125,7 +125,7 @@ public:
     void markAsChangedOnServer() { _changedOnServer = usecTimestampNow();  }
     quint64 getLastChangedOnServer() const { return _changedOnServer; }
 
-    // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+    // TODO: eventually only include properties changed since the params.lastQuerySent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -254,11 +254,15 @@ public:
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
 
-    const QString& getScript() const { return _script; }
+    QString getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 
     quint64 getScriptTimestamp() const { return _scriptTimestamp; }
     void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
+
+    QString getServerScripts() const { return _serverScripts; }
+    void setServerScripts(const QString& serverScripts)
+        { _serverScripts = serverScripts; _serverScriptsChangedTimestamp = usecTimestampNow(); }
 
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& value);
@@ -317,6 +321,7 @@ public:
     void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
     void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
+    void rememberHasSimulationOwnershipBid() const;
 
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -339,6 +344,7 @@ public:
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     virtual void updateRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
+    void updateParentID(const QUuid& value);
     void updatePositionFromNetwork(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
@@ -415,7 +421,7 @@ public:
     const QUuid& getSourceUUID() const { return _sourceUUID; }
     bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
 
-    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
+    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet) const;
 
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
@@ -463,6 +469,8 @@ public:
 
     QUuid getLastEditedBy() const { return _lastEditedBy; }
     void setLastEditedBy(QUuid value) { _lastEditedBy = value; }
+    
+    bool matchesJSONFilters(const QJsonObject& jsonFilters) const;
 
 protected:
 
@@ -490,16 +498,16 @@ protected:
     mutable AABox _cachedAABox;
     mutable AACube _maxAACube;
     mutable AACube _minAACube;
-    mutable bool _recalcAABox = true;
-    mutable bool _recalcMinAACube = true;
-    mutable bool _recalcMaxAACube = true;
+    mutable bool _recalcAABox { true };
+    mutable bool _recalcMinAACube { true };
+    mutable bool _recalcMaxAACube { true };
 
     float _localRenderAlpha;
-    float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
+    float _density { ENTITY_ITEM_DEFAULT_DENSITY }; // kg/m^3
     // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class
     // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
     // different way.
-    float _volumeMultiplier = 1.0f;
+    float _volumeMultiplier { 1.0f };
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
     float _damping;
@@ -509,11 +517,15 @@ protected:
 
     QString _script; /// the value of the script property
     QString _loadedScript; /// the value of _script when the last preload signal was sent
-    quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+    quint64 _scriptTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+
+    QString _serverScripts;
+    /// keep track of time when _serverScripts property was last changed
+    quint64 _serverScriptsChangedTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP };
 
     /// the value of _scriptTimestamp when the last preload signal was sent
     // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it
-    quint64 _loadedScriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
+    quint64 _loadedScriptTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
 
     QString _collisionSoundURL;
     SharedSoundPointer _collisionSound;
@@ -551,8 +563,8 @@ protected:
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
     // these backpointers are only ever set/cleared by friends:
-    EntityTreeElementPointer _element = nullptr; // set by EntityTreeElement
-    void* _physicsInfo = nullptr; // set by EntitySimulation
+    EntityTreeElementPointer _element { nullptr }; // set by EntityTreeElement
+    void* _physicsInfo { nullptr }; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
     bool addActionInternal(EntitySimulationPointer simulation, EntityActionPointer action);
@@ -569,11 +581,14 @@ protected:
     // are used to keep track of and work around this situation.
     void checkWaitingToRemove(EntitySimulationPointer simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
-    mutable bool _actionDataDirty = false;
-    mutable bool _actionDataNeedsTransmit = false;
+    mutable bool _actionDataDirty { false };
+    mutable bool _actionDataNeedsTransmit { false };
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
+
+    // per entity keep state if it ever bid on simulation, so that we can ignore false simulation ownership
+    mutable bool _hasBidOnSimulation { false };
 
     QUuid _sourceUUID; /// the server node UUID we came from
 
@@ -583,7 +598,7 @@ protected:
     // physics related changes from the network to suppress any duplicates and make
     // sure redundant applications are idempotent
     glm::vec3 _lastUpdatedPositionValue;
-    glm::quat  _lastUpdatedRotationValue;
+    glm::quat _lastUpdatedRotationValue;
     glm::vec3 _lastUpdatedVelocityValue;
     glm::vec3 _lastUpdatedAngularVelocityValue;
     glm::vec3 _lastUpdatedAccelerationValue;

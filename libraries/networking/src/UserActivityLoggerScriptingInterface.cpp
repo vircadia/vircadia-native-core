@@ -16,6 +16,14 @@ void UserActivityLoggerScriptingInterface::enabledEdit() {
     logAction("enabled_edit");
 }
 
+void UserActivityLoggerScriptingInterface::openedTablet() {
+    logAction("opened_tablet");
+}
+
+void UserActivityLoggerScriptingInterface::closedTablet() {
+    logAction("closed_tablet");
+}
+
 void UserActivityLoggerScriptingInterface::openedMarketplace() {
     logAction("opened_marketplace");
 }
@@ -36,6 +44,21 @@ void UserActivityLoggerScriptingInterface::tutorialProgress( QString stepName, i
         { "controller_type", controllerType }
     });
 
+}
+
+void UserActivityLoggerScriptingInterface::palAction(QString action, QString target) {
+    QJsonObject payload;
+    payload["action"] = action;
+    if (target.length() > 0) {
+        payload["target"] = target;
+    }
+    logAction("pal_activity", payload);
+}
+
+void UserActivityLoggerScriptingInterface::palOpened(float secondsOpened) {
+    logAction("pal_opened", { 
+        { "seconds_opened", secondsOpened }
+    });
 }
 
 void UserActivityLoggerScriptingInterface::logAction(QString action, QJsonObject details) {

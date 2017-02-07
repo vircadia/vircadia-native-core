@@ -14,13 +14,17 @@
 var DEFAULT_SCRIPTS = [
     "system/progress.js",
     "system/away.js",
-    "system/users.js",
     "system/mute.js",
-    "system/goto.js",
     "system/hmd.js",
+    "system/menu.js",
+    "system/bubble.js",
+    "system/snapshot.js",
+    "system/help.js",
+    "system/pal.js", //"system/mod.js", // older UX, if you prefer
+    "system/goto.js",
     "system/marketplaces/marketplaces.js",
     "system/edit.js",
-    "system/pal.js", //"system/mod.js", // older UX, if you prefer
+    "system/tablet-users.js",
     "system/selectAudioDevice.js",
     "system/notifications.js",
     "system/controllers/controllerDisplayManager.js",
@@ -32,9 +36,7 @@ var DEFAULT_SCRIPTS = [
     "system/controllers/toggleAdvancedMovementForHandControllers.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",
-    "system/snapshot.js",
-    "system/help.js",
-    "system/bubble.js"
+    "system/tablet-ui/tabletUI.js"
 ];
 
 // add a menu item for debugging

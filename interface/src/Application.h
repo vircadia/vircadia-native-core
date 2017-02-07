@@ -208,6 +208,11 @@ public:
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
 
+    float getHMDTabletScale() { return _hmdTabletScale.get(); }
+    void setHMDTabletScale(float hmdTabletScale);
+    float getDesktopTabletScale() { return _desktopTabletScale.get(); }
+    void setDesktopTabletScale(float desktopTabletScale);
+
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
@@ -484,7 +489,7 @@ private:
     static void dragEnterEvent(QDragEnterEvent* event);
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
-    void toggleMenuUnderReticle() const;
+    void toggleTabletUI() const;
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
@@ -539,6 +544,8 @@ private:
 
     Setting::Handle<QString> _previousScriptLocation;
     Setting::Handle<float> _fieldOfView;
+    Setting::Handle<float> _hmdTabletScale;
+    Setting::Handle<float> _desktopTabletScale;
     Setting::Handle<bool> _constrainToolbarPosition;
 
     float _scaleMirror;

@@ -121,6 +121,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LIFETIME;
     requestedProperties += PROP_SCRIPT;
     requestedProperties += PROP_SCRIPT_TIMESTAMP;
+    requestedProperties += PROP_SERVER_SCRIPTS;
     requestedProperties += PROP_COLLISION_SOUND_URL;
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_DAMPING;
@@ -265,6 +266,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, getScriptTimestamp());
+        APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, getServerScripts());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
@@ -279,7 +281,15 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getActionData());
-        APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, getParentID());
+
+        // convert AVATAR_SELF_ID to actual sessionUUID.
+        QUuid actualParentID = getParentID();
+        if (actualParentID == AVATAR_SELF_ID) {
+            auto nodeList = DependencyManager::get<NodeList>();
+            actualParentID = nodeList->getSessionUUID();
+        }
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, actualParentID);
+
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
@@ -348,7 +358,6 @@ int EntityItem::expectedBytes() {
     const int MINIMUM_HEADER_BYTES = 27;
     return MINIMUM_HEADER_BYTES;
 }
-
 
 // clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
@@ -650,6 +659,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
 
+    bool filterRejection = false;
     if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
 
         QByteArray simOwnerData;
@@ -662,11 +672,18 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
             qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
         }
+        // This is used in the custom physics setters, below. When an entity-server filter alters
+        // or rejects a set of properties, it clears this. In such cases, we don't want those custom
+        // setters to ignore what the server says.
+        filterRejection = newSimOwner.getID().isNull();
         if (weOwnSimulation) {
             if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
                 // entity-server is trying to clear our ownership (probably at our own request)
                 // but we actually want to own it, therefore we ignore this clear event
                 // and pretend that we own it (we assume we'll recover it soon)
+
+                // However, for now, when the server uses a newer time than what we sent, listen to what we're told.
+                if (overwriteLocalData) weOwnSimulation = false;
             } else if (_simulationOwner.set(newSimOwner)) {
                 _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
                 somethingChanged = true;
@@ -684,6 +701,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 somethingChanged = true;
                 _simulationOwner.clearCurrentOwner();
             }
+        } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
+            // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
+            // this could happen when the user reloads the cache and entity tree.
+            _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+            somethingChanged = true;
+            _simulationOwner.clearCurrentOwner();
+            weOwnSimulation = false;
         } else if (_simulationOwner.set(newSimOwner)) {
             _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
             somethingChanged = true;
@@ -704,55 +728,45 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // Note: duplicate packets are expected and not wrong. They may be sent for any number of 
         // reasons and the contract is that the client handles them in an idempotent manner.
         auto lastEdited = lastEditedFromBufferAdjusted;
-        auto customUpdatePositionFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
-            bool simulationChanged = lastEdited > _lastUpdatedPositionTimestamp;
-            bool valueChanged = value != _lastUpdatedPositionValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
+        auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+            bool simulationChanged = lastEdited > updatedTimestamp;
+            return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
+        };
+        auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+            if (shouldUpdate(_lastUpdatedPositionTimestamp, value != _lastUpdatedPositionValue)) {
                 updatePositionFromNetwork(value);
                 _lastUpdatedPositionTimestamp = lastEdited;
                 _lastUpdatedPositionValue = value;
             }
         };
 
-        auto customUpdateRotationFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::quat value){
-            bool simulationChanged = lastEdited > _lastUpdatedRotationTimestamp;
-            bool valueChanged = value != _lastUpdatedRotationValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        auto customUpdateRotationFromNetwork = [this, shouldUpdate, lastEdited](glm::quat value){
+            if (shouldUpdate(_lastUpdatedRotationTimestamp, value != _lastUpdatedRotationValue)) {
                 updateRotationFromNetwork(value);
                 _lastUpdatedRotationTimestamp = lastEdited;
                 _lastUpdatedRotationValue = value;
             }
         };
 
-        auto customUpdateVelocityFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
-            bool simulationChanged = lastEdited > _lastUpdatedVelocityTimestamp;
-            bool valueChanged = value != _lastUpdatedVelocityValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        auto customUpdateVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+             if (shouldUpdate(_lastUpdatedVelocityTimestamp, value != _lastUpdatedVelocityValue)) {
                 updateVelocityFromNetwork(value);
                 _lastUpdatedVelocityTimestamp = lastEdited;
                 _lastUpdatedVelocityValue = value;
             }
         };
 
-        auto customUpdateAngularVelocityFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
-            bool simulationChanged = lastEdited > _lastUpdatedAngularVelocityTimestamp;
-            bool valueChanged = value != _lastUpdatedAngularVelocityValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        auto customUpdateAngularVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+            if (shouldUpdate(_lastUpdatedAngularVelocityTimestamp, value != _lastUpdatedAngularVelocityValue)) {
                 updateAngularVelocityFromNetwork(value);
                 _lastUpdatedAngularVelocityTimestamp = lastEdited;
                 _lastUpdatedAngularVelocityValue = value;
             }
         };
 
-        auto customSetAcceleration = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
-            bool simulationChanged = lastEdited > _lastUpdatedAccelerationTimestamp;
-            bool valueChanged = value != _lastUpdatedAccelerationValue;
-            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
-            if (shouldUpdate) {
+        auto customSetAcceleration = [this, shouldUpdate, lastEdited](glm::vec3 value){
+            if (shouldUpdate(_lastUpdatedAccelerationTimestamp, value != _lastUpdatedAccelerationValue)) {
                 setAcceleration(value);
                 _lastUpdatedAccelerationTimestamp = lastEdited;
                 _lastUpdatedAccelerationValue = value;
@@ -778,6 +792,19 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
     READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+
+    {
+        // We use this scope to work around an issue stopping server script changes
+        // from being received by an entity script server running a script that continously updates an entity.
+
+        // Basically, we'll allow recent changes to the server scripts even if there are local changes to other properties
+        // that have been made more recently.
+
+        bool overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
+
+        READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
+    }
+
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, updateRegistrationPoint);
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
@@ -801,7 +828,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     {   // parentID and parentJointIndex are also protected by simulation ownership
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
+        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, updateParentID);
         READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
         overwriteLocalData = oldOverwrite;
     }
@@ -1186,6 +1213,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(scriptTimestamp, getScriptTimestamp);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(serverScripts, getServerScripts);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getLocalAngularVelocity);
@@ -1260,7 +1288,7 @@ void EntityItem::grabSimulationOwnership() {
     auto nodeList = DependencyManager::get<NodeList>();
     if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
         // we already own it
-        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+        _simulationOwner.promotePriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
     } else {
         // we don't own it yet
         _simulationOwner.setPendingPriority(SCRIPT_GRAB_SIMULATION_PRIORITY, usecTimestampNow());
@@ -1298,6 +1326,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(scriptTimestamp, setScriptTimestamp);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(serverScripts, setServerScripts);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
@@ -1308,7 +1337,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setActionData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, updateParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
 
@@ -1565,6 +1594,14 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     }
 }
 
+void EntityItem::updateParentID(const QUuid& value) {
+    if (_parentID != value) {
+        setParentID(value);
+        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; // children are forced to be kinematic
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+    }
+}
+
 void EntityItem::updatePositionFromNetwork(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
@@ -1773,7 +1810,6 @@ void EntityItem::updateCreated(uint64_t value) {
 }
 
 void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
-    // TODO: detect attachment status and adopt group of wearer
     if (_collisionless) {
         group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         mask = 0;
@@ -1787,12 +1823,40 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         }
 
         uint8_t userMask = getCollisionMask();
+
         if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
                 (bool)(userMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
             // asymmetric avatar collision mask bits
-            if (!getSimulatorID().isNull() && (!getSimulatorID().isNull()) && getSimulatorID() != Physics::getSessionUUID()) {
+            if (!getSimulatorID().isNull() && getSimulatorID() != Physics::getSessionUUID()) {
                 // someone else owns the simulation, so we toggle the avatar bits (swap interpretation)
                 userMask ^= USER_COLLISION_MASK_AVATARS | ~userMask;
+            }
+        }
+
+        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
+            bool iAmHoldingThis = false;
+            // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
+            // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
+            // and holding it against your own avatar.
+            QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
+            if (!ancestorID.isNull() &&
+                (ancestorID == Physics::getSessionUUID() || ancestorID == AVATAR_SELF_ID)) {
+                iAmHoldingThis = true;
+            }
+            // also, don't bootstrap our own avatar with a hold action
+            QList<EntityActionPointer> holdActions = getActionsOfType(ACTION_TYPE_HOLD);
+            QList<EntityActionPointer>::const_iterator i = holdActions.begin();
+            while (i != holdActions.end()) {
+                EntityActionPointer action = *i;
+                if (action->isMine()) {
+                    iAmHoldingThis = true;
+                    break;
+                }
+                i++;
+            }
+
+            if (iAmHoldingThis) {
+                userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
             }
         }
         mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);
@@ -1838,6 +1902,10 @@ void EntityItem::clearSimulationOwnership() {
 
 void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& timestamp) {
     _simulationOwner.setPendingPriority(priority, timestamp);
+}
+
+void EntityItem::rememberHasSimulationOwnershipBid() const {
+    _hasBidOnSimulation = true;
 }
 
 QString EntityItem::actionsToDebugString() {
@@ -1889,6 +1957,7 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityAct
     if (success) {
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
     }
@@ -1911,6 +1980,7 @@ bool EntityItem::updateAction(EntitySimulationPointer simulation, const QUuid& a
             action->setIsMine(true);
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         } else {
             qCDebug(entities) << "EntityItem::updateAction failed";
         }
@@ -1948,6 +2018,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         setActionDataNeedsTransmit(true);
         return success;
     }
@@ -1968,6 +2039,7 @@ bool EntityItem::clearActions(EntitySimulationPointer simulation) {
         _actionsToRemove.clear();
         _allActionsDataCache.clear();
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
     });
     return true;
 }
@@ -2174,7 +2246,7 @@ bool EntityItem::shouldSuppressLocationEdits() const {
     return false;
 }
 
-QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) {
+QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) const {
     QList<EntityActionPointer> result;
 
     QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
@@ -2227,4 +2299,31 @@ void EntityItem::globalizeProperties(EntityItemProperties& properties, const QSt
     }
     QUuid empty;
     properties.setParentID(empty);
+}
+
+
+bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
+    
+    // The intention for the query JSON filter and this method is to be flexible to handle a variety of filters for
+    // ALL entity properties. Some work will need to be done to the property system so that it can be more flexible
+    // (to grab the value and default value of a property given the string representation of that property, for example)
+    
+    // currently the only property filter we handle is '+' for serverScripts
+    // which means that we only handle a filtered query asking for entities where the serverScripts property is non-default
+    
+    static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
+    
+    foreach(const auto& property, jsonFilters.keys()) {
+        if (property == SERVER_SCRIPTS_PROPERTY  && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
+            // check if this entity has a non-default value for serverScripts
+            if (_serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+    
+    // the json filter syntax did not match what we expected, return a match
+    return true;
 }

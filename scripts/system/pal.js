@@ -103,6 +103,8 @@ ExtendedOverlay.prototype.select = function (selected) {
         return;
     }
     
+    UserActivityLogger.palAction(selected ? "avatar_selected" : "avatar_deselected", this.key);
+
     this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(selected)});
@@ -231,7 +233,26 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
         break;
     case 'refresh':
         removeOverlays();
-        populateUserList();
+        populateUserList(message.params);
+        UserActivityLogger.palAction("refresh", "");
+        break;
+    case 'updateGain':
+        data = message.params;
+        if (data['isReleased']) {
+            // isReleased=true happens once at the end of a cycle of dragging
+            // the slider about, but with same gain as last isReleased=false so
+            // we don't set the gain in that case, and only here do we want to
+            // send an analytic event.
+            UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
+        } else {
+            Users.setAvatarGain(data['sessionId'], data['gain']);
+        }
+        break;
+    case 'displayNameUpdate':
+        if (MyAvatar.displayName != message.params) {
+            MyAvatar.displayName = message.params;
+            UserActivityLogger.palAction("display_name_change", "");
+        }
         break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
@@ -250,7 +271,7 @@ function addAvatarNode(id) {
          color: color(selected, false, 0.0),
          ignoreRayIntersection: false}, selected, true);
 }
-function populateUserList() {
+function populateUserList(selectData) {
     var data = [];
     AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
@@ -258,14 +279,12 @@ function populateUserList() {
             displayName: avatar.sessionDisplayName,
             userName: '',
             sessionId: id || '',
-            audioLevel: 0.0
+            audioLevel: 0.0,
+            admin: false
         };
-        // If the current user is an admin OR
-        // they're requesting their own username ("id" is blank)...
-        if (Users.canKick || !id) {
-            // Request the username from the given UUID
-            Users.requestUsernameFromID(id);
-        }
+        // Request the username, fingerprint, and admin status from the given UUID
+        // Username and fingerprint returns default constructor output if the requesting user isn't an admin
+        Users.requestUsernameFromID(id);
         // Request personal mute status and ignore status
         // from NodeList (as long as we're not requesting it for our own ID)
         if (id) {
@@ -276,20 +295,27 @@ function populateUserList() {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    pal.sendToQml({method: 'users', params: data});
+    pal.sendToQml({ method: 'users', params: data });
+    if (selectData) {
+        selectData[2] = true;
+        pal.sendToQml({ method: 'select', params: selectData });
+    }
 }
 
 // The function that handles the reply from the server
-function usernameFromIDReply(id, username, machineFingerprint) {
+function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
     var data;
     // If the ID we've received is our ID...
     if (MyAvatar.sessionUUID === id) {
         // Set the data to contain specific strings.
-        data = ['', username];
-    } else {
+        data = ['', username, isAdmin];
+    } else if (Users.canKick) {
         // Set the data to contain the ID and the username (if we have one)
         // or fingerprint (if we don't have a username) string.
-        data = [id, username || machineFingerprint];
+        data = [id, username || machineFingerprint, isAdmin];
+    } else {
+        // Set the data to contain specific strings.
+        data = [id, '', isAdmin];
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
@@ -366,7 +392,7 @@ function removeOverlays() {
 function handleClick(pickRay) {
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         // Don't select directly. Tell qml, who will give us back a list of ids.
-        var message = {method: 'select', params: [[overlay.key], !overlay.selected]};
+        var message = {method: 'select', params: [[overlay.key], !overlay.selected, false]};
         pal.sendToQml(message);
         return true;
     });
@@ -451,17 +477,25 @@ triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Cont
 //
 // Manage the connection between the button and the window.
 //
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-var buttonName = "pal";
-var button = toolBar.addButton({
-    objectName: buttonName,
-    imageURL: Script.resolvePath("assets/images/tools/people.svg"),
-    visible: true,
-    hoverState: 2,
-    defaultState: 1,
-    buttonState: 1,
-    alpha: 0.9
-});
+var button;
+var buttonName = "PEOPLE";
+var tablet = null;
+var toolBar = null;
+if (Settings.getValue("HUDUIEnabled")) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/people.svg"),
+        visible: true,
+        alpha: 0.9
+    });
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        text: buttonName,
+        icon: "icons/tablet-icons/people-i.svg"
+    });
+}
 var isWired = false;
 function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
@@ -486,6 +520,7 @@ function onClicked() {
         Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
         triggerMapping.enable();
         triggerPressMapping.enable();
+        createAudioInterval();
     } else {
         off();
     }
@@ -523,6 +558,7 @@ var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
 var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
 var myData = {}; // we're not includied in ExtendedOverlay.get.
+var audioInterval;
 
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
@@ -532,7 +568,6 @@ function getAudioLevel(id) {
     var audioLevel = 0.0;
     var data = id ? ExtendedOverlay.get(id) : myData;
     if (!data) {
-        print('no data for', id);
         return audioLevel;
     }
 
@@ -555,55 +590,67 @@ function getAudioLevel(id) {
     return audioLevel;
 }
 
+function createAudioInterval() {
+    // we will update the audioLevels periodically
+    // TODO: tune for efficiency - expecially with large numbers of avatars
+    return Script.setInterval(function () {
+        if (pal.visible) {
+            var param = {};
+            AvatarList.getAvatarIdentifiers().forEach(function (id) {
+                var level = getAudioLevel(id);
+                // qml didn't like an object with null/empty string for a key, so...
+                var userId = id || 0;
+                param[userId] = level;
+            });
+            pal.sendToQml({method: 'updateAudioLevel', params: param});
+        }
+    }, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+}
 
-// we will update the audioLevels periodically
-// TODO: tune for efficiency - expecially with large numbers of avatars
-Script.setInterval(function () {
-    if (pal.visible) {
-        var param = {};
-        AvatarList.getAvatarIdentifiers().forEach(function (id) {
-            var level = getAudioLevel(id);
-            // qml didn't like an object with null/empty string for a key, so...
-            var userId = id || 0;
-            param[userId] = level;
-        });
-        pal.sendToQml({method: 'updateAudioLevel', params: param});
-    }
-}, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+function avatarDisconnected(nodeID) {
+    // remove from the pal list
+    pal.sendToQml({method: 'avatarDisconnected', params: [nodeID]});
+}
 //
 // Button state.
 //
 function onVisibleChanged() {
-    button.writeProperty('buttonState', pal.visible ? 0 : 1);
-    button.writeProperty('defaultState', pal.visible ? 0 : 1);
-    button.writeProperty('hoverState', pal.visible ? 2 : 3);
+    button.editProperties({isActive: pal.visible});
 }
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
 Users.usernameFromIDReply.connect(usernameFromIDReply);
-function clearIgnoredInQMLAndClosePAL() {
-    pal.sendToQml({ method: 'clearIgnored' });
+Users.avatarDisconnected.connect(avatarDisconnected);
+
+function clearLocalQMLDataAndClosePAL() {
+    pal.sendToQml({ method: 'clearLocalQMLData' });
     if (pal.visible) {
         onClicked(); // Close the PAL
     }
 }
-Window.domainChanged.connect(clearIgnoredInQMLAndClosePAL);
-Window.domainConnectionRefused.connect(clearIgnoredInQMLAndClosePAL);
+Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
+Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
 
 //
 // Cleanup.
 //
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
-    toolBar.removeButton(buttonName);
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
     pal.visibleChanged.disconnect(onVisibleChanged);
     pal.closed.disconnect(off);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-    Window.domainChanged.disconnect(clearIgnoredInQMLAndClosePAL);
-    Window.domainConnectionRefused.disconnect(clearIgnoredInQMLAndClosePAL);
+    Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
+    Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.unsubscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
+    Users.avatarDisconnected.disconnect(avatarDisconnected);
     off();
 });
 

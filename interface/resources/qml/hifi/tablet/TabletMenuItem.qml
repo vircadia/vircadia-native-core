@@ -12,8 +12,8 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
-import "../controls-uit"
-import "../styles-uit"
+import "../../controls-uit"
+import "../../styles-uit"
 
 Item {
     id: root
@@ -31,7 +31,7 @@ Item {
         // FIXME: Should use radio buttons if source.exclusiveGroup.
         anchors {
             left: parent.left
-            leftMargin: hifi.dimensions.menuPadding.x
+            leftMargin: hifi.dimensions.menuPadding.x + 15
             top: label.top
             topMargin: 0
         }
@@ -50,7 +50,7 @@ Item {
 
     RalewaySemiBold {
         id: label
-        size: hifi.fontSizes.rootMenu
+        size: 20
         font.capitalization: isSubMenu ? Font.MixedCase : Font.AllUppercase
         anchors.left: check.right
         anchors.verticalCenter: parent.verticalCenter
@@ -103,7 +103,7 @@ Item {
         HiFiGlyphs {
             text: hifi.glyphs.disclosureExpand
             color: source.enabled ? hifi.colors.baseGrayShadow : hifi.colors.baseGrayShadow25
-            size: 2 * hifi.fontSizes.rootMenuDisclosure
+            size: 70
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
             horizontalAlignment: Text.AlignRight

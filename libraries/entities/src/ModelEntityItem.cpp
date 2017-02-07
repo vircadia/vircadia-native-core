@@ -160,7 +160,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     return bytesRead;
 }
 
-// TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+// TODO: eventually only include properties changed since the params.lastQuerySent time
 EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 

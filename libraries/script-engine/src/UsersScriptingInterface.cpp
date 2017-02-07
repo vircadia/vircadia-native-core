@@ -42,6 +42,11 @@ bool UsersScriptingInterface::getPersonalMuteStatus(const QUuid& nodeID) {
     return DependencyManager::get<NodeList>()->isPersonalMutingNode(nodeID);
 }
 
+void UsersScriptingInterface::setAvatarGain(const QUuid& nodeID, float gain) {
+    // ask the NodeList to set the gain of the specified avatar
+    DependencyManager::get<NodeList>()->setAvatarGain(nodeID, gain);
+}
+
 void UsersScriptingInterface::kick(const QUuid& nodeID) {
     // ask the NodeList to kick the user with the given session ID
     DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);

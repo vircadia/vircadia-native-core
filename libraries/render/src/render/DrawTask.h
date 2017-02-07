@@ -50,6 +50,27 @@ protected:
     int _maxDrawn; // initialized by Config
 };
 
+class DrawBounds {
+public:
+    class Config : public render::JobConfig {
+    public:
+        Config() : JobConfig(false) {}
+    };
+
+    using Inputs = render::ItemBounds;
+    using JobModel = render::Job::ModelI<DrawBounds, Inputs, Config>;
+
+    void configure(const Config& configuration) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+        const Inputs& items);
+
+private:
+    const gpu::PipelinePointer getPipeline();
+    gpu::PipelinePointer _boundsPipeline;
+    int _cornerLocation { -1 };
+    int _scaleLocation { -1 };
+};
+
 }
 
 #endif // hifi_render_DrawTask_h

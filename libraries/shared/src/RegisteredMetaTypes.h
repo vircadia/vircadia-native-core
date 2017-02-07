@@ -142,11 +142,13 @@ public:
               const glm::vec3& cPenetration, const glm::vec3& velocityChange)
     :   type(cType), idA(cIdA), idB(cIdB), contactPoint(cPoint), penetration(cPenetration), velocityChange(velocityChange) { }
 
+    void invert(); // swap A and B
+
     ContactEventType type;
     QUuid idA;
     QUuid idB;
-    glm::vec3 contactPoint;
-    glm::vec3 penetration;
+    glm::vec3 contactPoint; // on B in world-frame
+    glm::vec3 penetration; // from B towards A in world-frame
     glm::vec3 velocityChange;
 };
 Q_DECLARE_METATYPE(Collision)

@@ -40,7 +40,7 @@
         {
           "name": "local_port",
           "label": "Local UDP Port",
-          "help": "This is the local port your domain-server binds to for UDP connections.<br/>Depending on your router, this may need to be changed to run multiple full automatic networking domain-servers in the same network.",
+          "help": "This is the local port your domain-server binds to for UDP connections.<br/>Depending on your router, this may need to be changed to unique values for each domain-server in order to run multiple full automatic networking domain-servers in the same network. You can use the value 0 to have the domain-server select a random port, which will help in preventing port collisions.",
           "default": "40102",
           "type": "int",
           "advanced": true
@@ -371,6 +371,13 @@
           "type": "password",
           "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it.",
           "value-hidden": true
+        },
+        {
+            "name": "verify_http_password",
+            "label": "Verify HTTP Password",
+            "type": "password",
+            "help": "Must match the password entered above for change to be saved.",
+            "value-hidden": true
         },
         {
           "name": "maximum_user_capacity",
@@ -1089,9 +1096,9 @@
         {
           "name": "noise_muting_threshold",
           "label": "Noise Muting Threshold",
-          "help": "Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute)",
-          "placeholder": "0.003",
-          "default": "0.003",
+          "help": "Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute). 0.003 is a typical setting to mute loud people.",
+          "placeholder": "1.0",
+          "default": "1.0",
           "advanced": false
         },
         {
@@ -1285,8 +1292,16 @@
         {
           "name": "entityScriptSourceWhitelist",
           "label": "Entity Scripts Allowed from:",
-          "help": "The domains that entity scripts are allowed from. A comma separated list of domains that entity scripts are allowed from, if someone attempts to create and entity or edit an entity to have a different domain, it will be rejected. If left blank, any domain is allowed.",
+          "help": "Comma separated list of URLs (with optional paths) that entity scripts are allowed from. If someone attempts to create and entity or edit an entity to have a different domain, it will be rejected. If left blank, any domain is allowed.",
           "placeholder": "",
+          "default": "",
+          "advanced": true
+        },
+        {
+          "name": "entityEditFilter",
+          "label": "Filter Entity Edits",
+          "help": "Check all entity edits against this filter function.",
+          "placeholder": "url whose content is like: function filter(properties) { return properties; }",
           "default": "",
           "advanced": true
         },
