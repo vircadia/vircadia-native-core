@@ -21,7 +21,7 @@ const TTL = 2; // time to live in seconds if script is not running
 const HEIGHT_ABOVE_HEAD = 0.2;
 const HEAD_OFFSET = -0.025;
 const SIZE_Y = 0.075;
-const LETTER_OFFSET = 0.0225;
+const LETTER_OFFSET = 0.03; // arbitrary value to dynamically change width, could be more accurate by detecting characters
 const LINE_HEIGHT = 0.05;
 
 var nameTagEntityID = NULL_UUID;
@@ -35,7 +35,7 @@ Script.setTimeout(function() {
 function addNameTag() {
     var nameTagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getFront(MyAvatar.orientation)));
     nameTagPosition.y += HEIGHT_ABOVE_HEAD;
-    var modelNameTagProperties = {
+    var nameTagProperties = {
         name: MyAvatar.displayName + ' Name Tag',
         type: 'Text',
         text: MyAvatar.displayName,
@@ -44,7 +44,7 @@ function addNameTag() {
         dimensions: dimensionsFromName(),
         position: nameTagPosition
     }
-    nameTagEntityID = Entities.addEntity(modelNameTagProperties, CLIENTONLY);
+    nameTagEntityID = Entities.addEntity(nameTagProperties, CLIENTONLY);
 }
 
 function updateNameTag() {
@@ -73,7 +73,7 @@ function dimensionsFromName() {
         x: LETTER_OFFSET * MyAvatar.displayName.length,
         y: SIZE_Y,
         z: 0.0
-    };
+    }
 };
 
 // cleanup on ending
