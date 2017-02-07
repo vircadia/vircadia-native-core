@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, HMD, WebTablet, UIWebTablet */
+/* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays, MyAvatar */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletShown = false;
@@ -65,8 +65,10 @@
             hideTabletUI();
             HMD.closeTablet();
         } else if (HMD.showTablet && !tabletShown) {
+            UserActivityLogger.openedTablet();
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
+            UserActivityLogger.closedTablet();
             hideTabletUI();
         }
     }
@@ -86,7 +88,6 @@
     var accumulatedLevel = 0.0;
     // Note: Might have to tweak the following two based on the rate we're getting the data
     var AVERAGING_RATIO = 0.05;
-    var MIC_LEVEL_UPDATE_INTERVAL_MS = 100;
 
     // Calculate microphone level with the same scaling equation (log scale, exponentially averaged) in AvatarInputs and pal.js
     function getMicLevel() {
