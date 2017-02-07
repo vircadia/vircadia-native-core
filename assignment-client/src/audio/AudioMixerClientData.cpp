@@ -430,8 +430,6 @@ void AudioMixerClientData::cleanupCodec() {
 }
 
 AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsigned int frame) {
-    assert(_frame.is_lock_free());
-
     // check for a memoized zone
     if (frame != _frame.load(std::memory_order_acquire)) {
         AvatarAudioStream* stream = _data.getAvatarAudioStream();
@@ -480,7 +478,6 @@ void AudioMixerClientData::IgnoreNodeCache::cache(bool shouldIgnore) {
 }
 
 bool AudioMixerClientData::IgnoreNodeCache::isCached() {
-    assert(_isCached.is_lock_free());
     return _isCached;
 }
 

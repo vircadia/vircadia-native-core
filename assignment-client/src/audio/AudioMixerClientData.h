@@ -130,16 +130,13 @@ private:
 
     class IgnoreNodeCache {
     public:
-        // std::atomic is not copyable - always initialize uncached
-        IgnoreNodeCache() {}
-        IgnoreNodeCache(const IgnoreNodeCache& other) {}
-
         void cache(bool shouldIgnore);
         bool isCached();
         bool shouldIgnore();
 
     private:
-        std::atomic<bool> _isCached { false };
+        // tbb::atomic supports copy-ctor
+        tbb::atomic<bool> _isCached { false };
         bool _shouldIgnore { false };
     };
     struct IgnoreNodeCacheHasher { std::size_t operator()(const QUuid& key) const { return qHash(key); } };
