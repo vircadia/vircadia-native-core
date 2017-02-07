@@ -90,7 +90,8 @@ public:
 
     void notifyLocationChanged() override;
     void updateTransformForSkinnedMesh(const Transform& transform,
-            const QVector<glm::mat4>& clusterMatrices);
+            const QVector<glm::mat4>& clusterMatrices,
+            const QVector<glm::mat4>& cauterizedClusterMatrices);
 
     float computeFadeAlpha() const;
 
@@ -110,6 +111,7 @@ public:
 
     Model* _model;
 
+    Transform _cauterizedTransform;
     int _meshIndex;
     int _shapeID;
 

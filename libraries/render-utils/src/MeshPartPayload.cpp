@@ -370,14 +370,22 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const QVector<glm::mat4>& clusterMatrices) {
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform,
+        const QVector<glm::mat4>& clusterMatrices,
+        const QVector<glm::mat4>& cauterizedClusterMatrices) {
     _transform = transform;
+    _cauterizedTransform = transform;
 
     if (clusterMatrices.size() > 0) {
         _worldBound = _adjustedLocalBound;
         _worldBound.transform(_transform);
         if (clusterMatrices.size() == 1) {
             _transform = _transform.worldTransform(Transform(clusterMatrices[0]));
+            if (cauterizedClusterMatrices.size() != 0) {
+                _cauterizedTransform = _cauterizedTransform.worldTransform(Transform(cauterizedClusterMatrices[0]));
+            } else {
+                _cauterizedTransform = _transform;
+            }
         }
     } else {
         _worldBound = _localBound;
