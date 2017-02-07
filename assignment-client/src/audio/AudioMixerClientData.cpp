@@ -151,7 +151,7 @@ AudioMixerClientData::IgnoreZone& AudioMixerClientData::getIgnoreZone(unsigned i
             Q_UNUSED(oldFrame);
 
             // check the precondition
-            assert(frame == (oldFrame + 1));
+            assert(oldFrame == 0 || frame == (oldFrame + 1));
         }
     }
 
