@@ -133,6 +133,10 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
         }
     };
 
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    auto mixStart = p_high_resolution_clock::now();
+#endif
+
     std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
         AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (!nodeData) {
@@ -151,10 +155,6 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             if (!isThrottling) {
                 forAllStreams(node, nodeData, &AudioMixerSlave::mixStream);
             } else {
-#ifdef HIFI_AUDIO_THROTTLE_DEBUG
-                auto throttleStart = p_high_resolution_clock::now();
-#endif
-
                 auto nodeID = node->getUUID();
 
                 // compute the node's max relative volume
@@ -179,13 +179,6 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 if (!throttledNodes.empty()) {
                     std::push_heap(throttledNodes.begin(), throttledNodes.end());
                 }
-
-#ifdef HIFI_AUDIO_THROTTLE_DEBUG
-                auto throttleEnd = p_high_resolution_clock::now();
-                uint64_t throttleTime =
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(throttleEnd - throttleStart).count();
-                stats.throttleTime += throttleTime;
-#endif
             }
         }
     });
@@ -214,6 +207,12 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             forAllStreams(node, nodeData, &AudioMixerSlave::throttleStream);
         }
     }
+
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    auto mixEnd = p_high_resolution_clock::now();
+    auto mixTime = std::chrono::duration_cast<std::chrono::nanoseconds>(mixEnd - mixStart);
+    stats.mixTime += mixTime.count();
+#endif
 
     // use the per listener AudioLimiter to render the mixed data...
     listenerData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
