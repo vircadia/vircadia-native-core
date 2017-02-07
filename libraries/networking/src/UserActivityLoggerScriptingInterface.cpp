@@ -16,6 +16,14 @@ void UserActivityLoggerScriptingInterface::enabledEdit() {
     logAction("enabled_edit");
 }
 
+void UserActivityLoggerScriptingInterface::openedTablet() {
+    logAction("opened_tablet");
+}
+
+void UserActivityLoggerScriptingInterface::closedTablet() {
+    logAction("closed_tablet");
+}
+
 void UserActivityLoggerScriptingInterface::openedMarketplace() {
     logAction("opened_marketplace");
 }
