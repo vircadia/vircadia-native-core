@@ -27,7 +27,6 @@
 
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
-
 public:
     AudioMixerClientData(const QUuid& nodeID);
     ~AudioMixerClientData();
@@ -40,7 +39,7 @@ public:
     AvatarAudioStream* getAvatarAudioStream();
 
     // returns whether self (this data's node) should ignore node, memoized by frame
-    // preconditions: frame is monotonically increasing
+    // precondition: frame is monotonically increasing after first call
     bool shouldIgnore(SharedNodePointer self, SharedNodePointer node, unsigned int frame);
 
     // the following methods should be called from the AudioMixer assignment thread ONLY
@@ -108,38 +107,44 @@ public slots:
 private:
     using IgnoreZone = AABox;
 
-    // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
-    // preconditions:
-    //  - frame is monotonically increasing
-    //  - calls are only made to getIgnoreZone(frame + 1) when there are no references left from calls to getIgnoreZone(frame)
-    IgnoreZone& getIgnoreZone(unsigned int frame);
-
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
 
-    struct IgnoreZoneMemo {
-        IgnoreZone zone;
-        std::atomic<unsigned int> frame { 0 };
-        std::mutex mutex;
-    };
-    IgnoreZoneMemo _ignoreZoneMemo;
-
-    class IgnoreNodeData {
+    class IgnoreZoneMemo {
     public:
-        // always begin unset
-        IgnoreNodeData() {}
-        IgnoreNodeData(const IgnoreNodeData& other) {}
+        IgnoreZoneMemo(AudioMixerClientData& data) : _data(data) {}
+
+        // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
+        // preconditions:
+        //  - frame is monotonically increasing after first call
+        //  - there are no references left from calls to getIgnoreZone(frame - 1)
+        IgnoreZone& get(unsigned int frame);
+
+    private:
+        AudioMixerClientData& _data;
+        IgnoreZone _zone;
+        std::atomic<unsigned int> _frame { 0 };
+        std::mutex _mutex;
+    };
+    IgnoreZoneMemo _ignoreZone;
+
+    class IgnoreNodeCache {
+    public:
+        // std::atomic is not copyable - always initialize uncached
+        IgnoreNodeCache() {}
+        IgnoreNodeCache(const IgnoreNodeCache& other) {}
 
         void cache(bool shouldIgnore);
         bool isCached();
         bool shouldIgnore();
-    private:
-        std::atomic<bool> _flag { false };
-        bool _ignore { false };
-    };
-    struct IgnoreNodeDataHasher { std::size_t operator()(const QUuid& key) const { return qHash(key); } };
 
-    using NodeSourcesIgnoreMap = tbb::concurrent_unordered_map<QUuid, IgnoreNodeData, IgnoreNodeDataHasher>;
+    private:
+        std::atomic<bool> _isCached { false };
+        bool _shouldIgnore { false };
+    };
+    struct IgnoreNodeCacheHasher { std::size_t operator()(const QUuid& key) const { return qHash(key); } };
+
+    using NodeSourcesIgnoreMap = tbb::concurrent_unordered_map<QUuid, IgnoreNodeCache, IgnoreNodeCacheHasher>;
     NodeSourcesIgnoreMap _nodeSourcesIgnoreMap;
 
     using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
