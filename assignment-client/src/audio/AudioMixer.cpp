@@ -316,6 +316,10 @@ void AudioMixer::sendStatsPacket() {
     addTiming(_mixTiming, "mix");
     addTiming(_eventsTiming, "events");
 
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+    timingStats["ns_per_throttle"] = (_stats.totalMixes > 0) ?  (float)(_stats.throttleTime / _stats.totalMixes) : 0;
+#endif
+
     // call it "avg_..." to keep it higher in the display, sorted alphabetically
     statsObject["avg_timing_stats"] = timingStats;
 

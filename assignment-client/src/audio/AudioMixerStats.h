@@ -12,6 +12,10 @@
 #ifndef hifi_AudioMixerStats_h
 #define hifi_AudioMixerStats_h
 
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+#include <cstdint>
+#endif
+
 struct AudioMixerStats {
     int sumStreams { 0 };
     int sumListeners { 0 };
@@ -24,6 +28,10 @@ struct AudioMixerStats {
 
     int manualStereoMixes { 0 };
     int manualEchoMixes { 0 };
+
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+    uint64_t throttleTime { 0 };
+#endif
 
     void reset();
     void accumulate(const AudioMixerStats& otherStats);
