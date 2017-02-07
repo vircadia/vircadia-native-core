@@ -1465,6 +1465,34 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
     // Create the Material Library
     consolidateFBXMaterials(mapping);
+
+    // HACK: until we get proper LOD management we're going to cap model textures
+    // according to how many unique textures the model uses:
+    //   1 - 8 textures --> 2048
+    //   8 - 32 textures --> 1024
+    //   33 - 128 textures --> 512
+    // etc...
+    QSet<QString> uniqueTextures;
+    for (auto& material : _fbxMaterials) {
+        material.getTextureNames(uniqueTextures);
+    }
+    int numTextures = uniqueTextures.size();
+    const int MAX_NUM_TEXTURES_AT_MAX_RESOLUTION = 8;
+    int maxWidth = sqrt(MAX_NUM_PIXELS_FOR_FBX_TEXTURE);
+    if (numTextures > MAX_NUM_TEXTURES_AT_MAX_RESOLUTION) {
+        int numTextureThreshold = MAX_NUM_TEXTURES_AT_MAX_RESOLUTION;
+        const int MIN_MIP_TEXTURE_WIDTH = 64;
+        do {
+            maxWidth /= 2;
+            numTextureThreshold *= 4;
+        } while (numTextureThreshold < numTextures && maxWidth > MIN_MIP_TEXTURE_WIDTH);
+
+        qCDebug(modelformat) << "Capped square texture width =" << maxWidth << "for model" << url << "with" << numTextures << "textures";
+        for (auto& material : _fbxMaterials) {
+            material.setMaxNumPixelsPerTexture(maxWidth * maxWidth);
+        }
+    }
+
     geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children
