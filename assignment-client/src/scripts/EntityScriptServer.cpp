@@ -30,6 +30,7 @@
 int EntityScriptServer::_entitiesScriptEngineCount = 0;
 
 EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssignment(message) {
+    _entityEditSender.setPacketsPerSecond(3000);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     ResourceManager::init();
