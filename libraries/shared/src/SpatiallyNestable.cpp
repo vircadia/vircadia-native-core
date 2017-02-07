@@ -1034,6 +1034,13 @@ AACube SpatiallyNestable::getQueryAACube() const {
 
 bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) const {
     bool success;
+    if (nestableType == NestableType::Avatar) {
+        QUuid parentID = getParentID();
+        if (parentID == AVATAR_SELF_ID) {
+            return true;
+        }
+    }
+
     SpatiallyNestablePointer parent = getParentPointer(success);
     if (!success || !parent) {
         return false;
@@ -1048,6 +1055,14 @@ bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) const {
 
 const QUuid SpatiallyNestable::findAncestorOfType(NestableType nestableType) const {
     bool success;
+
+    if (nestableType == NestableType::Avatar) {
+        QUuid parentID = getParentID();
+        if (parentID == AVATAR_SELF_ID) {
+            return AVATAR_SELF_ID; // TODO -- can we put nodeID here?
+        }
+    }
+
     SpatiallyNestablePointer parent = getParentPointer(success);
     if (!success || !parent) {
         return QUuid();
