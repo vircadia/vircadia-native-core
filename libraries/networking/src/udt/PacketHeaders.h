@@ -110,7 +110,8 @@ public:
         EntityScriptGetStatus,
         EntityScriptGetStatusReply,
         ReloadEntityServerScript,
-        LAST_PACKET_TYPE = ReloadEntityServerScript
+        EntityPhysics,
+        LAST_PACKET_TYPE = EntityPhysics
     };
 };
 
@@ -201,6 +202,7 @@ const PacketVersion VERSION_WEB_ENTITIES_SUPPORT_DPI = 63;
 const PacketVersion VERSION_ENTITIES_ARROW_ACTION = 64;
 const PacketVersion VERSION_ENTITIES_LAST_EDITED_BY = 65;
 const PacketVersion VERSION_ENTITIES_SERVER_SCRIPTS = 66;
+const PacketVersion VERSION_ENTITIES_PHYSICS_PACKET = 67;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JsonFilter = 18

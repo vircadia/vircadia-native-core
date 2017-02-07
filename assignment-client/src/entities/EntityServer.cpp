@@ -34,7 +34,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     DependencyManager::set<ScriptCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd, PacketType::EntityEdit, PacketType::EntityErase },
+    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd, PacketType::EntityEdit, PacketType::EntityErase, PacketType::EntityPhysics },
                                             this, "handleEntityPacket");
 }
 
