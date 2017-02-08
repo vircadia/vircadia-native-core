@@ -39,6 +39,8 @@ public:
 
     void clearIKJointLimitHistory();
 
+    void setMaxHipsOffsetLength(float maxLength);
+
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
@@ -83,6 +85,7 @@ protected:
 
     // experimental data for moving hips during IK
     glm::vec3 _hipsOffset { Vectors::ZERO };
+    float _maxHipsOffsetLength { 1.0f };
     int _headIndex { -1 };
     int _hipsIndex { -1 };
     int _hipsParentIndex { -1 };
