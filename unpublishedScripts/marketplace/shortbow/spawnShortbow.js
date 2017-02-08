@@ -78,7 +78,7 @@ for (var i = 0; i < TEMPLATES.length; ++i) {
     if (template.type == "Model") {
         var urlParts = template.modelURL.split("/");
         var filename = urlParts[urlParts.length - 1];
-        var newURL = Script.resolvePath("assets/" + filename);
+        var newURL = Script.resolvePath("models/" + filename);
         print("Updated url", template.modelURL, "to", newURL);
         template.modelURL = newURL;
     }
