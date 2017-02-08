@@ -438,34 +438,36 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
         // Copy the contents of the old texture to the new
         {
             PROFILE_RANGE(render_gpu_gl, "Blit"); 
-            /*
-            GLuint fbo { 0 };
-            glCreateFramebuffers(1, &fbo);
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-            for (uint16 targetMip = _minMip; targetMip <= _maxMip; ++targetMip) {
-                uint16 sourceMip = targetMip + mipDelta;
-                Vec3u mipDimensions = _gpuObject.evalMipDimensions(targetMip + _mipOffset);
-                for (GLenum target : getFaceTargets(_target)) {
-                    glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, oldId, sourceMip);
-                    (void)CHECK_GL_ERROR();
-                    glCopyTextureSubImage2D(_id, targetMip, 0, 0, 0, 0, mipDimensions.x, mipDimensions.y);
-                    (void)CHECK_GL_ERROR();
+            // Preferred path only available in 4.3
+            if (GLEW_VERSION_4_3) {
+                for (uint16 targetMip = _minMip; targetMip <= _maxMip; ++targetMip) {
+                    uint16 sourceMip = targetMip + mipDelta;
+                    Vec3u mipDimensions = _gpuObject.evalMipDimensions(targetMip + _mipOffset);
+                    for (GLenum target : getFaceTargets(_target)) {
+                        glCopyImageSubData(
+                            oldId, target, sourceMip, 0, 0, 0,
+                            _id, target, targetMip, 0, 0, 0,
+                            mipDimensions.x, mipDimensions.y, 1
+                            );
+                        (void)CHECK_GL_ERROR();
+                    }
                 }
-            }
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-            glDeleteFramebuffers(1, &fbo);
-            */
-            for (uint16 targetMip = _minMip; targetMip <= _maxMip; ++targetMip) {
-                uint16 sourceMip = targetMip + mipDelta;
-                Vec3u mipDimensions = _gpuObject.evalMipDimensions(targetMip + _mipOffset);
-                for (GLenum target : getFaceTargets(_target)) {
-                    glCopyImageSubData(
-                        oldId, target, sourceMip, 0, 0, 0,
-                        _id, target, targetMip, 0, 0, 0,
-                        mipDimensions.x, mipDimensions.y, 1
-                         );
-                    (void)CHECK_GL_ERROR();
+            } else {
+                GLuint fbo { 0 };
+                glCreateFramebuffers(1, &fbo);
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+                for (uint16 targetMip = _minMip; targetMip <= _maxMip; ++targetMip) {
+                    uint16 sourceMip = targetMip + mipDelta;
+                    Vec3u mipDimensions = _gpuObject.evalMipDimensions(targetMip + _mipOffset);
+                    for (GLenum target : getFaceTargets(_target)) {
+                        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, oldId, sourceMip);
+                        (void)CHECK_GL_ERROR();
+                        glCopyTextureSubImage2D(_id, targetMip, 0, 0, 0, 0, mipDimensions.x, mipDimensions.y);
+                        (void)CHECK_GL_ERROR();
+                    }
                 }
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+                glDeleteFramebuffers(1, &fbo);
             }
 
             glDeleteTextures(1, &oldId);
