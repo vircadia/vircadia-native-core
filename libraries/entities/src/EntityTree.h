@@ -24,6 +24,7 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
+#include "EntityEditFilters.h"
 
 class Model;
 using ModelPointer = std::shared_ptr<Model>;
@@ -370,6 +371,7 @@ protected:
     std::function<bool()> _entityEditFilterHadUncaughtExceptions;
 
     QStringList _entityScriptSourceWhitelist;
+    EntityEditFilters* _entityEditFilters;
 };
 
 #endif // hifi_EntityTree_h
