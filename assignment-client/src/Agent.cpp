@@ -376,10 +376,9 @@ void Agent::executeScript() {
         static quint16 audioSequenceNumber{ 0 };
         Transform audioTransform;
 
-        auto avatarOrientation = scriptedAvatar->getOrientation();
-        //glm::quat headOrientation = scriptedAvatar->getHeadOrientation(); // FIXME - should we be using head orientation of avatar orientation?
+        auto headOrientation = scriptedAvatar->getHeadOrientation();
         audioTransform.setTranslation(scriptedAvatar->getPosition());
-        audioTransform.setRotation(avatarOrientation);
+        audioTransform.setRotation(headOrientation);
 
         QByteArray encodedBuffer;
         if (_encoder) {

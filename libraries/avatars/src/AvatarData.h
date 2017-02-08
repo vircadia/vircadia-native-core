@@ -384,9 +384,23 @@ public:
         lazyInitHeadData();
         return _headData->getOrientation(); 
     }
-    void setHeadOrientation(const glm::quat& orientation) { if (_headData) _headData->setOrientation(orientation); }
-    void setLookAtPosition(const glm::vec3& lookAtPosition) { if (_headData) _headData->setLookAtPosition(lookAtPosition); }
-    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { if (_headData) _headData->setBlendshapeCoefficients(blendshapeCoefficients); }
+    void setHeadOrientation(const glm::quat& orientation) { 
+        if (_headData) {
+            _headData->setOrientation(orientation);
+        }
+    }
+
+    void setLookAtPosition(const glm::vec3& lookAtPosition) { 
+        if (_headData) {
+            _headData->setLookAtPosition(lookAtPosition); 
+        }
+    }
+
+    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { 
+        if (_headData) {
+            _headData->setBlendshapeCoefficients(blendshapeCoefficients);
+        }
+    }
 
     // access to Head().set/getMousePitch (degrees)
     float getHeadPitch() const { return _headData->getBasePitch(); }
