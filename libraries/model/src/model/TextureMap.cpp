@@ -17,7 +17,6 @@
 #include <Profile.h>
 
 #include "ModelLogging.h"
-#include <gpu/Image.cpp>
 using namespace model;
 using namespace gpu;
 
@@ -142,7 +141,7 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
         validAlpha = (numOpaques != NUM_PIXELS);
     }
 
-    //if (!validAlpha && image.format() != QImage::Format_RGB888) {
+    // Force all the color images to be rgba32bits
     if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
     }
@@ -255,57 +254,10 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         }
         theTexture->setUsage(usage.build());
 
-
-       /* image::PixRGB32 pix0;
-        
-        image::PixRGBA32 pix1;
-        
-        image::PixR8 pix2;
-        
-        image::PixRGB565 pix3;
-        
-        image::PB_RGB32 pb0;
-        image::PB_RGB32 pb1;
-        
-        auto pix0_s = sizeof(pix0);
-        auto pix1_s = sizeof(pix1);
-        auto pix2_s = sizeof(pix2);
-        auto pix3_s = sizeof(pix3);
-        
-        auto pb0_s = sizeof(pb0);
-
-*/
-        
-        bool check = false;
-        if (image.width() == 2048) {
-            check = true;
-        }
-        image::Surface<image::PixRGB32> surface(image.width(), image.height(), image.byteCount(), image.constBits());
-
-       
-        theTexture->assignStoredMip(0, formatMip, surface._pixels.byteSize(), (const Byte *) surface._pixels.readBytes(0));
-
-
-       // theMap(image.width(), image.height(), image.byteCount(), image.constBits());
+        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
 
         if (generateMips) {
-            
-            {
-            
-                PROFILE_RANGE(resource_parse, "generateMipsSAM");
-                auto numMips = theTexture->evalNumMips();
-  
-                std::vector<image::Surface<image::PixRGB32>> mips;
-            
-                surface.downsample(mips, numMips);
-                
-                for (uint16 level = 1; level < numMips && (mips.size() <= level); ++level) {
-                
-                    const auto& m = mips[level - 1];
-                    theTexture->assignStoredMip(level, formatMip, m._pixels.byteSize(), (const Byte *) m._pixels.readBytes(0));
-                }
-            }
-           // ::generateMips(theTexture, image, formatMip);
+            ::generateMips(theTexture, image, formatMip);
         }
     }
 
