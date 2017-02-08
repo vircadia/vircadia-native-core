@@ -11,6 +11,8 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+(function() { // BEGIN LOCAL_SCOPE
+
 // hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed 
 // something, will revisit as this is sorta horrible.
 const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
@@ -27,7 +29,7 @@ const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 const SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
 const HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
 
-(function() { // BEGIN LOCAL_SCOPE
+var conserveResources = true;
 
 Script.include("/~/system/libraries/controllers.js");
 
@@ -265,15 +267,16 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
 function addAvatarNode(id) {
     var selected = ExtendedOverlay.isSelected(id);
     return new ExtendedOverlay(id, "sphere", { 
-         drawInFront: true, 
-         solid: true, 
-         alpha: 0.8, 
-         color: color(selected, false, 0.0),
-         ignoreRayIntersection: false}, selected, true);
+        drawInFront: true,
+        solid: true,
+        alpha: 0.8,
+        color: color(selected, false, 0.0),
+        ignoreRayIntersection: false}, selected, !conserveResources);
 }
 function populateUserList(selectData) {
-    var data = [];
-    AvatarList.getAvatarIdentifiers().sort().forEach(function (id) { // sorting the identifiers is just an aid for debugging
+    var data = [], avatars = AvatarList.getAvatarIdentifiers();
+    conserveResources = avatars.length > 20;
+    avatars.forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
         var avatarPalDatum = {
             displayName: avatar.sessionDisplayName,
@@ -498,6 +501,9 @@ if (Settings.getValue("HUDUIEnabled")) {
     });
 }
 var isWired = false;
+var audioTimer;
+var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
+var AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS = 300;
 function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
         Script.update.disconnect(updateOverlays);
@@ -505,6 +511,7 @@ function off() {
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         isWired = false;
     }
+    if (audioTimer) { Script.clearInterval(audioTimer); }
     triggerMapping.disable(); // It's ok if we disable twice.
     triggerPressMapping.disable(); // see above
     removeOverlays();
@@ -521,7 +528,7 @@ function onClicked() {
         Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
         triggerMapping.enable();
         triggerPressMapping.enable();
-        createAudioInterval();
+        audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
     } else {
         off();
     }
@@ -557,9 +564,7 @@ var AVERAGING_RATIO = 0.05;
 var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
-var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
 var myData = {}; // we're not includied in ExtendedOverlay.get.
-var audioInterval;
 
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
@@ -591,21 +596,19 @@ function getAudioLevel(id) {
     return audioLevel;
 }
 
-function createAudioInterval() {
+function createAudioInterval(interval) {
     // we will update the audioLevels periodically
     // TODO: tune for efficiency - expecially with large numbers of avatars
     return Script.setInterval(function () {
-        if (pal.visible) {
-            var param = {};
-            AvatarList.getAvatarIdentifiers().forEach(function (id) {
-                var level = getAudioLevel(id);
-                // qml didn't like an object with null/empty string for a key, so...
-                var userId = id || 0;
-                param[userId] = level;
-            });
-            pal.sendToQml({method: 'updateAudioLevel', params: param});
-        }
-    }, AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+        var param = {};
+        AvatarList.getAvatarIdentifiers().forEach(function (id) {
+            var level = getAudioLevel(id);
+            // qml didn't like an object with null/empty string for a key, so...
+            var userId = id || 0;
+            param[userId] = level;
+        });
+        pal.sendToQml({method: 'updateAudioLevel', params: param});
+    }, interval);
 }
 
 function avatarDisconnected(nodeID) {
