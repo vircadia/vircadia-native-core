@@ -377,7 +377,7 @@ void Agent::executeScript() {
         Transform audioTransform;
 
         auto avatarOrientation = scriptedAvatar->getOrientation();
-        glm::quat headOrientation = scriptedAvatar->getHeadOrientation(); // FIXME - should we be using head orientation of avatar orientation?
+        //glm::quat headOrientation = scriptedAvatar->getHeadOrientation(); // FIXME - should we be using head orientation of avatar orientation?
         audioTransform.setTranslation(scriptedAvatar->getPosition());
         audioTransform.setRotation(avatarOrientation);
 
