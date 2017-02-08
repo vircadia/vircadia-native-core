@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 /* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true, HMD, Settings, Script,
-   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform */
+   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
@@ -118,7 +118,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     };
 
     // compute position, rotation & parentJointIndex of the tablet
-    this.calculateTabletAttachmentProperties(hand, tabletProperties);
+    this.calculateTabletAttachmentProperties(hand, true, tabletProperties);
 
     this.cleanUpOldTablets();
     this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
@@ -252,31 +252,78 @@ WebTablet.prototype.destroy = function () {
 WebTablet.prototype.geometryChanged = function (geometry) {
     if (!HMD.active) {
         var tabletProperties = {};
+
         // compute position, rotation & parentJointIndex of the tablet
-        this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+        this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
         Entities.editEntity(this.tabletEntityID, tabletProperties);
     }
 };
 
+function gluPerspective(fovy, aspect, zNear, zFar) {
+    var cotan = 1 / Math.tan(fovy / 2);
+    var alpha = -(zFar + zNear) / (zFar - zNear);
+    var beta = -(2 * zFar * zNear) / (zFar - zNear);
+    var col0 = {x: cotan / aspect, y: 0, z: 0, w: 0};
+    var col1 = {x: 0, y: cotan, z: 0, w: 0};
+    var col2 = {x: 0, y: 0, z: alpha, w: -1};
+    var col3 = {x: 0, y: 0, z: beta, w: 0};
+    return Mat4.createFromColumns(col0, col1, col2, col3);
+}
+
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
 // with a bit of padding on the top and bottom.
-WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
+// windowPos is used to position the center of the tablet at the given position.
+WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos) {
+
     var DEFAULT_DESKTOP_TABLET_SCALE = 75;
     var DESKTOP_TABLET_SCALE = Settings.getValue("desktopTabletScale") || DEFAULT_DESKTOP_TABLET_SCALE;
+
+    // clamp window pos so 2d tablet is not off-screen.
+    var TABLET_TEXEL_PADDING = {x: 60, y: 90};
+    var X_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((TABLET_TEXTURE_RESOLUTION.x / 2) + TABLET_TEXEL_PADDING.x);
+    var Y_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((TABLET_TEXTURE_RESOLUTION.y / 2) + TABLET_TEXEL_PADDING.y);
+    windowPos.x = clamp(windowPos.x, X_CLAMP, Window.innerWidth - X_CLAMP);
+    windowPos.y = clamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
+
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
     var MAX_PADDING_FACTOR = 2.2;
     var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
     var TABLET_HEIGHT = (TABLET_TEXTURE_RESOLUTION.y / this.dpi) * INCHES_TO_METERS;
     var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+
+    // calcualte distance from camera
     var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2) * (DESKTOP_TABLET_SCALE / 100)) - WEB_ENTITY_Z_OFFSET;
+
+    var Z_NEAR = 0.01;
+    var Z_FAR = 100.0;
+
+    // calculate mouse position in clip space
+    var alpha = -(Z_FAR + Z_NEAR) / (Z_FAR - Z_NEAR);
+    var beta = -(2 * Z_FAR * Z_NEAR) / (Z_FAR - Z_NEAR);
+    var clipZ = (beta / dist) - alpha;
+    var clipMousePosition = {x: (2 * windowPos.x / Window.innerWidth) - 1,
+                             y: (2 * ((Window.innerHeight - windowPos.y) / Window.innerHeight)) - 1,
+                             z: clipZ};
+
+    // calculate projection matrix
+    var aspect = Window.innerWidth / Window.innerHeight;
+    var projMatrix = gluPerspective(fov, aspect, Z_NEAR, Z_FAR);
+
+    // transform mouse clip position into view coordinates.
+    var viewMousePosition = Mat4.transformPoint(Mat4.inverse(projMatrix), clipMousePosition);
+
+    // transform view mouse position into world coordinates.
+    var viewToWorldMatrix = Mat4.createFromRotAndTrans(Camera.orientation, Camera.position);
+    var worldMousePosition = Mat4.transformPoint(viewToWorldMatrix, viewMousePosition);
+
     return {
-        position: Vec3.sum(Camera.position, Vec3.multiply(dist, Quat.getFront(Camera.orientation))),
+        position: worldMousePosition,
         rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
     };
 };
 
 // compute position, rotation & parentJointIndex of the tablet
-WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, tabletProperties) {
+WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMouse, tabletProperties) {
     if (HMD.active) {
         // in HMD mode, the tablet should be relative to the sensor to world matrix.
         tabletProperties.parentJointIndex = SENSOR_TO_ROOM_MATRIX;
@@ -289,8 +336,16 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, tablet
         // in desktop mode, the tablet should be relative to the camera
         tabletProperties.parentJointIndex = CAMERA_MATRIX;
 
-        // compute the appropriate postion of the tablet such that it fits in the center of the screen nicely.
-        var attitude = this.calculateWorldAttitudeRelativeToCamera();
+        var windowPos;
+        if (useMouse) {
+            // compute the appropriate postion of the tablet such that it fits in the center of the screen nicely.
+            windowPos = {x: Controller.getValue(Controller.Hardware.Keyboard.MouseX),
+                         y: Controller.getValue(Controller.Hardware.Keyboard.MouseY)};
+        } else {
+            windowPos = {x: Window.innerWidth / 2,
+                         y: Window.innerHeight / 2};
+        }
+        var attitude = this.calculateWorldAttitudeRelativeToCamera(windowPos);
         tabletProperties.position = attitude.position;
         tabletProperties.rotation = attitude.rotation;
     }
@@ -310,7 +365,7 @@ WebTablet.prototype.onHmdChanged = function () {
 
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
-    this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+    this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
     Entities.editEntity(this.tabletEntityID, tabletProperties);
 
     // Full scene FXAA should be disabled on the overlay when the tablet in desktop mode.
@@ -398,7 +453,7 @@ WebTablet.prototype.cameraModeChanged = function (newMode) {
         var self = this;
         var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
-        self.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+        self.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
         Entities.editEntity(self.tabletEntityID, tabletProperties);
     }
 };

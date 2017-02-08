@@ -12,6 +12,7 @@
 
 (function() { // BEGIN LOCAL_SCOPE
     var USERS_URL = "https://hifi-content.s3.amazonaws.com/faye/tablet-dev/users.html";
+    var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
     var FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
     var FRIENDS_WINDOW_WIDTH = 290;
@@ -40,6 +41,10 @@
     });
 
     function onClicked() {
+        var tabletEntity = HMD.tabletID;
+        if (tabletEntity) {
+            Entities.editEntity(tabletEntity, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
+        }
         tablet.gotoWebScreen(USERS_URL);
     }
 
