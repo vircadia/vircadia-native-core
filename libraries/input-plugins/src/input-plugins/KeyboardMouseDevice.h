@@ -47,6 +47,8 @@ public:
         MOUSE_AXIS_X_NEG,
         MOUSE_AXIS_Y_POS,
         MOUSE_AXIS_Y_NEG,
+        MOUSE_AXIS_X,
+        MOUSE_AXIS_Y,
         MOUSE_AXIS_WHEEL_Y_POS,
         MOUSE_AXIS_WHEEL_Y_NEG,
         MOUSE_AXIS_WHEEL_X_POS,

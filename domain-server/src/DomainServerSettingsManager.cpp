@@ -21,7 +21,6 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
-#include <QTimeZone>
 
 #include <AccountManager.h>
 #include <Assignment.h>
@@ -270,11 +269,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             _agentPermissions.clear();
         }
 
-        if (oldVersion < 1.5) {
-            // This was prior to operating hours, so add default hours
-            validateDescriptorsMap();
-        }
-
         if (oldVersion < 1.6) {
             unpackPermissions();
 
@@ -305,45 +299,9 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
-    validateDescriptorsMap();
-
     static const QString DESCRIPTORS{ "descriptors" };
     return *static_cast<QVariantMap*>(getSettingsMap()[DESCRIPTORS].data());
 }
-
-void DomainServerSettingsManager::validateDescriptorsMap() {
-    static const QString WEEKDAY_HOURS{ "descriptors.weekday_hours" };
-    static const QString WEEKEND_HOURS{ "descriptors.weekend_hours" };
-    static const QString UTC_OFFSET{ "descriptors.utc_offset" };
-
-    QVariant* weekdayHours = _configMap.valueForKeyPath(WEEKDAY_HOURS, true);
-    QVariant* weekendHours = _configMap.valueForKeyPath(WEEKEND_HOURS, true);
-    QVariant* utcOffset = _configMap.valueForKeyPath(UTC_OFFSET, true);
-
-    static const QString OPEN{ "open" };
-    static const QString CLOSE{ "close" };
-    static const QString DEFAULT_OPEN{ "00:00" };
-    static const QString DEFAULT_CLOSE{ "23:59" };
-    bool wasMalformed = false;
-    if (weekdayHours->isNull()) {
-        *weekdayHours = QVariantList{ QVariantMap{ { OPEN, QVariant(DEFAULT_OPEN) }, { CLOSE, QVariant(DEFAULT_CLOSE) } } };
-        wasMalformed = true;
-    }
-    if (weekendHours->isNull()) {
-        *weekendHours = QVariantList{ QVariantMap{ { OPEN, QVariant(DEFAULT_OPEN) }, { CLOSE, QVariant(DEFAULT_CLOSE) } } };
-        wasMalformed = true;
-    }
-    if (utcOffset->isNull()) {
-        *utcOffset = QVariant(QTimeZone::systemTimeZone().offsetFromUtc(QDateTime::currentDateTime()) / (float)SECS_PER_HOUR);
-        wasMalformed = true;
-    }
-
-    if (wasMalformed) {
-        // write the new settings to file
-        persistToFile();
-    }
-}
-
 
 void DomainServerSettingsManager::initializeGroupPermissions(NodePermissionsMap& permissionsRows,
                                                              QString groupName, NodePermissionsPointer perms) {

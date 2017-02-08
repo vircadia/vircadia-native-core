@@ -13,7 +13,7 @@
 //
 // See crowd-agent.js
 
-var version = 2;
+var version = 3;
 var label = "summon";
 function debug() {
     print.apply(null, [].concat.apply([label, version], [].map.call(arguments, JSON.stringify)));
@@ -22,6 +22,9 @@ function debug() {
 var MINIMUM_AVATARS = 25; // We will summon agents to produce this many total. (Of course, there might not be enough agents.)
 var N_LISTENING = MINIMUM_AVATARS - 1;
 var AVATARS_CHATTERING_AT_ONCE = 4; // How many of the agents should we request to play SOUND_DATA at once.
+
+var initialBubble = Users.getIgnoreRadiusEnabled();
+debug('startup seeking:', MINIMUM_AVATARS, 'listening:', N_LISTENING, 'chattering:', AVATARS_CHATTERING_AT_ONCE, 'had bubble:', initialBubble);
 
 // If we add or remove things too quickly, we get problems (e.g., audio, fogbugz 2095).
 // For now, spread them out this timing apart.
@@ -66,7 +69,7 @@ function messageHandler(channel, messageString, senderID) {
     if (MyAvatar.sessionUUID === senderID) { // ignore my own
         return;
     }
-    var message = {}, avatarIdentifiers;
+    var message = {};
     try {
         message = JSON.parse(messageString);
     } catch (e) {
@@ -76,9 +79,10 @@ function messageHandler(channel, messageString, senderID) {
     case "hello":
         Script.setTimeout(function () {
             // There can be avatars we've summoned that do not yet appear in the AvatarList.
-            avatarIdentifiers = without(AvatarList.getAvatarIdentifiers(), summonedAgents);
+            var avatarIdentifiers = without(AvatarList.getAvatarIdentifiers(), summonedAgents);
+            var nSummoned = summonedAgents.length;
             debug('present', avatarIdentifiers, summonedAgents);
-            if ((summonedAgents.length + avatarIdentifiers.length) < MINIMUM_AVATARS ) {
+            if ((nSummoned + avatarIdentifiers.length) < MINIMUM_AVATARS ) {
                 var chatter = chattering.length < AVATARS_CHATTERING_AT_ONCE;
                 var listen = nListening < N_LISTENING;
                 if (chatter) {
@@ -91,6 +95,7 @@ function messageHandler(channel, messageString, senderID) {
                 messageSend({
                     key: 'SUMMON',
                     rcpt: senderID,
+                    displayName: "crowd " + nSummoned + " " + senderID,
                     position: Vec3.sum(MyAvatar.position, {x: coord(), y: 0, z: coord()}),
                     orientation: Quat.fromPitchYawRollDegrees(0, Quat.safeEulerAngles(MyAvatar.orientation).y + (turnSpread * (Math.random() - 0.5)), 0),
                     soundData: chatter && SOUND_DATA,
@@ -100,7 +105,7 @@ function messageHandler(channel, messageString, senderID) {
                 });
             }
         }, accumulatedDelay);
-        accumulatedDelay += SPREAD_TIME_MS; // assume we'll get all the hello respsponses more or less together.
+        accumulatedDelay += SPREAD_TIME_MS; // assume we'll get all the hello responses more or less together.
         break;
     case "finishedSound": // Give someone else a chance.
         chattering = without(chattering, [senderID]);
@@ -123,6 +128,8 @@ Messages.subscribe(MESSAGE_CHANNEL);
 Messages.messageReceived.connect(messageHandler);
 Script.scriptEnding.connect(function () {
     debug('stopping agents', summonedAgents);
+    Users.requestsDomainListData = false;
+    if (initialBubble && !Users.getIgnoreRadiusEnabled()) { Users.toggleIgnoreRadius(); }
     Messages.messageReceived.disconnect(messageHandler); // don't respond to any messages during shutdown
     accumulatedDelay = 0;
     summonedAgents.forEach(function (id) {
@@ -134,14 +141,17 @@ Script.scriptEnding.connect(function () {
     debug('unsubscribed');
 });
 
+Users.requestsDomainListData = true; // Get avatar data for the whole domain, even if not in our view.
+if (initialBubble) { Users.toggleIgnoreRadius(); }
 messageSend({key: 'HELO'}); // Ask agents to report in now.
 Script.setTimeout(function () {
     var total = AvatarList.getAvatarIdentifiers().length;
     if (0 === summonedAgents.length) {
         Window.alert("No agents reported.\n\Please run " + MINIMUM_AVATARS + " instances of\n\
-http://hifi-content.s3.amazonaws.com/howard/scripts/tests/performance/crowd-agent.js\n\
+http://hifi-content.s3.amazonaws.com/howard/scripts/tests/performance/crowd-agent.js?v=someDate\n\
 on your domain server.");
     } else if (total < MINIMUM_AVATARS) {
         Window.alert("Only " + summonedAgents.length + " agents reported. Now missing " + (MINIMUM_AVATARS - total) + " avatars, total.");
     }
+    Users.requestsDomainListData = false;
 }, MINIMUM_AVATARS * SPREAD_TIME_MS )

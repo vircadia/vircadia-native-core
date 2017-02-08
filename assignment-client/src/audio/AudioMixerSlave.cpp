@@ -46,10 +46,12 @@ void sendMutePacket(const SharedNodePointer& node, AudioMixerClientData&);
 void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
 
 // mix helpers
-bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
-float gainForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+inline bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
+inline float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition);
+inline float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition, bool isEcho);
-float azimuthForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+inline float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 
 void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
@@ -126,9 +128,10 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             AudioMixerClientData&, const QUuid&, const AvatarAudioStream&, const PositionalAudioStream&);
     auto allStreams = [&](const SharedNodePointer& node, MixFunctor mixFunctor) {
         AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        auto nodeID = node->getUUID();
         for (auto& streamPair : nodeData->getAudioStreams()) {
             auto nodeStream = streamPair.second;
-            (this->*mixFunctor)(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
+            (this->*mixFunctor)(*listenerData, nodeID, *listenerAudioStream, *nodeStream);
         }
     };
 
@@ -147,14 +150,28 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             if (!isThrottling) {
                 allStreams(node, &AudioMixerSlave::mixStream);
             } else {
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+                auto throttleStart = p_high_resolution_clock::now();
+#endif
+
                 AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+                auto nodeID = node->getUUID();
 
                 // compute the node's max relative volume
                 float nodeVolume;
                 for (auto& streamPair : nodeData->getAudioStreams()) {
                     auto nodeStream = streamPair.second;
-                    float distance = glm::length(nodeStream->getPosition() - listenerAudioStream->getPosition());
-                    nodeVolume = std::max(nodeStream->getLastPopOutputTrailingLoudness() / distance, nodeVolume);
+
+                    // approximate the gain
+                    glm::vec3 relativePosition = nodeStream->getPosition() - listenerAudioStream->getPosition();
+                    float gain = approximateGain(*listenerAudioStream, *nodeStream, relativePosition);
+
+                    // modify by hrtf gain adjustment
+                    auto& hrtf = listenerData->hrtfForStream(nodeID, nodeStream->getStreamIdentifier());
+                    gain *= hrtf.getGainAdjustment();
+
+                    auto streamVolume = nodeStream->getLastPopOutputTrailingLoudness() * gain;
+                    nodeVolume = std::max(streamVolume, nodeVolume);
                 }
 
                 // max-heapify the nodes by relative volume
@@ -162,6 +179,13 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 if (!throttledNodes.empty()) {
                     std::push_heap(throttledNodes.begin(), throttledNodes.end());
                 }
+
+#ifdef HIFI_AUDIO_THROTTLE_DEBUG
+                auto throttleEnd = p_high_resolution_clock::now();
+                uint64_t throttleTime =
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(throttleEnd - throttleStart).count();
+                stats.throttleTime += throttleTime;
+#endif
             }
         }
     });
@@ -227,9 +251,9 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
 
     float distance = glm::max(glm::length(relativePosition), EPSILON);
-    float gain = gainForSource(listeningNodeStream, streamToAdd, relativePosition, isEcho);
-    float azimuth = isEcho ? 0.0f : azimuthForSource(listeningNodeStream, listeningNodeStream, relativePosition);
-    static const int HRTF_DATASET_INDEX = 1;
+    float gain = computeGain(listeningNodeStream, streamToAdd, relativePosition, isEcho);
+    float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
+    const int HRTF_DATASET_INDEX = 1;
 
     if (!streamToAdd.lastPopSucceeded()) {
         bool forceSilentBlock = true;
@@ -330,7 +354,7 @@ std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 s
 }
 
 void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QByteArray& buffer) {
-    static const int MIX_PACKET_SIZE =
+    const int MIX_PACKET_SIZE =
         sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
     quint16 sequence = data.getOutgoingSequenceNumber();
     QString codec = data.getCodecName();
@@ -345,7 +369,7 @@ void sendMixPacket(const SharedNodePointer& node, AudioMixerClientData& data, QB
 }
 
 void sendSilentPacket(const SharedNodePointer& node, AudioMixerClientData& data) {
-    static const int SILENT_PACKET_SIZE =
+    const int SILENT_PACKET_SIZE =
         sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE + sizeof(quint16);
     quint16 sequence = data.getOutgoingSequenceNumber();
     QString codec = data.getCodecName();
@@ -475,40 +499,54 @@ bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer
     return ignore;
 }
 
-float gainForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
-        const glm::vec3& relativePosition, bool isEcho) {
+static const float ATTENUATION_START_DISTANCE = 1.0f;
+
+float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition) {
     float gain = 1.0f;
 
-    float distanceBetween = glm::length(relativePosition);
-
-    if (distanceBetween < EPSILON) {
-        distanceBetween = EPSILON;
-    }
-
+    // injector: apply attenuation
     if (streamToAdd.getType() == PositionalAudioStream::Injector) {
         gain *= reinterpret_cast<const InjectedAudioStream*>(&streamToAdd)->getAttenuationRatio();
     }
 
-    if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
-        //  source is another avatar, apply fixed off-axis attenuation to make them quieter as they turn away from listener
-        glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
+    // avatar: skip attenuation - it is too costly to approximate
 
+    // distance attenuation: approximate, ignore zone-specific attenuations
+    // this is a good approximation for streams further than ATTENUATION_START_DISTANCE
+    // those streams closer will be amplified; amplifying close streams is acceptable
+    // when throttling, as close streams are expected to be heard by a user
+    float distance = glm::length(relativePosition);
+    return gain / distance;
+}
+
+float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+        const glm::vec3& relativePosition, bool isEcho) {
+    float gain = 1.0f;
+
+    // injector: apply attenuation
+    if (streamToAdd.getType() == PositionalAudioStream::Injector) {
+        gain *= reinterpret_cast<const InjectedAudioStream*>(&streamToAdd)->getAttenuationRatio();
+
+    // avatar: apply fixed off-axis attenuation to make them quieter as they turn away
+    } else if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
+        glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
         float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
                                            glm::normalize(rotatedListenerPosition));
 
         const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-
+        const float OFF_AXIS_ATTENUATION_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
         float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
+            (angleOfDelivery * (OFF_AXIS_ATTENUATION_STEP / PI_OVER_TWO));
 
-        // multiply the current attenuation coefficient by the calculated off axis coefficient
         gain *= offAxisCoefficient;
     }
 
-    float attenuationPerDoublingInDistance = AudioMixer::getAttenuationPerDoublingInDistance();
-    auto& zoneSettings = AudioMixer::getZoneSettings();
     auto& audioZones = AudioMixer::getAudioZones();
+    auto& zoneSettings = AudioMixer::getZoneSettings();
+
+    // find distance attenuation coefficient
+    float attenuationPerDoublingInDistance = AudioMixer::getAttenuationPerDoublingInDistance();
     for (int i = 0; i < zoneSettings.length(); ++i) {
         if (audioZones[zoneSettings[i].source].contains(streamToAdd.getPosition()) &&
             audioZones[zoneSettings[i].listener].contains(listeningNodeStream.getPosition())) {
@@ -517,16 +555,17 @@ float gainForSource(const AvatarAudioStream& listeningNodeStream, const Position
         }
     }
 
-    const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
-    if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
+    // distance attenuation
+    float distance = glm::length(relativePosition);
+    assert(ATTENUATION_START_DISTANCE > EPSILON);
+    if (distance >= ATTENUATION_START_DISTANCE) {
 
         // translate the zone setting to gain per log2(distance)
         float g = 1.0f - attenuationPerDoublingInDistance;
-        g = (g < EPSILON) ? EPSILON : g;
-        g = (g > 1.0f) ? 1.0f : g;
+        g = glm::clamp(g, EPSILON, 1.0f);
 
         // calculate the distance coefficient using the distance to this node
-        float distanceCoefficient = fastExp2f(fastLog2f(g) * fastLog2f(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
+        float distanceCoefficient = fastExp2f(fastLog2f(g) * fastLog2f(distance/ATTENUATION_START_DISTANCE));
 
         // multiply the current attenuation coefficient by the distance coefficient
         gain *= distanceCoefficient;
@@ -535,7 +574,7 @@ float gainForSource(const AvatarAudioStream& listeningNodeStream, const Position
     return gain;
 }
 
-float azimuthForSource(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
+float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition) {
     glm::quat inverseOrientation = glm::inverse(listeningNodeStream.getOrientation());
 

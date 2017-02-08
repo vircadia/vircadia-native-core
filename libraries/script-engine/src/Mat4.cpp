@@ -26,6 +26,10 @@ glm::mat4 Mat4::createFromScaleRotAndTrans(const glm::vec3& scale, const glm::qu
     return createMatFromScaleQuatAndPos(scale, rot, trans);
 }
 
+glm::mat4 Mat4::createFromColumns(const glm::vec4& col0, const glm::vec4& col1, const glm::vec4& col2, const glm::vec4& col3) const {
+    return glm::mat4(col0, col1, col2, col3);
+}
+
 glm::vec3 Mat4::extractTranslation(const glm::mat4& m) const {
     return ::extractTranslation(m);
 }

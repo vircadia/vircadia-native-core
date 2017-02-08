@@ -13,6 +13,7 @@
 #define hifi_FBXReader_h
 
 #include <QMetaType>
+#include <QSet>
 #include <QUrl>
 #include <QVarLengthArray>
 #include <QVariant>
@@ -100,10 +101,12 @@ public:
 /// A single binding to a joint in an FBX document.
 class FBXCluster {
 public:
-    
+
     int jointIndex;
     glm::mat4 inverseBindMatrix;
 };
+
+const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 
 /// A texture map in an FBX document.
 class FBXTexture {
@@ -111,11 +114,12 @@ public:
     QString name;
     QByteArray filename;
     QByteArray content;
-    
+
     Transform transform;
+    int maxNumPixels { MAX_NUM_PIXELS_FOR_FBX_TEXTURE };
     int texcoordSet;
     QString texcoordSetName;
-    
+
     bool isBumpmap{ false };
 
     bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
@@ -142,6 +146,9 @@ public:
         emissiveColor(emissiveColor),
         shininess(shininess),
         opacity(opacity)  {}
+
+    void getTextureNames(QSet<QString>& textureList) const;
+    void setMaxNumPixelsPerTexture(int maxNumPixels);
 
     glm::vec3 diffuseColor{ 1.0f };
     float diffuseFactor{ 1.0f };
