@@ -18,6 +18,7 @@ var button;
 var buttonName = "GOTO";
 var toolBar = null;
 var tablet = null;
+
 function onAddressBarShown(visible) {
     button.editProperties({isActive: visible});
 }
