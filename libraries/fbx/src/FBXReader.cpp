@@ -537,6 +537,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     FBXGeometry* geometryPtr = new FBXGeometry;
     FBXGeometry& geometry = *geometryPtr;
 
+    geometry.originalURL = url;
+
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
