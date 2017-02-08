@@ -795,6 +795,11 @@ void MyAvatar::saveData() {
     }
     settings.endArray();
 
+    if (_avatarEntityData.size() == 0) {
+        // HACK: manually remove empty 'avatarEntityData' else deleted avatarEntityData may show up in settings file
+        settings.remove("avatarEntityData");
+    }
+
     settings.beginWriteArray("avatarEntityData");
     int avatarEntityIndex = 0;
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
