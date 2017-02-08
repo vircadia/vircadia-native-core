@@ -87,7 +87,11 @@ Item {
                 if (topMenu.objectName === "") {
                     breadcrumbText.text = "Menu";
                 } else {
-                    breadcrumbText.text = topMenu.objectName;
+                    if (menuStack.length === 1) {
+                        breadcrumbText.text = "Menu";
+                    } else {
+                        breadcrumbText.text = topMenu.objectName;
+                    }
                 }
             } else {
                 breadcrumbText.text = "Menu";

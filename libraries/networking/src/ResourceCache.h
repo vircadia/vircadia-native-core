@@ -86,7 +86,7 @@ private:
 /// Wrapper to expose resources to JS/QML
 class ScriptableResource : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QUrl url READ getUrl)
+    Q_PROPERTY(QUrl url READ getURL)
     Q_PROPERTY(int state READ getState NOTIFY stateChanged)
 
     /**jsdoc
@@ -125,7 +125,7 @@ public:
      */
     Q_INVOKABLE void release();
 
-    const QUrl& getUrl() const { return _url; }
+    const QUrl& getURL() const { return _url; }
     int getState() const { return (int)_state; }
     const QSharedPointer<Resource>& getResource() const { return _resource; }
 
