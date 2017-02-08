@@ -22,7 +22,7 @@
           "to": "Actions.Up", 
           "filters": 
             [
-                { "type": "deadZone", "min": 0.95 },
+                { "type": "deadZone", "min": 0.6 },
                 "invert"
             ]
         }, 
