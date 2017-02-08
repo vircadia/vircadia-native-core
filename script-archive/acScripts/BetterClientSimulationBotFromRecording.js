@@ -106,6 +106,10 @@ var RECORDINGS_ARRAY = [
         "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting8.hfr",
         "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting9.hfr",
         "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting10.hfr",
+        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/bot1.hfr",
+        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/bot2.hfr",
+        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/bot3.hfr",
+        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/bot4.hfr"
     ];
 
 var RECORDING_URL = RECORDINGS_ARRAY[Math.floor(Math.random() * RECORDINGS_ARRAY.length)];
