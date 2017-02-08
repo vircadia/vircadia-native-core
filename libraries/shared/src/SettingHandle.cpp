@@ -28,9 +28,10 @@ QString Settings::fileName() const {
 }
 
 void Settings::remove(const QString& key) {
-    if (key == "" || _manager->contains(key)) {
-        _manager->remove(key);
-    }
+    // NOTE: you can't check _manager->contains(key) here because it will return 'false'
+    // when the key is a valid child group with child keys.
+    // However, calling remove() without checking will do the right thing.
+    _manager->remove(key);
 }
 
 QStringList Settings::childGroups() const {
@@ -46,6 +47,7 @@ QStringList Settings::allKeys() const {
 }
 
 bool Settings::contains(const QString& key) const {
+    // NOTE: this will return 'false' if key is a valid child group with child keys.
     return _manager->contains(key);
 }
 
