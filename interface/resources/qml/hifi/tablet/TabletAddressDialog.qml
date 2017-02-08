@@ -343,8 +343,6 @@ Item {
                 left: parent.left
                 right: parent.right
             }
-
-            clickSound: tabletRoot.playButtonClickSound();
         }
         
     }
