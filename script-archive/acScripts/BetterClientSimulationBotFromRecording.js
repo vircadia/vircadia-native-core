@@ -96,15 +96,8 @@ var AVATAR_URL = AVATARS_ARRAY[Math.floor(Math.random() * AVATARS_ARRAY.length)]
 print("RANDOM AVATAR SELECTED:" + AVATAR_URL);
 
 var RECORDINGS_ARRAY = [
-        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting1.hfr",
-        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting2.hfr",
-        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting3.hfr",
-        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting4.hfr",
-        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting5.hfr",
         "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting6.hfr",
         "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting7.hfr",
-        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting8.hfr",
-        "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting9.hfr",
         "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/waiting10.hfr",
         "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/bot1.hfr",
         "http://hifi-content.s3.amazonaws.com/DomainContent/Event%20/NPC%27s/bot2.hfr",
