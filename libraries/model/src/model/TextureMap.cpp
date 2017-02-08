@@ -286,18 +286,14 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
     PROFILE_RANGE(resource_parse, "createNormalTextureFromNormalImage");
     QImage image = processSourceImage(srcImage, false);
 
-  /*  if (image.format() != QImage::Format_RGB888) {
-        image = image.convertToFormat(QImage::Format_RGB888);
-    }*/
+    // Make sure the normal map source image is RGBA32
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-        
-  //      gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
-  //      gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+
         gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
 
@@ -335,7 +331,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     const double pStrength = 2.0;
     int width = image.width();
     int height = image.height();
-    //QImage result(width, height, QImage::Format_RGB888);
+    // THe end result image for normal map is RGBA32 even though the A is not used
     QImage result(width, height, QImage::Format_ARGB32);
     
     for (int i = 0; i < width; i++) {
@@ -384,9 +380,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
-
-        //      gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
-        //      gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
         gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
 
@@ -774,10 +767,6 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
-
-       /* if (image.format() != QImage::Format_RGB888) {
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }*/
 
         gpu::Element formatGPU;
         gpu::Element formatMip;
