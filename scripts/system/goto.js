@@ -18,14 +18,12 @@ var button;
 var buttonName = "GOTO";
 var toolBar = null;
 var tablet = null;
-var ADDRESS_DIALOG_QML_SOURCE = "TabletAddressDialog.qml";
 function onAddressBarShown(visible) {
-    //button.editProperties({isActive: visible});
+    button.editProperties({isActive: visible});
 }
 
 function onClicked(){
-    //DialogsManager.toggleAddressBar();
-    tablet.loadQMLSource(ADDRESS_DIALOG_QML_SOURCE);
+    DialogsManager.toggleAddressBar();
 }
 
 if (Settings.getValue("HUDUIEnabled")) {
