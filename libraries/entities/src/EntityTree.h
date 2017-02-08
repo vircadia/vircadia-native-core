@@ -24,8 +24,8 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
-#include "EntityEditFilters.h"
 
+class EntityEditFilters;
 class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
@@ -274,7 +274,8 @@ public:
 
     void initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions);
     void setHasEntityFilter(bool hasFilter) { _hasEntityEditFilter = hasFilter; }
-
+    
+    void setEntityEditFilters(EntityEditFilters* entityEditFilters) { _entityEditFilters = entityEditFilters; }
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
 public slots:
@@ -363,7 +364,7 @@ protected:
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 
-    bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
+    bool filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
     bool _hasEntityEditFilter{ false };
     QScriptEngine* _entityEditFilterEngine{};
     QScriptValue _entityEditFilterFunction{};
@@ -371,7 +372,7 @@ protected:
     std::function<bool()> _entityEditFilterHadUncaughtExceptions;
 
     QStringList _entityScriptSourceWhitelist;
-    EntityEditFilters* _entityEditFilters;
+    EntityEditFilters* _entityEditFilters{};
 };
 
 #endif // hifi_EntityTree_h

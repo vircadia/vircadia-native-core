@@ -16,12 +16,55 @@
 
 #include "EntityEditFilters.h"
 
-QScriptValue EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, bool isAdd) {
-    qDebug() << "in EntityEditFilters";
-    return QScriptValue();
+bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, EntityTree::FilterType filterType) {
+    qCDebug(entities) << "in EntityEditFilters";
+    
+    // allows us to start entity server and reject all edits until filter is setup
+    if (_rejectAll) {
+        return false;
+    }
+
+    bool accepted = true;
+    
+    qCDebug(entities) << "_filterFunctionMap.size:" << _filterFunctionMap.size();
+    //first off lets call the filter (if any) that is domain-wide (EntityItemID()) 
+    FilterFunctionPair* pair = _filterFunctionMap.value(EntityItemID());
+    QScriptEngine* engine = _filterScriptEngineMap.value(EntityItemID());
+    qCDebug(entities) << "pair: " << (qint64) pair << ", engine" << (qint64)engine;
+    if (pair != nullptr && engine != nullptr) {
+        
+        qCDebug(entities) << "attempting to call filter";
+        auto oldProperties = propertiesIn.getDesiredProperties();
+        auto specifiedProperties = propertiesIn.getChangedProperties();
+        propertiesIn.setDesiredProperties(specifiedProperties);
+        QScriptValue inputValues = propertiesIn.copyToScriptValue(engine, false, true, true);
+        propertiesIn.setDesiredProperties(oldProperties);
+
+        auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
+        QScriptValueList args;
+        args << inputValues;
+        args << filterType;
+
+        QScriptValue result = pair->first.call(_nullObjectForFilter, args);
+        if (pair->second()) {
+            result = QScriptValue();
+        }
+        
+        accepted = result.isObject();
+        
+        if (accepted) {
+            qCDebug(entities) << "filter result accepted";
+            // call rest of them soon
+            propertiesOut.copyFromScriptValue(result, false);
+            // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
+            auto out = QJsonValue::fromVariant(result.toVariant());
+            wasChanged = in != out;
+        }
+    }
+    return accepted;
 }
 
-void EntityEditFilters::removeEntityFilter(EntityItemID& entityID) {
+void EntityEditFilters::removeFilter(EntityItemID& entityID) {
     QScriptEngine* engine = _filterScriptEngineMap.value(entityID);
     if (engine) {
         _filterScriptEngineMap.remove(entityID);
@@ -34,7 +77,7 @@ void EntityEditFilters::removeEntityFilter(EntityItemID& entityID) {
     }
 }
 
-void EntityEditFilters::addEntityFilter(EntityItemID& entityID, QString filterURL) {
+void EntityEditFilters::addFilter(EntityItemID& entityID, QString filterURL) {
     QUrl scriptURL(filterURL);
     
     // The following should be abstracted out for use in Agent.cpp (and maybe later AvatarMixer.cpp)
@@ -44,7 +87,7 @@ void EntityEditFilters::addEntityFilter(EntityItemID& entityID, QString filterUR
         return;
     }
     // first remove any existing info for this entity
-    removeEntityFilter(entityID);
+    removeFilter(entityID);
 
     auto scriptRequest = ResourceManager::createResourceRequest(this, scriptURL);
     if (!scriptRequest) {
@@ -53,11 +96,11 @@ void EntityEditFilters::addEntityFilter(EntityItemID& entityID, QString filterUR
         return;
     }
     // Agent.cpp sets up a timeout here, but that is unnecessary, as ResourceRequest has its own.
-    connect(scriptRequest, &ResourceRequest::finished, this, [this, &entityID]{ EntityEditFilters::scriptRequestFinished(entityID);} );
+    connect(scriptRequest, &ResourceRequest::finished, this, [this, entityID]{ EntityEditFilters::scriptRequestFinished(entityID);} );
     // FIXME: handle atp rquests setup here. See Agent::requestScript()
     qInfo() << "Requesting script at URL" << qPrintable(scriptRequest->getUrl().toString());
     scriptRequest->send();
-    qDebug() << "script request sent";
+    qDebug() << "script request sent for entity " << entityID;
     
 }
 
@@ -94,8 +137,8 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
     return false;
 }
 
-void EntityEditFilters::scriptRequestFinished(EntityItemID& entityID) {
-    qDebug() << "script request completed";
+void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
+    qDebug() << "script request completed for entity " << entityID;
     auto scriptRequest = qobject_cast<ResourceRequest*>(sender());
     const QString urlString = scriptRequest->getUrl().toString();
     if (scriptRequest && scriptRequest->getResult() == ResourceRequest::Success) {
@@ -123,7 +166,9 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID& entityID) {
                     return;
                 }
                 _filterFunctionMap.insert(entityID, pair); 
-                qDebug() << "script request filter processed";
+                qDebug() << "script request filter processed for entity id " << entityID;
+                
+                emit filterAdded(entityID, true);
                 return;
             }
         } 
@@ -134,5 +179,5 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID& entityID) {
     } else {
         qCritical() << "Failed to create script request.";
     }
-
+    emit filterAdded(entityID, false);
 }

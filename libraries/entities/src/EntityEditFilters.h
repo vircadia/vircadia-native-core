@@ -21,7 +21,7 @@
 
 #include "EntityItemID.h"
 #include "EntityItemProperties.h"
-
+#include "EntityTree.h"
 
 typedef QPair<QScriptValue, std::function<bool()>> FilterFunctionPair;
 
@@ -30,15 +30,21 @@ class EntityEditFilters : public QObject {
 public:
     EntityEditFilters() {};
 
-    void addEntityFilter(EntityItemID& entityID, QString filterURL);
-    void removeEntityFilter(EntityItemID& entityID);
+    void addFilter(EntityItemID& entityID, QString filterURL);
+    void removeFilter(EntityItemID& entityID);
 
-    QScriptValue filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, bool isAdd);
+    bool filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, EntityTree::FilterType filterType);
+    void rejectAll(bool state) {_rejectAll = state; }
+
+signals:
+    void filterAdded(EntityItemID id, bool success);
 
 private slots:
-    void scriptRequestFinished(EntityItemID& entityID);
+    void scriptRequestFinished(EntityItemID entityID);
     
 private:
+    bool _rejectAll {false};
+    QScriptValue _nullObjectForFilter{};
     QMap<EntityItemID, FilterFunctionPair*> _filterFunctionMap;
     QMap<EntityItemID, QScriptEngine*> _filterScriptEngineMap;
 };

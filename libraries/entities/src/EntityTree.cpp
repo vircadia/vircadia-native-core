@@ -24,6 +24,7 @@
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
+#include "EntityEditFilters.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
@@ -61,6 +62,9 @@ EntityTree::EntityTree(bool shouldReaverage) :
 
 EntityTree::~EntityTree() {
     eraseAllOctreeElements(false);
+    if (_entityEditFilters) {
+        delete _entityEditFilters;
+    }
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
@@ -940,8 +944,8 @@ void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function
     _hasEntityEditFilter = true;
 }
 
-bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) {
-    if (!_entityEditFilterEngine) {
+bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) {
+    if (!_entityEditFilterEngine && !_entityEditFilters) {
         propertiesOut = propertiesIn;
         wasChanged = false; // not changed
         if (_hasEntityEditFilter) {
@@ -950,28 +954,9 @@ bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItem
         }
         return true; // allowed
     }
-    auto oldProperties = propertiesIn.getDesiredProperties();
-    auto specifiedProperties = propertiesIn.getChangedProperties();
-    propertiesIn.setDesiredProperties(specifiedProperties);
-    QScriptValue inputValues = propertiesIn.copyToScriptValue(_entityEditFilterEngine, false, true, true);
-    propertiesIn.setDesiredProperties(oldProperties);
-
-    auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
-    QScriptValueList args;
-    args << inputValues;
-    args << filterType;
-
-    QScriptValue result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
-    if (_entityEditFilterHadUncaughtExceptions()) {
-        result = QScriptValue();
-    }
-
-    bool accepted = result.isObject(); // filters should return null or false to completely reject edit or add
-    if (accepted) {
-        propertiesOut.copyFromScriptValue(result, false);
-        // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
-        auto out = QJsonValue::fromVariant(result.toVariant());
-        wasChanged = in != out;
+    bool accepted = true;
+    if (_entityEditFilters) {
+        accepted = _entityEditFilters->filter(existingEntity->getPosition(), propertiesIn, propertiesOut, wasChanged, filterType);
     }
 
     return accepted;
@@ -1076,11 +1061,16 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             // an existing entity... handle appropriately
             if (validEditPacket) {
 
+                // search for the entity by EntityItemID
+                startLookup = usecTimestampNow();
+                EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
+                endLookup = usecTimestampNow();
+                
                 startFilter = usecTimestampNow();
                 bool wasChanged = false;
                 // Having (un)lock rights bypasses the filter, unless it's a physics result.
                 FilterType filterType = isPhysics ? FilterType::Physics : (isAdd ? FilterType::Add : FilterType::Edit);
-                bool allowed = (!isPhysics && senderNode->isAllowedEditor()) || filterProperties(properties, properties, wasChanged, filterType);
+                bool allowed = (!isPhysics && senderNode->isAllowedEditor()) || filterProperties(existingEntity, properties, properties, wasChanged, filterType);
                 if (!allowed) {
                     auto timestamp = properties.getLastEdited();
                     properties = EntityItemProperties();
@@ -1093,10 +1083,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
                 endFilter = usecTimestampNow();
 
-                // search for the entity by EntityItemID
-                startLookup = usecTimestampNow();
-                EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
-                endLookup = usecTimestampNow();
                 if (existingEntity && !isAdd) {
 
                     if (suppressDisallowedScript) {
