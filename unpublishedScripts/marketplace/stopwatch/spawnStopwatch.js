@@ -51,3 +51,5 @@ Entities.editEntity(stopwatchID, {
     script: Script.resolvePath("stopwatchClient.js"),
     serverScripts: Script.resolvePath("stopwatchServer.js")
 });
+
+Script.stop()
