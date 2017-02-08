@@ -29,12 +29,12 @@ var GAME_STATES = {
 
 // Load the sounds that we will be using in the game so they are ready to be
 // used when we need them.
-var BEGIN_BUILDING_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/gameOn.wav"));
-var GAME_OVER_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/gameOver.wav"));
-var WAVE_COMPLETE_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/waveComplete.wav"));
-var EXPLOSION_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/explosion.wav"));
-var TARGET_HIT_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/targetHit.wav"));
-var ESCAPE_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/escape.wav"));
+var BEGIN_BUILDING_SOUND = SoundCache.getSound(Script.resolvePath("sounds/gameOn.wav"));
+var GAME_OVER_SOUND = SoundCache.getSound(Script.resolvePath("sounds/gameOver.wav"));
+var WAVE_COMPLETE_SOUND = SoundCache.getSound(Script.resolvePath("sounds/waveComplete.wav"));
+var EXPLOSION_SOUND = SoundCache.getSound(Script.resolvePath("sounds/explosion.wav"));
+var TARGET_HIT_SOUND = SoundCache.getSound(Script.resolvePath("sounds/targetHit.wav"));
+var ESCAPE_SOUND = SoundCache.getSound(Script.resolvePath("sounds/escape.wav"));
 
 // Encode a set of key-value pairs into a param string. Does NOT do any URL escaping.
 function encodeURLParams(params) {
