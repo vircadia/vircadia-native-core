@@ -89,6 +89,8 @@ public:
     Q_INVOKABLE void gotoWebScreen(const QString& url);
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
 
+    Q_INVOKABLE void loadQMLSource(const QVariant& path);
+
     /**jsdoc
      * Creates a new button, adds it to this and returns it.
      * @function TabletProxy#addButton
@@ -149,7 +151,7 @@ protected:
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
 
-    enum class State { Uninitialized, Home, Web, Menu };
+    enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
 };
 
