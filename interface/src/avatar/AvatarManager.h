@@ -70,6 +70,8 @@ public:
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString(""));
+    Q_INVOKABLE float getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName = QString(""));
+
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());

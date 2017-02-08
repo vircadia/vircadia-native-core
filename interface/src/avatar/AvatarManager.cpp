@@ -137,6 +137,13 @@ float AvatarManager::getAvatarDataRate(const QUuid& sessionID, const QString& ra
     return avatar->getDataRate(rateName);
 }
 
+float AvatarManager::getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName) {
+    auto avatar = std::static_pointer_cast<Avatar>(getAvatarBySessionID(sessionID));
+    return avatar ? avatar->getSimulationRate(rateName) : 0.0f; 
+}
+
+
+
 class AvatarPriority {
 public:
     AvatarPriority(AvatarSharedPointer a, float p) : avatar(a), priority(p) {}

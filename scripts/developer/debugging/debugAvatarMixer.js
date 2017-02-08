@@ -60,7 +60,8 @@ function updateOverlays() {
             var overlayPosition = avatar.getJointPosition("Head");
             overlayPosition.y += 1.05;
 
-            var text = " All: " + AvatarManager.getAvatarDataRate(avatarID).toFixed(2) + "\n"
+            var text = "--- Data from Mixer ----------------------\n"
+                       +"All: " + AvatarManager.getAvatarDataRate(avatarID).toFixed(2) + "\n"
                        +" GP: " + AvatarManager.getAvatarDataRate(avatarID,"globalPosition").toFixed(2) + "\n"
                        +" LP: " + AvatarManager.getAvatarDataRate(avatarID,"localPosition").toFixed(2) + "\n"
                        +" BB: " + AvatarManager.getAvatarDataRate(avatarID,"avatarBoundingBox").toFixed(2) + "\n"
@@ -72,7 +73,11 @@ function updateOverlays() {
                        +" AF: " + AvatarManager.getAvatarDataRate(avatarID,"additionalFlags").toFixed(2) + "\n"
                        +" PI: " + AvatarManager.getAvatarDataRate(avatarID,"parentInfo").toFixed(2) + "\n"
                        +" FT: " + AvatarManager.getAvatarDataRate(avatarID,"faceTracker").toFixed(2) + "\n"
-                       +" JD: " + AvatarManager.getAvatarDataRate(avatarID,"jointData").toFixed(2);
+                       +" JD: " + AvatarManager.getAvatarDataRate(avatarID,"jointData").toFixed(2)
+                       +"--- Simulation ----------------------\n"
+                       +"All: " + AvatarManager.getAvatarSimulationRate(avatarID,"avatar").toFixed(2) + "\n"
+                       +" SM: " + AvatarManager.getAvatarSimulationRate(avatarID,"skeletonModel").toFixed(2) + "\n"
+                       +" JS: " + AvatarManager.getAvatarSimulationRate(avatarID,"jointData").toFixed(2) + "\n"
 
             if (avatarID in debugOverlays) {
                 // keep the overlay above the current position of this avatar

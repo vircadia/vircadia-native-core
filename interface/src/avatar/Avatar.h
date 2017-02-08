@@ -182,6 +182,8 @@ public:
     void animateScaleChanges(float deltaTime);
     void setTargetScale(float targetScale) override;
 
+    Q_INVOKABLE float getSimulationRate(const QString& rateName = QString(""));
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -258,6 +260,12 @@ protected:
 
     void addToScene(AvatarSharedPointer self);
     void ensureInScene(AvatarSharedPointer self);
+
+    // Some rate tracking support
+    RateCounter<> _simulationRate;
+    RateCounter<> _skeletonModelSimulationRate;
+    RateCounter<> _jointDataSimulationRate;
+
 
 private:
     uint64_t _lastRenderUpdateTime { 0 };
