@@ -502,6 +502,8 @@ if (Settings.getValue("HUDUIEnabled")) {
 }
 var isWired = false;
 var audioTimer;
+var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
+var AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS = 300;
 function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
         Script.update.disconnect(updateOverlays);
@@ -526,7 +528,7 @@ function onClicked() {
         Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
         triggerMapping.enable();
         triggerPressMapping.enable();
-        audioTimer = createAudioInterval(AUDIO_LEVEL_UPDATE_INTERVAL_MS / (conserveResources ? 3 : 1));
+        audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
     } else {
         off();
     }
@@ -562,9 +564,7 @@ var AVERAGING_RATIO = 0.05;
 var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
-var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
 var myData = {}; // we're not includied in ExtendedOverlay.get.
-var audioInterval;
 
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
