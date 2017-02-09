@@ -538,7 +538,6 @@ public:
     glm::vec3 getGlobalBoundingBoxCorner() { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
-    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
     void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
@@ -552,7 +551,7 @@ public:
 
     int getJointCount() { return _jointData.size(); }
 
-    QVector<JointData> getLastSentJointData() { 
+    QVector<JointData> getLastSentJointData() {
         QReadLocker readLock(&_jointDataLock);
         _lastSentJointData.resize(_jointData.size());
         return _lastSentJointData;
@@ -576,6 +575,8 @@ public slots:
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:
+    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+
     void lazyInitHeadData();
 
     float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition);
@@ -614,7 +615,7 @@ protected:
     KeyState _keyState;
 
     bool _forceFaceTrackerConnected;
-    bool _hasNewJointData; // set in AvatarData, cleared in Avatar
+    bool _hasNewJointData { true }; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData { nullptr };
 
