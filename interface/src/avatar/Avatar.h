@@ -263,6 +263,7 @@ protected:
 
     // Some rate tracking support
     RateCounter<> _simulationRate;
+    RateCounter<> _simulationInViewRate;
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 

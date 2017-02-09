@@ -75,9 +75,10 @@ function updateOverlays() {
                        +" FT: " + AvatarManager.getAvatarDataRate(avatarID,"faceTracker").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"faceTracker").toFixed(2) + "hz)" + "\n"
                        +" JD: " + AvatarManager.getAvatarDataRate(avatarID,"jointData").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"jointData").toFixed(2) + "hz)" + "\n"
                        +"--- Simulation ---\n"
-                       +"All: " + AvatarManager.getAvatarSimulationRate(avatarID,"avatar").toFixed(2) + "\n"
-                       +" SM: " + AvatarManager.getAvatarSimulationRate(avatarID,"skeletonModel").toFixed(2) + "\n"
-                       +" JD: " + AvatarManager.getAvatarSimulationRate(avatarID,"jointData").toFixed(2) + "\n"
+                       +"All: " + AvatarManager.getAvatarSimulationRate(avatarID,"avatar").toFixed(2) + "hz \n"
+                       +" inView: " + AvatarManager.getAvatarSimulationRate(avatarID,"avatarInView").toFixed(2) + "hz \n"
+                       +" SM: " + AvatarManager.getAvatarSimulationRate(avatarID,"skeletonModel").toFixed(2) + "hz \n"
+                       +" JD: " + AvatarManager.getAvatarSimulationRate(avatarID,"jointData").toFixed(2) + "hz \n"
 
             if (avatarID in debugOverlays) {
                 // keep the overlay above the current position of this avatar

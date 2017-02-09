@@ -307,6 +307,9 @@ bool Avatar::shouldDie() const {
 
 void Avatar::simulate(float deltaTime, bool inView) {
     _simulationRate.increment();
+    if (inView) {
+        _simulationInViewRate.increment();
+    }
 
     PROFILE_RANGE(simulation, "simulate");
     PerformanceTimer perfTimer("simulate");
@@ -368,6 +371,8 @@ float Avatar::getSimulationRate(const QString& rateName) {
         return _simulationRate.rate();
     } else if (rateName == "avatar") {
         return _simulationRate.rate();
+    } else if (rateName == "avatarInView") {
+        return _simulationInViewRate.rate();
     } else if (rateName == "skeletonModel") {
         return _skeletonModelSimulationRate.rate();
     } else if (rateName == "jointData") {
