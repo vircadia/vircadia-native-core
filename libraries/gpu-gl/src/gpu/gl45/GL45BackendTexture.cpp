@@ -171,14 +171,8 @@ void GL45Texture::syncSampler() const {
     glTextureParameteri(_id, GL_TEXTURE_WRAP_R, WRAP_MODES[sampler.getWrapModeW()]);
     glTextureParameterf(_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
     glTextureParameterfv(_id, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
-
-#if 0
-    // FIXME account for mip offsets here
-    auto baseMip = std::max<uint16_t>(sampler.getMipOffset(), _minMip);
-    glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, baseMip);
-    glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
-    glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip() - _mipOffset));
-#endif
+    glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, sampler.getMinMip());
+    glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
 }
 
 using GL45FixedAllocationTexture = GL45Backend::GL45FixedAllocationTexture;

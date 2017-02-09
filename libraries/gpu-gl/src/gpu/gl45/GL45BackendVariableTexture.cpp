@@ -370,13 +370,7 @@ void GL45ResourceTexture::copyMipsFromTexture() {
 
 void GL45ResourceTexture::syncSampler() const {
     Parent::syncSampler();
-    const Sampler& sampler = _gpuObject.getSampler();
-    uint16_t maxMip = _gpuObject.evalNumMips() - _allocatedMip;
-    auto minMip = std::max<uint16_t>(sampler.getMipOffset(), sampler.getMinMip());
-    minMip = std::min<uint16_t>(minMip, maxMip);
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
-    glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, (float)minMip);
-    glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (float)maxMip);
 }
 
 void GL45ResourceTexture::promote() {
