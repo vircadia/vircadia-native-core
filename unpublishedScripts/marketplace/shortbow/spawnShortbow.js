@@ -62,17 +62,10 @@ function getTemplate(name) {
     return null;
 }
 
-// Cleanup Shortbow template data
-var scoreboardTemplate = getTemplate('SB.Scoreboard');
-Vec3.print("Scoreboard:", scoreboardTemplate.position);
-for (var i = 0; i < TEMPLATES.length; ++i) {
-    if (TEMPLATES[i].name !== scoreboardTemplate.name) {
-        var template = TEMPLATES[i];
 
-        // Fixup position
-        template.localPosition = Vec3.subtract(template.position, scoreboardTemplate.position);
-        delete template.position;
-    }
+// Cleanup Shortbow template data
+for (var i = 0; i < TEMPLATES.length; ++i) {
+    var template = TEMPLATES[i];
 
     // Fixup model url
     if (template.type == "Model") {

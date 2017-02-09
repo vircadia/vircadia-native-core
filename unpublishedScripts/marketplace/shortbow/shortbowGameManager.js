@@ -102,7 +102,7 @@ var baseEnemyProperties = {
     },
     lifetime: 180,
     "id": "{ed8f7339-8bbd-4750-968e-c3ceb9d64721}",
-    "modelURL": "http://hifi-content.s3.amazonaws.com/Examples%20Content/production/marblecollection/Amber.fbx?2",
+    "modelURL": Script.resolvePath("models/Amber.fbx"),
     "name": "SB.Enemy",
     "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
     "queryAACube": {
