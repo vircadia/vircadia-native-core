@@ -306,12 +306,14 @@ bool Avatar::shouldDie() const {
 }
 
 void Avatar::simulate(float deltaTime, bool inView) {
+    PROFILE_RANGE(simulation, "simulate");
+
     _simulationRate.increment();
     if (inView) {
         _simulationInViewRate.increment();
     }
 
-    PROFILE_RANGE(simulation, "simulate");
+
     PerformanceTimer perfTimer("simulate");
     {
         PROFILE_RANGE(simulation, "updateJoints");
