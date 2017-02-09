@@ -14,6 +14,7 @@ Item {
         anchors.fill: parent
 
         Tab {
+            title: "Entity List"
             active: true
             enabled: true
             property string originalUrl: ""
@@ -28,6 +29,7 @@ Item {
         }
 
         Tab {
+            title: "Entity Properties"
             active: true
             enabled: true
             property string originalUrl: ""
@@ -42,6 +44,7 @@ Item {
         }
 
         Tab {
+            title: "Grid"
             active: true
             enabled: true
             property string originalUrl: ""
