@@ -23,11 +23,14 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
+#include <scripting/HMDScriptingInterface.h>
 #include <gl/OffscreenQmlSurface.h>
 #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
 #include <TabletScriptingInterface.h>
 #include <TextureCache.h>
+#include <UsersScriptingInterface.h>
+#include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <gl/OffscreenQmlSurface.h>
 #include <gl/OffscreenQmlSurfaceCache.h>
@@ -148,6 +151,10 @@ void Web3DOverlay::loadSourceURL() {
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
         _webSurface->load(_url, [&](QQmlContext* context, QObject* obj) {});
         _webSurface->resume();
+
+        _webSurface->getRootContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
+        _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+        _webSurface->getRootContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();

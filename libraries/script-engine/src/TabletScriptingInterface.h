@@ -89,6 +89,8 @@ public:
     Q_INVOKABLE void gotoWebScreen(const QString& url);
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
 
+    Q_INVOKABLE void loadQMLSource(const QVariant& path);
+
     /**jsdoc
      * Creates a new button, adds it to this and returns it.
      * @function TabletProxy#addButton
@@ -120,6 +122,13 @@ public:
      */
     Q_INVOKABLE void emitScriptEvent(QVariant msg);
 
+    /**jsdoc
+     * Used to send an event to the qml embedded in the tablet
+     * @function TabletProxy#sendToQml
+     * @param msg {object|string}
+     */
+    Q_INVOKABLE void sendToQml(QVariant msg);
+
     Q_INVOKABLE bool onHomeScreen();
 
     QObject* getTabletSurface();
@@ -137,6 +146,22 @@ signals:
      */
     void webEventReceived(QVariant msg);
 
+    /**jsdoc
+     * Signaled when this tablet receives an event from the qml embedded in the tablet
+     * @function TabletProxy#fromQml
+     * @param msg {object|string}
+     * @returns {Signal}
+     */
+    void fromQml(QVariant msg);
+
+    /**jsdoc
+     * Signales when this tablet screen changes.
+     * @function TabletProxy#screenChanged
+     * @param type {string} - "Home", "Web", "Menu", "QML", "Closed"
+     * @param url {string} - only valid for Web and QML.
+     */
+    void screenChanged(QVariant type, QVariant url);
+
 private slots:
     void addButtonsToHomeScreen();
     void addButtonsToMenuScreen();
@@ -149,7 +174,7 @@ protected:
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
 
-    enum class State { Uninitialized, Home, Web, Menu };
+    enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
 };
 
