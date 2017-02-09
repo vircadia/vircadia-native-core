@@ -27,6 +27,7 @@
 #include <SharedUtil.h>
 #include <StDev.h>
 #include <UUID.h>
+#include <CPUDetect.h>
 
 #include "AudioHelpers.h"
 #include "AudioRingBuffer.h"
@@ -536,6 +537,8 @@ int AudioMixer::prepareFrame(const SharedNodePointer& node, unsigned int frame) 
 }
 
 void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
+    qDebug() << "AVX2 Support:" << (cpuSupportsAVX2() ? "enabled" : "disabled");
+
     if (settingsObject.contains(AUDIO_THREADING_GROUP_KEY)) {
         QJsonObject audioThreadingGroupObject = settingsObject[AUDIO_THREADING_GROUP_KEY].toObject();
         const QString AUTO_THREADS = "auto_threads";
