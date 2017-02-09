@@ -151,7 +151,7 @@ bool GLTextureTransferHelper::process() {
 #endif
         return true;
     }
-    PROFILE_COUNTER_IF_CHANGED(render_gpu_gl, "transferringTextures", size_t, _transferringTextures.size())
+    PROFILE_COUNTER_IF_CHANGED(render_gpu_gl, "transferringTextures", int, (int) _transferringTextures.size())
 
     static auto lastReport = usecTimestampNow();
     auto now = usecTimestampNow();
