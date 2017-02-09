@@ -19,6 +19,9 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ZoneEntityItem.h"
+#include "EntityEditFilters.h"
+
+#include <intrin.h>
 
 bool ZoneEntityItem::_zonesArePickable = false;
 bool ZoneEntityItem::_drawZoneBoundaries = false;
@@ -221,12 +224,24 @@ bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     return _zonesArePickable;
 }
 
+void ZoneEntityItem::setFilterURL(QString url) {
+    _filterURL = url;
+    if (getTree()) {
+        auto entityEditFilters = getTree()->getEntityEditFilters();
+        if (entityEditFilters) {
+            qCDebug(entities) << "adding filter " << url << "for zone" << getEntityItemID();
+            entityEditFilters->addFilter(getEntityItemID(), url);
+        }
+    }
+}
+
 bool ZoneEntityItem::containsPoint(glm::vec3& position) {
     // use _shapeType shortly
     // for now bounding box just so I can get end-to-end working
     bool success;
     AABox box = getAABox(success);
     if (success) {
+        qCDebug(entities) << "box: " << box;
         return box.contains(position);
     }
     // just return false if no AABox

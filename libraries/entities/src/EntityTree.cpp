@@ -62,9 +62,6 @@ EntityTree::EntityTree(bool shouldReaverage) :
 
 EntityTree::~EntityTree() {
     eraseAllOctreeElements(false);
-    if (_entityEditFilters) {
-        delete _entityEditFilters;
-    }
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
@@ -1750,4 +1747,9 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
         return QStringList();
     }
     return entity->getJointNames();
+}
+
+EntityEditFilters* EntityTree::createEntityEditFilters() {
+    _entityEditFilters = new EntityEditFilters(getThisPointer());
+    return _entityEditFilters;
 }

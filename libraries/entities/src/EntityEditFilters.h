@@ -29,6 +29,7 @@ class EntityEditFilters : public QObject {
     Q_OBJECT
 public:
     EntityEditFilters() {};
+    EntityEditFilters(EntityTreePointer tree ): _tree(tree) {};
 
     void addFilter(EntityItemID& entityID, QString filterURL);
     void removeFilter(EntityItemID& entityID);
@@ -43,8 +44,13 @@ private slots:
     void scriptRequestFinished(EntityItemID entityID);
     
 private:
+    QList<EntityItemID> getZonesByPosition(glm::vec3& position);
+
+    EntityTreePointer _tree {};
     bool _rejectAll {false};
     QScriptValue _nullObjectForFilter{};
+    
+    QReadWriteLock _lock;
     QMap<EntityItemID, FilterFunctionPair*> _filterFunctionMap;
     QMap<EntityItemID, QScriptEngine*> _filterScriptEngineMap;
 };

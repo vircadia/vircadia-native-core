@@ -77,8 +77,6 @@ private:
 
     QReadWriteLock _viewerSendingStatsLock;
     QMap<QUuid, QMap<QUuid, ViewerSendingStats>> _viewerSendingStats;
-    
-    EntityEditFilters* _entityEditFilters{};
 };
 
 #endif // hifi_EntityServer_h

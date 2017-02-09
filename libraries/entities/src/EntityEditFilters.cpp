@@ -13,58 +13,99 @@
 #include <QUrl>
 
 #include <ResourceManager.h>
-
 #include "EntityEditFilters.h"
+
+QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
+    QList<EntityItemID> zones;
+    _lock.lockForRead();
+    qCDebug(entities) << "looking at " << _filterFunctionMap.size() << "possible zones";
+    for (auto it = _filterFunctionMap.begin(); it != _filterFunctionMap.end(); it++) {
+        auto id = it.key();
+        if (!id.isInvalidID()) {
+            // for now, look it up in the tree (soon we need to cache or similar?)
+            EntityItemPointer itemPtr = _tree->findEntityByEntityItemID(id); 
+            auto zone = std::dynamic_pointer_cast<ZoneEntityItem>(itemPtr);
+            if (zone && zone->containsPoint(position)) {
+                zones.append(id);
+            }
+        } else {
+            zones.append(id);
+        }
+    }
+    _lock.unlock();
+    return zones;
+}
 
 bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, EntityTree::FilterType filterType) {
     qCDebug(entities) << "in EntityEditFilters";
     
     // allows us to start entity server and reject all edits until filter is setup
     if (_rejectAll) {
+        qCDebug(entities) << "rejecting all edits";
         return false;
     }
 
-    bool accepted = true;
+    // get the ids of all the zones (plus the global entity edit filter) that the position
+    // lies within
+    auto zoneIDs = getZonesByPosition(position);
     
-    qCDebug(entities) << "_filterFunctionMap.size:" << _filterFunctionMap.size();
-    //first off lets call the filter (if any) that is domain-wide (EntityItemID()) 
-    FilterFunctionPair* pair = _filterFunctionMap.value(EntityItemID());
-    QScriptEngine* engine = _filterScriptEngineMap.value(EntityItemID());
-    qCDebug(entities) << "pair: " << (qint64) pair << ", engine" << (qint64)engine;
-    if (pair != nullptr && engine != nullptr) {
+    // temp debugging -- remove!
+    qCDebug(entities) << "zones:";
+    for (auto zoneID : zoneIDs) {
+        qCDebug(entities) << zoneID << ",";
+    }
+    
+    auto oldProperties = propertiesIn.getDesiredProperties();
+    auto specifiedProperties = propertiesIn.getChangedProperties();
+    propertiesIn.setDesiredProperties(specifiedProperties);
+    for (auto it = zoneIDs.begin(); it != zoneIDs.end(); it++) {
+        qCDebug(entities) << "applying filter for zone" << *it;
         
-        qCDebug(entities) << "attempting to call filter";
-        auto oldProperties = propertiesIn.getDesiredProperties();
-        auto specifiedProperties = propertiesIn.getChangedProperties();
-        propertiesIn.setDesiredProperties(specifiedProperties);
-        QScriptValue inputValues = propertiesIn.copyToScriptValue(engine, false, true, true);
-        propertiesIn.setDesiredProperties(oldProperties);
+        // get the filter pair, etc...  
+        _lock.lockForRead();
+        FilterFunctionPair* pair = _filterFunctionMap.value(*it);
+        QScriptEngine* engine = _filterScriptEngineMap.value(*it);
+        _lock.unlock();
+    
+        qCDebug(entities) << "pair: " << (qint64) pair << ", engine" << (qint64)engine;
+        if (pair != nullptr && engine != nullptr) {
 
-        auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
-        QScriptValueList args;
-        args << inputValues;
-        args << filterType;
+            QScriptValue inputValues = propertiesIn.copyToScriptValue(engine, false, true, true);
+            propertiesIn.setDesiredProperties(oldProperties);
 
-        QScriptValue result = pair->first.call(_nullObjectForFilter, args);
-        if (pair->second()) {
-            result = QScriptValue();
-        }
-        
-        accepted = result.isObject();
-        
-        if (accepted) {
-            qCDebug(entities) << "filter result accepted";
-            // call rest of them soon
-            propertiesOut.copyFromScriptValue(result, false);
-            // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
-            auto out = QJsonValue::fromVariant(result.toVariant());
-            wasChanged = in != out;
+            auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
+            QScriptValueList args;
+            args << inputValues;
+            args << filterType;
+
+            QScriptValue result = pair->first.call(_nullObjectForFilter, args);
+            if (pair->second()) {
+                result = QScriptValue();
+            }
+
+
+            if (result.isObject()){
+                qCDebug(entities) << "filter result accepted";
+                // make propertiesIn reflect the changes, for next filter...
+                propertiesIn.copyFromScriptValue(result, false);
+
+                // and update propertiesOut too.  #TODO: this could be more efficient...
+                propertiesOut.copyFromScriptValue(result, false);
+                // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
+                auto out = QJsonValue::fromVariant(result.toVariant());
+                wasChanged |= (in != out);
+            } else {
+                // an edit was rejected, so we stop here and return false
+                qCDebug(entities) << "Edit rejected by " << *it;
+            }
         }
     }
-    return accepted;
+    // if we made it here, 
+    return true;
 }
 
 void EntityEditFilters::removeFilter(EntityItemID& entityID) {
+    QWriteLocker writeLock(&_lock);
     QScriptEngine* engine = _filterScriptEngineMap.value(entityID);
     if (engine) {
         _filterScriptEngineMap.remove(entityID);
@@ -78,6 +119,7 @@ void EntityEditFilters::removeFilter(EntityItemID& entityID) {
 }
 
 void EntityEditFilters::addFilter(EntityItemID& entityID, QString filterURL) {
+
     QUrl scriptURL(filterURL);
     
     // The following should be abstracted out for use in Agent.cpp (and maybe later AvatarMixer.cpp)
@@ -151,8 +193,10 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
             engine->evaluate(scriptContents);
             if (!hadUncaughtExceptions(*engine, urlString)) {
                 // put the engine in the engine map (so we don't leak them, etc...)
+                _lock.lockForWrite();
                 _filterScriptEngineMap.insert(entityID, engine);
-                
+                _lock.unlock();
+
                 // define the uncaughtException function
                 FilterFunctionPair* pair = new FilterFunctionPair();
                 QScriptEngine& engineRef = *engine;
@@ -160,12 +204,20 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
 
                 // now get the filter function
                 auto global = engine->globalObject();
+                auto entitiesObject = engine->newObject();
+                entitiesObject.setProperty("ADD_FILTER_TYPE", EntityTree::FilterType::Add);
+                entitiesObject.setProperty("EDIT_FILTER_TYPE", EntityTree::FilterType::Edit);
+                entitiesObject.setProperty("PHYSICS_FILTER_TYPE", EntityTree::FilterType::Physics);
+                global.setProperty("Entities", entitiesObject);
                 pair->first = global.property("filter");
                 if (!pair->first.isFunction()) {
                     qDebug() << "Filter function specified but not found. Ignoring filter";
                     return;
                 }
-                _filterFunctionMap.insert(entityID, pair); 
+                _lock.lockForWrite();
+                _filterFunctionMap.insert(entityID, pair);
+                _lock.unlock();
+
                 qDebug() << "script request filter processed for entity id " << entityID;
                 
                 emit filterAdded(entityID, true);

@@ -294,16 +294,15 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         tree->setEntityScriptSourceWhitelist("");
     }
     
-    _entityEditFilters = new EntityEditFilters();
-
-    std::static_pointer_cast<EntityTree>(tree)->setEntityEditFilters(_entityEditFilters);
+    auto entityEditFilters = tree->createEntityEditFilters();
+    
     QString filterURL;
     if (readOptionString("entityEditFilter", settingsSectionObject, filterURL) && !filterURL.isEmpty()) {
         // connect the filterAdded signal, and block edits until you hear back
-        connect(_entityEditFilters, &EntityEditFilters::filterAdded, this, &EntityServer::entityFilterAdded);
+        connect(entityEditFilters, &EntityEditFilters::filterAdded, this, &EntityServer::entityFilterAdded);
         
-        _entityEditFilters->rejectAll(true);
-        _entityEditFilters->addFilter(EntityItemID(), filterURL);
+        entityEditFilters->rejectAll(true);
+        entityEditFilters->addFilter(EntityItemID(), filterURL);
     }
 }
 
@@ -311,8 +310,10 @@ void EntityServer::entityFilterAdded(EntityItemID id, bool success) {
     if(id.isInvalidID()) {
         // this is the domain-wide entity filter, which we want to stop
         // the world for
+        auto entityEditFilters = qobject_cast<EntityEditFilters*>(sender());
         if (success) {
-            _entityEditFilters->rejectAll(false);
+            qDebug() << "entity edit filter for " << id << "added successfully";
+            entityEditFilters->rejectAll(false);
         } else {
             qDebug() << "entity edit filter unsuccessfully added, stopping...";
             stop();

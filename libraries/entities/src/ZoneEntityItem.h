@@ -75,7 +75,7 @@ public:
     bool getGhostingAllowed() const { return _ghostingAllowed; }
     void setGhostingAllowed(bool value) { _ghostingAllowed = value; }
     QString getFilterURL() const { return _filterURL; }
-    void setFilterURL(const QString url) { _filterURL = url; }
+    void setFilterURL(const QString url); 
     bool containsPoint(glm::vec3& position);
 
     virtual bool supportsDetailedRayIntersection() const override { return true; }

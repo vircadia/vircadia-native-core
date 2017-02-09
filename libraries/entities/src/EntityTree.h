@@ -275,7 +275,9 @@ public:
     void initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions);
     void setHasEntityFilter(bool hasFilter) { _hasEntityEditFilter = hasFilter; }
     
-    void setEntityEditFilters(EntityEditFilters* entityEditFilters) { _entityEditFilters = entityEditFilters; }
+    EntityEditFilters* createEntityEditFilters();
+    EntityEditFilters* getEntityEditFilters() { return _entityEditFilters; }
+    
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
 public slots:
