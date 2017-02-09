@@ -229,6 +229,7 @@ void TabletProxy::gotoMenuScreen() {
 void TabletProxy::loadQMLSource(const QVariant& path) {
     if (_qmlTabletRoot) {
         if (_state != State::QML) {
+            removeButtonsFromHomeScreen();
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, path));
             _state = State::QML;
             emit screenChanged(QVariant("QML"), path);
