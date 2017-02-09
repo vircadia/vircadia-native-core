@@ -13,6 +13,8 @@
 #include <functional>
 #include <QtCore/QObject>
 
+class QScriptValue;
+
 class TestScriptingInterface : public QObject {
     Q_OBJECT
 
@@ -69,6 +71,7 @@ public slots:
 
     void endTraceEvent(QString name);
 
+    Q_INVOKABLE void profileRange(const QString& name, QScriptValue function);
 
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
