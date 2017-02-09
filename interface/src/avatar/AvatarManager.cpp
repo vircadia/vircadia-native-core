@@ -276,11 +276,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         sortedAvatars.pop();
     }
 
-    uint64_t endSimulation = usecTimestampNow();
-    int elapsedTime = endSimulation - startTime;
-    float elapsedFloat = (float)elapsedTime / (float)USECS_PER_MSEC;
-    qDebug() << "elapsedTime:" << elapsedTime << "elapsedFloat:" << elapsedFloat;
-    _avatarSimulationTime = elapsedFloat;
+    _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
     _fullySimulatedAvatars = fullySimulatedAvatars;
     _partiallySimulatedAvatars = partiallySimulatedAvatars;
     qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
