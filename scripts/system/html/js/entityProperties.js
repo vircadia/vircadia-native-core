@@ -710,6 +710,7 @@ function loaded() {
 
         if (window.EventBridge !== undefined) {
             var properties;
+            console.log("HERE -- " + (typeof EventBridge) + " -- " + JSON.stringify(EventBridge));
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
                 if (data.type == "server_script_status") {

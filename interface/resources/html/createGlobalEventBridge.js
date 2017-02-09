@@ -27,6 +27,10 @@ var EventBridge;
         };
     };
 
+    console.log("---");
+    console.log("CREATING GLOBAL EVENT BRIDGE");
+    console.log("---");
+
     EventBridge = new TempEventBridge();
 
     var webChannel = new QWebChannel(qt.webChannelTransport, function (channel) {

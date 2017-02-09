@@ -130,6 +130,8 @@ public:
 
     QQuickItem* getQmlMenu() const;
 
+    Q_INVOKABLE QQuickItem* findChild(QString childName) const;
+
 signals:
     /**jsdoc
      * Signaled when this tablet receives an event from the html/js embedded in the tablet

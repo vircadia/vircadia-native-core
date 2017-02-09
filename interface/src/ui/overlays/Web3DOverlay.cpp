@@ -133,12 +133,29 @@ QString Web3DOverlay::pickURL() {
 
 void Web3DOverlay::loadSourceURL() {
 
+    // if (_javaScriptToInject == "") {
+    //     QString javaScriptToInject;
+    //     QFile webChannelFile(":qtwebchannel/qwebchannel.js");
+    //     QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
+    //     if (webChannelFile.open(QFile::ReadOnly | QFile::Text) &&
+    //         createGlobalEventBridgeFile.open(QFile::ReadOnly | QFile::Text)) {
+    //         QString webChannelStr = QTextStream(&webChannelFile).readAll();
+    //         QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
+    //         // concatenate these js files
+    //         _javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
+    //     }
+    // }
+
     QUrl sourceUrl(_url);
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
         _url.toLower().endsWith(".htm") || _url.toLower().endsWith(".html")) {
 
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
         _webSurface->load("Web3DOverlay.qml");
+        // _webSurface->load("Web3DOverlay.qml", [&](QQmlContext* context, QObject* obj) {
+        //     qDebug() << "Web3DOverlay::loadSourceURL -- " << _javaScriptToInject;
+        //     context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(_javaScriptToInject));
+        // });
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);

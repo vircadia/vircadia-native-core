@@ -84,14 +84,10 @@ Item {
                 topMenu.focus = true;
                 topMenu.forceActiveFocus();
                 // show current menu level on nav bar
-                if (topMenu.objectName === "") {
+                if (topMenu.objectName === "" || menuStack.length === 1) {
                     breadcrumbText.text = "Menu";
                 } else {
-                    if (menuStack.length === 1) {
-                        breadcrumbText.text = "Menu";
-                    } else {
-                        breadcrumbText.text = topMenu.objectName;
-                    }
+                    breadcrumbText.text = topMenu.objectName;
                 }
             } else {
                 breadcrumbText.text = "Menu";
