@@ -385,6 +385,7 @@ void GL45ResourceTexture::promote() {
     uint32_t oldSize = _size;
     // create new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
+    incrementTextureGPUCount();
     uint16_t oldAllocatedMip = _allocatedMip;
     // allocate storage for new level
     allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
@@ -418,6 +419,7 @@ void GL45ResourceTexture::demote() {
     auto oldId = _id;
     auto oldSize = _size;
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
+    incrementTextureGPUCount();
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
     uint16_t mips = _gpuObject.evalNumMips();
@@ -482,7 +484,7 @@ void GL45ResourceTexture::populateTransferQueue() {
             const auto lines = mipDimensions.y;
             auto bytesPerLine = (uint32_t)mipData->getSize() / lines;
             Q_ASSERT(0 == (mipData->getSize() % lines));
-            auto linesPerTransfer = MAX_TRANSFER_SIZE / bytesPerLine;
+            uint32_t linesPerTransfer = (uint32_t)(MAX_TRANSFER_SIZE / bytesPerLine);
             size_t offset = 0;
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
