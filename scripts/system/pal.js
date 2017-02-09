@@ -204,7 +204,6 @@ var pal = new OverlayWindow({
     visible: false
 });
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
-    print('AJT: From PAL QML:', JSON.stringify(message));
     switch (message.method) {
     case 'selected':
         selectedIds = message.params;
@@ -234,7 +233,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         }
         break;
     case 'refresh':
-        print("AJT: REFRESH!");
         removeOverlays();
         populateUserList(message.params);
         UserActivityLogger.palAction("refresh", "");
