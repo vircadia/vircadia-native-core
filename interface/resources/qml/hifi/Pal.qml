@@ -426,6 +426,8 @@ Rectangle {
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
     }
+    }
+
     HifiControls.Keyboard {
         id: keyboard
         raised: myCard.currentlyEditingDisplayName && HMD.active
@@ -436,7 +438,7 @@ Rectangle {
             right: parent.right
         }
     }
-    }
+
     // Timer used when selecting table rows that aren't yet present in the model
     // (i.e. when selecting avatars using edit.js or sphere overlays)
     Timer {
