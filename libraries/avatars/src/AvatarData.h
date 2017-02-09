@@ -329,7 +329,7 @@ public:
 
     static const QString FRAME_NAME;
 
-    static void fromFrame(const QByteArray& frameData, AvatarData& avatar);
+    static void fromFrame(const QByteArray& frameData, AvatarData& avatar, bool useFrameSkeleton = true);
     static QByteArray toFrame(const AvatarData& avatar);
 
     AvatarData();
@@ -380,8 +380,27 @@ public:
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
-    glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
-    void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
+    glm::quat getHeadOrientation() { 
+        lazyInitHeadData();
+        return _headData->getOrientation(); 
+    }
+    void setHeadOrientation(const glm::quat& orientation) { 
+        if (_headData) {
+            _headData->setOrientation(orientation);
+        }
+    }
+
+    void setLookAtPosition(const glm::vec3& lookAtPosition) { 
+        if (_headData) {
+            _headData->setLookAtPosition(lookAtPosition); 
+        }
+    }
+
+    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { 
+        if (_headData) {
+            _headData->setBlendshapeCoefficients(blendshapeCoefficients);
+        }
+    }
 
     // access to Head().set/getMousePitch (degrees)
     float getHeadPitch() const { return _headData->getBasePitch(); }
@@ -513,7 +532,7 @@ public:
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
     QJsonObject toJson() const;
-    void fromJson(const QJsonObject& json);
+    void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
     glm::vec3 getGlobalBoundingBoxCorner() { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
@@ -528,7 +547,7 @@ public:
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
-    float getDataRate(const QString& rateName = QString(""));
+    Q_INVOKABLE float getDataRate(const QString& rateName = QString(""));
 
     int getJointCount() { return _jointData.size(); }
 
@@ -596,7 +615,7 @@ protected:
     bool _forceFaceTrackerConnected;
     bool _hasNewJointData; // set in AvatarData, cleared in Avatar
 
-    HeadData* _headData;
+    HeadData* _headData { nullptr };
 
     QUrl _skeletonModelURL;
     bool _firstSkeletonCheck { true };
@@ -658,6 +677,21 @@ protected:
     RateCounter<> _parentInfoRate;
     RateCounter<> _faceTrackerRate;
     RateCounter<> _jointDataRate;
+
+    // Some rate data for outgoing data
+    RateCounter<> _globalPositionRateOutbound;
+    RateCounter<> _localPositionRateOutbound;
+    RateCounter<> _avatarBoundingBoxRateOutbound;
+    RateCounter<> _avatarOrientationRateOutbound;
+    RateCounter<> _avatarScaleRateOutbound;
+    RateCounter<> _lookAtPositionRateOutbound;
+    RateCounter<> _audioLoudnessRateOutbound;
+    RateCounter<> _sensorToWorldRateOutbound;
+    RateCounter<> _additionalFlagsRateOutbound;
+    RateCounter<> _parentInfoRateOutbound;
+    RateCounter<> _faceTrackerRateOutbound;
+    RateCounter<> _jointDataRateOutbound;
+
 
     glm::vec3 _globalBoundingBoxDimensions;
     glm::vec3 _globalBoundingBoxOffset;

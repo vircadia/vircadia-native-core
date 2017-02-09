@@ -16,6 +16,8 @@
 
 #include <SettingHandle.h>
 
+#include <display-plugins/CompositorHelper.h>
+
 #include "Application.h"
 #include "DomainHandler.h"
 #include "MainWindow.h"
@@ -147,6 +149,15 @@ void WindowScriptingInterface::setPreviousBrowseLocation(const QString& location
     Setting::Handle<QVariant>(LAST_BROWSE_LOCATION_SETTING).set(location);
 }
 
+/// Makes sure that the reticle is visible, use this in blocking forms that require a reticle and
+/// might be in same thread as a script that sets the reticle to invisible
+void WindowScriptingInterface::ensureReticleVisible() const {
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    if (!compositorHelper->getReticleVisible()) {
+        compositorHelper->setReticleVisible(true);
+    }
+}
+
 /// Display an open file dialog.  If `directory` is an invalid file or directory the browser will start at the current
 /// working directory.
 /// \param const QString& title title of the window
@@ -154,6 +165,7 @@ void WindowScriptingInterface::setPreviousBrowseLocation(const QString& location
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
 QScriptValue WindowScriptingInterface::browse(const QString& title, const QString& directory, const QString& nameFilter) {
+    ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {
         path = getPreviousBrowseLocation();
@@ -175,6 +187,7 @@ QScriptValue WindowScriptingInterface::browse(const QString& title, const QStrin
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
 QScriptValue WindowScriptingInterface::save(const QString& title, const QString& directory, const QString& nameFilter) {
+    ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {
         path = getPreviousBrowseLocation();
