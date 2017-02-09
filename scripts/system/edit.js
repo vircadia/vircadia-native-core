@@ -1436,7 +1436,7 @@ var ServerScriptStatusMonitor = function(entityID, statusCallback) {
 var PropertiesTool = function (opts) {
     var that = {};
 
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     // var webView = new OverlayWebWindow({
     //     title: 'Entity Properties',
     //     source: ENTITY_PROPERTIES_URL,
@@ -1457,13 +1457,13 @@ var PropertiesTool = function (opts) {
         visible = newVisible;
         // webView.setVisible(visible);
         if (visible) {
-            tablet.loadQMLSource("Edit.qml");
+            webView.loadQMLSource("Edit.qml");
         }
     };
 
     function updateScriptStatus(info) {
         info.type = "server_script_status";
-        tablet.emitScriptEvent(JSON.stringify(info));
+        webView.emitScriptEvent(JSON.stringify(info));
     };
 
     function resetScriptStatus() {
@@ -1515,12 +1515,13 @@ var PropertiesTool = function (opts) {
             selections.push(entity);
         }
         data.selections = selections;
-        tablet.emitScriptEvent(JSON.stringify(data));
+        webView.emitScriptEvent(JSON.stringify(data));
     });
 
-    tablet.webEventReceived.connect(function (data) {
+    webView.webEventReceived.connect(function (data) {
         try {
             data = JSON.parse(data);
+            print("--- edit.js webView.webEventReceived ---");
         }
         catch(e) {
             print('Edit.js received web event that was not valid json.')

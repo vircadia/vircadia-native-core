@@ -122,6 +122,13 @@ public:
      */
     Q_INVOKABLE void emitScriptEvent(QVariant msg);
 
+    /**jsdoc
+     * Used to send an event to the qml embedded in the tablet
+     * @function TabletProxy#sendToQml
+     * @param msg {object|string}
+     */
+    Q_INVOKABLE void sendToQml(QVariant msg);
+
     Q_INVOKABLE bool onHomeScreen();
 
     QObject* getTabletSurface();
@@ -129,8 +136,6 @@ public:
     QQuickItem* getQmlTablet() const;
 
     QQuickItem* getQmlMenu() const;
-
-    Q_INVOKABLE QQuickItem* findChild(QString childName) const;
 
 signals:
     /**jsdoc
@@ -140,6 +145,22 @@ signals:
      * @returns {Signal}
      */
     void webEventReceived(QVariant msg);
+
+    /**jsdoc
+     * Signaled when this tablet receives an event from the qml embedded in the tablet
+     * @function TabletProxy#fromQml
+     * @param msg {object|string}
+     * @returns {Signal}
+     */
+    void fromQml(QVariant msg);
+
+    /**jsdoc
+     * Signales when this tablet screen changes.
+     * @function TabletProxy#screenChanged
+     * @param type {string} - "Home", "Web", "Menu", "QML", "Closed"
+     * @param url {string} - only valid for Web and QML.
+     */
+    void screenChanged(QVariant type, QVariant url);
 
 private slots:
     void addButtonsToHomeScreen();

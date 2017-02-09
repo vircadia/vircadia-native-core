@@ -134,3 +134,9 @@ void TestScriptingInterface::startTraceEvent(QString name) {
 void TestScriptingInterface::endTraceEvent(QString name) {
     tracing::traceEvent(trace_test(), name, tracing::DurationEnd);
 }
+
+void TestScriptingInterface::profileRange(const QString& name, QScriptValue fn) {
+    PROFILE_RANGE(script, name);
+    fn.call();
+}
+

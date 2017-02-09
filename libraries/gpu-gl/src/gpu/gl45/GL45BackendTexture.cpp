@@ -297,6 +297,7 @@ void GL45Texture::startTransfer() {
 }
 
 bool GL45Texture::continueTransfer() {
+    PROFILE_RANGE(render_gpu_gl, "continueTransfer")
     size_t maxFace = GL_TEXTURE_CUBE_MAP == _target ? CUBE_NUM_FACES : 1;
     for (uint8_t face = 0; face < maxFace; ++face) {
         for (uint16_t mipLevel = _minMip; mipLevel <= _maxMip; ++mipLevel) {
@@ -306,6 +307,8 @@ bool GL45Texture::continueTransfer() {
                 _sparseInfo.allocatedPages += _sparseInfo.getPageCount(size);
             }
             if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
+                PROFILE_RANGE_EX(render_gpu_gl, "texSubImage", 0x0000ffff, (size.x * size.y * maxFace / 1024));
+
                 auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
                 GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
                 if (GL_TEXTURE_2D == _target) {
@@ -379,6 +382,8 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
         return;
     }
 
+    PROFILE_RANGE(render_gpu_gl, "GL45Texture::stripToMip");
+
     auto mipLevels = usedMipLevels();
     {
         Lock lock(texturesByMipCountsMutex);
@@ -420,29 +425,35 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
         auto newLevels = usedMipLevels();
 
         // Create and setup the new texture (allocate)
-        glCreateTextures(_target, 1, &const_cast<GLuint&>(_id));
-        glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
-        glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, _maxMip - _minMip);
-        Vec3u newDimensions = _gpuObject.evalMipDimensions(_mipOffset);
-        glTextureStorage2D(_id, newLevels, _internalFormat, newDimensions.x, newDimensions.y);
+        {
+            Vec3u newDimensions = _gpuObject.evalMipDimensions(_mipOffset);
+            PROFILE_RANGE_EX(render_gpu_gl, "Re-Allocate", 0xff0000ff, (newDimensions.x * newDimensions.y));
+
+            glCreateTextures(_target, 1, &const_cast<GLuint&>(_id));
+            glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
+            glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, _maxMip - _minMip);
+            glTextureStorage2D(_id, newLevels, _internalFormat, newDimensions.x, newDimensions.y);
+        }
 
         // Copy the contents of the old texture to the new
-        GLuint fbo { 0 };
-        glCreateFramebuffers(1, &fbo);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-        for (uint16 targetMip = _minMip; targetMip <= _maxMip; ++targetMip) {
-            uint16 sourceMip = targetMip + mipDelta;
-            Vec3u mipDimensions = _gpuObject.evalMipDimensions(targetMip + _mipOffset);
-            for (GLenum target : getFaceTargets(_target)) {
-                glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, oldId, sourceMip);
-                (void)CHECK_GL_ERROR();
-                glCopyTextureSubImage2D(_id, targetMip, 0, 0, 0, 0, mipDimensions.x, mipDimensions.y);
-                (void)CHECK_GL_ERROR();
+        {
+            PROFILE_RANGE(render_gpu_gl, "Blit"); 
+            // Preferred path only available in 4.3
+            for (uint16 targetMip = _minMip; targetMip <= _maxMip; ++targetMip) {
+                uint16 sourceMip = targetMip + mipDelta;
+                Vec3u mipDimensions = _gpuObject.evalMipDimensions(targetMip + _mipOffset);
+                for (GLenum target : getFaceTargets(_target)) {
+                    glCopyImageSubData(
+                        oldId, target, sourceMip, 0, 0, 0,
+                        _id, target, targetMip, 0, 0, 0,
+                        mipDimensions.x, mipDimensions.y, 1
+                        );
+                    (void)CHECK_GL_ERROR();
+                }
             }
+
+            glDeleteTextures(1, &oldId);
         }
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fbo);
-        glDeleteTextures(1, &oldId);
     }
 
     // Re-sync the sampler to force access to the new mip level

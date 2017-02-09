@@ -82,8 +82,6 @@ private:
 
     QMetaObject::Connection _emitScriptEventConnection;
     QMetaObject::Connection _webEventReceivedConnection;
-
-    // QString _javaScriptToInject;
 };
 
 #endif // hifi_Web3DOverlay_h

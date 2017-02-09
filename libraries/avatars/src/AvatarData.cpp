@@ -283,14 +283,20 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     destinationBuffer += sizeof(packetStateFlags);
 
     if (hasAvatarGlobalPosition) {
+        auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AvatarGlobalPosition*>(destinationBuffer);
         data->globalPosition[0] = _globalPosition.x;
         data->globalPosition[1] = _globalPosition.y;
         data->globalPosition[2] = _globalPosition.z;
         destinationBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
+
+        int numBytes = destinationBuffer - startSection;
+
+        _globalPositionRateOutbound.increment(numBytes);
     }
 
     if (hasAvatarBoundingBox) {
+        auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AvatarBoundingBox*>(destinationBuffer);
 
         data->avatarDimensions[0] = _globalBoundingBoxDimensions.x;
@@ -302,36 +308,56 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         data->boundOriginOffset[2] = _globalBoundingBoxOffset.z;
 
         destinationBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
+
+        int numBytes = destinationBuffer - startSection;
+        _avatarBoundingBoxRateOutbound.increment(numBytes);
     }
 
     if (hasAvatarOrientation) {
+        auto startSection = destinationBuffer;
         auto localOrientation = getLocalOrientation();
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
+
+        int numBytes = destinationBuffer - startSection;
+        _avatarOrientationRateOutbound.increment(numBytes);
     }
 
     if (hasAvatarScale) {
+        auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AvatarScale*>(destinationBuffer);
         auto scale = getDomainLimitedScale();
         packFloatRatioToTwoByte((uint8_t*)(&data->scale), scale);
         destinationBuffer += sizeof(AvatarDataPacket::AvatarScale);
+
+        int numBytes = destinationBuffer - startSection;
+        _avatarScaleRateOutbound.increment(numBytes);
     }
 
     if (hasLookAtPosition) {
+        auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::LookAtPosition*>(destinationBuffer);
         auto lookAt = _headData->getLookAtPosition();
         data->lookAtPosition[0] = lookAt.x;
         data->lookAtPosition[1] = lookAt.y;
         data->lookAtPosition[2] = lookAt.z;
         destinationBuffer += sizeof(AvatarDataPacket::LookAtPosition);
+
+        int numBytes = destinationBuffer - startSection;
+        _lookAtPositionRateOutbound.increment(numBytes);
     }
 
     if (hasAudioLoudness) {
+        auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
         data->audioLoudness = packFloatGainToByte(_headData->getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
+
+        int numBytes = destinationBuffer - startSection;
+        _audioLoudnessRateOutbound.increment(numBytes);
     }
 
     if (hasSensorToWorldMatrix) {
+        auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::SensorToWorldMatrix*>(destinationBuffer);
         glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
         packOrientationQuatToSixBytes(data->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
@@ -341,9 +367,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         data->sensorToWorldTrans[1] = sensorToWorldMatrix[3][1];
         data->sensorToWorldTrans[2] = sensorToWorldMatrix[3][2];
         destinationBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
+
+        int numBytes = destinationBuffer - startSection;
+        _sensorToWorldRateOutbound.increment(numBytes);
     }
 
     if (hasAdditionalFlags) {
+        auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AdditionalFlags*>(destinationBuffer);
 
         uint8_t flags { 0 };
@@ -370,27 +400,39 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
+
+        int numBytes = destinationBuffer - startSection;
+        _additionalFlagsRateOutbound.increment(numBytes);
     }
 
     if (hasAvatarLocalPosition) {
+        auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AvatarLocalPosition*>(destinationBuffer);
         auto localPosition = getLocalPosition();
         data->localPosition[0] = localPosition.x;
         data->localPosition[1] = localPosition.y;
         data->localPosition[2] = localPosition.z;
         destinationBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
+
+        int numBytes = destinationBuffer - startSection;
+        _localPositionRateOutbound.increment(numBytes);
     }
 
     if (hasParentInfo) {
+        auto startSection = destinationBuffer;
         auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
         QByteArray referentialAsBytes = parentID.toRfc4122();
         memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
         parentInfo->parentJointIndex = _parentJointIndex;
         destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
+
+        int numBytes = destinationBuffer - startSection;
+        _parentInfoRateOutbound.increment(numBytes);
     }
 
     // If it is connected, pack up the data
     if (hasFaceTrackerInfo) {
+        auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
 
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
@@ -403,10 +445,14 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         // followed by a variable number of float coefficients
         memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(), _headData->_blendshapeCoefficients.size() * sizeof(float));
         destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
+
+        int numBytes = destinationBuffer - startSection;
+        _faceTrackerRateOutbound.increment(numBytes);
     }
 
     // If it is connected, pack up the data
     if (hasJointData) {
+        auto startSection = destinationBuffer;
         QReadLocker readLock(&_jointDataLock);
 
         // joint rotation data
@@ -554,6 +600,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                     << (destinationBuffer - startPosition);
         }
 #endif
+
+        int numBytes = destinationBuffer - startSection;
+        _jointDataRateOutbound.increment(numBytes);
     }
 
     int avatarDataSize = destinationBuffer - startPosition;
@@ -670,6 +719,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _globalPositionRate.increment(numBytesRead);
+        _globalPositionUpdateRate.increment();
 
         // if we don't have a parent, make sure to also set our local position
         if (!hasParent()) {
@@ -698,6 +748,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
         int numBytesRead = sourceBuffer - startSection;
         _avatarBoundingBoxRate.increment(numBytesRead);
+        _avatarBoundingBoxUpdateRate.increment();
     }
 
     if (hasAvatarOrientation) {
@@ -713,6 +764,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
         int numBytesRead = sourceBuffer - startSection;
         _avatarOrientationRate.increment(numBytesRead);
+        _avatarOrientationUpdateRate.increment();
     }
 
     if (hasAvatarScale) {
@@ -732,6 +784,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarScale);
         int numBytesRead = sourceBuffer - startSection;
         _avatarScaleRate.increment(numBytesRead);
+        _avatarScaleUpdateRate.increment();
     }
 
     if (hasLookAtPosition) {
@@ -750,6 +803,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::LookAtPosition);
         int numBytesRead = sourceBuffer - startSection;
         _lookAtPositionRate.increment(numBytesRead);
+        _lookAtPositionUpdateRate.increment();
     }
 
     if (hasAudioLoudness) {
@@ -770,6 +824,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->setAudioLoudness(audioLoudness);
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
+        _audioLoudnessUpdateRate.increment();
     }
 
     if (hasSensorToWorldMatrix) {
@@ -790,6 +845,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
         int numBytesRead = sourceBuffer - startSection;
         _sensorToWorldRate.increment(numBytesRead);
+        _sensorToWorldUpdateRate.increment();
     }
 
     if (hasAdditionalFlags) {
@@ -833,6 +889,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
         int numBytesRead = sourceBuffer - startSection;
         _additionalFlagsRate.increment(numBytesRead);
+        _additionalFlagsUpdateRate.increment();
     }
 
     // FIXME -- make sure to handle the existance of a parent vs a change in the parent...
@@ -855,7 +912,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         int numBytesRead = sourceBuffer - startSection;
         _parentInfoRate.increment(numBytesRead);
-    } else {
+        _parentInfoUpdateRate.increment();
+    }
+    else {
         // FIXME - this aint totally right, for switching to parent/no-parent
         _parentID = QUuid();
     }
@@ -877,6 +936,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _localPositionRate.increment(numBytesRead);
+        _localPositionUpdateRate.increment();
     }
 
     if (hasFaceTrackerInfo) {
@@ -899,6 +959,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += coefficientsSize;
         int numBytesRead = sourceBuffer - startSection;
         _faceTrackerRate.increment(numBytesRead);
+        _faceTrackerUpdateRate.increment();
     }
 
     if (hasJointData) {
@@ -991,17 +1052,19 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         int numBytesRead = sourceBuffer - startSection;
         _jointDataRate.increment(numBytesRead);
+        _jointDataUpdateRate.increment();
     }
 
     int numBytesRead = sourceBuffer - startPosition;
     _averageBytesReceived.updateAverage(numBytesRead);
 
     _parseBufferRate.increment(numBytesRead);
+    _parseBufferUpdateRate.increment();
 
     return numBytesRead;
 }
 
-float AvatarData::getDataRate(const QString& rateName) {
+float AvatarData::getDataRate(const QString& rateName) const {
     if (rateName == "") {
         return _parseBufferRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "globalPosition") {
@@ -1028,10 +1091,64 @@ float AvatarData::getDataRate(const QString& rateName) {
         return _faceTrackerRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "jointData") {
         return _jointDataRate.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "globalPositionOutbound") {
+        return _globalPositionRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "localPositionOutbound") {
+        return _localPositionRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "avatarBoundingBoxOutbound") {
+        return _avatarBoundingBoxRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "avatarOrientationOutbound") {
+        return _avatarOrientationRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "avatarScaleOutbound") {
+        return _avatarScaleRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "lookAtPositionOutbound") {
+        return _lookAtPositionRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "audioLoudnessOutbound") {
+        return _audioLoudnessRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "sensorToWorkMatrixOutbound") {
+        return _sensorToWorldRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "additionalFlagsOutbound") {
+        return _additionalFlagsRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "parentInfoOutbound") {
+        return _parentInfoRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "faceTrackerOutbound") {
+        return _faceTrackerRateOutbound.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "jointDataOutbound") {
+        return _jointDataRateOutbound.rate() / BYTES_PER_KILOBIT;
     }
     return 0.0f;
 }
 
+float AvatarData::getUpdateRate(const QString& rateName) const {
+    if (rateName == "") {
+        return _parseBufferUpdateRate.rate();
+    } else if (rateName == "globalPosition") {
+        return _globalPositionUpdateRate.rate();
+    } else if (rateName == "localPosition") {
+        return _localPositionUpdateRate.rate();
+    } else if (rateName == "avatarBoundingBox") {
+        return _avatarBoundingBoxUpdateRate.rate();
+    } else if (rateName == "avatarOrientation") {
+        return _avatarOrientationUpdateRate.rate();
+    } else if (rateName == "avatarScale") {
+        return _avatarScaleUpdateRate.rate();
+    } else if (rateName == "lookAtPosition") {
+        return _lookAtPositionUpdateRate.rate();
+    } else if (rateName == "audioLoudness") {
+        return _audioLoudnessUpdateRate.rate();
+    } else if (rateName == "sensorToWorkMatrix") {
+        return _sensorToWorldUpdateRate.rate();
+    } else if (rateName == "additionalFlags") {
+        return _additionalFlagsUpdateRate.rate();
+    } else if (rateName == "parentInfo") {
+        return _parentInfoUpdateRate.rate();
+    } else if (rateName == "faceTracker") {
+        return _faceTrackerUpdateRate.rate();
+    } else if (rateName == "jointData") {
+        return _jointDataUpdateRate.rate();
+    }
+    return 0.0f;
+}
 
 int AvatarData::getAverageBytesReceivedPerSecond() const {
     return lrint(_averageBytesReceived.getAverageSampleValuePerSecond());
@@ -1842,8 +1959,7 @@ QJsonObject AvatarData::toJson() const {
     return root;
 }
 
-void AvatarData::fromJson(const QJsonObject& json) {
-
+void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
     int version;
     if (json.contains(JSON_AVATAR_VERSION)) {
         version = json[JSON_AVATAR_VERSION].toInt();
@@ -1865,7 +1981,7 @@ void AvatarData::fromJson(const QJsonObject& json) {
 
     if (json.contains(JSON_AVATAR_BODY_MODEL)) {
         auto bodyModelURL = json[JSON_AVATAR_BODY_MODEL].toString();
-        if (bodyModelURL != getSkeletonModelURL().toString()) {
+        if (useFrameSkeleton && bodyModelURL != getSkeletonModelURL().toString()) {
             setSkeletonModelURL(bodyModelURL);
         }
     }
@@ -1958,8 +2074,9 @@ QByteArray AvatarData::toFrame(const AvatarData& avatar) {
 }
 
 
-void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
+void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result, bool useFrameSkeleton) {
     QJsonDocument doc = QJsonDocument::fromBinaryData(frameData);
+
 #ifdef WANT_JSON_DEBUG
     {
         QJsonObject obj = doc.object();
@@ -1967,7 +2084,7 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
         qCDebug(avatars).noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
     }
 #endif
-    result.fromJson(doc.object());
+    result.fromJson(doc.object(), useFrameSkeleton);
 }
 
 float AvatarData::getBodyYaw() const {

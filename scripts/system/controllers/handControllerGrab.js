@@ -26,6 +26,7 @@ Script.include("/~/system/libraries/controllers.js");
 //
 // add lines where the hand ray picking is happening
 //
+
 var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
@@ -752,6 +753,7 @@ function MyController(hand) {
     this.previouslyUnhooked = {};
 
     this.shouldScale = false;
+    this.isScalingAvatar = false;
 
     // handPosition is where the avatar's hand appears to be, in-world.
     this.getHandPosition = function () {
@@ -824,11 +826,7 @@ function MyController(hand) {
 
     this.update = function(deltaTime, timestamp) {
         this.updateSmoothedTrigger();
-        //  If both trigger and grip buttons squeezed and nothing is held, rescale my avatar!
-        if (this.hand === RIGHT_HAND && this.state === STATE_SEARCHING &&
-            this.getOtherHandController().state === STATE_SEARCHING) {
-            this.maybeScaleMyAvatar();
-        }
+        this.maybeScaleMyAvatar();
 
         if (this.ignoreInput()) {
 
@@ -2595,22 +2593,29 @@ function MyController(hand) {
     };
 
     this.maybeScaleMyAvatar = function() {
-        if (!myAvatarScalingEnabled) {
+        if (!myAvatarScalingEnabled || this.shouldScale || this.hand === LEFT_HAND) {
+            //  If scaling disabled, or if we are currently scaling an entity, don't scale avatar
+            //  and only rescale avatar for one hand (so we're not doing it twice)
             return;
         }
 
-        if (!this.shouldScale) {
+        // Only scale avatar if both triggers and grips are squeezed
+        var tryingToScale = this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed() &&
+                            this.triggerSmoothedSqueezed() && this.getOtherHandController().triggerSmoothedSqueezed();
+
+
+        if (!this.isScalingAvatar) {
             //  If both secondary triggers squeezed, start scaling
-            if (this.secondarySqueezed() && this.getOtherHandController().secondarySqueezed()) {
+            if (tryingToScale) {
                 this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(),
                                                                       this.getOtherHandController().getHandPosition()));
                 this.scalingStartAvatarScale = MyAvatar.scale;
-                this.shouldScale = true;
+                this.isScalingAvatar = true;
             }
-        } else if (!this.secondarySqueezed() || !this.getOtherHandController().secondarySqueezed()) {
-            this.shouldScale = false;
+        } else if (!tryingToScale) {
+            this.isScalingAvatar = false;
         }
-        if (this.shouldScale) {
+        if (this.isScalingAvatar) {
             var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(),
                                                                    this.getOtherHandController().getHandPosition()));
             var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;

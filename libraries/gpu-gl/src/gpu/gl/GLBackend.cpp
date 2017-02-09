@@ -328,12 +328,12 @@ void GLBackend::render(const Batch& batch) {
 
 
 void GLBackend::syncCache() {
+    PROFILE_RANGE(render_gpu_gl_detail, __FUNCTION__);
+
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
     syncOutputStateCache();
-
-    glEnable(GL_LINE_SMOOTH);
 }
 
 #ifdef GPU_STEREO_DRAWCALL_DOUBLED
