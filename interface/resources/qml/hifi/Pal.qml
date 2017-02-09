@@ -16,6 +16,8 @@ import QtQuick.Controls 1.4
 import "../styles-uit"
 import "../controls-uit" as HifiControls
 
+// references HMD, Users, UserActivityLogger from root context
+
 Rectangle {
     id: pal
     // Size
@@ -35,7 +37,9 @@ Rectangle {
     // Keep a local list of per-avatar gainSliderValueDBs. Far faster than fetching this data from the server.
     // NOTE: if another script modifies the per-avatar gain, this value won't be accurate!
     property var gainSliderValueDB: ({});
-    
+
+    HifiConstants { id: hifi }
+
     // The letterbox used for popup messages
     LetterboxMessage {
         id: letterboxMessage

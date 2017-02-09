@@ -203,8 +203,8 @@ var pal = new OverlayWindow({
     height: 640,
     visible: false
 });
-pal.fromQml.connect(function (message) { // messages are {method, params}, like json-rpc. See also sendToQml.
-    print('From PAL QML:', JSON.stringify(message));
+function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
+    print('AJT: From PAL QML:', JSON.stringify(message));
     switch (message.method) {
     case 'selected':
         selectedIds = message.params;
@@ -234,6 +234,7 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
         }
         break;
     case 'refresh':
+        print("AJT: REFRESH!");
         removeOverlays();
         populateUserList(message.params);
         UserActivityLogger.palAction("refresh", "");
@@ -259,7 +260,15 @@ pal.fromQml.connect(function (message) { // messages are {method, params}, like 
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
-});
+}
+
+function sendToQml(message) {
+    if (Settings.getValue("HUDUIEnabled")) {
+        pal.sendToQml(message);
+    } else {
+        tablet.sendToQml(message);
+    }
+}
 
 //
 // Main operations.
@@ -298,10 +307,10 @@ function populateUserList(selectData) {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    pal.sendToQml({ method: 'users', params: data });
+    sendToQml({ method: 'users', params: data });
     if (selectData) {
         selectData[2] = true;
-        pal.sendToQml({ method: 'select', params: selectData });
+        sendToQml({ method: 'select', params: selectData });
     }
 }
 
@@ -322,7 +331,7 @@ function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
     }
     print('Username Data:', JSON.stringify(data));
     // Ship the data off to QML
-    pal.sendToQml({ method: 'updateUsername', params: data });
+    sendToQml({ method: 'updateUsername', params: data });
 }
 
 var pingPong = true;
@@ -396,7 +405,7 @@ function handleClick(pickRay) {
     ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
         // Don't select directly. Tell qml, who will give us back a list of ids.
         var message = {method: 'select', params: [[overlay.key], !overlay.selected, false]};
-        pal.sendToQml(message);
+        sendToQml(message);
         return true;
     });
 }
@@ -492,6 +501,7 @@ if (Settings.getValue("HUDUIEnabled")) {
         visible: true,
         alpha: 0.9
     });
+    pal.fromQml.connect(fromQml);
 } else {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
@@ -499,7 +509,9 @@ if (Settings.getValue("HUDUIEnabled")) {
         icon: "icons/tablet-icons/people-i.svg",
         sortOrder: 7
     });
+    tablet.fromQml.connect(fromQml);
 }
+
 var isWired = false;
 var audioTimer;
 var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
@@ -518,10 +530,26 @@ function off() {
     Users.requestsDomainListData = false;
 }
 function onClicked() {
-    if (!pal.visible) {
+    if (Settings.getValue("HUDUIEnabled")) {
+        if (!pal.visible) {
+            Users.requestsDomainListData = true;
+            populateUserList();
+            pal.raise();
+            isWired = true;
+            Script.update.connect(updateOverlays);
+            Controller.mousePressEvent.connect(handleMouseEvent);
+            Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+            triggerMapping.enable();
+            triggerPressMapping.enable();
+            audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+        } else {
+            off();
+        }
+        pal.setVisible(!pal.visible);
+    } else {
+        tablet.loadQMLSource("../Pal.qml");
         Users.requestsDomainListData = true;
         populateUserList();
-        pal.raise();
         isWired = true;
         Script.update.connect(updateOverlays);
         Controller.mousePressEvent.connect(handleMouseEvent);
@@ -529,10 +557,7 @@ function onClicked() {
         triggerMapping.enable();
         triggerPressMapping.enable();
         audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
-    } else {
-        off();
     }
-    pal.setVisible(!pal.visible);
 }
 
 //
@@ -550,7 +575,7 @@ function receiveMessage(channel, messageString, senderID) {
         if (!pal.visible) {
             onClicked();
         }
-        pal.sendToQml(message); // Accepts objects, not just strings.
+        sendToQml(message); // Accepts objects, not just strings.
         break;
     default:
         print('Unrecognized PAL message', messageString);
@@ -607,13 +632,13 @@ function createAudioInterval(interval) {
             var userId = id || 0;
             param[userId] = level;
         });
-        pal.sendToQml({method: 'updateAudioLevel', params: param});
+        sendToQml({method: 'updateAudioLevel', params: param});
     }, interval);
 }
 
 function avatarDisconnected(nodeID) {
     // remove from the pal list
-    pal.sendToQml({method: 'avatarDisconnected', params: [nodeID]});
+    sendToQml({method: 'avatarDisconnected', params: [nodeID]});
 }
 //
 // Button state.
@@ -624,11 +649,20 @@ function onVisibleChanged() {
 button.clicked.connect(onClicked);
 pal.visibleChanged.connect(onVisibleChanged);
 pal.closed.connect(off);
+
+if (!Settings.getValue("HUDUIEnabled")) {
+    tablet.screenChanged.connect(function (type, url) {
+        if (type !== "QML" || url !== "../Pal.qml") {
+            off();
+        }
+    });
+}
+
 Users.usernameFromIDReply.connect(usernameFromIDReply);
 Users.avatarDisconnected.connect(avatarDisconnected);
 
 function clearLocalQMLDataAndClosePAL() {
-    pal.sendToQml({ method: 'clearLocalQMLData' });
+    sendToQml({ method: 'clearLocalQMLData' });
     if (pal.visible) {
         onClicked(); // Close the PAL
     }

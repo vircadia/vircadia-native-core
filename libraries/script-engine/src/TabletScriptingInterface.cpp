@@ -183,6 +183,18 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
     _qmlTabletRoot = qmlTabletRoot;
     if (_qmlTabletRoot && _qmlOffscreenSurface) {
         QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
+
+        // forward qml surface events to interface js
+        connect(dynamic_cast<OffscreenQmlSurface*>(_qmlOffscreenSurface), &OffscreenQmlSurface::fromQml, [this](QVariant message) {
+            if (message.canConvert<QJSValue>()) {
+                emit fromQml(qvariant_cast<QJSValue>(message).toVariant());
+            } else if (message.canConvert<QString>()) {
+                emit fromQml(message.toString());
+            } else {
+                qWarning() << "fromQml: Unsupported message type " << message;
+            }
+        });
+
         gotoHomeScreen();
 
         QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
@@ -197,6 +209,7 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
     } else {
         removeButtonsFromHomeScreen();
         _state = State::Uninitialized;
+        emit screenChanged(QVariant("Closed"), QVariant(""));
     }
 }
 
@@ -208,6 +221,7 @@ void TabletProxy::gotoMenuScreen() {
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()), Qt::DirectConnection);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
             _state = State::Menu;
+            emit screenChanged(QVariant("Menu"), QVariant(VRMENU_SOURCE_URL));
         }
     }
 }
@@ -217,6 +231,7 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
         if (_state != State::QML) {
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, path));
             _state = State::QML;
+            emit screenChanged(QVariant("QML"), path);
         }
     }
 }
@@ -228,6 +243,7 @@ void TabletProxy::gotoHomeScreen() {
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
             QMetaObject::invokeMethod(_qmlTabletRoot, "playButtonClickSound");
             _state = State::Home;
+            emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
         }
     }
 }
@@ -244,6 +260,7 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
         if (_state != State::Web) {
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
             _state = State::Web;
+            emit screenChanged(QVariant("Web"), QVariant(url));
         }
         QMetaObject::invokeMethod(_qmlTabletRoot, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)),
                                   Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
@@ -303,6 +320,12 @@ void TabletProxy::updateAudioBar(const double micLevel) {
 void TabletProxy::emitScriptEvent(QVariant msg) {
     if (_qmlOffscreenSurface) {
         QMetaObject::invokeMethod(_qmlOffscreenSurface, "emitScriptEvent", Qt::AutoConnection, Q_ARG(QVariant, msg));
+    }
+}
+
+void TabletProxy::sendToQml(QVariant msg) {
+    if (_qmlOffscreenSurface) {
+        QMetaObject::invokeMethod(_qmlOffscreenSurface, "sendToQml", Qt::AutoConnection, Q_ARG(QVariant, msg));
     }
 }
 
