@@ -62,6 +62,7 @@ template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
             position += sizeof(T) * arrayLength;
             in.readRawData(arrayData.data(), arrayData.size());
         }
+
         if (arrayData.size() > 0) {
             memcpy(&values[0], arrayData.constData(), arrayData.size());
         }
