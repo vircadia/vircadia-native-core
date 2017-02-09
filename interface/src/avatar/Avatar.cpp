@@ -228,7 +228,6 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    bool success = true;
     QScriptEngine scriptEngine;
     entityTree->withWriteLock([&] {
         AvatarEntityMap avatarEntities = getAvatarEntityData();
@@ -268,17 +267,15 @@ void Avatar::updateAvatarEntities() {
 
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
 
+            // NOTE: we don't bother checking whether updateEntity or addEntity succeed here:
+            // if not we'll try again next time the data is changed.  This is to close a performance DOS vector
+            // whereby invalid entity data is given to the AvatarMixer and constant retries kill performance.
             if (entity) {
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
-                } else {
-                    success = false;
                 }
             } else {
                 entity = entityTree->addEntity(entityID, properties);
-                if (!entity) {
-                    success = false;
-                }
             }
         }
 
@@ -295,9 +292,7 @@ void Avatar::updateAvatarEntities() {
         }
     });
 
-    if (success) {
-        setAvatarEntityDataChanged(false);
-    }
+    setAvatarEntityDataChanged(false);
 }
 
 bool Avatar::shouldDie() const {
@@ -364,6 +359,9 @@ void Avatar::simulate(float deltaTime, bool inView) {
         measureMotionDerivatives(deltaTime);
         simulateAttachments(deltaTime);
         updatePalms();
+    }
+    {
+        PROFILE_RANGE(simulation, "entities");
         updateAvatarEntities();
     }
 }
