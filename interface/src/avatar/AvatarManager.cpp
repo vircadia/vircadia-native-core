@@ -230,6 +230,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     const uint64_t MAX_UPDATE_BUDGET = 2000; // usec
     uint64_t renderExpiry = startTime + RENDER_UPDATE_BUDGET;
     uint64_t maxExpiry = startTime + MAX_UPDATE_BUDGET;
+
+    int fullySimulatedAvatars = 0;
+    int partiallySimulatedAvatars = 0;
     while (!sortedAvatars.empty()) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
@@ -258,6 +261,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(pendingChanges);
             avatar->setLastRenderUpdateTime(startTime);
+            fullySimulatedAvatars++;
         } else if (now < maxExpiry) {
             // we've spent most of our time budget, but we still simulate() the avatar as it if were out of view
             // --> some avatars may freeze until their priority trickles up
@@ -271,6 +275,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         }
         sortedAvatars.pop();
     }
+
+    uint64_t endSimulation = usecTimestampNow();
+    int elapsedTime = endSimulation - startTime;
+    float elapsedFloat = (float)elapsedTime / (float)USECS_PER_MSEC;
+    qDebug() << "elapsedTime:" << elapsedTime << "elapsedFloat:" << elapsedFloat;
+    _avatarSimulationTime = elapsedFloat;
+    _fullySimulatedAvatars = fullySimulatedAvatars;
+    _partiallySimulatedAvatars = partiallySimulatedAvatars;
     qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
 
     simulateAvatarFades(deltaTime);

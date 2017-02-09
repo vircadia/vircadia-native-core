@@ -43,6 +43,10 @@ public:
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
     AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) override;
 
+    int getFullySimulatedAvatars() { return _fullySimulatedAvatars; }
+    int getPartiallySimulatedAvatars() { return _partiallySimulatedAvatars; }
+    float getAvatarSimulationTime() { return _avatarSimulationTime; }
+
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
 
@@ -112,6 +116,9 @@ private:
     VectorOfMotionStates _motionStatesToRemoveFromPhysics;
 
     RateCounter<> _myAvatarSendRate;
+    int _fullySimulatedAvatars { 0 };
+    int _partiallySimulatedAvatars { 0 };
+    float _avatarSimulationTime { 0.0f };
 
 };
 

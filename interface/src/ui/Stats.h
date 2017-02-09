@@ -49,6 +49,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, simrate, 0)
     STATS_PROPERTY(int, avatarSimrate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
+    STATS_PROPERTY(int, fullySimulatedAvatarCount, 0)
+    STATS_PROPERTY(int, partiallySimulatedAvatarCount, 0)
     STATS_PROPERTY(int, packetInCount, 0)
     STATS_PROPERTY(int, packetOutCount, 0)
     STATS_PROPERTY(float, mbpsIn, 0)
@@ -111,6 +113,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuFreeMemory, 0)
     STATS_PROPERTY(float, gpuFrameTime, 0)
     STATS_PROPERTY(float, batchFrameTime, 0)
+    STATS_PROPERTY(float, avatarSimulationTime, 0)
 
 public:
     static Stats* getInstance();
@@ -156,6 +159,8 @@ signals:
     void simrateChanged();
     void avatarSimrateChanged();
     void avatarCountChanged();
+    void fullySimulatedAvatarCountChanged();
+    void partiallySimulatedAvatarCountChanged();
     void packetInCountChanged();
     void packetOutCountChanged();
     void mbpsInChanged();
@@ -216,6 +221,7 @@ signals:
     void gpuFreeMemoryChanged();
     void gpuFrameTimeChanged();
     void batchFrameTimeChanged();
+    void avatarSimulationTimeChanged();
     void rectifiedTextureCountChanged();
     void decimatedTextureCountChanged();
 

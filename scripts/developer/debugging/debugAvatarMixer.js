@@ -60,7 +60,8 @@ function updateOverlays() {
             var overlayPosition = avatar.getJointPosition("Head");
             overlayPosition.y += 1.05;
 
-            var text = "--- Data from Mixer ---\n"
+            var text = avatarID + "\n"
+                       +"--- Data from Mixer ---\n"
                        +"All: " + AvatarManager.getAvatarDataRate(avatarID).toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID).toFixed(2) + "hz)" + "\n"
                        +" GP: " + AvatarManager.getAvatarDataRate(avatarID,"globalPosition").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"globalPosition").toFixed(2) + "hz)" + "\n"
                        +" LP: " + AvatarManager.getAvatarDataRate(avatarID,"localPosition").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"localPosition").toFixed(2) + "hz)" + "\n"
@@ -92,7 +93,7 @@ function updateOverlays() {
                     position: overlayPosition,
                     dimensions: {
                         x: 1.25,
-                        y: 18 * 0.13
+                        y: 19 * 0.13
                     },
                     lineHeight: 0.1,
                     font:{size:0.1},
