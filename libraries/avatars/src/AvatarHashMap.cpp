@@ -90,7 +90,7 @@ AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID,
     return avatar;
 }
 
-AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) {
+AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) const {
     QReadLocker locker(&_hashLock);
     if (_avatarHash.contains(sessionUUID)) {
         return _avatarHash.value(sessionUUID);

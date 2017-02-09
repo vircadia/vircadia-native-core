@@ -547,8 +547,8 @@ public:
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
-    Q_INVOKABLE float getDataRate(const QString& rateName = QString(""));
-    Q_INVOKABLE float getUpdateRate(const QString& rateName = QString(""));
+    Q_INVOKABLE float getDataRate(const QString& rateName = QString("")) const;
+    Q_INVOKABLE float getUpdateRate(const QString& rateName = QString("")) const;
 
     int getJointCount() { return _jointData.size(); }
 

@@ -41,11 +41,11 @@ public:
     void init();
 
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
-    AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) override;
+    AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const override;
 
-    int getFullySimulatedAvatars() { return _fullySimulatedAvatars; }
-    int getPartiallySimulatedAvatars() { return _partiallySimulatedAvatars; }
-    float getAvatarSimulationTime() { return _avatarSimulationTime; }
+    int getFullySimulatedAvatars() const { return _fullySimulatedAvatars; }
+    int getPartiallySimulatedAvatars() const { return _partiallySimulatedAvatars; }
+    float getAvatarSimulationTime() const { return _avatarSimulationTime; }
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
@@ -73,9 +73,9 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString(""));
-    Q_INVOKABLE float getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName = QString(""));
-    Q_INVOKABLE float getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName = QString(""));
+    Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+    Q_INVOKABLE float getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+    Q_INVOKABLE float getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
 
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),

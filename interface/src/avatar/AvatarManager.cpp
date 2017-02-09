@@ -132,17 +132,17 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
 
 Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar");
 
-float AvatarManager::getAvatarDataRate(const QUuid& sessionID, const QString& rateName) {
+float AvatarManager::getAvatarDataRate(const QUuid& sessionID, const QString& rateName) const {
     auto avatar = getAvatarBySessionID(sessionID);
     return avatar ? avatar->getDataRate(rateName) : 0.0f;
 }
 
-float AvatarManager::getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName) {
+float AvatarManager::getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName) const {
     auto avatar = getAvatarBySessionID(sessionID);
     return avatar ? avatar->getUpdateRate(rateName) : 0.0f;
 }
 
-float AvatarManager::getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName) {
+float AvatarManager::getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName) const {
     auto avatar = std::static_pointer_cast<Avatar>(getAvatarBySessionID(sessionID));
     return avatar ? avatar->getSimulationRate(rateName) : 0.0f; 
 }
@@ -267,6 +267,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             // --> some avatars may freeze until their priority trickles up
             const bool inView = false;
             avatar->simulate(deltaTime, inView);
+            partiallySimulatedAvatars++;
         } else {
             // we've spent ALL of our time budget --> bail on the rest of the avatar updates
             // --> some scale or fade animations may glitch
@@ -512,7 +513,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 }
 
 
-AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
+AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) const {
     if (sessionID == AVATAR_SELF_ID || sessionID == _myAvatar->getSessionUUID()) {
         return _myAvatar;
     }

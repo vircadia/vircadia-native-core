@@ -182,7 +182,7 @@ public:
     void animateScaleChanges(float deltaTime);
     void setTargetScale(float targetScale) override;
 
-    Q_INVOKABLE float getSimulationRate(const QString& rateName = QString(""));
+    Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 
 public slots:
 

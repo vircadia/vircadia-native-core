@@ -1064,7 +1064,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     return numBytesRead;
 }
 
-float AvatarData::getDataRate(const QString& rateName) {
+float AvatarData::getDataRate(const QString& rateName) const {
     if (rateName == "") {
         return _parseBufferRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "globalPosition") {
@@ -1119,7 +1119,7 @@ float AvatarData::getDataRate(const QString& rateName) {
     return 0.0f;
 }
 
-float AvatarData::getUpdateRate(const QString& rateName) {
+float AvatarData::getUpdateRate(const QString& rateName) const {
     if (rateName == "") {
         return _parseBufferUpdateRate.rate();
     } else if (rateName == "globalPosition") {

@@ -366,7 +366,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
     }
 }
 
-float Avatar::getSimulationRate(const QString& rateName) {
+float Avatar::getSimulationRate(const QString& rateName) const {
     if (rateName == "") {
         return _simulationRate.rate();
     } else if (rateName == "avatar") {
