@@ -120,32 +120,36 @@ void GL45Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Texture::copyMipFromTexture(uint16_t sourceMip, uint16_t targetMip) const {
+void GL45Texture::copyMipFaceLinesFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lineOffset, uint32_t lines, size_t dataOffset) const {
     const auto& texture = _gpuObject;
     if (!texture.isStoredMipFaceAvailable(sourceMip)) {
         return;
     }
-    size_t maxFace = GLTexture::getFaceCount(_target);
-    for (uint8_t face = 0; face < maxFace; ++face) {
-        auto size = texture.evalMipDimensions(sourceMip);
-        auto mipData = texture.accessStoredMipFace(sourceMip, face);
-        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), mipData->getFormat());
-        if (GL_TEXTURE_2D == _target) {
-            glTextureSubImage2D(_id, targetMip, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mipData->readData());
-        } else if (GL_TEXTURE_CUBE_MAP == _target) {
-            // DSA ARB does not work on AMD, so use EXT
-            // unless EXT is not available on the driver
-            if (glTextureSubImage2DEXT) {
-                auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-                glTextureSubImage2DEXT(_id, target, targetMip, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mipData->readData());
-            } else {
-                glTextureSubImage3D(_id, targetMip, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mipData->readData());
-            }
+    auto mipDimensions = texture.evalMipDimensions(sourceMip);
+    glm::uvec3 size = { mipDimensions.x, lines, mipDimensions.z };
+    auto mipData = texture.accessStoredMipFace(sourceMip, face);
+    auto sourcePointer = mipData->readData() + dataOffset;
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), mipData->getFormat());
+    if (GL_TEXTURE_2D == _target) {
+        glTextureSubImage2D(_id, targetMip, 0, lineOffset, size.x, size.y, texelFormat.format, texelFormat.type, sourcePointer);
+    } else if (GL_TEXTURE_CUBE_MAP == _target) {
+        // DSA ARB does not work on AMD, so use EXT
+        // unless EXT is not available on the driver
+        if (glTextureSubImage2DEXT) {
+            auto target = GLTexture::CUBE_FACE_LAYOUT[face];
+            glTextureSubImage2DEXT(_id, target, targetMip, 0, lineOffset, size.x, size.y, texelFormat.format, texelFormat.type, sourcePointer);
         } else {
-            Q_ASSERT(false);
+            glTextureSubImage3D(_id, targetMip, 0, lineOffset, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, sourcePointer);
         }
-        (void)CHECK_GL_ERROR();
+    } else {
+        Q_ASSERT(false);
     }
+    (void)CHECK_GL_ERROR();
+}
+
+void GL45Texture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
+    auto size = _gpuObject.evalMipDimensions(sourceMip);
+    copyMipFaceLinesFromTexture(sourceMip, targetMip, face, 0, size.y, 0);
 }
 
 void GL45Texture::syncSampler() const {
@@ -221,7 +225,10 @@ GL45StrictResourceTexture::GL45StrictResourceTexture(const std::weak_ptr<GLBacke
     auto mipLevels = _gpuObject.evalNumMips();
     for (uint16_t sourceMip = 0; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip;
-        copyMipFromTexture(sourceMip, targetMip);
+        size_t maxFace = GLTexture::getFaceCount(_target);
+        for (uint8_t face = 0; face < maxFace; ++face) {
+            copyMipFaceFromTexture(sourceMip, targetMip, face);
+        }
     }
     if (texture.isAutogenerateMips()) {
         generateMips();

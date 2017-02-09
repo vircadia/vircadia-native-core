@@ -359,9 +359,12 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
 
 void GL45ResourceTexture::copyMipsFromTexture() {
     auto mipLevels = _gpuObject.evalNumMips();
+    size_t maxFace = GLTexture::getFaceCount(_target);
     for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip - _allocatedMip;
-        copyMipFromTexture(sourceMip, targetMip);
+        for (uint8_t face = 0; face < maxFace; ++face) {
+            copyMipFaceFromTexture(sourceMip, targetMip, face);
+        }
     }
 }
 
@@ -448,17 +451,57 @@ void GL45ResourceTexture::populateTransferQueue() {
         return;
     }
 
-    for (int16_t mip = _populatedMip - 1; mip >= _allocatedMip; --mip) {
-        // FIXME break down the transfers into chunks so that no single transfer is 
-        // consuming more than X bandwidth
-        _pendingTransfers.push([mip, this] {
-            Q_ASSERT(mip >= _allocatedMip);
-            // FIXME modify the copy mechanism to be incremental
-            copyMipFromTexture(mip, mip - _allocatedMip);
-            _populatedMip = mip;
+    static const uvec3 MAX_TRANSFER_DIMENSIONS { 512, 512, 1 };
+    static const size_t MAX_TRANSFER_SIZE = MAX_TRANSFER_DIMENSIONS.x * MAX_TRANSFER_DIMENSIONS.y * 4;
+    const uint8_t maxFace = GLTexture::getFaceCount(_target);
+
+    uint16_t sourceMip = _populatedMip;
+    do {
+        --sourceMip;
+        auto targetMip = sourceMip - _allocatedMip;
+        auto mipDimensions = _gpuObject.evalMipDimensions(sourceMip);
+        for (uint8_t face = 0; face < maxFace; ++face) {
+            if (!_gpuObject.isStoredMipFaceAvailable(sourceMip, face)) {
+                continue;
+            }
+
+            // If the mip is less than the max transfer size, then just do it in one transfer
+            if (glm::all(glm::lessThanEqual(mipDimensions, MAX_TRANSFER_DIMENSIONS))) {
+                // Can the mip be transferred in one go
+                _pendingTransfers.push([=] {
+                    Q_ASSERT(sourceMip >= _allocatedMip);
+                    // FIXME modify the copy mechanism to be incremental
+                    copyMipFaceFromTexture(sourceMip, targetMip, face);
+                });
+                continue;
+            }
+
+            // break down the transfers into chunks so that no single transfer is 
+            // consuming more than X bandwidth
+            auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
+            const auto lines = mipDimensions.y;
+            auto bytesPerLine = (uint32_t)mipData->getSize() / lines;
+            Q_ASSERT(0 == (mipData->getSize() % lines));
+            auto linesPerTransfer = MAX_TRANSFER_SIZE / bytesPerLine;
+            size_t offset = 0;
+            uint32_t lineOffset = 0;
+            while (lineOffset < lines) {
+                uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
+                uvec3 size { mipDimensions.x, linesToCopy, 1 };
+                _pendingTransfers.push([=] {
+                    copyMipFaceLinesFromTexture(sourceMip, targetMip, face, lineOffset, linesToCopy, offset);
+                });
+                lineOffset += linesToCopy;
+                offset += (linesToCopy * bytesPerLine);
+            }
+        }
+
+        // queue up the sampler and populated mip change for after the transfer has completed
+        _pendingTransfers.push([=] {
+            _populatedMip = targetMip;
             syncSampler();
         });
-    }
+    } while (sourceMip != _allocatedMip);
 }
 
 // Sparsely allocated, managed size resource textures

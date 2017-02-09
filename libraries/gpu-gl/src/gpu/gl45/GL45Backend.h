@@ -38,7 +38,8 @@ public:
     protected:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
-        void copyMipFromTexture(uint16_t sourceMip, uint16_t targetMip) const;
+        void copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const;
+        void copyMipFaceLinesFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lineOffset, uint32_t lines, size_t dataOffset) const;
         virtual void syncSampler() const;
     };
 
