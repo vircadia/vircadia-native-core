@@ -28,7 +28,7 @@ Rectangle {
     // Properties
     property int myCardHeight: 90
     property int rowHeight: 70
-    property int actionButtonWidth: 75
+    property int actionButtonWidth: 55
     property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0, admin: true}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
@@ -58,8 +58,8 @@ Rectangle {
         property bool punctuationMode: false
         id: palContainer
         // Size
-        width: pal.width - 50
-        height: pal.height - 50
+        width: pal.width - 10
+        height: pal.height - 10
         // Style
         color: pal.color
         // Anchors
@@ -401,7 +401,7 @@ Rectangle {
         width: 20
         height: 28
         anchors.right: adminTab.right
-        anchors.rightMargin: 31 + hifi.dimensions.scrollbarBackgroundWidth
+        anchors.rightMargin: 10 + hifi.dimensions.scrollbarBackgroundWidth
         anchors.top: adminTab.top
         anchors.topMargin: 2
         RalewayRegular {
