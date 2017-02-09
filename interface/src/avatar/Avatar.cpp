@@ -373,6 +373,7 @@ float Avatar::getSimulationRate(const QString& rateName) {
     } else if (rateName == "jointData") {
         return _jointDataSimulationRate.rate();
     }
+    return 0.0f;
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {

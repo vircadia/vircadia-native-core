@@ -528,7 +528,8 @@ public:
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
-    float getDataRate(const QString& rateName = QString(""));
+    Q_INVOKABLE float getDataRate(const QString& rateName = QString(""));
+    Q_INVOKABLE float getUpdateRate(const QString& rateName = QString(""));
 
     int getJointCount() { return _jointData.size(); }
 
@@ -644,7 +645,7 @@ protected:
 
     quint64  _lastToByteArray { 0 }; // tracks the last time we did a toByteArray
 
-    // Some rate data for incoming data
+    // Some rate data for incoming data in bytes
     RateCounter<> _parseBufferRate;
     RateCounter<> _globalPositionRate;
     RateCounter<> _localPositionRate;
@@ -658,6 +659,21 @@ protected:
     RateCounter<> _parentInfoRate;
     RateCounter<> _faceTrackerRate;
     RateCounter<> _jointDataRate;
+
+    // Some rate data for incoming data updates
+    RateCounter<> _parseBufferUpdateRate;
+    RateCounter<> _globalPositionUpdateRate;
+    RateCounter<> _localPositionUpdateRate;
+    RateCounter<> _avatarBoundingBoxUpdateRate;
+    RateCounter<> _avatarOrientationUpdateRate;
+    RateCounter<> _avatarScaleUpdateRate;
+    RateCounter<> _lookAtPositionUpdateRate;
+    RateCounter<> _audioLoudnessUpdateRate;
+    RateCounter<> _sensorToWorldUpdateRate;
+    RateCounter<> _additionalFlagsUpdateRate;
+    RateCounter<> _parentInfoUpdateRate;
+    RateCounter<> _faceTrackerUpdateRate;
+    RateCounter<> _jointDataUpdateRate;
 
     glm::vec3 _globalBoundingBoxDimensions;
     glm::vec3 _globalBoundingBoxOffset;
