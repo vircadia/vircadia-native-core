@@ -288,6 +288,7 @@ class FBXGeometry {
 public:
     using Pointer = std::shared_ptr<FBXGeometry>;
 
+    QString originalURL;
     QString author;
     QString applicationName; ///< the name of the application that generated the model
 

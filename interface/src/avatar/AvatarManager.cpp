@@ -134,7 +134,7 @@ Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar");
 
 float AvatarManager::getAvatarDataRate(const QUuid& sessionID, const QString& rateName) {
     auto avatar = getAvatarBySessionID(sessionID);
-    return avatar->getDataRate(rateName);
+    return avatar ? avatar->getDataRate(rateName) : 0.0f;
 }
 
 class AvatarPriority {
