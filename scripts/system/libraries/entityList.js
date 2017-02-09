@@ -3,25 +3,29 @@ var ENTITY_LIST_HTML_URL = Script.resolvePath('../html/entityList.html');
 EntityListTool = function(opts) {
     var that = {};
 
-    var url = ENTITY_LIST_HTML_URL;
-    var webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    // var webView = new OverlayWebWindow({
-    //     title: 'Entity List',  source: url,  toolWindow: true
-    // });
-
+    var webView = null;
+    if (Settings.getValue("HUDUIEnabled")) {
+        var url = ENTITY_LIST_HTML_URL;
+        webView = new OverlayWebWindow({
+            title: 'Entity List',  source: url,  toolWindow: true
+        });
+    } else {
+        webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        webView.setVisible = function(value) {};
+    }
 
     var filterInView = false;
     var searchRadius = 100;
 
     var visible = false;
 
-    // webView.setVisible(visible);
+    webView.setVisible(visible);
 
     that.webView = webView;
 
     that.setVisible = function(newVisible) {
         visible = newVisible;
-        // webView.setVisible(visible);
+        webView.setVisible(visible);
     };
 
     that.toggleVisible = function() {
@@ -101,7 +105,6 @@ EntityListTool = function(opts) {
 
     webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
-        print("--- edit.js EntityList webView.webEventReceived ---");
         if (data.type == "selectionUpdate") {
             var ids = data.entityIds;
             var entityIDs = [];
