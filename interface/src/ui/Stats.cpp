@@ -121,6 +121,8 @@ void Stats::updateStats(bool force) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
+    STAT_UPDATE(fullySimulatedAvatarCount, avatarManager->getFullySimulatedAvatars());
+    STAT_UPDATE(partiallySimulatedAvatarCount, avatarManager->getPartiallySimulatedAvatars());
     STAT_UPDATE(serverCount, (int)nodeList->size());
     STAT_UPDATE(framerate, qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
@@ -306,6 +308,8 @@ void Stats::updateStats(bool force) {
     // Update Frame timing (in ms)
     STAT_UPDATE(gpuFrameTime, (float)gpuContext->getFrameTimerGPUAverage());
     STAT_UPDATE(batchFrameTime, (float)gpuContext->getFrameTimerBatchAverage());
+    STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
+    
 
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemoryUsage()));

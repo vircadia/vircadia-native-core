@@ -307,12 +307,22 @@ bool Avatar::shouldDie() const {
 
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
+
+    _simulationRate.increment();
+    if (inView) {
+        _simulationInViewRate.increment();
+    }
+
+
     PerformanceTimer perfTimer("simulate");
     {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView && _hasNewJointData) {
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+            _jointDataSimulationRate.increment();
+
             _skeletonModel->simulate(deltaTime, true);
+            _skeletonModelSimulationRate.increment();
 
             locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointData = false;
@@ -328,6 +338,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
+            _skeletonModelSimulationRate.increment();
         }
     }
 
@@ -355,6 +366,21 @@ void Avatar::simulate(float deltaTime, bool inView) {
         updatePalms();
         updateAvatarEntities();
     }
+}
+
+float Avatar::getSimulationRate(const QString& rateName) const {
+    if (rateName == "") {
+        return _simulationRate.rate();
+    } else if (rateName == "avatar") {
+        return _simulationRate.rate();
+    } else if (rateName == "avatarInView") {
+        return _simulationInViewRate.rate();
+    } else if (rateName == "skeletonModel") {
+        return _skeletonModelSimulationRate.rate();
+    } else if (rateName == "jointData") {
+        return _jointDataSimulationRate.rate();
+    }
+    return 0.0f;
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {

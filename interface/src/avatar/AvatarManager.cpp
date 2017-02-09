@@ -132,10 +132,22 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
 
 Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar");
 
-float AvatarManager::getAvatarDataRate(const QUuid& sessionID, const QString& rateName) {
+float AvatarManager::getAvatarDataRate(const QUuid& sessionID, const QString& rateName) const {
     auto avatar = getAvatarBySessionID(sessionID);
     return avatar ? avatar->getDataRate(rateName) : 0.0f;
 }
+
+float AvatarManager::getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName) const {
+    auto avatar = getAvatarBySessionID(sessionID);
+    return avatar ? avatar->getUpdateRate(rateName) : 0.0f;
+}
+
+float AvatarManager::getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName) const {
+    auto avatar = std::static_pointer_cast<Avatar>(getAvatarBySessionID(sessionID));
+    return avatar ? avatar->getSimulationRate(rateName) : 0.0f; 
+}
+
+
 
 class AvatarPriority {
 public:
@@ -218,6 +230,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     const uint64_t MAX_UPDATE_BUDGET = 2000; // usec
     uint64_t renderExpiry = startTime + RENDER_UPDATE_BUDGET;
     uint64_t maxExpiry = startTime + MAX_UPDATE_BUDGET;
+
+    int fullySimulatedAvatars = 0;
+    int partiallySimulatedAvatars = 0;
     while (!sortedAvatars.empty()) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
@@ -246,11 +261,13 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(pendingChanges);
             avatar->setLastRenderUpdateTime(startTime);
+            fullySimulatedAvatars++;
         } else if (now < maxExpiry) {
             // we've spent most of our time budget, but we still simulate() the avatar as it if were out of view
             // --> some avatars may freeze until their priority trickles up
             const bool inView = false;
             avatar->simulate(deltaTime, inView);
+            partiallySimulatedAvatars++;
         } else {
             // we've spent ALL of our time budget --> bail on the rest of the avatar updates
             // --> some scale or fade animations may glitch
@@ -259,6 +276,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         }
         sortedAvatars.pop();
     }
+
+    _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
+    _fullySimulatedAvatars = fullySimulatedAvatars;
+    _partiallySimulatedAvatars = partiallySimulatedAvatars;
     qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
 
     simulateAvatarFades(deltaTime);
@@ -492,7 +513,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 }
 
 
-AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
+AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) const {
     if (sessionID == AVATAR_SELF_ID || sessionID == _myAvatar->getSessionUUID()) {
         return _myAvatar;
     }
