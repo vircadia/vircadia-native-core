@@ -482,6 +482,8 @@ var toolBar = (function () {
             cameraManager.disable();
             selectionDisplay.triggerMapping.disable();
         } else {
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.loadQMLSource("Edit.qml");
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
             gridTool.setVisible(true);
@@ -1453,12 +1455,8 @@ var PropertiesTool = function (opts) {
     // webView.setVisible(visible);
 
     that.setVisible = function (newVisible) {
-        print("PropertiesTool.setVisible --> " + newVisible);
         visible = newVisible;
         // webView.setVisible(visible);
-        if (visible) {
-            webView.loadQMLSource("Edit.qml");
-        }
     };
 
     function updateScriptStatus(info) {
@@ -1521,7 +1519,7 @@ var PropertiesTool = function (opts) {
     webView.webEventReceived.connect(function (data) {
         try {
             data = JSON.parse(data);
-            print("--- edit.js webView.webEventReceived ---");
+            print("--- edit.js PropertiesTool webView.webEventReceived ---");
         }
         catch(e) {
             print('Edit.js received web event that was not valid json.')

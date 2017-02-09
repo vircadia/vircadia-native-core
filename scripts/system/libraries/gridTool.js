@@ -228,10 +228,12 @@ GridTool = function(opts) {
     var verticalGrid = opts.verticalGrid;
     var listeners = [];
 
-    var url = GRID_CONTROLS_HTML_URL;
-    var webView = new OverlayWebWindow({
-        title: 'Grid',  source: url,  toolWindow: true
-    });
+    var webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    // var url = GRID_CONTROLS_HTML_URL;
+    // var webView = new OverlayWebWindow({
+    //     title: 'Grid',  source: url,  toolWindow: true
+    // });
+
 
     horizontalGrid.addListener(function(data) {
         webView.emitScriptEvent(JSON.stringify(data));
@@ -240,6 +242,7 @@ GridTool = function(opts) {
 
     webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
+        print("--- edit.js GridTool webView.webEventReceived ---");
         if (data.type == "init") {
             horizontalGrid.emitUpdate();
         } else if (data.type == "update") {
@@ -268,7 +271,7 @@ GridTool = function(opts) {
     }
 
     that.setVisible = function(visible) {
-        webView.setVisible(visible);
+        // webView.setVisible(visible);
     }
 
     return that;

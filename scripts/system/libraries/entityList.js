@@ -4,9 +4,10 @@ EntityListTool = function(opts) {
     var that = {};
 
     var url = ENTITY_LIST_HTML_URL;
-    var webView = new OverlayWebWindow({
-        title: 'Entity List',  source: url,  toolWindow: true   
-    });
+    var webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    // var webView = new OverlayWebWindow({
+    //     title: 'Entity List',  source: url,  toolWindow: true
+    // });
 
 
     var filterInView = false;
@@ -14,13 +15,13 @@ EntityListTool = function(opts) {
 
     var visible = false;
 
-    webView.setVisible(visible);
+    // webView.setVisible(visible);
 
     that.webView = webView;
 
     that.setVisible = function(newVisible) {
         visible = newVisible;
-        webView.setVisible(visible);
+        // webView.setVisible(visible);
     };
 
     that.toggleVisible = function() {
@@ -100,6 +101,7 @@ EntityListTool = function(opts) {
 
     webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
+        print("--- edit.js EntityList webView.webEventReceived ---");
         if (data.type == "selectionUpdate") {
             var ids = data.entityIds;
             var entityIDs = [];
@@ -149,11 +151,11 @@ EntityListTool = function(opts) {
         }
     });
 
-    webView.visibleChanged.connect(function () {
-        if (webView.visible) {
-            that.sendUpdate();
-        }
-    });
+    // webView.visibleChanged.connect(function () {
+    //     if (webView.visible) {
+    //         that.sendUpdate();
+    //     }
+    // });
 
     return that;
 };
