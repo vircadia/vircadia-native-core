@@ -2619,8 +2619,6 @@ function MyController(hand) {
             var scalingCurrentDistance = Vec3.length(Vec3.subtract(this.getHandPosition(),
                                                                    this.getOtherHandController().getHandPosition()));
             var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;
-            if (MyAvatar.scale != newAvatarScale) {
-            }
             MyAvatar.scale = newAvatarScale;
         }
     };
