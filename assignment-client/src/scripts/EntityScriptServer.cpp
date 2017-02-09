@@ -100,6 +100,52 @@ void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<Receiv
     }
 }
 
+void EntityScriptServer::handleSettings() {
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    auto& domainHandler = nodeList->getDomainHandler();
+    const QJsonObject& settingsObject = domainHandler.getSettingsObject();
+
+    static const QString ENTITY_SCRIPT_SERVER_SETTINGS_KEY = "entity_script_server";
+
+    if (!settingsObject.contains(ENTITY_SCRIPT_SERVER_SETTINGS_KEY)) {
+        qWarning() << "Received settings from the domain-server with no entity_script_server section.";
+        return;
+    }
+
+    auto entityScriptServerSettings = settingsObject[ENTITY_SCRIPT_SERVER_SETTINGS_KEY].toObject();
+
+    static const QString MAX_ENTITY_PPS_OPTION = "max_total_entity_pps";
+    static const QString ENTITY_PPS_PER_SCRIPT = "entity_pps_per_script";
+
+    if (!entityScriptServerSettings.contains(MAX_ENTITY_PPS_OPTION) || !entityScriptServerSettings.contains(ENTITY_PPS_PER_SCRIPT)) {
+        qWarning() << "Received settings from the domain-server with no max_total_entity_pps or entity_pps_per_script properties.";
+        return;
+    }
+
+    _maxEntityPPS = std::max(0, entityScriptServerSettings[MAX_ENTITY_PPS_OPTION].toInt());
+    _entityPPSPerScript = std::max(0, entityScriptServerSettings[ENTITY_PPS_PER_SCRIPT].toInt());
+
+    qDebug() << QString("Received entity script server settings, Max Entity PPS: %1, Entity PPS Per Entity Script: %2")
+                .arg(_maxEntityPPS).arg(_entityPPSPerScript);
+}
+
+void EntityScriptServer::updateEntityPPS() {
+    int numRunningScripts = _entitiesScriptEngine->getNumRunningEntityScripts();
+    int pps;
+    if (std::numeric_limits<int>::max() / _entityPPSPerScript < numRunningScripts) {
+        qWarning() << QString("Integer multiplaction would overflow, clamping to maxint: %1 * %2").arg(numRunningScripts).arg(_entityPPSPerScript);
+        pps = std::numeric_limits<int>::max();
+        pps = std::min(_maxEntityPPS, pps);
+    } else {
+        pps = _entityPPSPerScript * numRunningScripts;
+        pps = std::min(_maxEntityPPS, pps);
+    }
+    _entityEditSender.setPacketsPerSecond(pps);
+    qDebug() << QString("Updating entity PPS to: %1 @ %2 PPS per script = %3 PPS").arg(numRunningScripts).arg(_entityPPSPerScript).arg(pps);
+}
+
 void EntityScriptServer::run() {
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
@@ -113,6 +159,9 @@ void EntityScriptServer::run() {
     messagesClient->moveToThread(messagesThread);
     connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
     messagesThread->start();
+
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &EntityScriptServer::handleSettings);
 
     // make sure we hear about connected nodes so we can grab an ATP script if a request is pending
     connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &EntityScriptServer::nodeActivated);
@@ -232,7 +281,9 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     newEngine->runInThread();
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngine.data());
 
+    disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated, this, &EntityScriptServer::updateEntityPPS);
     _entitiesScriptEngine.swap(newEngine);
+    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated, this, &EntityScriptServer::updateEntityPPS);
 }
 
 

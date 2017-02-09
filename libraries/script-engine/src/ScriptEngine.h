@@ -199,6 +199,7 @@ public:
     void scriptWarningMessage(const QString& message);
     void scriptInfoMessage(const QString& message);
 
+    int getNumRunningEntityScripts() const;
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
 
 public slots:
@@ -221,6 +222,10 @@ signals:
     void loadScript(const QString& scriptName, bool isUserLoaded);
     void reloadScript(const QString& scriptName, bool isUserLoaded);
     void doneRunning();
+
+    // Emitted when an entity script is added or removed, or when the status of an entity
+    // script is updated (goes from RUNNING to ERROR_RUNNING_SCRIPT, for example)
+    void entityScriptDetailsUpdated();
 
 protected:
     void init();

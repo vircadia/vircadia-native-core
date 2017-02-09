@@ -20,6 +20,9 @@
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
+static const int DEFAULT_MAX_ENTITY_PPS = 9000;
+static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
+
 class EntityScriptServer : public ThreadedAssignment {
     Q_OBJECT
 
@@ -42,6 +45,9 @@ private slots:
     void handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
+    void handleSettings();
+    void updateEntityPPS();
+
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -61,6 +67,9 @@ private:
     QSharedPointer<ScriptEngine> _entitiesScriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
+
+    int _maxEntityPPS { DEFAULT_MAX_ENTITY_PPS };
+    int _entityPPSPerScript { DEFAULT_ENTITY_PPS_PER_SCRIPT };
 
     QString _selectedCodecName;
     CodecPluginPointer _codec;
