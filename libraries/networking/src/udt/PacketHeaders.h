@@ -111,7 +111,8 @@ public:
         EntityScriptGetStatusReply,
         ReloadEntityServerScript,
         EntityPhysics,
-        LAST_PACKET_TYPE = EntityPhysics
+        EntityServerScriptLog,
+        LAST_PACKET_TYPE = EntityServerScriptLog
     };
 };
 

@@ -60,19 +60,26 @@ function updateOverlays() {
             var overlayPosition = avatar.getJointPosition("Head");
             overlayPosition.y += 1.05;
 
-            var text = " All: " + AvatarManager.getAvatarDataRate(avatarID).toFixed(2) + "\n"
-                       +" GP: " + AvatarManager.getAvatarDataRate(avatarID,"globalPosition").toFixed(2) + "\n"
-                       +" LP: " + AvatarManager.getAvatarDataRate(avatarID,"localPosition").toFixed(2) + "\n"
-                       +" BB: " + AvatarManager.getAvatarDataRate(avatarID,"avatarBoundingBox").toFixed(2) + "\n"
-                       +" AO: " + AvatarManager.getAvatarDataRate(avatarID,"avatarOrientation").toFixed(2) + "\n"
-                       +" AS: " + AvatarManager.getAvatarDataRate(avatarID,"avatarScale").toFixed(2) + "\n"
-                       +" LA: "  + AvatarManager.getAvatarDataRate(avatarID,"lookAtPosition").toFixed(2) + "\n"
-                       +" AL: " + AvatarManager.getAvatarDataRate(avatarID,"audioLoudness").toFixed(2) + "\n"
-                       +" SW: " + AvatarManager.getAvatarDataRate(avatarID,"sensorToWorkMatrix").toFixed(2) + "\n"
-                       +" AF: " + AvatarManager.getAvatarDataRate(avatarID,"additionalFlags").toFixed(2) + "\n"
-                       +" PI: " + AvatarManager.getAvatarDataRate(avatarID,"parentInfo").toFixed(2) + "\n"
-                       +" FT: " + AvatarManager.getAvatarDataRate(avatarID,"faceTracker").toFixed(2) + "\n"
-                       +" JD: " + AvatarManager.getAvatarDataRate(avatarID,"jointData").toFixed(2);
+            var text = avatarID + "\n"
+                       +"--- Data from Mixer ---\n"
+                       +"All: " + AvatarManager.getAvatarDataRate(avatarID).toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID).toFixed(2) + "hz)" + "\n"
+                       +" GP: " + AvatarManager.getAvatarDataRate(avatarID,"globalPosition").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"globalPosition").toFixed(2) + "hz)" + "\n"
+                       +" LP: " + AvatarManager.getAvatarDataRate(avatarID,"localPosition").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"localPosition").toFixed(2) + "hz)" + "\n"
+                       +" BB: " + AvatarManager.getAvatarDataRate(avatarID,"avatarBoundingBox").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"avatarBoundingBox").toFixed(2) + "hz)" + "\n"
+                       +" AO: " + AvatarManager.getAvatarDataRate(avatarID,"avatarOrientation").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"avatarOrientation").toFixed(2) + "hz)" + "\n"
+                       +" AS: " + AvatarManager.getAvatarDataRate(avatarID,"avatarScale").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"avatarScale").toFixed(2) + "hz)" + "\n"
+                       +" LA: "  + AvatarManager.getAvatarDataRate(avatarID,"lookAtPosition").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"lookAtPosition").toFixed(2) + "hz)" + "\n"
+                       +" AL: " + AvatarManager.getAvatarDataRate(avatarID,"audioLoudness").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"audioLoudness").toFixed(2) + "hz)" + "\n"
+                       +" SW: " + AvatarManager.getAvatarDataRate(avatarID,"sensorToWorkMatrix").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"sensorToWorkMatrix").toFixed(2) + "hz)" + "\n"
+                       +" AF: " + AvatarManager.getAvatarDataRate(avatarID,"additionalFlags").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"additionalFlags").toFixed(2) + "hz)" + "\n"
+                       +" PI: " + AvatarManager.getAvatarDataRate(avatarID,"parentInfo").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"parentInfo").toFixed(2) + "hz)" + "\n"
+                       +" FT: " + AvatarManager.getAvatarDataRate(avatarID,"faceTracker").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"faceTracker").toFixed(2) + "hz)" + "\n"
+                       +" JD: " + AvatarManager.getAvatarDataRate(avatarID,"jointData").toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID,"jointData").toFixed(2) + "hz)" + "\n"
+                       +"--- Simulation ---\n"
+                       +"All: " + AvatarManager.getAvatarSimulationRate(avatarID,"avatar").toFixed(2) + "hz \n"
+                       +" inView: " + AvatarManager.getAvatarSimulationRate(avatarID,"avatarInView").toFixed(2) + "hz \n"
+                       +" SM: " + AvatarManager.getAvatarSimulationRate(avatarID,"skeletonModel").toFixed(2) + "hz \n"
+                       +" JD: " + AvatarManager.getAvatarSimulationRate(avatarID,"jointData").toFixed(2) + "hz \n"
 
             if (avatarID in debugOverlays) {
                 // keep the overlay above the current position of this avatar
@@ -85,8 +92,8 @@ function updateOverlays() {
                 var newOverlay = Overlays.addOverlay("text3d", {
                     position: overlayPosition,
                     dimensions: {
-                        x: 1,
-                        y: 13 * 0.13
+                        x: 1.25,
+                        y: 19 * 0.13
                     },
                     lineHeight: 0.1,
                     font:{size:0.1},

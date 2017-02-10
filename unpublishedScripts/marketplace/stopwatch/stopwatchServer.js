@@ -17,11 +17,11 @@
     self.secondHandID = null;
     self.minuteHandID = null;
 
-    self.tickSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/huffman/tick.wav");
+    self.tickSound = SoundCache.getSound(Script.resolvePath("sounds/tick.wav"));
     self.tickInjector = null;
     self.tickIntervalID = null;
 
-    self.chimeSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/huffman/chime.wav");
+    self.chimeSound = SoundCache.getSound(Script.resolvePath("sounds/chime.wav"));
 
     self.preload = function(entityID) {
         print("Preloading stopwatch: ", entityID);

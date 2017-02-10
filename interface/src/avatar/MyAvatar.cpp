@@ -795,6 +795,11 @@ void MyAvatar::saveData() {
     }
     settings.endArray();
 
+    if (_avatarEntityData.size() == 0) {
+        // HACK: manually remove empty 'avatarEntityData' else deleted avatarEntityData may show up in settings file
+        settings.remove("avatarEntityData");
+    }
+
     settings.beginWriteArray("avatarEntityData");
     int avatarEntityIndex = 0;
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
@@ -931,6 +936,10 @@ void MyAvatar::loadData() {
         updateAvatarEntity(entityID, properties);
     }
     settings.endArray();
+    if (avatarEntityCount == 0) {
+        // HACK: manually remove empty 'avatarEntityData' else legacy data may persist in settings file
+        settings.remove("avatarEntityData");
+    }
     setAvatarEntityDataChanged(true);
 
     setDisplayName(settings.value("displayName").toString());
@@ -1165,7 +1174,6 @@ void MyAvatar::clearJointsData() {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-
     Avatar::setSkeletonModelURL(skeletonModelURL);
     render::ScenePointer scene = qApp->getMain3DScene();
     _skeletonModel->setVisibleInScene(true, scene);

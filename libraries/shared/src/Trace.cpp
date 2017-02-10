@@ -132,6 +132,9 @@ void Tracer::serialize(const QString& originalPath) {
     {
         std::lock_guard<std::mutex> guard(_eventsMutex);
         currentEvents.swap(_events);
+        for (auto& event : _metadataEvents) {
+            currentEvents.push_back(event);
+        }
     }
 
     // If the file exists and we can't remove it, fail early
@@ -194,33 +197,53 @@ void Tracer::serialize(const QString& originalPath) {
 #endif
 }
 
-void Tracer::traceEvent(const QLoggingCategory& category, 
-        const QString& name, EventType type, 
-        qint64 timestamp, qint64 processID, qint64 threadID,
-        const QString& id,
-        const QVariantMap& args, const QVariantMap& extra) {
+void Tracer::traceEvent(const QLoggingCategory& category,
+    const QString& name, EventType type,
+    qint64 timestamp, qint64 processID, qint64 threadID,
+    const QString& id,
+    const QVariantMap& args, const QVariantMap& extra) {
     std::lock_guard<std::mutex> guard(_eventsMutex);
-    if (!_enabled) {
+
+    // We always want to store metadata events even if tracing is not enabled so that when
+    // tracing is enabled we will be able to associate that metadata with that trace.
+    // Metadata events should be used sparingly - as of 12/30/16 the Chrome Tracing
+    // spec only supports thread+process metadata, so we should only expect to see metadata
+    // events created when a new thread or process is created.
+    if (!_enabled && type != Metadata) {
         return;
     }
 
-    _events.push_back({
-        id,
-        name,
-        type,
-        timestamp,
-        processID,
-        threadID,
-        category,
-        args,
-        extra
-    });
+    if (type == Metadata) {
+        _metadataEvents.push_back({
+            id,
+            name,
+            type,
+            timestamp,
+            processID,
+            threadID,
+            category,
+            args,
+            extra
+        });
+    } else {
+        _events.push_back({
+            id,
+            name,
+            type,
+            timestamp,
+            processID,
+            threadID,
+            category,
+            args,
+            extra
+        });
+    }
 }
 
 void Tracer::traceEvent(const QLoggingCategory& category, 
     const QString& name, EventType type, const QString& id, 
     const QVariantMap& args, const QVariantMap& extra) {
-    if (!_enabled) {
+    if (!_enabled && type != Metadata) {
         return;
     }
 

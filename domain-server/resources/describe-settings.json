@@ -178,7 +178,7 @@
         {
           "name": "maximum_user_capacity_redirect_location",
           "label": "Redirect to Location on Maximum Capacity",
-          "help": "Is there another domain, you'd like to redirect clients to when the maximum number of avatars are connected.",
+          "help": "The location to redirect users to when the maximum number of avatars are connected.",
           "placeholder": "",
           "default": "",
           "advanced": false
@@ -818,6 +818,29 @@
           "label": "Assets Path",
           "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
           "default": "",
+          "advanced": true
+        }
+      ]
+    },
+    {
+      "name": "entity_script_server",
+      "label": "Entity Script Server (ESS)",
+      "assignment-types": [5],
+      "settings": [
+        {
+          "name": "entity_pps_per_script",
+          "label": "Entity PPS per script",
+          "help": "The number of packets per second (PPS) that can be sent to the entity server for each server entity script. This contributes to a total overall amount.<br/>Example: 1000 PPS with 5 entites gives a total PPS of 5000 that is shared among the entity scripts. A single could use 4000 PPS, leaving 1000 for the rest, for example.",
+          "default": 900,
+          "type": "int",
+          "advanced": true
+        },
+        {
+          "name": "max_total_entity_pps",
+          "label": "Maximum Total Entity PPS",
+          "help": "The maximum total packets per seconds (PPS) that can be sent to the entity server.<br/>Example: 5 scripts @ 1000 PPS per script = 5000 total PPS. A maximum total PPS of 4000 would cap this 5000 total PPS to 4000.",
+          "default": 9000,
+          "type": "int",
           "advanced": true
         }
       ]
