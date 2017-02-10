@@ -21,8 +21,6 @@
 #include "ZoneEntityItem.h"
 #include "EntityEditFilters.h"
 
-#include <intrin.h>
-
 bool ZoneEntityItem::_zonesArePickable = false;
 bool ZoneEntityItem::_drawZoneBoundaries = false;
 
