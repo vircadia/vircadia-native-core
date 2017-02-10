@@ -28,11 +28,8 @@ void GLBackend::resetPipelineState(State::Signature nextSignature) {
             }
         }
     }
-}
 
-void GLBackend::syncPipelineStateCache() {
-    State::Data state;
-
+    // force a few states regardless
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     // Point size is always on
@@ -43,6 +40,25 @@ void GLBackend::syncPipelineStateCache() {
 
     // Default line width accross the board
     glLineWidth(1.0f);
+    glEnable(GL_LINE_SMOOTH);
+
+}
+
+void GLBackend::syncPipelineStateCache() {
+    State::Data state;
+
+    // force a few states regardless
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+    // Point size is always on
+    // FIXME CORE
+    //glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+    glEnable(GL_PROGRAM_POINT_SIZE_EXT);
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+    // Default line width accross the board
+    glLineWidth(1.0f);
+    glEnable(GL_LINE_SMOOTH);
 
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);

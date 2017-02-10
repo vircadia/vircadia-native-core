@@ -16,6 +16,8 @@ import QtQuick.Controls 1.4
 import "../styles-uit"
 import "../controls-uit" as HifiControls
 
+// references HMD, Users, UserActivityLogger from root context
+
 Rectangle {
     id: pal
     // Size
@@ -26,7 +28,7 @@ Rectangle {
     // Properties
     property int myCardHeight: 90
     property int rowHeight: 70
-    property int actionButtonWidth: 75
+    property int actionButtonWidth: 55
     property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0, admin: true}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
@@ -35,7 +37,9 @@ Rectangle {
     // Keep a local list of per-avatar gainSliderValueDBs. Far faster than fetching this data from the server.
     // NOTE: if another script modifies the per-avatar gain, this value won't be accurate!
     property var gainSliderValueDB: ({});
-    
+
+    HifiConstants { id: hifi }
+
     // The letterbox used for popup messages
     LetterboxMessage {
         id: letterboxMessage
@@ -54,8 +58,8 @@ Rectangle {
         property bool punctuationMode: false
         id: palContainer
         // Size
-        width: pal.width - 50
-        height: pal.height - 50
+        width: pal.width - 10
+        height: pal.height - 10
         // Style
         color: pal.color
         // Anchors
@@ -397,7 +401,7 @@ Rectangle {
         width: 20
         height: 28
         anchors.right: adminTab.right
-        anchors.rightMargin: 31 + hifi.dimensions.scrollbarBackgroundWidth
+        anchors.rightMargin: 10 + hifi.dimensions.scrollbarBackgroundWidth
         anchors.top: adminTab.top
         anchors.topMargin: 2
         RalewayRegular {
@@ -422,6 +426,8 @@ Rectangle {
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
     }
+    }
+
     HifiControls.Keyboard {
         id: keyboard
         raised: myCard.currentlyEditingDisplayName && HMD.active
@@ -432,7 +438,7 @@ Rectangle {
             right: parent.right
         }
     }
-    }
+
     // Timer used when selecting table rows that aren't yet present in the model
     // (i.e. when selecting avatars using edit.js or sphere overlays)
     Timer {

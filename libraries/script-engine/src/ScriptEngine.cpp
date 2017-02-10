@@ -64,6 +64,8 @@
 #include "ScriptEngines.h"
 #include "TabletScriptingInterface.h"
 
+#include <Profile.h>
+
 #include "MIDIEvent.h"
 
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
@@ -863,6 +865,10 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
+    auto filenameParts = _fileNameString.split("/");
+    auto name = filenameParts.size() > 0 ? filenameParts[filenameParts.size() - 1] : "unknown";
+    PROFILE_SET_THREAD_NAME("Script: " + name);
+
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         return; // bail early - avoid setting state in init(), as evaluate() will bail too
     }
@@ -923,7 +929,10 @@ void ScriptEngine::run() {
         bool processedEvents = false;
         while (!_isFinished && clock::now() < sleepUntil) {
 
-            QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            {
+                PROFILE_RANGE(script, "processEvents-sleep");
+                QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            }
             processedEvents = true;
 
             // If after processing events, we're past due, exit asap
@@ -937,6 +946,8 @@ void ScriptEngine::run() {
             auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
             std::this_thread::sleep_until(smallSleepUntil);
         }
+
+        PROFILE_RANGE(script, "ScriptMainLoop");
 
 #ifdef SCRIPT_DELAY_DEBUG
         {
@@ -961,6 +972,7 @@ void ScriptEngine::run() {
 
         // Only call this if we didn't processEvents as part of waiting for next frame
         if (!processedEvents) {
+            PROFILE_RANGE(script, "processEvents");
             QCoreApplication::processEvents();
         }
 
@@ -985,7 +997,10 @@ void ScriptEngine::run() {
             float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
                 auto preUpdate = clock::now();
-                emit update(deltaTime);
+                {
+                    PROFILE_RANGE(script, "ScriptUpdate");
+                    emit update(deltaTime);
+                }
                 auto postUpdate = clock::now();
                 auto elapsed = (postUpdate - preUpdate);
                 totalUpdates += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
@@ -1393,6 +1408,16 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
     }
 }
 
+int ScriptEngine::getNumRunningEntityScripts() const {
+    int sum = 0;
+    for (auto& st : _entityScripts) {
+        if (st.status == RUNNING) {
+            ++sum;
+        }
+    }
+    return sum;
+}
+
 bool ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const {
     auto it = _entityScripts.constFind(entityID);
     if (it == _entityScripts.constEnd()) {
@@ -1456,6 +1481,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = ERROR_LOADING_SCRIPT;
         newDetails.errorInfo = "Failed to load script";
         _entityScripts[entityID] = newDetails;
+        emit entityScriptDetailsUpdated();
         return;
     }
 
@@ -1467,6 +1493,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = "Bad syntax";
         _entityScripts[entityID] = newDetails;
+        emit entityScriptDetailsUpdated();
         return; // done processing script
     }
 
@@ -1497,6 +1524,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = exceptionMessage;
         _entityScripts[entityID] = newDetails;
+        emit entityScriptDetailsUpdated();
 
         return;
     }
@@ -1523,6 +1551,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = "Could not find constructor";
         _entityScripts[entityID] = newDetails;
+        emit entityScriptDetailsUpdated();
 
         return; // done processing script
     }
@@ -1544,6 +1573,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     newDetails.lastModified = lastModified;
     newDetails.definingSandboxURL = sandboxURL;
     _entityScripts[entityID] = newDetails;
+    emit entityScriptDetailsUpdated();
 
     if (isURL) {
         setParentURL("");
@@ -1575,6 +1605,7 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
         }
         _entityScripts.remove(entityID);
         stopAllTimersForEntityScript(entityID);
+        emit entityScriptDetailsUpdated();
     }
 }
 
@@ -1596,6 +1627,7 @@ void ScriptEngine::unloadAllEntityScripts() {
         }
     }
     _entityScripts.clear();
+    emit entityScriptDetailsUpdated();
 
 #ifdef DEBUG_ENGINE_STATE
     qCDebug(scriptengine) << "---- CURRENT STATE OF ENGINE: --------------------------";
