@@ -94,15 +94,27 @@ public:
             Undersubscribed,
         };
 
+        using QueuePair = std::pair<TextureWeakPointer, float>;
+        class QueuePairLess {
+        public:
+            bool operator()(const QueuePair& a, const QueuePair& b) {
+                return a.second < b.second;
+            }
+        };
+        using WorkQueue = std::priority_queue<QueuePair, std::vector<QueuePair>, QueuePairLess>;
+
     protected:
         static std::atomic<bool> _memoryPressureStateStale;
         static MemoryPressureState _memoryPressureState;
         static std::list<TextureWeakPointer> _memoryManagedTextures;
+        static WorkQueue _workQueue;
         static const uvec3 INITIAL_MIP_TRANSFER_DIMENSIONS;
+
 
         static void updateMemoryPressure();
         static void processWorkQueues();
         static void addMemoryManagedTexture(const TexturePointer& texturePointer);
+        static void addToWorkQueue(const TexturePointer& texture);
 
         static void manageMemory();
 

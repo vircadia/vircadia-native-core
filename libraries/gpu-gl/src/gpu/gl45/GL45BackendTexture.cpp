@@ -107,6 +107,7 @@ using GL45Texture = GL45Backend::GL45Texture;
 
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
     : GLTexture(backend, texture, allocate(texture)) {
+    incrementTextureGPUCount();
 }
 
 GLuint GL45Texture::allocate(const Texture& texture) {

@@ -69,7 +69,7 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
 
 GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) 
     : GLTexture(backend, texture, allocate()), _storageStamp { texture.getStamp() }, _size(texture.evalTotalSize()) {
-
+    incrementTextureGPUCount();
     withPreservedTexture([&] {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
         const Sampler& sampler = _gpuObject.getSampler();

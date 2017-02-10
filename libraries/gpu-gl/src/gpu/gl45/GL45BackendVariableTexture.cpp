@@ -30,11 +30,13 @@ using namespace gpu::gl45;
 // Variable sized textures
 using GL45VariableAllocationTexture = GL45Backend::GL45VariableAllocationTexture;
 using MemoryPressureState = GL45VariableAllocationTexture::MemoryPressureState;
+using WorkQueue = GL45VariableAllocationTexture::WorkQueue;
 
 std::list<TextureWeakPointer> GL45VariableAllocationTexture::_memoryManagedTextures;
 MemoryPressureState GL45VariableAllocationTexture::_memoryPressureState = MemoryPressureState::Idle;
 std::atomic<bool> GL45VariableAllocationTexture::_memoryPressureStateStale { false };
 const uvec3 GL45VariableAllocationTexture::INITIAL_MIP_TRANSFER_DIMENSIONS { 64, 64, 1 };
+WorkQueue GL45VariableAllocationTexture::_workQueue;
 
 #define OVERSUBSCRIBED_PRESSURE_VALUE 0.95f
 #define UNDERSUBSCRIBED_PRESSURE_VALUE 0.85f
@@ -42,45 +44,29 @@ const uvec3 GL45VariableAllocationTexture::INITIAL_MIP_TRANSFER_DIMENSIONS { 64,
 
 static const size_t DEFAULT_ALLOWED_TEXTURE_MEMORY = MB_TO_BYTES(DEFAULT_ALLOWED_TEXTURE_MEMORY_MB);
 
-using QueuePair = std::pair<TextureWeakPointer, uint32_t>;
-class QueuePairLess {
-public:
-    bool operator()(const QueuePair& a, const QueuePair& b) {
-        return a.second < b.second;
-    }
-};
-class QueuePairGreater {
-public:
-    bool operator()(const QueuePair& a, const QueuePair& b) {
-        return a.second > b.second;
-    }
-};
-using DemoteQueue = std::priority_queue<QueuePair, std::vector<QueuePair>, QueuePairLess>;
-using PromoteQueue = std::priority_queue<QueuePair, std::vector<QueuePair>, QueuePairGreater>;
-using TransferQueue = std::queue<TextureWeakPointer>;
-static DemoteQueue demoteQueue;
-static PromoteQueue promoteQueue;
-static TransferQueue transferQueue;
-
 void GL45VariableAllocationTexture::addMemoryManagedTexture(const TexturePointer& texturePointer) {
     _memoryManagedTextures.push_back(texturePointer);
+    addToWorkQueue(texturePointer);
+}
+
+void GL45VariableAllocationTexture::addToWorkQueue(const TexturePointer& texturePointer) {
     GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texturePointer);
     switch (_memoryPressureState) {
         case MemoryPressureState::Oversubscribed:
             if (object->canDemote()) {
-                demoteQueue.push({ texturePointer, object->size() });
+                _workQueue.push({ texturePointer, (float) object->size() });
             }
             break;
 
         case MemoryPressureState::Undersubscribed:
             if (object->canPromote()) {
-                promoteQueue.push({ texturePointer, object->size() });
+                _workQueue.push({ texturePointer, 1.0f / (float)object->size() });
             }
             break;
 
         case MemoryPressureState::Transfer:
             if (object->hasPendingTransfers()) {
-                transferQueue.push( texturePointer );
+                _workQueue.push({ texturePointer, 1.0f / (float)object->_gpuObject.evalMipSize(object->_populatedMip) });
             }
             break;
 
@@ -94,23 +80,32 @@ void GL45VariableAllocationTexture::addMemoryManagedTexture(const TexturePointer
 
 void GL45VariableAllocationTexture::updateMemoryPressure() {
     static size_t lastAllowedMemoryAllocation = gpu::Texture::getAllowedGPUMemoryUsage();
+
     size_t allowedMemoryAllocation = gpu::Texture::getAllowedGPUMemoryUsage();
+    if (0 == allowedMemoryAllocation) {
+        allowedMemoryAllocation = DEFAULT_ALLOWED_TEXTURE_MEMORY;
+    }
+
+    // If the user explicitly changed the allowed memory usage, we need to mark ourselves stale 
+    // so that we react
     if (allowedMemoryAllocation != lastAllowedMemoryAllocation) {
         _memoryPressureStateStale = true;
         lastAllowedMemoryAllocation = allowedMemoryAllocation;
     }
 
-    if (!_memoryPressureStateStale) {
+    if (!_memoryPressureStateStale.exchange(false)) {
         return;
     }
-    _memoryPressureStateStale = false;
-    // Clear any defunct textures
+
+    // Clear any defunct textures (weak pointers that no longer have a valid texture)
     _memoryManagedTextures.remove_if([&](const TextureWeakPointer& weakPointer) { 
         return weakPointer.expired(); 
     });
 
-    // Convert weak pointers to strong
-    std::list<TexturePointer> strongTextures; {
+    // Convert weak pointers to strong.  This new list may still contain nulls if a texture was 
+    // deleted on another thread between the previous line and this one
+    std::vector<TexturePointer> strongTextures; {
+        strongTextures.reserve(_memoryManagedTextures.size());
         std::transform(
             _memoryManagedTextures.begin(), _memoryManagedTextures.end(),
             std::back_inserter(strongTextures),
@@ -127,8 +122,10 @@ void GL45VariableAllocationTexture::updateMemoryPressure() {
         if (!texture) {
             continue;
         }
-        idealMemoryAllocation += texture->evalTotalSize();
         GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texture);
+        // Track how much the texture thinks it should be using
+        idealMemoryAllocation += texture->evalTotalSize();
+        // Track how much we're actually using
         totalVariableMemoryAllocation += object->size();
         canDemote |= object->canDemote();
         canPromote |= object->canPromote();
@@ -136,11 +133,6 @@ void GL45VariableAllocationTexture::updateMemoryPressure() {
     }
 
     size_t unallocated = idealMemoryAllocation - totalVariableMemoryAllocation;
-    if (0 == allowedMemoryAllocation) {
-        allowedMemoryAllocation = DEFAULT_ALLOWED_TEXTURE_MEMORY;
-    }
-
-
     float pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
 
     auto newState = MemoryPressureState::Idle;
@@ -154,142 +146,59 @@ void GL45VariableAllocationTexture::updateMemoryPressure() {
 
     if (newState != _memoryPressureState) {
         _memoryPressureState = newState;
-
-        demoteQueue = DemoteQueue();
-        promoteQueue = PromoteQueue();
-        transferQueue = TransferQueue();
-
-        switch (_memoryPressureState) {
-            case MemoryPressureState::Idle:
-                break;
-
-            case MemoryPressureState::Oversubscribed:
-                for (const auto& texture : strongTextures) {
-                    if (!texture) {
-                        continue;
-                    }
-                    GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texture);
-                    if (object->canDemote()) {
-                        demoteQueue.push({ texture, object->size() });
-                    }
-                }
-                break;
-
-            case MemoryPressureState::Undersubscribed:
-                for (const auto& texture : strongTextures) {
-                    if (!texture) {
-                        continue;
-                    }
-                    GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texture);
-                    if (object->canPromote()) {
-                        promoteQueue.push({ texture, object->size() });
-                    }
-                }
-                break;
-
-            case MemoryPressureState::Transfer:
-                for (const auto& texture : strongTextures) {
-                    if (!texture) {
-                        continue;
-                    }
-                    GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texture);
-                    if (object->hasPendingTransfers()) {
-                        transferQueue.push(texture);
-                    }
-                }
-                break;
-
-            default:
-                Q_UNREACHABLE();
-                break;
+        // Clear the existing queue
+        _workQueue = WorkQueue();
+        // Populate the existing textures into the queue
+        for (const auto& texture : strongTextures) {
+            addToWorkQueue(texture);
         }
     }
 }
 
 void GL45VariableAllocationTexture::processWorkQueues() {
-    switch (_memoryPressureState) {
-        case MemoryPressureState::Idle:
-            break;
+    if (MemoryPressureState::Idle == _memoryPressureState) {
+        return;
+    }
 
-        case MemoryPressureState::Oversubscribed:
-            // Grab the first item off the demote queue
-            while (!demoteQueue.empty()) {
-                auto demoteTarget = demoteQueue.top();
-                demoteQueue.pop();
-                auto texture = demoteTarget.first.lock();
-                if (!texture) {
-                    continue;
-                }
+    while (!_workQueue.empty()) {
+        auto workTarget = _workQueue.top();
+        _workQueue.pop();
+        auto texture = workTarget.first.lock();
+        if (!texture) {
+            continue;
+        }
 
-                GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texture);
-                if (!object->canDemote()) {
-                    continue;
-                }
-
-                //qDebug() << "QQQ executing demote for " << texture->source().c_str();
-                object->demote();
-                // if the object can be further demoted, reinsert into the queue
-                if (object->canDemote()) {
-                    demoteQueue.push({ demoteTarget.first, object->size() });
-                }
-                break;
+        // Grab the first item off the demote queue
+        GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texture);
+        if (MemoryPressureState::Oversubscribed == _memoryPressureState) {
+            if (!object->canDemote()) {
+                continue;
             }
-            if (demoteQueue.empty()) {
-                _memoryPressureState = MemoryPressureState::Idle;
+            //qDebug() << "QQQ executing demote for " << texture->source().c_str();
+            object->demote();
+        } else if (MemoryPressureState::Undersubscribed == _memoryPressureState) {
+            if (!object->canPromote()) {
+                continue;
             }
-            break;
-
-        case MemoryPressureState::Undersubscribed:
-            while (!promoteQueue.empty()) {
-                auto promoteTarget = promoteQueue.top();
-                promoteQueue.pop();
-                auto texture = promoteTarget.first.lock();
-                if (!texture) {
-                    continue;
-                }
-                GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texture);
-                if (!object->canPromote()) {
-                    continue;
-                }
-                //qDebug() << "QQQ executing promote for " << texture->source().c_str();
-                object->promote();
-                if (object->canPromote()) {
-                    promoteQueue.push({ promoteTarget.first, object->size() });
-                }
-                break;
+            //qDebug() << "QQQ executing promote for " << texture->source().c_str();
+            object->promote();
+        } else if (MemoryPressureState::Transfer == _memoryPressureState) {
+            if (!object->hasPendingTransfers()) {
+                continue;
             }
-            if (promoteQueue.empty()) {
-                _memoryPressureState = MemoryPressureState::Idle;
-            }
-            break;
-
-        case MemoryPressureState::Transfer:
-            while (!transferQueue.empty()) {
-                auto weakTexture = transferQueue.front();
-                transferQueue.pop();
-                auto texture = weakTexture.lock();
-                if (!texture) {
-                    continue;
-                }
-                GL45VariableAllocationTexture* object = Backend::getGPUObject<GL45VariableAllocationTexture>(*texture);
-                if (!object->hasPendingTransfers()) {
-                    continue;
-                }
-                //qDebug() << "QQQ executing transfer for " << texture->source().c_str();
-                object->executeNextTransfer();
-                if (object->hasPendingTransfers()) {
-                    transferQueue.push(weakTexture);
-                }
-                break;
-            }
-            if (transferQueue.empty()) {
-                _memoryPressureState = MemoryPressureState::Idle;
-            }
-            break;
-
-        default:
+            //qDebug() << "QQQ executing transfer for " << texture->source().c_str();
+            object->executeNextTransfer();
+        } else {
             Q_UNREACHABLE();
-            break;
+        }
+
+        // Reinject into the queue if more work to be done
+        addToWorkQueue(texture);
+        break;
+    }
+
+    if (_workQueue.empty()) {
+        _memoryPressureState = MemoryPressureState::Idle;
     }
 }
 
@@ -379,7 +288,6 @@ void GL45ResourceTexture::promote() {
     uint32_t oldSize = _size;
     // create new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
-    incrementTextureGPUCount();
     uint16_t oldAllocatedMip = _allocatedMip;
     // allocate storage for new level
     allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
@@ -413,7 +321,6 @@ void GL45ResourceTexture::demote() {
     auto oldId = _id;
     auto oldSize = _size;
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
-    incrementTextureGPUCount();
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
     uint16_t mips = _gpuObject.evalNumMips();
