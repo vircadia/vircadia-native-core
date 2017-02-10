@@ -55,9 +55,6 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
         qCDebug(entities) << zoneID << ",";
     }
     
-    auto oldProperties = propertiesIn.getDesiredProperties();
-    auto specifiedProperties = propertiesIn.getChangedProperties();
-    propertiesIn.setDesiredProperties(specifiedProperties);
     for (auto it = zoneIDs.begin(); it != zoneIDs.end(); it++) {
         qCDebug(entities) << "applying filter for zone" << *it;
         
@@ -70,6 +67,9 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
         qCDebug(entities) << "pair: " << (qint64) pair << ", engine" << (qint64)engine;
         if (pair != nullptr && engine != nullptr) {
 
+            auto oldProperties = propertiesIn.getDesiredProperties();
+            auto specifiedProperties = propertiesIn.getChangedProperties();
+            propertiesIn.setDesiredProperties(specifiedProperties);
             QScriptValue inputValues = propertiesIn.copyToScriptValue(engine, false, true, true);
             propertiesIn.setDesiredProperties(oldProperties);
 
@@ -122,12 +122,19 @@ void EntityEditFilters::addFilter(EntityItemID& entityID, QString filterURL) {
 
     QUrl scriptURL(filterURL);
     
+    // setting it to an empty string is same as removing 
+    if (filterURL.size() == 0) {
+        removeFilter(entityID);
+        return;
+    }
+   
     // The following should be abstracted out for use in Agent.cpp (and maybe later AvatarMixer.cpp)
     if (scriptURL.scheme().isEmpty() || (scriptURL.scheme() == URL_SCHEME_FILE)) {
         qWarning() << "Cannot load script from local filesystem, because assignment may be on a different computer.";
         scriptRequestFinished(entityID);
         return;
     }
+   
     // first remove any existing info for this entity
     removeFilter(entityID);
 
@@ -143,7 +150,6 @@ void EntityEditFilters::addFilter(EntityItemID& entityID, QString filterURL) {
     qInfo() << "Requesting script at URL" << qPrintable(scriptRequest->getUrl().toString());
     scriptRequest->send();
     qDebug() << "script request sent for entity " << entityID;
-    
 }
 
 // Copied from ScriptEngine.cpp. We should make this a class method for reuse.

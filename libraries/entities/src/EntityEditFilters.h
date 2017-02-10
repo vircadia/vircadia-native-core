@@ -25,7 +25,7 @@
 
 typedef QPair<QScriptValue, std::function<bool()>> FilterFunctionPair;
 
-class EntityEditFilters : public QObject {
+class EntityEditFilters : public QObject, public Dependency {
     Q_OBJECT
 public:
     EntityEditFilters() {};

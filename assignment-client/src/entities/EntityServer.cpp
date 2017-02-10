@@ -72,6 +72,7 @@ OctreePointer EntityServer::createTree() {
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
     DependencyManager::set<AssignmentParentFinder>(tree);
+    DependencyManager::set<EntityEditFilters>(std::static_pointer_cast<EntityTree>(tree));
 
     return tree;
 }
@@ -294,12 +295,12 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         tree->setEntityScriptSourceWhitelist("");
     }
     
-    auto entityEditFilters = tree->createEntityEditFilters();
+    auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
     
     QString filterURL;
     if (readOptionString("entityEditFilter", settingsSectionObject, filterURL) && !filterURL.isEmpty()) {
         // connect the filterAdded signal, and block edits until you hear back
-        connect(entityEditFilters, &EntityEditFilters::filterAdded, this, &EntityServer::entityFilterAdded);
+        connect(entityEditFilters.data(), &EntityEditFilters::filterAdded, this, &EntityServer::entityFilterAdded);
         
         entityEditFilters->rejectAll(true);
         entityEditFilters->addFilter(EntityItemID(), filterURL);

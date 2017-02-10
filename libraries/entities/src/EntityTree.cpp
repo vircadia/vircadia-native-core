@@ -924,36 +924,12 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
-void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions) {
-    _entityEditFilterEngine = engine;
-    _entityEditFilterHadUncaughtExceptions = entityEditFilterHadUncaughtExceptions;
-    auto global = _entityEditFilterEngine->globalObject();
-    _entityEditFilterFunction = global.property("filter");
-    if (!_entityEditFilterFunction.isFunction()) {
-        qCDebug(entities) << "Filter function specified but not found. Will reject all edits.";
-        _entityEditFilterEngine = nullptr; // So that we don't try to call it. See filterProperties.
-    }
-    auto entitiesObject = _entityEditFilterEngine->newObject();
-    entitiesObject.setProperty("ADD_FILTER_TYPE", FilterType::Add);
-    entitiesObject.setProperty("EDIT_FILTER_TYPE", FilterType::Edit);
-    entitiesObject.setProperty("PHYSICS_FILTER_TYPE", FilterType::Physics);
-    global.setProperty("Entities", entitiesObject);
-    _hasEntityEditFilter = true;
-}
 
 bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) {
-    if (!_entityEditFilterEngine && !_entityEditFilters) {
-        propertiesOut = propertiesIn;
-        wasChanged = false; // not changed
-        if (_hasEntityEditFilter) {
-            qCDebug(entities) << "Rejecting properties because filter has not been set.";
-            return false;
-        }
-        return true; // allowed
-    }
     bool accepted = true;
-    if (_entityEditFilters) {
-        accepted = _entityEditFilters->filter(existingEntity->getPosition(), propertiesIn, propertiesOut, wasChanged, filterType);
+    auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
+    if (entityEditFilters) {
+        accepted = entityEditFilters->filter(existingEntity->getPosition(), propertiesIn, propertiesOut, wasChanged, filterType);
     }
 
     return accepted;
@@ -1749,7 +1725,3 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
-EntityEditFilters* EntityTree::createEntityEditFilters() {
-    _entityEditFilters = new EntityEditFilters(getThisPointer());
-    return _entityEditFilters;
-}

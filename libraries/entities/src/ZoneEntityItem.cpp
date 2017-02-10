@@ -226,12 +226,10 @@ bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
 
 void ZoneEntityItem::setFilterURL(QString url) {
     _filterURL = url;
-    if (getTree()) {
-        auto entityEditFilters = getTree()->getEntityEditFilters();
-        if (entityEditFilters) {
-            qCDebug(entities) << "adding filter " << url << "for zone" << getEntityItemID();
-            entityEditFilters->addFilter(getEntityItemID(), url);
-        }
+    if (DependencyManager::isSet<EntityEditFilters>()) {
+        auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
+        qCDebug(entities) << "adding filter " << url << "for zone" << getEntityItemID();
+        entityEditFilters->addFilter(getEntityItemID(), url);
     }
 }
 

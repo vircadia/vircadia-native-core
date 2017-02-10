@@ -272,12 +272,6 @@ public:
 
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
 
-    void initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions);
-    void setHasEntityFilter(bool hasFilter) { _hasEntityEditFilter = hasFilter; }
-    
-    EntityEditFilters* createEntityEditFilters();
-    EntityEditFilters* getEntityEditFilters() { return _entityEditFilters; }
-    
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
 public slots:
@@ -368,13 +362,7 @@ protected:
 
     bool filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
     bool _hasEntityEditFilter{ false };
-    QScriptEngine* _entityEditFilterEngine{};
-    QScriptValue _entityEditFilterFunction{};
-    QScriptValue _nullObjectForFilter{};
-    std::function<bool()> _entityEditFilterHadUncaughtExceptions;
-
     QStringList _entityScriptSourceWhitelist;
-    EntityEditFilters* _entityEditFilters{};
 };
 
 #endif // hifi_EntityTree_h
