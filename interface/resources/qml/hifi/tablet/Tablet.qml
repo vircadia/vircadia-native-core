@@ -103,13 +103,32 @@ Item {
         anchors.topMargin: 0
         anchors.top: parent.top
 
-
-        Image {
-            id: muteIcon
+        Item {
+            anchors.verticalCenter: parent.verticalCenter
             width: 40
             height: 40
-            source: tablet.micEnabled ? "../../../icons/tablet-icons/mic-i.svg" : "../../../icons/tablet-icons/mic-a.svg"
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 5
+
+            Image {
+                id: micIcon
+                source: "../../../icons/tablet-icons/mic.svg"
+            }
+
+            Item {
+                visible: !tablet.micEnabled
+
+                Image {
+                    id: muteIcon
+                    source: "../../../icons/tablet-icons/mic-mute.svg"
+                }
+
+                ColorOverlay {
+                    anchors.fill: muteIcon
+                    source: muteIcon
+                    color: "#ff0000"
+                }
+            }
         }
 
         Item {
@@ -230,7 +249,7 @@ Item {
 
             PropertyChanges {
                 target: muteIcon
-                source: "../../../icons/tablet-unmute-icon.svg"
+                visible: micEnabled
             }
 
             PropertyChanges {
