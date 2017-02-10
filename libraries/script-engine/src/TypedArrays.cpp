@@ -62,6 +62,8 @@ QScriptValue TypedArray::newInstance(QScriptValue array) {
 }
 
 QScriptValue TypedArray::newInstance(QScriptValue buffer, quint32 byteOffset, quint32 length) {
+    qDebug() << __FUNCTION__ << "buffer:" << buffer.toVariant() << "byteOffset:" << byteOffset << "length:" << length;
+
     QScriptValue data = engine()->newObject();
     data.setProperty(_bufferName, buffer);
     data.setProperty(_byteOffsetName, byteOffset);

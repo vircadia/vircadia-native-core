@@ -114,6 +114,18 @@ void MessagesClient::handleMessagesPacket(QSharedPointer<ReceivedMessage> receiv
     if (isText) {
         emit messageReceived(channel, message, senderID, false);
     } else {
+
+        // FIXME -- this is some super janky temporary debugging code, just to prove the data is going over the wire correctly
+        QString debugData;
+        for (int i = 0; i < data.size(); i++) {
+            auto byte = data[i];
+            if (i > 0) {
+                debugData += ", ";
+            }
+            debugData += QString::number(byte);
+        }
+        qDebug() << __FUNCTION__ << "data:" << debugData;
+
         emit dataReceived(channel, data, senderID, false);
     }
 }
@@ -135,6 +147,17 @@ void MessagesClient::sendMessage(QString channel, QString message, bool localOnl
 }
 
 void MessagesClient::sendData(QString channel, QByteArray data, bool localOnly) {
+    // FIXME -- this is some super janky temporary debugging code, just to prove the data is going over the wire correctly
+    QString debugData;
+    for(int i = 0; i < data.size(); i++) {
+        auto byte = data[i];
+        if (i > 0) {
+            debugData += ", ";
+        }
+        debugData += QString::number(byte);
+    }
+    qDebug() << __FUNCTION__ << "data:" << debugData;
+
     auto nodeList = DependencyManager::get<NodeList>();
     if (localOnly) {
         QUuid senderID = nodeList->getSessionUUID();

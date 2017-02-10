@@ -26,7 +26,10 @@ Script.update.connect(function(){
     if (counter == 100) {
         Messages.sendMessage(channelName, "foo");
     } else if (counter == 200) {
-        var data = new Int8Array([0,1,10,2,20,3,30]);
+        var data = new Int8Array(2);
+        //[0,1,10,2,20,3,30]);
+        data[0]=1;
+        data[1]=10;
         print("about to call sendData() data.length:", data.length);
         Messages.sendData(channelName, data.buffer);
         counter = 0;
