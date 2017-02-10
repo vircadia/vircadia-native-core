@@ -249,15 +249,9 @@ void GL45VariableAllocationTexture::processWorkQueues() {
 }
 
 void GL45VariableAllocationTexture::manageMemory() {
-    static auto lastProcessTime = usecTimestampNow();
-    auto now = usecTimestampNow();
-    auto interval = now - lastProcessTime;
-    if (interval > (USECS_PER_MSEC * 20)) {
-        lastProcessTime = now;
-        PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
-        updateMemoryPressure();
-        processWorkQueues();
-    }
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
+    updateMemoryPressure();
+    processWorkQueues();
 }
 
 GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45Texture(backend, texture) {
@@ -404,7 +398,7 @@ void GL45ResourceTexture::populateTransferQueue() {
         return;
     }
 
-    static const uvec3 MAX_TRANSFER_DIMENSIONS { 512, 512, 1 };
+    static const uvec3 MAX_TRANSFER_DIMENSIONS { 1024, 1024, 1 };
     static const size_t MAX_TRANSFER_SIZE = MAX_TRANSFER_DIMENSIONS.x * MAX_TRANSFER_DIMENSIONS.y * 4;
     const uint8_t maxFace = GLTexture::getFaceCount(_target);
 
