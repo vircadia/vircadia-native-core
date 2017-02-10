@@ -233,11 +233,3 @@ void ZoneEntityItem::setFilterURL(QString url) {
     }
 }
 
-bool ZoneEntityItem::containsPoint(glm::vec3& position) {
-    // use _shapeType shortly
-    // for now bounding box just so I can get end-to-end working
-    bool success;
-    bool result = getAABox(success).contains(position);
-    return result && success;
-}
-

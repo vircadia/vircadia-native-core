@@ -17,6 +17,7 @@
 
 QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
     QList<EntityItemID> zones;
+    QList<EntityItemID> missingZones;
     _lock.lockForRead();
     qCDebug(entities) << "looking at " << _filterFunctionMap.size() << "possible zones, at " << position;
     for (auto it = _filterFunctionMap.begin(); it != _filterFunctionMap.end(); it++) {
@@ -25,14 +26,23 @@ QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
             // for now, look it up in the tree (soon we need to cache or similar?)
             EntityItemPointer itemPtr = _tree->findEntityByEntityItemID(id); 
             auto zone = std::dynamic_pointer_cast<ZoneEntityItem>(itemPtr);
-            if (zone && zone->containsPoint(position)) {
+            if (!zone) {
+                missingZones.append(id); 
+            } else if (zone->contains(position)) {
                 zones.append(id);
             }
         } else {
+            // the null id is the global filter we put in the domain server's 
+            // advanced entity server settings
             zones.append(id);
         }
     }
     _lock.unlock();
+    // TODO: maybe do this later (not block filter)
+    // now remove filters for missing zones
+    for (auto id : missingZones) {
+        removeFilter(id);
+    }
     return zones;
 }
 
@@ -89,14 +99,15 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                 // make propertiesIn reflect the changes, for next filter...
                 propertiesIn.copyFromScriptValue(result, false);
 
-                // and update propertiesOut too.  #TODO: this could be more efficient...
+                // and update propertiesOut too.  TODO: this could be more efficient...
                 propertiesOut.copyFromScriptValue(result, false);
                 // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
                 auto out = QJsonValue::fromVariant(result.toVariant());
                 wasChanged |= (in != out);
             } else {
                 // an edit was rejected, so we stop here and return false
-                qCDebug(entities) << "Edit rejected by " << *it;
+                qCDebug(entities) << "Edit rejected by filter " << *it ;
+                return false;
             }
         }
     }
