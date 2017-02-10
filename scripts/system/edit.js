@@ -13,6 +13,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTook, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
+
 (function() { // BEGIN LOCAL_SCOPE
 
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
@@ -58,18 +60,13 @@ selectionManager.addEventListener(function () {
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
-var epsilon = 0.001;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
 var allowLargeModels = true;
 var allowSmallModels = true;
 
-var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
-var DEFAULT_TEXT_DIMENSION_X = 1.0;
-var DEFAULT_TEXT_DIMENSION_Y = 1.0;
-var DEFAULT_TEXT_DIMENSION_Z = 0.01;
 
 var DEFAULT_DIMENSIONS = {
     x: DEFAULT_DIMENSION,
@@ -84,7 +81,6 @@ var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
 var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Edit Mode";
 
-var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
@@ -156,13 +152,13 @@ function hideMarketplace() {
     marketplaceWindow.setURL("about:blank");
 }
 
-function toggleMarketplace() {
-    if (marketplaceWindow.visible) {
-        hideMarketplace();
-    } else {
-        showMarketplace();
-    }
-}
+// function toggleMarketplace() {
+//     if (marketplaceWindow.visible) {
+//         hideMarketplace();
+//     } else {
+//         showMarketplace();
+//     }
+// }
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 
@@ -225,14 +221,55 @@ var toolBar = (function () {
         return button;
     }
 
+    var SHAPE_TYPE_NONE = 0;
+    var SHAPE_TYPE_SIMPLE_HULL = 1;
+    var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
+    var SHAPE_TYPE_STATIC_MESH = 3;
+    var DYNAMIC_DEFAULT = false;
+
+    function handleNewModelDialogResult(result) {
+        if (result) {
+            var url = result.textInput;
+            var shapeType;
+            switch (result.comboBox) {
+            case SHAPE_TYPE_SIMPLE_HULL:
+                shapeType = "simple-hull";
+                break;
+            case SHAPE_TYPE_SIMPLE_COMPOUND:
+                shapeType = "simple-compound";
+                break;
+            case SHAPE_TYPE_STATIC_MESH:
+                shapeType = "static-mesh";
+                break;
+            default:
+                shapeType = "none";
+            }
+
+            var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+            if (shapeType === "static-mesh" && dynamic) {
+                // The prompt should prevent this case
+                print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
+            } else if (url) {
+                createNewEntity({
+                    type: "Model",
+                    modelURL: url,
+                    shapeType: shapeType,
+                    dynamic: dynamic,
+                    gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
+                });
+            }
+        }        
+    }
+
     function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
         print("fromQml: " + JSON.stringify(message));
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         tablet.popFromStack();
-        // switch (message.method) {
-        // case 'selected':
-        //     break;
-        // }
+        switch (message.method) {
+        case "newModelDialogAdd":
+            handleNewModelDialogResult(message.params);
+            break;
+        }
     }
 
     function initialize() {
@@ -283,22 +320,16 @@ var toolBar = (function () {
         toolBar.writeProperty("shown", false);
         addButton("openAssetBrowserButton","assets-01.svg",function(){
             Window.showAssetServer();
-        })
+        });
 
         addButton("newModelButton", "model-01.svg", function () {
-            var SHAPE_TYPE_NONE = 0;
-            var SHAPE_TYPE_SIMPLE_HULL = 1;
-            var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
-            var SHAPE_TYPE_STATIC_MESH = 3;
 
             var SHAPE_TYPES = [];
             SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
             SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
-
             var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
-            var DYNAMIC_DEFAULT = false;
 
             if (Settings.getValue("HUDUIEnabled")) {
                 // HUD-ui version of new-model dialog
@@ -322,37 +353,7 @@ var toolBar = (function () {
                     }
                 });
 
-                if (result) {
-                    var url = result.textInput;
-                    var shapeType;
-                    switch (result.comboBox) {
-                    case SHAPE_TYPE_SIMPLE_HULL:
-                        shapeType = "simple-hull";
-                        break;
-                    case SHAPE_TYPE_SIMPLE_COMPOUND:
-                        shapeType = "simple-compound";
-                        break;
-                    case SHAPE_TYPE_STATIC_MESH:
-                        shapeType = "static-mesh";
-                        break;
-                    default:
-                        shapeType = "none";
-                    }
-
-                    var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
-                    if (shapeType === "static-mesh" && dynamic) {
-                        // The prompt should prevent this case
-                        print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
-                    } else if (url) {
-                        createNewEntity({
-                            type: "Model",
-                            modelURL: url,
-                            shapeType: shapeType,
-                            dynamic: dynamic,
-                            gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
-                        });
-                    }
-                }
+                handleNewModelDialogResult(result);
             } else {
                 // tablet version of new-model dialog
                 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -661,7 +662,6 @@ var idleMouseTimerId = null;
 var CLICK_TIME_THRESHOLD = 500 * 1000; // 500 ms
 var CLICK_MOVE_DISTANCE_THRESHOLD = 20;
 var IDLE_MOUSE_TIMEOUT = 200;
-var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
 var lastMouseMoveEvent = null;
 
@@ -1232,11 +1232,11 @@ function getPositionToCreateEntity() {
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
 
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance))
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance));
     }
     position.y += 0.5;
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
-        return null
+        return null;
     }
     return position;
 }
@@ -1250,11 +1250,11 @@ function getPositionToImportEntity() {
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, longest));
 
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), longest))
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), longest));
     }
 
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
-        return null
+        return null;
     }
 
     return position;
@@ -1455,11 +1455,11 @@ var ServerScriptStatusMonitor = function(entityID, statusCallback) {
                     Entities.getServerScriptStatus(entityID, onStatusReceived);
                 }
             }, 1000);
-        };
+        }
     };
     self.stop = function() {
         self.active = false;
-    }
+    };
 
     Entities.getServerScriptStatus(entityID, onStatusReceived);
 };
@@ -1496,7 +1496,7 @@ var PropertiesTool = function (opts) {
     function updateScriptStatus(info) {
         info.type = "server_script_status";
         webView.emitScriptEvent(JSON.stringify(info));
-    };
+    }
 
     function resetScriptStatus() {
         updateScriptStatus({
@@ -1555,7 +1555,7 @@ var PropertiesTool = function (opts) {
             data = JSON.parse(data);
         }
         catch(e) {
-            print('Edit.js received web event that was not valid json.')
+            print('Edit.js received web event that was not valid json.');
             return;
         }
         var i, properties, dY, diff, newPosition;
@@ -1576,12 +1576,12 @@ var PropertiesTool = function (opts) {
             } else {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
-                    data.properties["velocity"] = {
+                    data.properties.velocity = {
                         x: 0,
                         y: 0,
                         z: 0
                     };
-                    data.properties["angularVelocity"] = {
+                    data.properties.angularVelocity = {
                         x: 0,
                         y: 0,
                         z: 0

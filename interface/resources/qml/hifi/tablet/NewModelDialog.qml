@@ -14,8 +14,8 @@ import QtQuick.Controls 1.4
 
 Rectangle {
     id: newModelDialog
-    width: parent.width
-    height: parent.height
+    // width: parent.width
+    // height: parent.height
 
     property var eventBridge;
     signal sendToScript(var message);
@@ -36,7 +36,7 @@ Rectangle {
         }
 
         TextInput {
-            id: textInput1
+            id: modelURL
             height: 20
             text: qsTr("")
             anchors.left: parent.left
@@ -59,9 +59,10 @@ Rectangle {
                 id: column2
                 width: 200
                 height: 400
+                spacing: 10
 
                 CheckBox {
-                    id: checkBox1
+                    id: dynamic
                     text: qsTr("Dynamic")
                 }
 
@@ -91,6 +92,7 @@ Rectangle {
             Column {
                 id: column3
                 height: 400
+                spacing: 10
 
                 Text {
                     id: text3
@@ -99,7 +101,7 @@ Rectangle {
                 }
 
                 ComboBox {
-                    id: comboBox1
+                    id: collisionType
                     width: 200
                     transformOrigin: Item.Center
                     model: ListModel {
@@ -120,7 +122,14 @@ Rectangle {
                         id: button1
                         text: qsTr("Add")
                         onClicked: {
-                            newModelDialog.sendToScript({method: 'newModelDialogAdd'})
+                            newModelDialog.sendToScript({
+                                method: 'newModelDialogAdd',
+                                params: {
+                                    textInput: modelURL.text,
+                                    checkBox: dynamic.checked,
+                                    comboBox: collisionType.currentIndex
+                                }
+                            });
                         }
                     }
 
