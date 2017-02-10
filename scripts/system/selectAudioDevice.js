@@ -52,31 +52,6 @@ var selectedInputMenu = "";
 var selectedOutputMenu = "";
 
 function setupAudioMenus() {
-    Menu.addSeparator("Audio", "Output Audio Device");
-
-    var outputDeviceSetting = Settings.getValue(OUTPUT_DEVICE_SETTING);
-    var outputDevices = AudioDevice.getOutputDevices();
-    var selectedOutputDevice = AudioDevice.getOutputDevice();
-    if (outputDevices.indexOf(outputDeviceSetting) != -1 && selectedOutputDevice != outputDeviceSetting) {
-        if (AudioDevice.setOutputDevice(outputDeviceSetting)) {
-            selectedOutputDevice = outputDeviceSetting;
-        }
-    }
-    print("audio output devices: " + outputDevices);
-    for(var i = 0; i < outputDevices.length; i++) {
-        var thisDeviceSelected = (outputDevices[i] == selectedOutputDevice);
-        var menuItem = "Use " + outputDevices[i] + " for Output";
-        Menu.addMenuItem({
-                            menuName: "Audio",
-                            menuItemName: menuItem,
-                            isCheckable: true,
-                            isChecked: thisDeviceSelected
-                        });
-        if (thisDeviceSelected) {
-            selectedOutputMenu = menuItem;
-        }
-    }
-
     Menu.addSeparator("Audio", "Input Audio Device");
 
     var inputDeviceSetting = Settings.getValue(INPUT_DEVICE_SETTING);
@@ -99,6 +74,31 @@ function setupAudioMenus() {
                         });
         if (thisDeviceSelected) {
             selectedInputMenu = menuItem;
+        }
+    }
+
+    Menu.addSeparator("Audio", "Output Audio Device");
+
+    var outputDeviceSetting = Settings.getValue(OUTPUT_DEVICE_SETTING);
+    var outputDevices = AudioDevice.getOutputDevices();
+    var selectedOutputDevice = AudioDevice.getOutputDevice();
+    if (outputDevices.indexOf(outputDeviceSetting) != -1 && selectedOutputDevice != outputDeviceSetting) {
+        if (AudioDevice.setOutputDevice(outputDeviceSetting)) {
+            selectedOutputDevice = outputDeviceSetting;
+        }
+    }
+    print("audio output devices: " + outputDevices);
+    for (var i = 0; i < outputDevices.length; i++) {
+        var thisDeviceSelected = (outputDevices[i] == selectedOutputDevice);
+        var menuItem = "Use " + outputDevices[i] + " for Output";
+        Menu.addMenuItem({
+            menuName: "Audio",
+            menuItemName: menuItem,
+            isCheckable: true,
+            isChecked: thisDeviceSelected
+        });
+        if (thisDeviceSelected) {
+            selectedOutputMenu = menuItem;
         }
     }
 }
