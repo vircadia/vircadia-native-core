@@ -103,7 +103,7 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
     return true;
 }
 
-void EntityEditFilters::removeFilter(EntityItemID& entityID) {
+void EntityEditFilters::removeFilter(EntityItemID entityID) {
     QWriteLocker writeLock(&_lock);
     FilterData filterData = _filterDataMap.value(entityID);
     if (filterData.valid()) {
@@ -112,7 +112,7 @@ void EntityEditFilters::removeFilter(EntityItemID& entityID) {
     _filterDataMap.remove(entityID);
 }
 
-void EntityEditFilters::addFilter(EntityItemID& entityID, QString filterURL) {
+void EntityEditFilters::addFilter(EntityItemID entityID, QString filterURL) {
 
     QUrl scriptURL(filterURL);
     

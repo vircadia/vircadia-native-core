@@ -37,8 +37,8 @@ public:
     EntityEditFilters() {};
     EntityEditFilters(EntityTreePointer tree ): _tree(tree) {};
 
-    void addFilter(EntityItemID& entityID, QString filterURL);
-    void removeFilter(EntityItemID& entityID);
+    void addFilter(EntityItemID entityID, QString filterURL);
+    void removeFilter(EntityItemID entityID);
 
     bool filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, EntityTree::FilterType filterType);
     void rejectAll(bool state) {_rejectAll = state; }
