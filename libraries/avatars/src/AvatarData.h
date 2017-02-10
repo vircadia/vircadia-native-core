@@ -538,6 +538,7 @@ public:
     glm::vec3 getGlobalBoundingBoxCorner() { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
+    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
     void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
@@ -575,8 +576,6 @@ public slots:
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:
-    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
-
     void lazyInitHeadData();
 
     float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition);

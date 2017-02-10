@@ -2243,15 +2243,17 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
         return;
     }
     _avatarEntitiesLock.withWriteLock([&] {
-        // keep track of entities that were attached to this avatar but no longer are
-        AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
+        if (_avatarEntityData != avatarEntityData) {
+            // keep track of entities that were attached to this avatar but no longer are
+            AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
 
-        _avatarEntityData = avatarEntityData;
-        setAvatarEntityDataChanged(true);
+            _avatarEntityData = avatarEntityData;
+            setAvatarEntityDataChanged(true);
 
-        foreach (auto entityID, previousAvatarEntityIDs) {
-            if (!_avatarEntityData.contains(entityID)) {
-                _avatarEntityDetached.insert(entityID);
+            foreach (auto entityID, previousAvatarEntityIDs) {
+                if (!_avatarEntityData.contains(entityID)) {
+                    _avatarEntityDetached.insert(entityID);
+                }
             }
         }
     });
