@@ -1,10 +1,24 @@
-import QtQuick 2.5
-import QtQuick.Window 2.2
-import QtQuick.Controls 1.5
+//
+//  NewModelDialog.qml
+//  qml/hifi
+//
+//  Created by Seth Alves on 2017-2-10
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-Item {
+import QtQuick 2.5
+import QtQuick.Controls 1.4
+
+Rectangle {
     id: newModelDialog
+    width: parent.width
+    height: parent.height
+
     property var eventBridge;
+    signal sendToScript(var message);
 
     Column {
         id: column1
@@ -105,11 +119,17 @@ Item {
                     Button {
                         id: button1
                         text: qsTr("Add")
+                        onClicked: {
+                            newModelDialog.sendToScript({method: 'newModelDialogAdd'})
+                        }
                     }
 
                     Button {
                         id: button2
                         text: qsTr("Cancel")
+                        onClicked: {
+                            newModelDialog.sendToScript({method: 'newModelDialogCancel'})
+                        }
                     }
                 }
             }

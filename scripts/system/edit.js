@@ -225,6 +225,16 @@ var toolBar = (function () {
         return button;
     }
 
+    function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
+        print("fromQml: " + JSON.stringify(message));
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        tablet.popFromStack();
+        // switch (message.method) {
+        // case 'selected':
+        //     break;
+        // }
+    }
+
     function initialize() {
         Script.scriptEnding.connect(cleanup);
 
@@ -249,6 +259,7 @@ var toolBar = (function () {
                 alpha: 0.9,
                 defaultState: 1
             });
+            systemToolbar.fromQml.connect(fromQml);
         } else {
             tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             activeButton = tablet.addButton({
@@ -261,6 +272,7 @@ var toolBar = (function () {
                     that.toggle();
                 }
             });
+            tablet.fromQml.connect(fromQml);
         }
 
         activeButton.clicked.connect(function() {
@@ -344,7 +356,7 @@ var toolBar = (function () {
             } else {
                 // tablet version of new-model dialog
                 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-                tablet.loadQMLSource("NewModelDialog.qml");
+                tablet.pushOntoStack("NewModelDialog.qml");
             }
         });
 
