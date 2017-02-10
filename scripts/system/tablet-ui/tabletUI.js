@@ -53,8 +53,11 @@
 
     function updateShowTablet() {
         if (tabletShown) {
+            var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
+            var currentMicEnabled = !Menu.isOptionChecked(MUTE_MICROPHONE_MENU_ITEM);
             var currentMicLevel = getMicLevel();
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.updateMicEnabled(currentMicEnabled);
             tablet.updateAudioBar(currentMicLevel);
         }
 

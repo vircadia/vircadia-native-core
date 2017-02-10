@@ -6,9 +6,15 @@ Item {
     id: tablet
     objectName: "tablet"
     property double micLevel: 0.8
+    property bool micEnabled: true
     property int rowIndex: 0
     property int columnIndex: 0
     property int count: (flowMain.children.length - 1)
+
+    // called by C++ code to keep mic state updated
+    function setMicEnabled(newMicEnabled) {
+        tablet.micEnabled = newMicEnabled;
+    }
 
     // called by C++ code to keep audio bar updated
     function setMicLevel(newMicLevel) {
@@ -102,7 +108,7 @@ Item {
             id: muteIcon
             width: 40
             height: 40
-            source: "../../../icons/tablet-mute-icon.svg"
+            source: tablet.micEnabled ? "../../../icons/tablet-icons/mic-i.svg" : "../../../icons/tablet-icons/mic-a.svg"
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -175,7 +181,6 @@ Item {
             GradientStop {
                 position: 0
                 color: "#2b2b2b"
-
             }
 
             GradientStop {

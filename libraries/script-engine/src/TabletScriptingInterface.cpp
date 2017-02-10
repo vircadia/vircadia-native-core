@@ -309,6 +309,15 @@ void TabletProxy::removeButton(QObject* tabletButtonProxy) {
     }
 }
 
+void TabletProxy::updateMicEnabled(const bool micOn) {
+    auto tablet = getQmlTablet();
+    if (!tablet) {
+        //qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
+    } else {
+        QMetaObject::invokeMethod(tablet, "setMicEnabled", Qt::AutoConnection, Q_ARG(QVariant, QVariant(micOn)));
+    }
+}
+
 void TabletProxy::updateAudioBar(const double micLevel) {
     auto tablet = getQmlTablet();
     if (!tablet) {
