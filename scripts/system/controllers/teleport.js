@@ -17,6 +17,7 @@ var NUMBER_OF_STEPS = 6;
 
 var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport-destination.fbx");
 var TOO_CLOSE_MODEL_URL = Script.resolvePath("../assets/models/teleport-cancel.fbx");
+
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
     y: 0.5,
@@ -51,13 +52,6 @@ function ThumbPad(hand) {
 
     this.buttonPress = function(value) {
         _thisPad.buttonValue = value;
-        if (value === 0) {
-            if (activationTimeout !== null) {
-                Script.clearTimeout(activationTimeout);
-                activationTimeout = null;
-            }
-
-        }
     };
 }
 
@@ -81,12 +75,14 @@ var coolInTimeout = null;
 function Teleporter() {
     var _this = this;
     this.intersection = null;
-    this.rightOverlayLine = null;
+    this.overlayLines = {
+        left: null,
+        right: null,
+    };
     this.leftOverlayLine = null;
     this.targetOverlay = null;
     this.cancelOverlay = null;
     this.updateConnected = null;
-    this.smoothArrivalInterval = null;
     this.teleportHand = null;
     this.tooClose = false;
     this.inCoolIn = false;
@@ -107,7 +103,6 @@ function Teleporter() {
     };
 
     this.enterTeleportMode = function(hand) {
-
         if (inTeleportMode === true) {
             return;
         }
@@ -124,13 +119,6 @@ function Teleporter() {
         coolInTimeout = Script.setTimeout(function() {
             _this.inCoolIn = false;
         }, COOL_IN_DURATION)
-
-        if (this.smoothArrivalInterval !== null) {
-            Script.clearInterval(this.smoothArrivalInterval);
-        }
-        if (activationTimeout !== null) {
-            Script.clearInterval(activationTimeout);
-        }
 
         this.teleportHand = hand;
         this.initialize();
@@ -230,15 +218,15 @@ function Teleporter() {
     }
 
     this.turnOffOverlayBeams = function() {
-        this.rightOverlayOff();
-        this.leftOverlayOff();
+        for (key in this.overlayLines) {
+            if (this.overlayLines[key] !== null) {
+                Overlays.deleteOverlay(this.overlayLines[key]);
+                this.overlayLines[key] = null;
+            }
+        }
     }
 
     this.exitTeleportMode = function(value) {
-        if (activationTimeout !== null) {
-            Script.clearTimeout(activationTimeout);
-            activationTimeout = null;
-        }
         if (this.updateConnected === true) {
             Script.update.disconnect(this.update);
         }
@@ -317,7 +305,7 @@ function Teleporter() {
             if (this.tooClose === true) {
                 this.hideTargetOverlay();
 
-                this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+                this.handLineOn('right', rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
                 if (this.cancelOverlay !== null) {
                     this.updateCancelOverlay(rightIntersection);
                 } else {
@@ -326,7 +314,7 @@ function Teleporter() {
             } else {
                 if (this.inCoolIn === true) {
                     this.hideTargetOverlay();
-                    this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+                    this.handLineOn('right', rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
                     if (this.cancelOverlay !== null) {
                         this.updateCancelOverlay(rightIntersection);
                     } else {
@@ -335,7 +323,7 @@ function Teleporter() {
                 } else {
                     this.hideCancelOverlay();
 
-                    this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+                    this.handLineOn('right', rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
                     if (this.targetOverlay !== null) {
                         this.updateTargetOverlay(rightIntersection);
                     } else {
@@ -349,7 +337,7 @@ function Teleporter() {
         } else {
 
             this.hideTargetOverlay();
-            this.rightLineOn(rightPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);
+            this.handLineOn('right', rightPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);
         }
     }
 
@@ -373,14 +361,13 @@ function Teleporter() {
 
         var location = Vec3.sum(MyAvatar.position, Vec3.multiply(leftPickRay.direction, 50));
 
-
         var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity], true, true);
 
         if (leftIntersection.intersects) {
 
             if (this.tooClose === true) {
                 this.hideTargetOverlay();
-                this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+                this.handLineOn('left', leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
                 if (this.cancelOverlay !== null) {
                     this.updateCancelOverlay(leftIntersection);
                 } else {
@@ -389,7 +376,7 @@ function Teleporter() {
             } else {
                 if (this.inCoolIn === true) {
                     this.hideTargetOverlay();
-                    this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+                    this.handLineOn('left', leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
                     if (this.cancelOverlay !== null) {
                         this.updateCancelOverlay(leftIntersection);
                     } else {
@@ -397,7 +384,7 @@ function Teleporter() {
                     }
                 } else {
                     this.hideCancelOverlay();
-                    this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+                    this.handLineOn('left', leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
 
                     if (this.targetOverlay !== null) {
                         this.updateTargetOverlay(leftIntersection);
@@ -413,12 +400,12 @@ function Teleporter() {
         } else {
 
             this.hideTargetOverlay();
-            this.leftLineOn(leftPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);
+            this.handLineOn('left', leftPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);
         }
     };
 
-    this.rightLineOn = function(closePoint, farPoint, color) {
-        if (this.rightOverlayLine === null) {
+    this.handLineOn = function(hand, closePoint, farPoint, color) {
+        if (this.overlayLines[hand] === null) {
             var lineProperties = {
                 start: closePoint,
                 end: farPoint,
@@ -431,55 +418,16 @@ function Teleporter() {
                 glow: 1.0
             };
 
-            this.rightOverlayLine = Overlays.addOverlay("line3d", lineProperties);
+            this.overlayLines[hand] = Overlays.addOverlay("line3d", lineProperties);
 
         } else {
-            var success = Overlays.editOverlay(this.rightOverlayLine, {
+            var success = Overlays.editOverlay(this.overlayLines[hand], {
                 start: closePoint,
                 end: farPoint,
                 color: color
             });
         }
     };
-
-    this.leftLineOn = function(closePoint, farPoint, color) {
-        if (this.leftOverlayLine === null) {
-            var lineProperties = {
-                ignoreRayIntersection: true,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                visible: true,
-                alpha: 1,
-                solid: true,
-                glow: 1.0,
-                drawInFront: true
-            };
-
-            this.leftOverlayLine = Overlays.addOverlay("line3d", lineProperties);
-
-        } else {
-            var success = Overlays.editOverlay(this.leftOverlayLine, {
-                start: closePoint,
-                end: farPoint,
-                color: color
-            });
-        }
-    };
-    this.rightOverlayOff = function() {
-        if (this.rightOverlayLine !== null) {
-            Overlays.deleteOverlay(this.rightOverlayLine);
-            this.rightOverlayLine = null;
-        }
-    };
-
-    this.leftOverlayOff = function() {
-        if (this.leftOverlayLine !== null) {
-            Overlays.deleteOverlay(this.leftOverlayLine);
-            this.leftOverlayLine = null;
-        }
-    };
-
     this.updateTargetOverlay = function(intersection) {
         _this.intersection = intersection;
 
@@ -523,11 +471,6 @@ function Teleporter() {
         });
     };
 
-    this.triggerHaptics = function() {
-        var hand = this.teleportHand === 'left' ? 0 : 1;
-        var haptic = Controller.triggerShortHapticPulse(0.2, hand);
-    };
-
     this.teleport = function(value) {
 
         if (value === undefined) {
@@ -543,59 +486,12 @@ function Teleporter() {
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
-            // Disable smooth arrival, possibly temporarily
-            //this.smoothArrival();
             MyAvatar.position = _this.intersection.intersection;
             _this.hideTargetOverlay();
             _this.hideCancelOverlay();
             HMD.centerUI();
         }
     };
-
-    this.findMidpoint = function(start, end) {
-        var xy = Vec3.sum(start, end);
-        var midpoint = Vec3.multiply(0.5, xy);
-        return midpoint
-    };
-
-    this.getArrivalPoints = function(startPoint, endPoint) {
-        var arrivalPoints = [];
-        var i;
-        var lastPoint;
-
-        for (i = 0; i < NUMBER_OF_STEPS; i++) {
-            if (i === 0) {
-                lastPoint = startPoint;
-            }
-            var newPoint = _this.findMidpoint(lastPoint, endPoint);
-            lastPoint = newPoint;
-            arrivalPoints.push(newPoint);
-        }
-
-        arrivalPoints.push(endPoint);
-
-        return arrivalPoints;
-    };
-
-    this.smoothArrival = function() {
-
-        _this.arrivalPoints = _this.getArrivalPoints(MyAvatar.position, _this.intersection.intersection);
-        _this.smoothArrivalInterval = Script.setInterval(function() {
-            if (_this.arrivalPoints.length === 0) {
-                Script.clearInterval(_this.smoothArrivalInterval);
-                HMD.centerUI();
-                return;
-            }
-            var landingPoint = _this.arrivalPoints.shift();
-            MyAvatar.position = landingPoint;
-
-            if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
-                _this.hideTargetOverlay();
-                _this.hideCancelOverlay();
-            }
-
-        }, SMOOTH_ARRIVAL_SPACING);
-    }
 
     this.createTargetOverlay(false);
     this.createCancelOverlay(false);
@@ -655,7 +551,6 @@ var rightTrigger = new Trigger('right');
 
 var mappingName, teleportMapping;
 
-var activationTimeout = null;
 var TELEPORT_DELAY = 0;
 
 function isMoving() {
@@ -695,29 +590,19 @@ function registerMappings() {
             if (isDisabled === 'left' || isDisabled === 'both') {
                 return;
             }
-            if (activationTimeout !== null) {
-                return
-            }
             if (leftTrigger.down()) {
                 return;
             }
             if (isMoving() === true) {
                 return;
             }
-            activationTimeout = Script.setTimeout(function() {
-                Script.clearTimeout(activationTimeout);
-                activationTimeout = null;
-                teleporter.enterTeleportMode('left')
-            }, TELEPORT_DELAY)
+            teleporter.enterTeleportMode('left')
             return;
         });
     teleportMapping.from(Controller.Standard.RightPrimaryThumb)
         .to(function(value) {
             if (isDisabled === 'right' || isDisabled === 'both') {
                 return;
-            }
-            if (activationTimeout !== null) {
-                return
             }
             if (rightTrigger.down()) {
                 return;
@@ -726,11 +611,7 @@ function registerMappings() {
                 return;
             }
 
-            activationTimeout = Script.setTimeout(function() {
-                teleporter.enterTeleportMode('right')
-                Script.clearTimeout(activationTimeout);
-                activationTimeout = null;
-            }, TELEPORT_DELAY)
+            teleporter.enterTeleportMode('right')
             return;
         });
 };
