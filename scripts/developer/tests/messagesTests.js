@@ -10,7 +10,7 @@ Messages.messageReceived.connect(function(channel, message, sender, local) {
 
 Messages.dataReceived.connect(function(channel, data, sender, local) {
     var int8data = new Int8Array(data);
-    var dataAsString;
+    var dataAsString = "";
     for (var i = 0; i < int8data.length; i++) {
         if (i > 0) {
             dataAsString += ", ";
@@ -26,10 +26,7 @@ Script.update.connect(function(){
     if (counter == 100) {
         Messages.sendMessage(channelName, "foo");
     } else if (counter == 200) {
-        var data = new Int8Array(2);
-        //[0,1,10,2,20,3,30]);
-        data[0]=1;
-        data[1]=10;
+        var data = new Int8Array([0,1,10,2,20,3,30]);
         print("about to call sendData() data.length:", data.length);
         Messages.sendData(channelName, data.buffer);
         counter = 0;
