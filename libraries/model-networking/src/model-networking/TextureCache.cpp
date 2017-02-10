@@ -399,7 +399,7 @@ void ImageReader::run() {
         int originalHeight = imageHeight;
         imageWidth = (int)(scaleFactor * (float)imageWidth + 0.5f);
         imageHeight = (int)(scaleFactor * (float)imageHeight + 0.5f);
-        QImage newImage = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio);
+        QImage newImage = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         image.swap(newImage);
         qCDebug(modelnetworking) << "Downscale image" << _url
             << "from" << originalWidth << "x" << originalHeight
