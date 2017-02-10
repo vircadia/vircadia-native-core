@@ -18,7 +18,7 @@
     var buttonName = "Settings";
     var toolBar = null;
     var tablet = null;
-    var settings = "../../windows/TabletScrollingWindow.qml"
+    var settings = "TabletGeneralSettings.qml"
     function onClicked(){
         if (tablet) {
             tablet.loadQMLSource(settings);
