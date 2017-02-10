@@ -56,18 +56,21 @@ void GL45VariableAllocationTexture::addToWorkQueue(const TexturePointer& texture
     switch (_memoryPressureState) {
         case MemoryPressureState::Oversubscribed:
             if (object->canDemote()) {
+                // Demote largest first
                 _demoteQueue.push({ texturePointer, (float)object->size() });
             }
             break;
 
         case MemoryPressureState::Undersubscribed:
             if (object->canPromote()) {
+                // Promote smallest first
                 _promoteQueue.push({ texturePointer, 1.0f / (float)object->size() });
             }
             break;
 
         case MemoryPressureState::Transfer:
             if (object->hasPendingTransfers()) {
+                // Transfer priority given to smaller mips first
                 _transferQueue.push({ texturePointer, 1.0f / (float)object->_gpuObject.evalMipSize(object->_populatedMip) });
             }
             break;

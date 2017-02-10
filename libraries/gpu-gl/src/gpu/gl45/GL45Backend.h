@@ -134,10 +134,20 @@ public:
         virtual void promote() = 0;
         virtual void demote() = 0;
 
-        uint16 _populatedMip { 0 };
+        // The allocated mip level, relative to the number of mips in the gpu::Texture object 
+        // The relationship between a given glMip to the original gpu::Texture mip is always 
+        // glMip + _allocatedMip
         uint16 _allocatedMip { 0 };
+        // The populated mip level, relative to the number of mips in the gpu::Texture object
+        // This must always be >= the allocated mip
+        uint16 _populatedMip { 0 };
+        // The highest (lowest resolution) mip that we will support, relative to the number 
+        // of mips in the gpu::Texture object
         uint16 _maxAllocatedMip { 0 };
         uint32 _size { 0 };
+        // Contains a series of lambdas that when executed will transfer data to the GPU, modify 
+        // the _populatedMip and update the sampler in order to fully populate the allocated texture 
+        // until _populatedMip == _allocatedMip
         std::queue<PromoteLambda> _pendingTransfers;
     };
 
@@ -154,7 +164,6 @@ public:
 
         void allocateStorage(uint16 mip);
         void copyMipsFromTexture();
-    private:
     };
 
 #if 0
