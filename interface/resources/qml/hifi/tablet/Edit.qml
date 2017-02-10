@@ -23,6 +23,7 @@ StackView {
         editRoot.pop();
     }
 
+
     Component {
         id: editBasePage
         TabView {
@@ -30,9 +31,11 @@ StackView {
             anchors.fill: parent
 
             Tab {
+                title: "Entity List"
                 active: true
                 enabled: true
                 property string originalUrl: ""
+
 
                 WebView {
                     id: entityListToolWebView
@@ -44,6 +47,7 @@ StackView {
             }
 
             Tab {
+                title: "Entity Properties"
                 active: true
                 enabled: true
                 property string originalUrl: ""
@@ -58,6 +62,7 @@ StackView {
             }
 
             Tab {
+                title: "Grid"
                 active: true
                 enabled: true
                 property string originalUrl: ""
