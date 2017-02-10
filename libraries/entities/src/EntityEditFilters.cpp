@@ -18,7 +18,7 @@
 QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
     QList<EntityItemID> zones;
     _lock.lockForRead();
-    qCDebug(entities) << "looking at " << _filterFunctionMap.size() << "possible zones";
+    qCDebug(entities) << "looking at " << _filterFunctionMap.size() << "possible zones, at " << position;
     for (auto it = _filterFunctionMap.begin(); it != _filterFunctionMap.end(); it++) {
         auto id = it.key();
         if (!id.isInvalidID()) {

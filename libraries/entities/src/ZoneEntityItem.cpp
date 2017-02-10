@@ -239,12 +239,7 @@ bool ZoneEntityItem::containsPoint(glm::vec3& position) {
     // use _shapeType shortly
     // for now bounding box just so I can get end-to-end working
     bool success;
-    AABox box = getAABox(success);
-    if (success) {
-        qCDebug(entities) << "box: " << box;
-        return box.contains(position);
-    }
-    // just return false if no AABox
-    return success;
+    bool result = getAABox(success).contains(position);
+    return result && success;
 }
 
