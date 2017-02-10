@@ -31,11 +31,112 @@ StackView {
             anchors.fill: parent
 
             Tab {
-                title: "Entity List"
+                title: "Create Entities"
                 active: true
                 enabled: true
                 property string originalUrl: ""
 
+                Flow {
+                    id: createEntitiesFlow
+                    spacing: 16
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/assets-01.svg"
+                        text: "ASSETS"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "openAssetBrowserButton" }
+                            });
+                        }
+                    }
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/model-01.svg"
+                        text: "MODEL"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "newModelButton" }
+                            });
+                        }
+                    }
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/cube-01.svg"
+                        text: "CUBE"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "newCubeButton" }
+                            });
+                        }
+                    }
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/sphere-01.svg"
+                        text: "SPHERE"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "newSphereButton" }
+                            });
+                        }
+                    }
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/light-01.svg"
+                        text: "LIGHT"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "newLightButton" }
+                            });
+                        }
+                    }
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/text-01.svg"
+                        text: "TEXT"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "newTextButton" }
+                            });
+                        }
+                    }
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/web-01.svg"
+                        text: "WEB"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "newWebButton" }
+                            });
+                        }
+                    }
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/zone-01.svg"
+                        text: "ZONE"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "newZoneButton" }
+                            });
+                        }
+                    }
+
+                    Button {
+                        iconSource: "../../../../../scripts/system/assets/images/tools/particle-01.svg"
+                        text: "PARTICLE"
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "newParticleButton" }
+                            });
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "Entity List"
+                active: true
+                enabled: true
+                property string originalUrl: ""
 
                 WebView {
                     id: entityListToolWebView
@@ -68,8 +169,23 @@ StackView {
                 property string originalUrl: ""
 
                 WebView {
-                    id: entityPropertiesWebView
+                    id: gridControlsWebView
                     url: "../../../../../scripts/system/html/gridControls.html"
+                    eventBridge: editRoot.eventBridge
+                    anchors.fill: parent
+                    enabled: true
+                }
+            }
+
+            Tab {
+                title: "Particle Explorer"
+                active: true
+                enabled: true
+                property string originalUrl: ""
+
+                WebView {
+                    id: particleExplorerWebView
+                    url: "../../../../../scripts/system/particle_explorer/particleExplorer.html"
                     eventBridge: editRoot.eventBridge
                     anchors.fill: parent
                     enabled: true

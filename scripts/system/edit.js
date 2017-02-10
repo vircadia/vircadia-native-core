@@ -201,24 +201,30 @@ var toolBar = (function () {
         }
     }
 
+    var buttonHandlers = {}; // only used to tablet mode
+
     function addButton(name, image, handler) {
-        var imageUrl = TOOLS_PATH + image;
-        var button = toolBar.addButton({
-            objectName: name,
-            imageURL: imageUrl,
-            imageOffOut: 1,
-            imageOffIn: 2,
-            imageOnOut: 0,
-            imageOnIn: 2,
-            alpha: 0.9,
-            visible: true
-        });
-        if (handler) {
-            button.clicked.connect(function () {
-                Script.setTimeout(handler, 100);
+        if (Settings.getValue("HUDUIEnabled")) {
+            var imageUrl = TOOLS_PATH + image;
+            var button = toolBar.addButton({
+                objectName: name,
+                imageURL: imageUrl,
+                imageOffOut: 1,
+                imageOffIn: 2,
+                imageOnOut: 0,
+                imageOnIn: 2,
+                alpha: 0.9,
+                visible: true
             });
+            if (handler) {
+                button.clicked.connect(function () {
+                    Script.setTimeout(handler, 100);
+                });
+            }
+            return button;
+        } else {
+            buttonHandlers[name] = handler;
         }
-        return button;
     }
 
     var SHAPE_TYPE_NONE = 0;
@@ -268,6 +274,9 @@ var toolBar = (function () {
         switch (message.method) {
         case "newModelDialogAdd":
             handleNewModelDialogResult(message.params);
+            break;
+        case "newEntityButtonClicked":
+            buttonHandlers[message.params.buttonName]();
             break;
         }
     }

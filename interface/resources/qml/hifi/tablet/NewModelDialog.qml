@@ -123,7 +123,7 @@ Rectangle {
                         text: qsTr("Add")
                         onClicked: {
                             newModelDialog.sendToScript({
-                                method: 'newModelDialogAdd',
+                                method: "newModelDialogAdd",
                                 params: {
                                     textInput: modelURL.text,
                                     checkBox: dynamic.checked,
@@ -137,7 +137,7 @@ Rectangle {
                         id: button2
                         text: qsTr("Cancel")
                         onClicked: {
-                            newModelDialog.sendToScript({method: 'newModelDialogCancel'})
+                            newModelDialog.sendToScript({method: "newModelDialogCancel"})
                         }
                     }
                 }

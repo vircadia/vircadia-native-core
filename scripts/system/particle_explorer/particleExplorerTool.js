@@ -18,12 +18,17 @@ ParticleExplorerTool = function() {
     var that = {};
 
     that.createWebView = function() {
-        var url = PARTICLE_EXPLORER_HTML_URL;
-        that.webView = new OverlayWebWindow({
-            title: 'Particle Explorer',
-            source: url,
-            toolWindow: true
-        });
+        if (Settings.getValue("HUDUIEnabled")) {
+            var url = PARTICLE_EXPLORER_HTML_URL;
+            that.webView = new OverlayWebWindow({
+                title: 'Particle Explorer',
+                source: url,
+                toolWindow: true
+            });
+        } else {
+            that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            that.webView.setVisible = function(value) {};
+        }
 
         that.webView.setVisible(true);
         that.webView.webEventReceived.connect(that.webEventReceived);        
@@ -35,8 +40,10 @@ ParticleExplorerTool = function() {
             return;
         }
 
-        that.webView.close();
-        that.webView = null;
+        if (Settings.getValue("HUDUIEnabled")) {
+            that.webView.close();
+            that.webView = null;
+        }
         that.activeParticleEntity = 0;
     }
 
