@@ -36,7 +36,9 @@ std::list<TextureWeakPointer> GL45VariableAllocationTexture::_memoryManagedTextu
 MemoryPressureState GL45VariableAllocationTexture::_memoryPressureState = MemoryPressureState::Idle;
 std::atomic<bool> GL45VariableAllocationTexture::_memoryPressureStateStale { false };
 const uvec3 GL45VariableAllocationTexture::INITIAL_MIP_TRANSFER_DIMENSIONS { 64, 64, 1 };
-WorkQueue GL45VariableAllocationTexture::_workQueue;
+WorkQueue GL45VariableAllocationTexture::_transferQueue;
+WorkQueue GL45VariableAllocationTexture::_promoteQueue;
+WorkQueue GL45VariableAllocationTexture::_demoteQueue;
 
 #define OVERSUBSCRIBED_PRESSURE_VALUE 0.95f
 #define UNDERSUBSCRIBED_PRESSURE_VALUE 0.85f
@@ -54,19 +56,19 @@ void GL45VariableAllocationTexture::addToWorkQueue(const TexturePointer& texture
     switch (_memoryPressureState) {
         case MemoryPressureState::Oversubscribed:
             if (object->canDemote()) {
-                _workQueue.push({ texturePointer, (float) object->size() });
+                _demoteQueue.push({ texturePointer, (float)object->size() });
             }
             break;
 
         case MemoryPressureState::Undersubscribed:
             if (object->canPromote()) {
-                _workQueue.push({ texturePointer, 1.0f / (float)object->size() });
+                _promoteQueue.push({ texturePointer, 1.0f / (float)object->size() });
             }
             break;
 
         case MemoryPressureState::Transfer:
             if (object->hasPendingTransfers()) {
-                _workQueue.push({ texturePointer, 1.0f / (float)object->_gpuObject.evalMipSize(object->_populatedMip) });
+                _transferQueue.push({ texturePointer, 1.0f / (float)object->_gpuObject.evalMipSize(object->_populatedMip) });
             }
             break;
 
@@ -76,6 +78,44 @@ void GL45VariableAllocationTexture::addToWorkQueue(const TexturePointer& texture
         default:
             Q_UNREACHABLE();
     }
+}
+
+WorkQueue& GL45VariableAllocationTexture::getActiveWorkQueue() {
+    static WorkQueue empty;
+    switch (_memoryPressureState) {
+        case MemoryPressureState::Oversubscribed:
+            return _demoteQueue;
+
+        case MemoryPressureState::Undersubscribed:
+            return _promoteQueue;
+
+        case MemoryPressureState::Transfer:
+            return _transferQueue;
+
+        default:
+            break;
+    }
+    Q_UNREACHABLE();
+    return empty;
+}
+
+// FIXME hack for stats display
+QString getTextureMemoryPressureModeString() {
+    switch (GL45VariableAllocationTexture::_memoryPressureState) {
+        case MemoryPressureState::Oversubscribed:
+            return "Oversubscribed";
+
+        case MemoryPressureState::Undersubscribed:
+            return "Undersubscribed";
+
+        case MemoryPressureState::Transfer:
+            return "Transfer";
+
+        case MemoryPressureState::Idle:
+            return "Idle";
+    }
+    Q_UNREACHABLE();
+    return "Unknown";
 }
 
 void GL45VariableAllocationTexture::updateMemoryPressure() {
@@ -96,6 +136,8 @@ void GL45VariableAllocationTexture::updateMemoryPressure() {
     if (!_memoryPressureStateStale.exchange(false)) {
         return;
     }
+
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
 
     // Clear any defunct textures (weak pointers that no longer have a valid texture)
     _memoryManagedTextures.remove_if([&](const TextureWeakPointer& weakPointer) { 
@@ -147,7 +189,9 @@ void GL45VariableAllocationTexture::updateMemoryPressure() {
     if (newState != _memoryPressureState) {
         _memoryPressureState = newState;
         // Clear the existing queue
-        _workQueue = WorkQueue();
+        _transferQueue = WorkQueue();
+        _promoteQueue = WorkQueue();
+        _demoteQueue = WorkQueue();
         // Populate the existing textures into the queue
         for (const auto& texture : strongTextures) {
             addToWorkQueue(texture);
@@ -160,9 +204,11 @@ void GL45VariableAllocationTexture::processWorkQueues() {
         return;
     }
 
-    while (!_workQueue.empty()) {
-        auto workTarget = _workQueue.top();
-        _workQueue.pop();
+    auto& workQueue = getActiveWorkQueue();
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
+    while (!workQueue.empty()) {
+        auto workTarget = workQueue.top();
+        workQueue.pop();
         auto texture = workTarget.first.lock();
         if (!texture) {
             continue;
@@ -197,7 +243,7 @@ void GL45VariableAllocationTexture::processWorkQueues() {
         break;
     }
 
-    if (_workQueue.empty()) {
+    if (workQueue.empty()) {
         _memoryPressureState = MemoryPressureState::Idle;
     }
 }
@@ -208,6 +254,7 @@ void GL45VariableAllocationTexture::manageMemory() {
     auto interval = now - lastProcessTime;
     if (interval > (USECS_PER_MSEC * 20)) {
         lastProcessTime = now;
+        PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
         updateMemoryPressure();
         processWorkQueues();
     }
@@ -283,6 +330,7 @@ void GL45ResourceTexture::syncSampler() const {
 }
 
 void GL45ResourceTexture::promote() {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
     GLuint oldId = _id;
     uint32_t oldSize = _size;
@@ -317,6 +365,7 @@ void GL45ResourceTexture::promote() {
 }
 
 void GL45ResourceTexture::demote() {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
     auto oldSize = _size;
@@ -349,6 +398,7 @@ void GL45ResourceTexture::demote() {
 }
 
 void GL45ResourceTexture::populateTransferQueue() {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     _pendingTransfers = std::queue<PromoteLambda>();
     if (_populatedMip <= _allocatedMip) {
         return;
@@ -401,7 +451,7 @@ void GL45ResourceTexture::populateTransferQueue() {
 
         // queue up the sampler and populated mip change for after the transfer has completed
         _pendingTransfers.push([=] {
-            _populatedMip = targetMip;
+            _populatedMip = sourceMip;
             syncSampler();
         });
     } while (sourceMip != _allocatedMip);

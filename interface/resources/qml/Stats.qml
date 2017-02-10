@@ -241,7 +241,7 @@ Item {
                         text: "GPU Textures: ";
                     }
                     StatText {
-                        text: "  Sparse Enabled: " + (0 == root.gpuSparseTextureEnabled ? "false" : "true");
+                        text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
                     }
                     StatText {
                         text: "  Count: " + root.gpuTextures;
@@ -253,14 +253,7 @@ Item {
                         text: "  Decimated: " + root.decimatedTextureCount;
                     }
                     StatText {
-                        text: "  Sparse Count: " + root.gpuTexturesSparse;
-                        visible: 0 != root.gpuSparseTextureEnabled;
-                    }
-                    StatText {
-                        text: "  Virtual Memory: " + root.gpuTextureVirtualMemory + " MB";
-                    }
-                    StatText {
-                        text: "  Commited Memory: " + root.gpuTextureMemory + " MB";
+                        text: "  Resource Memory: " + root.gpuTextureMemory + " MB";
                     }
                     StatText {
                         text: "  Framebuffer Memory: " + root.gpuTextureFramebufferMemory + " MB";

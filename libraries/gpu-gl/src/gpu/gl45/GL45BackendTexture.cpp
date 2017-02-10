@@ -35,9 +35,6 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
     }
 
     const Texture& texture = *texturePointer;
-    if (std::string("cursor texture") == texture.source()) {
-        qDebug() << "Loading cursor texture";
-    }
     if (TextureUsageType::EXTERNAL == texture.getUsageType()) {
         return Parent::syncGPUObject(texturePointer);
     }

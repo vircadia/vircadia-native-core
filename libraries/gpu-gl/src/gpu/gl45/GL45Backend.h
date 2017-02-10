@@ -103,11 +103,13 @@ public:
         };
         using WorkQueue = std::priority_queue<QueuePair, std::vector<QueuePair>, QueuePairLess>;
 
+        static MemoryPressureState _memoryPressureState;
     protected:
         static std::atomic<bool> _memoryPressureStateStale;
-        static MemoryPressureState _memoryPressureState;
         static std::list<TextureWeakPointer> _memoryManagedTextures;
-        static WorkQueue _workQueue;
+        static WorkQueue _transferQueue;
+        static WorkQueue _promoteQueue;
+        static WorkQueue _demoteQueue;
         static const uvec3 INITIAL_MIP_TRANSFER_DIMENSIONS;
 
 
@@ -115,6 +117,7 @@ public:
         static void processWorkQueues();
         static void addMemoryManagedTexture(const TexturePointer& texturePointer);
         static void addToWorkQueue(const TexturePointer& texture);
+        static WorkQueue& getActiveWorkQueue();
 
         static void manageMemory();
 

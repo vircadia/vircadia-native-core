@@ -110,6 +110,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuTextureFramebufferMemory, 0)
     STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
     STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
+    STATS_PROPERTY(QString, gpuTextureMemoryPressureState, QString())
     STATS_PROPERTY(int, gpuFreeMemory, 0)
     STATS_PROPERTY(float, gpuFrameTime, 0)
     STATS_PROPERTY(float, batchFrameTime, 0)
@@ -217,6 +218,7 @@ signals:
     void gpuTextureVirtualMemoryChanged();
     void gpuTextureFramebufferMemoryChanged();
     void gpuTextureSparseMemoryChanged();
+    void gpuTextureMemoryPressureStateChanged();
     void gpuSparseTextureEnabledChanged();
     void gpuFreeMemoryChanged();
     void gpuFrameTimeChanged();
