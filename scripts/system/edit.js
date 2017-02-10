@@ -287,30 +287,33 @@ var toolBar = (function () {
 
             var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
             var DYNAMIC_DEFAULT = false;
-            var result = Window.customPrompt({
-                textInput: {
-                    label: "Model URL"
-                },
-                comboBox: {
-                    label: "Automatic Collisions",
-                    index: SHAPE_TYPE_DEFAULT,
-                    items: SHAPE_TYPES
-                },
-                checkBox: {
-                    label: "Dynamic",
-                    checked: DYNAMIC_DEFAULT,
-                    disableForItems: [
-                        SHAPE_TYPE_STATIC_MESH
-                    ],
-                    checkStateOnDisable: false,
-                    warningOnDisable: "Models with automatic collisions set to 'Exact' cannot be dynamic"
-                }
-            });
 
-            if (result) {
-                var url = result.textInput;
-                var shapeType;
-                switch (result.comboBox) {
+            if (Settings.getValue("HUDUIEnabled")) {
+                // HUD-ui version of new-model dialog
+                var result = Window.customPrompt({
+                    textInput: {
+                        label: "Model URL"
+                    },
+                    comboBox: {
+                        label: "Automatic Collisions",
+                        index: SHAPE_TYPE_DEFAULT,
+                        items: SHAPE_TYPES
+                    },
+                    checkBox: {
+                        label: "Dynamic",
+                        checked: DYNAMIC_DEFAULT,
+                        disableForItems: [
+                            SHAPE_TYPE_STATIC_MESH
+                        ],
+                        checkStateOnDisable: false,
+                        warningOnDisable: "Models with automatic collisions set to 'Exact' cannot be dynamic"
+                    }
+                });
+
+                if (result) {
+                    var url = result.textInput;
+                    var shapeType;
+                    switch (result.comboBox) {
                     case SHAPE_TYPE_SIMPLE_HULL:
                         shapeType = "simple-hull";
                         break;
@@ -322,21 +325,26 @@ var toolBar = (function () {
                         break;
                     default:
                         shapeType = "none";
-                }
+                    }
 
-                var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
-                if (shapeType === "static-mesh" && dynamic) {
-                    // The prompt should prevent this case
-                    print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
-                } else if (url) {
-                    createNewEntity({
-                        type: "Model",
-                        modelURL: url,
-                        shapeType: shapeType,
-                        dynamic: dynamic,
-                        gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
-                    });
+                    var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+                    if (shapeType === "static-mesh" && dynamic) {
+                        // The prompt should prevent this case
+                        print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
+                    } else if (url) {
+                        createNewEntity({
+                            type: "Model",
+                            modelURL: url,
+                            shapeType: shapeType,
+                            dynamic: dynamic,
+                            gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
+                        });
+                    }
                 }
+            } else {
+                // tablet version of new-model dialog
+                var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+                tablet.loadQMLSource("NewModelDialog.qml");
             }
         });
 
