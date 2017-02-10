@@ -37,8 +37,10 @@ void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {
 
 void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode) {
     QString channel, message;
+    QByteArray data;
     QUuid senderID;
-    MessagesClient::decodeMessagesPacket(receivedMessage, channel, message, senderID);
+    bool isText;
+    MessagesClient::decodeMessagesPacket(receivedMessage, channel, isText, message, data, senderID);
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -47,7 +49,8 @@ void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessa
         return node->getActiveSocket() && _channelSubscribers[channel].contains(node->getUUID());
     },
         [&](const SharedNodePointer& node) {
-        auto packetList = MessagesClient::encodeMessagesPacket(channel, message, senderID);
+        auto packetList = isText ? MessagesClient::encodeMessagesPacket(channel, message, senderID) :
+                                   MessagesClient::encodeMessagesDataPacket(channel, data, senderID);
         nodeList->sendPacketList(std::move(packetList), *node);
     });
 }
