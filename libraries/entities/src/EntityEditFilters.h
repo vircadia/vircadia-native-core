@@ -23,11 +23,17 @@
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 
-typedef QPair<QScriptValue, std::function<bool()>> FilterFunctionPair;
-
 class EntityEditFilters : public QObject, public Dependency {
     Q_OBJECT
 public:
+    struct FilterData {
+        QScriptValue filterFn;
+        std::function<bool()> uncaughtExceptions;
+        QScriptEngine* engine;
+
+        bool valid() { return (engine != nullptr && filterFn.isFunction() && uncaughtExceptions); }
+    };
+
     EntityEditFilters() {};
     EntityEditFilters(EntityTreePointer tree ): _tree(tree) {};
 
@@ -51,8 +57,7 @@ private:
     QScriptValue _nullObjectForFilter{};
     
     QReadWriteLock _lock;
-    QMap<EntityItemID, FilterFunctionPair*> _filterFunctionMap;
-    QMap<EntityItemID, QScriptEngine*> _filterScriptEngineMap;
+    QMap<EntityItemID, FilterData> _filterDataMap;
 };
 
 #endif //hifi_EntityEditFilters_h

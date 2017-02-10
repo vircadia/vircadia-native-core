@@ -322,7 +322,6 @@ void EntityServer::entityFilterAdded(EntityItemID id, bool success) {
     }
 }
 
-
 void EntityServer::nodeAdded(SharedNodePointer node) {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     tree->knowAvatarID(node->getUUID());

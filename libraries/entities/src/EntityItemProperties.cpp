@@ -1805,7 +1805,7 @@ void EntityItemProperties::markAllChanged() {
 
     _parentIDChanged = true;
     _parentJointIndexChanged = true;
-    
+
     _jointRotationsSetChanged = true;
     _jointRotationsChanged = true;
     _jointTranslationsSetChanged = true;
