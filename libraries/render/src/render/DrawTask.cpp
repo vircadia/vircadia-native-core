@@ -123,6 +123,111 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
     }
 }
 
+
+void render::renderStateSortShapesCapped(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, double mstimeBudget, int maxDrawnItems) {
+
+    auto& scene = sceneContext->_scene;
+    RenderArgs* args = renderContext->args;
+    auto now = usecTimestampNow();
+
+    int numItemsToDraw = (int)inItems.size();
+    if (maxDrawnItems != -1) {
+        numItemsToDraw = glm::min(numItemsToDraw, maxDrawnItems);
+    }
+
+    using SortedPipelines = std::vector<render::ShapeKey>;
+    using SortedShapes = std::unordered_map<render::ShapeKey, std::vector<Item>, render::ShapeKey::Hash, render::ShapeKey::KeyEqual>;
+    SortedPipelines sortedPipelines;
+    SortedShapes sortedShapes;
+    std::vector<Item> ownPipelineBucket;
+
+    {
+        PROFILE_RANGE(render_detail, "sort");
+
+        for (auto i = 0; i < numItemsToDraw; ++i) {
+            auto item = scene->getItem(inItems[i].id);
+
+            {
+                assert(item.getKey().isShape());
+                const auto key = item.getShapeKey();
+                if (key.isValid() && !key.hasOwnPipeline()) {
+                    auto& bucket = sortedShapes[key];
+                    if (bucket.empty()) {
+                        sortedPipelines.push_back(key);
+                    }
+                    bucket.push_back(item);
+                } else if (key.hasOwnPipeline()) {
+                    ownPipelineBucket.push_back(item);
+                } else {
+                    qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
+                }
+            }
+        }
+    }
+
+    {
+        PROFILE_RANGE(render_detail, "render");
+
+        // Then render
+        quint64 usecHalfBudget = 1000 * 0.5 * mstimeBudget;
+        quint64 usecBudget = 1000 * mstimeBudget;
+
+        int numDrawCalls = 0;
+        int numDrawcallsChecks = 128;
+        int numChecks = 0;
+        int numChecksBudget = 4;
+
+        for (auto& pipelineKey : sortedPipelines) {
+            auto& bucket = sortedShapes[pipelineKey];
+            args->_pipeline = shapeContext->pickPipeline(args, pipelineKey);
+            if (!args->_pipeline) {
+                continue;
+            }
+            for (auto& item : bucket) {
+                item.render(args);
+
+                numDrawCalls++;
+                if ((numDrawCalls % numDrawcallsChecks) == 0) {
+                    auto newNow = usecTimestampNow();
+                    if ((newNow - now) > usecHalfBudget) {
+                        if ((newNow - now) > usecBudget) {
+                            return;
+                        }
+
+                        usecHalfBudget += (usecHalfBudget / 2);
+                        numDrawcallsChecks / 2;
+                        numChecks++;
+                        if (numChecks > numChecksBudget) {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        args->_pipeline = nullptr;
+        for (auto& item : ownPipelineBucket) {
+            item.render(args);
+
+            numDrawCalls++;
+            if ((numDrawCalls % numDrawcallsChecks) == 0) {
+                auto newNow = usecTimestampNow();
+                if ((newNow - now) > usecHalfBudget) {
+                    if ((newNow - now) > usecBudget) {
+                        return;
+                    }
+
+                    usecHalfBudget += (usecHalfBudget / 2);
+                    numDrawcallsChecks / 2;
+                    numChecks++;
+                    if (numChecks > numChecksBudget) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());

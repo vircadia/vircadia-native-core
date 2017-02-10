@@ -295,7 +295,8 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
         if (_stateSort) {
-            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            // renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            renderStateSortShapesCapped(sceneContext, renderContext, _shapePlumber, inItems, 2.0, _maxDrawn);
         } else {
             renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         }
