@@ -52,8 +52,7 @@ var selectedInputMenu = "";
 var selectedOutputMenu = "";
 
 function setupAudioMenus() {
-    Menu.addMenu("Audio > Devices");
-    Menu.addSeparator("Audio > Devices","Output Audio Device");
+    Menu.addSeparator("Audio", "Output Audio Device");
 
     var outputDeviceSetting = Settings.getValue(OUTPUT_DEVICE_SETTING);
     var outputDevices = AudioDevice.getOutputDevices();
@@ -68,7 +67,7 @@ function setupAudioMenus() {
         var thisDeviceSelected = (outputDevices[i] == selectedOutputDevice);
         var menuItem = "Use " + outputDevices[i] + " for Output";
         Menu.addMenuItem({
-                            menuName: "Audio > Devices",
+                            menuName: "Audio",
                             menuItemName: menuItem,
                             isCheckable: true,
                             isChecked: thisDeviceSelected
@@ -78,7 +77,7 @@ function setupAudioMenus() {
         }
     }
 
-    Menu.addSeparator("Audio > Devices","Input Audio Device");
+    Menu.addSeparator("Audio", "Input Audio Device");
 
     var inputDeviceSetting = Settings.getValue(INPUT_DEVICE_SETTING);
     var inputDevices = AudioDevice.getInputDevices();
@@ -93,7 +92,7 @@ function setupAudioMenus() {
         var thisDeviceSelected = (inputDevices[i] == selectedInputDevice);
         var menuItem = "Use " + inputDevices[i] + " for Input";
         Menu.addMenuItem({
-                            menuName: "Audio > Devices",
+                            menuName: "Audio",
                             menuItemName: menuItem,
                             isCheckable: true,
                             isChecked: thisDeviceSelected
