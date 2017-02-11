@@ -2361,16 +2361,15 @@ bool MyAvatar::hasDriveInput() const {
 }
 
 void MyAvatar::setAway(bool value) {
-    _isAway = value;
-    if (_isAway) {
-        emit wentAway();
-    } else {
-        emit wentActive();
+    if (_isAway == value) {
+        return;
     }
+    _isAway = value;
+    _isAway ? emit wentAway() : emit wentActive();
 }
 
 // The resulting matrix is used to render the hand controllers, even if the camera is decoupled from the avatar.
-// Specificly, if we are rendering using a third person camera.  We would like to render the hand controllers in front of the camera,
+// Specifically, if we are rendering using a third person camera.  We would like to render the hand controllers in front of the camera,
 // not in front of the avatar.
 glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const {
 
