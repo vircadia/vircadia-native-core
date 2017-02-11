@@ -13,8 +13,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
-   Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset, setGrabCommunications,
-   Menu, HMD */
+   Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset,
+   setGrabCommunications, Menu, HMD, isInEditMode */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -1667,6 +1667,15 @@ function MyController(hand) {
         }
 
         if (rayPickInfo.entityID) {
+            if (this.triggerSmoothedGrab() && isInEditMode()) {
+                this.searchIndicatorOn(rayPickInfo.searchRay);
+                Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                    method: "selectEntity",
+                    entityID: rayPickInfo.entityID
+                }));
+                return;
+            }
+
             entity = rayPickInfo.entityID;
             name = entityPropertiesCache.getProps(entity).name;
             if (this.entityWantsTrigger(entity)) {
