@@ -14,6 +14,7 @@
 #define hifi_MessagesClient_h
 
 #include <QString>
+#include <QByteArray>
 
 #include <DependencyManager.h>
 
@@ -31,15 +32,19 @@ public:
 
     Q_INVOKABLE void sendMessage(QString channel, QString message, bool localOnly = false);
     Q_INVOKABLE void sendLocalMessage(QString channel, QString message);
+    Q_INVOKABLE void sendData(QString channel, QByteArray data, bool localOnly = false);
     Q_INVOKABLE void subscribe(QString channel);
     Q_INVOKABLE void unsubscribe(QString channel);
 
-    static void decodeMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, QString& channel, QString& message, QUuid& senderID);
-    static std::unique_ptr<NLPacketList> encodeMessagesPacket(QString channel, QString message, QUuid senderID);
+    static void decodeMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, QString& channel, 
+                                           bool& isText, QString& message, QByteArray& data, QUuid& senderID);
 
+    static std::unique_ptr<NLPacketList> encodeMessagesPacket(QString channel, QString message, QUuid senderID);
+    static std::unique_ptr<NLPacketList> encodeMessagesDataPacket(QString channel, QByteArray data, QUuid senderID);
 
 signals:
     void messageReceived(QString channel, QString message, QUuid senderUUID, bool localOnly);
+    void dataReceived(QString channel, QByteArray data, QUuid senderUUID, bool localOnly);
 
 private slots:
     void handleMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode);
