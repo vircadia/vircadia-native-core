@@ -296,7 +296,7 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
 
         if (_stateSort) {
             // renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
-            renderStateSortShapesCapped(sceneContext, renderContext, _shapePlumber, inItems, 2.0, _maxDrawn);
+            renderStateSortShapesCapped(sceneContext, renderContext, _shapePlumber, inItems, _maxTimeBudget, _maxDrawn);
         } else {
             renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         }
