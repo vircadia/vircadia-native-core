@@ -660,7 +660,7 @@ void AvatarMixer::sendStatsPacket() {
         avatarsObject[uuidStringWithoutCurlyBraces(node->getUUID())] = avatarStats;
     });
 
-    statsObject["avatars"] = avatarsObject;
+    statsObject["z_avatars"] = avatarsObject;
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
 
     _sumListeners = 0;
