@@ -88,6 +88,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _isPushing(false),
     _isBeingPushed(false),
     _isBraking(false),
+    _isAway(false),
     _boomLength(ZOOM_DEFAULT),
     _yawSpeed(YAW_SPEED_DEFAULT),
     _pitchSpeed(PITCH_SPEED_DEFAULT),
@@ -2357,6 +2358,19 @@ bool MyAvatar::didTeleport() {
 
 bool MyAvatar::hasDriveInput() const {
     return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
+}
+
+void MyAvatar::setAway(bool value) {
+    _isAway = value;
+    if (_isAway) {
+        emit wentAway();
+    } else {
+        emit wentActive();
+    }
+}
+
+bool MyAvatar::getIsAway() {
+    return _isAway;
 }
 
 // The resulting matrix is used to render the hand controllers, even if the camera is decoupled from the avatar.
