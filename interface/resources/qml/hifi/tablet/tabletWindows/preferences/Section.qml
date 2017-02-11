@@ -19,7 +19,7 @@ import "."
 
 Preference {
     id: root
-    property bool collapsable: true
+    property bool collapsable: false
     property bool expanded: false
     property bool isFirst: false
     property bool isLast: false

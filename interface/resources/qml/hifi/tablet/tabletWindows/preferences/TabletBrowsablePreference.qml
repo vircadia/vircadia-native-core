@@ -65,7 +65,7 @@ Preference {
                 verticalCenter: dataTextField.verticalCenter
             }
             onClicked: {
-                var browser = fileBrowserBuilder.createObject(desktop, {
+                var browser = fileBrowserBuilder.createObject({
                     selectDirectory: true,
                     dir: fileDialogHelper.pathToUrl(preference.value)
                 });
