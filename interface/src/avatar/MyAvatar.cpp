@@ -2369,10 +2369,6 @@ void MyAvatar::setAway(bool value) {
     }
 }
 
-bool MyAvatar::getIsAway() {
-    return _isAway;
-}
-
 // The resulting matrix is used to render the hand controllers, even if the camera is decoupled from the avatar.
 // Specificly, if we are rendering using a third person camera.  We would like to render the hand controllers in front of the camera,
 // not in front of the avatar.

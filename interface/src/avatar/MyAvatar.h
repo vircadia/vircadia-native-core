@@ -523,8 +523,8 @@ private:
     float getEnergy();
     void setEnergy(float value);
     bool didTeleport();
+    bool getIsAway() const { return _isAway; }
     void setAway(bool value);
-    bool getIsAway();
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
