@@ -6854,3 +6854,8 @@ void Application::updateThreadPoolCount() const {
     qCDebug(interfaceapp) << "Setting thread pool size to " << threadPoolSize;
     QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
 }
+
+void Application::toggleMuteAudio() {
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::MuteAudio, !menu->isOptionChecked(MenuOption::MuteAudio));
+}

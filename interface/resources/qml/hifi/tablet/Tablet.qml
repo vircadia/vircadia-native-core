@@ -1,4 +1,4 @@
-import QtQuick 2.0
+import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import "../../styles-uit"
 
@@ -104,6 +104,7 @@ Item {
         anchors.top: parent.top
 
         Item {
+            id: audioIcon
             anchors.verticalCenter: parent.verticalCenter
             width: 40
             height: 40
@@ -116,7 +117,8 @@ Item {
             }
 
             Item {
-                visible: !tablet.micEnabled
+                visible: (!tablet.micEnabled && !toggleMuteMouseArea.containsMouse)
+                         || (tablet.micEnabled && toggleMuteMouseArea.containsMouse)
 
                 Image {
                     id: muteIcon
@@ -126,13 +128,13 @@ Item {
                 ColorOverlay {
                     anchors.fill: muteIcon
                     source: muteIcon
-                    color: "#ff0000"
+                    color: toggleMuteMouseArea.containsMouse ? "#a0a0a0" : "#ff0000"
                 }
             }
         }
 
         Item {
-            id: item1
+            id: audioBar
             width: 170
             height: 10
             anchors.left: parent.left
@@ -180,6 +182,22 @@ Item {
                     }
                 }
             }
+        }
+
+        MouseArea {
+            id: toggleMuteMouseArea
+            anchors {
+                left: audioIcon.left
+                right: audioBar.right
+                top: audioIcon.top
+                bottom: audioIcon.bottom
+            }
+
+            hoverEnabled: true
+            preventStealing: true
+            propagateComposedEvents: false
+            scrollGestureEnabled: false
+            onClicked: tabletRoot.toggleMicEnabled()
         }
 
         RalewaySemiBold {

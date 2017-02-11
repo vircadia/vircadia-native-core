@@ -42,6 +42,10 @@ Item {
         }
     }
 
+    function toggleMicEnabled() {
+        ApplicationInterface.toggleMuteAudio();
+    }
+
     function setUsername(newUsername) {
         username = newUsername;
     }
