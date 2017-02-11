@@ -1463,8 +1463,8 @@ var PropertiesTool = function (opts) {
 
     function resetScriptStatus() {
         updateScriptStatus({
-            statusRetrieved: false,
-            isRunning: false,
+            statusRetrieved: undefined,
+            isRunning: undefined,
             status: "",
             errorInfo: ""
         });
