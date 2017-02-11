@@ -1,8 +1,7 @@
 "use strict";
 
 //
-//  goto.js
-//  scripts/system/
+//  audio.js
 //
 //  Created by Howard Stearns on 2 Jun 2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -14,22 +13,33 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var button;
-var buttonName = "MUTE";
+var TOOLBAR_BUTTON_NAME = "MUTE";
+var TABLET_BUTTON_NAME = "AUDIO";
 var toolBar = null;
 var tablet = null;
+var isHUDUIEnabled = Settings.getValue("HUDUIEnabled");
+var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
 function onMuteToggled() {
-    button.editProperties({isActive: AudioDevice.getMuted()});
+    if (isHUDUIEnabled) {
+        button.editProperties({ isActive: AudioDevice.getMuted() });
+    }
 }
 function onClicked(){
-    var menuItem = "Mute Microphone";
-    Menu.setIsOptionChecked(menuItem, !Menu.isOptionChecked(menuItem));
+    if (isHUDUIEnabled) {
+        var menuItem = "Mute Microphone";
+        Menu.setIsOptionChecked(menuItem, !Menu.isOptionChecked(menuItem));
+    } else {
+        var entity = HMD.tabletID;
+        Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
+        tablet.gotoMenuScreen("Audio");
+    }
 }
 
 if (Settings.getValue("HUDUIEnabled")) {
     toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
     button = toolBar.addButton({
-        objectName: buttonName,
+        objectName: TOOLBAR_BUTTON_NAME,
         imageURL: Script.resolvePath("assets/images/tools/mic.svg"),
         visible: true,
         alpha: 0.9
@@ -37,10 +47,8 @@ if (Settings.getValue("HUDUIEnabled")) {
 } else {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
-        icon: "icons/tablet-icons/mic-a.svg",
-        text: buttonName,
-        activeIcon: "icons/tablet-icons/mic-i.svg",
-        activeText: "UNMUTE",
+        icon: "icons/tablet-icons/mic-i.svg",
+        text: TABLET_BUTTON_NAME,
         sortOrder: 1
     });
 }
@@ -56,7 +64,7 @@ Script.scriptEnding.connect(function () {
         tablet.removeButton(button);
     }
     if (toolBar) {
-        toolBar.removeButton(buttonName);
+        toolBar.removeButton(TOOLBAR_BUTTON_NAME);
     }
 });
 

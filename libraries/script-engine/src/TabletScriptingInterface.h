@@ -72,7 +72,7 @@ public:
 
     void setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
-    Q_INVOKABLE void gotoMenuScreen();
+    Q_INVOKABLE void gotoMenuScreen(const QString& submenu = "");
 
     /**jsdoc
      * transition to the home screen

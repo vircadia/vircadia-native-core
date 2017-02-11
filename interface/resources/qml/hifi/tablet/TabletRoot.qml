@@ -6,8 +6,13 @@ Item {
     objectName: "tabletRoot"
     property string username: "Unknown user"
     property var eventBridge;
+    property string option: ""
 
     signal showDesktop();
+
+    function setOption(value) {
+        option = value;
+    }
 
     function loadSource(url) {
         loader.source = url;
@@ -71,6 +76,9 @@ Item {
             }
             if (loader.item.hasOwnProperty("sendToScript")) {
                 loader.item.sendToScript.connect(tabletRoot.sendToScript);
+            }
+            if (loader.item.hasOwnProperty("subMenu")) {
+                loader.item.subMenu = option;
             }
             loader.item.forceActiveFocus();
         }

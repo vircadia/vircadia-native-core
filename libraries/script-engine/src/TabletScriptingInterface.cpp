@@ -213,10 +213,11 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
     }
 }
 
-void TabletProxy::gotoMenuScreen() {
+void TabletProxy::gotoMenuScreen(const QString& submenu) {
     if (_qmlTabletRoot) {
         if (_state != State::Menu) {
             removeButtonsFromHomeScreen();
+            QMetaObject::invokeMethod(_qmlTabletRoot, "setOption", Q_ARG(const QVariant&, QVariant(submenu)));
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()), Qt::DirectConnection);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
