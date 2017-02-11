@@ -319,6 +319,24 @@ void Rig::clearIKJointLimitHistory() {
     }
 }
 
+void Rig::setMaxHipsOffsetLength(float maxLength) {
+    _maxHipsOffsetLength = maxLength;
+
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
+            }
+            return true;
+        });
+    }
+}
+
+float Rig::getMaxHipsOffsetLength() const {
+    return _maxHipsOffsetLength;
+}
+
 int Rig::getJointParentIndex(int childIndex) const {
     if (_animSkeleton && isIndexValid(childIndex)) {
         return _animSkeleton->getParentIndex(childIndex);

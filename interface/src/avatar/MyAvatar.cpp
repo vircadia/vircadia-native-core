@@ -2475,6 +2475,14 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     }
 }
 
+void MyAvatar::pintJointInWorldSpace(int index, const glm::vec3& position, const glm::quat& orientation) {
+
+}
+
+void MyAvatar::clearPinOnJoint(int index) {
+
+}
+
 // thread-safe
 void MyAvatar::addHoldAction(AvatarActionHold* holdAction) {
     std::lock_guard<std::mutex> guard(_holdActionsMutex);
