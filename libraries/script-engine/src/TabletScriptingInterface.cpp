@@ -368,13 +368,13 @@ void TabletProxy::addButtonsToMenuScreen() {
     }
 
     QQuickItem* VrMenu = loader->findChild<QQuickItem*>("tabletMenu");
-    if (!VrMenu) {
-        return;
+    if (VrMenu) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        QObject* menu = offscreenUi->getRootMenu();
+        QMetaObject::invokeMethod(VrMenu, "setRootMenu", Qt::AutoConnection, Q_ARG(QVariant, QVariant::fromValue(menu)));
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QObject* menu = offscreenUi->getRootMenu();
-    QMetaObject::invokeMethod(VrMenu, "setRootMenu", Qt::AutoConnection, Q_ARG(QVariant, QVariant::fromValue(menu)));
+    QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()));
 }
 
 void TabletProxy::removeButtonsFromHomeScreen() {
