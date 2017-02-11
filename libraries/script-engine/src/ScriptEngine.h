@@ -98,6 +98,7 @@ public:
     /// the current script contents and calling run(). Callers will likely want to register the script with external
     /// services before calling this.
     void runInThread();
+    Q_INVOKABLE void executeOnScriptThread(std::function<void()> function, bool blocking = false);
 
     void runDebuggable();
 
