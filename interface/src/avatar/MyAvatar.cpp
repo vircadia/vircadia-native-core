@@ -2365,7 +2365,10 @@ void MyAvatar::setAway(bool value) {
         return;
     }
     _isAway = value;
-    _isAway ? emit wentAway() : emit wentActive();
+    if (_isAway):
+        emit wentAway();
+    else:
+        emit wentActive();
 }
 
 // The resulting matrix is used to render the hand controllers, even if the camera is decoupled from the avatar.
