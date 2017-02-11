@@ -90,6 +90,7 @@ public:
         AGENT_SCRIPT
     };
 
+    static int processLevelMaxRetries;
     ScriptEngine(Context context, const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString(""));
     ~ScriptEngine();
 
@@ -243,7 +244,8 @@ protected:
     void stopAllTimers();
     void stopAllTimersForEntityScript(const EntityItemID& entityID);
     void refreshFileScript(const EntityItemID& entityID);
-
+    void updateEntityScriptStatus(const EntityItemID& entityID, const EntityScriptStatus& status, const QString& errorInfo = QString());
+    void setEntityScriptDetails(const EntityItemID& entityID, const EntityScriptDetails& details);
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
 
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);

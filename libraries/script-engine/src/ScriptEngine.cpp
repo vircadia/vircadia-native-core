@@ -183,6 +183,7 @@ QString ScriptEngine::reportUncaughtException(const QString& overrideFileName) {
     return message;
 }
 
+int ScriptEngine::processLevelMaxRetries { ScriptRequest::MAX_RETRIES };
 ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const QString& fileNameString) :
     _context(context),
     _scriptContents(scriptContents),
@@ -198,6 +199,11 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     });
     
     setProcessEventsInterval(MSECS_PER_SECOND);
+    if (isEntityServerScript()) {
+        qCDebug(scriptengine) << "isEntityServerScript() -- limiting maxRetries to 1";
+        processLevelMaxRetries = 1;
+    }
+    qCDebug(scriptengine) << getContext() << "processLevelMaxRetries =" << processLevelMaxRetries;
 }
 
 QString ScriptEngine::getContext() const {
@@ -1372,7 +1378,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     // If we are destroyed before the loader completes, make sure to clean it up
     connect(this, &QObject::destroyed, loader, &QObject::deleteLater);
 
-    loader->start();
+    loader->start(processLevelMaxRetries);
 
     if (!callback.isFunction() && !loader->isFinished()) {
         QEventLoop loop;
@@ -1452,6 +1458,7 @@ int ScriptEngine::getNumRunningEntityScripts() const {
         }
     }
     return sum;
+}
 
 QString ScriptEngine::getEntityScriptStatus(const EntityItemID& entityID) {
     if (_entityScripts.contains(entityID))
@@ -1468,17 +1475,30 @@ bool ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID, EntitySc
     return true;
 }
 
+void ScriptEngine::setEntityScriptDetails(const EntityItemID& entityID, const EntityScriptDetails& details) {
+    _entityScripts[entityID] = details;
+    emit entityScriptDetailsUpdated();
+}
+
+void ScriptEngine::updateEntityScriptStatus(const EntityItemID& entityID, const EntityScriptStatus &status, const QString& errorInfo) {
+    EntityScriptDetails &details = _entityScripts[entityID];
+    details.status = status;
+    details.errorInfo = errorInfo;
+    emit entityScriptDetailsUpdated();
+}
+
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
 void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
+
     {
         // set EntityScriptDetails.status to LOADING (over on theEngine's thread)
         QObject threadPunter;
-        connect(&threadPunter, &QObject::destroyed, theEngine.data(), [=]() {
-            EntityScriptDetails &details = theEngine.data()->_entityScripts[entityID];
+        auto engine = theEngine.data();
+        connect(&threadPunter, &QObject::destroyed, engine, [=]() {
+            EntityScriptDetails details = engine->_entityScripts[entityID];
             if (details.status == EntityScriptStatus::PENDING || details.status == EntityScriptStatus::UNLOADED) {
-                details.status = EntityScriptStatus::LOADING;
-                emit entityScriptDetailsUpdated();
+                engine->updateEntityScriptStatus(entityID, EntityScriptStatus::LOADING, QThread::currentThread()->objectName());
             }
         });
     }
@@ -1496,7 +1516,7 @@ void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const 
 #endif
             strongEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success, status);
         }
-    }, forceRedownload);
+    }, forceRedownload, processLevelMaxRetries);
 }
 
 // since all of these operations can be asynch we will always do the actual work in the response handler
@@ -1534,8 +1554,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     if (!success) {
         newDetails.status = EntityScriptStatus::ERROR_LOADING_SCRIPT;
         newDetails.errorInfo = "Failed to load script (" + status + ")";
-        _entityScripts[entityID] = newDetails;
-        emit entityScriptDetailsUpdated();
+        setEntityScriptDetails(entityID, newDetails);
         return;
     }
 
@@ -1544,8 +1563,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     if (!syntaxError.isNull() || program.isNull()) {
         newDetails.status = EntityScriptStatus::ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = QString("Bad syntax (%1)").arg(syntaxError);
-        _entityScripts[entityID] = newDetails;
-        emit entityScriptDetailsUpdated();
+        setEntityScriptDetails(entityID, newDetails);
         qCDebug(scriptengine) << newDetails.errorInfo << scriptOrURL;
         return; // done processing script
     }
@@ -1578,8 +1596,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     if (!exceptionMessage.isNull()) {
         newDetails.status = EntityScriptStatus::ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = exceptionMessage;
-        _entityScripts[entityID] = newDetails;
-        emit entityScriptDetailsUpdated();
+        setEntityScriptDetails(entityID, newDetails);
         qCDebug(scriptengine) << "----- ScriptEngine::entityScriptContentAvailable -- hadUncaughtExceptions (" << scriptOrURL << ")";
         return;
     }
@@ -1601,8 +1618,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
         newDetails.status = EntityScriptStatus::ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = "Could not find constructor";
-        _entityScripts[entityID] = newDetails;
-        emit entityScriptDetailsUpdated();
+        setEntityScriptDetails(entityID, newDetails);
 
         qCDebug(scriptengine) << "----- ScriptEngine::entityScriptContentAvailable -- failed to run (" << scriptOrURL << ")";
         return; // done processing script
@@ -1625,8 +1641,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     newDetails.scriptObject = entityScriptObject;
     newDetails.lastModified = lastModified;
     newDetails.definingSandboxURL = sandboxURL;
-    _entityScripts[entityID] = newDetails;
-    emit entityScriptDetailsUpdated();
+    setEntityScriptDetails(entityID, newDetails);
 
     if (isURL) {
         setParentURL("");
@@ -1656,11 +1671,10 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
         if (isEntityScriptRunning(entityID)) {
             callEntityScriptMethod(entityID, "unload");
         }
-        EntityScriptDetails details;
-        details.status = EntityScriptStatus::UNLOADED;
-        _entityScripts[entityID] = details;
+        EntityScriptDetails newDetails;
+        newDetails.status = EntityScriptStatus::UNLOADED;
+        setEntityScriptDetails(entityID, newDetails);
         stopAllTimersForEntityScript(entityID);
-        emit entityScriptDetailsUpdated();
     }
 }
 
