@@ -263,4 +263,8 @@ enum class AudioVersion : PacketVersion {
     HighDynamicRangeVolume,
 };
 
+enum class MessageDataVersion : PacketVersion {
+    TextOrBinaryData = 18
+};
+
 #endif // hifi_PacketHeaders_h
