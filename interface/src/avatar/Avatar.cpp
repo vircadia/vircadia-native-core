@@ -1324,6 +1324,7 @@ void Avatar::setParentID(const QUuid& parentID) {
     if (!isMyAvatar()) {
         return;
     }
+    QUuid initialParentID = getParentID();
     bool success;
     Transform beforeChangeTransform = getTransform(success);
     SpatiallyNestable::setParentID(parentID);
@@ -1331,6 +1332,9 @@ void Avatar::setParentID(const QUuid& parentID) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
             qCDebug(interfaceapp) << "Avatar::setParentID failed to reset avatar's location.";
+        }
+        if (initialParentID != parentID) {
+            _parentChanged = usecTimestampNow();
         }
     }
 }

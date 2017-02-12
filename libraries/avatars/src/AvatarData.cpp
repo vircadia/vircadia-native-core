@@ -405,6 +405,18 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         _additionalFlagsRateOutbound.increment(numBytes);
     }
 
+    if (hasParentInfo) {
+        auto startSection = destinationBuffer;
+        auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
+        QByteArray referentialAsBytes = parentID.toRfc4122();
+        memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
+        parentInfo->parentJointIndex = _parentJointIndex;
+        destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
+
+        int numBytes = destinationBuffer - startSection;
+        _parentInfoRateOutbound.increment(numBytes);
+    }
+
     if (hasAvatarLocalPosition) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AvatarLocalPosition*>(destinationBuffer);
@@ -416,18 +428,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         int numBytes = destinationBuffer - startSection;
         _localPositionRateOutbound.increment(numBytes);
-    }
-
-    if (hasParentInfo) {
-        auto startSection = destinationBuffer;
-        auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
-        QByteArray referentialAsBytes = parentID.toRfc4122();
-        memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
-        parentInfo->parentJointIndex = _parentJointIndex;
-        destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
-
-        int numBytes = destinationBuffer - startSection;
-        _parentInfoRateOutbound.increment(numBytes);
     }
 
     // If it is connected, pack up the data
@@ -904,19 +904,18 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         auto newParentID = QUuid::fromRfc4122(byteArray);
 
-        if ((_parentID != newParentID) || (_parentJointIndex = parentInfo->parentJointIndex)) {
-            _parentID = newParentID;
-            _parentJointIndex = parentInfo->parentJointIndex;
+        if ((_parentID != newParentID) || (_parentJointIndex != parentInfo->parentJointIndex)) {
+            setParentID(newParentID);
+            setParentJointIndex(parentInfo->parentJointIndex);
             _parentChanged = usecTimestampNow();
         }
 
         int numBytesRead = sourceBuffer - startSection;
         _parentInfoRate.increment(numBytesRead);
         _parentInfoUpdateRate.increment();
-    }
-    else {
+    } else {
         // FIXME - this aint totally right, for switching to parent/no-parent
-        _parentID = QUuid();
+        setParentID(QUuid());
     }
 
     if (hasAvatarLocalPosition) {
