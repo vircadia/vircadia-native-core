@@ -38,7 +38,7 @@ Line3DOverlay::~Line3DOverlay() {
 
 glm::vec3 Line3DOverlay::getStart() const {
     bool success;
-    glm::vec3 worldStart = localToWorld(_start, _parentID, _parentJointIndex, success);
+    glm::vec3 worldStart = localToWorld(_start, getParentID(), getParentJointIndex(), success);
     if (!success) {
         qDebug() << "Line3DOverlay::getStart failed";
     }
@@ -47,7 +47,7 @@ glm::vec3 Line3DOverlay::getStart() const {
 
 glm::vec3 Line3DOverlay::getEnd() const {
     bool success;
-    glm::vec3 worldEnd = localToWorld(_end, _parentID, _parentJointIndex, success);
+    glm::vec3 worldEnd = localToWorld(_end, getParentID(), getParentJointIndex(), success);
     if (!success) {
         qDebug() << "Line3DOverlay::getEnd failed";
     }
@@ -56,7 +56,7 @@ glm::vec3 Line3DOverlay::getEnd() const {
 
 void Line3DOverlay::setStart(const glm::vec3& start) {
     bool success;
-    _start = worldToLocal(start, _parentID, _parentJointIndex, success);
+    _start = worldToLocal(start, getParentID(), getParentJointIndex(), success);
     if (!success) {
         qDebug() << "Line3DOverlay::setStart failed";
     }
@@ -64,7 +64,7 @@ void Line3DOverlay::setStart(const glm::vec3& start) {
 
 void Line3DOverlay::setEnd(const glm::vec3& end) {
     bool success;
-    _end = worldToLocal(end, _parentID, _parentJointIndex, success);
+    _end = worldToLocal(end, getParentID(), getParentJointIndex(), success);
     if (!success) {
         qDebug() << "Line3DOverlay::setEnd failed";
     }

@@ -410,7 +410,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
         QByteArray referentialAsBytes = parentID.toRfc4122();
         memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
-        parentInfo->parentJointIndex = _parentJointIndex;
+        parentInfo->parentJointIndex = getParentJointIndex();
         destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
 
         int numBytes = destinationBuffer - startSection;

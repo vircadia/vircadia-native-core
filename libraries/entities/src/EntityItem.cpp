@@ -1595,7 +1595,7 @@ void EntityItem::updatePosition(const glm::vec3& value) {
 }
 
 void EntityItem::updateParentID(const QUuid& value) {
-    if (_parentID != value) {
+    if (getParentID() != value) {
         setParentID(value);
         _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; // children are forced to be kinematic
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
