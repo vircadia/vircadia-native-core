@@ -259,7 +259,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     // and the parent info can change independently though, so we track their "changed since"
     // separately
     bool hasParentInfo = sendAll || parentInfoChangedSince(lastSentTime);
-    bool hasAvatarLocalPosition = sendAll || tranlationChangedSince(lastSentTime);
+    bool hasAvatarLocalPosition = sendAll ||
+        (hasParent() && tranlationChangedSince(lastSentTime)) ||
+        parentInfoChangedSince(lastSentTime);
 
     bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
     bool hasJointData = sendAll || !sendMinimum;
