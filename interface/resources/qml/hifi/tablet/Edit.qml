@@ -4,6 +4,7 @@ import QtWebEngine 1.1
 import QtWebChannel 1.0
 import QtQuick.Controls.Styles 1.4
 import "../../controls"
+import "../toolbars"
 import HFWebEngineProfile 1.0
 
 StackView {
@@ -41,9 +42,17 @@ StackView {
                 Flow {
                     id: createEntitiesFlow
                     spacing: 16
+                    anchors.right: parent.right
+                    anchors.rightMargin: 30
+                    anchors.left: parent.left
+                    anchors.leftMargin: 30
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 30
+                    anchors.top: parent.top
+                    anchors.topMargin: 30
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/assets-01.svg"
+                    TabletButton {
+                        icon: "icons/assets-01.svg"
                         text: "ASSETS"
                         onClicked: {
                             editRoot.sendToScript({
@@ -52,8 +61,8 @@ StackView {
                         }
                     }
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/model-01.svg"
+                    TabletButton {
+                        icon: "model-01.svg"
                         text: "MODEL"
                         onClicked: {
                             editRoot.sendToScript({
@@ -62,8 +71,8 @@ StackView {
                         }
                     }
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/cube-01.svg"
+                    TabletButton {
+                        icon: "../cube-01.svg"
                         text: "CUBE"
                         onClicked: {
                             editRoot.sendToScript({
@@ -72,9 +81,8 @@ StackView {
                         }
                     }
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/sphere-01.svg"
-                        text: "SPHERE"
+                    ToolbarButton {
+                        imageURL: "../images/sphere-01.svg"
                         onClicked: {
                             editRoot.sendToScript({
                                 method: "newEntityButtonClicked", params: { buttonName: "newSphereButton" }
@@ -82,8 +90,8 @@ StackView {
                         }
                     }
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/light-01.svg"
+                    TabletButton {
+                        icon: "../scripts/system/assets/images/tools/light-01.svg"
                         text: "LIGHT"
                         onClicked: {
                             editRoot.sendToScript({
@@ -92,8 +100,8 @@ StackView {
                         }
                     }
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/text-01.svg"
+                    TabletButton {
+                        icon: "../scripts/system/assets/images/tools/text-01.svg"
                         text: "TEXT"
                         onClicked: {
                             editRoot.sendToScript({
@@ -102,8 +110,8 @@ StackView {
                         }
                     }
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/web-01.svg"
+                    TabletButton {
+                        icon: "../scripts/system/assets/images/tools/web-01.svg"
                         text: "WEB"
                         onClicked: {
                             editRoot.sendToScript({
@@ -112,8 +120,8 @@ StackView {
                         }
                     }
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/zone-01.svg"
+                    TabletButton {
+                        icon: "../scripts/system/assets/images/tools/zone-01.svg"
                         text: "ZONE"
                         onClicked: {
                             editRoot.sendToScript({
@@ -122,8 +130,8 @@ StackView {
                         }
                     }
 
-                    Button {
-                        iconSource: "../../../../../scripts/system/assets/images/tools/particle-01.svg"
+                    TabletButton {
+                        icon: "../scripts/system/assets/images/tools/particle-01.svg"
                         text: "PARTICLE"
                         onClicked: {
                             editRoot.sendToScript({
