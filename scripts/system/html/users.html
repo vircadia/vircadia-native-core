@@ -235,7 +235,7 @@
                 padding: 0px;
             }
 
-            .dropdown-menu li:hover {
+            .dropdown-menu li.current {
                 background: #dcdcdc;
             }
 
@@ -470,6 +470,8 @@
 
                 // Click listener for toggling who can see me
                 $(".visibility-option").click(function() {
+                    $(".visibility-option").removeClass("current");
+                    $(this).addClass("current");
                     myVisibility = $(this).data("visibility");
                     var newButtonText = $(this).find("h5").text();
                     $("#visibility-toggle").html(newButtonText + "<span class='glyphicon glyphicon-menu-down'></span>");
