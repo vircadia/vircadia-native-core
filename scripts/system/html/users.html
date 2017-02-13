@@ -338,25 +338,28 @@
             function displayUsers(data, element) {
                 element.empty();
                 for (var i = 0; i < data.users.length; i++) {
-                    // Don't display users who aren't in a domain
-                    if (typeof data.users[i].location.root.name === "undefined") {
+                    // Display users who aren't in a domain differently
+                    if (typeof data.users[i].location.root.name === "undefined" || data.users[i].location.root.name === null) {
                         console.log(data.users[i].username + "is online but not in a domain");
                         $("#dev-div").append("<p>" + data.users[i].username + "is online but not in a domain</p>");
+                        $("<li></li>", {
+                            "data-toggle": "modal",
+                            "data-target": "#myModal",
+                            "data-username": data.users[i].username,
+                            "data-placename": "",
+                            text: data.users[i].username
+                        }).appendTo(element);
                     } else {
                         $("#dev-div").append("<li>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
-                        if (data.users[i].username === myUsername) {
-                            $("#user-info-div h4").text(data.users[i].username + " @ " + data.users[i].location.root.name);
-                        } else {
-                            console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
-                            // Create a list item and put user info in data-* attributes, also make it trigger the jump to confirmation modal
-                            $("<li></li>", {
-                                "data-toggle": "modal",
-                                "data-target": "#myModal",
-                                "data-username": data.users[i].username,
-                                "data-placename": data.users[i].location.root.name,
-                                text: data.users[i].username + " @ " + data.users[i].location.root.name
-                            }).appendTo(element);
-                        }
+                        console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
+                        // Create a list item and put user info in data-* attributes, also make it trigger the jump to confirmation modal
+                        $("<li></li>", {
+                            "data-toggle": "modal",
+                            "data-target": "#myModal",
+                            "data-username": data.users[i].username,
+                            "data-placename": data.users[i].location.root.name,
+                            text: data.users[i].username + " @ " + data.users[i].location.root.name
+                        }).appendTo(element);
                     }
                 }
             }
@@ -454,7 +457,11 @@
                     var placename = li.data("placename");
                     // Write info to the modal
                     var modal = $(this);
-                    modal.find(".modal-title").text("Jump to " + username + " @ " + placename);
+                    if (placename === "") {
+                        modal.find(".modal-title").text("Jump to " + username);
+                    } else {
+                        modal.find(".modal-title").text("Jump to " + username + " @ " + placename);
+                    }
                     $("#jump-to-confirm-button").data("username", username);
                 })
 
