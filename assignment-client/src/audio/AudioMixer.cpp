@@ -57,9 +57,9 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     auto& packetReceiver = nodeList->getPacketReceiver();
 
     packetReceiver.registerListenerForTypes({ PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
-                                              PacketType::InjectAudio, PacketType::SilentAudioFrame,
-                                              PacketType::AudioStreamStats },
-                                            this, "handleNodeAudioPacket");
+                                              PacketType::InjectAudio, PacketType::AudioStreamStats },
+                                            this, "handleAudioPacket");
+    packetReceiver.registerListenerForTypes({ PacketType::SilentAudioFrame }, this, "handleSilentAudioPacket");
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
@@ -72,7 +72,13 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
-void AudioMixer::handleNodeAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+void AudioMixer::handleAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    getOrCreateClientData(sendingNode.data());
+    DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
+}
+
+void AudioMixer::handleSilentAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    _numSilentPackets++;
     getOrCreateClientData(sendingNode.data());
     DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
 }
@@ -300,6 +306,8 @@ void AudioMixer::sendStatsPacket() {
     statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
     statsObject["avg_listeners_per_frame"] = (float)_stats.sumListeners / (float)_numStatFrames;
 
+    statsObject["silent_packets_per_frame"] = (float)_numSilentPackets / (float)_numStatFrames;
+
     // timing stats
     QJsonObject timingStats;
 
@@ -338,7 +346,7 @@ void AudioMixer::sendStatsPacket() {
 
     statsObject["mix_stats"] = mixStats;
 
-    _numStatFrames = 0;
+    _numStatFrames = _numSilentPackets = 0;
     _stats.reset();
 
     // add stats for each listerner
