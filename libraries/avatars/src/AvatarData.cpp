@@ -260,8 +260,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     // separately
     bool hasParentInfo = sendAll || parentInfoChangedSince(lastSentTime);
     bool hasAvatarLocalPosition = sendAll ||
-        (hasParent() && tranlationChangedSince(lastSentTime)) ||
-        parentInfoChangedSince(lastSentTime);
+        (hasParent() && (tranlationChangedSince(lastSentTime) ||
+                         parentInfoChangedSince(lastSentTime)));
 
     bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
     bool hasJointData = sendAll || !sendMinimum;
@@ -916,7 +916,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     if (hasAvatarLocalPosition) {
-        assert(hasParent()); // we shouldn't have local position unless we have a parent
         auto startSection = sourceBuffer;
 
         PACKET_READ_CHECK(AvatarLocalPosition, sizeof(AvatarDataPacket::AvatarLocalPosition));
@@ -928,7 +927,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return buffer.size();
         }
-        setLocalPosition(position);
+        if (hasParent()) {
+            setLocalPosition(position);
+        } else {
+            qCWarning(avatars) << "received localPosition for avatar with no parent";
+        }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _localPositionRate.increment(numBytesRead);
