@@ -219,7 +219,11 @@
             }
 
             .dropdown-menu {
-                width: 280px;
+                width: 350px;
+                border: 0;
+                display: block;
+                float: none;
+                position: inherit;
             }
 
             .dropdown-menu li {
@@ -235,12 +239,12 @@
                 background: #dcdcdc;
             }
 
-            .dropdown-menu li h6 {
+            .dropdown-menu li h5 {
                 font-weight: bold;
             }
 
             .dropdown-menu li p {
-                font-size: 13px;
+                font-size: 14px;
             }
 
         </style>
@@ -253,28 +257,10 @@
         <div class="main">
             <div id="user-info-div">
                 <h4></h4>
-                <div class="dropdown">
-                    <button id="visibility-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Online
-                        <span class="glyphicon glyphicon-menu-down"></span>
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="visibility-toggle">
-                        <li class="visibility-option" data-visibility="all">
-                            <h6>Online</h6>
-                            <p>You will be shown online to everyone else. Anybody will be able to find you from the users online list and jump to your current location.</p>
-                        </li>
-                        <li role="separator" class="divider"></li>
-                        <li class="visibility-option" data-visibility="friends">
-                            <h6>Available to Friends Only</h6>
-                            <p>You will be shown online only to users you have added as friends. Other users may still interact with you in the same domain, but they won't be able to find you from the users online list.</p>
-                        </li>
-                        <li role="separator" class="divider"></li>
-                        <li class="visibility-option" data-visibility="none">
-                            <h6>Appear Offline</h6>
-                            <p>No one will be able to find you from the users online list. However, this does not prevent other users in the same domain from interacting with you. For a complete "Do not disturb" mode, you may want to go to your own private domain and set allow entering to no one.</p>
-                        </li>
-                    </ul>
-                </div>
+                <button id="visibility-toggle" data-toggle="modal" data-target="#myModal2" aria-haspopup="true" aria-expanded="false">
+                    Online
+                    <span class="glyphicon glyphicon-menu-down"></span>
+                </button>
             </div>
             <ul class="tabs">
                 <li tab-id="tab-1" class="current">Everyone (0)</li>
@@ -289,7 +275,7 @@
             </div>
         </div>
 
-        <!-- Modal -->
+        <!-- Modal for jump to-->
         <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
           <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -303,6 +289,39 @@
               <div class="modal-footer">
                 <input type="button" data-dismiss="modal" value="Cancel">
                 <input type="button" data-dismiss="modal" id="jump-to-confirm-button" value="OK">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal for visibility-->
+        <div class="modal fade" id="myModal2" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Change your visibility setting</h4>
+              </div>
+              <div class="modal-body">
+                <ul class="dropdown-menu" aria-labelledby="visibility-toggle">
+                    <li class="visibility-option" data-visibility="all">
+                        <h5>Online</h5>
+                        <p>You will be shown online to everyone else. Anybody will be able to find you from the users online list and jump to your current location.</p>
+                    </li>
+                    <li role="separator" class="divider"></li>
+                    <li class="visibility-option" data-visibility="friends">
+                        <h5>Available to Friends Only</h5>
+                        <p>You will be shown online only to users you have added as friends. Other users may still interact with you in the same domain, but they won't be able to find you from the users online list.</p>
+                    </li>
+                    <li role="separator" class="divider"></li>
+                    <li class="visibility-option" data-visibility="none">
+                        <h5>Appear Offline</h5>
+                        <p>No one will be able to find you from the users online list. However, this does not prevent other users in the same domain from interacting with you. For a complete "Do not disturb" mode, you may want to go to your own private domain and set allow entering to no one.</p>
+                    </li>
+                </ul>
+              </div>
+              <div class="modal-footer">
+                <input type="button" data-dismiss="modal" value="OK">
               </div>
             </div>
           </div>
@@ -452,7 +471,7 @@
                 // Click listener for toggling who can see me
                 $(".visibility-option").click(function() {
                     myVisibility = $(this).data("visibility");
-                    var newButtonText = $(this).find("h6").text();
+                    var newButtonText = $(this).find("h5").text();
                     $("#visibility-toggle").html(newButtonText + "<span class='glyphicon glyphicon-menu-down'></span>");
                     var visibilityObject = {
                         "type": "toggle-visibility",
