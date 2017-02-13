@@ -43,6 +43,14 @@ Preference {
         }
     }
 
+    function getPreferencesHeight() {
+        var height = 0;
+        for (var index = 0; index < d.preferences.length; index++) {
+            height += d.preferences[index].height;
+        }
+
+        return height;
+    }
     children: [ contentContainer ]
 
     height: contentContainer.height + (contentContainer.isCollapsed ? 0 : hifi.dimensions.controlInterlineHeight)

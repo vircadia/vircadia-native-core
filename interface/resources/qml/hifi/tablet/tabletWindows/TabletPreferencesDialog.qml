@@ -123,7 +123,7 @@ Item {
             function getSectionsHeight() {
                 var totalHeight = 0;
                 for (var i = 0; i < sections.length; i++) {
-                    totalHeight += sections[i].height
+                    totalHeight += sections[i].height + sections[i].getPreferencesHeight();
                 }
                 console.log(totalHeight);
                 return totalHeight;

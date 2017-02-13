@@ -12,6 +12,7 @@ import QtQuick 2.5
 
 import "../../../../dialogs"
 import "../../../../controls-uit"
+import "../"
 
 Preference {
     id: root
@@ -54,7 +55,7 @@ Preference {
 
         Component {
             id: fileBrowserBuilder;
-            FileDialog { selectDirectory: true }
+            TabletFileDialog { selectDirectory: true }
         }
 
         Button {
@@ -69,10 +70,13 @@ Preference {
                     selectDirectory: true,
                     dir: fileDialogHelper.pathToUrl(preference.value)
                 });
+
                 browser.selectedFile.connect(function(fileUrl){
                     console.log(fileUrl);
                     dataTextField.text = fileDialogHelper.urlToPath(fileUrl);
                 });
+                
+                profileRoot.push(browser);
             }
         }
     }
