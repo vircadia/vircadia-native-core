@@ -929,7 +929,8 @@ bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemP
     bool accepted = true;
     auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
     if (entityEditFilters) {
-        accepted = entityEditFilters->filter(existingEntity->getPosition(), propertiesIn, propertiesOut, wasChanged, filterType);
+        auto position = existingEntity->getPosition();
+        accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType);
     }
 
     return accepted;
