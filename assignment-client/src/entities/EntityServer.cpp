@@ -308,7 +308,7 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
 }
 
 void EntityServer::entityFilterAdded(EntityItemID id, bool success) {
-    if(id.isInvalidID()) {
+    if (id.isInvalidID()) {
         // this is the domain-wide entity filter, which we want to stop
         // the world for
         auto entityEditFilters = qobject_cast<EntityEditFilters*>(sender());
