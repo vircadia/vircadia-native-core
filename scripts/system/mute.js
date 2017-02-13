@@ -37,9 +37,11 @@ if (Settings.getValue("HUDUIEnabled")) {
 } else {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
-        icon: "icons/tablet-icons/mic-a.svg",
-        text: buttonName,
-        activeIcon: "icons/tablet-icons/mic-i.svg",
+        icon: "icons/tablet-icons/mic-unmute-i.svg",
+        hoverIcon: "icons/tablet-icons/mic-mute-i.svg",
+        activeIcon: "icons/tablet-icons/mic-mute-a.svg",
+        activeHoverIcon: "icons/tablet-icons/mic-unmute-a.svg",
+        text: "MUTE",
         activeText: "UNMUTE",
         sortOrder: 1
     });
