@@ -22,6 +22,22 @@ TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
 }
 
+QObject* TabletScriptingInterface::getSystemToolbarProxy() {
+    const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
+    Qt::ConnectionType connectionType = Qt::AutoConnection;
+    if (QThread::currentThread() != _toolbarScriptingInterface->thread()) {
+        connectionType = Qt::BlockingQueuedConnection;
+    }
+    QObject* toolbarProxy = nullptr;
+    bool hasResult = QMetaObject::invokeMethod(_toolbarScriptingInterface, "getToolbar", connectionType, Q_RETURN_ARG(QObject*, toolbarProxy), Q_ARG(QString, SYSTEM_TOOLBAR));
+    if (hasResult) {
+        return toolbarProxy;
+    } else {
+        qCWarning(scriptengine) << "ToolbarScriptingInterface getToolbar has no result";
+        return nullptr;
+    }
+}
+
 QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
 
     std::lock_guard<std::mutex> guard(_mutex);
@@ -143,6 +159,21 @@ static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
     ;
+}
+
+void TabletProxy::setToolbarMode(bool toolbarMode) {
+    if (toolbarMode == _toolbarMode) {
+        return;
+    }
+
+    if (toolbarMode) {
+        removeButtonsFromHomeScreen();
+        addButtonsToToolbar();
+    } else {
+        removeButtonsFromToolbar();
+        addButtonsToHomeScreen();
+    }
+    _toolbarMode = toolbarMode;
 }
 
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
@@ -379,10 +410,32 @@ void TabletProxy::addButtonsToMenuScreen() {
 }
 
 void TabletProxy::removeButtonsFromHomeScreen() {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     for (auto& buttonProxy : _tabletButtonProxies) {
         buttonProxy->setQmlButton(nullptr);
     }
+}
+
+void TabletProxy::addButtonsToToolbar() {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    QObject* toolbarProxy = tabletScriptingInterface->getSystemToolbarProxy();
+    for (auto& buttonProxy : _tabletButtonProxies) {
+        // copy properties from tablet button proxy to toolbar button proxy.
+        Qt::ConnectionType connectionType = Qt::AutoConnection;
+        if (QThread::currentThread() != toolbarProxy->thread()) {
+            connectionType = Qt::BlockingQueuedConnection;
+        }
+        QObject* toolbarButtonProxy = nullptr;
+        bool hasResult = QMetaObject::invokeMethod(toolbarProxy, "addButton", connectionType, Q_RETURN_ARG(QObject*, toolbarButtonProxy), Q_ARG(QVariant, buttonProxy->getProperties()));
+        if (hasResult) {
+            buttonProxy->setToolbarButtonProxy(toolbarButtonProxy);
+        } else {
+            qCWarning(scriptengine) << "ToolbarProxy addButton has no result";
+        }
+    }
+}
+
+void TabletProxy::removeButtonsFromToolbar() {
+    //
 }
 
 QQuickItem* TabletProxy::getQmlTablet() const {
@@ -444,6 +497,11 @@ void TabletButtonProxy::setQmlButton(QQuickItem* qmlButton) {
     _qmlButton = qmlButton;
 }
 
+void TabletButtonProxy::setToolbarButtonProxy(QObject* toolbarButtonProxy) {
+    std::lock_guard<std::mutex> guard(_mutex);
+    _toolbarButtonProxy = toolbarButtonProxy;
+}
+
 QVariantMap TabletButtonProxy::getProperties() const {
     std::lock_guard<std::mutex> guard(_mutex);
     return _properties;
@@ -451,6 +509,7 @@ QVariantMap TabletButtonProxy::getProperties() const {
 
 void TabletButtonProxy::editProperties(QVariantMap properties) {
     std::lock_guard<std::mutex> guard(_mutex);
+
     QVariantMap::const_iterator iter = properties.constBegin();
     while (iter != properties.constEnd()) {
         _properties[iter.key()] = iter.value();
@@ -458,6 +517,10 @@ void TabletButtonProxy::editProperties(QVariantMap properties) {
             QMetaObject::invokeMethod(_qmlButton, "changeProperty", Qt::AutoConnection, Q_ARG(QVariant, QVariant(iter.key())), Q_ARG(QVariant, iter.value()));
         }
         ++iter;
+    }
+
+    if (_toolbarButtonProxy) {
+        QMetaObject::invokeMethod(_toolbarButtonProxy, "editProperties", Qt::AutoConnection, Q_ARG(QVariant, properties));
     }
 }
 
