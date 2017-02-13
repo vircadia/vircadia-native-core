@@ -73,14 +73,21 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
     withPreservedTexture([&] {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
         const Sampler& sampler = _gpuObject.getSampler();
-        auto minMip = sampler.getMinMip();
-        auto maxMip = sampler.getMaxMip();
-        for (uint16_t l = minMip; l <= maxMip; l++) {
+        auto numMips = _gpuObject.evalNumMips();
+        for (uint16_t mipLevel = 0; mipLevel < numMips; ++mipLevel) {
             // Get the mip level dimensions, accounting for the downgrade level
-            Vec3u dimensions = _gpuObject.evalMipDimensions(l);
+            Vec3u dimensions = _gpuObject.evalMipDimensions(mipLevel);
+            uint8_t face = 0;
             for (GLenum target : getFaceTargets(_target)) {
-                glTexImage2D(target, l - minMip, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, NULL);
+                const Byte* mipData = nullptr;
+                if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
+                    auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
+                    mipData = mip->readData();
+                    texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
+                }
+                glTexImage2D(target, mipLevel, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, mipData);
                 (void)CHECK_GL_ERROR();
+                ++face;
             }
         }
     });
