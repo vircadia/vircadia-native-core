@@ -339,7 +339,7 @@
                 element.empty();
                 for (var i = 0; i < data.users.length; i++) {
                     // Display users who aren't in a domain differently
-                    if (typeof data.users[i].location.root.name === "undefined" || data.users[i].location.root.name === null) {
+                    if (typeof data.users[i].location.root === "undefined" || typeof data.users[i].location.root.name === "undefined") {
                         console.log(data.users[i].username + "is online but not in a domain");
                         $("#dev-div").append("<p>" + data.users[i].username + "is online but not in a domain</p>");
                         $("<li></li>", {
