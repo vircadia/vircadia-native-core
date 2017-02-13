@@ -1119,7 +1119,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     endLogging = usecTimestampNow();
 
                     startUpdate = usecTimestampNow();
-                    properties.setLastEditedBy(senderNode->getUUID());
+                    if (!isPhysics) properties.setLastEditedBy(senderNode->getUUID());
                     updateEntity(entityItemID, properties, senderNode);
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
