@@ -30,6 +30,7 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         button = tablet.addButton({
             icon: "icons/tablet-icons/help-i.svg",
+            activeIcon: "icons/tablet-icons/help-a.svg",
             text: buttonName,
             sortOrder: 6
         });

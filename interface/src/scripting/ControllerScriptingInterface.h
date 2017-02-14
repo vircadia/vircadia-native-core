@@ -84,6 +84,7 @@ public:
     bool isKeyCaptured(QKeyEvent* event) const;
     bool isKeyCaptured(const KeyEvent& event) const;
     bool isJoystickCaptured(int joystickIndex) const;
+    bool areEntityClicksCaptured() const;
 
     void updateInputControllers();
 
@@ -94,6 +95,9 @@ public slots:
 
     virtual void captureJoystick(int joystickIndex);
     virtual void releaseJoystick(int joystickIndex);
+
+    virtual void captureEntityClickEvents();
+    virtual void releaseEntityClickEvents();
 
     virtual glm::vec2 getViewportDimensions() const;
     virtual QVariant getRecommendedOverlayRect() const;
@@ -128,6 +132,7 @@ private:
 
     QMultiMap<int,KeyEvent> _capturedKeys;
     QSet<int> _capturedJoysticks;
+    bool _captureEntityClicks;
 
     using InputKey = controller::InputController::Key;
     using InputControllerMap = std::map<InputKey, controller::InputController::Pointer>;

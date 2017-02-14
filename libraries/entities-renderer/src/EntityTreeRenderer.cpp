@@ -938,17 +938,19 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 
 
 void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, const bool reload) {
-    if (_tree && !_shuttingDown) {
-        _entitiesScriptEngine->unloadEntityScript(entityID);
-        checkAndCallPreload(entityID, reload);
-    }
+    checkAndCallPreload(entityID, reload, true);
 }
 
-void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload, const bool unloadFirst) {
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
-        if (entity && entity->shouldPreloadScript() && _entitiesScriptEngine) {
-            QString scriptUrl = entity->getScript();
+        bool shouldLoad = entity && entity->shouldPreloadScript() && _entitiesScriptEngine;
+        QString scriptUrl = entity->getScript();
+        if ((unloadFirst && shouldLoad) || scriptUrl.isEmpty()) {
+            _entitiesScriptEngine->unloadEntityScript(entityID);
+            entity->scriptHasUnloaded();
+        }
+        if (shouldLoad && !scriptUrl.isEmpty()) {
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
             ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
             entity->scriptHasPreloaded();
