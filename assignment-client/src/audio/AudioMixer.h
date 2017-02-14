@@ -122,7 +122,8 @@ private:
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
     static float _noiseMutingThreshold;
     static float _attenuationPerDoublingInDistance;
-    static QString _codecPreferenceOrder;
+    static std::map<QString, CodecPluginPointer> _availableCodecs;
+    static QStringList _codecPreferenceOrder;
     static QHash<QString, AABox> _audioZones;
     static QVector<ZoneSettings> _zoneSettings;
     static QVector<ReverbSettings> _zoneReverbSettings;

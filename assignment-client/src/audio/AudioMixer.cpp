@@ -47,15 +47,21 @@ static const QString AUDIO_THREADING_GROUP_KEY = "audio_threading";
 int AudioMixer::_numStaticJitterFrames{ -1 };
 float AudioMixer::_noiseMutingThreshold{ DEFAULT_NOISE_MUTING_THRESHOLD };
 float AudioMixer::_attenuationPerDoublingInDistance{ DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE };
-QString AudioMixer::_codecPreferenceOrder{};
+std::map<QString, std::shared_ptr<CodecPlugin>> AudioMixer::_availableCodecs{ };
+QStringList AudioMixer::_codecPreferenceOrder{};
 QHash<QString, AABox> AudioMixer::_audioZones;
 QVector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
 QVector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
 
 AudioMixer::AudioMixer(ReceivedMessage& message) :
     ThreadedAssignment(message) {
-    // initialize the plugins
-    PluginManager::getInstance()->getCodecPlugins();
+
+    // hash the available codecs (on the mixer)
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    std::for_each(codecPlugins.cbegin(), codecPlugins.cend(),
+        [&](const CodecPluginPointer& codec) {
+            _availableCodecs[codec->getName()] = codec;
+        });
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
@@ -134,34 +140,21 @@ const std::pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(std::vec
     QString selectedCodecName;
     CodecPluginPointer selectedCodec;
 
-    // get the available codecs (on the mixer)
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-    std::map<QString, CodecPluginPointer> availableCodecs;
-    std::for_each(codecPlugins.cbegin(), codecPlugins.cend(),
-            [&availableCodecs](const CodecPluginPointer& codec) {
-                availableCodecs[codec->getName()] = codec;
-            });
-
-    // get the codec preferences (on the mixer)
-    QStringList codecPreferenceList = _codecPreferenceOrder.split(",");
-
     // read the codecs requested (by the client)
-    const int MAX_PREFERENCE = 99999;
-    int minPreference = MAX_PREFERENCE;
+    int minPreference = std::numeric_limits<int>::max();
     for (auto& codec : codecs) {
-        bool codecAvailable = (availableCodecs.count(codec) > 0);
+        if (_availableCodecs.count(codec) > 0) {
+            int preference = _codecPreferenceOrder.indexOf(codec);
 
-        if (codecAvailable) {
-            int preference = codecPreferenceList.indexOf(codec);
+            // choose the preferred, available codec
             if (preference >= 0 && preference < minPreference) {
                 minPreference = preference;
-                // choose the preferred, available codec
                 selectedCodecName  = codec;
             }
         }
     }
 
-    return std::make_pair(selectedCodecName, availableCodecs[selectedCodecName]);
+    return std::make_pair(selectedCodecName, _availableCodecs[selectedCodecName]);
 }
 
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
@@ -582,7 +575,8 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
 
         const QString CODEC_PREFERENCE_ORDER = "codec_preference_order";
         if (audioEnvGroupObject[CODEC_PREFERENCE_ORDER].isString()) {
-            _codecPreferenceOrder = audioEnvGroupObject[CODEC_PREFERENCE_ORDER].toString();
+            QString codecPreferenceOrder = audioEnvGroupObject[CODEC_PREFERENCE_ORDER].toString();
+            _codecPreferenceOrder = codecPreferenceOrder.split(",");
             qDebug() << "Codec preference order changed to" << _codecPreferenceOrder;
         }
 
