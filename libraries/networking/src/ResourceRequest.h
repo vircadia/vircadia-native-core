@@ -38,6 +38,7 @@ public:
         InvalidURL,
         NotFound
     };
+    Q_ENUM(Result)
 
     QByteArray getData() { return _data; }
     State getState() const { return _state; }

@@ -38,17 +38,21 @@ public:
     AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream();
 
+    // returns whether self (this data's node) should ignore node, memoized by frame
+    // precondition: frame is monotonically increasing after first call
+    bool shouldIgnore(SharedNodePointer self, SharedNodePointer node, unsigned int frame);
+
     // the following methods should be called from the AudioMixer assignment thread ONLY
     // they are not thread-safe
 
     // returns a new or existing HRTF object for the given stream from the given node
     AudioHRTF& hrtfForStream(const QUuid& nodeID, const QUuid& streamID = QUuid()) { return _nodeSourcesHRTFMap[nodeID][streamID]; }
 
-    // remove HRTFs for all sources from this node
-    void removeHRTFsForNode(const QUuid& nodeID) { _nodeSourcesHRTFMap.erase(nodeID); }
-
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
+
+    // remove all sources and data from this node
+    void removeNode(const QUuid& nodeID) { _nodeSourcesIgnoreMap.unsafe_erase(nodeID); _nodeSourcesHRTFMap.erase(nodeID); }
 
     void removeAgentAvatarAudioStream();
 
@@ -86,12 +90,10 @@ public:
     bool shouldFlushEncoder() { return _shouldFlushEncoder; }
 
     QString getCodecName() { return _selectedCodecName; }
-    
+
     bool shouldMuteClient() { return _shouldMuteClient; }
     void setShouldMuteClient(bool shouldMuteClient) { _shouldMuteClient = shouldMuteClient; }
     glm::vec3 getPosition() { return getAvatarAudioStream() ? getAvatarAudioStream()->getPosition() : glm::vec3(0); }
-    glm::vec3 getAvatarBoundingBoxCorner() { return getAvatarAudioStream() ? getAvatarAudioStream()->getAvatarBoundingBoxCorner() : glm::vec3(0); }
-    glm::vec3 getAvatarBoundingBoxScale() { return getAvatarAudioStream() ? getAvatarAudioStream()->getAvatarBoundingBoxScale() : glm::vec3(0); }
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
@@ -103,8 +105,47 @@ public slots:
     void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
+    using IgnoreZone = AABox;
+
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
+
+    class IgnoreZoneMemo {
+    public:
+        IgnoreZoneMemo(AudioMixerClientData& data) : _data(data) {}
+
+        // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
+        // preconditions:
+        //  - frame is monotonically increasing after first call
+        //  - there are no references left from calls to getIgnoreZone(frame - 1)
+        IgnoreZone& get(unsigned int frame);
+
+    private:
+        AudioMixerClientData& _data;
+        IgnoreZone _zone;
+        std::atomic<unsigned int> _frame { 0 };
+        std::mutex _mutex;
+    };
+    IgnoreZoneMemo _ignoreZone;
+
+    class IgnoreNodeCache {
+    public:
+        // std::atomic is not copyable - always initialize uncached
+        IgnoreNodeCache() {}
+        IgnoreNodeCache(const IgnoreNodeCache& other) {}
+
+        void cache(bool shouldIgnore);
+        bool isCached();
+        bool shouldIgnore();
+
+    private:
+        std::atomic<bool> _isCached { false };
+        bool _shouldIgnore { false };
+    };
+    struct IgnoreNodeCacheHasher { std::size_t operator()(const QUuid& key) const { return qHash(key); } };
+
+    using NodeSourcesIgnoreMap = tbb::concurrent_unordered_map<QUuid, IgnoreNodeCache, IgnoreNodeCacheHasher>;
+    NodeSourcesIgnoreMap _nodeSourcesIgnoreMap;
 
     using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
     using NodeSourcesHRTFMap = std::unordered_map<QUuid, HRTFMap>;

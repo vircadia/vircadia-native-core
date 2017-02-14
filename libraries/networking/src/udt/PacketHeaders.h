@@ -224,7 +224,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     SessionDisplayName,
     Unignore,
     ImmediateSessionDisplayNameUpdates,
-    VariableAvatarData
+    VariableAvatarData,
+    AvatarAsChildFixes
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -261,6 +262,10 @@ enum class AudioVersion : PacketVersion {
     SpaceBubbleChanges,
     HasPersonalMute,
     HighDynamicRangeVolume,
+};
+
+enum class MessageDataVersion : PacketVersion {
+    TextOrBinaryData = 18
 };
 
 #endif // hifi_PacketHeaders_h

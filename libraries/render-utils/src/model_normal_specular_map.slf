@@ -47,7 +47,7 @@ void main(void) {
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
     vec3 viewNormal;
-    <$tangentToViewSpace(normalTex, _normal, _tangent, viewNormal)$>
+    <$tangentToViewSpaceLOD(_position, normalTex, _normal, _tangent, viewNormal)$>
 
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
