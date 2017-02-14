@@ -83,10 +83,99 @@ void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const Shar
     ++_sumIdentityPackets;
 }
 
+#include <chrono>
+#include <thread>
+
+void AvatarMixer::start() {
+    auto nodeList = DependencyManager::get<NodeList>();
+
+
+/****
+    // prepare the NodeList
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
+
+    // parse out any AudioMixer settings
+    {
+        DomainHandler& domainHandler = nodeList->getDomainHandler();
+        const QJsonObject& settingsObject = domainHandler.getSettingsObject();
+        parseSettingsObject(settingsObject);
+    }
+
+    // mix state
+    unsigned int frame = 1;
+    auto frameTimestamp = p_high_resolution_clock::now();
+****/
+
+    while (!_isFinished) {
+        _loopRate.increment();
+
+        auto sleepAmount = std::chrono::milliseconds(AVATAR_DATA_SEND_INTERVAL_MSECS);
+        std::this_thread::sleep_for(sleepAmount);
+
+        /*
+        auto ticTimer = _ticTiming.timer();
+
+        {
+            auto timer = _sleepTiming.timer();
+            auto frameDuration = timeFrame(frameTimestamp);
+            throttle(frameDuration, frame);
+        }
+
+        auto frameTimer = _frameTiming.timer();
+
+        nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+            // prepare frames; pop off any new audio from their streams
+            {
+                auto prepareTimer = _prepareTiming.timer();
+                std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
+                    _stats.sumStreams += prepareFrame(node, frame);
+                });
+            }
+
+            // mix across slave threads
+            {
+                auto mixTimer = _mixTiming.timer();
+                _slavePool.mix(cbegin, cend, frame, _throttlingRatio);
+            }
+        });
+        */
+
+        // gather stats
+        /*
+        _slavePool.each([&](AudioMixerSlave& slave) {
+            _stats.accumulate(slave.stats);
+            slave.stats.reset();
+        });
+        */
+
+        /*
+        ++frame;
+        ++_numStatFrames;
+        */
+
+        // play nice with qt event-looping
+        {
+            //auto eventsTimer = _eventsTiming.timer();
+
+            // since we're a while loop we need to yield to qt's event processing
+            QCoreApplication::processEvents();
+
+            if (_isFinished) {
+                // alert qt eventing that this is finished
+                QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
+                break;
+            }
+        }
+    }
+}
+
+
 // NOTE: some additional optimizations to consider.
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 void AvatarMixer::broadcastAvatarData() {
+    quint64 startBroadcastAvatarData = usecTimestampNow();
     _broadcastRate.increment();
 
     int idleTime = AVATAR_DATA_SEND_INTERVAL_MSECS;
@@ -262,6 +351,7 @@ void AvatarMixer::broadcastAvatarData() {
             // setup a PacketList for the avatarPackets
             auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
+            quint64 startDisplayNameManagement = usecTimestampNow();
             if (nodeData->getAvatarSessionDisplayNameMustChange()) {
                 const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
                 if (--_sessionDisplayNames[existingBaseDisplayName].second <= 0) {
@@ -289,11 +379,18 @@ void AvatarMixer::broadcastAvatarData() {
                 sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name. Others will find out below.
                 qDebug() << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
             }
+            quint64 endDisplayNameManagement = usecTimestampNow();
+            _displayNameManagementElapsedTime += (endDisplayNameManagement - startDisplayNameManagement);
+
 
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             nodeList->eachMatchingNode(
                 [&](const SharedNodePointer& otherNode)->bool {
+
+                    bool shouldConsider = false;
+                    quint64 startIgnoreCalculation = usecTimestampNow();
+
                     // make sure we have data for this avatar, that it isn't the same node,
                     // and isn't an avatar that the viewing node has ignored
                     // or that has ignored the viewing node
@@ -301,7 +398,9 @@ void AvatarMixer::broadcastAvatarData() {
                         || otherNode->getUUID() == node->getUUID()
                         || (node->isIgnoringNodeWithID(otherNode->getUUID()) && !getsIgnoredByMe)
                         || (otherNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
-                        return false;
+
+                        shouldConsider = false;
+
                     } else {
                         AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
@@ -333,20 +432,35 @@ void AvatarMixer::broadcastAvatarData() {
                             // Perform the collision check between the two bounding boxes
                             if (nodeBox.touches(otherNodeBox)) {
                                 nodeData->ignoreOther(node, otherNode);
-                                return getsAnyIgnored;
+                                shouldConsider = getsAnyIgnored;
                             }
                         }
                         // Not close enough to ignore
-                        nodeData->removeFromRadiusIgnoringSet(node, otherNode->getUUID());
-                        return true;
+                        if (shouldConsider) {
+                            nodeData->removeFromRadiusIgnoringSet(node, otherNode->getUUID());
+                        }
+
+                        shouldConsider = true;
                     }
+
+                    quint64 endIgnoreCalculation = usecTimestampNow();
+                    _ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
+
+                    return shouldConsider;
                 },
                 [&](const SharedNodePointer& otherNode) {
+
+                    quint64 startAvatarDataPacking = usecTimestampNow();
+
                     ++numOtherAvatars;
 
                     AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                     MutexTryLocker lock(otherNodeData->getMutex());
                     if (!lock.isLocked()) {
+
+                        // FIXME -- might want to track this lock failed...
+                        quint64 endAvatarDataPacking = usecTimestampNow();
+                        _avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                         return;
                     }
 
@@ -374,6 +488,9 @@ void AvatarMixer::broadcastAvatarData() {
                     if (distanceToAvatar != 0.0f
                         && !getsOutOfView
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
+
+                        quint64 endAvatarDataPacking = usecTimestampNow();
+                        _avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                         return;
                     }
 
@@ -389,6 +506,9 @@ void AvatarMixer::broadcastAvatarData() {
                     // or that somehow we haven't sent
                     if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
                         ++numAvatarsHeldBack;
+
+                        quint64 endAvatarDataPacking = usecTimestampNow();
+                        _avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                         return;
                     } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                         // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
@@ -411,6 +531,8 @@ void AvatarMixer::broadcastAvatarData() {
 
                     // this throttles the extra data to only be sent every Nth message
                     if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
+                        quint64 endAvatarDataPacking = usecTimestampNow();
+                        _avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                         return;
                     }
 
@@ -436,8 +558,13 @@ void AvatarMixer::broadcastAvatarData() {
                     numAvatarDataBytes += avatarPacketList->write(bytes);
 
                     avatarPacketList->endSegment();
+
+                    quint64 endAvatarDataPacking = usecTimestampNow();
+                    _avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
             });
 
+            quint64 startPacketSending = usecTimestampNow();
+            
             // close the current packet so that we're always sending something
             avatarPacketList->closeCurrentPacket(true);
 
@@ -457,6 +584,10 @@ void AvatarMixer::broadcastAvatarData() {
             } else {
                 nodeData->setMaxAvatarDistance(maxAvatarDistanceThisFrame);
             }
+
+            quint64 endPacketSending = usecTimestampNow();
+            _packetSendingElapsedTime += (endPacketSending - startPacketSending);
+
         }
     );
 
@@ -500,6 +631,9 @@ void AvatarMixer::broadcastAvatarData() {
         _lastDebugMessage = p_high_resolution_clock::now();
     }
 #endif
+
+    quint64 endBroadcastAvatarData = usecTimestampNow();
+    _broadcastAvatarDataElapsedTime += (endBroadcastAvatarData - startBroadcastAvatarData);
 
 }
 
@@ -551,6 +685,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
 }
 
 void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto start = usecTimestampNow();
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->getOrCreateLinkedData(senderNode);
 
@@ -560,9 +695,14 @@ void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> messag
             nodeData->readViewFrustumPacket(message->getMessage());
         }
     }
+
+    auto end = usecTimestampNow();
+    _handleViewFrustumPacketElapsedTime += (end - start);
 }
 
 void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto start = usecTimestampNow();
+
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->getOrCreateLinkedData(senderNode);
 
@@ -574,14 +714,20 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
             nodeData->setRequestsDomainListData(isRequesting);
         }
     }
+    auto end = usecTimestampNow();
+    _handleRequestsDomainListDataPacketElapsedTime += (end - start);
 }
 
 void AvatarMixer::handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto start = usecTimestampNow();
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->updateNodeWithDataFromPacket(message, senderNode);
+    auto end = usecTimestampNow();
+    _handleAvatarDataPacketElapsedTime += (end - start);
 }
 
 void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto start = usecTimestampNow();
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->getOrCreateLinkedData(senderNode);
 
@@ -605,18 +751,29 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             }
         }
     }
+    auto end = usecTimestampNow();
+    _handleAvatarIdentityPacketElapsedTime += (end - start);
 }
 
 void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message) {
+    auto start = usecTimestampNow();
     DependencyManager::get<NodeList>()->processKillNode(*message);
+    auto end = usecTimestampNow();
+    _handleKillAvatarPacketElapsedTime += (end - start);
 }
 
 void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto start = usecTimestampNow();
     senderNode->parseIgnoreRequestMessage(message);
+    auto end = usecTimestampNow();
+    _handleNodeIgnoreRequestPacketElapsedTime += (end - start);
 }
 
 void AvatarMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    auto start = usecTimestampNow();
     sendingNode->parseIgnoreRadiusRequestMessage(packet);
+    auto end = usecTimestampNow();
+    _handleRadiusIgnoreRequestPacketElapsedTime += (end - start);
 }
 
 void AvatarMixer::sendStatsPacket() {
@@ -628,6 +785,33 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
     statsObject["broadcast_loop_rate"] = _broadcastRate.rate();
+    statsObject["tight_loop_rate"] = _loopRate.rate();
+
+    // broadcastAvatarDataElapsed timing details...
+    statsObject["timing_average_a_displayNameManagement"] = (float)_displayNameManagementElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_b_ignoreCalculation"] = (float)_ignoreCalculationElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_c_avatarDataPacking"] = (float)_avatarDataPackingElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_d_packetSending"] = (float)_packetSendingElapsedTime / (float)_numStatFrames;
+
+    statsObject["timing_average_x_total_broadcastAvatarData"] = (float)_broadcastAvatarDataElapsedTime / (float)_numStatFrames;
+
+
+    statsObject["timing_average_z_handleViewFrustumPacket"] = (float)_handleViewFrustumPacketElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_z_handleAvatarDataPacket"] = (float)_handleAvatarDataPacketElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_z_handleAvatarIdentityPacket"] = (float)_handleAvatarIdentityPacketElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_z_handleKillAvatarPacket"] = (float)_handleKillAvatarPacketElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_z_handleNodeIgnoreRequestPacket"] = (float)_handleNodeIgnoreRequestPacketElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_z_handleRadiusIgnoreRequestPacket"] = (float)_handleRadiusIgnoreRequestPacketElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_z_handleRequestsDomainListDataPacket"] = (float)_handleRequestsDomainListDataPacketElapsedTime / (float)_numStatFrames;
+
+    _handleViewFrustumPacketElapsedTime = 0;
+    _handleAvatarDataPacketElapsedTime = 0;
+    _handleAvatarIdentityPacketElapsedTime = 0;
+    _handleKillAvatarPacketElapsedTime = 0;
+    _handleNodeIgnoreRequestPacketElapsedTime = 0;
+    _handleRadiusIgnoreRequestPacketElapsedTime = 0;
+    _handleRequestsDomainListDataPacketElapsedTime = 0;
+
 
     QJsonObject avatarsObject;
 
@@ -666,6 +850,13 @@ void AvatarMixer::sendStatsPacket() {
     _sumListeners = 0;
     _sumIdentityPackets = 0;
     _numStatFrames = 0;
+
+    _broadcastAvatarDataElapsedTime = 0;
+    _displayNameManagementElapsedTime = 0;
+    _ignoreCalculationElapsedTime = 0;
+    _avatarDataPackingElapsedTime = 0;
+    _packetSendingElapsedTime = 0;
+
 }
 
 void AvatarMixer::run() {
@@ -675,7 +866,7 @@ void AvatarMixer::run() {
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &AvatarMixer::domainSettingsRequestComplete);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AvatarMixer::domainSettingsRequestFailed);
-    
+   
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
 
     // setup the timer that will be fired on the broadcast thread
@@ -687,6 +878,9 @@ void AvatarMixer::run() {
     // connect appropriate signals and slots
     connect(_broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
     connect(&_broadcastThread, SIGNAL(started()), _broadcastTimer, SLOT(start()));
+
+    // start our tight loop...
+    start();
 }
 
 void AvatarMixer::domainSettingsRequestComplete() {

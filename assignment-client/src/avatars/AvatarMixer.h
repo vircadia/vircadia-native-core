@@ -45,6 +45,7 @@ private slots:
     void handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void domainSettingsRequestComplete();
     void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
+    void start();
 
 
 private:
@@ -73,6 +74,25 @@ private:
     RateCounter<> _broadcastRate;
     p_high_resolution_clock::time_point _lastDebugMessage;
     QHash<QString, QPair<int, int>> _sessionDisplayNames;
+
+    quint64 _broadcastAvatarDataElapsedTime { 0 }; // total time spent in broadcastAvatarData since last stats window
+    quint64 _displayNameManagementElapsedTime { 0 }; // total time spent in broadcastAvatarData/display name management... since last stats window
+    quint64 _ignoreCalculationElapsedTime { 0 };
+    quint64 _avatarDataPackingElapsedTime { 0 };
+    quint64 _packetSendingElapsedTime { 0 };
+
+
+    quint64 _handleViewFrustumPacketElapsedTime { 0 };
+    quint64 _handleAvatarDataPacketElapsedTime { 0 };
+    quint64 _handleAvatarIdentityPacketElapsedTime { 0 };
+    quint64 _handleKillAvatarPacketElapsedTime { 0 };
+    quint64 _handleNodeIgnoreRequestPacketElapsedTime { 0 };
+    quint64 _handleRadiusIgnoreRequestPacketElapsedTime { 0 };
+    quint64 _handleRequestsDomainListDataPacketElapsedTime { 0 };
+
+
+    RateCounter<> _loopRate; // this is the rate that the main thread tight loop runs
+
 };
 
 #endif // hifi_AvatarMixer_h
