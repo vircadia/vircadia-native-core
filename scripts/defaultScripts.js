@@ -14,7 +14,7 @@
 var DEFAULT_SCRIPTS = [
     "system/progress.js",
     "system/away.js",
-    "system/mute.js",
+    "system/audio.js",
     "system/hmd.js",
     "system/menu.js",
     "system/bubble.js",

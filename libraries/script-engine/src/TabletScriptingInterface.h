@@ -72,7 +72,7 @@ public:
 
     void setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
-    Q_INVOKABLE void gotoMenuScreen();
+    Q_INVOKABLE void gotoMenuScreen(const QString& submenu = "");
 
     /**jsdoc
      * transition to the home screen
@@ -105,6 +105,13 @@ public:
      * @param tabletButtonProxy {TabletButtonProxy} button to be removed
      */
     Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
+
+    /**jsdoc
+     * Updates the tablet's mic enabled state
+     * @function TabletProxy#updateMicEnabled
+     * @param micEnabled {bool} mic enabled state
+     */
+    Q_INVOKABLE void updateMicEnabled(const bool micEnabled);
 
     /**jsdoc
      * Updates the audio bar in tablet to reflect latest mic level
