@@ -396,14 +396,14 @@ void AudioMixer::start() {
 
             // since we're a while loop we need to yield to qt's event processing
             QCoreApplication::processEvents();
-        }
 
-        // process audio packets (node-isolated audio packets) across slave threads
-        {
-            nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
-                auto packetsTimer = _packetsTiming.timer();
-                _slavePool.processPackets(cbegin, cend);
-            });
+            // process (node-isolated) audio packets across slave threads
+            {
+                nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                    auto packetsTimer = _packetsTiming.timer();
+                    _slavePool.processPackets(cbegin, cend);
+                });
+            }
         }
 
         if (_isFinished) {
