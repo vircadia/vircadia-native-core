@@ -88,7 +88,7 @@ MessageID EntityScriptClient::getEntityServerScriptStatus(QUuid entityID, GetScr
         }
     }
 
-    callback(false, false, ERROR_LOADING_SCRIPT, "");
+    callback(false, false, EntityScriptStatus::ERROR_LOADING_SCRIPT, "");
     return INVALID_MESSAGE_ID;
 }
 
@@ -97,7 +97,7 @@ void EntityScriptClient::handleGetScriptStatusReply(QSharedPointer<ReceivedMessa
 
     MessageID messageID;
     bool isKnown { false };
-    EntityScriptStatus status = ERROR_LOADING_SCRIPT;
+    EntityScriptStatus status = EntityScriptStatus::ERROR_LOADING_SCRIPT;
     QString errorInfo { "" };
 
     message->readPrimitive(&messageID);
@@ -157,7 +157,7 @@ void EntityScriptClient::forceFailureOfPendingRequests(SharedNodePointer node) {
         auto messageMapIt = _pendingEntityScriptStatusRequests.find(node);
         if (messageMapIt != _pendingEntityScriptStatusRequests.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(false, false, ERROR_LOADING_SCRIPT, "");
+                value.second(false, false, EntityScriptStatus::ERROR_LOADING_SCRIPT, "");
             }
             messageMapIt->second.clear();
         }
