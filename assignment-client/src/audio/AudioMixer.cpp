@@ -74,7 +74,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
             PacketType::RequestsDomainListData,
             PacketType::PerAvatarGainSet },
             this, "queueAudioPacket");
-            
+
     // packets whose consequences are global should be processed on the main thread
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");

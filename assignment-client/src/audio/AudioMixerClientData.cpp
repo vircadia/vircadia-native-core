@@ -49,46 +49,52 @@ AudioMixerClientData::~AudioMixerClientData() {
 }
 
 void AudioMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
-    _queuedPackets.push({ message, node });
+    if (!_packetQueue.node) {
+        _packetQueue.node = node;
+    }
+    _packetQueue.push(message);
 }
 
 void AudioMixerClientData::processPackets() {
-    while (!_queuedPackets.empty()) {
-        auto& packet = _queuedPackets.back();
+    SharedNodePointer node = _packetQueue.node;
+    assert(_packetQueue.empty() || node);
+    _packetQueue.node.clear();
 
-        switch (packet.message->getType()) {
+    while (!_packetQueue.empty()) {
+        auto& packet = _packetQueue.back();
+
+        switch (packet->getType()) {
             case PacketType::MicrophoneAudioNoEcho:
             case PacketType::MicrophoneAudioWithEcho:
             case PacketType::InjectAudio:
             case PacketType::AudioStreamStats:
             case PacketType::SilentAudioFrame: {
                 QMutexLocker lock(&getMutex());
-                parseData(*packet.message);
+                parseData(*packet);
                 break;
             }
             case PacketType::NegotiateAudioFormat:
-                negotiateAudioFormat(*packet.message, packet.node);
+                negotiateAudioFormat(*packet, node);
                 break;
             case PacketType::RequestsDomainListData:
-                parseRequestsDomainListData(*packet.message);
+                parseRequestsDomainListData(*packet);
                 break;
             case PacketType::PerAvatarGainSet:
-                parsePerAvatarGainSet(*packet.message, packet.node);
+                parsePerAvatarGainSet(*packet, node);
                 break;
             case PacketType::NodeIgnoreRequest:
-                parseNodeIgnoreRequest(packet.message, packet.node);
+                parseNodeIgnoreRequest(packet, node);
                 break;
             case PacketType::RadiusIgnoreRequest:
-                parseRadiusIgnoreRequest(packet.message, packet.node);
+                parseRadiusIgnoreRequest(packet, node);
                 break;
             default:
                 Q_UNREACHABLE();
         }
 
-        _queuedPackets.pop();
+        _packetQueue.pop();
     }
-
-    assert(_queuedPackets.empty());
+    assert(_packetQueue.empty());
 }
 
 void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node) {
