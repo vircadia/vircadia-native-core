@@ -57,7 +57,7 @@ Preference {
 
     Component.onCompleted: d.buildPreferences();
 
-    HiFiControls.ContentSection {
+    HiFiControls.TabletContentSection {
         id: contentContainer
         name: root.name
         isFirst: root.isFirst

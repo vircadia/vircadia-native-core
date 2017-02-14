@@ -65,7 +65,7 @@ Column {
             }
 
             Rectangle {
-                width: frame ? frame.width : 480
+                width: 480//480frame ? frame.width : 480
                 height: 1
                 color: hifi.colors.baseGrayHighlight
                 x: -hifi.dimensions.contentMargin.x
@@ -121,8 +121,8 @@ Column {
 
         LinearGradient {
             id: bottomBar
-            visible: (desktop ? desktop.gradientsSupported : false) && isCollapsible
-            width: (frame ? frame.width : 480)
+            visible: false
+            width: 480
             height: visible ? 4 : 0
             x: -hifi.dimensions.contentMargin.x
             anchors.top: heading.bottom
