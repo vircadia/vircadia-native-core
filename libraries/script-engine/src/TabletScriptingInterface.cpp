@@ -15,7 +15,8 @@
 #include <RegisteredMetaTypes.h>
 #include "ScriptEngineLogging.h"
 #include "DependencyManager.h"
-#include "OffscreenUi.h"
+#include <OffscreenUi.h>
+#include <InfoView.h>
 #include "SoundEffect.h"
 
 TabletScriptingInterface::TabletScriptingInterface() {
@@ -156,9 +157,10 @@ QObject* TabletScriptingInterface::getFlags()
 static const char* TABLET_SOURCE_URL = "Tablet.qml";
 static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
 static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
+static int s_windowNameCounter = 1;
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
-    ;
+
 }
 
 void TabletProxy::setToolbarMode(bool toolbarMode) {
@@ -171,9 +173,27 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
     if (toolbarMode) {
         removeButtonsFromHomeScreen();
         addButtonsToToolbar();
+
+        // create new desktop window
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        offscreenUi->executeOnUiThread([=, this] {
+            InfoView::registerType();
+            QString name = _name + QString("%1").arg(s_windowNameCounter++);
+            offscreenUi->show(QUrl("hifi/tablet/WindowRoot.qml"), name, [&](QQmlContext* context, QObject* newObject) {
+                QQuickItem* item = dynamic_cast<QQuickItem*>(newObject);
+                _desktopWindow = item;
+                QObject::connect(_desktopWindow, SIGNAL(windowClosed), this, SLOT(desktopWindowClosed()));
+            });
+        });
     } else {
         removeButtonsFromToolbar();
         addButtonsToHomeScreen();
+
+        // destroy desktop window
+        if (_desktopWindow) {
+            _desktopWindow->deleteLater();
+            _desktopWindow = nullptr;
+        }
     }
 }
 
@@ -246,39 +266,63 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
 }
 
 void TabletProxy::gotoMenuScreen(const QString& submenu) {
-    if (_qmlTabletRoot) {
+
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow;
+    }
+
+    if (root) {
         if (_state != State::Menu) {
             removeButtonsFromHomeScreen();
-            QMetaObject::invokeMethod(_qmlTabletRoot, "setOption", Q_ARG(const QVariant&, QVariant(submenu)));
-            auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+            QMetaObject::invokeMethod(root, "setOption", Q_ARG(const QVariant&, QVariant(submenu)));
+            auto loader = root->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()), Qt::DirectConnection);
-            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
+            QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
             _state = State::Menu;
             emit screenChanged(QVariant("Menu"), QVariant(VRMENU_SOURCE_URL));
+            QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
     }
 }
 
 void TabletProxy::loadQMLSource(const QVariant& path) {
-    if (_qmlTabletRoot) {
+
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow;
+    }
+
+    if (root) {
         if (_state != State::QML) {
             removeButtonsFromHomeScreen();
-            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, path));
+            QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
             _state = State::QML;
             emit screenChanged(QVariant("QML"), path);
+            QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
     }
 }
+
 void TabletProxy::gotoHomeScreen() {
-    if (_qmlTabletRoot) {
-        if (_state != State::Home) {
+    if (_state != State::Home) {
+        if (!_toolbarMode && _qmlTabletRoot) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()), Qt::DirectConnection);
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
             QMetaObject::invokeMethod(_qmlTabletRoot, "playButtonClickSound");
-            _state = State::Home;
-            emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
+        } else if (_toolbarMode && _desktopWindow) {
+            // close desktop window
+            if (_desktopWindow) {
+                QMetaObject::invokeMethod(_desktopWindow, "setShown", Q_ARG(const QVariant&, QVariant(false)));
+            }
         }
+        _state = State::Home;
+        emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
     }
 }
 
@@ -287,17 +331,24 @@ void TabletProxy::gotoWebScreen(const QString& url) {
 }
 
 void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl) {
-    if (_qmlTabletRoot) {
-        if (_state == State::Home) {
-            removeButtonsFromHomeScreen();
+
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow;
+    }
+
+    if (_state != State::Web) {
+        if (root) {
+            QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
         }
-        if (_state != State::Web) {
-            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
-            _state = State::Web;
-            emit screenChanged(QVariant("Web"), QVariant(url));
-        }
-        QMetaObject::invokeMethod(_qmlTabletRoot, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)),
-                                  Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
+        _state = State::Web;
+        emit screenChanged(QVariant("Web"), QVariant(url));
+    }
+    if (root) {
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        QMetaObject::invokeMethod(root, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
     }
 }
 
@@ -391,11 +442,18 @@ QObject* TabletProxy::getTabletSurface() {
 }
 
 void TabletProxy::addButtonsToMenuScreen() {
-    if (!_qmlTabletRoot) {
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow;
+    }
+
+    if (!root) {
         return;
     }
 
-    auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+    auto loader = root->findChild<QQuickItem*>("loader");
     if (!loader) {
         return;
     }
@@ -418,6 +476,10 @@ void TabletProxy::removeButtonsFromHomeScreen() {
         }
         buttonProxy->setQmlButton(nullptr);
     }
+}
+
+void TabletProxy::desktopWindowClosed() {
+    gotoHomeScreen();
 }
 
 void TabletProxy::addButtonsToToolbar() {
@@ -515,6 +577,9 @@ void TabletButtonProxy::setQmlButton(QQuickItem* qmlButton) {
 void TabletButtonProxy::setToolbarButtonProxy(QObject* toolbarButtonProxy) {
     std::lock_guard<std::mutex> guard(_mutex);
     _toolbarButtonProxy = toolbarButtonProxy;
+    if (_toolbarButtonProxy) {
+        QObject::connect(_toolbarButtonProxy, SIGNAL(clicked()), this, SLOT(clickedSlot()));
+    }
 }
 
 QVariantMap TabletButtonProxy::getProperties() const {

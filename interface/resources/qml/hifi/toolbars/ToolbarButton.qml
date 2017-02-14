@@ -12,7 +12,9 @@ StateImage {
     property int imageOnIn: 2
 
     property string text: ""
+    property string activeText: button.text
     property string icon: "icons/tablet-icons/blank.svg"
+    property string activeIcon: button.icon
 
     signal clicked()
 
@@ -73,13 +75,13 @@ StateImage {
         anchors.bottomMargin: 0
         anchors.horizontalCenter: parent.horizontalCenter
         fillMode: Image.Stretch
-        source: urlHelper(button.icon)
+        source: urlHelper(button.isActive ? button.activeIcon : button.icon)
     }
 
     Text {
         id: caption
-        color: "#ffffff"
-        text: button.text
+        color: button.isActive ? "#000000" : "#ffffff"
+        text: button.isActive ? button.activeText : button.text
         font.bold: false
         font.pixelSize: 9
         anchors.bottom: parent.bottom

@@ -547,7 +547,7 @@ function startup(mode) {
 }
 
 // var mode = Settings.getValue("HUDUIEnabled");
-startup(HMD.active ? "tablet" : "toolbar");
+startup("tablet");
 
 var isWired = false;
 var audioTimer;
@@ -719,10 +719,5 @@ function shutdown() {
 // Cleanup.
 //
 Script.scriptEnding.connect(shutdown);
-
-HMD.displayModeChanged.connect(function () {
-    shutdown();
-    startup(HMD.active ? "tablet" : "toolbar");
-});
 
 }()); // END LOCAL_SCOPE

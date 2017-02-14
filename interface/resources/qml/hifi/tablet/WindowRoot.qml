@@ -1,18 +1,28 @@
+//
+//  WindowRoot.qml
+//
+//  Created by Anthony Thibault on 14 Feb 2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+//  This qml is used when tablet content is shown on the 2d overlay ui
+//  TODO: FIXME: this is practically identical to TabletRoot.qml
+
+import "../../windows" as Windows
 import QtQuick 2.0
 import Hifi 1.0
 
-Item {
+Windows.ScrollingWindow {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
     property var eventBridge;
-    property string option: ""
+    shown: false
+    resizable: false
 
     signal showDesktop();
-
-    function setOption(value) {
-        option = value;
-    }
 
     function loadSource(url) {
         loader.source = url;
@@ -33,8 +43,6 @@ Item {
         }
     }
 
-    function setShown(value) {}
-
     SoundEffect {
         id: buttonClickSound
         volume: 0.1
@@ -49,10 +57,6 @@ Item {
         }
     }
 
-    function toggleMicEnabled() {
-        ApplicationInterface.toggleMuteAudio();
-    }
-
     function setUsername(newUsername) {
         username = newUsername;
     }
@@ -62,8 +66,10 @@ Item {
         objectName: "loader"
         asynchronous: false
 
-        width: parent.width
-        height: parent.height
+        height: pane.scrollHeight
+        width: pane.contentWidth
+        anchors.left: parent.left
+        anchors.top: parent.top
 
         onLoaded: {
             if (loader.item.hasOwnProperty("eventBridge")) {
@@ -79,13 +85,10 @@ Item {
             if (loader.item.hasOwnProperty("sendToScript")) {
                 loader.item.sendToScript.connect(tabletRoot.sendToScript);
             }
-            if (loader.item.hasOwnProperty("subMenu")) {
-                loader.item.subMenu = option;
-            }
             loader.item.forceActiveFocus();
         }
     }
 
-    width: 480
-    height: 706
+    implicitWidth: 480
+    implicitHeight: 706
 }
