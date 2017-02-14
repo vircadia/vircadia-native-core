@@ -16,6 +16,14 @@
 
 #include "AvatarMixerClientData.h"
 
+void AvatarMixerClientData::processQueuedAvatarDataPackets() {
+    for (auto message : _queuedAvatarDataPackets) {
+        parseData(*message);
+    }
+    _queuedAvatarDataPackets.clear();
+}
+
+
 int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     // pull the sequence number from the data first
     message.readPrimitive(&_lastReceivedSequenceNumber);

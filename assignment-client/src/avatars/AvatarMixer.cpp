@@ -89,75 +89,29 @@ void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const Shar
 void AvatarMixer::start() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-
-/****
-    // prepare the NodeList
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
-    nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
-
-    // parse out any AudioMixer settings
-    {
-        DomainHandler& domainHandler = nodeList->getDomainHandler();
-        const QJsonObject& settingsObject = domainHandler.getSettingsObject();
-        parseSettingsObject(settingsObject);
-    }
-
-    // mix state
-    unsigned int frame = 1;
-    auto frameTimestamp = p_high_resolution_clock::now();
-****/
-
     while (!_isFinished) {
         _loopRate.increment();
 
+        // FIXME - we really should sleep for the remainder of what we haven't spent time processing
         auto sleepAmount = std::chrono::milliseconds(AVATAR_DATA_SEND_INTERVAL_MSECS);
         std::this_thread::sleep_for(sleepAmount);
 
-        /*
-        auto ticTimer = _ticTiming.timer();
-
+        // Allow nodes to process any pending/queued packets across our worker threads
         {
-            auto timer = _sleepTiming.timer();
-            auto frameDuration = timeFrame(frameTimestamp);
-            throttle(frameDuration, frame);
+            auto start = usecTimestampNow();
+            auto nodeList = DependencyManager::get<NodeList>();
+            nodeList->eachNode([](const SharedNodePointer& node) {
+                auto nodeData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
+                if (nodeData) {
+                    nodeData->processQueuedAvatarDataPackets();
+                }
+            });
+            auto end = usecTimestampNow();
+            _processQueuedAvatarDataPacketsElapsedTime += (end - start);
         }
-
-        auto frameTimer = _frameTiming.timer();
-
-        nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
-            // prepare frames; pop off any new audio from their streams
-            {
-                auto prepareTimer = _prepareTiming.timer();
-                std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                    _stats.sumStreams += prepareFrame(node, frame);
-                });
-            }
-
-            // mix across slave threads
-            {
-                auto mixTimer = _mixTiming.timer();
-                _slavePool.mix(cbegin, cend, frame, _throttlingRatio);
-            }
-        });
-        */
-
-        // gather stats
-        /*
-        _slavePool.each([&](AudioMixerSlave& slave) {
-            _stats.accumulate(slave.stats);
-            slave.stats.reset();
-        });
-        */
-
-        /*
-        ++frame;
-        ++_numStatFrames;
-        */
 
         // play nice with qt event-looping
         {
-            //auto eventsTimer = _eventsTiming.timer();
-
             // since we're a while loop we need to yield to qt's event processing
             auto start = usecTimestampNow();
             QCoreApplication::processEvents();
@@ -723,8 +677,15 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
 
 void AvatarMixer::handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
+
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->updateNodeWithDataFromPacket(message, senderNode);
+    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(nodeList->getOrCreateLinkedData(senderNode));
+
+    if (nodeData) {
+        QMutexLocker linkedDataLocker(&nodeData->getMutex()); // NOTE: we might be able to safely assume this doesn't need to be locked!
+        nodeData->queueAvatarDataPacket(message);
+    }
+
     auto end = usecTimestampNow();
     _handleAvatarDataPacketElapsedTime += (end - start);
 }
@@ -780,6 +741,9 @@ void AvatarMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage
 }
 
 void AvatarMixer::sendStatsPacket() {
+    auto start = usecTimestampNow();
+
+
     QJsonObject statsObject;
     statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
 
@@ -796,18 +760,23 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_average_c_avatarDataPacking"] = (float)_avatarDataPackingElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_d_packetSending"] = (float)_packetSendingElapsedTime / (float)_numStatFrames;
 
-    statsObject["timing_average_x_total_broadcastAvatarData"] = (float)_broadcastAvatarDataElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_e_total_broadcastAvatarData"] = (float)_broadcastAvatarDataElapsedTime / (float)_numStatFrames;
 
 
-    statsObject["timing_average_z_handleViewFrustumPacket"] = (float)_handleViewFrustumPacketElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_y_processEvents"] = (float)_processEventsElapsedTime / (float)_numStatFrames;
+
     statsObject["timing_average_z_handleAvatarDataPacket"] = (float)_handleAvatarDataPacketElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_z_handleAvatarIdentityPacket"] = (float)_handleAvatarIdentityPacketElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_z_handleKillAvatarPacket"] = (float)_handleKillAvatarPacketElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_z_handleNodeIgnoreRequestPacket"] = (float)_handleNodeIgnoreRequestPacketElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_z_handleRadiusIgnoreRequestPacket"] = (float)_handleRadiusIgnoreRequestPacketElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_z_handleRequestsDomainListDataPacket"] = (float)_handleRequestsDomainListDataPacketElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_z_handleViewFrustumPacket"] = (float)_handleViewFrustumPacketElapsedTime / (float)_numStatFrames;
 
-    statsObject["timing_average_z_processEvents"] = (float)_processEventsElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_z_processQueuedAvatarDataPackets"] = (float)_processQueuedAvatarDataPacketsElapsedTime / (float)_numStatFrames;
+
+
+    statsObject["timing_sendStats"] = (float)_sendStatsElapsedTime;
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarDataPacketElapsedTime = 0;
@@ -817,7 +786,7 @@ void AvatarMixer::sendStatsPacket() {
     _handleRadiusIgnoreRequestPacketElapsedTime = 0;
     _handleRequestsDomainListDataPacketElapsedTime = 0;
     _processEventsElapsedTime = 0;
-
+    _processQueuedAvatarDataPacketsElapsedTime = 0;
 
     QJsonObject avatarsObject;
 
@@ -862,6 +831,10 @@ void AvatarMixer::sendStatsPacket() {
     _ignoreCalculationElapsedTime = 0;
     _avatarDataPackingElapsedTime = 0;
     _packetSendingElapsedTime = 0;
+
+
+    auto end = usecTimestampNow();
+    _sendStatsElapsedTime = (end - start);
 
 }
 

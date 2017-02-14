@@ -118,9 +118,12 @@ public:
         return _lastOtherAvatarSentJoints[otherAvatar];
     }
 
-    
+    void queueAvatarDataPacket(QSharedPointer<ReceivedMessage> message) { _queuedAvatarDataPackets.push_back(message); }
+    void processQueuedAvatarDataPackets();
 
 private:
+    std::vector<QSharedPointer<ReceivedMessage>> _queuedAvatarDataPackets;
+
     AvatarSharedPointer _avatar { new AvatarData() };
 
     uint16_t _lastReceivedSequenceNumber { 0 };
