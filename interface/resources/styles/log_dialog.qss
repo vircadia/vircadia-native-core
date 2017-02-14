@@ -7,6 +7,7 @@ QPlainTextEdit {
     color: #333333;
     background-color: #FFFFFF;
     border: none;
+    selection-background-color: #7b91b5;
 }
 
 QLineEdit {
@@ -30,6 +31,19 @@ QPushButton#searchButton {
     border-width: 0;
     border-top-left-radius: 9px;
     border-bottom-left-radius: 9px;
+}
+
+QPushButton#searchNextButton {
+    font-family: Helvetica, Arial, sans-serif;
+    background-repeat: none;
+    background-position: left center;
+    background-origin: content;
+    padding-left: 10px;
+    background-color: #333333;
+    color: #BBBBBB;
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 11px;
 }
 
 QPushButton#revealLogButton {
