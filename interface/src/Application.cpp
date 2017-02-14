@@ -3111,7 +3111,10 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
     if (!_aboutToQuit) {
         getOverlays().mousePressEvent(&mappedEvent);
-        getEntities()->mousePressEvent(&mappedEvent);
+
+        if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
+            getEntities()->mousePressEvent(&mappedEvent);
+        }
     }
 
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
