@@ -732,7 +732,7 @@ function loaded() {
                     }
                 } else if (data.type == "update") {
 
-                    if (data.selections.length == 0) {
+                    if (!data.selections || data.selections.length == 0) {
                         if (editor !== null && lastEntityID !== null) {
                             saveJSONUserData(true);
                             deleteJSONEditor();
@@ -741,7 +741,7 @@ function loaded() {
                         elType.innerHTML = "<i>No selection</i>";
                         elID.innerHTML = "";
                         disableProperties();
-                    } else if (data.selections.length > 1) {
+                    } else if (data.selections && data.selections.length > 1) {
                         deleteJSONEditor();
                         var selections = data.selections;
 

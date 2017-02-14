@@ -1028,44 +1028,44 @@ SelectionDisplay = (function() {
     that.TRIGGER_OFF_VALUE = 0.15;
     that.triggered = false;
     var activeHand = Controller.Standard.RightHand;
-    // function makeTriggerHandler(hand) {
-    //     return function (value) {
-    //         if (!that.triggered && (value > that.TRIGGER_GRAB_VALUE)) { // should we smooth?
-    //             that.triggered = true;
-    //             if (activeHand !== hand) {
-    //                 // No switching while the other is already triggered, so no need to release.
-    //                 activeHand = (activeHand === Controller.Standard.RightHand) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
-    //             }
-    //             if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)) {
-    //                 return;
-    //             }
-    //             var eventResult = that.mousePressEvent({});
-    //             if (!eventResult || (eventResult === 'selectionBox')) {
-    //                 var pickRay = controllerComputePickRay();
-    //                 if (pickRay) {
-    //                     var entityIntersection = Entities.findRayIntersection(pickRay, true);
+    function makeTriggerHandler(hand) {
+        return function (value) {
+            if (!that.triggered && (value > that.TRIGGER_GRAB_VALUE)) { // should we smooth?
+                that.triggered = true;
+                if (activeHand !== hand) {
+                    // No switching while the other is already triggered, so no need to release.
+                    activeHand = (activeHand === Controller.Standard.RightHand) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
+                }
+                if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)) {
+                    return;
+                }
+                var eventResult = that.mousePressEvent({});
+                // if (!eventResult || (eventResult === 'selectionBox')) {
+                //     var pickRay = controllerComputePickRay();
+                //     if (pickRay) {
+                //         var entityIntersection = Entities.findRayIntersection(pickRay, true);
 
 
-    //                     var overlayIntersection = Overlays.findRayIntersection(pickRay);
-    //                     if (entityIntersection.intersects &&
-    //                         (!overlayIntersection.intersects || (entityIntersection.distance < overlayIntersection.distance))) {
+                //         var overlayIntersection = Overlays.findRayIntersection(pickRay);
+                //         if (entityIntersection.intersects &&
+                //             (!overlayIntersection.intersects || (entityIntersection.distance < overlayIntersection.distance))) {
 
-    //                         if (HMD.tabletID === entityIntersection.entityID) {
-    //                             return;
-    //                         }
+                //             if (HMD.tabletID === entityIntersection.entityID) {
+                //                 return;
+                //             }
 
-    //                         selectionManager.setSelections([entityIntersection.entityID]);
-    //                     }
-    //                 }
-    //             }
-    //         } else if (that.triggered && (value < that.TRIGGER_OFF_VALUE)) {
-    //             that.triggered = false;
-    //             that.mouseReleaseEvent({});
-    //         }
-    //     };
-    // }
-    // that.triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
-    // that.triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
+                //             selectionManager.setSelections([entityIntersection.entityID]);
+                //         }
+                //     }
+                // }
+            } else if (that.triggered && (value < that.TRIGGER_OFF_VALUE)) {
+                that.triggered = false;
+                that.mouseReleaseEvent({});
+            }
+        };
+    }
+    that.triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
+    that.triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
 
 
     function controllerComputePickRay() {
