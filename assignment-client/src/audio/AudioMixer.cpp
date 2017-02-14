@@ -397,7 +397,7 @@ void AudioMixer::start() {
         ++frame;
         ++_numStatFrames;
 
-        // process queued events (networking, &c.)
+        // process queued events (networking, global audio packets, &c.)
         {
             auto eventsTimer = _eventsTiming.timer();
 
@@ -405,12 +405,11 @@ void AudioMixer::start() {
             QCoreApplication::processEvents();
         }
 
-        // process audio packets
+        // process audio packets (node-isolated audio packets) across slave threads
         {
-            auto packetsTimer = _packetsTiming.timer();
-            nodeList->eachNode([&](SharedNodePointer& node) {
-                AudioMixerClientData* data = getOrCreateClientData(node.data());
-                data->processPackets();
+            nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                auto packetsTimer = _packetsTiming.timer();
+                _slavePool.processPackets(cbegin, cend);
             });
         }
 
