@@ -11,10 +11,21 @@ StateImage {
     property int imageOnOut: 0
     property int imageOnIn: 2
 
+    property string text: ""
+    property string icon: "icons/tablet-icons/blank.svg"
+
     signal clicked()
 
     function changeProperty(key, value) {
         button[key] = value;
+    }
+
+    function urlHelper(src) {
+        if (src.match(/\bhttp/)) {
+            return src;
+        } else {
+            return "../../../" + src;
+        }
     }
 
     function updateState() {
@@ -38,7 +49,7 @@ StateImage {
         running: false
         onTriggered: button.clicked();
     }
-    
+
     MouseArea {
         id: mouseArea
         hoverEnabled: true
@@ -52,6 +63,29 @@ StateImage {
             button.isEntered = false;
             updateState();
         }
+    }
+
+    Image {
+        id: icon
+        width: 28
+        height: 28
+        anchors.bottom: caption.top
+        anchors.bottomMargin: 0
+        anchors.horizontalCenter: parent.horizontalCenter
+        fillMode: Image.Stretch
+        source: urlHelper(button.icon)
+    }
+
+    Text {
+        id: caption
+        color: "#ffffff"
+        text: button.text
+        font.bold: false
+        font.pixelSize: 9
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 5
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalAlignment: Text.AlignHCenter
     }
 }
 

@@ -166,6 +166,8 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         return;
     }
 
+    _toolbarMode = toolbarMode;
+
     if (toolbarMode) {
         removeButtonsFromHomeScreen();
         addButtonsToToolbar();
@@ -173,7 +175,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         removeButtonsFromToolbar();
         addButtonsToHomeScreen();
     }
-    _toolbarMode = toolbarMode;
 }
 
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
@@ -373,7 +374,7 @@ void TabletProxy::sendToQml(QVariant msg) {
 
 void TabletProxy::addButtonsToHomeScreen() {
     auto tablet = getQmlTablet();
-    if (!tablet) {
+    if (!tablet || _toolbarMode) {
         return;
     }
 
@@ -410,7 +411,11 @@ void TabletProxy::addButtonsToMenuScreen() {
 }
 
 void TabletProxy::removeButtonsFromHomeScreen() {
+    auto tablet = getQmlTablet();
     for (auto& buttonProxy : _tabletButtonProxies) {
+        if (tablet) {
+            QMetaObject::invokeMethod(tablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, buttonProxy->getProperties()));
+        }
         buttonProxy->setQmlButton(nullptr);
     }
 }
@@ -418,12 +423,14 @@ void TabletProxy::removeButtonsFromHomeScreen() {
 void TabletProxy::addButtonsToToolbar() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     QObject* toolbarProxy = tabletScriptingInterface->getSystemToolbarProxy();
+
+    Qt::ConnectionType connectionType = Qt::AutoConnection;
+    if (QThread::currentThread() != toolbarProxy->thread()) {
+        connectionType = Qt::BlockingQueuedConnection;
+    }
+
     for (auto& buttonProxy : _tabletButtonProxies) {
         // copy properties from tablet button proxy to toolbar button proxy.
-        Qt::ConnectionType connectionType = Qt::AutoConnection;
-        if (QThread::currentThread() != toolbarProxy->thread()) {
-            connectionType = Qt::BlockingQueuedConnection;
-        }
         QObject* toolbarButtonProxy = nullptr;
         bool hasResult = QMetaObject::invokeMethod(toolbarProxy, "addButton", connectionType, Q_RETURN_ARG(QObject*, toolbarButtonProxy), Q_ARG(QVariant, buttonProxy->getProperties()));
         if (hasResult) {
@@ -435,7 +442,13 @@ void TabletProxy::addButtonsToToolbar() {
 }
 
 void TabletProxy::removeButtonsFromToolbar() {
-    //
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    QObject* toolbarProxy = tabletScriptingInterface->getSystemToolbarProxy();
+    for (auto& buttonProxy : _tabletButtonProxies) {
+        // remove button from toolbarProxy
+        QMetaObject::invokeMethod(toolbarProxy, "removeButton", Qt::AutoConnection, Q_ARG(QVariant, buttonProxy->getUuid().toString()));
+        buttonProxy->setToolbarButtonProxy(nullptr);
+    }
 }
 
 QQuickItem* TabletProxy::getQmlTablet() const {
@@ -483,12 +496,14 @@ QQuickItem* TabletProxy::getQmlMenu() const {
 //
 
 const QString UUID_KEY = "uuid";
+const QString OBJECT_NAME_KEY = "objectName";
 const QString STABLE_ORDER_KEY = "stableOrder";
 static int s_stableOrder = 1;
 
 TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) : _uuid(QUuid::createUuid()), _stableOrder(++s_stableOrder), _properties(properties) {
     // this is used to uniquely identify this button.
     _properties[UUID_KEY] = _uuid;
+    _properties[OBJECT_NAME_KEY] = _uuid.toString();
     _properties[STABLE_ORDER_KEY] = _stableOrder;
 }
 
