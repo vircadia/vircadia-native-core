@@ -302,22 +302,16 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         // connect the filterAdded signal, and block edits until you hear back
         connect(entityEditFilters.data(), &EntityEditFilters::filterAdded, this, &EntityServer::entityFilterAdded);
         
-        entityEditFilters->rejectAll(true);
         entityEditFilters->addFilter(EntityItemID(), filterURL);
     }
 }
 
 void EntityServer::entityFilterAdded(EntityItemID id, bool success) {
     if (id.isInvalidID()) {
-        // this is the domain-wide entity filter, which we want to stop
-        // the world for
-        auto entityEditFilters = qobject_cast<EntityEditFilters*>(sender());
         if (success) {
             qDebug() << "entity edit filter for " << id << "added successfully";
-            entityEditFilters->rejectAll(false);
         } else {
-            qDebug() << "entity edit filter unsuccessfully added, stopping...";
-            stop();
+            qDebug() << "entity edit filter unsuccessfully added, all edits will be rejected for those without lock rights.";
         }
     }
 }

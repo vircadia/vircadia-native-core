@@ -42,20 +42,18 @@ QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
     return zones;
 }
 
-bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, EntityTree::FilterType filterType) {
+bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, 
+        EntityTree::FilterType filterType, EntityItemID& itemID) {
     qCDebug(entities) << "in EntityEditFilters";
     
-    // allows us to start entity server and reject all edits until filter is setup
-    if (_rejectAll) {
-        qCDebug(entities) << "rejecting all edits";
-        return false;
-    }
-
     // get the ids of all the zones (plus the global entity edit filter) that the position
     // lies within
     auto zoneIDs = getZonesByPosition(position);
-    
     for (auto id : zoneIDs) {
+        if (id == itemID) {
+            qCDebug(entities) << "zone filter not applied to its own edit";
+            continue;
+        }
         qCDebug(entities) << "applying filter for zone" << id;
         
         // get the filter pair, etc...  
@@ -64,7 +62,10 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
         _lock.unlock();
     
         if (filterData.valid()) {
-
+            if (filterData.rejectAll) {
+                qCDebug(entities) << "rejecting all edits";
+                return false;
+            }
             auto oldProperties = propertiesIn.getDesiredProperties();
             auto specifiedProperties = propertiesIn.getChangedProperties();
             propertiesIn.setDesiredProperties(specifiedProperties);
@@ -80,7 +81,6 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             if (filterData.uncaughtExceptions()) {
                 result = QScriptValue();
             }
-
 
             if (result.isObject()){
                 qCDebug(entities) << "filter result accepted";
@@ -131,7 +131,15 @@ void EntityEditFilters::addFilter(EntityItemID entityID, QString filterURL) {
    
     // first remove any existing info for this entity
     removeFilter(entityID);
+    
+    // reject all edits until we load the script
+    FilterData filterData;
+    filterData.rejectAll = true;
 
+    _lock.lockForWrite();
+    _filterDataMap.insert(entityID, filterData);
+    _lock.unlock();
+   
     auto scriptRequest = ResourceManager::createResourceRequest(this, scriptURL);
     if (!scriptRequest) {
         qWarning() << "Could not create ResourceRequest for Entity Edit filter script at" << scriptURL.toString();
@@ -195,6 +203,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                 // put the engine in the engine map (so we don't leak them, etc...)
                 FilterData filterData;
                 filterData.engine = engine;
+                filterData.rejectAll = false;
                 
                 // define the uncaughtException function
                 QScriptEngine& engineRef = *engine;
@@ -209,10 +218,11 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                 global.setProperty("Entities", entitiesObject);
                 filterData.filterFn = global.property("filter");
                 if (!filterData.filterFn.isFunction()) {
-                    qDebug() << "Filter function specified but not found. Ignoring filter";
+                    qDebug() << "Filter function specified but not found. Will reject all edits for those without lock rights.";
                     delete engine;
-                    return;
+                    filterData.rejectAll=true;
                 }
+               
                 
                 _lock.lockForWrite();
                 _filterDataMap.insert(entityID, filterData);

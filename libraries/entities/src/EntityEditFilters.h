@@ -30,8 +30,10 @@ public:
         QScriptValue filterFn;
         std::function<bool()> uncaughtExceptions;
         QScriptEngine* engine;
-
-        bool valid() { return (engine != nullptr && filterFn.isFunction() && uncaughtExceptions); }
+        bool rejectAll;
+        
+        FilterData(): engine(nullptr), rejectAll(false) {};
+        bool valid() { return (rejectAll || (engine != nullptr && filterFn.isFunction() && uncaughtExceptions)); }
     };
 
     EntityEditFilters() {};
@@ -40,8 +42,8 @@ public:
     void addFilter(EntityItemID entityID, QString filterURL);
     void removeFilter(EntityItemID entityID);
 
-    bool filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, EntityTree::FilterType filterType);
-    void rejectAll(bool state) {_rejectAll = state; }
+    bool filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, 
+                EntityTree::FilterType filterType, EntityItemID& entityID);
 
 signals:
     void filterAdded(EntityItemID id, bool success);
