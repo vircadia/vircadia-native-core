@@ -96,7 +96,7 @@ void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const 
     message.readPrimitive(&numberOfCodecs);
     std::vector<QString> codecs;
     for (auto i = 0; i < numberOfCodecs; i++) {
-        QString requestedCodec = message.readString();
+        codecs.push_back(message.readString());
     }
     const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec(codecs);
 
