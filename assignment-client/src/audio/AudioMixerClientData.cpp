@@ -47,6 +47,14 @@ AudioMixerClientData::~AudioMixerClientData() {
     }
 }
 
+void AudioMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> packet) {
+    _queuedPackets.push(packet);
+}
+
+void AudioMixerClientData::processPackets() {
+    // TODO: process the queue
+    assert(_queuedPackets.empty());
+}
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     QReadLocker readLocker { &_streamsLock };

@@ -124,6 +124,7 @@ private:
     Timer _prepareTiming;
     Timer _mixTiming;
     Timer _eventsTiming;
+    Timer _packetsTiming;
 
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
     static float _noiseMutingThreshold;

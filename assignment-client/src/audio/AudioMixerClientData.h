@@ -12,6 +12,8 @@
 #ifndef hifi_AudioMixerClientData_h
 #define hifi_AudioMixerClientData_h
 
+#include <queue>
+
 #include <QtCore/QJsonObject>
 
 #include <AABox.h>
@@ -33,6 +35,9 @@ public:
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
+
+    void queuePacket(QSharedPointer<ReceivedMessage> packet);
+    void processPackets();
 
     // locks the mutex to make a copy
     AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
@@ -105,11 +110,12 @@ public slots:
     void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
-    using IgnoreZone = AABox;
+    std::queue<QSharedPointer<ReceivedMessage>> _queuedPackets;
 
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
 
+    using IgnoreZone = AABox;
     class IgnoreZoneMemo {
     public:
         IgnoreZoneMemo(AudioMixerClientData& data) : _data(data) {}

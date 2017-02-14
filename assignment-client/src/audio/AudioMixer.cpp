@@ -323,6 +323,7 @@ void AudioMixer::sendStatsPacket() {
     addTiming(_prepareTiming, "prepare");
     addTiming(_mixTiming, "mix");
     addTiming(_eventsTiming, "events");
+    addTiming(_packetsTiming, "packets");
 
 #ifdef HIFI_AUDIO_MIXER_DEBUG
     timingStats["ns_per_mix"] = (_stats.totalMixes > 0) ?  (float)(_stats.mixTime / _stats.totalMixes) : 0;
@@ -452,18 +453,27 @@ void AudioMixer::start() {
         ++frame;
         ++_numStatFrames;
 
-        // play nice with qt event-looping
+        // process queued events (networking, &c.)
         {
             auto eventsTimer = _eventsTiming.timer();
 
             // since we're a while loop we need to yield to qt's event processing
             QCoreApplication::processEvents();
+        }
 
-            if (_isFinished) {
-                // alert qt eventing that this is finished
-                QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
-                break;
-            }
+        // process audio packets
+        {
+            auto packetsTimer = _packetsTiming.timer();
+            nodeList->eachNode([&](SharedNodePointer& node) {
+                AudioMixerClientData* data = getOrCreateClientData(node.data());
+                data->processPackets();
+            });
+        }
+
+        if (_isFinished) {
+            // alert qt eventing that this is finished
+            QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
+            break;
         }
     }
 }
