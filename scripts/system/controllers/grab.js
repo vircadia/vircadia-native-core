@@ -404,7 +404,7 @@ Grabber.prototype.pressEvent = function(event) {
 };
 
 Grabber.prototype.releaseEvent = function(event) {
-        if (event.isLeftButton!==true ||event.isRightButton===true || event.isMiddleButton===true) {
+    if (event.isLeftButton!==true ||event.isRightButton===true || event.isMiddleButton===true) {
         return;
     }
 

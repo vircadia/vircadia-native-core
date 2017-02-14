@@ -57,9 +57,9 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     auto& packetReceiver = nodeList->getPacketReceiver();
 
     packetReceiver.registerListenerForTypes({ PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
-                                              PacketType::InjectAudio, PacketType::SilentAudioFrame,
-                                              PacketType::AudioStreamStats },
-                                            this, "handleNodeAudioPacket");
+                                              PacketType::InjectAudio, PacketType::AudioStreamStats },
+                                            this, "handleAudioPacket");
+    packetReceiver.registerListenerForTypes({ PacketType::SilentAudioFrame }, this, "handleSilentAudioPacket");
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
@@ -72,7 +72,13 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
-void AudioMixer::handleNodeAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+void AudioMixer::handleAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    getOrCreateClientData(sendingNode.data());
+    DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
+}
+
+void AudioMixer::handleSilentAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    _numSilentPackets++;
     getOrCreateClientData(sendingNode.data());
     DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
 }
@@ -185,8 +191,7 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            QUuid killedUUID = killedNode->getUUID();
-            clientData->removeHRTFsForNode(killedUUID);
+            clientData->removeNode(killedNode->getUUID());
         }
     });
 }
@@ -300,6 +305,8 @@ void AudioMixer::sendStatsPacket() {
     statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
     statsObject["avg_listeners_per_frame"] = (float)_stats.sumListeners / (float)_numStatFrames;
 
+    statsObject["silent_packets_per_frame"] = (float)_numSilentPackets / (float)_numStatFrames;
+
     // timing stats
     QJsonObject timingStats;
 
@@ -317,8 +324,8 @@ void AudioMixer::sendStatsPacket() {
     addTiming(_mixTiming, "mix");
     addTiming(_eventsTiming, "events");
 
-#ifdef HIFI_AUDIO_THROTTLE_DEBUG
-    timingStats["ns_per_throttle"] = (_stats.totalMixes > 0) ?  (float)(_stats.throttleTime / _stats.totalMixes) : 0;
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    timingStats["ns_per_mix"] = (_stats.totalMixes > 0) ?  (float)(_stats.mixTime / _stats.totalMixes) : 0;
 #endif
 
     // call it "avg_..." to keep it higher in the display, sorted alphabetically
@@ -338,7 +345,7 @@ void AudioMixer::sendStatsPacket() {
 
     statsObject["mix_stats"] = mixStats;
 
-    _numStatFrames = 0;
+    _numStatFrames = _numSilentPackets = 0;
     _stats.reset();
 
     // add stats for each listerner

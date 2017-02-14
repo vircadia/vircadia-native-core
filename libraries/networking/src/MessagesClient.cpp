@@ -45,7 +45,7 @@ void MessagesClient::decodeMessagesPacket(QSharedPointer<ReceivedMessage> receiv
 
     receivedMessage->readPrimitive(&isText);
 
-    quint16 messageLength;
+    quint32 messageLength;
     receivedMessage->readPrimitive(&messageLength);
     auto messageData = receivedMessage->read(messageLength);
     if (isText) {
@@ -75,7 +75,7 @@ std::unique_ptr<NLPacketList> MessagesClient::encodeMessagesPacket(QString chann
     packetList->writePrimitive(isTextMessage);
 
     auto messageUtf8 = message.toUtf8();
-    quint16 messageLength = messageUtf8.length();
+    quint32 messageLength = messageUtf8.length();
     packetList->writePrimitive(messageLength);
     packetList->write(messageUtf8);
 
@@ -95,7 +95,7 @@ std::unique_ptr<NLPacketList> MessagesClient::encodeMessagesDataPacket(QString c
     bool isTextMessage = false;
     packetList->writePrimitive(isTextMessage);
 
-    quint16 dataLength = data.length();
+    quint32 dataLength = data.length();
     packetList->writePrimitive(dataLength);
     packetList->write(data);
 

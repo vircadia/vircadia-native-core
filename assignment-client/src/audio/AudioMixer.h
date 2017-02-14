@@ -56,7 +56,8 @@ public slots:
 
 private slots:
     // packet handlers
-    void handleNodeAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleSilentAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void handleNodeKilled(SharedNodePointer killedNode);
@@ -86,6 +87,8 @@ private:
 
     float _trailingMixRatio { 0.0f };
     float _throttlingRatio { 0.0f };
+
+    int _numSilentPackets { 0 };
 
     int _numStatFrames { 0 };
     AudioMixerStats _stats;
