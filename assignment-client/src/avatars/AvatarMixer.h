@@ -15,11 +15,15 @@
 #ifndef hifi_AvatarMixer_h
 #define hifi_AvatarMixer_h
 
+#include <QThread>
+
 #include <shared/RateCounter.h>
 #include <PortableHighResolutionClock.h>
 
 #include <ThreadedAssignment.h>
 #include "AvatarMixerClientData.h"
+
+#include "AvatarMixerSlavePool.h"
 
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
 class AvatarMixer : public ThreadedAssignment {
@@ -96,7 +100,8 @@ private:
 
     RateCounter<> _loopRate; // this is the rate that the main thread tight loop runs
 
-    std::unordered_map<QUuid, std::vector<QSharedPointer<ReceivedMessage>>> _pendingAvatarDataPackets;
+
+    AvatarMixerSlavePool _slavePool;
 
 };
 

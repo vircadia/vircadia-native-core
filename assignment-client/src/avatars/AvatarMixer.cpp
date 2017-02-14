@@ -100,12 +100,23 @@ void AvatarMixer::start() {
         {
             auto start = usecTimestampNow();
             auto nodeList = DependencyManager::get<NodeList>();
+
+            /**
             nodeList->eachNode([](const SharedNodePointer& node) {
                 auto nodeData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
                 if (nodeData) {
                     nodeData->processQueuedAvatarDataPackets();
                 }
             });
+            **/
+
+            nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                // mix across slave threads
+                {
+                    _slavePool.processIncomingPackets(cbegin, cend);
+                }
+            });
+
             auto end = usecTimestampNow();
             _processQueuedAvatarDataPacketsElapsedTime += (end - start);
         }
@@ -745,6 +756,8 @@ void AvatarMixer::sendStatsPacket() {
 
 
     QJsonObject statsObject;
+    statsObject["threads"] = _slavePool.numThreads();
+
     statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
 
     statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
