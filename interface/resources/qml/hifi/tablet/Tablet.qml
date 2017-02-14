@@ -1,4 +1,4 @@
-import QtQuick 2.0
+import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import "../../styles-uit"
 
@@ -6,9 +6,15 @@ Item {
     id: tablet
     objectName: "tablet"
     property double micLevel: 0.8
+    property bool micEnabled: true
     property int rowIndex: 0
     property int columnIndex: 0
     property int count: (flowMain.children.length - 1)
+
+    // called by C++ code to keep mic state updated
+    function setMicEnabled(newMicEnabled) {
+        tablet.micEnabled = newMicEnabled;
+    }
 
     // called by C++ code to keep audio bar updated
     function setMicLevel(newMicLevel) {
@@ -97,17 +103,38 @@ Item {
         anchors.topMargin: 0
         anchors.top: parent.top
 
-
-        Image {
-            id: muteIcon
+        Item {
+            id: audioIcon
+            anchors.verticalCenter: parent.verticalCenter
             width: 40
             height: 40
-            source: "../../../icons/tablet-mute-icon.svg"
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 5
+
+            Image {
+                id: micIcon
+                source: "../../../icons/tablet-icons/mic.svg"
+            }
+
+            Item {
+                visible: (!tablet.micEnabled && !toggleMuteMouseArea.containsMouse)
+                         || (tablet.micEnabled && toggleMuteMouseArea.containsMouse)
+
+                Image {
+                    id: muteIcon
+                    source: "../../../icons/tablet-icons/mic-mute.svg"
+                }
+
+                ColorOverlay {
+                    anchors.fill: muteIcon
+                    source: muteIcon
+                    color: toggleMuteMouseArea.containsMouse ? "#a0a0a0" : "#ff0000"
+                }
+            }
         }
 
         Item {
-            id: item1
+            id: audioBar
             width: 170
             height: 10
             anchors.left: parent.left
@@ -157,6 +184,22 @@ Item {
             }
         }
 
+        MouseArea {
+            id: toggleMuteMouseArea
+            anchors {
+                left: audioIcon.left
+                right: audioBar.right
+                top: audioIcon.top
+                bottom: audioIcon.bottom
+            }
+
+            hoverEnabled: true
+            preventStealing: true
+            propagateComposedEvents: false
+            scrollGestureEnabled: false
+            onClicked: tabletRoot.toggleMicEnabled()
+        }
+
         RalewaySemiBold {
             id: usernameText
             text: tablet.parent.parent.username
@@ -175,7 +218,6 @@ Item {
             GradientStop {
                 position: 0
                 color: "#2b2b2b"
-
             }
 
             GradientStop {
@@ -225,7 +267,7 @@ Item {
 
             PropertyChanges {
                 target: muteIcon
-                source: "../../../icons/tablet-unmute-icon.svg"
+                visible: micEnabled
             }
 
             PropertyChanges {

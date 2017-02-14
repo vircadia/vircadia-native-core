@@ -713,24 +713,22 @@ function loaded() {
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
                 if (data.type == "server_script_status") {
-                    if (!data.statusRetrieved) {
-                        elServerScriptStatus.innerHTML = "Failed to retrieve status";
-                        elServerScriptError.style.display = "none";
+                    elServerScriptError.value = data.errorInfo;
+                    elServerScriptError.style.display = data.errorInfo ? "block" : "none";
+                    if (data.statusRetrieved === false) {
+                        elServerScriptStatus.innerText = "Failed to retrieve status";
                     } else if (data.isRunning) {
-                        if (data.status == "running") {
-                            elServerScriptStatus.innerHTML = "Running";
-                            elServerScriptError.style.display = "none";
-                        } else if (data.status == "error_loading_script") {
-                            elServerScriptStatus.innerHTML = "Error loading script";
-                            elServerScriptError.style.display = "block";
-                        } else if (data.status == "error_running_script") {
-                            elServerScriptStatus.innerHTML = "Error running script";
-                            elServerScriptError.style.display = "block";
-                        }
-                        elServerScriptError.innerHTML = data.errorInfo;;
+                        var ENTITY_SCRIPT_STATUS = {
+                            pending: "Pending",
+                            loading: "Loading",
+                            error_loading_script: "Error loading script",
+                            error_running_script: "Error running script",
+                            running: "Running",
+                            unloaded: "Unloaded",
+                        };
+                        elServerScriptStatus.innerText = ENTITY_SCRIPT_STATUS[data.status] || data.status;
                     } else {
-                        elServerScriptStatus.innerHTML = "Not running";
-                        elServerScriptError.style.display = "none";
+                        elServerScriptStatus.innerText = "Not running";
                     }
                 } else if (data.type == "update") {
 
@@ -1169,6 +1167,10 @@ function loaded() {
         elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
         elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
         elServerScripts.addEventListener('change', createEmitTextPropertyUpdateFunction('serverScripts'));
+        elServerScripts.addEventListener('change', function() {
+            // invalidate the current status (so that same-same updates can still be observed visually)
+            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
+        });
 
         elClearUserData.addEventListener("click", function() {
             deleteJSONEditor();
@@ -1428,6 +1430,8 @@ function loaded() {
             }));
         });
         elReloadServerScriptsButton.addEventListener("click", function() {
+            // invalidate the current status (so that same-same updates can still be observed visually)
+            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "reloadServerScripts"

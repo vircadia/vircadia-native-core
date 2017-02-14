@@ -165,9 +165,36 @@ function goAway(fromStartup) {
     if (!isEnabled || isAway) {
         return;
     }
-
+    
+    // If we're entering away mode from some other state than startup, then we create our move timer immediately.
+    // However if we're just stating up, we need to delay this process so that we don't think the initial teleport
+    // is actually a move.
+    if (fromStartup === undefined || fromStartup === false) {
+        avatarMovedInterval = Script.setInterval(ifAvatarMovedGoActive, BASIC_TIMER_INTERVAL);
+    } else {
+        var WAIT_FOR_MOVE_ON_STARTUP = 3000; // 3 seconds
+        Script.setTimeout(function() {
+            avatarMovedInterval = Script.setInterval(ifAvatarMovedGoActive, BASIC_TIMER_INTERVAL);
+        }, WAIT_FOR_MOVE_ON_STARTUP);
+    }
+    
     UserActivityLogger.toggledAway(true);
+    MyAvatar.isAway = true;
+}
 
+function goActive() {
+    if (!isAway) {
+        return;
+    }
+
+    UserActivityLogger.toggledAway(false);
+    MyAvatar.isAway = false;
+}
+
+MyAvatar.wentAway.connect(setAwayProperties)
+MyAvatar.wentActive.connect(setActiveProperties)
+
+function setAwayProperties() {
     isAway = true;
     wasMuted = AudioDevice.getMuted();
     if (!wasMuted) {
@@ -189,27 +216,9 @@ function goAway(fromStartup) {
     wasHmdMounted = HMD.mounted; // always remember the correct state
 
     avatarPosition = MyAvatar.position;
-
-    // If we're entering away mode from some other state than startup, then we create our move timer immediately.
-    // However if we're just stating up, we need to delay this process so that we don't think the initial teleport
-    // is actually a move.
-    if (fromStartup === undefined || fromStartup === false) {
-        avatarMovedInterval = Script.setInterval(ifAvatarMovedGoActive, BASIC_TIMER_INTERVAL);
-    } else {
-        var WAIT_FOR_MOVE_ON_STARTUP = 3000; // 3 seconds
-        Script.setTimeout(function() {
-            avatarMovedInterval = Script.setInterval(ifAvatarMovedGoActive, BASIC_TIMER_INTERVAL);
-        }, WAIT_FOR_MOVE_ON_STARTUP);
-    }
 }
 
-function goActive() {
-    if (!isAway) {
-        return;
-    }
-
-    UserActivityLogger.toggledAway(false);
-
+function setActiveProperties() {
     isAway = false;
     if (!wasMuted) {
         AudioDevice.toggleMute();

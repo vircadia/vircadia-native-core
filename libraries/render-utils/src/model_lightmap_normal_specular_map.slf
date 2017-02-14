@@ -34,7 +34,7 @@ void main(void) {
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
     
     vec3 viewNormal;
-    <$tangentToViewSpace(normalTexel, _normal, _tangent, viewNormal)$>
+    <$tangentToViewSpaceLOD(_position, normalTexel, _normal, _tangent, viewNormal)$>
 
     packDeferredFragmentLightmap(
         normalize(viewNormal.xyz), 

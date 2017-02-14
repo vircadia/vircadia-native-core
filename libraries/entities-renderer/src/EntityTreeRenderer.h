@@ -148,7 +148,7 @@ private:
     bool layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
     bool applySkyboxAndHasAmbient();
 
-    void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
+    void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false, const bool unloadFirst = false);
 
     QList<ModelPointer> _releasedModels;
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,

@@ -82,6 +82,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
+    Q_PROPERTY(float isAway READ getIsAway WRITE setAway)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
@@ -328,6 +329,8 @@ signals:
     void energyChanged(float newEnergy);
     void positionGoneTo();
     void onLoadComplete();
+    void wentAway();
+    void wentActive();
 
 private:
 
@@ -385,6 +388,7 @@ private:
     bool _isPushing;
     bool _isBeingPushed;
     bool _isBraking;
+    bool _isAway;
 
     float _boomLength;
     float _yawSpeed; // degrees/sec
@@ -507,6 +511,8 @@ private:
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
 
+    uint64_t _identityPacketExpiry { 0 };
+
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };
     float MAX_AVATAR_MOVEMENT_PER_FRAME { 30.0f };
@@ -519,6 +525,8 @@ private:
     float getEnergy();
     void setEnergy(float value);
     bool didTeleport();
+    bool getIsAway() const { return _isAway; }
+    void setAway(bool value);
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

@@ -72,7 +72,7 @@ public:
 
     void setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
-    Q_INVOKABLE void gotoMenuScreen();
+    Q_INVOKABLE void gotoMenuScreen(const QString& submenu = "");
 
     /**jsdoc
      * transition to the home screen
@@ -105,6 +105,13 @@ public:
      * @param tabletButtonProxy {TabletButtonProxy} button to be removed
      */
     Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
+
+    /**jsdoc
+     * Updates the tablet's mic enabled state
+     * @function TabletProxy#updateMicEnabled
+     * @param micEnabled {bool} mic enabled state
+     */
+    Q_INVOKABLE void updateMicEnabled(const bool micEnabled);
 
     /**jsdoc
      * Updates the audio bar in tablet to reflect latest mic level
@@ -227,10 +234,14 @@ protected:
 
 /**jsdoc
  * @typedef TabletButtonProxy.ButtonProperties
- * @property {string} text - button caption
  * @property {string} icon - url to button icon. (50 x 50)
- * @property {string} activeText - button caption when button is active
+ * @property {string} hoverIcon - url to button icon, displayed during mouse hover. (50 x 50)
+ * @property {string} activeHoverIcon - url to button icon used when button is active, and during mouse hover. (50 x 50)
  * @property {string} activeIcon - url to button icon used when button is active. (50 x 50)
+ * @property {string} text - button caption
+ * @property {string} hoverText - button caption when button is not-active but during mouse hover.
+ * @property {string} activeText - button caption when button is active
+ * @property {string} activeHoverText - button caption when button is active and during mouse hover.
  * @property {string} isActive - true when button is active.
  * @property {number} sortOrder - determines sort order on tablet.  lower numbers will appear before larger numbers.  default is 100
  */

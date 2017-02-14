@@ -552,7 +552,7 @@ public:
 
     int getJointCount() { return _jointData.size(); }
 
-    QVector<JointData> getLastSentJointData() { 
+    QVector<JointData> getLastSentJointData() {
         QReadLocker readLock(&_jointDataLock);
         _lastSentJointData.resize(_jointData.size());
         return _lastSentJointData;
@@ -614,7 +614,7 @@ protected:
     KeyState _keyState;
 
     bool _forceFaceTrackerConnected;
-    bool _hasNewJointData; // set in AvatarData, cleared in Avatar
+    bool _hasNewJointData { true }; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData { nullptr };
 
