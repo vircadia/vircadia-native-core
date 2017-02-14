@@ -1,7 +1,7 @@
 //
 //  Section.qml
 //
-//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Created by Bradley Dante Ruiz on 13 Feb 2017
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

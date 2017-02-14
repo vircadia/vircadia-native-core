@@ -1,7 +1,7 @@
 //
 //  ComboBox.qml
 //
-//  Created by Bradley Austin David on 27 Jan 2016
+//  Created by Dante Ruiz on 13 Feb 2017
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
