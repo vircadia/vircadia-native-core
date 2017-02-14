@@ -27,6 +27,8 @@
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
+static const bool HIFI_SCRIPT_DEBUGGABLES { true };
+
 ScriptsModel& getScriptsModel() {
     static ScriptsModel scriptsModel;
     return scriptsModel;
@@ -517,8 +519,9 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
     for (auto initializer : _scriptInitializers) {
         initializer(scriptEngine);
     }
-    
-    if (scriptEngine->isDebuggable() || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier)) {
+
+    auto const wantDebug = scriptEngine->isDebuggable() || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier);
+    if (HIFI_SCRIPT_DEBUGGABLES && wantDebug) {
         scriptEngine->runDebuggable();
     } else {
         scriptEngine->runInThread();

@@ -38,19 +38,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
                                                           EntityTreePointer entityTree,
                                                           EntityItemID entityItemID,
                                                           const EntityItemProperties& properties) {
-    if (!_shouldSend) {
-        return; // bail early
-    }
-
-    if (properties.getOwningAvatarID() != _myAvatar->getID()) {
-        return; // don't send updates for someone else's avatarEntity
-    }
-
-    assert(properties.getClientOnly());
-
-    // this is an avatar-based entity.  update our avatar-data rather than sending to the entity-server
     assert(_myAvatar);
-
     if (!entityTree) {
         qCDebug(entities) << "EntityEditPacketSender::queueEditEntityMessage null entityTree.";
         return;
@@ -93,7 +81,8 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
         return; // bail early
     }
 
-    if (properties.getClientOnly()) {
+    if (properties.getClientOnly() && properties.getOwningAvatarID() == _myAvatar->getID()) {
+        // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
         queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
         return;
     }

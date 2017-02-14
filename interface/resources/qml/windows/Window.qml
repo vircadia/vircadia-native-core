@@ -296,6 +296,10 @@ Fadable {
                 // fall through
 
             default:
+                if (MyAvatar.isAway) {
+                    // If stuck in a window and a key is pressed this should exit paused mode
+                    MyAvatar.isAway = false;
+                }
                 // Consume unmodified keyboard entries while the window is focused, to prevent them
                 // from propagating to the application
                 if (event.modifiers === Qt.NoModifier) {

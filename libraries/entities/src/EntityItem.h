@@ -446,6 +446,7 @@ public:
     bool shouldPreloadScript() const { return !_script.isEmpty() &&
                                               ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
     void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
+    void scriptHasUnloaded() { _loadedScript = ""; _loadedScriptTimestamp = 0; }
 
     bool getClientOnly() const { return _clientOnly; }
     void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }

@@ -191,8 +191,7 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            QUuid killedUUID = killedNode->getUUID();
-            clientData->removeHRTFsForNode(killedUUID);
+            clientData->removeNode(killedNode->getUUID());
         }
     });
 }
@@ -325,8 +324,8 @@ void AudioMixer::sendStatsPacket() {
     addTiming(_mixTiming, "mix");
     addTiming(_eventsTiming, "events");
 
-#ifdef HIFI_AUDIO_THROTTLE_DEBUG
-    timingStats["ns_per_throttle"] = (_stats.totalMixes > 0) ?  (float)(_stats.throttleTime / _stats.totalMixes) : 0;
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    timingStats["ns_per_mix"] = (_stats.totalMixes > 0) ?  (float)(_stats.mixTime / _stats.totalMixes) : 0;
 #endif
 
     // call it "avg_..." to keep it higher in the display, sorted alphabetically
