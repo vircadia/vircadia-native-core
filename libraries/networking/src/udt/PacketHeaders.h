@@ -224,7 +224,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     SessionDisplayName,
     Unignore,
     ImmediateSessionDisplayNameUpdates,
-    VariableAvatarData
+    VariableAvatarData,
+    AvatarAsChildFixes
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
