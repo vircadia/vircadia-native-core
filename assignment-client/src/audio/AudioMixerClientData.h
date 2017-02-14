@@ -36,7 +36,7 @@ public:
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
 
-    void queuePacket(QSharedPointer<ReceivedMessage> packet);
+    void queuePacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer node);
     void processPackets();
 
     // locks the mutex to make a copy
@@ -61,7 +61,9 @@ public:
 
     void removeAgentAvatarAudioStream();
 
+    // packet processors
     int parseData(ReceivedMessage& message) override;
+    void negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node);
 
     // attempt to pop a frame from each audio stream, and return the number of streams from this client
     int checkBuffersBeforeFrameSend();
@@ -110,7 +112,11 @@ public slots:
     void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
-    std::queue<QSharedPointer<ReceivedMessage>> _queuedPackets;
+    struct Packet {
+        QSharedPointer<ReceivedMessage> message;
+        SharedNodePointer node;
+    };
+    std::queue<Packet> _queuedPackets;
 
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID

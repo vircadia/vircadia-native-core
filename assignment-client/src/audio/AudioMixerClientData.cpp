@@ -47,23 +47,27 @@ AudioMixerClientData::~AudioMixerClientData() {
     }
 }
 
-void AudioMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> packet) {
-    _queuedPackets.push(packet);
+void AudioMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
+    _queuedPackets.push({ message, node });
 }
 
 void AudioMixerClientData::processPackets() {
     while (!_queuedPackets.empty()) {
-        QSharedPointer<ReceivedMessage>& packet = _queuedPackets.back();
+        auto& packet = _queuedPackets.back();
 
-        switch (packet->getType()) {
+        switch (packet.message->getType()) {
             case PacketType::MicrophoneAudioNoEcho:
             case PacketType::MicrophoneAudioWithEcho:
             case PacketType::InjectAudio:
             case PacketType::AudioStreamStats:
             case PacketType::SilentAudioFrame: {
                 QMutexLocker lock(&getMutex());
-                parseData(*packet);
+                parseData(*packet.message);
+                break;
             }
+            case PacketType::NegotiateAudioFormat:
+                negotiateAudioFormat(*packet.message, packet.node);
+                break;
             default:
                 Q_UNREACHABLE();
         }
@@ -72,6 +76,19 @@ void AudioMixerClientData::processPackets() {
     }
 
     assert(_queuedPackets.empty());
+}
+
+void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node) {
+    quint8 numberOfCodecs;
+    message.readPrimitive(&numberOfCodecs);
+    std::vector<QString> codecs;
+    for (auto i = 0; i < numberOfCodecs; i++) {
+        QString requestedCodec = message.readString();
+    }
+    const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec(codecs);
+
+    setupCodec(codec.second, codec.first);
+    sendSelectAudioFormat(node, codec.first);
 }
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {

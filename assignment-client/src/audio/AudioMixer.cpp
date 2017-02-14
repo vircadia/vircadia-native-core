@@ -47,12 +47,16 @@ static const QString AUDIO_THREADING_GROUP_KEY = "audio_threading";
 int AudioMixer::_numStaticJitterFrames{ -1 };
 float AudioMixer::_noiseMutingThreshold{ DEFAULT_NOISE_MUTING_THRESHOLD };
 float AudioMixer::_attenuationPerDoublingInDistance{ DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE };
+QString AudioMixer::_codecPreferenceOrder{};
 QHash<QString, AABox> AudioMixer::_audioZones;
 QVector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
 QVector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
 
 AudioMixer::AudioMixer(ReceivedMessage& message) :
     ThreadedAssignment(message) {
+    // initialize the plugins
+    PluginManager::getInstance()->getCodecPlugins();
+
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
@@ -61,9 +65,9 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
             PacketType::MicrophoneAudioWithEcho,
             PacketType::InjectAudio,
             PacketType::AudioStreamStats,
-            PacketType::SilentAudioFrame },
+            PacketType::SilentAudioFrame,
+            PacketType::NegotiateAudioFormat },
             this, "queueAudioPacket");
-    packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
@@ -75,12 +79,12 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
-void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
     if (message->getType() == PacketType::SilentAudioFrame) {
         _numSilentPackets++;
     }
 
-    getOrCreateClientData(sendingNode.data())->queuePacket(message);
+    getOrCreateClientData(node.data())->queuePacket(message, node);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
@@ -119,69 +123,41 @@ InputPluginList getInputPlugins() {
     return result;
 }
 
-void saveInputPluginSettings(const InputPluginList& plugins) {
-}
+// must be here to satisfy a reference in PluginManager::saveSettings()
+void saveInputPluginSettings(const InputPluginList& plugins) {}
 
-
-void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    QStringList availableCodecs;
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-    if (codecPlugins.size() > 0) {
-        for (auto& plugin : codecPlugins) {
-            auto codecName = plugin->getName();
-            qDebug() << "Codec available:" << codecName;
-            availableCodecs.append(codecName);
-        }
-    } else {
-        qDebug() << "No Codecs available...";
-    }
-
-    CodecPluginPointer selectedCodec;
+const std::pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(std::vector<QString> codecs) {
     QString selectedCodecName;
+    CodecPluginPointer selectedCodec;
 
+    // get the available codecs (on the mixer)
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    std::map<QString, CodecPluginPointer> availableCodecs;
+    std::for_each(codecPlugins.cbegin(), codecPlugins.cend(),
+            [&availableCodecs](const CodecPluginPointer& codec) {
+                availableCodecs[codec->getName()] = codec;
+            });
+
+    // get the codec preferences (on the mixer)
     QStringList codecPreferenceList = _codecPreferenceOrder.split(",");
 
-    // read the codecs requested by the client
+    // read the codecs requested (by the client)
     const int MAX_PREFERENCE = 99999;
-    int preferredCodecIndex = MAX_PREFERENCE;
-    QString preferredCodec;
-    quint8 numberOfCodecs = 0;
-    message->readPrimitive(&numberOfCodecs);
-    qDebug() << "numberOfCodecs:" << numberOfCodecs;
-    QStringList codecList;
-    for (quint16 i = 0; i < numberOfCodecs; i++) {
-        QString requestedCodec = message->readString();
-        int preferenceOfThisCodec = codecPreferenceList.indexOf(requestedCodec);
-        bool codecAvailable = availableCodecs.contains(requestedCodec);
-        qDebug() << "requestedCodec:" << requestedCodec << "preference:" << preferenceOfThisCodec << "available:" << codecAvailable;
+    int minPreference = MAX_PREFERENCE;
+    for (auto& codec : codecs) {
+        bool codecAvailable = (availableCodecs.count(codec) > 0);
+
         if (codecAvailable) {
-            codecList.append(requestedCodec);
-            if (preferenceOfThisCodec >= 0 && preferenceOfThisCodec < preferredCodecIndex) {
-                qDebug() << "This codec is preferred...";
-                selectedCodecName  = requestedCodec;
-                preferredCodecIndex = preferenceOfThisCodec;
-            }
-        }
-    }
-    qDebug() << "all requested and available codecs:" << codecList;
-
-    // choose first codec
-    if (!selectedCodecName.isEmpty()) {
-        if (codecPlugins.size() > 0) {
-            for (auto& plugin : codecPlugins) {
-                if (selectedCodecName == plugin->getName()) {
-                    qDebug() << "Selecting codec:" << selectedCodecName;
-                    selectedCodec = plugin;
-                    break;
-                }
+            int preference = codecPreferenceList.indexOf(codec);
+            if (preference >= 0 && preference < minPreference) {
+                minPreference = preference;
+                // choose the preferred, available codec
+                selectedCodecName  = codec;
             }
         }
     }
 
-    auto clientData = getOrCreateClientData(sendingNode.data());
-    clientData->setupCodec(selectedCodec, selectedCodecName);
-    qDebug() << "selectedCodecName:" << selectedCodecName;
-    clientData->sendSelectAudioFormat(sendingNode, selectedCodecName);
+    return std::make_pair(selectedCodecName, availableCodecs[selectedCodecName]);
 }
 
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
