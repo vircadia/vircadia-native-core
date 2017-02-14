@@ -97,10 +97,10 @@ void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObjec
     nodeList->resetPacketStats();
 
     QJsonObject ioStats;
-    ioStats["packets_in_per_second"] = packetsInPerSecond;
-    ioStats["packets_out_per_second"] = packetsOutPerSecond;
-    ioStats["bytes_in_per_second"] = bytesInPerSecond;
-    ioStats["bytes_out_per_second"] = bytesOutPerSecond;
+    ioStats["inbound_bytes_per_s"] = bytesInPerSecond;
+    ioStats["inbound_packets_per_s"] = packetsInPerSecond;
+    ioStats["outbound_bytes_per_s"] = bytesOutPerSecond;
+    ioStats["outbound_packets_per_s"] = packetsOutPerSecond;
 
     statsObject["io_stats"] = ioStats;
 
