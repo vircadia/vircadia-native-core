@@ -61,9 +61,13 @@ public:
 
     void removeAgentAvatarAudioStream();
 
-    // packet processors
+    // packet parsers
     int parseData(ReceivedMessage& message) override;
     void negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node);
+    void parseRequestsDomainListData(ReceivedMessage& message);
+    void parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node);
+    void parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
+    void parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
 
     // attempt to pop a frame from each audio stream, and return the number of streams from this client
     int checkBuffersBeforeFrameSend();

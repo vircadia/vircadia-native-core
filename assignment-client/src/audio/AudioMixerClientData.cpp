@@ -19,6 +19,7 @@
 
 #include "InjectedAudioStream.h"
 
+#include "AudioHelpers.h"
 #include "AudioMixer.h"
 #include "AudioMixerClientData.h"
 
@@ -68,6 +69,18 @@ void AudioMixerClientData::processPackets() {
             case PacketType::NegotiateAudioFormat:
                 negotiateAudioFormat(*packet.message, packet.node);
                 break;
+            case PacketType::RequestsDomainListData:
+                parseRequestsDomainListData(*packet.message);
+                break;
+            case PacketType::PerAvatarGainSet:
+                parsePerAvatarGainSet(*packet.message, packet.node);
+                break;
+            case PacketType::NodeIgnoreRequest:
+                parseNodeIgnoreRequest(packet.message, packet.node);
+                break;
+            case PacketType::RadiusIgnoreRequest:
+                parseRadiusIgnoreRequest(packet.message, packet.node);
+                break;
             default:
                 Q_UNREACHABLE();
         }
@@ -89,6 +102,31 @@ void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const 
 
     setupCodec(codec.second, codec.first);
     sendSelectAudioFormat(node, codec.first);
+}
+
+void AudioMixerClientData::parseRequestsDomainListData(ReceivedMessage& message) {
+    bool isRequesting;
+    message.readPrimitive(&isRequesting);
+    setRequestsDomainListData(isRequesting);
+}
+
+void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node) {
+    QUuid uuid = node->getUUID();
+    // parse the UUID from the packet
+    QUuid avatarUuid = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    uint8_t packedGain;
+    message.readPrimitive(&packedGain);
+    float gain = unpackFloatGainFromByte(packedGain);
+    hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
+    qDebug() << "Setting gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
+}
+
+void AudioMixerClientData::parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
+    node->parseIgnoreRequestMessage(message);
+}
+
+void AudioMixerClientData::parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
+    node->parseIgnoreRadiusRequestMessage(message);
 }
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
