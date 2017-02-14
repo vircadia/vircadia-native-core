@@ -46,7 +46,6 @@ void sendMutePacket(const SharedNodePointer& node, AudioMixerClientData&);
 void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& data);
 
 // mix helpers
-inline bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node);
 inline float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 inline float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
@@ -126,8 +125,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
     typedef void (AudioMixerSlave::*MixFunctor)(
             AudioMixerClientData&, const QUuid&, const AvatarAudioStream&, const PositionalAudioStream&);
-    auto allStreams = [&](const SharedNodePointer& node, MixFunctor mixFunctor) {
-        AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+    auto forAllStreams = [&](const SharedNodePointer& node, AudioMixerClientData* nodeData, MixFunctor mixFunctor) {
         auto nodeID = node->getUUID();
         for (auto& streamPair : nodeData->getAudioStreams()) {
             auto nodeStream = streamPair.second;
@@ -135,10 +133,17 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
         }
     };
 
-    std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
-        if (*node == *listener) {
-            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    auto mixStart = p_high_resolution_clock::now();
+#endif
 
+    std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
+        AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        if (!nodeData) {
+            return;
+        }
+
+        if (*node == *listener) {
             // only mix the echo, if requested
             for (auto& streamPair : nodeData->getAudioStreams()) {
                 auto nodeStream = streamPair.second;
@@ -146,15 +151,10 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                     mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
                 }
             }
-        } else if (!shouldIgnoreNode(listener, node)) {
+        } else if (!listenerData->shouldIgnore(listener, node, _frame)) {
             if (!isThrottling) {
-                allStreams(node, &AudioMixerSlave::mixStream);
+                forAllStreams(node, nodeData, &AudioMixerSlave::mixStream);
             } else {
-#ifdef HIFI_AUDIO_THROTTLE_DEBUG
-                auto throttleStart = p_high_resolution_clock::now();
-#endif
-
-                AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
                 auto nodeID = node->getUUID();
 
                 // compute the node's max relative volume
@@ -179,13 +179,6 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 if (!throttledNodes.empty()) {
                     std::push_heap(throttledNodes.begin(), throttledNodes.end());
                 }
-
-#ifdef HIFI_AUDIO_THROTTLE_DEBUG
-                auto throttleEnd = p_high_resolution_clock::now();
-                uint64_t throttleTime =
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(throttleEnd - throttleStart).count();
-                stats.throttleTime += throttleTime;
-#endif
             }
         }
     });
@@ -201,7 +194,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             std::pop_heap(throttledNodes.begin(), throttledNodes.end());
 
             auto& node = throttledNodes.back().second;
-            allStreams(node, &AudioMixerSlave::mixStream);
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+            forAllStreams(node, nodeData, &AudioMixerSlave::mixStream);
 
             throttledNodes.pop_back();
         }
@@ -209,9 +203,16 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
         // throttle the remaining nodes' streams
         for (const std::pair<float, SharedNodePointer>& nodePair : throttledNodes) {
             auto& node = nodePair.second;
-            allStreams(node, &AudioMixerSlave::throttleStream);
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+            forAllStreams(node, nodeData, &AudioMixerSlave::throttleStream);
         }
     }
+
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    auto mixEnd = p_high_resolution_clock::now();
+    auto mixTime = std::chrono::duration_cast<std::chrono::nanoseconds>(mixEnd - mixStart);
+    stats.mixTime += mixTime.count();
+#endif
 
     // use the per listener AudioLimiter to render the mixed data...
     listenerData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
@@ -452,55 +453,6 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
     }
 }
 
-bool shouldIgnoreNode(const SharedNodePointer& listener, const SharedNodePointer& node) {
-    AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
-    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
-
-    // when this is true, the AudioMixer will send Audio data to a client about avatars that have ignored them
-    bool getsAnyIgnored = listenerData->getRequestsDomainListData() && listener->getCanKick();
-
-    bool ignore = true;
-
-    if (nodeData &&
-            // make sure that it isn't being ignored by our listening node
-            (!listener->isIgnoringNodeWithID(node->getUUID()) || (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
-            // and that it isn't ignoring our listening node
-            (!node->isIgnoringNodeWithID(listener->getUUID()) || getsAnyIgnored))  {
-
-        // is either node enabling the space bubble / ignore radius?
-        if ((listener->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
-            // define the minimum bubble size
-            static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
-
-            // set up the bounding box for the listener
-            AABox listenerBox(listenerData->getAvatarBoundingBoxCorner(), listenerData->getAvatarBoundingBoxScale());
-            if (glm::any(glm::lessThan(listenerData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                listenerBox.setScaleStayCentered(minBubbleSize);
-            }
-
-            // set up the bounding box for the node
-            AABox nodeBox(nodeData->getAvatarBoundingBoxCorner(), nodeData->getAvatarBoundingBoxScale());
-            // Clamp the size of the bounding box to a minimum scale
-            if (glm::any(glm::lessThan(nodeData->getAvatarBoundingBoxScale(), minBubbleSize))) {
-                nodeBox.setScaleStayCentered(minBubbleSize);
-            }
-
-            // quadruple the scale of both bounding boxes
-            listenerBox.embiggen(4.0f);
-            nodeBox.embiggen(4.0f);
-
-            // perform the collision check between the two bounding boxes
-            ignore = listenerBox.touches(nodeBox);
-        } else {
-            ignore = false;
-        }
-    }
-
-    return ignore;
-}
-
-static const float ATTENUATION_START_DISTANCE = 1.0f;
-
 float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition) {
     float gain = 1.0f;
@@ -556,6 +508,7 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
     }
 
     // distance attenuation
+    const float ATTENUATION_START_DISTANCE = 1.0f;
     float distance = glm::length(relativePosition);
     assert(ATTENUATION_START_DISTANCE > EPSILON);
     if (distance >= ATTENUATION_START_DISTANCE) {
