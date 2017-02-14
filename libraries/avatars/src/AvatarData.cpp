@@ -63,7 +63,6 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _forceFaceTrackerConnected(false),
-    _hasNewJointData(true),
     _headData(NULL),
     _displayNameTargetAlpha(1.0f),
     _displayNameAlpha(1.0f),
@@ -702,7 +701,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     bool hasAvatarLocalPosition  = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION);
     bool hasFaceTrackerInfo      = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO);
     bool hasJointData            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DATA);
-
 
     quint64 now = usecTimestampNow();
 
@@ -2202,14 +2200,24 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
     setAttachmentData(newAttachments);
 }
 
+const int MAX_NUM_AVATAR_ENTITIES = 42;
+
 void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "updateAvatarEntity", Q_ARG(const QUuid&, entityID), Q_ARG(QByteArray, entityData));
         return;
     }
     _avatarEntitiesLock.withWriteLock([&] {
-        _avatarEntityData.insert(entityID, entityData);
-        _avatarEntityDataLocallyEdited = true;
+        AvatarEntityMap::iterator itr = _avatarEntityData.find(entityID);
+        if (itr == _avatarEntityData.end()) {
+            if (_avatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
+                _avatarEntityData.insert(entityID, entityData);
+                _avatarEntityDataLocallyEdited = true;
+            }
+        } else {
+            itr.value() = entityData;
+            _avatarEntityDataLocallyEdited = true;
+        }
     });
 }
 
@@ -2240,6 +2248,11 @@ AvatarEntityMap AvatarData::getAvatarEntityData() const {
 }
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
+    if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
+        // the data is suspect
+        qCDebug(avatars) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
+        return;
+    }
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setAvatarEntityData", Q_ARG(const AvatarEntityMap&, avatarEntityData));
         return;

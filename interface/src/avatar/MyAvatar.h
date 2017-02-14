@@ -507,6 +507,8 @@ private:
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
 
+    uint64_t _identityPacketExpiry { 0 };
+
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };
     float MAX_AVATAR_MOVEMENT_PER_FRAME { 30.0f };

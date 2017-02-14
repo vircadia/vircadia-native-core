@@ -269,6 +269,16 @@ protected:
 
 
 private:
+    class AvatarEntityDataHash {
+    public:
+        AvatarEntityDataHash(uint32_t h) : hash(h) {};
+        uint32_t hash { 0 };
+        bool success { false };
+    };
+
+    using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
+    MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
+
     uint64_t _lastRenderUpdateTime { 0 };
     int _leftPointerGeometryID { 0 };
     int _rightPointerGeometryID { 0 };
