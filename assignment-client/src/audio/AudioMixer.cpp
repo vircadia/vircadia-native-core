@@ -56,10 +56,13 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
-    packetReceiver.registerListenerForTypes({ PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
-                                              PacketType::InjectAudio, PacketType::AudioStreamStats },
-                                            this, "handleAudioPacket");
-    packetReceiver.registerListenerForTypes({ PacketType::SilentAudioFrame }, this, "handleSilentAudioPacket");
+    packetReceiver.registerListenerForTypes({
+            PacketType::MicrophoneAudioNoEcho,
+            PacketType::MicrophoneAudioWithEcho,
+            PacketType::InjectAudio,
+            PacketType::AudioStreamStats,
+            PacketType::SilentAudioFrame },
+            this, "queueAudioPacket");
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
@@ -72,15 +75,12 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
-void AudioMixer::handleAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    getOrCreateClientData(sendingNode.data());
-    DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
-}
+void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    if (message->getType() == PacketType::SilentAudioFrame) {
+        _numSilentPackets++;
+    }
 
-void AudioMixer::handleSilentAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    _numSilentPackets++;
-    getOrCreateClientData(sendingNode.data());
-    DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
+    getOrCreateClientData(sendingNode.data())->queuePacket(message);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {

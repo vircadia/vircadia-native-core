@@ -52,7 +52,25 @@ void AudioMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> packet) {
 }
 
 void AudioMixerClientData::processPackets() {
-    // TODO: process the queue
+    while (!_queuedPackets.empty()) {
+        QSharedPointer<ReceivedMessage>& packet = _queuedPackets.back();
+
+        switch (packet->getType()) {
+            case PacketType::MicrophoneAudioNoEcho:
+            case PacketType::MicrophoneAudioWithEcho:
+            case PacketType::InjectAudio:
+            case PacketType::AudioStreamStats:
+            case PacketType::SilentAudioFrame: {
+                QMutexLocker lock(&getMutex());
+                parseData(*packet);
+            }
+            default:
+                Q_UNREACHABLE();
+        }
+
+        _queuedPackets.pop();
+    }
+
     assert(_queuedPackets.empty());
 }
 

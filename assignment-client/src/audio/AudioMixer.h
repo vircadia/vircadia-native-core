@@ -56,8 +56,7 @@ public slots:
 
 private slots:
     // packet handlers
-    void handleAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
-    void handleSilentAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void queueAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void handleNodeKilled(SharedNodePointer killedNode);
