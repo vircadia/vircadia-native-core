@@ -50,7 +50,7 @@ glm::vec3 AnimPose::xformVector(const glm::vec3& rhs) const {
 }
 
 AnimPose AnimPose::operator*(const AnimPose& rhs) const {
-#if GLM_ARCH & GLM_ARCH_SSE2
+#if (GLM_ARCH & GLM_ARCH_SSE2) && !(defined Q_OS_MAC)
     glm::mat4 result;
     glm::mat4 lhsMat = *this;
     glm::mat4 rhsMat = rhs;
