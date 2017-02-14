@@ -14,6 +14,7 @@
 #include <QDir>
 #include <QLineEdit>
 #include <QPlainTextEdit>
+#include <QTextCursor>
 #include <QPushButton>
 #include <QSyntaxHighlighter>
 
@@ -25,6 +26,7 @@ const int INITIAL_HEIGHT = 480;
 const int MINIMAL_WIDTH = 570;
 const int SEARCH_BUTTON_LEFT = 25;
 const int SEARCH_BUTTON_WIDTH = 20;
+const int SEARCH_NEXT_BUTTON_WIDTH = 50;
 const int SEARCH_TEXT_WIDTH = 240;
 const QColor HIGHLIGHT_COLOR = QColor("#3366CC");
 
@@ -75,9 +77,16 @@ void BaseLogDialog::initControls() {
     // disable blue outline in Mac
     _searchTextBox->setAttribute(Qt::WA_MacShowFocusRect, false);
     _searchTextBox->setGeometry(_leftPad, ELEMENT_MARGIN, SEARCH_TEXT_WIDTH, ELEMENT_HEIGHT);
-    _leftPad += SEARCH_TEXT_WIDTH + CHECKBOX_MARGIN;
+    _leftPad += SEARCH_TEXT_WIDTH;
     _searchTextBox->show();
     connect(_searchTextBox, SIGNAL(textChanged(QString)), SLOT(handleSearchTextChanged(QString)));
+    
+    _searchNextButton = new QPushButton(this);
+    _searchNextButton->setObjectName("searchNextButton");
+    _searchNextButton->setGeometry(_leftPad, ELEMENT_MARGIN, SEARCH_NEXT_BUTTON_WIDTH, ELEMENT_HEIGHT);
+    _leftPad += SEARCH_NEXT_BUTTON_WIDTH + CHECKBOX_MARGIN;
+    _searchNextButton->show();
+    connect(_searchNextButton, SIGNAL(clicked()), SLOT(toggleSearchNext()));
 
     _logTextBox = new QPlainTextEdit(this);
     _logTextBox->setReadOnly(true);
@@ -105,9 +114,26 @@ void BaseLogDialog::handleSearchButton() {
 }
 
 void BaseLogDialog::handleSearchTextChanged(QString searchText) {
+    QTextCursor searchCursor = _logTextBox->textCursor();
+    searchCursor.setPosition(0, QTextCursor::MoveAnchor);
+    _logTextBox->setTextCursor(searchCursor);
+    bool foundTerm = _logTextBox->find(searchText);
+    
+    if (!foundTerm) {
+        searchCursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+    }
+    
     _searchTerm = searchText;
     _highlighter->keyword = searchText;
     _highlighter->rehighlight();
+}
+
+void BaseLogDialog::toggleSearchNext() {
+    QTextCursor searchCursor = _logTextBox->textCursor();
+    if (searchCursor.hasSelection()) {
+        QString selectedTerm = searchCursor.selectedText();
+        _logTextBox->find(selectedTerm);
+    }
 }
 
 void BaseLogDialog::showLogData() {

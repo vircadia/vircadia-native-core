@@ -37,6 +37,7 @@ public slots:
 private slots:
     void handleSearchButton();
     void handleSearchTextChanged(QString text);
+    void toggleSearchNext();
 
 protected:
     int _leftPad { 0 };
@@ -49,6 +50,7 @@ private:
     QPushButton* _searchButton { nullptr };
     QLineEdit* _searchTextBox { nullptr };
     QPlainTextEdit* _logTextBox { nullptr };
+    QPushButton* _searchNextButton { nullptr };
     QString _searchTerm;
     KeywordHighlighter* _highlighter { nullptr };
     
