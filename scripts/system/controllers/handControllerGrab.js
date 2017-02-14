@@ -1188,8 +1188,8 @@ function MyController(hand) {
                     return;
                 }
             } else {
-		this.homeButtonTouched = false;
-	    }
+        this.homeButtonTouched = false;
+        }
         } else {
             this.hideStylus();
         }
