@@ -21,7 +21,6 @@ QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
     _lock.lockForRead();
     auto zoneIDs = _filterDataMap.keys();
     _lock.unlock();
-    qCDebug(entities) << "looking at " << zoneIDs.size() << "possible zones, at " << position;
     for (auto id : zoneIDs) {
         if (!id.isInvalidID()) {
             // for now, look it up in the tree (soon we need to cache or similar?)
@@ -44,17 +43,14 @@ QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
 
 bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, 
         EntityTree::FilterType filterType, EntityItemID& itemID) {
-    qCDebug(entities) << "in EntityEditFilters";
     
     // get the ids of all the zones (plus the global entity edit filter) that the position
     // lies within
     auto zoneIDs = getZonesByPosition(position);
     for (auto id : zoneIDs) {
         if (id == itemID) {
-            qCDebug(entities) << "zone filter not applied to its own edit";
             continue;
         }
-        qCDebug(entities) << "applying filter for zone" << id;
         
         // get the filter pair, etc...  
         _lock.lockForRead();
@@ -63,7 +59,6 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
     
         if (filterData.valid()) {
             if (filterData.rejectAll) {
-                qCDebug(entities) << "rejecting all edits";
                 return false;
             }
             auto oldProperties = propertiesIn.getDesiredProperties();
@@ -83,7 +78,6 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             }
 
             if (result.isObject()){
-                qCDebug(entities) << "filter result accepted";
                 // make propertiesIn reflect the changes, for next filter...
                 propertiesIn.copyFromScriptValue(result, false);
 
