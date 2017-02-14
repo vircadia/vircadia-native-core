@@ -90,6 +90,7 @@ private:
     quint64 _handleRadiusIgnoreRequestPacketElapsedTime { 0 };
     quint64 _handleRequestsDomainListDataPacketElapsedTime { 0 };
 
+    quint64 _processEventsElapsedTime { 0 };
 
     RateCounter<> _loopRate; // this is the rate that the main thread tight loop runs
 

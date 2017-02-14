@@ -159,6 +159,7 @@ void AvatarMixer::start() {
             //auto eventsTimer = _eventsTiming.timer();
 
             // since we're a while loop we need to yield to qt's event processing
+            auto start = usecTimestampNow();
             QCoreApplication::processEvents();
 
             if (_isFinished) {
@@ -166,6 +167,8 @@ void AvatarMixer::start() {
                 QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
                 break;
             }
+            auto end = usecTimestampNow();
+            _processEventsElapsedTime += (end - start);
         }
     }
 }
@@ -804,6 +807,8 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_average_z_handleRadiusIgnoreRequestPacket"] = (float)_handleRadiusIgnoreRequestPacketElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_z_handleRequestsDomainListDataPacket"] = (float)_handleRequestsDomainListDataPacketElapsedTime / (float)_numStatFrames;
 
+    statsObject["timing_average_z_processEvents"] = (float)_processEventsElapsedTime / (float)_numStatFrames;
+
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarDataPacketElapsedTime = 0;
     _handleAvatarIdentityPacketElapsedTime = 0;
@@ -811,6 +816,7 @@ void AvatarMixer::sendStatsPacket() {
     _handleNodeIgnoreRequestPacketElapsedTime = 0;
     _handleRadiusIgnoreRequestPacketElapsedTime = 0;
     _handleRequestsDomainListDataPacketElapsedTime = 0;
+    _processEventsElapsedTime = 0;
 
 
     QJsonObject avatarsObject;
