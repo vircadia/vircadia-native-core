@@ -58,14 +58,14 @@ Column {
 
             Rectangle {
                 id: shadow
-                width: frame ? frame.width: 480
+                width: 480
                 height: 1
                 color: hifi.colors.baseGrayShadow
                 x: -hifi.dimensions.contentMargin.x
             }
 
             Rectangle {
-                width: 480//480frame ? frame.width : 480
+                width: 480
                 height: 1
                 color: hifi.colors.baseGrayHighlight
                 x: -hifi.dimensions.contentMargin.x
