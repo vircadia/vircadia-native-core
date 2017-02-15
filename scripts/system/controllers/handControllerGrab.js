@@ -1188,8 +1188,8 @@ function MyController(hand) {
                     return;
                 }
             } else {
-		this.homeButtonTouched = false;
-	    }
+        this.homeButtonTouched = false;
+        }
         } else {
             this.hideStylus();
         }
@@ -1987,9 +1987,11 @@ function MyController(hand) {
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
-         this.shouldScale = false;
+        this.shouldScale = false;
 
-        var worldControllerPosition = getControllerWorldLocation(this.handToController(), true).position;
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+        var worldControllerPosition = controllerLocation.position;
+        var worldControllerRotation = controllerLocation.orientation;
 
         // transform the position into room space
         var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
@@ -2007,7 +2009,12 @@ function MyController(hand) {
         this.grabRadius = Vec3.distance(this.currentObjectPosition, worldControllerPosition);
         this.grabRadialVelocity = 0.0;
 
-        // compute a constant based on the initial conditions which we use below to exagerate hand motion
+        // offset between controller vector at the grab radius and the entity position
+        var targetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
+        targetPosition = Vec3.sum(targetPosition, worldControllerPosition);
+        this.offsetPosition = Vec3.subtract(this.currentObjectPosition, targetPosition);
+
+        // compute a constant based on the initial conditions which we use below to exaggerate hand motion
         // onto the held object
         this.radiusScalar = Math.log(this.grabRadius + 1.0);
         if (this.radiusScalar < 1.0) {
@@ -2124,6 +2131,7 @@ function MyController(hand) {
 
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
         newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
+        newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
 
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
