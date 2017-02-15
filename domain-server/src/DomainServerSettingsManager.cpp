@@ -299,7 +299,14 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
+
     static const QString DESCRIPTORS{ "descriptors" };
+
+    auto& settingsMap = getSettingsMap();
+    if (!getSettingsMap().contains(DESCRIPTORS)) {
+        settingsMap.insert(DESCRIPTORS, QVariantMap());
+    }
+
     return *static_cast<QVariantMap*>(getSettingsMap()[DESCRIPTORS].data());
 }
 
