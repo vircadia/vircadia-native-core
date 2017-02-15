@@ -928,9 +928,9 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
 bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) {
     bool accepted = true;
     auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
-    if (entityEditFilters && existingEntity) {
-        auto position = existingEntity->getPosition();
-        auto entityID = existingEntity->getEntityItemID();
+    if (entityEditFilters) {
+        auto position = existingEntity ? existingEntity->getPosition() : propertiesIn.getPosition();
+        auto entityID = existingEntity ? existingEntity->getEntityItemID() : EntityItemID();
         accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID);
     }
 

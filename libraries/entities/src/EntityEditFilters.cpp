@@ -48,7 +48,7 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
     // lies within
     auto zoneIDs = getZonesByPosition(position);
     for (auto id : zoneIDs) {
-        if (id == itemID) {
+        if (!itemID.isInvalidID() && id == itemID) {
             continue;
         }
         
@@ -74,7 +74,7 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
 
             QScriptValue result = filterData.filterFn.call(_nullObjectForFilter, args);
             if (filterData.uncaughtExceptions()) {
-                result = QScriptValue();
+                return false;
             }
 
             if (result.isObject()){
@@ -87,8 +87,6 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                 auto out = QJsonValue::fromVariant(result.toVariant());
                 wasChanged |= (in != out);
             } else {
-                // an edit was rejected, so we stop here and return false
-                qCDebug(entities) << "Edit rejected by filter " << id ;
                 return false;
             }
         }
