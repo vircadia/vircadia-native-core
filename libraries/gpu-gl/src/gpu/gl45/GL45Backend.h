@@ -14,6 +14,7 @@
 
 #include "../gl/GLBackend.h"
 #include "../gl/GLTexture.h"
+#include <thread>
 
 #define INCREMENTAL_TRANSFER 0
 
@@ -39,7 +40,7 @@ public:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
         void copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const;
-        void copyMipFaceLinesFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lineOffset, uint32_t lines, size_t dataOffset) const;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const;
         virtual void syncSampler() const;
     };
 
@@ -95,14 +96,50 @@ public:
         };
 
         using QueuePair = std::pair<TextureWeakPointer, float>;
-        class QueuePairLess {
-        public:
+        struct QueuePairLess {
             bool operator()(const QueuePair& a, const QueuePair& b) {
                 return a.second < b.second;
             }
         };
         using WorkQueue = std::priority_queue<QueuePair, std::vector<QueuePair>, QueuePairLess>;
 
+        class TransferJob {
+            using VoidLambda = std::function<void()>;
+            using VoidLambdaQueue = std::queue<VoidLambda>;
+            using ThreadPointer = std::shared_ptr<std::thread>;
+            const GL45VariableAllocationTexture& _parent;
+            const uint16_t _sourceMip;
+            const uint16_t _targetMip;
+            const uint8_t _face;
+            const uint32_t _lines;
+            const uint32_t _lineOffset;
+            // Holds the contents to transfer to the GPU in CPU memory
+            std::vector<uint8_t> _buffer;
+            // Indicates if a transfer from backing storage to interal storage has started
+            bool _bufferingStarted { false };
+            bool _transferOnly { false };
+            bool _bufferingCompleted { false };
+            VoidLambda _transferLambda;
+            VoidLambda _bufferingLambda;
+            static ThreadPointer _bufferThread;
+            static Mutex _mutex;
+            static VoidLambdaQueue _bufferLambdaQueue;
+            static std::atomic<bool> _shutdownBufferingThread;
+            static void bufferLoop();
+
+        public:
+            TransferJob(const GL45VariableAllocationTexture& parent, std::function<void()> transferLambda);
+            TransferJob(const GL45VariableAllocationTexture& parent, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines = 0, uint32_t lineOffset = 0);
+            bool tryTransfer();
+            static void startTransferLoop();
+            static void stopTransferLoop();
+
+        private:
+            void startBuffering();
+            void transfer();
+        };
+
+        using TransferQueue = std::queue<TransferJob>;
         static MemoryPressureState _memoryPressureState;
     protected:
         static std::atomic<bool> _memoryPressureStateStale;
@@ -110,6 +147,7 @@ public:
         static WorkQueue _transferQueue;
         static WorkQueue _promoteQueue;
         static WorkQueue _demoteQueue;
+        static TexturePointer _currentTransferTexture;
         static const uvec3 INITIAL_MIP_TRANSFER_DIMENSIONS;
 
 
@@ -128,7 +166,7 @@ public:
         bool canPromote() const { return _allocatedMip > 0; }
         bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
         bool hasPendingTransfers() const { return !_pendingTransfers.empty(); }
-        void executeNextTransfer();
+        void executeNextTransfer(const TexturePointer& currentTexture);
         uint32 size() const override { return _size; }
         virtual void populateTransferQueue() = 0;
         virtual void promote() = 0;
@@ -148,7 +186,7 @@ public:
         // Contains a series of lambdas that when executed will transfer data to the GPU, modify 
         // the _populatedMip and update the sampler in order to fully populate the allocated texture 
         // until _populatedMip == _allocatedMip
-        std::queue<PromoteLambda> _pendingTransfers;
+        TransferQueue _pendingTransfers;
     };
 
     class GL45ResourceTexture : public GL45VariableAllocationTexture {

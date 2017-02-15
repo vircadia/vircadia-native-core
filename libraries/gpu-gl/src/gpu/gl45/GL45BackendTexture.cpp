@@ -118,26 +118,17 @@ void GL45Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Texture::copyMipFaceLinesFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lineOffset, uint32_t lines, size_t dataOffset) const {
-    const auto& texture = _gpuObject;
-    if (!texture.isStoredMipFaceAvailable(sourceMip)) {
-        return;
-    }
-    auto mipDimensions = texture.evalMipDimensions(sourceMip);
-    glm::uvec3 size = { mipDimensions.x, lines, mipDimensions.z };
-    auto mipData = texture.accessStoredMipFace(sourceMip, face);
-    auto sourcePointer = mipData->readData() + dataOffset;
-    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), mipData->getFormat());
+void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
-        glTextureSubImage2D(_id, targetMip, 0, lineOffset, size.x, size.y, texelFormat.format, texelFormat.type, sourcePointer);
+        glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
         // DSA ARB does not work on AMD, so use EXT
         // unless EXT is not available on the driver
         if (glTextureSubImage2DEXT) {
             auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-            glTextureSubImage2DEXT(_id, target, targetMip, 0, lineOffset, size.x, size.y, texelFormat.format, texelFormat.type, sourcePointer);
+            glTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
         } else {
-            glTextureSubImage3D(_id, targetMip, 0, lineOffset, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, sourcePointer);
+            glTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, format, type, sourcePointer);
         }
     } else {
         Q_ASSERT(false);
@@ -146,8 +137,13 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t sourceMip, uint16_t targe
 }
 
 void GL45Texture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
+    if (!_gpuObject.isStoredMipFaceAvailable(sourceMip)) {
+        return;
+    }
     auto size = _gpuObject.evalMipDimensions(sourceMip);
-    copyMipFaceLinesFromTexture(sourceMip, targetMip, face, 0, size.y, 0);
+    auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mipData->getFormat());
+    copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.type, mipData->readData());
 }
 
 void GL45Texture::syncSampler() const {
