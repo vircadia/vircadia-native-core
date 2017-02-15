@@ -64,7 +64,7 @@ private:
 
     Button _button { NoButtons };  // button assosiated with this event, (if type is Press, this will be the button that is pressed)
     uint32_t _buttons { NoButtons }; // the current state of all the buttons.
-    Qt::KeyboardModifiers _keyboardModifiers { Qt::NoModifier };
+    Qt::KeyboardModifiers _keyboardModifiers; // set of keys held when event was generated
 };
 
 Q_DECLARE_METATYPE(PointerEvent)
