@@ -44,7 +44,7 @@ public:
     AvatarAudioStream* getAvatarAudioStream();
 
     // returns whether self (this data's node) should ignore node, memoized by frame
-    // precondition: frame is monotonically increasing after first call
+    // precondition: frame is increasing after first call (including overflow wrap)
     bool shouldIgnore(SharedNodePointer self, SharedNodePointer node, unsigned int frame);
 
     // the following methods should be called from the AudioMixer assignment thread ONLY
@@ -131,7 +131,7 @@ private:
 
         // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
         // preconditions:
-        //  - frame is monotonically increasing after first call
+        //  - frame is increasing after first call (including overflow wrap)
         //  - there are no references left from calls to getIgnoreZone(frame - 1)
         IgnoreZone& get(unsigned int frame);
 
