@@ -693,8 +693,9 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, 
-    RayToOverlayIntersectionResult rayPickResult, QMouseEvent* event, PointerEvent::EventType eventType) {
+PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay ray,
+                                             RayToOverlayIntersectionResult rayPickResult, QMouseEvent* event,
+                                             PointerEvent::EventType eventType) {
 
     auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlay);
 
@@ -704,10 +705,9 @@ PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay r
     auto dimensions = thisOverlay->getSize();
 
     glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID,
-        pos2D, rayPickResult.intersection,
-        rayPickResult.surfaceNormal, ray.direction,
-        toPointerButton(*event), toPointerButtons(*event));
+
+    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
+                              ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
 
     return pointerEvent;
 }

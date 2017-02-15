@@ -25,9 +25,9 @@ PointerEvent::PointerEvent() {
 }
 
 PointerEvent::PointerEvent(EventType type, uint32_t id,
-             const glm::vec2& pos2D, const glm::vec3& pos3D,
-             const glm::vec3& normal, const glm::vec3& direction,
-             Button button, uint32_t buttons) :
+                           const glm::vec2& pos2D, const glm::vec3& pos3D,
+                           const glm::vec3& normal, const glm::vec3& direction,
+                           Button button, uint32_t buttons, Qt::KeyboardModifiers keyboardModifiers) :
     _type(type),
     _id(id),
     _pos2D(pos2D),
@@ -35,7 +35,8 @@ PointerEvent::PointerEvent(EventType type, uint32_t id,
     _normal(normal),
     _direction(direction),
     _button(button),
-    _buttons(buttons)
+    _buttons(buttons),
+    _keyboardModifiers(keyboardModifiers)
 {
     ;
 }
@@ -119,6 +120,8 @@ QScriptValue PointerEvent::toScriptValue(QScriptEngine* engine, const PointerEve
     obj.setProperty("isSecondaryHeld", areFlagsSet(event._buttons, SecondaryButton));
     obj.setProperty("isTertiaryHeld", areFlagsSet(event._buttons, TertiaryButton));
 
+    obj.setProperty("keyboardModifiers", QScriptValue(event.getKeyboardModifiers()));
+
     return obj;
 }
 
@@ -174,5 +177,7 @@ void PointerEvent::fromScriptValue(const QScriptValue& object, PointerEvent& eve
         if (tertiary) {
             event._buttons |= TertiaryButton;
         }
+
+        event._keyboardModifiers = (Qt::KeyboardModifiers)(object.property("keyboardModifiers").toUInt32());
     }
 }
