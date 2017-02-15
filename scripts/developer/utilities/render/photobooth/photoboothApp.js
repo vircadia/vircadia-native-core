@@ -19,11 +19,24 @@
         icon: "icons/tablet-icons/snap-i.svg",
         text: "PHOTOBOOTH"
     });
+
     function onClicked() {
         tablet.gotoWebScreen(PHOTOBOOTH_WINDOW_HTML_URL);
         PhotoBooth.init();
     }
     button.clicked.connect(onClicked);
+    tablet.webEventReceived.connect(onWebEventReceived);
+
+    function onWebEventReceived(event) {
+        print("photobooth.js received a web event:" + event);
+        // Converts the event to a JavasScript Object
+        if (typeof event === "string") {
+            event = JSON.parse(event);
+        }
+        if (event.app === "photobooth") {
+            
+        }
+    }
 
     var PhotoBooth = {};
     PhotoBooth.init = function () {
@@ -170,20 +183,13 @@
             print("clicked reload model button " + event.value);
             PhotoBooth.changeModel(event.value);
         };
-
-        photoboothWindow.webEventReceived.connect(function (data) {
-            var event = JSON.parse(data);
-            if (photoboothWindowListener[event.type]) {
-                photoboothWindowListener[event.type](event);
-            }
-        });
     };
     main();
     
     function cleanup() {
+        tablet.removeButton(button);
         Camera.mode = "first person";
         PhotoBooth.destroy();
-        tablet.removeButton(button);
     }
     Script.scriptEnding.connect(cleanup);
 }());
