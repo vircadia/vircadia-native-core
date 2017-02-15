@@ -45,9 +45,9 @@ void ThreadedAssignment::setFinished(bool isFinished) {
         if (_isFinished) {
 
             qCDebug(networking) << "ThreadedAssignment::setFinished(true) called - finishing up.";
-            
+
             auto nodeList = DependencyManager::get<NodeList>();
-            
+
             auto& packetReceiver = nodeList->getPacketReceiver();
 
             // we should de-register immediately for any of our packets
@@ -55,7 +55,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
 
             // we should also tell the packet receiver to drop packets while we're cleaning up
             packetReceiver.setShouldDropPackets(true);
-            
+
             // send a disconnect packet to the domain
             nodeList->getDomainHandler().disconnect();
 
@@ -92,12 +92,17 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObject) {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    float packetsPerSecond, bytesPerSecond;
-    nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
+    float packetsInPerSecond, bytesInPerSecond, packetsOutPerSecond, bytesOutPerSecond;
+    nodeList->getPacketStats(packetsInPerSecond, bytesInPerSecond, packetsOutPerSecond, bytesOutPerSecond);
     nodeList->resetPacketStats();
 
-    statsObject["packets_per_second"] = packetsPerSecond;
-    statsObject["bytes_per_second"] = bytesPerSecond;
+    QJsonObject ioStats;
+    ioStats["inbound_bytes_per_s"] = bytesInPerSecond;
+    ioStats["inbound_packets_per_s"] = packetsInPerSecond;
+    ioStats["outbound_bytes_per_s"] = bytesOutPerSecond;
+    ioStats["outbound_packets_per_s"] = packetsOutPerSecond;
+
+    statsObject["io_stats"] = ioStats;
 
     nodeList->sendStatsToDomainServer(statsObject);
 }

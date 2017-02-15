@@ -161,7 +161,7 @@ public:
     unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(NodeType_t nodeType);
 
-    void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
+    void getPacketStats(float& packetsInPerSecond, float& bytesInPerSecond, float& packetsOutPerSecond, float& bytesOutPerSecond);
     void resetPacketStats();
 
     std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);

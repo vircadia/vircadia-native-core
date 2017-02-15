@@ -63,7 +63,6 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _forceFaceTrackerConnected(false),
-    _hasNewJointData(true),
     _headData(NULL),
     _displayNameTargetAlpha(1.0f),
     _displayNameAlpha(1.0f),
@@ -258,8 +257,10 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     // local position, and parent info only apply to avatars that are parented. The local position
     // and the parent info can change independently though, so we track their "changed since"
     // separately
-    bool hasParentInfo = hasParent() && (sendAll || parentInfoChangedSince(lastSentTime));
-    bool hasAvatarLocalPosition = hasParent() && (sendAll || tranlationChangedSince(lastSentTime));
+    bool hasParentInfo = sendAll || parentInfoChangedSince(lastSentTime);
+    bool hasAvatarLocalPosition = hasParent() && (sendAll ||
+                                                  tranlationChangedSince(lastSentTime) ||
+                                                  parentInfoChangedSince(lastSentTime));
 
     bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
     bool hasJointData = sendAll || !sendMinimum;
@@ -405,6 +406,18 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         _additionalFlagsRateOutbound.increment(numBytes);
     }
 
+    if (hasParentInfo) {
+        auto startSection = destinationBuffer;
+        auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
+        QByteArray referentialAsBytes = parentID.toRfc4122();
+        memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
+        parentInfo->parentJointIndex = getParentJointIndex();
+        destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
+
+        int numBytes = destinationBuffer - startSection;
+        _parentInfoRateOutbound.increment(numBytes);
+    }
+
     if (hasAvatarLocalPosition) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AvatarLocalPosition*>(destinationBuffer);
@@ -416,18 +429,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         int numBytes = destinationBuffer - startSection;
         _localPositionRateOutbound.increment(numBytes);
-    }
-
-    if (hasParentInfo) {
-        auto startSection = destinationBuffer;
-        auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
-        QByteArray referentialAsBytes = parentID.toRfc4122();
-        memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
-        parentInfo->parentJointIndex = _parentJointIndex;
-        destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
-
-        int numBytes = destinationBuffer - startSection;
-        _parentInfoRateOutbound.increment(numBytes);
     }
 
     // If it is connected, pack up the data
@@ -703,7 +704,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     bool hasFaceTrackerInfo      = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO);
     bool hasJointData            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DATA);
 
-
     quint64 now = usecTimestampNow();
 
     if (hasAvatarGlobalPosition) {
@@ -884,7 +884,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
-        if (somethingChanged) {        
+        if (somethingChanged) {
             _additionalFlagsChanged = usecTimestampNow();
         }
         int numBytesRead = sourceBuffer - startSection;
@@ -892,8 +892,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _additionalFlagsUpdateRate.increment();
     }
 
-    // FIXME -- make sure to handle the existance of a parent vs a change in the parent...
-    //bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
     if (hasParentInfo) {
         auto startSection = sourceBuffer;
         PACKET_READ_CHECK(ParentInfo, sizeof(AvatarDataPacket::ParentInfo));
@@ -904,9 +902,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         auto newParentID = QUuid::fromRfc4122(byteArray);
 
-        if ((_parentID != newParentID) || (_parentJointIndex = parentInfo->parentJointIndex)) {
-            _parentID = newParentID;
-            _parentJointIndex = parentInfo->parentJointIndex;
+        if ((getParentID() != newParentID) || (getParentJointIndex() != parentInfo->parentJointIndex)) {
+            SpatiallyNestable::setParentID(newParentID);
+            SpatiallyNestable::setParentJointIndex(parentInfo->parentJointIndex);
             _parentChanged = usecTimestampNow();
         }
 
@@ -914,13 +912,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _parentInfoRate.increment(numBytesRead);
         _parentInfoUpdateRate.increment();
     }
-    else {
-        // FIXME - this aint totally right, for switching to parent/no-parent
-        _parentID = QUuid();
-    }
 
     if (hasAvatarLocalPosition) {
-        assert(hasParent()); // we shouldn't have local position unless we have a parent
         auto startSection = sourceBuffer;
 
         PACKET_READ_CHECK(AvatarLocalPosition, sizeof(AvatarDataPacket::AvatarLocalPosition));
@@ -932,7 +925,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return buffer.size();
         }
-        setLocalPosition(position);
+        if (hasParent()) {
+            setLocalPosition(position);
+        } else {
+            qCWarning(avatars) << "received localPosition for avatar with no parent";
+        }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _localPositionRate.increment(numBytesRead);
@@ -2202,14 +2199,24 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
     setAttachmentData(newAttachments);
 }
 
+const int MAX_NUM_AVATAR_ENTITIES = 42;
+
 void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "updateAvatarEntity", Q_ARG(const QUuid&, entityID), Q_ARG(QByteArray, entityData));
         return;
     }
     _avatarEntitiesLock.withWriteLock([&] {
-        _avatarEntityData.insert(entityID, entityData);
-        _avatarEntityDataLocallyEdited = true;
+        AvatarEntityMap::iterator itr = _avatarEntityData.find(entityID);
+        if (itr == _avatarEntityData.end()) {
+            if (_avatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
+                _avatarEntityData.insert(entityID, entityData);
+                _avatarEntityDataLocallyEdited = true;
+            }
+        } else {
+            itr.value() = entityData;
+            _avatarEntityDataLocallyEdited = true;
+        }
     });
 }
 
@@ -2240,6 +2247,11 @@ AvatarEntityMap AvatarData::getAvatarEntityData() const {
 }
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
+    if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
+        // the data is suspect
+        qCDebug(avatars) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
+        return;
+    }
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setAvatarEntityData", Q_ARG(const AvatarEntityMap&, avatarEntityData));
         return;

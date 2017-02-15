@@ -19,6 +19,7 @@
 
 #include "InjectedAudioStream.h"
 
+#include "AudioHelpers.h"
 #include "AudioMixer.h"
 #include "AudioMixerClientData.h"
 
@@ -26,6 +27,7 @@
 AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID),
     audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
+    _ignoreZone(*this),
     _outgoingMixedAudioSequenceNumber(0),
     _downstreamAudioStreamStats()
 {
@@ -46,6 +48,92 @@ AudioMixerClientData::~AudioMixerClientData() {
     }
 }
 
+void AudioMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
+    if (!_packetQueue.node) {
+        _packetQueue.node = node;
+    }
+    _packetQueue.push(message);
+}
+
+void AudioMixerClientData::processPackets() {
+    SharedNodePointer node = _packetQueue.node;
+    assert(_packetQueue.empty() || node);
+    _packetQueue.node.clear();
+
+    while (!_packetQueue.empty()) {
+        auto& packet = _packetQueue.back();
+
+        switch (packet->getType()) {
+            case PacketType::MicrophoneAudioNoEcho:
+            case PacketType::MicrophoneAudioWithEcho:
+            case PacketType::InjectAudio:
+            case PacketType::AudioStreamStats:
+            case PacketType::SilentAudioFrame: {
+                QMutexLocker lock(&getMutex());
+                parseData(*packet);
+                break;
+            }
+            case PacketType::NegotiateAudioFormat:
+                negotiateAudioFormat(*packet, node);
+                break;
+            case PacketType::RequestsDomainListData:
+                parseRequestsDomainListData(*packet);
+                break;
+            case PacketType::PerAvatarGainSet:
+                parsePerAvatarGainSet(*packet, node);
+                break;
+            case PacketType::NodeIgnoreRequest:
+                parseNodeIgnoreRequest(packet, node);
+                break;
+            case PacketType::RadiusIgnoreRequest:
+                parseRadiusIgnoreRequest(packet, node);
+                break;
+            default:
+                Q_UNREACHABLE();
+        }
+
+        _packetQueue.pop();
+    }
+    assert(_packetQueue.empty());
+}
+
+void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node) {
+    quint8 numberOfCodecs;
+    message.readPrimitive(&numberOfCodecs);
+    std::vector<QString> codecs;
+    for (auto i = 0; i < numberOfCodecs; i++) {
+        codecs.push_back(message.readString());
+    }
+    const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec(codecs);
+
+    setupCodec(codec.second, codec.first);
+    sendSelectAudioFormat(node, codec.first);
+}
+
+void AudioMixerClientData::parseRequestsDomainListData(ReceivedMessage& message) {
+    bool isRequesting;
+    message.readPrimitive(&isRequesting);
+    setRequestsDomainListData(isRequesting);
+}
+
+void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node) {
+    QUuid uuid = node->getUUID();
+    // parse the UUID from the packet
+    QUuid avatarUuid = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    uint8_t packedGain;
+    message.readPrimitive(&packedGain);
+    float gain = unpackFloatGainFromByte(packedGain);
+    hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
+    qDebug() << "Setting gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
+}
+
+void AudioMixerClientData::parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
+    node->parseIgnoreRequestMessage(message);
+}
+
+void AudioMixerClientData::parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
+    node->parseIgnoreRadiusRequestMessage(message);
+}
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     QReadLocker readLocker { &_streamsLock };
@@ -426,4 +514,100 @@ void AudioMixerClientData::cleanupCodec() {
             _encoder = nullptr;
         }
     }
+}
+
+AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsigned int frame) {
+    // check for a memoized zone
+    if (frame != _frame.load(std::memory_order_acquire)) {
+        AvatarAudioStream* stream = _data.getAvatarAudioStream();
+
+        // get the initial dimensions from the stream
+        glm::vec3 corner = stream ? stream->getAvatarBoundingBoxCorner() : glm::vec3(0);
+        glm::vec3 scale = stream ? stream->getAvatarBoundingBoxScale() : glm::vec3(0);
+
+        // enforce a minimum scale
+        static const glm::vec3 MIN_IGNORE_BOX_SCALE = glm::vec3(0.3f, 1.3f, 0.3f);
+        if (glm::any(glm::lessThan(scale, MIN_IGNORE_BOX_SCALE))) {
+            scale = MIN_IGNORE_BOX_SCALE;
+        }
+
+        // quadruple the scale (this is arbitrary number chosen for comfort)
+        const float IGNORE_BOX_SCALE_FACTOR = 4.0f;
+        scale *= IGNORE_BOX_SCALE_FACTOR;
+
+        // create the box (we use a box for the zone for convenience)
+        AABox box(corner, scale);
+
+        // update the memoized zone
+        // This may be called by multiple threads concurrently,
+        // so take a lock and only update the memo if this call is first.
+        // This prevents concurrent updates from invalidating the returned reference
+        // (contingent on the preconditions listed in the header).
+        std::lock_guard<std::mutex> lock(_mutex);
+        if (frame != _frame.load(std::memory_order_acquire)) {
+            _zone = box;
+            unsigned int oldFrame = _frame.exchange(frame, std::memory_order_release);
+            Q_UNUSED(oldFrame);
+
+            // check the precondition
+            assert(oldFrame == 0 || frame == (oldFrame + 1));
+        }
+    }
+
+    return _zone;
+}
+
+void AudioMixerClientData::IgnoreNodeCache::cache(bool shouldIgnore) {
+    if (!_isCached) {
+        _shouldIgnore = shouldIgnore;
+        _isCached = true;
+    }
+}
+
+bool AudioMixerClientData::IgnoreNodeCache::isCached() {
+    return _isCached;
+}
+
+bool AudioMixerClientData::IgnoreNodeCache::shouldIgnore() {
+    bool ignore = _shouldIgnore;
+    _isCached = false;
+    return ignore;
+}
+
+bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
+    // this is symmetric over self / node; if computed, it is cached in the other
+
+    // check the cache to avoid computation
+    auto& cache = _nodeSourcesIgnoreMap[node->getUUID()];
+    if (cache.isCached()) {
+        return cache.shouldIgnore();
+    }
+
+    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+    if (!nodeData) {
+        return false;
+    }
+
+    // compute shouldIgnore
+    bool shouldIgnore = true;
+    if ( // the nodes are not ignoring each other explicitly (or are but get data regardless)
+            (!self->isIgnoringNodeWithID(node->getUUID()) ||
+             (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
+            (!node->isIgnoringNodeWithID(self->getUUID()) ||
+             (getRequestsDomainListData() && self->getCanKick())))  {
+
+        // if either node is enabling an ignore radius, check their proximity
+        if ((self->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
+            auto& zone = _ignoreZone.get(frame);
+            auto& nodeZone = nodeData->_ignoreZone.get(frame);
+            shouldIgnore = zone.touches(nodeZone);
+        } else {
+            shouldIgnore = false;
+        }
+    }
+
+    // cache in node
+    nodeData->_nodeSourcesIgnoreMap[self->getUUID()].cache(shouldIgnore);
+
+    return shouldIgnore;
 }

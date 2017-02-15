@@ -53,14 +53,13 @@ function onHmdChanged(isHmd) {
     //TODO change button icon when the hmd changes
     if (isHmd) {
         button.editProperties({
-            icon: "icons/tablet-icons/switch-a.svg",
+            icon: "icons/tablet-icons/switch-desk-i.svg",
             text: "DESKTOP"
         });
     } else {
         button.editProperties({
-            icon: "icons/tablet-icons/switch-i.svg",
-            text: "VR",
-            sortOrder: 2
+            icon: "icons/tablet-icons/switch-vr-i.svg",
+            text: "VR"
         });
     }
     desktopOnlyViews.forEach(function (view) {
@@ -82,8 +81,8 @@ if (headset) {
         });
     } else {
         button = tablet.addButton({
-            icon: "icons/tablet-icons/switch-a.svg",
-            text: "SWITCH",
+            icon: HMD.active ? "icons/tablet-icons/switch-desk-i.svg" : "icons/tablet-icons/switch-vr-i.svg",
+            text: HMD.active ? "DESKTOP" : "VR",
             sortOrder: 2
         });
     }

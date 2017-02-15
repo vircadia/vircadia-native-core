@@ -60,6 +60,18 @@ void ControllerScriptingInterface::releaseKeyEvents(const KeyEvent& event) {
     }
 }
 
+bool ControllerScriptingInterface::areEntityClicksCaptured() const {
+    return _captureEntityClicks;
+}
+
+void ControllerScriptingInterface::captureEntityClickEvents() {
+    _captureEntityClicks = true;
+}
+
+void ControllerScriptingInterface::releaseEntityClickEvents() {
+    _captureEntityClicks = false;
+}
+
 bool ControllerScriptingInterface::isJoystickCaptured(int joystickIndex) const {
     return _capturedJoysticks.contains(joystickIndex);
 }
