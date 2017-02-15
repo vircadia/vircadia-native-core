@@ -35,8 +35,10 @@ public slots:
     void appendLogLine(QString logLine);
 
 private slots:
+    void updateSelection();
     void handleSearchButton();
     void handleSearchTextChanged(QString text);
+    void toggleSearchPrev();
     void toggleSearchNext();
 
 protected:
@@ -50,6 +52,7 @@ private:
     QPushButton* _searchButton { nullptr };
     QLineEdit* _searchTextBox { nullptr };
     QPlainTextEdit* _logTextBox { nullptr };
+    QPushButton* _searchPrevButton { nullptr };
     QPushButton* _searchNextButton { nullptr };
     QString _searchTerm;
     KeywordHighlighter* _highlighter { nullptr };
