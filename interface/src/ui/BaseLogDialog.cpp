@@ -27,7 +27,6 @@ const int MINIMAL_WIDTH = 700;
 const int SEARCH_BUTTON_LEFT = 25;
 const int SEARCH_BUTTON_WIDTH = 20;
 const int SEARCH_TOGGLE_BUTTON_WIDTH = 50;
-const int BUTTON_MARGIN = 15;
 const int SEARCH_TEXT_WIDTH = 240;
 const QColor HIGHLIGHT_COLOR = QColor("#3366CC");
 
