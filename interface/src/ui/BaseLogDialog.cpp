@@ -158,7 +158,7 @@ void BaseLogDialog::toggleSearchPrev() {
         QString selectedTerm = searchCursor.selectedText();
         _logTextBox->find(selectedTerm, QTextDocument::FindBackward);
     } else {
-        handleSearchTextChanged(_searchTextBox.text());
+        handleSearchTextChanged(_searchTextBox->text());
     }
 }
 
@@ -168,7 +168,7 @@ void BaseLogDialog::toggleSearchNext() {
         QString selectedTerm = searchCursor.selectedText();
         _logTextBox->find(selectedTerm);
     } else {
-        handleSearchTextChanged(_searchTextBox.text());
+        handleSearchTextChanged(_searchTextBox->text());
     }
 }
 

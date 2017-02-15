@@ -35,12 +35,19 @@ QPushButton#searchButton {
 
 QPushButton#searchNextButton {
     font-family: Helvetica, Arial, sans-serif;
-    background-repeat: none;
-    background-position: left center;
-    background-origin: content;
-    padding-left: 10px;
-    background-color: #333333;
-    color: #BBBBBB;
+    text-align: center;
+    background-color: #CCCCCC;
+    color: #3d3d3d;
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 11px;
+}
+
+QPushButton#searchPrevButton {
+    font-family: Helvetica, Arial, sans-serif;
+    text-align: center;
+    background-color: #CCCCCC;
+    color: #3d3d3d;
     border-width: 0;
     border-radius: 9px;
     font-size: 11px;
