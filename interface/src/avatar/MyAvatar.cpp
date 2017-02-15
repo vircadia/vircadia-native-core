@@ -2475,12 +2475,46 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     }
 }
 
-void MyAvatar::pintJointInWorldSpace(int index, const glm::vec3& position, const glm::quat& orientation) {
+bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& orientation) {
+    auto hipsIndex = getJointIndex("Hips");
+    if (index != hipsIndex) {
+        qWarning() << "Pinning is only supported for the hips joint at the moment.";
+        return false;
+    }
 
+    auto jointTranslation = getAbsoluteJointTranslationInObjectFrame(index);
+    auto jointRotation = getAbsoluteJointRotationInObjectFrame(index);
+
+    Transform final(orientation, Vectors::ONE, position);
+    Transform joint(jointRotation, Vectors::ONE, jointTranslation);
+
+    Transform avatarTransform(final.getMatrix() * joint.getInverseMatrix());
+    setPosition(avatarTransform.getTranslation());
+    setOrientation(avatarTransform.getRotation());
+
+    _rig->setMaxHipsOffsetLength(0.0f);
+
+    auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
+    if (it != _pinnedJoints.end()) {
+        _pinnedJoints.push_back(index);
+    }
+
+    return true;
 }
 
-void MyAvatar::clearPinOnJoint(int index) {
+bool MyAvatar::clearPinOnJoint(int index) {
+    auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
+    if (it != _pinnedJoints.end()) {
+        _pinnedJoints.erase(it);
 
+        auto hipsIndex = getJointIndex("Hips");
+        if (index == hipsIndex) {
+            _rig->setMaxHipsOffsetLength(1.0f);
+        }
+
+        return true;
+    }
+    return false;
 }
 
 // thread-safe
