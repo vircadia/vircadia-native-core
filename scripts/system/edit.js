@@ -180,8 +180,12 @@ var toolBar = (function () {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
                 properties.position = position;
             entityID = Entities.addEntity(properties);
+            if (properties.type == "ParticleEffect") {
+                selectParticleEntity(entityID);
+            }
         } else {
-            Window.notifyEditError("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
+            Window.notifyEditError("Can't create " + properties.type + ": " +
+                                   properties.type + " would be out of bounds.");
         }
 
         selectionManager.clearSelections();
@@ -1903,6 +1907,32 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 var propertiesTool = new PropertiesTool();
 var particleExplorerTool = new ParticleExplorerTool();
 var selectedParticleEntity = 0;
+
+function selectParticleEntity(entityID) {
+    var properties = Entities.getEntityProperties(entityID);
+    var particleData = {
+        messageType: "particle_settings",
+        currentProperties: properties
+    };
+    particleExplorerTool.destroyWebView();
+    particleExplorerTool.createWebView();
+
+    selectedParticleEntity = entityID;
+    particleExplorerTool.setActiveParticleEntity(entityID);
+
+    if (Settings.getValue("HUDUIEnabled")) {
+        particleExplorerTool.webView.webEventReceived.connect(function (data) {
+            data = JSON.parse(data);
+            if (data.messageType === "page_loaded") {
+                particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+            }
+        });
+    } else {
+        // in the tablet version, the page was loaded earlier
+        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+    }
+}
+
 entityListTool.webView.webEventReceived.connect(function (data) {
     data = JSON.parse(data);
     if (data.type === "selectionUpdate") {
@@ -1914,27 +1944,7 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                     return;
                 }
                 // Destroy the old particles web view first
-                particleExplorerTool.destroyWebView();
-                particleExplorerTool.createWebView();
-                var properties = Entities.getEntityProperties(ids[0]);
-                var particleData = {
-                    messageType: "particle_settings",
-                    currentProperties: properties
-                };
-                selectedParticleEntity = ids[0];
-                particleExplorerTool.setActiveParticleEntity(ids[0]);
-
-                if (Settings.getValue("HUDUIEnabled")) {
-                    particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                        data = JSON.parse(data);
-                        if (data.messageType === "page_loaded") {
-                            particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                        }
-                    });
-                } else {
-                    // in the tablet version, the page was loaded earlier
-                    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                }
+                selectParticleEntity(ids[0])
             } else {
                 selectedParticleEntity = 0;
                 particleExplorerTool.destroyWebView();
