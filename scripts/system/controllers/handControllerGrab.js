@@ -862,7 +862,8 @@ function MyController(hand) {
         if ((isInEditMode() && this.grabbedEntity !== HMD.tabletID) &&
             (newState !== STATE_OFF &&
              newState !== STATE_SEARCHING &&
-             newState !== STATE_OVERLAY_STYLUS_TOUCHING)) {
+             newState !== STATE_OVERLAY_STYLUS_TOUCHING &&
+             newState !== STATE_OVERLAY_LASER_TOUCHING)) {
             return;
         }
         setGrabCommunications((newState === STATE_DISTANCE_HOLDING) || (newState === STATE_NEAR_GRABBING));
