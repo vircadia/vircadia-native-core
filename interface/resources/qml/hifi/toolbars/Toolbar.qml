@@ -106,7 +106,28 @@ Window {
         return buttons[index];
     }
 
+    function sortButtons() {
+        var children = [];
+        for (var i = 0; i < container.children.length; i++) {
+            children[i] = container.children[i];
+        }
+
+        children.sort(function (a, b) {
+            if (a.sortOrder === b.sortOrder) {
+                // subsort by stableOrder, because JS sort is not stable in qml.
+                return a.stableOrder - b.stableOrder;
+            } else {
+                return a.sortOrder - b.sortOrder;
+            }
+        });
+
+        container.children = children;
+    }
+
     function addButton(properties) {
+
+        visible = true;
+
         properties = properties || {}
 
         // If a name is specified, then check if there's an existing button with that name
@@ -123,8 +144,12 @@ Window {
         properties.opacity = 0;
         result = toolbarButtonBuilder.createObject(container, properties);
         buttons.push(result);
+
         result.opacity = 1;
         updatePinned();
+
+        sortButtons();
+
         return result;
     }
 
@@ -137,6 +162,10 @@ Window {
         buttons[index].destroy();
         buttons.splice(index, 1);
         updatePinned();
+
+        if (buttons.length === 0) {
+            visible = false;
+        }
     }
 
     function updatePinned() {

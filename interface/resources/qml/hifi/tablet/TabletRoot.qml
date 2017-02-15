@@ -34,8 +34,6 @@ Item {
         }
     }
 
-    function setShown(value) {}
-
     SoundEffect {
         id: buttonClickSound
         volume: 0.1
@@ -89,4 +87,6 @@ Item {
 
     width: 480
     height: 706
+
+    function setShown(value) {}
 }

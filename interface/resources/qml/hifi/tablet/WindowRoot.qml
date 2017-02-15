@@ -24,6 +24,10 @@ Windows.ScrollingWindow {
 
     signal showDesktop();
 
+    function setOption(value) {
+        option = value;
+    }
+
     function loadSource(url) {
         loader.source = "";  // HACK: make sure we load the qml fresh each time.
         loader.source = url;
@@ -56,6 +60,10 @@ Windows.ScrollingWindow {
         if (typeof globalPosition !== 'undefined') {
             buttonClickSound.play(globalPosition);
         }
+    }
+
+    function toggleMicEnabled() {
+        ApplicationInterface.toggleMuteAudio();
     }
 
     function setUsername(newUsername) {

@@ -188,6 +188,8 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             _desktopWindow = tabletRootWindow;
             QMetaObject::invokeMethod(quickItem, "setShown", Q_ARG(const QVariant&, QVariant(false)));
 
+            QObject::connect(quickItem, SIGNAL(windowClosed()), this, SLOT(desktopWindowClosed()));
+
             QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
 
             // forward qml surface events to interface js
@@ -254,6 +256,13 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
                 qWarning() << "fromQml: Unsupported message type " << message;
             }
         });
+
+        if (_toolbarMode) {
+            // if someone creates the tablet in toolbar mode, make sure to display the home screen on the tablet.
+            auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()), Qt::DirectConnection);
+            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
+        }
 
         gotoHomeScreen();
 
@@ -633,7 +642,7 @@ void TabletButtonProxy::editProperties(QVariantMap properties) {
     }
 
     if (_toolbarButtonProxy) {
-        QMetaObject::invokeMethod(_toolbarButtonProxy, "editProperties", Qt::AutoConnection, Q_ARG(QVariant, properties));
+        QMetaObject::invokeMethod(_toolbarButtonProxy, "editProperties", Qt::AutoConnection, Q_ARG(QVariantMap, properties));
     }
 }
 
