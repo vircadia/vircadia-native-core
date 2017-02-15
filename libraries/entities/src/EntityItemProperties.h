@@ -215,6 +215,7 @@ public:
 
     DEFINE_PROPERTY(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool, ZoneEntityItem::DEFAULT_FLYING_ALLOWED);
     DEFINE_PROPERTY(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool, ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED);
+    DEFINE_PROPERTY(PROP_FILTER_URL, FilterURL, filterURL, QString, ZoneEntityItem::DEFAULT_FILTER_URL);
 
     DEFINE_PROPERTY(PROP_CLIENT_ONLY, ClientOnly, clientOnly, bool, false);
     DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
@@ -458,6 +459,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, FlyingAllowed, flyingAllowed, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, GhostingAllowed, ghostingAllowed, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, FilterURL, filterURL, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ClientOnly, clientOnly, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, OwningAvatarID, owningAvatarID, "");

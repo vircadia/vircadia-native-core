@@ -49,7 +49,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_PHYSICS_PACKET;
+            return VERSION_ENTITIES_ZONE_FILTERS;
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JsonFilter);
         case PacketType::AvatarIdentity:

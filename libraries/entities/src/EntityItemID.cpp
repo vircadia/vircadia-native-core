@@ -19,6 +19,7 @@
 #include "RegisteredMetaTypes.h"
 #include "EntityItemID.h"
 
+int entityItemIDTypeID = qRegisterMetaType<EntityItemID>();
 
 EntityItemID::EntityItemID() : QUuid()
 {

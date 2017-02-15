@@ -24,19 +24,18 @@
             }
 
             .top-bar {
-                width: 100%;
                 height: 90px;
                 background: linear-gradient(#2b2b2b, #1e1e1e);
                 font-weight: bold;
-            }
-
-            .top-bar .myContainer {
+                padding-left: 30px;
+                padding-right: 30px;
                 display: flex;
-                justify-content: space-between;
                 align-items: center;
-                margin-left: 30px;
-                margin-right: 30px;
-                height: 100%;
+                position: fixed;
+                width: 480px;
+                top: 0;
+                z-index: 1;
+                justify-content: space-between;
             }
 
             #refresh-button {
@@ -46,6 +45,7 @@
 
             .main {
                 padding: 30px;
+                margin-top: 90px;
             }
 
             #user-info-div {
@@ -219,7 +219,11 @@
             }
 
             .dropdown-menu {
-                width: 280px;
+                width: 350px;
+                border: 0;
+                display: block;
+                float: none;
+                position: inherit;
             }
 
             .dropdown-menu li {
@@ -231,52 +235,32 @@
                 padding: 0px;
             }
 
-            .dropdown-menu li:hover {
+            .dropdown-menu li.current {
                 background: #dcdcdc;
             }
 
-            .dropdown-menu li h6 {
+            .dropdown-menu li h5 {
                 font-weight: bold;
             }
 
             .dropdown-menu li p {
-                font-size: 11px;
+                font-size: 14px;
             }
 
         </style>
     </head>
     <body>
         <div class="top-bar">
-            <div class="myContainer">
-                <div>Users Online</div>
-                <img id="refresh-button" onclick="pollUsers()" src="https://hifi-content.s3.amazonaws.com/faye/tablet-dev/refresh-icon.svg"></img>
-            </div>
+            <div>Users Online</div>
+            <img id="refresh-button" onclick="pollUsers()" src="https://hifi-content.s3.amazonaws.com/faye/tablet-dev/refresh-icon.svg"></img>
         </div>
         <div class="main">
             <div id="user-info-div">
                 <h4></h4>
-                <div class="dropdown">
-                    <button id="visibility-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Online
-                        <span class="glyphicon glyphicon-menu-down"></span>
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="visibility-toggle">
-                        <li class="visibility-option" data-visibility="all">
-                            <h6>Online</h6>
-                            <p>You will be shown online to everyone else. Anybody will be able to find you from the users online list and jump to your current location.</p>
-                        </li>
-                        <li role="separator" class="divider"></li>
-                        <li class="visibility-option" data-visibility="friends">
-                            <h6>Available to Friends Only</h6>
-                            <p>You will be shown online only to users you have added as friends. Other users may still interact with you in the same domain, but they won't be able to find you from the users online list.</p>
-                        </li>
-                        <li role="separator" class="divider"></li>
-                        <li class="visibility-option" data-visibility="none">
-                            <h6>Appear Offline</h6>
-                            <p>No one will be able to find you from the users online list. However, this does not prevent other users in the same domain from interacting with you. For a complete "Do not disturb" mode, you may want to go to your own private domain and set allow entering to no one.</p>
-                        </li>
-                    </ul>
-                </div>
+                <button id="visibility-toggle" data-toggle="modal" data-target="#myModal2" aria-haspopup="true" aria-expanded="false">
+                    Online
+                    <span class="glyphicon glyphicon-menu-down"></span>
+                </button>
             </div>
             <ul class="tabs">
                 <li tab-id="tab-1" class="current">Everyone (0)</li>
@@ -291,7 +275,7 @@
             </div>
         </div>
 
-        <!-- Modal -->
+        <!-- Modal for jump to-->
         <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
           <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -310,6 +294,39 @@
           </div>
         </div>
 
+        <!-- Modal for visibility-->
+        <div class="modal fade" id="myModal2" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Change your visibility setting</h4>
+              </div>
+              <div class="modal-body">
+                <ul class="dropdown-menu" aria-labelledby="visibility-toggle">
+                    <li class="visibility-option" data-visibility="all">
+                        <h5>Online</h5>
+                        <p>You will be shown online to everyone else. Anybody will be able to find you from the users online list and jump to your current location.</p>
+                    </li>
+                    <li role="separator" class="divider"></li>
+                    <li class="visibility-option" data-visibility="friends">
+                        <h5>Available to Friends Only</h5>
+                        <p>You will be shown online only to users you have added as friends. Other users may still interact with you in the same domain, but they won't be able to find you from the users online list.</p>
+                    </li>
+                    <li role="separator" class="divider"></li>
+                    <li class="visibility-option" data-visibility="none">
+                        <h5>Appear Offline</h5>
+                        <p>No one will be able to find you from the users online list. However, this does not prevent other users in the same domain from interacting with you. For a complete "Do not disturb" mode, you may want to go to your own private domain and set allow entering to no one.</p>
+                    </li>
+                </ul>
+              </div>
+              <div class="modal-footer">
+                <input type="button" data-dismiss="modal" value="OK">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
         <script>
@@ -321,30 +338,53 @@
             function displayUsers(data, element) {
                 element.empty();
                 for (var i = 0; i < data.users.length; i++) {
-                    // Don't display users who aren't in a domain
-                    if (typeof data.users[i].location.root.name === "undefined") {
+                    // Display users who aren't in a domain differently
+                    if (typeof data.users[i].location.root === "undefined" || typeof data.users[i].location.root.name === "undefined") {
                         console.log(data.users[i].username + "is online but not in a domain");
                         $("#dev-div").append("<p>" + data.users[i].username + "is online but not in a domain</p>");
+                        $("<li></li>", {
+                            "data-toggle": "modal",
+                            "data-target": "#myModal",
+                            "data-username": data.users[i].username,
+                            "data-placename": "",
+                            text: data.users[i].username
+                        }).appendTo(element);
                     } else {
                         $("#dev-div").append("<li>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
-                        if (data.users[i].username === myUsername) {
-                            $("#user-info-div h4").text(data.users[i].username + " @ " + data.users[i].location.root.name);
-                        } else {
-                            console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
-                            // Create a list item and put user info in data-* attributes, also make it trigger the jump to confirmation modal
-                            $("<li></li>", {
-                                "data-toggle": "modal",
-                                "data-target": "#myModal",
-                                "data-username": data.users[i].username,
-                                "data-placename": data.users[i].location.root.name,
-                                text: data.users[i].username + " @ " + data.users[i].location.root.name
-                            }).appendTo(element);
-                        }
+                        console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
+                        // Create a list item and put user info in data-* attributes, also make it trigger the jump to confirmation modal
+                        $("<li></li>", {
+                            "data-toggle": "modal",
+                            "data-target": "#myModal",
+                            "data-username": data.users[i].username,
+                            "data-placename": data.users[i].location.root.name,
+                            text: data.users[i].username + " @ " + data.users[i].location.root.name
+                        }).appendTo(element);
                     }
                 }
             }
 
+            function isOtherUsers(user) {
+                return user.username != myUsername;
+            }
+
             function processData(data, type) {
+                // Filter out yourself from the users list
+                data.users = data.users.filter(isOtherUsers);
+
+                // Sort array alphabetically by username
+                data.users.sort(function(a, b) { 
+                    var nameA = a.username.toLowerCase();
+                    var nameB = b.username.toLowerCase();
+                    if (nameA < nameB) {
+                        return -1;
+                    }
+                    if (nameA > nameB) {
+                        return 1;
+                    }
+                    return 0;
+                });
+                
                 var num = data.users.length;
                 if (type === "everyone") {
                     $(".tabs li:nth-child(1)").text("Everyone (" + num + ")");
@@ -418,7 +458,11 @@
                     var placename = li.data("placename");
                     // Write info to the modal
                     var modal = $(this);
-                    modal.find(".modal-title").text("Jump to " + username + " @ " + placename);
+                    if (placename === "") {
+                        modal.find(".modal-title").text("Jump to " + username);
+                    } else {
+                        modal.find(".modal-title").text("Jump to " + username + " @ " + placename);
+                    }
                     $("#jump-to-confirm-button").data("username", username);
                 })
 
@@ -434,8 +478,10 @@
 
                 // Click listener for toggling who can see me
                 $(".visibility-option").click(function() {
+                    $(".visibility-option").removeClass("current");
+                    $(this).addClass("current");
                     myVisibility = $(this).data("visibility");
-                    var newButtonText = $(this).find("h6").text();
+                    var newButtonText = $(this).find("h5").text();
                     $("#visibility-toggle").html(newButtonText + "<span class='glyphicon glyphicon-menu-down'></span>");
                     var visibilityObject = {
                         "type": "toggle-visibility",
