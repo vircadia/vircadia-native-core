@@ -64,6 +64,7 @@ FocusScope {
                 // navigate back to root level menu
                 onClicked: {
                     buildMenu();
+                    breadcrumbText.text = "Menu";
                     tabletRoot.playButtonClickSound();
                 }
             }
@@ -106,10 +107,13 @@ FocusScope {
 
     function setRootMenu(menu) {
         tabletMenu.rootMenu = menu
-        buildMenu()
+        buildMenu();
     }
     function buildMenu() {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> updated menu stack
         // Build submenu if specified.
         if (subMenu !== "") {
             var index = 0;
@@ -122,15 +126,19 @@ FocusScope {
             }
             subMenu = "";  // Continue with full menu after initially displaying submenu.
             if (found) {
-                menuPopperUpper.popup(tabletMenu, rootMenu.items[index].items);
+                menuPopperUpper.popup(rootMenu.items[index].items);
                 return;
             }
         }
 
         // Otherwise build whole menu.
+<<<<<<< HEAD
         menuPopperUpper.popup(tabletMenu, rootMenu.items);
 =======
         menuPopperUpper.popup(rootMenu.items);
 >>>>>>> updating branch with master
+=======
+        menuPopperUpper.popup(rootMenu.items);
+>>>>>>> updated menu stack
     }
 }

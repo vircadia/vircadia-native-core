@@ -27,12 +27,13 @@ Item {
             d.clearMenus();
         }
     }
-
+    
     StackView {
         anchors.fill: parent
         id: d
         objectName: "stack"
         initialItem: topMenu
+
         property var menuStack: []
         property var topMenu: null;
         property var modelMaker: Component { ListModel { } }
@@ -57,9 +58,13 @@ Item {
         }
 
         function pushSource(path) {
+            d.push(Qt.resolvedUrl(path));
+            d.currentItem.eventBridge = tabletMenu.eventBridge
+            d.currentItem.sendToScript.connect(tabletMenu.sendToScript);
         }
 
         function popSource() {
+            d.pop();
         }
 
         function toModel(items) {
