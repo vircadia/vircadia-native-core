@@ -123,8 +123,6 @@ const CodecPluginList& PluginManager::getCodecPlugins() {
     static CodecPluginList codecPlugins;
     static std::once_flag once;
     std::call_once(once, [&] {
-        //codecPlugins = ::getCodecPlugins();
-
         // Now grab the dynamic plugins
         for (auto loader : getLoadedPlugins()) {
             CodecProvider* codecProvider = qobject_cast<CodecProvider*>(loader->instance());

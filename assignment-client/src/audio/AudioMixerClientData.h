@@ -12,6 +12,8 @@
 #ifndef hifi_AudioMixerClientData_h
 #define hifi_AudioMixerClientData_h
 
+#include <queue>
+
 #include <QtCore/QJsonObject>
 
 #include <AABox.h>
@@ -33,6 +35,9 @@ public:
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
+
+    void queuePacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer node);
+    void processPackets();
 
     // locks the mutex to make a copy
     AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
@@ -56,7 +61,13 @@ public:
 
     void removeAgentAvatarAudioStream();
 
+    // packet parsers
     int parseData(ReceivedMessage& message) override;
+    void negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node);
+    void parseRequestsDomainListData(ReceivedMessage& message);
+    void parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node);
+    void parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
+    void parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
 
     // attempt to pop a frame from each audio stream, and return the number of streams from this client
     int checkBuffersBeforeFrameSend();
@@ -105,11 +116,15 @@ public slots:
     void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
-    using IgnoreZone = AABox;
+    struct PacketQueue : public std::queue<QSharedPointer<ReceivedMessage>> {
+        QWeakPointer<Node> node;
+    };
+    PacketQueue _packetQueue;
 
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
 
+    using IgnoreZone = AABox;
     class IgnoreZoneMemo {
     public:
         IgnoreZoneMemo(AudioMixerClientData& data) : _data(data) {}

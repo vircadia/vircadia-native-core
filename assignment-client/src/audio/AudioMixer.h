@@ -49,6 +49,7 @@ public:
     static const QHash<QString, AABox>& getAudioZones() { return _audioZones; }
     static const QVector<ZoneSettings>& getZoneSettings() { return _zoneSettings; }
     static const QVector<ReverbSettings>& getReverbSettings() { return _zoneReverbSettings; }
+    static const std::pair<QString, CodecPluginPointer> negotiateCodec(std::vector<QString> codecs);
 
 public slots:
     void run() override;
@@ -56,20 +57,14 @@ public slots:
 
 private slots:
     // packet handlers
-    void handleAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
-    void handleSilentAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
-    void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
-    void handleNodeKilled(SharedNodePointer killedNode);
-    void handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
-    void handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
-    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
-    void handlePerAvatarGainSetDataPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleNodeKilled(SharedNodePointer killedNode);
+    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
-    void start();
+    void queueAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
+    void start();
 
 private:
     // mixing helpers
@@ -92,8 +87,6 @@ private:
 
     int _numStatFrames { 0 };
     AudioMixerStats _stats;
-
-    QString _codecPreferenceOrder;
 
     AudioMixerSlavePool _slavePool;
 
@@ -124,13 +117,17 @@ private:
     Timer _prepareTiming;
     Timer _mixTiming;
     Timer _eventsTiming;
+    Timer _packetsTiming;
 
     static int _numStaticJitterFrames; // -1 denotes dynamic jitter buffering
     static float _noiseMutingThreshold;
     static float _attenuationPerDoublingInDistance;
+    static std::map<QString, CodecPluginPointer> _availableCodecs;
+    static QStringList _codecPreferenceOrder;
     static QHash<QString, AABox> _audioZones;
     static QVector<ZoneSettings> _zoneSettings;
     static QVector<ReverbSettings> _zoneReverbSettings;
+
 };
 
 #endif // hifi_AudioMixer_h
