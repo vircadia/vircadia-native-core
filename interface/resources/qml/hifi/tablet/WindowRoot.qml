@@ -25,6 +25,7 @@ Windows.ScrollingWindow {
     signal showDesktop();
 
     function loadSource(url) {
+        loader.source = "";  // HACK: make sure we load the qml fresh each time.
         loader.source = url;
     }
 

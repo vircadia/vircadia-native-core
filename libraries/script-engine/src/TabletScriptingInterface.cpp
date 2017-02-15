@@ -11,10 +11,11 @@
 #include <QtCore/QThread>
 
 #include <AccountManager.h>
+#include "DependencyManager.h"
 #include <PathUtils.h>
+#include <QmlWindowClass.h>
 #include <RegisteredMetaTypes.h>
 #include "ScriptEngineLogging.h"
-#include "DependencyManager.h"
 #include <OffscreenUi.h>
 #include <InfoView.h>
 #include "SoundEffect.h"
@@ -159,6 +160,10 @@ static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
 static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
 static int s_windowNameCounter = 1;
 
+class TabletRootWindow : public QmlWindowClass {
+    virtual QString qmlSource() const { return "hifi/tablet/WindowRoot.qml"; }
+};
+
 TabletProxy::TabletProxy(QString name) : _name(name) {
 
 }
@@ -177,13 +182,16 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         // create new desktop window
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         offscreenUi->executeOnUiThread([=, this] {
-            InfoView::registerType();
-            QString name = _name + QString("%1").arg(s_windowNameCounter++);
-            offscreenUi->show(QUrl("hifi/tablet/WindowRoot.qml"), name, [&](QQmlContext* context, QObject* newObject) {
-                QQuickItem* item = dynamic_cast<QQuickItem*>(newObject);
-                _desktopWindow = item;
-                QObject::connect(_desktopWindow, SIGNAL(windowClosed), this, SLOT(desktopWindowClosed()));
-            });
+            auto tabletRootWindow = new TabletRootWindow();
+            tabletRootWindow->initQml(QVariantMap());
+            auto quickItem = tabletRootWindow->asQuickItem();
+            _desktopWindow = tabletRootWindow;
+            QMetaObject::invokeMethod(quickItem, "setShown", Q_ARG(const QVariant&, QVariant(false)));
+
+            QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
+
+            // forward qml surface events to interface js
+            connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
         });
     } else {
         removeButtonsFromToolbar();
@@ -271,7 +279,7 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
     } else if (_toolbarMode && _desktopWindow) {
-        root = _desktopWindow;
+        root = _desktopWindow->asQuickItem();
     }
 
     if (root) {
@@ -294,7 +302,7 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
     } else if (_toolbarMode && _desktopWindow) {
-        root = _desktopWindow;
+        root = _desktopWindow->asQuickItem();
     }
 
     if (root) {
@@ -317,8 +325,8 @@ void TabletProxy::gotoHomeScreen() {
             QMetaObject::invokeMethod(_qmlTabletRoot, "playButtonClickSound");
         } else if (_toolbarMode && _desktopWindow) {
             // close desktop window
-            if (_desktopWindow) {
-                QMetaObject::invokeMethod(_desktopWindow, "setShown", Q_ARG(const QVariant&, QVariant(false)));
+            if (_desktopWindow->asQuickItem()) {
+                QMetaObject::invokeMethod(_desktopWindow->asQuickItem(), "setShown", Q_ARG(const QVariant&, QVariant(false)));
             }
         }
         _state = State::Home;
@@ -336,32 +344,46 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
     } else if (_toolbarMode && _desktopWindow) {
-        root = _desktopWindow;
+        root = _desktopWindow->asQuickItem();
     }
 
-    if (_state != State::Web) {
-        if (root) {
-            QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
-        }
-        _state = State::Web;
-        emit screenChanged(QVariant("Web"), QVariant(url));
-    }
     if (root) {
+        QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         QMetaObject::invokeMethod(root, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
     }
+    _state = State::Web;
+    emit screenChanged(QVariant("Web"), QVariant(url));
 }
 
 QObject* TabletProxy::addButton(const QVariant& properties) {
     auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
     std::lock_guard<std::mutex> guard(_mutex);
     _tabletButtonProxies.push_back(tabletButtonProxy);
-    if (_qmlTabletRoot) {
+    if (!_toolbarMode && _qmlTabletRoot) {
         auto tablet = getQmlTablet();
         if (tablet) {
             addButtonProxyToQmlTablet(tablet, tabletButtonProxy.data());
         } else {
             qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
+        }
+    } else if (_toolbarMode) {
+
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        QObject* toolbarProxy = tabletScriptingInterface->getSystemToolbarProxy();
+
+        Qt::ConnectionType connectionType = Qt::AutoConnection;
+        if (QThread::currentThread() != toolbarProxy->thread()) {
+            connectionType = Qt::BlockingQueuedConnection;
+        }
+
+        // copy properties from tablet button proxy to toolbar button proxy.
+        QObject* toolbarButtonProxy = nullptr;
+        bool hasResult = QMetaObject::invokeMethod(toolbarProxy, "addButton", connectionType, Q_RETURN_ARG(QObject*, toolbarButtonProxy), Q_ARG(QVariant, tabletButtonProxy->getProperties()));
+        if (hasResult) {
+            tabletButtonProxy->setToolbarButtonProxy(toolbarButtonProxy);
+        } else {
+            qCWarning(scriptengine) << "ToolbarProxy addButton has no result";
         }
     }
     return tabletButtonProxy.data();
@@ -381,11 +403,18 @@ void TabletProxy::removeButton(QObject* tabletButtonProxy) {
 
     auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
     if (iter != _tabletButtonProxies.end()) {
-        if (_qmlTabletRoot) {
+        if (!_toolbarMode && _qmlTabletRoot) {
             (*iter)->setQmlButton(nullptr);
             if (tablet) {
                 QMetaObject::invokeMethod(tablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
             }
+        } else if (_toolbarMode) {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            QObject* toolbarProxy = tabletScriptingInterface->getSystemToolbarProxy();
+
+            // remove button from toolbarProxy
+            QMetaObject::invokeMethod(toolbarProxy, "removeButton", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getUuid().toString()));
+            (*iter)->setToolbarButtonProxy(nullptr);
         }
         _tabletButtonProxies.erase(iter);
     } else {
@@ -412,14 +441,18 @@ void TabletProxy::updateAudioBar(const double micLevel) {
 }
 
 void TabletProxy::emitScriptEvent(QVariant msg) {
-    if (_qmlOffscreenSurface) {
+    if (!_toolbarMode && _qmlOffscreenSurface) {
         QMetaObject::invokeMethod(_qmlOffscreenSurface, "emitScriptEvent", Qt::AutoConnection, Q_ARG(QVariant, msg));
+    } else if (_toolbarMode && _desktopWindow) {
+        QMetaObject::invokeMethod(_desktopWindow, "emitScriptEvent", Qt::AutoConnection, Q_ARG(QVariant, msg));
     }
 }
 
 void TabletProxy::sendToQml(QVariant msg) {
-    if (_qmlOffscreenSurface) {
+    if (!_toolbarMode && _qmlOffscreenSurface) {
         QMetaObject::invokeMethod(_qmlOffscreenSurface, "sendToQml", Qt::AutoConnection, Q_ARG(QVariant, msg));
+    } else if (_toolbarMode && _desktopWindow) {
+        QMetaObject::invokeMethod(_desktopWindow, "sendToQml", Qt::AutoConnection, Q_ARG(QVariant, msg));
     }
 }
 
@@ -446,7 +479,7 @@ void TabletProxy::addButtonsToMenuScreen() {
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
     } else if (_toolbarMode && _desktopWindow) {
-        root = _desktopWindow;
+        root = _desktopWindow->asQuickItem();
     }
 
     if (!root) {

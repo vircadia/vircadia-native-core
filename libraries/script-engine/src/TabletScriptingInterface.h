@@ -26,6 +26,7 @@
 
 class TabletProxy;
 class TabletButtonProxy;
+class QmlWindowClass;
 
 /**jsdoc
  * @namespace Tablet
@@ -193,7 +194,7 @@ protected:
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
-    QQuickItem* _desktopWindow { nullptr };
+    QmlWindowClass* _desktopWindow { nullptr };
     bool _toolbarMode { false };
 
     enum class State { Uninitialized, Home, Web, Menu, QML };
