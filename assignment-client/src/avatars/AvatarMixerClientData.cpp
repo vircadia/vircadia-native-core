@@ -34,13 +34,16 @@ void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message,
 // packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
 // packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
 
-void AvatarMixerClientData::processPackets() {
+int AvatarMixerClientData::processPackets() {
+    int packetsProcessed = 0;
     SharedNodePointer node = _packetQueue.node;
     assert(_packetQueue.empty() || node);
     _packetQueue.node.clear();
 
     while (!_packetQueue.empty()) {
         auto& packet = _packetQueue.back();
+
+        packetsProcessed++;
 
         switch (packet->getType()) {
             case PacketType::AvatarData:
@@ -52,6 +55,8 @@ void AvatarMixerClientData::processPackets() {
         _packetQueue.pop();
     }
     assert(_packetQueue.empty());
+
+    return packetsProcessed;
 }
 
 int AvatarMixerClientData::parseData(ReceivedMessage& message) {

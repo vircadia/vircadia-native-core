@@ -29,10 +29,16 @@ public:
 
     void processIncomingPackets(const SharedNodePointer& node);
 
+    void harvestStats(int& nodesProcessed, int& packetsProcessed, quint64& processIncomingPacketsElapsedTime);
+
 private:
     // frame state
     ConstIter _begin;
     ConstIter _end;
+
+    int _nodesProcessed { 0 };
+    int _packetsProcessed { 0 };
+    quint64 _processIncomingPacketsElapsedTime { 0 };
 };
 
 #endif // hifi_AvatarMixerSlave_h

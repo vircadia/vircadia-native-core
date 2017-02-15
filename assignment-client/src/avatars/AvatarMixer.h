@@ -69,6 +69,7 @@ private:
 
     int _sumListeners { 0 };
     int _numStatFrames { 0 };
+    std::atomic<int> _numTightLoopFrames;
     int _sumIdentityPackets { 0 };
 
     float _maxKbpsPerNode = 0.0f;

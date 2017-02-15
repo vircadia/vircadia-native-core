@@ -102,6 +102,7 @@ void AvatarMixer::start() {
     //_slavePool.setNumThreads(1); // grins
 
     while (!_isFinished) {
+        _numTightLoopFrames++;
         _loopRate.increment();
 
         // FIXME - we really should sleep for the remainder of what we haven't spent time processing
@@ -754,24 +755,19 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_average_b_ignoreCalculation"] = (float)_ignoreCalculationElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_c_avatarDataPacking"] = (float)_avatarDataPackingElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_d_packetSending"] = (float)_packetSendingElapsedTime / (float)_numStatFrames;
-
     statsObject["timing_average_e_total_broadcastAvatarData"] = (float)_broadcastAvatarDataElapsedTime / (float)_numStatFrames;
 
-
-    statsObject["timing_average_y_processEvents"] = (float)_processEventsElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_y_queueIncomingPacket"] = (float)_queueIncomingPacketElapsedTime / (float)_numStatFrames;
-    
-
-    statsObject["timing_average_z_handleAvatarDataPacket"] = (float)_handleAvatarDataPacketElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_z_handleAvatarIdentityPacket"] = (float)_handleAvatarIdentityPacketElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_z_handleKillAvatarPacket"] = (float)_handleKillAvatarPacketElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_z_handleNodeIgnoreRequestPacket"] = (float)_handleNodeIgnoreRequestPacketElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_z_handleRadiusIgnoreRequestPacket"] = (float)_handleRadiusIgnoreRequestPacketElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_z_handleRequestsDomainListDataPacket"] = (float)_handleRequestsDomainListDataPacketElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_z_handleViewFrustumPacket"] = (float)_handleViewFrustumPacketElapsedTime / (float)_numStatFrames;
-
-    statsObject["timing_average_z_processQueuedAvatarDataPackets"] = (float)_processQueuedAvatarDataPacketsElapsedTime / (float)_numStatFrames;
-
+    // this things all occur on the frequency of the tight loop
+    statsObject["timing_average_y_processEvents"] = (float)_processEventsElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_y_queueIncomingPacket"] = (float)_queueIncomingPacketElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_z_handleAvatarDataPacket"] = (float)_handleAvatarDataPacketElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_z_handleAvatarIdentityPacket"] = (float)_handleAvatarIdentityPacketElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_z_handleKillAvatarPacket"] = (float)_handleKillAvatarPacketElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_z_handleNodeIgnoreRequestPacket"] = (float)_handleNodeIgnoreRequestPacketElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_z_handleRadiusIgnoreRequestPacket"] = (float)_handleRadiusIgnoreRequestPacketElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_z_handleRequestsDomainListDataPacket"] = (float)_handleRequestsDomainListDataPacketElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_z_handleViewFrustumPacket"] = (float)_handleViewFrustumPacketElapsedTime / (float)_numTightLoopFrames;
+    statsObject["timing_average_z_processQueuedAvatarDataPackets"] = (float)_processQueuedAvatarDataPacketsElapsedTime / (float)_numTightLoopFrames;
 
     statsObject["timing_sendStats"] = (float)_sendStatsElapsedTime;
 
@@ -786,8 +782,24 @@ void AvatarMixer::sendStatsPacket() {
     _queueIncomingPacketElapsedTime = 0;
     _processQueuedAvatarDataPacketsElapsedTime = 0;
 
-    QJsonObject avatarsObject;
+    QJsonObject slavesObject;
+    // gather stats
+    int slaveNumber = 1;
+    _slavePool.each([&](AvatarMixerSlave& slave) {
+        QJsonObject slaveObject;
+        int nodesProcessed, packetsProcessed;
+        quint64 processIncomingPacketsElapsedTime;
+        slave.harvestStats(nodesProcessed, packetsProcessed, processIncomingPacketsElapsedTime);
+        slaveObject["nodesProcessed"] = nodesProcessed;
+        slaveObject["packetsProcessed"] = packetsProcessed;
+        slaveObject["timing_average_processIncomingPackets"] = (float)processIncomingPacketsElapsedTime / (float)_numTightLoopFrames;
 
+        slavesObject[QString::number(slaveNumber)] = slaveObject;
+        slaveNumber++;
+    });
+    statsObject["timing_slaves"] = slavesObject;
+
+    QJsonObject avatarsObject;
     auto nodeList = DependencyManager::get<NodeList>();
     // add stats for each listerner
     nodeList->eachNode([&](const SharedNodePointer& node) {
@@ -818,11 +830,13 @@ void AvatarMixer::sendStatsPacket() {
     });
 
     statsObject["z_avatars"] = avatarsObject;
+
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
 
     _sumListeners = 0;
     _sumIdentityPackets = 0;
     _numStatFrames = 0;
+    _numTightLoopFrames = 0;
 
     _broadcastAvatarDataElapsedTime = 0;
     _displayNameManagementElapsedTime = 0;

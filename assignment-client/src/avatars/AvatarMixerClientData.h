@@ -120,7 +120,7 @@ public:
     }
 
     void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
-    void processPackets();
+    int processPackets(); // returns number of packets processed
 
 private:
     struct PacketQueue : public std::queue<QSharedPointer<ReceivedMessage>> {

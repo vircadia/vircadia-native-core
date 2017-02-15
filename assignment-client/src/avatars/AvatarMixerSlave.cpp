@@ -35,10 +35,23 @@ void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _end = end;
 }
 
+void AvatarMixerSlave::harvestStats(int& nodesProcessed, int& packetsProcessed, quint64& processIncomingPacketsElapsedTime) {
+    nodesProcessed = _nodesProcessed;
+    packetsProcessed = _packetsProcessed;
+    processIncomingPacketsElapsedTime = _processIncomingPacketsElapsedTime;
+    _packetsProcessed = _nodesProcessed = 0;
+    _processIncomingPacketsElapsedTime = 0;
+}
+
+
 void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
+    auto start = usecTimestampNow();
     auto nodeData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
     if (nodeData) {
-        nodeData->processPackets();
+        _nodesProcessed++;
+        _packetsProcessed += nodeData->processPackets();
     }
+    auto end = usecTimestampNow();
+    _processIncomingPacketsElapsedTime += (end - start);
 }
 
