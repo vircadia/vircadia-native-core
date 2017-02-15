@@ -577,7 +577,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
     if (it != _nodeHash.end()) {
         SharedNodePointer& matchingNode = it->second;
-        
+
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
         matchingNode->setPermissions(permissions);
@@ -717,14 +717,20 @@ SharedNodePointer LimitedNodeList::soloNodeOfType(NodeType_t nodeType) {
     });
 }
 
-void LimitedNodeList::getPacketStats(float& packetsPerSecond, float& bytesPerSecond) {
-    packetsPerSecond = (float) _numCollectedPackets / ((float) _packetStatTimer.elapsed() / 1000.0f);
-    bytesPerSecond = (float) _numCollectedBytes / ((float) _packetStatTimer.elapsed() / 1000.0f);
+void LimitedNodeList::getPacketStats(float& packetsInPerSecond, float& bytesInPerSecond, float& packetsOutPerSecond, float& bytesOutPerSecond) {
+    packetsInPerSecond = (float) getPacketReceiver().getInPacketCount() / ((float) _packetStatTimer.elapsed() / 1000.0f);
+    bytesInPerSecond = (float) getPacketReceiver().getInByteCount() / ((float) _packetStatTimer.elapsed() / 1000.0f);
+
+    packetsOutPerSecond = (float) _numCollectedPackets / ((float) _packetStatTimer.elapsed() / 1000.0f);
+    bytesOutPerSecond = (float) _numCollectedBytes / ((float) _packetStatTimer.elapsed() / 1000.0f);
 }
 
 void LimitedNodeList::resetPacketStats() {
+    getPacketReceiver().resetCounters();
+
     _numCollectedPackets = 0;
     _numCollectedBytes = 0;
+
     _packetStatTimer.restart();
 }
 

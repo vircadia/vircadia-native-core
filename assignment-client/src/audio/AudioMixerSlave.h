@@ -30,9 +30,13 @@ class AudioMixerSlave {
 public:
     using ConstIter = NodeList::const_iterator;
 
-    void configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio);
+    // process packets for a given node (requires no configuration)
+    void processPackets(const SharedNodePointer& node);
 
-    // mix and broadcast non-ignored streams to the node
+    // configure a round of mixing
+    void configureMix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio);
+
+    // mix and broadcast non-ignored streams to the node (requires configuration using configureMix, above)
     // returns true if a mixed packet was sent to the node
     void mix(const SharedNodePointer& node);
 
