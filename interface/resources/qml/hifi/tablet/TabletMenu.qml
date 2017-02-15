@@ -19,7 +19,7 @@ FocusScope {
     height: 720
 
     property var rootMenu: Menu { objectName:"rootMenu" }
-    property var point: Qt.point(50, 50)
+    property var point: Qt.point(50, 50);
     property var eventBridge;
     signal sendToScript(var message);
     TabletMenuStack { id: menuPopperUpper }
@@ -64,6 +64,7 @@ FocusScope {
                 // navigate back to root level menu
                 onClicked: {
                     buildMenu();
+                    breadcrumbText.text = "Menu";
                     tabletRoot.playButtonClickSound();
                 }
             }
@@ -106,12 +107,9 @@ FocusScope {
 
     function setRootMenu(menu) {
         tabletMenu.rootMenu = menu
-        buildMenu()
+        buildMenu();
     }
     function buildMenu() {
-<<<<<<< HEAD
-        menuPopperUpper.popup(rootMenu.items);
-=======
         // Build submenu if specified.
         if (subMenu !== "") {
             var index = 0;
@@ -124,13 +122,12 @@ FocusScope {
             }
             subMenu = "";  // Continue with full menu after initially displaying submenu.
             if (found) {
-                menuPopperUpper.popup(tabletMenu, rootMenu.items[index].items);
+                menuPopperUpper.popup(rootMenu.items[index].items);
                 return;
             }
         }
 
         // Otherwise build whole menu.
-        menuPopperUpper.popup(tabletMenu, rootMenu.items);
->>>>>>> 01bdac49d04ec897a3da7a264a1a26748a4e1938
+        menuPopperUpper.popup(rootMenu.items);
     }
 }
