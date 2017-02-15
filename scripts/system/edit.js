@@ -838,12 +838,28 @@ function setupModelMenus() {
         });
         modelMenuAddedDelete = true;
     }
-
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Entity List...",
         shortcutKey: "CTRL+META+L",
         afterItem: "Entities",
+        grouping: "Advanced"
+    });
+
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Parent Entity to Last",
+        shortcutKey: "CTRL+P",
+        afterItem: "Entity List...",
+        grouping: "Advanced"
+    });
+
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Unparent Entity",
+        afterItem: "Entity List...",
+        shortcutKey: "CTRL+SHIFT+P",
+        afterItem: "Entity List...",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -953,6 +969,8 @@ function cleanupModelMenus() {
         Menu.removeMenuItem("Edit", "Delete");
     }
 
+    Menu.removeMenuItem("Edit", "Parent");
+    Menu.removeMenuItem("Edit", "Unparent");
     Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
@@ -1096,28 +1114,42 @@ function recursiveDelete(entities, childrenList) {
         Entities.deleteEntity(entityID);
     }
 }
-function parentSelectedEntities() {
+function unparentSelectedEntities() {
+    print("unparenting2 Selected Entities");
     if (SelectionManager.hasSelection()) {
-      SelectionManager.saveProperties();
       var selectedEntities = selectionManager.selections;
-      if (selectedEntities.length <= 1) {
-        Window.notifyEditError("You must have multiple objects selected in order to parent them");
-        return;
-      }
-
-      var lastEntityId = selectedEntities[selectedEntities.length]
-      selectedEntities.some(function (id, index) {
-        if (lastId === id) {
-          return false;
-        }
-        Entities.editProperties(id, {parentID: lastId})
+      selectedEntities.forEach(function (id, index) {
+        Entities.editEntity(id, {parentID: null})
         return true;
       });
-      SelectionManager.clearSelections();
 
-      Window.notify("Entities Parented");
+      Window.notify("Entities Unparented");
+    }
+
+}
+function parentSelectedEntities() {
+    print("parenting selected Entities");
+    if (SelectionManager.hasSelection()) {
+        var selectedEntities = selectionManager.selections;
+        if (selectedEntities.length <= 1) {
+          Window.notifyEditError("You must have multiple objects selected in order to parent them");
+          return;
+        }
+        var lastEntityId = selectedEntities[selectedEntities.length-1];
+
+        print("last " + lastEntityId);
+        selectedEntities.forEach(function (id, index) {
+            if (lastEntityId !== id) {
+                print("iterating2 " + id);
+
+                // OK time to check why this breaks!
+                Entities.editEntity(id, {parentID: lastEntityId})
+            }
+        });
+
+        Window.notify("Entities Parented");
     } else {
-      Window.notifyEditError("You have nothing selected")
+        Window.notifyEditError("You have nothing selected")
     }
 }
 function deleteSelectedEntities() {
@@ -1182,6 +1214,10 @@ function handeMenuEvent(menuItem) {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem === "Delete") {
         deleteSelectedEntities();
+    } else if (menuItem === "Parent") {
+        parentSelectedEntities();
+    } else if (menuItem === "Unparent") {
+        unparentSelectedEntities();
     } else if (menuItem === "Export Entities") {
         if (!selectionManager.hasSelection()) {
             Window.notifyEditError("No entities have been selected.");
@@ -1347,8 +1383,12 @@ Controller.keyReleaseEvent.connect(function (event) {
             });
             grid.setPosition(newPosition);
         }
-    } else if (event.text === 'p' && event.isCtrl) {
-      parentSelectedEntities();
+    } else if (event.text === 'p' && event.isControl ) {
+        if (event.isShifted) {
+            unparentSelectedEntities();
+        } else {
+            parentSelectedEntities();
+        }
     }
 });
 
