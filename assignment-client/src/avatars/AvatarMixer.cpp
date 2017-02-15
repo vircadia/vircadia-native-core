@@ -113,13 +113,26 @@ void AvatarMixer::start() {
         {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                auto end = usecTimestampNow();
+                _processQueuedAvatarDataPacketsLockWaitElapsedTime += (end - start);
+
                 _slavePool.processIncomingPackets(cbegin, cend);
             });
             auto end = usecTimestampNow();
             _processQueuedAvatarDataPacketsElapsedTime += (end - start);
         }
 
-
+        // this is where we need to put the real work...
+        {
+            /*
+            auto start = usecTimestampNow();
+            nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                _slavePool.processIncomingPackets(cbegin, cend);
+            });
+            auto end = usecTimestampNow();
+            _processQueuedAvatarDataPacketsElapsedTime += (end - start);
+            */
+        }
 
 
         // play nice with qt event-looping
@@ -138,6 +151,41 @@ void AvatarMixer::start() {
     }
 }
 
+
+void AvatarMixer::manageDisplayName(AvatarMixerClientData* nodeData, const SharedNodePointer& node) {
+    AvatarData& avatar = nodeData->getAvatar();
+
+    quint64 startDisplayNameManagement = usecTimestampNow();
+    if (nodeData->getAvatarSessionDisplayNameMustChange()) {
+        const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
+        if (--_sessionDisplayNames[existingBaseDisplayName].second <= 0) {
+            _sessionDisplayNames.remove(existingBaseDisplayName);
+        }
+
+        QString baseName = avatar.getDisplayName().trimmed();
+        const QRegularExpression curses { "fuck|shit|damn|cock|cunt" }; // POC. We may eventually want something much more elaborate (subscription?).
+        baseName = baseName.replace(curses, "*"); // Replace rather than remove, so that people have a clue that the person's a jerk.
+        const QRegularExpression trailingDigits { "\\s*_\\d+$" }; // whitespace "_123"
+        baseName = baseName.remove(trailingDigits);
+        if (baseName.isEmpty()) {
+            baseName = "anonymous";
+        }
+
+        QPair<int, int>& soFar = _sessionDisplayNames[baseName]; // Inserts and answers 0, 0 if not already present, which is what we want.
+        int& highWater = soFar.first;
+        nodeData->setBaseDisplayName(baseName);
+        QString sessionDisplayName = (highWater > 0) ? baseName + "_" + QString::number(highWater) : baseName;
+        avatar.setSessionDisplayName(sessionDisplayName);
+        highWater++;
+        soFar.second++; // refcount
+        nodeData->flagIdentityChange();
+        nodeData->setAvatarSessionDisplayNameMustChange(false);
+        sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name. Others will find out below.
+        qDebug() << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
+    }
+    quint64 endDisplayNameManagement = usecTimestampNow();
+    _displayNameManagementElapsedTime += (endDisplayNameManagement - startDisplayNameManagement);
+}
 
 // NOTE: some additional optimizations to consider.
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
@@ -319,37 +367,7 @@ void AvatarMixer::broadcastAvatarData() {
             // setup a PacketList for the avatarPackets
             auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
-            quint64 startDisplayNameManagement = usecTimestampNow();
-            if (nodeData->getAvatarSessionDisplayNameMustChange()) {
-                const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
-                if (--_sessionDisplayNames[existingBaseDisplayName].second <= 0) {
-                    _sessionDisplayNames.remove(existingBaseDisplayName);
-                }
-
-                QString baseName = avatar.getDisplayName().trimmed();
-                const QRegularExpression curses{ "fuck|shit|damn|cock|cunt" }; // POC. We may eventually want something much more elaborate (subscription?).
-                baseName = baseName.replace(curses, "*"); // Replace rather than remove, so that people have a clue that the person's a jerk.
-                const QRegularExpression trailingDigits{ "\\s*_\\d+$" }; // whitespace "_123"
-                baseName = baseName.remove(trailingDigits);
-                if (baseName.isEmpty()) {
-                    baseName = "anonymous";
-                }
-
-                QPair<int, int>& soFar = _sessionDisplayNames[baseName]; // Inserts and answers 0, 0 if not already present, which is what we want.
-                int& highWater = soFar.first;
-                nodeData->setBaseDisplayName(baseName);
-                QString sessionDisplayName = (highWater > 0) ? baseName + "_" + QString::number(highWater) : baseName;
-                avatar.setSessionDisplayName(sessionDisplayName);
-                highWater++;
-                soFar.second++; // refcount
-                nodeData->flagIdentityChange();
-                nodeData->setAvatarSessionDisplayNameMustChange(false);
-                sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name. Others will find out below.
-                qDebug() << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
-            }
-            quint64 endDisplayNameManagement = usecTimestampNow();
-            _displayNameManagementElapsedTime += (endDisplayNameManagement - startDisplayNameManagement);
-
+            manageDisplayName(nodeData, node);
 
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -758,18 +776,41 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_average_e_total_broadcastAvatarData"] = (float)_broadcastAvatarDataElapsedTime / (float)_numStatFrames;
 
     // this things all occur on the frequency of the tight loop
-    statsObject["timing_average_y_processEvents"] = (float)_processEventsElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_y_queueIncomingPacket"] = (float)_queueIncomingPacketElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_z_handleAvatarDataPacket"] = (float)_handleAvatarDataPacketElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_z_handleAvatarIdentityPacket"] = (float)_handleAvatarIdentityPacketElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_z_handleKillAvatarPacket"] = (float)_handleKillAvatarPacketElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_z_handleNodeIgnoreRequestPacket"] = (float)_handleNodeIgnoreRequestPacketElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_z_handleRadiusIgnoreRequestPacket"] = (float)_handleRadiusIgnoreRequestPacketElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_z_handleRequestsDomainListDataPacket"] = (float)_handleRequestsDomainListDataPacketElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_z_handleViewFrustumPacket"] = (float)_handleViewFrustumPacketElapsedTime / (float)_numTightLoopFrames;
-    statsObject["timing_average_z_processQueuedAvatarDataPackets"] = (float)_processQueuedAvatarDataPacketsElapsedTime / (float)_numTightLoopFrames;
+    int tightLoopFrames = _numTightLoopFrames;
+    int tenTimesPerFrame = tightLoopFrames * 10;
+    #define TIGHT_LOOP_STAT(x) (x > tenTimesPerFrame) ? x / tightLoopFrames : ((float)x / (float)tightLoopFrames);
+
+    statsObject["timing_average_y_processEvents"] = TIGHT_LOOP_STAT(_processEventsElapsedTime);
+    statsObject["timing_average_y_queueIncomingPacket"] = TIGHT_LOOP_STAT(_queueIncomingPacketElapsedTime);
+    statsObject["timing_average_z_handleAvatarDataPacket"] = TIGHT_LOOP_STAT(_handleAvatarDataPacketElapsedTime);
+    statsObject["timing_average_z_handleAvatarIdentityPacket"] = TIGHT_LOOP_STAT(_handleAvatarIdentityPacketElapsedTime);
+    statsObject["timing_average_z_handleKillAvatarPacket"] = TIGHT_LOOP_STAT(_handleKillAvatarPacketElapsedTime);
+    statsObject["timing_average_z_handleNodeIgnoreRequestPacket"] = TIGHT_LOOP_STAT(_handleNodeIgnoreRequestPacketElapsedTime);
+    statsObject["timing_average_z_handleRadiusIgnoreRequestPacket"] = TIGHT_LOOP_STAT(_handleRadiusIgnoreRequestPacketElapsedTime);
+    statsObject["timing_average_z_handleRequestsDomainListDataPacket"] = TIGHT_LOOP_STAT(_handleRequestsDomainListDataPacketElapsedTime);
+    statsObject["timing_average_z_handleViewFrustumPacket"] = TIGHT_LOOP_STAT(_handleViewFrustumPacketElapsedTime);
+    statsObject["timing_average_z_processQueuedAvatarDataPackets"] = TIGHT_LOOP_STAT(_processQueuedAvatarDataPacketsElapsedTime);
+    statsObject["timing_average_z_processQueuedAvatarDataPacketsLockWait"] = TIGHT_LOOP_STAT(_processQueuedAvatarDataPacketsLockWaitElapsedTime);
 
     statsObject["timing_sendStats"] = (float)_sendStatsElapsedTime;
+
+
+    QJsonObject slavesObject;
+    // gather stats
+    int slaveNumber = 1;
+    _slavePool.each([&](AvatarMixerSlave& slave) {
+        QJsonObject slaveObject;
+        int nodesProcessed, packetsProcessed;
+        quint64 processIncomingPacketsElapsedTime;
+        slave.harvestStats(nodesProcessed, packetsProcessed, processIncomingPacketsElapsedTime);
+        slaveObject["nodesProcessed"] = TIGHT_LOOP_STAT(nodesProcessed);
+        slaveObject["packetsProcessed"] = TIGHT_LOOP_STAT(packetsProcessed);
+        slaveObject["timing_average_processIncomingPackets"] = TIGHT_LOOP_STAT(processIncomingPacketsElapsedTime);
+
+        slavesObject[QString::number(slaveNumber)] = slaveObject;
+        slaveNumber++;
+    });
+    statsObject["timing_slaves"] = slavesObject;
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarDataPacketElapsedTime = 0;
@@ -781,26 +822,7 @@ void AvatarMixer::sendStatsPacket() {
     _processEventsElapsedTime = 0;
     _queueIncomingPacketElapsedTime = 0;
     _processQueuedAvatarDataPacketsElapsedTime = 0;
-
-    QJsonObject slavesObject;
-    // gather stats
-    int slaveNumber = 1;
-    int tightLoopFrames = _numTightLoopFrames;
-    int tenTimesPerFrame = tightLoopFrames * 10;
-    _slavePool.each([&](AvatarMixerSlave& slave) {
-        QJsonObject slaveObject;
-        int nodesProcessed, packetsProcessed;
-        quint64 processIncomingPacketsElapsedTime;
-        slave.harvestStats(nodesProcessed, packetsProcessed, processIncomingPacketsElapsedTime);
-        slaveObject["nodesProcessed"] = (nodesProcessed > tenTimesPerFrame) ? nodesProcessed / tightLoopFrames : ((float)nodesProcessed / (float)tightLoopFrames);
-        slaveObject["packetsProcessed"] = (packetsProcessed > tenTimesPerFrame) ? packetsProcessed / tightLoopFrames : ((float)packetsProcessed / (float)tightLoopFrames);
-        slaveObject["timing_average_processIncomingPackets"] = (processIncomingPacketsElapsedTime > tenTimesPerFrame) 
-                            ? processIncomingPacketsElapsedTime / tightLoopFrames : ((float)processIncomingPacketsElapsedTime / (float)tightLoopFrames);
-
-        slavesObject[QString::number(slaveNumber)] = slaveObject;
-        slaveNumber++;
-    });
-    statsObject["timing_slaves"] = slavesObject;
+    _processQueuedAvatarDataPacketsLockWaitElapsedTime = 0;
 
     QJsonObject avatarsObject;
     auto nodeList = DependencyManager::get<NodeList>();

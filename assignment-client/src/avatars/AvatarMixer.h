@@ -60,6 +60,8 @@ private:
     void parseDomainServerSettings(const QJsonObject& domainSettings);
     void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
+    void manageDisplayName(AvatarMixerClientData* nodeData, const SharedNodePointer& node);
+
     QThread _broadcastThread;
 
     p_high_resolution_clock::time_point _lastFrameTimestamp;
@@ -98,6 +100,7 @@ private:
     quint64 _handleRadiusIgnoreRequestPacketElapsedTime { 0 };
     quint64 _handleRequestsDomainListDataPacketElapsedTime { 0 };
     quint64 _processQueuedAvatarDataPacketsElapsedTime { 0 };
+    quint64 _processQueuedAvatarDataPacketsLockWaitElapsedTime { 0 };
 
     quint64 _processEventsElapsedTime { 0 };
     quint64 _sendStatsElapsedTime { 0 };
