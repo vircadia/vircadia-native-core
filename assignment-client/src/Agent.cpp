@@ -483,6 +483,14 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
     _isListeningToAudioStream = isListeningToAudioStream;
 }
 
+void Agent::setIsNoiseGateEnabled(bool isNoiseGateEnabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setIsNoiseGateEnabled", Q_ARG(bool, isNoiseGateEnabled));
+        return;
+    }
+    _isNoiseGateEnabled = isNoiseGateEnabled;
+}
+
 void Agent::setIsAvatar(bool isAvatar) {
     // this must happen on Agent's main thread
     if (QThread::currentThread() != thread()) {
