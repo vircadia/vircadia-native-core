@@ -1924,12 +1924,17 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                 selectedParticleEntity = ids[0];
                 particleExplorerTool.setActiveParticleEntity(ids[0]);
 
-                particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                    data = JSON.parse(data);
-                    if (data.messageType === "page_loaded") {
-                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                    }
-                });
+                if (Settings.getValue("HUDUIEnabled")) {
+                    particleExplorerTool.webView.webEventReceived.connect(function (data) {
+                        data = JSON.parse(data);
+                        if (data.messageType === "page_loaded") {
+                            particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+                        }
+                    });
+                } else {
+                    // in the tablet version, the page was loaded earlier
+                    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+                }
             } else {
                 selectedParticleEntity = 0;
                 particleExplorerTool.destroyWebView();

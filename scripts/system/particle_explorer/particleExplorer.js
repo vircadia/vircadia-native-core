@@ -358,9 +358,12 @@ function listenForSettingsUpdates() {
                 settings[key] = value;
             });
 
-            loadGUI();
+            if (gui) {
+                manuallyUpdateDisplay();
+            } else {
+                loadGUI();
+            }
         }
-
     });
 }
 

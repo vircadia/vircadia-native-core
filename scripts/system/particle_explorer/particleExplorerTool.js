@@ -58,8 +58,9 @@ ParticleExplorerTool = function() {
         that.activeParticleEntity = id;
     }
 
+    if (Settings.getValue("HUDUIEnabled")) {
+        that.createWebView();
+    }
 
     return that;
-
-
 };
