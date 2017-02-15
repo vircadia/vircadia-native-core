@@ -20,6 +20,7 @@
         text: "PHOTOBOOTH"
     });
     function onClicked() {
+        tablet.gotoWebScreen(PHOTOBOOTH_WINDOW_HTML_URL);
         PhotoBooth.init();
     }
     button.clicked.connect(onClicked);
@@ -169,14 +170,6 @@
             print("clicked reload model button " + event.value);
             PhotoBooth.changeModel(event.value);
         };
-        
-        var photoboothWindow = new OverlayWebWindow({
-          title: 'Photo Booth',
-          source: PHOTOBOOTH_WINDOW_HTML_URL,
-          width: 450,
-          height: 450,
-          visible: true
-        });
 
         photoboothWindow.webEventReceived.connect(function (data) {
             var event = JSON.parse(data);
