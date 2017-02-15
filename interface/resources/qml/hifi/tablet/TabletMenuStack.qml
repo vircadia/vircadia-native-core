@@ -1,7 +1,7 @@
 //
 //  MessageDialog.qml
 //
-//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Created by Dante Ruiz  on 13 Feb 2017
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -28,8 +28,11 @@ Item {
         }
     }
 
-    QtObject {
+    StackView {
+        anchors.fill: parent
         id: d
+        objectName: "stack"
+        initialItem: topMenu
         property var menuStack: []
         property var topMenu: null;
         property var modelMaker: Component { ListModel { } }
@@ -51,6 +54,12 @@ Item {
             onTriggered: {
                 menuItem.trigger(); // Now trigger the item.
             }
+        }
+
+        function pushSource(path) {
+        }
+
+        function popSource() {
         }
 
         function toModel(items) {
@@ -76,15 +85,15 @@ Item {
         }
 
         function popMenu() {
-            if (menuStack.length) {
-                menuStack.pop().destroy();
+            if (d.depth) {
+                d.pop();
             }
-            if (menuStack.length) {
-                topMenu = menuStack[menuStack.length - 1];
+            if (d.depth) {
+                topMenu = d.currentItem;
                 topMenu.focus = true;
                 topMenu.forceActiveFocus();
                 // show current menu level on nav bar
-                if (topMenu.objectName === "" || menuStack.length === 1) {
+                if (topMenu.objectName === "" || d.depth === 1) {
                     breadcrumbText.text = "Menu";
                 } else {
                     breadcrumbText.text = topMenu.objectName;
@@ -96,16 +105,14 @@ Item {
         }
 
         function pushMenu(newMenu) {
-            menuStack.push(newMenu);
+            d.push({ item:newMenu, destroyOnPop: true});
             topMenu = newMenu;
             topMenu.focus = true;
             topMenu.forceActiveFocus();
         }
 
         function clearMenus() {
-            while (menuStack.length) {
-                popMenu()
-            }
+            d.clear()
         }
 
         function clampMenuPosition(menu) {
@@ -123,7 +130,7 @@ Item {
             }
         }
 
-        function buildMenu(items, targetPosition) {
+        function buildMenu(items) {
             var model = toModel(items);
             // Menus must be childed to desktop for Z-ordering
             var newMenu = menuViewMaker.createObject(tabletMenu, { model: model, isSubMenu: topMenu !== null });
@@ -154,13 +161,13 @@ Item {
 
     }
 
-    function popup(parent, items) {
+    function popup(items) {
         d.clearMenus();
-        d.buildMenu(items, point);
+        d.buildMenu(items);
     }
 
     function closeLastMenu() {
-        if (d.menuStack.length > 1) {
+        if (d.depth > 1) {
             d.popMenu();
             return true;
         }

@@ -5743,8 +5743,17 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
 }
 
 void Application::toggleRunningScriptsWidget() const {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tabletWindow = tabletScriptingInterface->getTabletWindow();
     static const QUrl url("hifi/dialogs/RunningScripts.qml");
-    DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
+    if (tabletWindow) {
+        auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+        if (tablet) {
+            tablet->pushOntoStack("../..//hifi/dialogs/RunningScripts.qml");
+        }
+    } else {
+        DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
+    }
     //if (_runningScriptsWidget->isVisible()) {
     //    if (_runningScriptsWidget->hasFocus()) {
     //        _runningScriptsWidget->hide();
