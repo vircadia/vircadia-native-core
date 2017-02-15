@@ -2,7 +2,37 @@
   <head>
     <title>Photo Booth</title>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="../../../../../system/html/css/edit-style.css">
+    <style>
+      body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          color: white;
+          background: linear-gradient(#2b2b2b, #0f212e);
+      }
+
+      .top-bar {
+          height: 90px;
+          background: linear-gradient(#2b2b2b, #1e1e1e);
+          font-family: Raleway-Bold;
+          padding-left: 30px;
+          padding-right: 30px;
+          display: flex;
+          align-items: center;
+          position: fixed;
+          width: 480px;
+          top: 0;
+          z-index: 1;
+          font-size: 16px;
+      }
+
+      .content {
+          margin-top: 90px;
+          padding: 30px;
+      }
+    </style>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     
     <script>
@@ -133,34 +163,29 @@
     <style>
     </style>
   </head>
-  <body onload="loaded()">
-    <div id="properties-list">
-      <div class="property url refresh">
-        <label>Model URL</label>
-        <input type="text" id="model-url"></input>
-        <input type="button" id="reload-model-button" class="glyph" value="F">
-      </div>
-       <!--
-      <div class="property dropdown">
-        <label>Lighting Preset</label>
-        <select id="property-lighting-preset">
-          <option>Default Lighting</option>
-          <option>Sam's Cool Light</option>
-          <option>Alan's Light Magic</option>
-        </select>
-      </div>
-      -->
-      <div class="property dropdown">
-        <label>Camera</label>
-        <select id="property-camera">
-          <option>First Person Camera</option>
-          <option>Main Camera</option>
-          <option>Left Camera</option>
-          <option>Right Camera</option>
-        </select>
-      </div>
-      <div class="property">
-        <input id="picture-button" type="button" class="blue" value="Take Picture">
+  <body>
+    <div class="top-bar">
+      <div>Photobooth</div>
+    </div>
+    <div class="content">
+      <div id="properties-list">
+        <div class="property url refresh">
+          <label>Model URL</label>
+          <input type="text" id="model-url"></input>
+          <input type="button" id="reload-model-button" class="glyph" value="F">
+        </div>
+        <div class="property dropdown">
+          <label>Camera</label>
+          <select id="property-camera">
+            <option>First Person Camera</option>
+            <option>Main Camera</option>
+            <option>Left Camera</option>
+            <option>Right Camera</option>
+          </select>
+        </div>
+        <div class="property">
+          <input id="picture-button" type="button" class="blue" value="Take Picture">
+        </div>
       </div>
     </div>
   </body>
