@@ -38,7 +38,7 @@ void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
 void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     auto nodeData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
     if (nodeData) {
-        nodeData->processQueuedAvatarDataPackets();
+        nodeData->processPackets();
     }
 }
 

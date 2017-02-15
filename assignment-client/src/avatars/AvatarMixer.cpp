@@ -44,8 +44,9 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AvatarData, this, "queueIncomingPacket");
+
     packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
-    packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
@@ -55,6 +56,14 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
 }
+
+void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
+    auto start = usecTimestampNow();
+    getOrCreateClientData(node)->queuePacket(message, node);
+    auto end = usecTimestampNow();
+    _queueIncomingPacketElapsedTime += (end - start);
+}
+
 
 AvatarMixer::~AvatarMixer() {
     if (_broadcastTimer) {
@@ -87,7 +96,10 @@ void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const Shar
 #include <thread>
 
 void AvatarMixer::start() {
+
     auto nodeList = DependencyManager::get<NodeList>();
+
+    //_slavePool.setNumThreads(1); // grins
 
     while (!_isFinished) {
         _loopRate.increment();
@@ -99,34 +111,21 @@ void AvatarMixer::start() {
         // Allow nodes to process any pending/queued packets across our worker threads
         {
             auto start = usecTimestampNow();
-            auto nodeList = DependencyManager::get<NodeList>();
-
-            /**
-            nodeList->eachNode([](const SharedNodePointer& node) {
-                auto nodeData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
-                if (nodeData) {
-                    nodeData->processQueuedAvatarDataPackets();
-                }
-            });
-            **/
-
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
-                // mix across slave threads
-                {
-                    _slavePool.processIncomingPackets(cbegin, cend);
-                }
+                _slavePool.processIncomingPackets(cbegin, cend);
             });
-
             auto end = usecTimestampNow();
             _processQueuedAvatarDataPacketsElapsedTime += (end - start);
         }
+
+
+
 
         // play nice with qt event-looping
         {
             // since we're a while loop we need to yield to qt's event processing
             auto start = usecTimestampNow();
             QCoreApplication::processEvents();
-
             if (_isFinished) {
                 // alert qt eventing that this is finished
                 QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
@@ -654,8 +653,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
 
 void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->getOrCreateLinkedData(senderNode);
+    getOrCreateClientData(senderNode);
 
     if (senderNode->getLinkedData()) {
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
@@ -671,8 +669,7 @@ void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> messag
 void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->getOrCreateLinkedData(senderNode);
+    getOrCreateClientData(senderNode);
 
     if (senderNode->getLinkedData()) {
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
@@ -686,25 +683,10 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
     _handleRequestsDomainListDataPacketElapsedTime += (end - start);
 }
 
-void AvatarMixer::handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    auto start = usecTimestampNow();
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(nodeList->getOrCreateLinkedData(senderNode));
-
-    if (nodeData) {
-        QMutexLocker linkedDataLocker(&nodeData->getMutex()); // NOTE: we might be able to safely assume this doesn't need to be locked!
-        nodeData->queueAvatarDataPacket(message);
-    }
-
-    auto end = usecTimestampNow();
-    _handleAvatarDataPacketElapsedTime += (end - start);
-}
-
 void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->getOrCreateLinkedData(senderNode);
+    getOrCreateClientData(senderNode);
 
     if (senderNode->getLinkedData()) {
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
@@ -777,6 +759,8 @@ void AvatarMixer::sendStatsPacket() {
 
 
     statsObject["timing_average_y_processEvents"] = (float)_processEventsElapsedTime / (float)_numStatFrames;
+    statsObject["timing_average_y_queueIncomingPacket"] = (float)_queueIncomingPacketElapsedTime / (float)_numStatFrames;
+    
 
     statsObject["timing_average_z_handleAvatarDataPacket"] = (float)_handleAvatarDataPacketElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_z_handleAvatarIdentityPacket"] = (float)_handleAvatarIdentityPacketElapsedTime / (float)_numStatFrames;
@@ -799,6 +783,7 @@ void AvatarMixer::sendStatsPacket() {
     _handleRadiusIgnoreRequestPacketElapsedTime = 0;
     _handleRequestsDomainListDataPacketElapsedTime = 0;
     _processEventsElapsedTime = 0;
+    _queueIncomingPacketElapsedTime = 0;
     _processQueuedAvatarDataPacketsElapsedTime = 0;
 
     QJsonObject avatarsObject;
@@ -875,23 +860,25 @@ void AvatarMixer::run() {
     start();
 }
 
+AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node) {
+    auto clientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
+
+    if (!clientData) {
+        node->setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node->getUUID()) });
+        clientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
+        clientData->getAvatar().setDomainMinimumScale(_domainMinimumScale);
+        clientData->getAvatar().setDomainMaximumScale(_domainMaximumScale);
+    }
+
+    return clientData;
+}
+
 void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
-
-    float domainMinimumScale = _domainMinimumScale;
-    float domainMaximumScale = _domainMaximumScale;
-
-    nodeList->linkedDataCreateCallback = [domainMinimumScale, domainMaximumScale] (Node* node) {
-        auto clientData = std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData(node->getUUID()) };
-        clientData->getAvatar().setDomainMinimumScale(domainMinimumScale);
-        clientData->getAvatar().setDomainMaximumScale(domainMaximumScale);
-
-        node->setLinkedData(std::move(clientData));
-    };
     
     // start the broadcastThread
     _broadcastThread.start();

@@ -40,8 +40,9 @@ public slots:
     void sendStatsPacket() override;
 
 private slots:
+    void queueIncomingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
     void handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    //void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
@@ -53,6 +54,8 @@ private slots:
 
 
 private:
+    AvatarMixerClientData* getOrCreateClientData(SharedNodePointer node);
+
     void broadcastAvatarData();
     void parseDomainServerSettings(const QJsonObject& domainSettings);
     void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
@@ -97,6 +100,7 @@ private:
 
     quint64 _processEventsElapsedTime { 0 };
     quint64 _sendStatsElapsedTime { 0 };
+    quint64 _queueIncomingPacketElapsedTime { 0 };
 
     RateCounter<> _loopRate; // this is the rate that the main thread tight loop runs
 

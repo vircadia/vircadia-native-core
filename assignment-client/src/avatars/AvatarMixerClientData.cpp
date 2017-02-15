@@ -16,13 +16,43 @@
 
 #include "AvatarMixerClientData.h"
 
-void AvatarMixerClientData::processQueuedAvatarDataPackets() {
-    for (auto message : _queuedAvatarDataPackets) {
-        parseData(*message);
+
+
+void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
+    if (!_packetQueue.node) {
+        _packetQueue.node = node;
     }
-    _queuedAvatarDataPackets.clear();
+    _packetQueue.push(message);
 }
 
+//
+// packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
+// packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
+// packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
+// packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
+// packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
+// packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
+// packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
+
+void AvatarMixerClientData::processPackets() {
+    SharedNodePointer node = _packetQueue.node;
+    assert(_packetQueue.empty() || node);
+    _packetQueue.node.clear();
+
+    while (!_packetQueue.empty()) {
+        auto& packet = _packetQueue.back();
+
+        switch (packet->getType()) {
+            case PacketType::AvatarData:
+                parseData(*packet);
+                break;
+            default:
+                Q_UNREACHABLE();
+        }
+        _packetQueue.pop();
+    }
+    assert(_packetQueue.empty());
+}
 
 int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     // pull the sequence number from the data first

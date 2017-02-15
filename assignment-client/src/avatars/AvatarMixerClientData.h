@@ -16,6 +16,7 @@
 #include <cfloat>
 #include <unordered_map>
 #include <unordered_set>
+#include <queue>
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QUrl>
@@ -118,11 +119,14 @@ public:
         return _lastOtherAvatarSentJoints[otherAvatar];
     }
 
-    void queueAvatarDataPacket(QSharedPointer<ReceivedMessage> message) { _queuedAvatarDataPackets.push_back(message); }
-    void processQueuedAvatarDataPackets();
+    void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
+    void processPackets();
 
 private:
-    std::vector<QSharedPointer<ReceivedMessage>> _queuedAvatarDataPackets;
+    struct PacketQueue : public std::queue<QSharedPointer<ReceivedMessage>> {
+        QWeakPointer<Node> node;
+    };
+    PacketQueue _packetQueue;
 
     AvatarSharedPointer _avatar { new AvatarData() };
 

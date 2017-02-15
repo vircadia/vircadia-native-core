@@ -92,8 +92,6 @@ private:
 
     // frame state
     Queue _queue;
-    unsigned int _frame { 0 };
-    float _throttlingRatio { 0.0f };
     ConstIter _begin;
     ConstIter _end;
 };

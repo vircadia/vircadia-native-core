@@ -434,8 +434,16 @@ void Agent::executeScript() {
     connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater); 
     _avatarAudioTimerThread.start();
     
-    // 60Hz timer for avatar
-    QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatar);
+    // Agents should run at 45hz
+    static const int AVATAR_DATA_HZ = 45;
+    static const int AVATAR_DATA_IN_MSECS = MSECS_PER_SECOND / AVATAR_DATA_HZ;
+    QTimer* avatarDataTimer = new QTimer(this);
+    connect(avatarDataTimer, &QTimer::timeout, this, &Agent::processAgentAvatar);
+    avatarDataTimer->setSingleShot(false);
+    avatarDataTimer->setInterval(AVATAR_DATA_IN_MSECS);
+    avatarDataTimer->setTimerType(Qt::PreciseTimer);
+    avatarDataTimer->start();
+
     _scriptEngine->run();
 
     Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
