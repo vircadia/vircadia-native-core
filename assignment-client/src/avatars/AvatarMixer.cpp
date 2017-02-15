@@ -785,14 +785,17 @@ void AvatarMixer::sendStatsPacket() {
     QJsonObject slavesObject;
     // gather stats
     int slaveNumber = 1;
+    int tightLoopFrames = _numTightLoopFrames;
+    int tenTimesPerFrame = tightLoopFrames * 10;
     _slavePool.each([&](AvatarMixerSlave& slave) {
         QJsonObject slaveObject;
         int nodesProcessed, packetsProcessed;
         quint64 processIncomingPacketsElapsedTime;
         slave.harvestStats(nodesProcessed, packetsProcessed, processIncomingPacketsElapsedTime);
-        slaveObject["nodesProcessed"] = nodesProcessed;
-        slaveObject["packetsProcessed"] = packetsProcessed;
-        slaveObject["timing_average_processIncomingPackets"] = (float)processIncomingPacketsElapsedTime / (float)_numTightLoopFrames;
+        slaveObject["nodesProcessed"] = (nodesProcessed > tenTimesPerFrame) ? nodesProcessed / tightLoopFrames : ((float)nodesProcessed / (float)tightLoopFrames);
+        slaveObject["packetsProcessed"] = (packetsProcessed > tenTimesPerFrame) ? packetsProcessed / tightLoopFrames : ((float)packetsProcessed / (float)tightLoopFrames);
+        slaveObject["timing_average_processIncomingPackets"] = (processIncomingPacketsElapsedTime > tenTimesPerFrame) 
+                            ? processIncomingPacketsElapsedTime / tightLoopFrames : ((float)processIncomingPacketsElapsedTime / (float)tightLoopFrames);
 
         slavesObject[QString::number(slaveNumber)] = slaveObject;
         slaveNumber++;
@@ -914,10 +917,13 @@ void AvatarMixer::handlePacketVersionMismatch(PacketType type, const HifiSockAdd
 
 void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";
+    QJsonObject avatarMixerGroupObject = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject();
+
+
     const QString NODE_SEND_BANDWIDTH_KEY = "max_node_send_bandwidth";
 
     const float DEFAULT_NODE_SEND_BANDWIDTH = 5.0f;
-    QJsonValue nodeBandwidthValue = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
+    QJsonValue nodeBandwidthValue = avatarMixerGroupObject[NODE_SEND_BANDWIDTH_KEY];
     if (!nodeBandwidthValue.isDouble()) {
         qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
     }
@@ -925,6 +931,22 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     _maxKbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH) * KILO_PER_MEGA;
     qDebug() << "The maximum send bandwidth per node is" << _maxKbpsPerNode << "kbps.";
 
+    const QString AUTO_THREADS = "auto_threads";
+    bool autoThreads = avatarMixerGroupObject[AUTO_THREADS].toBool();
+    if (!autoThreads) {
+        bool ok;
+        const QString NUM_THREADS = "num_threads";
+        int numThreads = avatarMixerGroupObject[NUM_THREADS].toString().toInt(&ok);
+        if (!ok) {
+            qWarning() << "Avatar mixer: Error reading thread count. Using 1 thread.";
+            numThreads = 1;
+        }
+        qDebug() << "Avatar mixer will use specified number of threads:" << numThreads;
+        _slavePool.setNumThreads(numThreads);
+    } else {
+        qDebug() << "Avatar mixer will automatically determine number of threads to use. Using:" << _slavePool.numThreads() << "threads.";
+    }
+    
     const QString AVATARS_SETTINGS_KEY = "avatars";
 
     static const QString MIN_SCALE_OPTION = "min_avatar_scale";
@@ -942,4 +964,5 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 
     qDebug() << "This domain requires a minimum avatar scale of" << _domainMinimumScale
         << "and a maximum avatar scale of" << _domainMaximumScale;
+
 }
