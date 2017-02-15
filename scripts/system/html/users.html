@@ -364,12 +364,13 @@
                 }
             }
 
+            function isOtherUsers(user) {
+                return user.username != myUsername;
+            }
+
             function processData(data, type) {
                 // Filter out yourself from the users list
-                var removeIndex = data.users.map(function(user) { return user.username }).indexOf(myUsername);
-                if (removeIndex >= 0) {
-                    data.users.splice(removeIndex,1);
-                }
+                data.users = data.users.filter(isOtherUsers);
 
                 // Sort array alphabetically by username
                 data.users.sort(function(a, b) { 
