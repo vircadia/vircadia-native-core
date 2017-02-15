@@ -1096,7 +1096,30 @@ function recursiveDelete(entities, childrenList) {
         Entities.deleteEntity(entityID);
     }
 }
+function parentSelectedEntities() {
+    if (SelectionManager.hasSelection()) {
+      SelectionManager.saveProperties();
+      var selectedEntities = selectionManager.selections;
+      if (selectedEntities.length <= 1) {
+        Window.notifyEditError("You must have multiple objects selected in order to parent them");
+        return;
+      }
 
+      var lastEntityId = selectedEntities[selectedEntities.length]
+      selectedEntities.some(function (id, index) {
+        if (lastId === id) {
+          return false;
+        }
+        Entities.editProperties(id, {parentID: lastId})
+        return true;
+      });
+      SelectionManager.clearSelections();
+
+      Window.notify("Entities Parented");
+    } else {
+      Window.notifyEditError("You have nothing selected")
+    }
+}
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         selectedParticleEntity = 0;
@@ -1324,6 +1347,8 @@ Controller.keyReleaseEvent.connect(function (event) {
             });
             grid.setPosition(newPosition);
         }
+    } else if (event.text === 'p' && event.isCtrl) {
+      parentSelectedEntities();
     }
 });
 
