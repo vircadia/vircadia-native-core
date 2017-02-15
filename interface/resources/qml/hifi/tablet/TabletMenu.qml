@@ -23,6 +23,7 @@ FocusScope {
     property var eventBridge;
     signal sendToScript(var message);
     TabletMenuStack { id: menuPopperUpper }
+    property string subMenu: ""
 
     Rectangle {
         id: bgNavBar
@@ -108,6 +109,28 @@ FocusScope {
         buildMenu()
     }
     function buildMenu() {
+<<<<<<< HEAD
         menuPopperUpper.popup(rootMenu.items);
+=======
+        // Build submenu if specified.
+        if (subMenu !== "") {
+            var index = 0;
+            var found = false;
+            while (!found && index < rootMenu.items.length) {
+                found = rootMenu.items[index].title === subMenu;
+                if (!found) {
+                    index += 1;
+                }
+            }
+            subMenu = "";  // Continue with full menu after initially displaying submenu.
+            if (found) {
+                menuPopperUpper.popup(tabletMenu, rootMenu.items[index].items);
+                return;
+            }
+        }
+
+        // Otherwise build whole menu.
+        menuPopperUpper.popup(tabletMenu, rootMenu.items);
+>>>>>>> 01bdac49d04ec897a3da7a264a1a26748a4e1938
     }
 }
