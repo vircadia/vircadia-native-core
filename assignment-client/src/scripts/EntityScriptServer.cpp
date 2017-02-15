@@ -266,6 +266,14 @@ void EntityScriptServer::run() {
     QJsonObject queryJSONParameters;
     static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
     queryJSONParameters[SERVER_SCRIPTS_PROPERTY] = EntityQueryFilterSymbol::NonDefault;
+
+    QJsonObject queryFlags;
+    static const QString INCLUDE_DESCENDANTS_PROPERTY = "includeDescendants";
+    static const QString INCLUDE_PARENTS_PROPERTY = "includeParents";
+    queryFlags[INCLUDE_DESCENDANTS_PROPERTY] = true;
+    queryFlags[INCLUDE_PARENTS_PROPERTY] = true;
+
+    queryJSONParameters["flags"] = queryFlags;
     
     // setup the JSON parameters so that OctreeQuery does not use a frustum and uses our JSON filter
     _entityViewer.getOctreeQuery().setUsesFrustum(false);
