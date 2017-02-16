@@ -182,7 +182,6 @@ signals:
 
 protected slots:
     void addButtonsToHomeScreen();
-    void addButtonsToMenuScreen();
     void desktopWindowClosed();
 protected:
     void removeButtonsFromHomeScreen();

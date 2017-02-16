@@ -97,10 +97,12 @@ FocusScope {
         menuPopperUpper.closeLastMenu();
     }
 
-    function setRootMenu(menu) {
-        tabletMenu.rootMenu = menu
+    function setRootMenu(rootMenu, subMenu) {
+        tabletMenu.subMenu = subMenu;
+        tabletMenu.rootMenu = rootMenu;
         buildMenu()
     }
+
     function buildMenu() {
         // Build submenu if specified.
         if (subMenu !== "") {

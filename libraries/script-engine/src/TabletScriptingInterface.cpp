@@ -293,16 +293,14 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
     }
 
     if (root) {
-        if (_state != State::Menu) {
-            removeButtonsFromHomeScreen();
-            QMetaObject::invokeMethod(root, "setOption", Q_ARG(const QVariant&, QVariant(submenu)));
-            auto loader = root->findChild<QQuickItem*>("loader");
-            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()), Qt::DirectConnection);
-            QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
-            _state = State::Menu;
-            emit screenChanged(QVariant("Menu"), QVariant(VRMENU_SOURCE_URL));
-            QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
-        }
+        removeButtonsFromHomeScreen();
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        QObject* menu = offscreenUi->getRootMenu();
+        QMetaObject::invokeMethod(root, "setMenuProperties", Q_ARG(QVariant, QVariant::fromValue(menu)), Q_ARG(const QVariant&, QVariant(submenu)));
+        QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
+        _state = State::Menu;
+        emit screenChanged(QVariant("Menu"), QVariant(VRMENU_SOURCE_URL));
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
     }
 }
 
@@ -482,33 +480,6 @@ void TabletProxy::addButtonsToHomeScreen() {
 
 QObject* TabletProxy::getTabletSurface() {
     return _qmlOffscreenSurface;
-}
-
-void TabletProxy::addButtonsToMenuScreen() {
-    QObject* root = nullptr;
-    if (!_toolbarMode && _qmlTabletRoot) {
-        root = _qmlTabletRoot;
-    } else if (_toolbarMode && _desktopWindow) {
-        root = _desktopWindow->asQuickItem();
-    }
-
-    if (!root) {
-        return;
-    }
-
-    auto loader = root->findChild<QQuickItem*>("loader");
-    if (!loader) {
-        return;
-    }
-
-    QQuickItem* VrMenu = loader->findChild<QQuickItem*>("tabletMenu");
-    if (VrMenu) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        QObject* menu = offscreenUi->getRootMenu();
-        QMetaObject::invokeMethod(VrMenu, "setRootMenu", Qt::AutoConnection, Q_ARG(QVariant, QVariant::fromValue(menu)));
-    }
-
-    QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToMenuScreen()));
 }
 
 void TabletProxy::removeButtonsFromHomeScreen() {

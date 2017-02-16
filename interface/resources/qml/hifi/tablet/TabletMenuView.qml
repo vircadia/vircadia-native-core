@@ -83,7 +83,7 @@ FocusScope {
         }
 
         function recalcSize() {
-            if (model.count !== count || !visible) {
+            if (!model || model.count !== count || !visible) {
                 return;
             }
 
