@@ -28,6 +28,7 @@ public:
     void configure(ConstIter begin, ConstIter end);
 
     void processIncomingPackets(const SharedNodePointer& node);
+    void anotherJob(const SharedNodePointer& node);
 
     void harvestStats(int& nodesProcessed, int& packetsProcessed, quint64& processIncomingPacketsElapsedTime);
 

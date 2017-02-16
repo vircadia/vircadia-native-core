@@ -21,7 +21,7 @@ void AvatarMixerSlaveThread::run() {
         // iterate over all available nodes
         SharedNodePointer node;
         while (try_pop(node)) {
-            processIncomingPackets(node);
+            (this->*_function)(node);
         }
 
         bool stopping = _stop;
@@ -41,7 +41,10 @@ void AvatarMixerSlaveThread::wait() {
         });
         ++_pool._numStarted;
     }
-    configure(_pool._begin, _pool._end);
+    if (_pool._configure) {
+        _pool._configure(*this);
+    }
+    _function = _pool._function;
 }
 
 void AvatarMixerSlaveThread::notify(bool stopping) {
@@ -65,18 +68,26 @@ static AvatarMixerSlave slave;
 #endif
 
 void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end) {
+    _function = &AvatarMixerSlave::processIncomingPackets;
+    _configure = [](AvatarMixerSlave& slave) {};
+    run(begin, end);
+}
+
+void AvatarMixerSlavePool::anotherJob(ConstIter begin, ConstIter end) {
+    _function = &AvatarMixerSlave::anotherJob;
+    _configure = [](AvatarMixerSlave& slave) {};
+    run(begin, end);
+}
+
+void AvatarMixerSlavePool::run(ConstIter begin, ConstIter end) {
     _begin = begin;
     _end = end;
 
-    // ????
-    //_frame = frame;
-    //_throttlingRatio = throttlingRatio;
-
-#ifdef AVATAR_SINGLE_THREADED
-    slave.configure(_begin, _end, frame, throttlingRatio);
+#ifdef AUDIO_SINGLE_THREADED
+    _configure(slave);
     std::for_each(begin, end, [&](const SharedNodePointer& node) {
-        slave.processIncomingPackets(node);
-    });
+        _function(slave, node);
+});
 #else
     // fill the queue
     std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
@@ -86,7 +97,7 @@ void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end
     {
         Lock lock(_mutex);
 
-        // start the job
+        // run
         _numStarted = _numFinished = 0;
         _slaveCondition.notify_all();
 
@@ -102,6 +113,7 @@ void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end
     assert(_queue.empty());
 #endif
 }
+
 
 void AvatarMixerSlavePool::each(std::function<void(AvatarMixerSlave& slave)> functor) {
 #ifdef AVATAR_SINGLE_THREADED

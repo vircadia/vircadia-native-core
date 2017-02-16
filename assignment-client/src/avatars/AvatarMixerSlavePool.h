@@ -45,6 +45,7 @@ private:
     bool try_pop(SharedNodePointer& node);
 
     AvatarMixerSlavePool& _pool;
+    void (AvatarMixerSlave::*_function)(const SharedNodePointer& node) { nullptr };
     bool _stop { false };
 };
 
@@ -62,17 +63,18 @@ public:
     AvatarMixerSlavePool(int numThreads = QThread::idealThreadCount()) { setNumThreads(numThreads); }
     ~AvatarMixerSlavePool() { resize(0); }
 
+    // Jobs the slave pool can do...
+    void processIncomingPackets(ConstIter begin, ConstIter end);
+    void anotherJob(ConstIter begin, ConstIter end);
+
     // iterate over all slaves
     void each(std::function<void(AvatarMixerSlave& slave)> functor);
 
     void setNumThreads(int numThreads);
     int numThreads() { return _numThreads; }
 
-    // Jobs the slave pool can do...
-    void processIncomingPackets(ConstIter begin, ConstIter end);
-
-
 private:
+    void run(ConstIter begin, ConstIter end);
     void resize(int numThreads);
 
     std::vector<std::unique_ptr<AvatarMixerSlaveThread>> _slaves;
@@ -85,6 +87,8 @@ private:
     Mutex _mutex;
     ConditionVariable _slaveCondition;
     ConditionVariable _poolCondition;
+    void (AvatarMixerSlave::*_function)(const SharedNodePointer& node);
+    std::function<void(AvatarMixerSlave&)> _configure;
     int _numThreads { 0 };
     int _numStarted { 0 }; // guarded by _mutex
     int _numFinished { 0 }; // guarded by _mutex

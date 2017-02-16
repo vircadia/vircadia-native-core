@@ -55,3 +55,5 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     _processIncomingPacketsElapsedTime += (end - start);
 }
 
+void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
+}
