@@ -62,8 +62,6 @@ private:
 
     void manageDisplayName(const SharedNodePointer& node);
 
-    QThread _broadcastThread;
-
     p_high_resolution_clock::time_point _lastFrameTimestamp;
 
     float _trailingSleepRatio { 1.0f };
@@ -78,8 +76,6 @@ private:
 
     float _domainMinimumScale { MIN_AVATAR_SCALE };
     float _domainMaximumScale { MAX_AVATAR_SCALE };
-
-    QTimer* _broadcastTimer = nullptr;
 
     RateCounter<> _broadcastRate;
     p_high_resolution_clock::time_point _lastDebugMessage;
