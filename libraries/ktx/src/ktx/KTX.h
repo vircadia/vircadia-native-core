@@ -67,6 +67,8 @@ end
 
 namespace ktx {
     const uint32_t PACKING_SIZE { sizeof(uint32_t) };
+    using Byte = uint8_t;
+    uint32_t evalPadding(size_t byteSize);
 
     enum GLType : uint32_t {
         COMPRESSED_TYPE                 = 0,
@@ -289,7 +291,6 @@ namespace ktx {
         NUM_CUBEMAPFACES = 6,
     };
 
-    using Byte = uint8_t;
 
     // Chunk of data
     struct Storage {
@@ -375,31 +376,37 @@ namespace ktx {
     using KeyValues = std::list<KeyValue>;
      
 
-    struct Mip {
+    struct Image {
         uint32_t _imageSize;
         uint32_t _padding;
         const Byte* _bytes;
 
-        Mip(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
+        Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
             _imageSize(imageSize),
             _padding(padding),
             _bytes(bytes) {}
     };
-    using Mips = std::vector<Mip>;
+    using Images = std::vector<Image>;
 
+    
     class KTX {
         void resetStorage(Storage* src);
 
+        KTX();
     public:
 
-        KTX();
         ~KTX();
 
-        // parse a block of memory and create a KTX object from it
+        // Define a KTX object manually to write it somewhere (in a file on disk?)
+        // This path allocate the Storage where to store header, keyvalues and copy mips
+        // Then COPY all the data
+        static std::unique_ptr<KTX> create(const Header& header, const KeyValues& keyValues, const Images& images);
+
+        // Parse a block of memory and create a KTX object from it
         static std::unique_ptr<KTX> create(const Storage& src);
         static std::unique_ptr<KTX> create(std::unique_ptr<Storage>& src);
 
-        static bool checkStorageHeader(const Storage& storage);
+        static bool checkHeaderFromStorage(const Storage& storage);
 
         // Access raw pointers to the main sections of the KTX
         const Header* getHeader() const;
@@ -412,7 +419,7 @@ namespace ktx {
 
         std::unique_ptr<Storage> _storage;
         KeyValues _keyValues;
-        Mips _mips;
+        Images _images;
     };
 
 }
