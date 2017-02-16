@@ -74,12 +74,13 @@ const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_MODULE_COMPAT {
     "com.highfidelity.experimental.enableExtendedModuleCompatbility"
 };
 
+static const int MAX_MODULE_ID_LENTGH { 4096 };
+static const int MAX_DEBUG_VALUE_LENGTH { 80 };
+
 static const QScriptEngine::QObjectWrapOptions DEFAULT_QOBJECT_WRAP_OPTIONS =
                 QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects;
 static const QScriptValue::PropertyFlags READONLY_PROP_FLAGS { QScriptValue::ReadOnly | QScriptValue::Undeletable };
 static const QScriptValue::PropertyFlags READONLY_HIDDEN_PROP_FLAGS { READONLY_PROP_FLAGS | QScriptValue::SkipInEnumeration };
-
-
 
 static const bool HIFI_AUTOREFRESH_FILE_SCRIPTS { true };
 
@@ -551,8 +552,9 @@ void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
             QScriptValueIterator it(cache);
             while (it.hasNext()) {
                 it.next();
-                if (it.flags() & QScriptValue::SkipInEnumeration)
+                if (it.flags() & QScriptValue::SkipInEnumeration) {
                     continue;
+                }
                 //scriptCache->deleteScript(it.name());
                 qCDebug(scriptengine) << "resetModuleCache(true) -- staging " << it.name() << " for cache reset at next require";
                 cacheMeta.setProperty(it.name(), true);
@@ -1355,29 +1357,31 @@ void ScriptEngine::print(const QString& message) {
     emit printedMessage(message);
 }
 
-static const auto MAX_MODULE_IDENTIFIER_LEN { 4096 };
-static const auto MAX_MODULE_IDENTIFIER_LOG_LEN { 60 };
-
 // Script.require.resolve -- like resolvePath, but performs more validation and throws exceptions on invalid module identifiers (for consistency with Node.js)
 QString ScriptEngine::_requireResolve(const QString& moduleId, const QString& relativeTo) {
     QUrl defaultScriptsLoc = defaultScriptsLocation();
     QUrl url(moduleId);
 
     // helper to generate an exception and return a null string
-    auto resolverException = [=](const QString& detail) -> QString {
-        currentContext()->throwError(
+    auto resolverException = [=](const QString& detail, const QString& type = "Error") -> QString {
+        auto displayId = moduleId;
+        if (displayId.length() > MAX_DEBUG_VALUE_LENGTH) {
+            displayId = displayId.mid(0, MAX_DEBUG_VALUE_LENGTH) + "...";
+        }
+        currentContext()->throwValue(makeError(
             QString("Cannot find module '%1' (%2)")
-            .arg(moduleId.left(MAX_MODULE_IDENTIFIER_LOG_LEN))
-            .arg(detail));
+                .arg(displayId)
+                .arg(detail), type));
         return QString();
     };
 
     // de-fuzz the input a little by restricting to rational sizes
     auto idLength = url.toString().length();
-    if (idLength < 1 || idLength > MAX_MODULE_IDENTIFIER_LEN) {
+    if (idLength < 1 || idLength > MAX_MODULE_ID_LENTGH) {
         return resolverException(
             QString("rejecting invalid module id size (%1 chars [1,%2])")
-                .arg(idLength).arg(MAX_MODULE_IDENTIFIER_LEN)
+               .arg(idLength).arg(MAX_MODULE_ID_LENTGH),
+            "RangeError"
         );
     }
 
@@ -1598,7 +1602,7 @@ QScriptValue ScriptEngine::instantiateModule(const QScriptValue& module, const Q
 
 // CommonJS/Node.js like require/module support
 QScriptValue ScriptEngine::require(const QString& moduleId) {
-    qCDebug(scriptengine_module) << "ScriptEngine::require(" << moduleId.left(MAX_MODULE_IDENTIFIER_LOG_LEN) << ")";
+    qCDebug(scriptengine_module) << "ScriptEngine::require(" << moduleId.left(MAX_DEBUG_VALUE_LENGTH) << ")";
     if (QThread::currentThread() != thread()) {
         qCDebug(scriptengine_module) << moduleId << " threads mismatch";
         return nullValue();
@@ -2245,9 +2249,8 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
             testConstructorType = "empty";
         }
         QString testConstructorValue = testConstructor.toString();
-        const int maxTestConstructorValueSize = 80;
-        if (testConstructorValue.size() > maxTestConstructorValueSize) {
-            testConstructorValue = testConstructorValue.mid(0, maxTestConstructorValueSize) + "...";
+        if (testConstructorValue.size() > MAX_DEBUG_VALUE_LENGTH) {
+            testConstructorValue = testConstructorValue.mid(0, MAX_DEBUG_VALUE_LENGTH) + "...";
         }
         auto message = QString("failed to load entity script -- expected a function, got %1, %2")
             .arg(testConstructorType).arg(testConstructorValue);
