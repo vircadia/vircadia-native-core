@@ -301,7 +301,7 @@ void AvatarMixer::broadcastAvatarData() {
             ++_sumListeners;
             nodeData->resetInViewStats();
 
-            AvatarData& avatar = nodeData->getAvatar();
+            const AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getClientGlobalPosition();
 
             // reset the internal state for correct random number distribution
@@ -376,8 +376,6 @@ void AvatarMixer::broadcastAvatarData() {
 
             // setup a PacketList for the avatarPackets
             auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
-
-            //manageDisplayName(node);
 
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -470,7 +468,7 @@ void AvatarMixer::broadcastAvatarData() {
                         sendIdentityPacket(otherNodeData, node);
                     }
 
-                    AvatarData& otherAvatar = otherNodeData->getAvatar();
+                    const AvatarData& otherAvatar = otherNodeData->getAvatar();
                     //  Decide whether to send this avatar's data based on it's distance from us
 
                     //  The full rate distance is the distance at which EVERY update will be sent for this avatar
@@ -550,7 +548,7 @@ void AvatarMixer::broadcastAvatarData() {
                     QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
                     bool distanceAdjust = true;
                     glm::vec3 viewerPosition = myPosition;
-                    auto bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+                    QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
                     numAvatarDataBytes += avatarPacketList->write(bytes);
 
                     avatarPacketList->endSegment();
@@ -916,8 +914,9 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
     if (!clientData) {
         node->setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node->getUUID()) });
         clientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
-        clientData->getAvatar().setDomainMinimumScale(_domainMinimumScale);
-        clientData->getAvatar().setDomainMaximumScale(_domainMaximumScale);
+        auto& avatar = clientData->getAvatar();
+        avatar.setDomainMinimumScale(_domainMinimumScale);
+        avatar.setDomainMaximumScale(_domainMaximumScale);
     }
 
     return clientData;

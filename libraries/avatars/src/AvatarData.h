@@ -354,6 +354,10 @@ public:
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
                         bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr);
 
+    // FIXME
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+        bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) const;
+
     virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged
@@ -380,7 +384,7 @@ public:
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
-    glm::quat getHeadOrientation() { 
+    glm::quat getHeadOrientation() const { 
         lazyInitHeadData();
         return _headData->getOrientation(); 
     }
@@ -575,10 +579,10 @@ public slots:
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:
-    void lazyInitHeadData();
+    void lazyInitHeadData() const;
 
-    float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition);
-    float getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition);
+    float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const;
+    float getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition) const;
 
     bool avatarBoundingBoxChangedSince(quint64 time) const { return _avatarBoundingBoxChanged >= time; }
     bool avatarScaleChangedSince(quint64 time) const { return _avatarScaleChanged >= time; }
@@ -614,7 +618,7 @@ protected:
     bool _forceFaceTrackerConnected;
     bool _hasNewJointData { true }; // set in AvatarData, cleared in Avatar
 
-    HeadData* _headData { nullptr };
+    mutable HeadData* _headData { nullptr };
 
     QUrl _skeletonModelURL;
     bool _firstSkeletonCheck { true };
