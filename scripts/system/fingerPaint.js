@@ -19,6 +19,7 @@
         rightBrush,
         CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint",
         isTabletDisplayed = false,
+        HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index",
         HIFI_GRAB_DISABLE_MESSAGE_CHANNEL = "Hifi-Grab-Disable";
 
     function paintBrush(name) {
@@ -96,14 +97,17 @@
         };
     }
 
-    function updateHandControllerGrab() {
-        // Send message to handControllerGrab.js to handle.
+    function updateHandFunctions() {
+        // Update other scripts' hand functions.
         var enabled = !isFingerPainting || isTabletDisplayed;
 
         Messages.sendMessage(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL, JSON.stringify({
             holdEnabled: enabled,
             nearGrabEnabled: enabled,
             farGrabEnabled: enabled
+        }));
+        Messages.sendMessage(HIFI_POINT_INDEX_MESSAGE_CHANNEL, JSON.stringify({
+            pointIndex: !enabled
         }));
     }
 
@@ -121,14 +125,14 @@
             rightBrush.cancelLine();
         }
 
-        updateHandControllerGrab();
+        updateHandFunctions();
     }
 
     function onTabletScreenChanged(type, url) {
         var TABLET_SCREEN_CLOSED = "Closed";
 
         isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
-        updateHandControllerGrab();
+        updateHandFunctions();
     }
 
     function setUp() {
@@ -171,7 +175,8 @@
         rightHand.trigerRelease = rightBrush.finishLine;
         rightHand.gripPressed = rightBrush.eraseLine;
 
-        // Messages channel for disabling/enabling laser pointers and grabbing.
+        // Messages channels for enabling/disabling other scripts' functions.
+        Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
         Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
     }
 
@@ -197,6 +202,7 @@
         rightHand.tearDown();
         rightHand = null;
 
+        Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
         Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
     }
 
