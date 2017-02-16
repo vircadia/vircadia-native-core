@@ -93,8 +93,6 @@ bool EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filte
         // first add it to the extra list of things we need to send
         bool parentWasNew = nodeData.insertFlaggedExtraEntity(filteredEntityID, entityParent->getID());
 
-//        qDebug() << "Adding" << entityParent->getID() << "which is an ancestor of" << filteredEntityID;
-
         // now recursively call ourselves to get its ancestors added too
         auto parentEntityItem = std::static_pointer_cast<EntityItem>(entityParent);
         bool ancestorsWereNew = addAncestorsToExtraFlaggedEntities(filteredEntityID, *parentEntityItem, nodeData);
@@ -121,8 +119,6 @@ bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& fil
 
             // first add it to the extra list of things we need to send
             hasNewChild |= nodeData.insertFlaggedExtraEntity(filteredEntityID, child->getID());
-
-//            qDebug() << "Adding" << child->getID() <<  "which is a descendant of" << filteredEntityID;
 
             // now recursively call ourselves to get its descendants added too
             auto childEntityItem = std::static_pointer_cast<EntityItem>(child);
