@@ -53,7 +53,14 @@ inline float computeGain(const AvatarAudioStream& listeningNodeStream, const Pos
 inline float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 
-void AudioMixerSlave::configure(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
+void AudioMixerSlave::processPackets(const SharedNodePointer& node) {
+    AudioMixerClientData* data = (AudioMixerClientData*)node->getLinkedData();
+    if (data) {
+        data->processPackets();
+    }
+}
+
+void AudioMixerSlave::configureMix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
     _begin = begin;
     _end = end;
     _frame = frame;

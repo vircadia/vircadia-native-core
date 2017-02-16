@@ -29,7 +29,7 @@
 #include <NLPacketList.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
-
+#include <AvatarData.h> //for KillAvatarReason
 #include "DomainServerNodeData.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
@@ -299,7 +299,14 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
+
     static const QString DESCRIPTORS{ "descriptors" };
+
+    auto& settingsMap = getSettingsMap();
+    if (!getSettingsMap().contains(DESCRIPTORS)) {
+        settingsMap.insert(DESCRIPTORS, QVariantMap());
+    }
+
     return *static_cast<QVariantMap*>(getSettingsMap()[DESCRIPTORS].data());
 }
 
@@ -721,6 +728,13 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                         }
                     }
                 }
+                // if we are here, then we kicked them, so send the KillAvatar message to everyone
+                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
+                packet->write(nodeUUID.toRfc4122());
+                packet->writePrimitive(KillAvatarReason::NoReason);
+                
+                // send to avatar mixer, it sends the kill to everyone else
+                limitedNodeList->broadcastToNodes(std::move(packet), NodeSet() << NodeType::AvatarMixer);
 
                 if (newPermissions) {
                     qDebug() << "Removing connect permission for node" << uuidStringWithoutCurlyBraces(matchingNode->getUUID())
@@ -728,9 +742,12 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 
                     // we've changed permissions, time to store them to disk and emit our signal to say they have changed
                     packPermissions();
-                } else {
-                    emit updateNodePermissions();
                 }
+                
+                // we emit this no matter what -- though if this isn't a new permission probably 2 people are racing to kick and this
+                // person lost the race.  No matter, just be sure this is called as otherwise it takes like 10s for the person being banned
+                // to go away
+                emit updateNodePermissions();
 
             } else {
                 qWarning() << "Node kick request received for unknown node. Refusing to process.";
