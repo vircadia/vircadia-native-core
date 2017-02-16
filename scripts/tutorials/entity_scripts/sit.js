@@ -5,10 +5,12 @@
   var ANIMATION_FIRST_FRAME = 1;
   var ANIMATION_LAST_FRAME = 10;
   var RELEASE_KEYS = ['w', 'a', 's', 'd', 'UP', 'LEFT', 'DOWN', 'RIGHT'];
-  var RELEASE_TIME = 500;
+  var RELEASE_TIME = 500; // ms
+  var RELEASE_DISTANCE = 0.2; // meters
 
   this.entityID = null;
-  this.timestamp = null;
+  this.timers = {};
+  this.animStateHandlerID = null;
 
   this.preload = function(entityID) {
     this.entityID = entityID;
@@ -17,31 +19,31 @@
   this.update = function(dt) {
     if (MyAvatar.getParentID() === this.entityID) {
       var properties = Entities.getEntityProperties(this.entityID, ["position"]);
-      if (Vec3.distance(MyAvatar.position, properties.position) > 0.2) {
+      if (Vec3.distance(MyAvatar.position, properties.position) > RELEASE_DISTANCE) {
         this.sitUp(this.entityID);
       }
     }
   }
-
   this.keyPressed = function(event) {
-    print("press");
     if (RELEASE_KEYS.indexOf(event.text) !== -1) {
-      this.timestamp = Date.now();
+      var that = this;
+      this.timers[event.text] = Script.setTimeout(function() {
+        print("Timeout");
+        that.sitUp();
+      }, RELEASE_TIME);
     }
   }
   this.keyReleased = function(event) {
-    print("release");
     if (RELEASE_KEYS.indexOf(event.text) !== -1) {
-      print('Time: ' + (Date.now() - this.timestamp));
-      if (Date.now() - this.timestamp > RELEASE_TIME) {
-        this.sitUp();
+      if (this.timers[event.text]) {
+        print("Clear timeout");
+        Script.clearTimeout(this.timers[event.text]);
+        delete this.timers[event.text];
       }
-      this.timestamp = null;
     }
   }
 
   this.sitDown = function() {
-    print("sitDown");
     MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
     MyAvatar.setParentID(this.entityID);
     MyAvatar.characterControllerEnabled = false;
@@ -49,8 +51,11 @@
 
     var properties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
     var index = MyAvatar.getJointIndex("Hips");
-    print("Data: " + index + " " + JSON.stringify(properties));
-    print(MyAvatar.pinJoint(index, properties.position, properties.rotation));
+    MyAvatar.pinJoint(index, properties.position, properties.rotation);
+
+    this.animStateHandlerID = MyAvatar.addAnimationStateHandler(function(props) {
+      return { headType: 0 };
+    }, ["headType"]);
 
     Script.update.connect(this, this.update);
     Controller.keyPressEvent.connect(this, this.keyPressed);
@@ -61,14 +66,15 @@
   }
 
   this.sitUp = function() {
-    print("sitUp");
     MyAvatar.restoreRoleAnimation(ROLE);
     MyAvatar.setParentID("");
     MyAvatar.characterControllerEnabled = true;
     MyAvatar.hmdLeanRecenterEnabled = true;
 
     var index = MyAvatar.getJointIndex("Hips");
-    print(MyAvatar.clearPinOnJoint(index));
+    MyAvatar.clearPinOnJoint(index);
+
+    MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
 
     Script.update.disconnect(this, this.update);
     Controller.keyPressEvent.disconnect(this, this.keyPressed);
@@ -81,8 +87,6 @@
   this.clickDownOnEntity = function () {
     if (MyAvatar.getParentID() !== this.entityID) {
       this.sitDown();
-    } else {
-      this.sitUp();
     }
   }
   this.sit = function () {
