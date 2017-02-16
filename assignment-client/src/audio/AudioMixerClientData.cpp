@@ -548,9 +548,6 @@ AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsi
             _zone = box;
             unsigned int oldFrame = _frame.exchange(frame, std::memory_order_release);
             Q_UNUSED(oldFrame);
-
-            // check the precondition
-            assert(oldFrame == 0 || frame == (oldFrame + 1));
         }
     }
 

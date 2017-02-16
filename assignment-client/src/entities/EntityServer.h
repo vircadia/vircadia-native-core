@@ -63,13 +63,13 @@ public slots:
     virtual void nodeAdded(SharedNodePointer node) override;
     virtual void nodeKilled(SharedNodePointer node) override;
     void pruneDeletedEntities();
+    void entityFilterAdded(EntityItemID id, bool success);
 
 protected:
     virtual OctreePointer createTree() override;
 
 private slots:
     void handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void scriptRequestFinished();
 
 private:
     SimpleEntitySimulationPointer _entitySimulation;
@@ -77,9 +77,6 @@ private:
 
     QReadWriteLock _viewerSendingStatsLock;
     QMap<QUuid, QMap<QUuid, ViewerSendingStats>> _viewerSendingStats;
-
-    QString _entityEditFilter{};
-    QScriptEngine _entityEditFilterEngine{};
 };
 
 #endif // hifi_EntityServer_h
