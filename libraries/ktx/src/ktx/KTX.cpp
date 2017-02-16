@@ -15,6 +15,11 @@
 
 using namespace ktx;
 
+uint32_t evalPadding(size_t byteSize) {
+    auto padding = byteSize % PACKING_SIZE;
+    return (padding ? PACKING_SIZE - padding : 0);
+}
+
 const Header::Identifier ktx::Header::IDENTIFIER {{
     0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
 }};
@@ -49,8 +54,8 @@ size_t Header::evalRowSize(uint32_t level) const {
     auto pixelWidth = evalPixelWidth(level);
     auto pixSize = evalPixelSize();
     auto netSize = pixelWidth * pixSize;
-    auto packing = netSize % PACKING_SIZE;
-    return netSize + (packing ? PACKING_SIZE - packing : 0);
+    auto padding = evalPadding(netSize);
+    return netSize + padding;
 }
 size_t Header::evalFaceSize(uint32_t level) const {
     auto pixelHeight = evalPixelHeight(level);
@@ -115,3 +120,4 @@ const Byte* KTX::getTexelsData() const {
         return nullptr;
     }
 }
+

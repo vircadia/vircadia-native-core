@@ -14,9 +14,9 @@
 #include <QtGlobal>
 
 namespace ktx {
-    class Exception: public std::exception {
+    class ReaderException: public std::exception {
     public:
-        Exception(std::string explanation) : _explanation(explanation) {}
+        ReaderException(std::string explanation) : _explanation(explanation) {}
         const char* what() const override {
             return ("KTX deserialization error: " + _explanation).c_str();
         }
@@ -55,7 +55,7 @@ namespace ktx {
             uint32_t keyValueByteSize;
             memcpy(&keyValueByteSize, src, sizeof(uint32_t));
             if (keyValueByteSize > length - offset) {
-                throw Exception("invalid key-value size");
+                throw ReaderException("invalid key-value size");
             }
 
             // find the first null character \0
@@ -63,7 +63,7 @@ namespace ktx {
             while (reinterpret_cast<const char*>(src[++keyLength]) != '\0') {
                 if (keyLength == keyValueByteSize) {
                     // key must be null-terminated, and there must be space for the value
-                    throw Exception("invalid key-value " + std::string(reinterpret_cast<const char*>(src), keyLength));
+                    throw ReaderException("invalid key-value " + std::string(reinterpret_cast<const char*>(src), keyLength));
                 }
             }
 
@@ -81,8 +81,8 @@ namespace ktx {
         return keyValues;
     }
 
-    Mips getMipsTable(const Header& header, size_t mipsDataSize, const Byte* mipsData) {
-        Mips mips;
+    Images getImagesTable(const Header& header, size_t mipsDataSize, const Byte* mipsData) {
+        Images images;
         auto currentPtr = mipsData;
         auto numMips = header.numberOfMipmapLevels + 1;
 
@@ -95,10 +95,9 @@ namespace ktx {
 
             // If enough data ahead then capture the pointer
             if ((currentPtr - mipsData) + imageSize <= (mipsDataSize)) {
-                auto padding = imageSize % PACKING_SIZE;
-                padding = (padding ? 4 - padding : 0);
+                auto padding = evalPadding(imageSize);
 
-                mips.emplace_back(Mip(imageSize, padding, currentPtr));
+                images.emplace_back(Image(imageSize, padding, currentPtr));
 
                 currentPtr += imageSize + padding;
             } else {
@@ -106,28 +105,28 @@ namespace ktx {
             }
         }
 
-        return mips;
+        return images;
     }
 
 
-    bool KTX::checkStorageHeader(const Storage& src) {
+    bool KTX::checkHeaderFromStorage(const Storage& src) {
         try {
             auto srcSize = src.size();
             auto srcBytes = src.data();
 
             // validation
             if (srcSize < sizeof(Header)) {
-                throw Exception("length is too short for header");
+                throw ReaderException("length is too short for header");
             }
             const Header* header = reinterpret_cast<const Header*>(srcBytes);
 
             if (!checkIdentifier(header->identifier)) {
-                throw Exception("identifier field invalid");
+                throw ReaderException("identifier field invalid");
             }
 
             bool endianMatch { true };
             if (!checkEndianness(header->endianness, endianMatch)) {
-                throw Exception("endianness field has invalid value");
+                throw ReaderException("endianness field has invalid value");
             }
 
             // TODO: endian conversion if !endianMatch - for now, this is for local use and is unnecessary
@@ -135,17 +134,18 @@ namespace ktx {
 
             // TODO: calculated bytesOfTexData
             if (srcSize < (sizeof(Header) + header->bytesOfKeyValueData)) {
-                throw Exception("length is too short for metadata");
+                throw ReaderException("length is too short for metadata");
             }
 
              size_t bytesOfTexData = 0;
             if (srcSize < (sizeof(Header) + header->bytesOfKeyValueData + bytesOfTexData)) {
 
-                throw Exception("length is too short for data");
+                throw ReaderException("length is too short for data");
             }
 
             return true;
-        } catch (Exception& e) {
+        }
+        catch (ReaderException& e) {
             qWarning(e.what());
             return false;
         }
@@ -163,7 +163,7 @@ namespace ktx {
         }
 
         try {
-            if (!checkStorageHeader(*src)) {
+            if (!checkHeaderFromStorage(*src)) {
 
             }
 
@@ -173,12 +173,12 @@ namespace ktx {
             // read metadata
             result->_keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
 
-            // populate mip table
-            result->_mips = getMipsTable(*result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
+            // populate image table
+            result->_images = getImagesTable(*result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
 
             return result;
         }
-        catch (Exception& e) {
+        catch (ReaderException& e) {
             qWarning(e.what());
             return nullptr;
         }
