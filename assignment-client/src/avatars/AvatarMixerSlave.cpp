@@ -385,6 +385,8 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
         // close the current packet so that we're always sending something
         avatarPacketList->closeCurrentPacket(true);
 
+        _stats.numPacketsSent += (int)avatarPacketList->getNumPackets();
+
         // send the avatar data PacketList
         //qDebug() << "about to call nodeList->sendPacketList() for node:" << node;
         nodeList->sendPacketList(std::move(avatarPacketList), *node);

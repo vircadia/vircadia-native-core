@@ -511,7 +511,9 @@ void AvatarMixer::sendStatsPacket() {
         AvatarMixerSlaveStats stats;
         slave.harvestStats(stats);
         slaveObject["nodesProcessed"] = TIGHT_LOOP_STAT(stats.nodesProcessed);
-        slaveObject["packetsProcessed"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
+        slaveObject["numPacketsReceived"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
+        statsObject["numPacketsSent"] = TIGHT_LOOP_STAT(stats.numPacketsSent);
+
         slaveObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT(stats.processIncomingPacketsElapsedTime);
         slaveObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT(stats.ignoreCalculationElapsedTime);
         slaveObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT(stats.toByteArrayElapsedTime);
@@ -528,7 +530,10 @@ void AvatarMixer::sendStatsPacket() {
 
     // broadcastAvatarDataElapsed timing details...
     statsObject["aggregate_nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
-    statsObject["aggregate_packetsProcessed"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
+    statsObject["aggregate_numPacketsReceived"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
+    statsObject["aggregate_numPacketsSent"] = TIGHT_LOOP_STAT(aggregateStats.numPacketsSent);
+    
+
     statsObject["timing_aggregate_1_processIncomingPackets"] = TIGHT_LOOP_STAT(aggregateStats.processIncomingPacketsElapsedTime);
     statsObject["timing_aggregate_2_ignoreCalculation"] = TIGHT_LOOP_STAT(aggregateStats.ignoreCalculationElapsedTime);
     statsObject["timing_aggregate_3_toByteArray"] = TIGHT_LOOP_STAT(aggregateStats.toByteArrayElapsedTime);

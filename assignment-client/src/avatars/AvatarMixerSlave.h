@@ -27,6 +27,7 @@ public:
     int packetsProcessed { 0 };
     quint64 processIncomingPacketsElapsedTime { 0 };
 
+    int numPacketsSent { 0 };
     quint64 ignoreCalculationElapsedTime { 0 };
     quint64 avatarDataPackingElapsedTime { 0 };
     quint64 packetSendingElapsedTime { 0 };
@@ -34,9 +35,14 @@ public:
     quint64 jobElapsedTime { 0 };
 
     void reset() {
+        // receiving job stats
         nodesProcessed = 0;
         packetsProcessed = 0;
+        numPacketsSent = 0;
         processIncomingPacketsElapsedTime = 0;
+
+        // sending job stats
+        numPacketsSent = 0;
         ignoreCalculationElapsedTime = 0;
         avatarDataPackingElapsedTime = 0;
         packetSendingElapsedTime = 0;
@@ -48,6 +54,8 @@ public:
         nodesProcessed += rhs.nodesProcessed;
         packetsProcessed += rhs.packetsProcessed;
         processIncomingPacketsElapsedTime += rhs.processIncomingPacketsElapsedTime;
+
+        numPacketsSent += rhs.numPacketsSent;
         ignoreCalculationElapsedTime += rhs.ignoreCalculationElapsedTime;
         avatarDataPackingElapsedTime += rhs.avatarDataPackingElapsedTime;
         packetSendingElapsedTime += rhs.packetSendingElapsedTime;
