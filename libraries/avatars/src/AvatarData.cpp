@@ -120,10 +120,6 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     updateAttitude();
 }
 
-float AvatarData::getTargetScale() const {
-    return _targetScale;
-}
-
 void AvatarData::setTargetScale(float targetScale) {
     auto newValue = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
     if (_targetScale != newValue) {
@@ -151,38 +147,6 @@ void AvatarData::lazyInitHeadData() {
     }
 }
 
-
-bool AvatarData::avatarBoundingBoxChangedSince(quint64 time) {
-    return _avatarBoundingBoxChanged >= time;
-}
-
-bool AvatarData::avatarScaleChangedSince(quint64 time) {
-    return _avatarScaleChanged >= time;
-}
-
-bool AvatarData::lookAtPositionChangedSince(quint64 time) {
-    return _headData->lookAtPositionChangedSince(time);
-}
-
-bool AvatarData::audioLoudnessChangedSince(quint64 time) {
-    return _headData->audioLoudnessChangedSince(time);
-}
-
-bool AvatarData::sensorToWorldMatrixChangedSince(quint64 time) {
-    return _sensorToWorldMatrixChanged >= time;
-}
-
-bool AvatarData::additionalFlagsChangedSince(quint64 time) {
-    return _additionalFlagsChanged >= time;
-}
-
-bool AvatarData::parentInfoChangedSince(quint64 time) {
-    return _parentChanged >= time;
-}
-
-bool AvatarData::faceTrackerInfoChangedSince(quint64 time) {
-    return true; // FIXME!
-}
 
 float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) {
     auto distance = glm::distance(_globalPosition, viewerPosition);

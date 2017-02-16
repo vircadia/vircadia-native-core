@@ -60,7 +60,7 @@ private:
     void parseDomainServerSettings(const QJsonObject& domainSettings);
     void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
-    void manageDisplayName(AvatarMixerClientData* nodeData, const SharedNodePointer& node);
+    void manageDisplayName(const SharedNodePointer& node);
 
     QThread _broadcastThread;
 

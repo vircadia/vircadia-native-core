@@ -419,7 +419,6 @@ public:
     void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
 
     //  Scale
-    float getTargetScale() const;
     virtual void setTargetScale(float targetScale);
 
     float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
@@ -534,8 +533,8 @@ public:
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
-    glm::vec3 getClientGlobalPosition() { return _globalPosition; }
-    glm::vec3 getGlobalBoundingBoxCorner() { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
+    glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
+    glm::vec3 getGlobalBoundingBoxCorner() const { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
@@ -550,7 +549,7 @@ public:
     Q_INVOKABLE float getDataRate(const QString& rateName = QString("")) const;
     Q_INVOKABLE float getUpdateRate(const QString& rateName = QString("")) const;
 
-    int getJointCount() { return _jointData.size(); }
+    int getJointCount() const { return _jointData.size(); }
 
     QVector<JointData> getLastSentJointData() {
         QReadLocker readLock(&_jointDataLock);
@@ -571,7 +570,7 @@ public slots:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
-    float getTargetScale() { return _targetScale; }
+    float getTargetScale() const { return _targetScale; } // why is this a slot?
 
     void resetLastSent() { _lastToByteArray = 0; }
 
@@ -581,18 +580,17 @@ protected:
     float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition);
     float getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition);
 
-    bool avatarBoundingBoxChangedSince(quint64 time);
-    bool avatarScaleChangedSince(quint64 time);
-    bool lookAtPositionChangedSince(quint64 time);
-    bool audioLoudnessChangedSince(quint64 time);
-    bool sensorToWorldMatrixChangedSince(quint64 time);
-    bool additionalFlagsChangedSince(quint64 time);
+    bool avatarBoundingBoxChangedSince(quint64 time) const { return _avatarBoundingBoxChanged >= time; }
+    bool avatarScaleChangedSince(quint64 time) const { return _avatarScaleChanged >= time; }
+    bool lookAtPositionChangedSince(quint64 time) const { return _headData->lookAtPositionChangedSince(time); }
+    bool audioLoudnessChangedSince(quint64 time) const { return _headData->audioLoudnessChangedSince(time); }
+    bool sensorToWorldMatrixChangedSince(quint64 time) const { return _sensorToWorldMatrixChanged >= time; }
+    bool additionalFlagsChangedSince(quint64 time) const { return _additionalFlagsChanged >= time; }
+    bool parentInfoChangedSince(quint64 time) const { return _parentChanged >= time; }
+    bool faceTrackerInfoChangedSince(quint64 time) const { return true; } // FIXME
 
-    bool hasParent() { return !getParentID().isNull(); }
-    bool parentInfoChangedSince(quint64 time);
-
-    bool hasFaceTracker() { return _headData ? _headData->_isFaceTrackerConnected : false; }
-    bool faceTrackerInfoChangedSince(quint64 time);
+    bool hasParent() const { return !getParentID().isNull(); }
+    bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }

@@ -99,8 +99,6 @@ void AvatarMixer::start() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    //_slavePool.setNumThreads(1); // grins
-
     while (!_isFinished) {
         _numTightLoopFrames++;
         _loopRate.increment();
@@ -120,6 +118,19 @@ void AvatarMixer::start() {
             });
             auto end = usecTimestampNow();
             _processQueuedAvatarDataPacketsElapsedTime += (end - start);
+        }
+
+        // process pending display names... this doesn't currently run on multiple threads, because it
+        // side-effects the mixer's data, which is fine because it's a very low cost operation
+        {
+            auto start = usecTimestampNow();
+            nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
+                    manageDisplayName(node);
+                });
+            });
+            auto end = usecTimestampNow();
+            _displayNameManagementElapsedTime += (end - start);
         }
 
         // this is where we need to put the real work...
@@ -152,11 +163,12 @@ void AvatarMixer::start() {
 }
 
 
-void AvatarMixer::manageDisplayName(AvatarMixerClientData* nodeData, const SharedNodePointer& node) {
-    AvatarData& avatar = nodeData->getAvatar();
-
-    quint64 startDisplayNameManagement = usecTimestampNow();
-    if (nodeData->getAvatarSessionDisplayNameMustChange()) {
+// NOTE: nodeData->getAvatar() might be side effected, most be called when access to node/nodeData
+// is guarenteed to not be accessed by other thread
+void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
+    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+    if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
+        AvatarData& avatar = nodeData->getAvatar();
         const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
         if (--_sessionDisplayNames[existingBaseDisplayName].second <= 0) {
             _sessionDisplayNames.remove(existingBaseDisplayName);
@@ -183,8 +195,6 @@ void AvatarMixer::manageDisplayName(AvatarMixerClientData* nodeData, const Share
         sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name. Others will find out below.
         qDebug() << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
     }
-    quint64 endDisplayNameManagement = usecTimestampNow();
-    _displayNameManagementElapsedTime += (endDisplayNameManagement - startDisplayNameManagement);
 }
 
 // NOTE: some additional optimizations to consider.
@@ -367,7 +377,7 @@ void AvatarMixer::broadcastAvatarData() {
             // setup a PacketList for the avatarPackets
             auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
-            manageDisplayName(nodeData, node);
+            //manageDisplayName(node);
 
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -769,7 +779,6 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["tight_loop_rate"] = _loopRate.rate();
 
     // broadcastAvatarDataElapsed timing details...
-    statsObject["timing_average_a_displayNameManagement"] = (float)_displayNameManagementElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_b_ignoreCalculation"] = (float)_ignoreCalculationElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_c_avatarDataPacking"] = (float)_avatarDataPackingElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_d_packetSending"] = (float)_packetSendingElapsedTime / (float)_numStatFrames;
@@ -782,6 +791,8 @@ void AvatarMixer::sendStatsPacket() {
 
     statsObject["timing_average_y_processEvents"] = TIGHT_LOOP_STAT(_processEventsElapsedTime);
     statsObject["timing_average_y_queueIncomingPacket"] = TIGHT_LOOP_STAT(_queueIncomingPacketElapsedTime);
+
+    statsObject["timing_average_z_displayNameManagement"] = TIGHT_LOOP_STAT(_displayNameManagementElapsedTime);
     statsObject["timing_average_z_handleAvatarDataPacket"] = TIGHT_LOOP_STAT(_handleAvatarDataPacketElapsedTime);
     statsObject["timing_average_z_handleAvatarIdentityPacket"] = TIGHT_LOOP_STAT(_handleAvatarIdentityPacketElapsedTime);
     statsObject["timing_average_z_handleKillAvatarPacket"] = TIGHT_LOOP_STAT(_handleKillAvatarPacketElapsedTime);
