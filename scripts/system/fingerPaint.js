@@ -60,39 +60,108 @@
     function handController(name) {
         // Translates controller data into application events.
         var handName = name,
-            triggerPressed,     // Callback.
-            triggerPressing,    // ""
-            triggerReleased,    // ""
-            gripPressed,        // ""
-            isEnabled = false;
+            isEnabled = false,
+
+            triggerPressedCallback,
+            triggerPressingCallback,
+            triggerReleasedCallback,
+            gripPressedCallback,
+
+            triggerValue = 0.0,
+            isTriggerPressed = false,
+            TRIGGER_SMOOTH_RATIO = 0.1,
+            TRIGGER_OFF = 0.05,
+            TRIGGER_ON = 0.1,
+            TRIGGER_START_WIDTH = 0.15,
+            TRIGGER_FINISH_WIDTH = 1.0,
+            TRIGGER_RANGE_WIDTH = TRIGGER_FINISH_WIDTH - TRIGGER_START_WIDTH,
+            START_LINE_WIDTH = 0.005,
+            FINISH_LINE_WIDTH = 0.010,
+            RANGE_LINE_WIDTH = FINISH_LINE_WIDTH - START_LINE_WIDTH,
+
+            gripValue = 0.0,
+            isGripPressed = false,
+            GRIP_SMOOTH_RATIO = 0.1,
+            GRIP_OFF = 0.05,
+            GRIP_ON = 0.1;
 
         function setEnabled(enabled) {
             isEnabled = enabled;
         }
 
         function onTriggerPress(value) {
+            var wasTriggerPressed,
+                fingerTipPosition,
+                lineWidth;
+
             if (!isEnabled) {
                 return;
+            }
+
+            triggerValue = triggerValue * TRIGGER_SMOOTH_RATIO + value * (1.0 - TRIGGER_SMOOTH_RATIO);
+
+            wasTriggerPressed = isTriggerPressed;
+            if (isTriggerPressed) {
+                isTriggerPressed = triggerValue > TRIGGER_OFF;
+            } else {
+                isTriggerPressed = triggerValue > TRIGGER_ON;
+            }
+
+            if (wasTriggerPressed || isTriggerPressed) {
+                fingerTipPosition = MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex3" : "RightHandIndex3");
+                if (triggerValue < TRIGGER_START_WIDTH) {
+                    lineWidth = START_LINE_WIDTH;
+                } else {
+                    lineWidth = START_LINE_WIDTH
+                        + (triggerValue - TRIGGER_START_WIDTH) / TRIGGER_RANGE_WIDTH * RANGE_LINE_WIDTH;
+                }
+
+                if (!wasTriggerPressed && isTriggerPressed) {
+                    triggerPressedCallback(fingerTipPosition, lineWidth);
+                } else if (wasTriggerPressed && isTriggerPressed) {
+                    triggerPressingCallback(fingerTipPosition, lineWidth);
+                } else {
+                    triggerReleasedCallback(fingerTipPosition, lineWidth);
+                }
             }
         }
 
         function onGripPress(value) {
+            var fingerTipPosition;
+
             if (!isEnabled) {
                 return;
             }
+
+            gripValue = gripValue * GRIP_SMOOTH_RATIO + value * (1.0 - GRIP_SMOOTH_RATIO);
+
+            if (isGripPressed) {
+                isGripPressed = gripValue > GRIP_OFF;
+            } else {
+                isGripPressed = gripValue > GRIP_ON;
+                if (isGripPressed) {
+                    fingerTipPosition = MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex3" : "RightHandIndex3");
+                    gripPressedCallback(fingerTipPosition);
+                }
+            }
+        }
+
+        function setUp(onTriggerPressed, onTriggerPressing, onTriggerReleased, onGripPressed) {
+            triggerPressedCallback = onTriggerPressed;
+            triggerPressingCallback = onTriggerPressing;
+            triggerReleasedCallback = onTriggerReleased;
+            gripPressedCallback = onGripPressed;
         }
 
         function tearDown() {
+            // Nothing to do.
         }
 
         return {
             setEnabled: setEnabled,
             onTriggerPress: onTriggerPress,
             onGripPress: onGripPress,
-            triggerPressed: triggerPressed,
-            triggerPressing: triggerPressing,
-            triggerReleased: triggerReleased,
-            gripPressed: gripPressed,
+            setUp: setUp,
             tearDown: tearDown
         };
     }
@@ -165,15 +234,9 @@
 
         // Connect handController outputs to paintBrush objects.
         leftBrush = paintBrush("left");
-        leftHand.triggerPressed = leftBrush.startLine;
-        leftHand.triggerPressing = leftBrush.drawLine;
-        leftHand.trigerRelease = leftBrush.finishLine;
-        leftHand.gripPressed = leftBrush.eraseLine;
+        leftHand.setUp(leftBrush.startLine, leftBrush.drawLine, leftBrush.finishLine, leftBrush.eraseClosestLine);
         rightBrush = paintBrush("right");
-        rightHand.triggerPressed = rightBrush.startLine;
-        rightHand.triggerPressing = rightBrush.drawLine;
-        rightHand.trigerRelease = rightBrush.finishLine;
-        rightHand.gripPressed = rightBrush.eraseLine;
+        rightHand.setUp(rightBrush.startLine, rightBrush.drawLine, rightBrush.finishLine, rightBrush.eraseClosestLine);
 
         // Messages channels for enabling/disabling other scripts' functions.
         Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
