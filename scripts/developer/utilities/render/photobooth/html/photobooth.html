@@ -98,6 +98,10 @@
       $(document).ready(function() {
         // Send a ready event to hifi
         emit("ready", null);
+        $("#property-camera").on('change', function() {
+          console.log("ok");
+          emit("onSelectCamera", {value: this.val()});
+        });
         // Send an event to hifi to trigger snapshot
         $("#picture-button").click(function() {
           emit("onClickPictureButton", null);

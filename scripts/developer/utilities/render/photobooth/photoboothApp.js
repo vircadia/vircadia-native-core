@@ -53,9 +53,21 @@
                 //     // Reticle.visible = true;
                 // }, SNAPSHOT_DELAY);
 
-            } else if (event.type === "onClickReloadModelButton"){
+            } else if (event.type === "onClickReloadModelButton") {
                 print("clicked reload model button " + event.data.value);
                 PhotoBooth.changeModel(event.data.value);
+            } else if (event.type === "onSelectCamera") {
+                print("selected camera " + event.data.value);
+                if (!event.data.hasOwnProperty("value")){
+                    return;
+                }
+                if (event.data.value === "First Person Camera") {
+                    Camera.mode = "first person";
+                } else {
+                    Camera.mode = "entity";
+                    var cameraID = PhotoBooth.cameraEntities[event.data.value];
+                    Camera.setCameraEntity(cameraID);
+                }
             }
         }
     }
