@@ -969,8 +969,8 @@ function cleanupModelMenus() {
         Menu.removeMenuItem("Edit", "Delete");
     }
 
-    Menu.removeMenuItem("Edit", "Parent");
-    Menu.removeMenuItem("Edit", "Unparent");
+    Menu.removeMenuItem("Edit", "Parent Entity to Last");
+    Menu.removeMenuItem("Edit", "Unparent Entity");
     Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
@@ -1134,10 +1134,8 @@ function parentSelectedEntities() {
           return;
         }
         var lastEntityId = selectedEntities[selectedEntities.length-1];
-
         selectedEntities.forEach(function (id, index) {
             if (lastEntityId !== id) {
-                // OK time to check why this breaks!
                 Entities.editEntity(id, {parentID: lastEntityId})
             }
         });
@@ -1208,9 +1206,9 @@ function handeMenuEvent(menuItem) {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem === "Delete") {
         deleteSelectedEntities();
-    } else if (menuItem === "Parent") {
+    } else if (menuItem === "Parent Entity to Last") {
         parentSelectedEntities();
-    } else if (menuItem === "Unparent") {
+    } else if (menuItem === "Unparent Entity") {
         unparentSelectedEntities();
     } else if (menuItem === "Export Entities") {
         if (!selectionManager.hasSelection()) {
@@ -1378,7 +1376,7 @@ Controller.keyReleaseEvent.connect(function (event) {
             grid.setPosition(newPosition);
         }
     } else if (event.text === 'p' && event.isControl ) {
-        if (event.isAlt) {
+        if (event.isShifted) {
             unparentSelectedEntities();
         } else {
             parentSelectedEntities();
