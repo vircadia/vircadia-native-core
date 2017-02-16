@@ -93,13 +93,19 @@
           elPictureButton.addEventListener('click', function() {
               emit("onClickPictureButton", {value: "faye"});
           });
-
-
         });
+      }
       $(document).ready(function() {
         // Send a ready event to hifi
         emit("ready", null);
-        
+        // Send an event to hifi to trigger snapshot
+        $("#picture-button").click(function() {
+          emit("onClickPictureButton", null);
+        });
+        // Send an event to hifi for loading the given model URL
+        $("#reload-model-button").click(function() {
+          emit("onClickReloadModelButton", {value: $("#model-url").val()});
+        });
       });
     </script>
   </body>

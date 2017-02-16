@@ -34,7 +34,29 @@
             event = JSON.parse(event);
         }
         if (event.app === "photobooth") {
-            
+            if (event.type === "onClickPictureButton") {
+                print("clicked picture button");
+                // // hide HUD tool bar
+                // toolbar.writeProperty("visible", false);
+                // // hide Overlays (such as Running Scripts or other Dialog UI)
+                // Menu.setIsOptionChecked("Overlays", false);
+                // // hide mouse cursor
+                // Reticle.visible = false;
+                // // giving a delay here before snapshotting so that there is time to hide toolbar and other UIs
+                // // void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio)
+                // Script.setTimeout(function () {
+                //     Window.takeSnapshot(false, false, 1.91);
+                //     // show hidden items after snapshot is taken
+                //     toolbar.writeProperty("visible", true);
+                //     Menu.setIsOptionChecked("Overlays", true);
+                //     // unknown issue: somehow we don't need to reset cursor to visible in script and the mouse still returns after snapshot
+                //     // Reticle.visible = true;
+                // }, SNAPSHOT_DELAY);
+
+            } else if (event.type === "onClickReloadModelButton"){
+                print("clicked reload model button " + event.data.value);
+                PhotoBooth.changeModel(event.data.value);
+            }
         }
     }
 
@@ -131,12 +153,6 @@
     var main = function () {
 
         var photoboothWindowListener = {};
-        photoboothWindowListener.onLoad = function (event) {
-            print("loaded" + event.value);
-            if (!event.hasOwnProperty("value")){
-                return;
-            }
-        };
 
         photoboothWindowListener.onSelectCamera = function (event) {
             print("selected camera " + event.value);
@@ -150,38 +166,6 @@
                 var cameraID = PhotoBooth.cameraEntities[event.value];
                 Camera.setCameraEntity(cameraID);
             }
-        };
-
-        photoboothWindowListener.onSelectLightingPreset = function (event) {
-            print("selected lighting preset" + event.value);
-            if (!event.hasOwnProperty("value")){
-                return;
-            }
-        };
-
-        photoboothWindowListener.onClickPictureButton = function (event) {
-            print("clicked picture button");
-            // hide HUD tool bar
-            toolbar.writeProperty("visible", false);
-            // hide Overlays (such as Running Scripts or other Dialog UI)
-            Menu.setIsOptionChecked("Overlays", false);
-            // hide mouse cursor
-            Reticle.visible = false;
-            // giving a delay here before snapshotting so that there is time to hide toolbar and other UIs
-            // void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio)
-            Script.setTimeout(function () {
-                Window.takeSnapshot(false, false, 1.91);
-                // show hidden items after snapshot is taken
-                toolbar.writeProperty("visible", true);
-                Menu.setIsOptionChecked("Overlays", true);
-                // unknown issue: somehow we don't need to reset cursor to visible in script and the mouse still returns after snapshot
-                // Reticle.visible = true;
-            }, SNAPSHOT_DELAY);
-        };
-
-        photoboothWindowListener.onClickReloadModelButton = function (event) {
-            print("clicked reload model button " + event.value);
-            PhotoBooth.changeModel(event.value);
         };
     };
     main();
