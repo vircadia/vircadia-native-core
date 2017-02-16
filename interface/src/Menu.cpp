@@ -628,9 +628,9 @@ Menu::Menu() {
 
     auto scope = DependencyManager::get<AudioScope>();
     MenuWrapper* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::ALT | Qt::Key_P, false,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_F2, false,
         scope.data(), SLOT(toggle()));
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause, Qt::CTRL | Qt::ALT | Qt::SHIFT | Qt::Key_P, false,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause, Qt::CTRL | Qt::ALT | Qt::Key_F2, false,
         scope.data(), SLOT(togglePause()));
 
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
