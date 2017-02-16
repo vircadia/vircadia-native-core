@@ -15,29 +15,13 @@ namespace ktx {
 
     class WriterException : public std::exception {
     public:
-        WriterException(std::string explanation) : _explanation(explanation) {}
+        WriterException(const std::string& explanation) : _explanation("KTX serialization error: " + explanation) {}
         const char* what() const override {
-            return ("KTX serialization error: " + _explanation).c_str();
+            return _explanation.c_str();
         }
     private:
-        std::string _explanation;
+        const std::string _explanation;
     };
-
-    std::unique_ptr<Storage> generateStorage(const Header& header, const KeyValues& keyValues, const Images& images) {
-        size_t storageSize = sizeof(Header);
-        auto numMips = header.getNumberOfLevels();
-
-        for (uint32_t l = 0; l < numMips; l++) {
-            if (images.size() > l) {
-                storageSize += sizeof(uint32_t);
-                storageSize += images[l]._imageSize;
-                storageSize += Header::evalPadding(images[l]._imageSize);
-            }
-        }
-
-        std::unique_ptr<Storage> storage(new Storage(storageSize));
-        return storage;
-    }
 
 
     void KTX::resetHeader(const Header& header) {
@@ -52,10 +36,84 @@ namespace ktx {
             return;
         }
         auto allocatedImagesDataSize = getTexelsDataSize();
+
+        // Just copy in our storage
+        _images = writeImages(imagesDataPtr, allocatedImagesDataSize, srcImages);
+    }
+
+    std::unique_ptr<KTX> KTX::create(const Header& header, const Images& images, const KeyValues& keyValues) {
+        auto storageSize = evalStorageSize(header, images, keyValues);
+
+        std::unique_ptr<KTX> result(new KTX());
+        
+        result->resetStorage(new Storage(storageSize));
+
+        result->resetHeader(header);
+
+        // read metadata
+        result->_keyValues = keyValues;
+
+        // populate image table
+        result->resetImages(images);
+
+        return result;
+    }
+
+    size_t KTX::evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues) {
+        size_t storageSize = sizeof(Header);
+
+        if (header.bytesOfKeyValueData && !keyValues.empty()) {
+
+        }
+
+        auto numMips = header.getNumberOfLevels();
+        for (uint32_t l = 0; l < numMips; l++) {
+            if (images.size() > l) {
+                storageSize += sizeof(uint32_t);
+                storageSize += images[l]._imageSize;
+                storageSize += Header::evalPadding(images[l]._imageSize);
+            }
+        }
+        return storageSize;
+    }
+
+    size_t KTX::write(Byte* destBytes, size_t destByteSize, const Header& header, const Images& srcImages, const KeyValues& keyValues) {
+        // Check again that we have enough destination capacity
+        if (!destBytes || (destByteSize < evalStorageSize(header, srcImages, keyValues))) {
+            return 0;
+        }
+
+        auto currentDestPtr = destBytes;
+        // Header
+        auto destHeader = reinterpret_cast<Header*>(currentDestPtr);
+        memcpy(currentDestPtr, &header, sizeof(Header));
+        currentDestPtr += sizeof(Header);
+
+        // KeyValues
+        // Skip for now
+        if (header.bytesOfKeyValueData && !keyValues.empty()) {
+
+        }
+        destHeader->bytesOfKeyValueData = 0;
+        currentDestPtr += destHeader->bytesOfKeyValueData;
+
+        // Images
+        auto destImages = writeImages(currentDestPtr, destByteSize - sizeof(Header) - destHeader->bytesOfKeyValueData, srcImages);
+        // We chould check here that the amoutn of dest IMages generated is the same as the source
+
+        return destByteSize;
+    }
+
+    Images KTX::writeImages(Byte* destBytes, size_t destByteSize, const Images& srcImages) {
+        Images destImages;
+        auto imagesDataPtr = destBytes;
+        if (!imagesDataPtr) {
+            return destImages;
+        }
+        auto allocatedImagesDataSize = destByteSize;
         size_t currentDataSize = 0;
         auto currentPtr = imagesDataPtr;
 
-        _images.clear();
 
 
         for (uint32_t l = 0; l < srcImages.size(); l++) {
@@ -72,29 +130,15 @@ namespace ktx {
 
                     auto padding = Header::evalPadding(imageSize);
 
-                    _images.emplace_back(Image(imageSize, padding, currentPtr));
+                    destImages.emplace_back(Image(imageSize, padding, currentPtr));
 
                     currentPtr += imageSize + padding;
                     currentDataSize += imageSize + padding;
                 }
             }
         }
-    }
-
-    std::unique_ptr<KTX> KTX::create(const Header& header, const KeyValues& keyValues, const Images& images) {
-
-        std::unique_ptr<KTX> result(new KTX());
-        result->resetStorage(generateStorage(header, keyValues, images).release());
-
-        result->resetHeader(header);
-
-        // read metadata
-        result->_keyValues = keyValues;
-
-        // populate image table
-        result->resetImages(images);
-
-        return result;
+           
+        return destImages;
     }
 
 }

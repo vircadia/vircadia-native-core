@@ -15,6 +15,9 @@
 #include <QImage>
 #include <QPainter>
 #include <QDebug>
+#include <QStandardPaths>
+#include <QFileInfo>
+#include <QDir>
 
 #include <Profile.h>
 
@@ -273,7 +276,17 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         auto theKTX = Texture::serialize(*theTexture);
         if (theKTX) {
             // save that!
-            std::string filename("C://temp//ktxCache//texmex");
+            QString path("hifi_ktx/");
+            QFileInfo originalFileInfo(path);
+            QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+            path = docsLocation + "/" + path;
+            QFileInfo info(path);
+            if (!info.absoluteDir().exists()) {
+                QString originalRelativePath = originalFileInfo.path();
+                QDir(docsLocation).mkpath(originalRelativePath);
+            }
+
+            std::string filename(path.toStdString());
                 filename += std::to_string((size_t) theTexture);
                 filename += ".ktx";
 
