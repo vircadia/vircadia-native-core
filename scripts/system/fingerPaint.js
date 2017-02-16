@@ -17,7 +17,9 @@
         rightHand,
         leftBrush,
         rightBrush,
-        CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint";
+        CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint",
+        isTabletDisplayed = false,
+        HIFI_GRAB_DISABLE_MESSAGE_CHANNEL = "Hifi-Grab-Disable";
 
     function paintBrush(name) {
         // Paints in 3D.
@@ -94,6 +96,17 @@
         };
     }
 
+    function updateHandControllerGrab() {
+        // Send message to handControllerGrab.js to handle.
+        var enabled = !isFingerPainting || isTabletDisplayed;
+
+        Messages.sendMessage(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL, JSON.stringify({
+            holdEnabled: enabled,
+            nearGrabEnabled: enabled,
+            farGrabEnabled: enabled
+        }));
+    }
+
     function onButtonClicked() {
         var wasFingerPainting = isFingerPainting;
 
@@ -107,6 +120,15 @@
             leftBrush.cancelLine();
             rightBrush.cancelLine();
         }
+
+        updateHandControllerGrab();
+    }
+
+    function onTabletScreenChanged(type, url) {
+        var TABLET_SCREEN_CLOSED = "Closed";
+
+        isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
+        updateHandControllerGrab();
     }
 
     function setUp() {
@@ -123,6 +145,9 @@
             isActive: isFingerPainting
         });
         button.clicked.connect(onButtonClicked);
+
+        // Track whether tablet is displayed or not.
+        tablet.screenChanged.connect(onTabletScreenChanged);
 
         // Connect controller API to handController objects.
         leftHand = handController("left");
@@ -145,6 +170,9 @@
         rightHand.triggerPressing = rightBrush.drawLine;
         rightHand.trigerRelease = rightBrush.finishLine;
         rightHand.gripPressed = rightBrush.eraseLine;
+
+        // Messages channel for disabling/enabling laser pointers and grabbing.
+        Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
     }
 
     function tearDown() {
@@ -154,6 +182,8 @@
 
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
+
+        tablet.screenChanged.disconnect(onTabletScreenChanged);
 
         Controller.disableMapping(CONTROLLER_MAPPING_NAME);
 
@@ -166,6 +196,8 @@
         rightBrush = null;
         rightHand.tearDown();
         rightHand = null;
+
+        Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
     }
 
     setUp();
