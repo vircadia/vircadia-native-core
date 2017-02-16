@@ -330,9 +330,12 @@ var toolBar = (function () {
             that.toggle();
         });
 
-        toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
-        toolBar.writeProperty("shown", false);
-        addButton("openAssetBrowserButton","assets-01.svg",function(){
+        if (Settings.getValue("HUDUIEnabled")) {
+            toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
+            toolBar.writeProperty("shown", false);
+        }
+
+        addButton("openAssetBrowserButton", "assets-01.svg", function(){
             Window.showAssetServer();
         });
 
@@ -543,12 +546,14 @@ var toolBar = (function () {
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
         }
-        // Sets visibility of tool buttons, excluding the power button
-        toolBar.writeProperty("shown", active);
-        var visible = toolBar.readProperty("visible");
-        if (active && !visible) {
-            toolBar.writeProperty("shown", false);
-            toolBar.writeProperty("shown", true);
+        if (Settings.getValue("HUDUIEnabled")) {
+            // Sets visibility of tool buttons, excluding the power button
+            toolBar.writeProperty("shown", active);
+            var visible = toolBar.readProperty("visible");
+            if (active && !visible) {
+                toolBar.writeProperty("shown", false);
+                toolBar.writeProperty("shown", true);
+            }
         }
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
@@ -1593,7 +1598,7 @@ var PropertiesTool = function (opts) {
                 for (i = 0; i < selectionManager.selections.length; i++) {
                     Entities.editEntity(selectionManager.selections[i], properties);
                 }
-            } else {
+            } else if (data.properties) {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
                     data.properties.velocity = {
