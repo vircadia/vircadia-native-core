@@ -11,6 +11,11 @@
 
 #include "EntityNodeData.h"
 
+bool EntityNodeData::insertFlaggedExtraEntity(const QUuid& filteredEntityID, const QUuid& extraEntityID) {
+    _flaggedExtraEntities[filteredEntityID].insert(extraEntityID);
+    return !_previousFlaggedExtraEntities[filteredEntityID].contains(extraEntityID);
+}
+
 bool EntityNodeData::isEntityFlaggedAsExtra(const QUuid& entityID) const {
 
     // enumerate each of the sets for the entities that matched our filter

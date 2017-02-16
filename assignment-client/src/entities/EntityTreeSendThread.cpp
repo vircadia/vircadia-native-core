@@ -35,7 +35,12 @@ void EntityTreeSendThread::preDistributionProcessing() {
                 // we need to either include the ancestors, descendants, or both for entities matching the filter
                 // included in the JSON query
 
+                // first reset our flagged extra entities so we start with an empty set
+                nodeData->resetFlaggedExtraEntities();
+
                 auto entityTree = std::static_pointer_cast<EntityTree>(_myServer->getOctree());
+
+                bool requiresFullScene = false;
 
                 // enumerate the set of entity IDs we know currently match the filter
                 foreach(const QUuid& entityID, nodeData->getSentFilteredEntities()) {
@@ -45,7 +50,7 @@ void EntityTreeSendThread::preDistributionProcessing() {
                         entityTree->withReadLock([&]{
                             auto filteredEntity = entityTree->findEntityByID(entityID);
                             if (filteredEntity) {
-                                addAncestorsToExtraFlaggedEntities(entityID, *filteredEntity, *nodeData);
+                                requiresFullScene |= addAncestorsToExtraFlaggedEntities(entityID, *filteredEntity, *nodeData);
                             }
                         });
                     }
@@ -56,10 +61,19 @@ void EntityTreeSendThread::preDistributionProcessing() {
                         entityTree->withReadLock([&]{
                             auto filteredEntity = entityTree->findEntityByID(entityID);
                             if (filteredEntity) {
-                                addDescendantsToExtraFlaggedEntities(entityID, *filteredEntity, *nodeData);
+                                requiresFullScene |= addDescendantsToExtraFlaggedEntities(entityID, *filteredEntity, *nodeData);
                             }
                         });
                     }
+                }
+
+                if (requiresFullScene) {
+                    // for one or more of the entities matching our filter we found new extra entities to include
+
+                    // because it is possible that one of these entities hasn't changed since our last send
+                    // and therefore would not be recursed to, we need to force a full traversal for this pass
+                    // of the tree to allow it to grab all of the extra entities we're asking it to include
+                    nodeData->setShouldForceFullScene(requiresFullScene);
                 }
             }
 
@@ -67,7 +81,7 @@ void EntityTreeSendThread::preDistributionProcessing() {
     }
 }
 
-void EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filteredEntityID,
+bool EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filteredEntityID,
                                                               EntityItem& entityItem, EntityNodeData& nodeData) {
     // check if this entity has a parent that is also an entity
     bool success = false;
@@ -77,31 +91,48 @@ void EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filte
         // we found a parent that is an entity item
 
         // first add it to the extra list of things we need to send
-        nodeData.insertFlaggedExtraEntity(filteredEntityID, entityParent->getID());
+        bool parentWasNew = nodeData.insertFlaggedExtraEntity(filteredEntityID, entityParent->getID());
 
 //        qDebug() << "Adding" << entityParent->getID() << "which is an ancestor of" << filteredEntityID;
 
         // now recursively call ourselves to get its ancestors added too
         auto parentEntityItem = std::static_pointer_cast<EntityItem>(entityParent);
-        addAncestorsToExtraFlaggedEntities(filteredEntityID, *parentEntityItem, nodeData);
+        bool ancestorsWereNew = addAncestorsToExtraFlaggedEntities(filteredEntityID, *parentEntityItem, nodeData);
+
+        // return boolean if our parent or any of our ancestors were new additions (via insertFlaggedExtraEntity)
+        return parentWasNew || ancestorsWereNew;
     }
+
+    // since we didn't have a parent niether of our parents or ancestors could be new additions
+    return false;
 }
 
-void EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& filteredEntityID,
+bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& filteredEntityID,
                                                                 EntityItem& entityItem, EntityNodeData& nodeData) {
+    bool hasNewChild = false;
+    bool hasNewDescendants = false;
+
     // enumerate the immediate children of this entity
     foreach (SpatiallyNestablePointer child, entityItem.getChildren()) {
+
+
         if (child && child->getNestableType() == NestableType::Entity) {
             // this is a child that is an entity
 
             // first add it to the extra list of things we need to send
-            nodeData.insertFlaggedExtraEntity(filteredEntityID, child->getID());
+            hasNewChild |= nodeData.insertFlaggedExtraEntity(filteredEntityID, child->getID());
 
 //            qDebug() << "Adding" << child->getID() <<  "which is a descendant of" << filteredEntityID;
 
             // now recursively call ourselves to get its descendants added too
             auto childEntityItem = std::static_pointer_cast<EntityItem>(child);
-            addDescendantsToExtraFlaggedEntities(filteredEntityID, *childEntityItem, nodeData);
+            hasNewDescendants |= addDescendantsToExtraFlaggedEntities(filteredEntityID, *childEntityItem, nodeData);
         }
     }
+
+    // return our boolean indicating if we added new children or descendants as extra entities to send
+    // (via insertFlaggedExtraEntity)
+    return hasNewChild || hasNewDescendants;
 }
+
+

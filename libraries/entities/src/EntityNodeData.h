@@ -36,15 +36,19 @@ public:
     bool sentFilteredEntity(const QUuid& entityID) { return _sentFilteredEntities.contains(entityID); }
     QSet<QUuid> getSentFilteredEntities() { return _sentFilteredEntities; }
 
-    // these can only be called from the OctreeSendThread for the given Node
-    void insertFlaggedExtraEntity(const QUuid& filteredEntityID, const QUuid& extraEntityID)
-        { _flaggedExtraEntities[filteredEntityID].insert(extraEntityID); }
+    // the following flagged extra entity methods can only be called from the OctreeSendThread for the given Node
+
+    // inserts the extra entity and returns a boolean indicating wether the extraEntityID was a new addition
+    bool insertFlaggedExtraEntity(const QUuid& filteredEntityID, const QUuid& extraEntityID);
+    
     bool isEntityFlaggedAsExtra(const QUuid& entityID) const;
+    void resetFlaggedExtraEntities() { _previousFlaggedExtraEntities = _flaggedExtraEntities; _flaggedExtraEntities.clear(); }
 
 private:
     quint64 _lastDeletedEntitiesSentAt { usecTimestampNow() };
     QSet<QUuid> _sentFilteredEntities;
     QHash<QUuid, QSet<QUuid>> _flaggedExtraEntities;
+    QHash<QUuid, QSet<QUuid>> _previousFlaggedExtraEntities;
 };
 
 #endif // hifi_EntityNodeData_h
