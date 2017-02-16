@@ -88,17 +88,51 @@ void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const Shar
 #include <chrono>
 #include <thread>
 
+std::chrono::microseconds AvatarMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {
+    // advance the next frame
+    auto nextTimestamp = timestamp + std::chrono::microseconds((int)((float)USECS_PER_SECOND / (float)AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND));
+    auto now = p_high_resolution_clock::now();
+
+    // compute how long the last frame took
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - timestamp);
+
+    // set the new frame timestamp
+    timestamp = std::max(now, nextTimestamp);
+
+    // sleep until the next frame should start
+    // WIN32 sleep_until is broken until VS2015 Update 2
+    // instead, std::max (above) guarantees that timestamp >= now, so we can sleep_for
+    std::this_thread::sleep_for(timestamp - now);
+
+    return duration;
+}
+
+
 void AvatarMixer::start() {
 
     auto nodeList = DependencyManager::get<NodeList>();
+
+    auto frameTimestamp = p_high_resolution_clock::now();
 
     while (!_isFinished) {
         _numTightLoopFrames++;
         _loopRate.increment();
 
-        // FIXME - we really should sleep for the remainder of what we haven't spent time processing
-        auto sleepAmount = std::chrono::milliseconds(AVATAR_DATA_SEND_INTERVAL_MSECS);
-        std::this_thread::sleep_for(sleepAmount);
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // DO THIS FIRST!!!!!!!!
+        //
+        // DONE --- 1) only sleep for remainder
+        // 2) clean up stats, add slave stats
+        // 3) delete dead code from mixer (now that it's in slave)
+        // 4) audit the locking and side-effects to node, otherNode, and nodeData
+        // 5) throttling??
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        // calculates last frame duration and sleeps for the remainder of the target amount
+        auto frameDuration = timeFrame(frameTimestamp);
 
         // Allow nodes to process any pending/queued packets across our worker threads
         {
@@ -201,9 +235,9 @@ static void avatarLoops();
 static const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16;
 
 
-// NOTE: some additional optimizations to consider.
-//    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
-//       if the avatar is not in view or in the keyhole.
+// FIXME -- this is dead code... it needs to be removed... 
+// this "throttle" logic is the old approach. need to consider some
+// reasonable throttle approach in new multi-core design
 void AvatarMixer::broadcastAvatarData() {
     quint64 startBroadcastAvatarData = usecTimestampNow();
     _broadcastRate.increment();
@@ -269,7 +303,7 @@ void AvatarMixer::broadcastAvatarData() {
         ++framesSinceCutoffEvent;
     }
 
-    avatarLoops();
+    //avatarLoops();
 
     _lastFrameTimestamp = p_high_resolution_clock::now();
 
@@ -286,355 +320,6 @@ void AvatarMixer::broadcastAvatarData() {
 
     quint64 endBroadcastAvatarData = usecTimestampNow();
     _broadcastAvatarDataElapsedTime += (endBroadcastAvatarData - startBroadcastAvatarData);
-}
-
-static void avatarLoopsInner(NodeList::const_iterator cbegin, NodeList::const_iterator cend);
-
-static void avatarLoops() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
-        avatarLoopsInner(cbegin, cend);
-    });
-}
-
-static void avatarLoopsInner(NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    // setup for distributed random floating point values
-    std::random_device randomDevice;
-    std::mt19937 generator(randomDevice());
-    std::uniform_real_distribution<float> distribution;
-
-    std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-        if (node->getLinkedData() && (node->getType() == NodeType::Agent) && node->getActiveSocket()) {
-            AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-            MutexTryLocker lock(nodeData->getMutex());
-
-            // FIXME????
-            if (!lock.isLocked()) {
-                return;
-            }
-            
-            // FIXME -- mixer data
-            // ++_sumListeners;
-
-            nodeData->resetInViewStats();
-
-            const AvatarData& avatar = nodeData->getAvatar();
-            glm::vec3 myPosition = avatar.getClientGlobalPosition();
-
-            // reset the internal state for correct random number distribution
-            distribution.reset();
-
-            // reset the max distance for this frame
-            float maxAvatarDistanceThisFrame = 0.0f;
-
-            // reset the number of sent avatars
-            nodeData->resetNumAvatarsSentLastFrame();
-
-            // keep a counter of the number of considered avatars
-            int numOtherAvatars = 0;
-
-            // keep track of outbound data rate specifically for avatar data
-            int numAvatarDataBytes = 0;
-
-            // keep track of the number of other avatars held back in this frame
-            int numAvatarsHeldBack = 0;
-
-            // keep track of the number of other avatar frames skipped
-            int numAvatarsWithSkippedFrames = 0;
-
-            // use the data rate specifically for avatar data for FRD adjustment checks
-            float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
-
-            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that are not in the view frustrum
-            bool getsOutOfView = nodeData->getRequestsDomainListData();
-
-            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that they've ignored
-            bool getsIgnoredByMe = getsOutOfView;
-            
-            // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
-            bool getsAnyIgnored = getsIgnoredByMe && node->getCanKick();
-
-            // Check if it is time to adjust what we send this client based on the observed
-            // bandwidth to this node. We do this once a second, which is also the window for
-            // the bandwidth reported by node->getOutboundBandwidth();
-            if (nodeData->getNumFramesSinceFRDAdjustment() > AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) {
-
-                const float FRD_ADJUSTMENT_ACCEPTABLE_RATIO = 0.8f;
-                const float HYSTERISIS_GAP = (1 - FRD_ADJUSTMENT_ACCEPTABLE_RATIO);
-                const float HYSTERISIS_MIDDLE_PERCENTAGE =  (1 - (HYSTERISIS_GAP * 0.5f));
-
-                // get the current full rate distance so we can work with it
-                float currentFullRateDistance = nodeData->getFullRateDistance();
-
-                // FIXME -- mixer data
-                float _maxKbpsPerNode = 5000.0f;
-                if (avatarDataRateLastSecond > _maxKbpsPerNode) {
-
-                    // is the FRD greater than the farthest avatar?
-                    // if so, before we calculate anything, set it to that distance
-                    currentFullRateDistance = std::min(currentFullRateDistance, nodeData->getMaxAvatarDistance());
-
-                    // we're adjusting the full rate distance to target a bandwidth in the middle
-                    // of the hysterisis gap
-                    currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond;
-
-                    nodeData->setFullRateDistance(currentFullRateDistance);
-                    nodeData->resetNumFramesSinceFRDAdjustment();
-                } else if (currentFullRateDistance < nodeData->getMaxAvatarDistance()
-                           && avatarDataRateLastSecond < _maxKbpsPerNode * FRD_ADJUSTMENT_ACCEPTABLE_RATIO) {
-                    // we are constrained AND we've recovered to below the acceptable ratio
-                    // lets adjust the full rate distance to target a bandwidth in the middle of the hyterisis gap
-                    currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond;
-
-                    nodeData->setFullRateDistance(currentFullRateDistance);
-                    nodeData->resetNumFramesSinceFRDAdjustment();
-                }
-            } else {
-                nodeData->incrementNumFramesSinceFRDAdjustment();
-            }
-
-            // setup a PacketList for the avatarPackets
-            auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
-
-            // this is an AGENT we have received head data from
-            // send back a packet with other active node data to this node
-            std::for_each(cbegin, cend, [&](const SharedNodePointer& otherNode) {
-                bool shouldConsider = false;
-                quint64 startIgnoreCalculation = usecTimestampNow();
-
-                // make sure we have data for this avatar, that it isn't the same node,
-                // and isn't an avatar that the viewing node has ignored
-                // or that has ignored the viewing node
-                if (!otherNode->getLinkedData()
-                    || otherNode->getUUID() == node->getUUID()
-                    || (node->isIgnoringNodeWithID(otherNode->getUUID()) && !getsIgnoredByMe)
-                    || (otherNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
-
-                    shouldConsider = false;
-
-                } else {
-                    AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-                    // Check to see if the space bubble is enabled
-                    if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
-                        // Define the minimum bubble size
-                        static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
-                        // Define the scale of the box for the current node
-                        glm::vec3 nodeBoxScale = (nodeData->getPosition() - nodeData->getGlobalBoundingBoxCorner()) * 2.0f;
-                        // Define the scale of the box for the current other node
-                        glm::vec3 otherNodeBoxScale = (otherData->getPosition() - otherData->getGlobalBoundingBoxCorner()) * 2.0f;
-
-                        // Set up the bounding box for the current node
-                        AABox nodeBox(nodeData->getGlobalBoundingBoxCorner(), nodeBoxScale);
-                        // Clamp the size of the bounding box to a minimum scale
-                        if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
-                            nodeBox.setScaleStayCentered(minBubbleSize);
-                        }
-                        // Set up the bounding box for the current other node
-                        AABox otherNodeBox(otherData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                        // Clamp the size of the bounding box to a minimum scale
-                        if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
-                            otherNodeBox.setScaleStayCentered(minBubbleSize);
-                        }
-                        // Quadruple the scale of both bounding boxes
-                        nodeBox.embiggen(4.0f);
-                        otherNodeBox.embiggen(4.0f);
-
-                        // Perform the collision check between the two bounding boxes
-                        if (nodeBox.touches(otherNodeBox)) {
-                            nodeData->ignoreOther(node, otherNode);
-                            shouldConsider = getsAnyIgnored;
-                        }
-                    }
-                    // Not close enough to ignore
-                    if (shouldConsider) {
-                        nodeData->removeFromRadiusIgnoringSet(node, otherNode->getUUID());
-                    }
-
-                    shouldConsider = true;
-
-                    quint64 endIgnoreCalculation = usecTimestampNow();
-                    // FIXME -- mixer data
-                    //_ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
-                }
-
-                if (shouldConsider) {
-                    quint64 startAvatarDataPacking = usecTimestampNow();
-
-                    ++numOtherAvatars;
-
-                    AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                    MutexTryLocker lock(otherNodeData->getMutex());
-
-                    // FIXME -- might want to track this lock failed...
-                    if (!lock.isLocked()) {
-
-                        quint64 endAvatarDataPacking = usecTimestampNow();
-
-                        // FIXME - mixer data
-                        //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                        return;
-                    }
-
-                    // make sure we send out identity packets to and from new arrivals.
-                    bool forceSend = !otherNodeData->checkAndSetHasReceivedFirstPacketsFrom(node->getUUID());
-
-                    if (otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
-                        && (forceSend
-                            //|| otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp  // FIXME - mixer data
-                            || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
-
-                        // FIXME --- used to be.../ mixer data dependency
-                        //sendIdentityPacket(otherNodeData, node);
-
-                        QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
-                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
-                        individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNodeData->getNodeID().toRfc4122());
-                        identityPacket->write(individualData);
-                        DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *node);
-                    }
-
-                    const AvatarData& otherAvatar = otherNodeData->getAvatar();
-                    //  Decide whether to send this avatar's data based on it's distance from us
-
-                    //  The full rate distance is the distance at which EVERY update will be sent for this avatar
-                    //  at twice the full rate distance, there will be a 50% chance of sending this avatar's update
-                    glm::vec3 otherPosition = otherAvatar.getClientGlobalPosition();
-                    float distanceToAvatar = glm::length(myPosition - otherPosition);
-
-                    // potentially update the max full rate distance for this frame
-                    maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
-
-                    if (distanceToAvatar != 0.0f
-                        && !getsOutOfView
-                        && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
-
-                        quint64 endAvatarDataPacking = usecTimestampNow();
-                        // FIXME - mixer data
-                        //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                        return;
-                    }
-
-                    AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
-                    AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
-
-                    if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
-                        // we got out out of order packets from the sender, track it
-                        otherNodeData->incrementNumOutOfOrderSends();
-                    }
-
-                    // make sure we haven't already sent this data from this sender to this receiver
-                    // or that somehow we haven't sent
-                    if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                        ++numAvatarsHeldBack;
-
-                        quint64 endAvatarDataPacking = usecTimestampNow();
-                        // FIXME - mixer data
-                        //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                        return;
-                    } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
-                        // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
-                        ++numAvatarsWithSkippedFrames;
-                    }
-
-                    // we're going to send this avatar
-
-                    // increment the number of avatars sent to this reciever
-                    nodeData->incrementNumAvatarsSentLastFrame();
-
-                    // set the last sent sequence number for this sender on the receiver
-                    nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                                                             otherNodeData->getLastReceivedSequenceNumber());
-
-                    // determine if avatar is in view, to determine how much data to include...
-                    glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
-                    AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                    bool isInView = nodeData->otherAvatarInView(otherNodeBox);
-
-                    // this throttles the extra data to only be sent every Nth message
-                    if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
-                        quint64 endAvatarDataPacking = usecTimestampNow();
-                        // FIXME - mixer data
-                        //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                        return;
-                    }
-
-                    // start a new segment in the PacketList for this avatar
-                    avatarPacketList->startSegment();
-
-                    AvatarData::AvatarDataDetail detail;
-                    if (!isInView && !getsOutOfView) {
-                        detail = AvatarData::MinimumData;
-                        nodeData->incrementAvatarOutOfView();
-                    } else {
-                        detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
-                                        ? AvatarData::SendAllData : AvatarData::CullSmallData;
-                        nodeData->incrementAvatarInView();
-                    }
-
-                    numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-                    auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
-                    QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
-                    bool distanceAdjust = true;
-                    glm::vec3 viewerPosition = myPosition;
-                    QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-                    numAvatarDataBytes += avatarPacketList->write(bytes);
-
-                    avatarPacketList->endSegment();
-
-                    quint64 endAvatarDataPacking = usecTimestampNow();
-                    // FIXME - mixer data
-                    //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                }
-            });
-
-            quint64 startPacketSending = usecTimestampNow();
-            
-            // close the current packet so that we're always sending something
-            avatarPacketList->closeCurrentPacket(true);
-
-            // send the avatar data PacketList
-            nodeList->sendPacketList(std::move(avatarPacketList), *node);
-
-            // record the bytes sent for other avatar data in the AvatarMixerClientData
-            nodeData->recordSentAvatarData(numAvatarDataBytes);
-
-            // record the number of avatars held back this frame
-            nodeData->recordNumOtherAvatarStarves(numAvatarsHeldBack);
-            nodeData->recordNumOtherAvatarSkips(numAvatarsWithSkippedFrames);
-
-            if (numOtherAvatars == 0) {
-                // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send
-                nodeData->setMaxAvatarDistance(FLT_MAX);
-            } else {
-                nodeData->setMaxAvatarDistance(maxAvatarDistanceThisFrame);
-            }
-
-            quint64 endPacketSending = usecTimestampNow();
-            // FIXME - mixer data
-            //_packetSendingElapsedTime += (endPacketSending - startPacketSending);
-
-        }
-    });
-
-    // We're done encoding this version of the otherAvatars.  Update their "lastSent" joint-states so
-    // that we can notice differences, next time around.
-    //
-    // FIXME - this seems suspicious, the code seems to consider all avatars, but not all avatars will
-    // have had their joints sent, so actually we should consider the time since they actually were sent????
-    std::for_each(cbegin, cend, [&](const SharedNodePointer& otherNode) {
-        if (otherNode->getLinkedData() && (otherNode->getType() == NodeType::Agent) && otherNode->getActiveSocket()) {
-            AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-            MutexTryLocker lock(otherNodeData->getMutex());
-            if (!lock.isLocked()) {
-                return;
-            }
-            AvatarData& otherAvatar = otherNodeData->getAvatar();
-            otherAvatar.doneEncoding(false);
-        }
-    });
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -774,18 +459,11 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["threads"] = _slavePool.numThreads();
 
     statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
-
     statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
 
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
-    statsObject["broadcast_loop_rate"] = _broadcastRate.rate();
-    statsObject["tight_loop_rate"] = _loopRate.rate();
-
-    // broadcastAvatarDataElapsed timing details...
-    statsObject["timing_average_b_ignoreCalculation"] = (float)_ignoreCalculationElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_c_avatarDataPacking"] = (float)_avatarDataPackingElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_d_packetSending"] = (float)_packetSendingElapsedTime / (float)_numStatFrames;
+    statsObject["broadcast_loop_rate"] = _loopRate.rate();
 
     // this things all occur on the frequency of the tight loop
     int tightLoopFrames = _numTightLoopFrames;
@@ -810,22 +488,36 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_sendStats"] = (float)_sendStatsElapsedTime;
 
 
+    AvatarMixerSlaveStats aggregateStats;
+
     QJsonObject slavesObject;
     // gather stats
     int slaveNumber = 1;
     _slavePool.each([&](AvatarMixerSlave& slave) {
         QJsonObject slaveObject;
-        int nodesProcessed, packetsProcessed;
-        quint64 processIncomingPacketsElapsedTime;
-        slave.harvestStats(nodesProcessed, packetsProcessed, processIncomingPacketsElapsedTime);
-        slaveObject["nodesProcessed"] = TIGHT_LOOP_STAT(nodesProcessed);
-        slaveObject["packetsProcessed"] = TIGHT_LOOP_STAT(packetsProcessed);
-        slaveObject["timing_average_processIncomingPackets"] = TIGHT_LOOP_STAT(processIncomingPacketsElapsedTime);
+        AvatarMixerSlaveStats stats;
+        slave.harvestStats(stats);
+        slaveObject["nodesProcessed"] = TIGHT_LOOP_STAT(stats.nodesProcessed);
+        slaveObject["packetsProcessed"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
+        slaveObject["processIncomingPackets"] = TIGHT_LOOP_STAT(stats.processIncomingPacketsElapsedTime);
+        slaveObject["ignoreCalculation"] = TIGHT_LOOP_STAT(stats.ignoreCalculationElapsedTime);
+        slaveObject["avatarDataPacking"] = TIGHT_LOOP_STAT(stats.avatarDataPackingElapsedTime);
+        slaveObject["packetSending"] = TIGHT_LOOP_STAT(stats.packetSendingElapsedTime);
 
         slavesObject[QString::number(slaveNumber)] = slaveObject;
         slaveNumber++;
+
+        aggregateStats += stats;
     });
     statsObject["timing_slaves"] = slavesObject;
+
+    // broadcastAvatarDataElapsed timing details...
+    statsObject["timing_aggregate_nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
+    statsObject["timing_aggregate_packetsProcessed"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
+    statsObject["timing_aggregate_processIncomingPackets"] = TIGHT_LOOP_STAT(aggregateStats.processIncomingPacketsElapsedTime);
+    statsObject["timing_aggregate_ignoreCalculation"] = TIGHT_LOOP_STAT(aggregateStats.ignoreCalculationElapsedTime);
+    statsObject["timing_aggregate_avatarDataPacking"] = TIGHT_LOOP_STAT(aggregateStats.avatarDataPackingElapsedTime);
+    statsObject["timing_aggregate_packetSending"] = TIGHT_LOOP_STAT(aggregateStats.packetSendingElapsedTime);
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarDataPacketElapsedTime = 0;

@@ -21,6 +21,37 @@
 #include <NodeList.h>
 */
 
+class AvatarMixerSlaveStats {
+public:
+    int nodesProcessed { 0 };
+    int packetsProcessed { 0 };
+    quint64 processIncomingPacketsElapsedTime { 0 };
+
+    quint64 ignoreCalculationElapsedTime { 0 };
+    quint64 avatarDataPackingElapsedTime { 0 };
+    quint64 packetSendingElapsedTime { 0 };
+
+    void reset() {
+        nodesProcessed = 0;
+        packetsProcessed = 0;
+        processIncomingPacketsElapsedTime = 0;
+        ignoreCalculationElapsedTime = 0;
+        avatarDataPackingElapsedTime = 0;
+        packetSendingElapsedTime = 0;
+    }
+
+    AvatarMixerSlaveStats& operator+=(const AvatarMixerSlaveStats& rhs) {
+        nodesProcessed += rhs.nodesProcessed;
+        packetsProcessed += rhs.packetsProcessed;
+        processIncomingPacketsElapsedTime += rhs.processIncomingPacketsElapsedTime;
+        ignoreCalculationElapsedTime += rhs.ignoreCalculationElapsedTime;
+        avatarDataPackingElapsedTime += rhs.avatarDataPackingElapsedTime;
+        packetSendingElapsedTime += rhs.packetSendingElapsedTime;
+        return *this;
+    }
+
+};
+
 class AvatarMixerSlave {
 public:
     using ConstIter = NodeList::const_iterator;
@@ -30,16 +61,14 @@ public:
     void processIncomingPackets(const SharedNodePointer& node);
     void anotherJob(const SharedNodePointer& node);
 
-    void harvestStats(int& nodesProcessed, int& packetsProcessed, quint64& processIncomingPacketsElapsedTime);
+    void harvestStats(AvatarMixerSlaveStats& stats);
 
 private:
     // frame state
     ConstIter _begin;
     ConstIter _end;
 
-    int _nodesProcessed { 0 };
-    int _packetsProcessed { 0 };
-    quint64 _processIncomingPacketsElapsedTime { 0 };
+    AvatarMixerSlaveStats _stats;
 };
 
 #endif // hifi_AvatarMixerSlave_h

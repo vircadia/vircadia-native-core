@@ -55,6 +55,8 @@ private slots:
 
 private:
     AvatarMixerClientData* getOrCreateClientData(SharedNodePointer node);
+    std::chrono::microseconds AvatarMixer::timeFrame(p_high_resolution_clock::time_point& timestamp);
+
 
     void broadcastAvatarData();
     void parseDomainServerSettings(const QJsonObject& domainSettings);

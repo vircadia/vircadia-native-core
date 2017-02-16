@@ -35,12 +35,9 @@ void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _end = end;
 }
 
-void AvatarMixerSlave::harvestStats(int& nodesProcessed, int& packetsProcessed, quint64& processIncomingPacketsElapsedTime) {
-    nodesProcessed = _nodesProcessed;
-    packetsProcessed = _packetsProcessed;
-    processIncomingPacketsElapsedTime = _processIncomingPacketsElapsedTime;
-    _packetsProcessed = _nodesProcessed = 0;
-    _processIncomingPacketsElapsedTime = 0;
+void AvatarMixerSlave::harvestStats(AvatarMixerSlaveStats& stats) {
+    stats = _stats;
+    _stats.reset();
 }
 
 
@@ -48,11 +45,11 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     auto start = usecTimestampNow();
     auto nodeData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
     if (nodeData) {
-        _nodesProcessed++;
-        _packetsProcessed += nodeData->processPackets();
+        _stats.nodesProcessed++;
+        _stats.packetsProcessed += nodeData->processPackets();
     }
     auto end = usecTimestampNow();
-    _processIncomingPacketsElapsedTime += (end - start);
+    _stats.processIncomingPacketsElapsedTime += (end - start);
 }
 
 #include <random>
@@ -235,8 +232,7 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
                 shouldConsider = true;
 
                 quint64 endIgnoreCalculation = usecTimestampNow();
-                // FIXME -- mixer data
-                //_ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
+                _stats.ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
             }
 
             //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << "shouldConsider:" << shouldConsider;
@@ -252,11 +248,6 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
 
                 // FIXME -- might want to track this lock failed...
                 if (!lock.isLocked()) {
-
-                    quint64 endAvatarDataPacking = usecTimestampNow();
-
-                    // FIXME - mixer data
-                    //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                     //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << " failed to lock... would BAIL??... line:" << __LINE__;
                     //return;
                 }
@@ -291,89 +282,92 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
                 // potentially update the max full rate distance for this frame
                 maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
 
+                // FIXME-- understand this code... WHAT IS IT DOING!!!
                 if (distanceToAvatar != 0.0f
                     && !getsOutOfView
                     && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
 
                     quint64 endAvatarDataPacking = usecTimestampNow();
-                    // FIXME - mixer data
-                    //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                    //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << " distance/getsOutOfView... BAILING... line:" << __LINE__;
-                    return;
+                    _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
+                    qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
+                    shouldConsider = false;
                 }
 
-                AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
-                AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
+                if (shouldConsider) {
+                    AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
+                    AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
-                if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
-                    // we got out out of order packets from the sender, track it
-                    otherNodeData->incrementNumOutOfOrderSends();
+                    if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
+                        // we got out out of order packets from the sender, track it
+                        otherNodeData->incrementNumOutOfOrderSends();
+                    }
+
+                    // make sure we haven't already sent this data from this sender to this receiver
+                    // or that somehow we haven't sent
+                    if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
+                        ++numAvatarsHeldBack;
+
+                        quint64 endAvatarDataPacking = usecTimestampNow();
+                        _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
+                        qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
+                        shouldConsider = false;
+                    } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
+                        // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
+                        ++numAvatarsWithSkippedFrames;
+                    }
+
+                    // we're going to send this avatar
+                    if (shouldConsider) {
+                        // increment the number of avatars sent to this reciever
+                        nodeData->incrementNumAvatarsSentLastFrame(); // FIXME - this seems weird...
+
+                        // set the last sent sequence number for this sender on the receiver
+                        nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
+                            otherNodeData->getLastReceivedSequenceNumber());
+
+                        // determine if avatar is in view, to determine how much data to include...
+                        glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+                        AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+                        bool isInView = nodeData->otherAvatarInView(otherNodeBox);
+
+                        // this throttles the extra data to only be sent every Nth message
+                        if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
+                            quint64 endAvatarDataPacking = usecTimestampNow();
+
+                            _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
+                            qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
+                            shouldConsider = false;
+                        }
+
+                        if (shouldConsider) {
+                            // start a new segment in the PacketList for this avatar
+                            avatarPacketList->startSegment();
+
+                            AvatarData::AvatarDataDetail detail;
+                            if (!isInView && !getsOutOfView) {
+                                detail = AvatarData::MinimumData;
+                                nodeData->incrementAvatarOutOfView();
+                            } else {
+                                detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
+                                    ? AvatarData::SendAllData : AvatarData::CullSmallData;
+                                nodeData->incrementAvatarInView();
+                            }
+
+                            numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
+                            auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
+                            QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+                            bool distanceAdjust = true;
+                            glm::vec3 viewerPosition = myPosition;
+                            QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+                            numAvatarDataBytes += avatarPacketList->write(bytes);
+
+                            avatarPacketList->endSegment();
+
+                            quint64 endAvatarDataPacking = usecTimestampNow();
+                            _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
+                        }
+                    }
                 }
-
-                // make sure we haven't already sent this data from this sender to this receiver
-                // or that somehow we haven't sent
-                if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                    ++numAvatarsHeldBack;
-
-                    quint64 endAvatarDataPacking = usecTimestampNow();
-                    // FIXME - mixer data
-                    //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                    //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << " lastSeqToReceiver... BAILING... line:" << __LINE__;
-                    return;
-                } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
-                    // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
-                    ++numAvatarsWithSkippedFrames;
-                }
-
-                // we're going to send this avatar
-
-                // increment the number of avatars sent to this reciever
-                nodeData->incrementNumAvatarsSentLastFrame();
-
-                // set the last sent sequence number for this sender on the receiver
-                nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                    otherNodeData->getLastReceivedSequenceNumber());
-
-                // determine if avatar is in view, to determine how much data to include...
-                glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
-                AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                bool isInView = nodeData->otherAvatarInView(otherNodeBox);
-
-                // this throttles the extra data to only be sent every Nth message
-                if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
-                    quint64 endAvatarDataPacking = usecTimestampNow();
-                    // FIXME - mixer data
-                    //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                    //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << " isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)... BAILING... line:" << __LINE__;
-                    return;
-                }
-
-                // start a new segment in the PacketList for this avatar
-                avatarPacketList->startSegment();
-
-                AvatarData::AvatarDataDetail detail;
-                if (!isInView && !getsOutOfView) {
-                    detail = AvatarData::MinimumData;
-                    nodeData->incrementAvatarOutOfView();
-                } else {
-                    detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
-                        ? AvatarData::SendAllData : AvatarData::CullSmallData;
-                    nodeData->incrementAvatarInView();
-                }
-
-                numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-                auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
-                QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
-                bool distanceAdjust = true;
-                glm::vec3 viewerPosition = myPosition;
-                QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-                numAvatarDataBytes += avatarPacketList->write(bytes);
-
-                avatarPacketList->endSegment();
-
-                quint64 endAvatarDataPacking = usecTimestampNow();
-                // FIXME - mixer data
-                //_avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
             }
         });
 
@@ -401,8 +395,7 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
         }
 
         quint64 endPacketSending = usecTimestampNow();
-        // FIXME - mixer data
-        //_packetSendingElapsedTime += (endPacketSending - startPacketSending);
+        _stats.packetSendingElapsedTime += (endPacketSending - startPacketSending);
     }
 }
 
