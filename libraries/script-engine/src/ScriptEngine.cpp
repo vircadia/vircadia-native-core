@@ -70,6 +70,10 @@
 
 #include "MIDIEvent.h"
 
+const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_MODULE_COMPAT {
+    "com.highfidelity.experimental.enableExtendedModuleCompatbility"
+};
+
 static const QScriptEngine::QObjectWrapOptions DEFAULT_QOBJECT_WRAP_OPTIONS =
                 QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects;
 static const QScriptValue::PropertyFlags READONLY_PROP_FLAGS { QScriptValue::ReadOnly | QScriptValue::Undeletable };
@@ -532,6 +536,44 @@ static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
     return prototype;
 }
 
+void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "resetModuleCache");
+        return;
+    }
+    {
+        QMutexLocker locker(&_requireLock);
+        auto jsRequire = globalObject().property("Script").property("require");
+        auto cache = jsRequire.property("cache");
+        auto cacheMeta = jsRequire.data();
+
+        if (deleteScriptCache) {
+            QScriptValueIterator it(cache);
+            while (it.hasNext()) {
+                it.next();
+                if (it.flags() & QScriptValue::SkipInEnumeration)
+                    continue;
+                //scriptCache->deleteScript(it.name());
+                qCDebug(scriptengine) << "resetModuleCache(true) -- staging " << it.name() << " for cache reset at next require";
+                cacheMeta.setProperty(it.name(), true);
+            }
+        }
+        //_debugDump("cacheMeta", cacheMeta);
+        cache = newObject();
+        if (!cacheMeta.isObject()) {
+            cacheMeta = newObject();
+            cacheMeta.setProperty("id", "Script.require.cacheMeta");
+            cacheMeta.setProperty("type", "cacheMeta");
+            jsRequire.setData(cacheMeta);
+        }
+        cache.setProperty("__created__", (double)QDateTime::currentMSecsSinceEpoch(), QScriptValue::SkipInEnumeration);
+#if DEBUG_JS_MODULES
+        cache.setProperty("__meta__", cacheMeta, HIDDEN_PROP_FLAGS);
+#endif
+        jsRequire.setProperty("cache", cache, QScriptValue::ReadOnly | QScriptValue::Undeletable);
+    }
+}
+
 void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
@@ -594,6 +636,15 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, wscReadyStateToScriptValue, wscReadyStateFromScriptValue);
 
     registerGlobalObject("Script", this);
+
+    {
+        // set up Script.require.resolve and Script.require.cache
+        auto Script = globalObject().property("Script");
+        auto require = Script.property("require");
+        auto resolve = Script.property("_requireResolve");
+        require.setProperty("resolve", resolve, QScriptValue::ReadOnly | QScriptValue::Undeletable);
+        resetModuleCache();
+    }
 
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
     registerGlobalObject("Entities", entityScriptingInterface.data());
@@ -1302,6 +1353,419 @@ QUrl ScriptEngine::resourcesPath() const {
 
 void ScriptEngine::print(const QString& message) {
     emit printedMessage(message);
+}
+
+static const auto MAX_MODULE_IDENTIFIER_LEN { 4096 };
+static const auto MAX_MODULE_IDENTIFIER_LOG_LEN { 60 };
+
+// Script.require.resolve -- like resolvePath, but performs more validation and throws exceptions on invalid module identifiers (for consistency with Node.js)
+QString ScriptEngine::_requireResolve(const QString& moduleId, const QString& relativeTo) {
+    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    QUrl url(moduleId);
+
+    // helper to generate an exception and return a null string
+    auto resolverException = [=](const QString& detail) -> QString {
+        currentContext()->throwError(
+            QString("Cannot find module '%1' (%2)")
+            .arg(moduleId.left(MAX_MODULE_IDENTIFIER_LOG_LEN))
+            .arg(detail));
+        return QString();
+    };
+
+    // de-fuzz the input a little by restricting to rational sizes
+    auto idLength = url.toString().length();
+    if (idLength < 1 || idLength > MAX_MODULE_IDENTIFIER_LEN) {
+        return resolverException(
+            QString("rejecting invalid module id size (%1 chars [1,%2])")
+                .arg(idLength).arg(MAX_MODULE_IDENTIFIER_LEN)
+        );
+    }
+
+    // this regex matches: absolute, dotted or path-like URLs
+    // (ie: the kind of stuff ScriptEngine::resolvePath already handles)
+    QRegularExpression qualified ("^\\w+:|^/|^[.]{1,2}(/|$)");
+
+    // this is for module.require (which is a bound version of require that's always relative to the module path)
+    if (!relativeTo.isEmpty()) {
+        url = QUrl(relativeTo).resolved(moduleId);
+        url = resolvePath(url.toString());
+    } else if (qualified.match(moduleId).hasMatch()) {
+        url = resolvePath(moduleId);
+    } else {
+        // check if the moduleId refers to a "system" module
+        QString defaultsPath = defaultScriptsLoc.path();
+        QString systemModulePath = QString("%1/modules/%2.js").arg(defaultsPath).arg(moduleId);
+        url = defaultScriptsLoc;
+        url.setPath(systemModulePath);
+        if (!QFileInfo(url.toLocalFile()).isFile()) {
+            return resolverException("system module not found");
+        }
+    }
+
+    if (url.isRelative()) {
+        return resolverException("could not resolve module id");
+    }
+
+    // if it looks like a local file, verify that it's an allowed path and really a file
+    if (url.isLocalFile()) {
+        QFileInfo file(url.toLocalFile());
+        QUrl canonical = url;
+        if (file.exists()) {
+            canonical.setPath(file.canonicalFilePath());
+        }
+
+        bool disallowOutsideFiles = !defaultScriptsLocation().isParentOf(canonical) && !currentSandboxURL.isLocalFile();
+        if (disallowOutsideFiles && !PathUtils::isDescendantOf(canonical, currentSandboxURL)) {
+            return resolverException(
+                QString("path '%1' outside of origin script '%2' '%3'")
+                    .arg(PathUtils::stripFilename(url))
+                    .arg(PathUtils::stripFilename(currentSandboxURL))
+                    .arg(canonical.toString())
+            );
+        }
+        if (!file.exists()) {
+            return resolverException("path does not exist: " + url.toLocalFile());
+        }
+        if (!file.isFile()) {
+            return resolverException("path is not a file: " + url.toLocalFile());
+        }
+    }
+
+    return url.toString();
+}
+
+// retrieves the current parent module from the JS scope chain
+QScriptValue ScriptEngine::currentModule() {
+    auto jsRequire = globalObject().property("Script").property("require");
+    auto cache = jsRequire.property("cache");
+    auto candidate = QScriptValue();
+    for(auto ctx = currentContext(); ctx && !candidate.isObject(); ctx = ctx->parentContext()) {
+        QScriptContextInfo contextInfo { ctx };
+        candidate = cache.property(contextInfo.fileName());
+    }
+    if (!candidate.isObject()) {
+        return QScriptValue();
+    }
+    return candidate;
+}
+
+// replaces or adds "module" to "parent.children[]" array
+// (for consistency with Node.js and userscript cache invalidation without "cache busters")
+bool ScriptEngine::registerModuleWithParent(const QScriptValue& module, const QScriptValue& parent) {
+    auto children = parent.property("children");
+    if (children.isArray()) {
+        auto key = module.property("id");
+        auto length = children.property("length").toInt32();
+        for(int i=0; i < length; i++) {
+            if (children.property(i).property("id").strictlyEquals(key)) {
+                qCDebug(scriptengine_module) << key.toString() << " updating parent.children[" << i << "] = module";
+                children.setProperty(i, module);
+                return true;
+            }
+        }
+        qCDebug(scriptengine_module) << key.toString() << " appending parent.children[" << length << "] = module";
+        children.setProperty(length, module);
+        return true;
+    } else if (parent.isValid()) {
+        qCDebug(scriptengine_module) << "registerModuleWithParent -- unrecognized parent" << parent.toVariant().toString();
+    }
+    return false;
+}
+
+// creates a new JS "module" Object with default metadata properties
+QScriptValue ScriptEngine::newModule(const QString& modulePath, const QScriptValue& parent) {
+    auto closure = newObject();
+    auto exports = newObject();
+    auto module = newObject();
+    qCDebug(scriptengine_module) << "newModule" << modulePath << parent.property("filename").toString();
+
+    closure.setProperty("module", module, READONLY_PROP_FLAGS);
+
+    // note: this becomes the "exports" free variable, so should not be set read only
+    closure.setProperty("exports", exports);
+
+    // make the closure available to module instantiation
+    module.setProperty("__closure__", closure, HIDDEN_PROP_FLAGS);
+
+    // for consistency with Node.js Module
+    module.setProperty("id", modulePath, READONLY_PROP_FLAGS);
+    module.setProperty("filename", modulePath, READONLY_PROP_FLAGS);
+    module.setProperty("exports", exports); // not readonly
+    module.setProperty("loaded", false, READONLY_PROP_FLAGS);
+    module.setProperty("parent", parent, READONLY_PROP_FLAGS);
+    module.setProperty("children", newArray(), READONLY_PROP_FLAGS);
+
+    // module.require is a bound version of require that always resolves relative to that module's path
+    auto boundRequire = QScriptEngine::evaluate("(function(id) { return Script.require(Script.require.resolve(id, this.filename)); })", "(boundRequire)");
+    module.setProperty("require", boundRequire, READONLY_PROP_FLAGS);
+
+    return module;
+}
+
+// synchronously fetch a module's source code using BatchLoader
+QScriptValue ScriptEngine::fetchModuleSource(const QString& modulePath, const bool forceDownload) {
+    using UrlMap = QMap<QUrl, QString>;
+    auto scriptCache = DependencyManager::get<ScriptCache>();
+    QScriptValue req = newObject();
+    qCDebug(scriptengine_module) << "require.fetchModuleSource: " << QUrl(modulePath).fileName() << QThread::currentThread();
+
+    auto onload = [=, &req](const UrlMap& data, const UrlMap& _status) {
+        auto url = modulePath;
+        auto status = _status[url];
+        auto contents = data[url];
+        qCDebug(scriptengine_module) << "require.fetchModuleSource.onload: " << QUrl(url).fileName() << status << QThread::currentThread();
+        if (isStopping()) {
+            req.setProperty("status", "Stopped");
+            req.setProperty("success", false);
+        } else {
+            req.setProperty("url", url);
+            req.setProperty("status", status);
+            req.setProperty("success", ScriptCache::isSuccessStatus(status));
+            req.setProperty("contents", contents, HIDDEN_PROP_FLAGS);
+        }
+    };
+
+    if (forceDownload) {
+        qCDebug(scriptengine_module) << "require.requestScript -- clearing cache for" << modulePath;
+        scriptCache->deleteScript(modulePath);
+    }
+    BatchLoader* loader = new BatchLoader({ modulePath });
+    connect(loader, &BatchLoader::finished, this, onload);
+    connect(this, &QObject::destroyed, loader, &QObject::deleteLater);
+    // fail faster? (since require() blocks the engine thread while resolving dependencies)
+    const int MAX_RETRIES = 1;
+
+    loader->start(MAX_RETRIES);
+
+    if (!loader->isFinished()) {
+        QTimer monitor;
+        QEventLoop loop;
+        QObject::connect(loader, &BatchLoader::finished, this, [this, &monitor, &loop]{
+            monitor.stop();
+            loop.quit();
+        });
+
+        // this helps detect the case where stop() is invoked during the download
+        //  but not seen in time to abort processing in onload()...
+        connect(&monitor, &QTimer::timeout, this, [this, &loop, &loader]{
+            if (isStopping()) {
+                loop.exit(-1);
+            }
+        });
+        monitor.start(500);
+        loop.exec();
+    }
+    loader->deleteLater();
+    return req;
+}
+
+// evaluate a pending module object using the fetched source code
+QScriptValue ScriptEngine::instantiateModule(const QScriptValue& module, const QString& sourceCode) {
+    QScriptValue result;
+    auto modulePath = module.property("filename").toString();
+    auto closure = module.property("__closure__");
+
+    qCDebug(scriptengine_module) << QString("require.instantiateModule: %1 / %2 bytes").arg(QUrl(modulePath).fileName()).arg(sourceCode.length());
+
+    {
+        ExceptionEmitter tryCatch(this, __FUNCTION__);
+
+        if (module.property("content-type").toString() == "application/json") {
+            qCDebug(scriptengine_module) << "... parsing as JSON";
+#ifdef DEV_OTHER_MODULE_JSON_PARSE
+            auto JSON = globalObject().property("JSON");
+            auto parse = JSON.property("parse");
+            if (!parse.isFunction()) {
+                currentContext()->throwValue(makeError("global JSON.parse is not a function", "EvalError"));
+                return nullValue();
+            }
+            result = parse.call(JSON, QScriptValueList({ sourceCode }));
+            closure.property("module").setProperty("exports", result);
+            return result;
+#endif
+            closure.setProperty("__json", sourceCode);
+            result = evaluateInClosure(closure, { "module.exports = JSON.parse(__json)", modulePath });
+        } else {
+            // scoped vars for consistency with Node.js
+            closure.setProperty("require", module.property("require"));
+            closure.setProperty("__filename", modulePath, HIDDEN_PROP_FLAGS);
+            closure.setProperty("__dirname", QString(modulePath).replace(QRegExp("/[^/]*$"), ""), HIDDEN_PROP_FLAGS);
+            result = evaluateInClosure(closure, { sourceCode, modulePath });
+        }
+    }
+    return result;
+}
+
+// CommonJS/Node.js like require/module support
+QScriptValue ScriptEngine::require(const QString& moduleId) {
+    qCDebug(scriptengine_module) << "ScriptEngine::require(" << moduleId.left(MAX_MODULE_IDENTIFIER_LOG_LEN) << ")";
+    if (QThread::currentThread() != thread()) {
+        qCDebug(scriptengine_module) << moduleId << " threads mismatch";
+        return nullValue();
+    }
+
+    // serialize require calls so the ordering/caching works correctly across multiple Entities
+    // note: this is a Recursive mutex so nested require's should not affected
+    QMutexLocker locker(&_requireLock);
+    // _requireDepth++;
+    // QObject autoDecrement;connect(&autoDecrement, &QObject::destroyed, this, [this](){ _requireDepth--; });
+
+    auto jsRequire = globalObject().property("Script").property("require");
+    auto cacheMeta = jsRequire.data();
+    auto cache = jsRequire.property("cache");
+    auto parent = currentModule();
+
+    auto throwModuleError = [this, &cache](const QString& modulePath, const QScriptValue& error) {
+        cache.setProperty(modulePath, nullValue());
+        if (!error.isNull()) {
+#ifdef DEBUG_JS_MODULES
+            qCWarning(scriptengine_module) << "throwing module error:" << error.toString() << modulePath << error.property("stack").toString();
+#endif
+            currentContext()->throwValue(makeError(error));
+        }
+        return nullValue();
+    };
+
+    // start by resolving the moduleId into a fully-qualified path/URL
+    QString modulePath = _requireResolve(moduleId);
+    if (hasUncaughtException()) {
+        // the resolver already threw an exception -- bail early
+        return nullValue();
+    }
+
+    // check the resolved path against the cache
+    auto module = cache.property(modulePath);
+
+    // modules get cached in `Script.require.cache` and (similar to Node.js) users can access it
+    // to inspect particular entries and invalidate them by deleting the key:
+    //   `delete Script.require.cache[Script.require.resolve(moduleId)];`
+
+    // cacheMeta is just used right now to tell deleted keys apart from undefined ones
+    bool invalidateCache = module.isUndefined() && cacheMeta.property(moduleId).isValid();
+
+    // reset the cacheMeta record so invalidation won't apply next time, even if the module fails to load
+    cacheMeta.setProperty(modulePath, QScriptValue());
+
+    auto exports = module.property("exports");
+    if (!invalidateCache && exports.isObject()) {
+        // we have found a cacheed module -- just need to possibly register it with current parent
+        qCDebug(scriptengine_module) << QString("require - using cached module '%1' for '%2' (loaded: %3)")
+            .arg(modulePath).arg(moduleId).arg(module.property("loaded").toString());
+        registerModuleWithParent(module, parent);
+        return exports;
+    }
+
+    // bootstrap / register new empty module
+    module = newModule(modulePath, parent);
+    registerModuleWithParent(module, parent);
+
+    // add it to the cache (this is done early so any cyclic dependencies pick up)
+    cache.setProperty(modulePath, module);
+
+    // download the module source
+    auto req = fetchModuleSource(modulePath, invalidateCache);
+
+    if (!req.property("success").toBool()) {
+        auto error = QString("error retrieving script (%1)").arg(req.property("status").toString());
+        return throwModuleError(modulePath, error);
+    }
+
+#if DEBUG_JS_MODULES
+    qCDebug(scriptengine_module) << "require.loaded: " <<
+        QUrl(req.property("url").toString()).fileName() << req.property("status").toString();
+#endif
+
+    auto sourceCode = req.property("contents").toString();
+
+    if (QUrl(modulePath).fileName().endsWith(".json", Qt::CaseInsensitive)) {
+        module.setProperty("content-type", "application/json");
+    } else {
+        module.setProperty("content-type", "application/javascript");
+    }
+
+    {
+        // It seems that many JSON sources don't actually put .json in the URL...
+        // so for now as a workaround users wanting to indicate JSON parsing mode can
+        // do so by calling with a custom this context, eg:
+        //
+        //   var ITEMS_URL = 'https://highfidelity.io/api/v1/marketplace/items';
+        //   var thisObject = { 'content-type': 'application/json' };
+        //   var items = Script.require.call(thisObject, ITEMS_URL + '?category=everything&sort=recent');
+
+        auto thisObject = currentContext()->thisObject();
+        bool calledWithCustomThis = thisObject.isObject() &&
+            !thisObject.strictlyEquals(globalObject()) &&
+            !thisObject.toQObject();
+
+        if (calledWithCustomThis) {
+#ifdef DEBUG_JS
+            _debugDump("this", thisObject);
+#endif
+            _applyUserOptions(module, thisObject);
+        }
+    }
+
+    // evaluate the module
+    auto result = instantiateModule(module, sourceCode);
+
+    if (result.isError() && !result.strictlyEquals(module.property("exports"))) {
+        qCWarning(scriptengine_module) << "-- result.isError --" << result.toString();
+        return throwModuleError(modulePath, result);
+    }
+
+    // mark as fully-loaded
+    module.setProperty("loaded", true, READONLY_PROP_FLAGS);
+
+    // set up a new reference point for detecting cache key deletion
+    cacheMeta.setProperty(modulePath, module);
+
+    qCDebug(scriptengine_module) << "//ScriptEngine::require(" << moduleId << ")";
+
+    return module.property("exports");
+}
+
+// User-configurable override options
+void ScriptEngine::_applyUserOptions(QScriptValue& module, QScriptValue& options) {
+    if (!options.isValid()) {
+        return;
+    }
+    // options['content-type'] === 'application/json'
+    // -- allows JSON modules to be used from URLs not ending in .json 
+    if (options.property("content-type").isString()) {
+        module.setProperty("content-type", options.property("content-type"));
+        qCDebug(scriptengine_module) << "module['content-type'] =" << module.property("content-type").toString();
+    }
+
+    if (ScriptEngine::_enableExtendedModuleCompatbility.get()) {
+        auto closure = module.property("__closure__");
+
+        auto maybeSetToExports = [&](const QString& key) {
+            if (options.property(key).toString() == "exports") {
+                closure.setProperty(key, module.property("exports"));
+                qCDebug(scriptengine_module) << "module.closure[" << key << "] = exports";
+            }
+        };
+
+        // options[{key}] = 'exports'
+        // several "agnostic" modules in the wild are just one step away from being compatible --
+        // they just didn't know not to look specifically for this, self or global for attaching
+        // things onto.
+        maybeSetToExports("global");
+        maybeSetToExports("self");
+        maybeSetToExports("this");
+
+        // when options is an Object it will get used as the value of "this" during module evaluation
+        // (which is what one might expect when calling require.call(thisObject, ...))
+        if (options.isObject()) {
+            closure.setProperty("this", options);
+        }
+
+        // when options.global is an Object it'll get used as the global object (during evaluation only)
+        if (options.property("global").isObject()) {
+            closure.setProperty("global", options.property("global"));
+            qCDebug(scriptengine_module) << "module.closure['global'] = options.global";
+        }
+    }
 }
 
 // If a callback is specified, the included files will be loaded asynchronously and the callback will be called

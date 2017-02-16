@@ -41,6 +41,7 @@
 #include "ScriptCache.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
+#include "SettingHandle.h"
 
 class QScriptEngineDebugger;
 
@@ -157,6 +158,16 @@ public:
     Q_INVOKABLE void include(const QStringList& includeFiles, QScriptValue callback = QScriptValue());
     Q_INVOKABLE void include(const QString& includeFile, QScriptValue callback = QScriptValue());
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // MODULE related methods
+    Q_INVOKABLE QScriptValue require(const QString& moduleId);
+    Q_INVOKABLE void resetModuleCache(bool deleteScriptCache = false);
+    QScriptValue currentModule();
+    bool registerModuleWithParent(const QScriptValue& module, const QScriptValue& parent);
+    QScriptValue newModule(const QString& modulePath, const QScriptValue& parent = QScriptValue());
+    QScriptValue fetchModuleSource(const QString& modulePath, const bool forceDownload = false);
+    QScriptValue instantiateModule(const QScriptValue& module, const QString& sourceCode);
+
     Q_INVOKABLE QObject* setInterval(const QScriptValue& function, int intervalMS);
     Q_INVOKABLE QObject* setTimeout(const QScriptValue& function, int timeoutMS);
     Q_INVOKABLE void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
@@ -237,6 +248,9 @@ signals:
 protected:
     void init();
     Q_INVOKABLE void executeOnScriptThread(std::function<void()> function, const Qt::ConnectionType& type = Qt::QueuedConnection );
+    // note: this is not meant to be called directly, but just to have QMetaObject take care of wiring it up in general;
+    //   then inside of init() we just have to do "Script.require.resolve = Script._requireResolve;"
+    Q_INVOKABLE QString _requireResolve(const QString& moduleId, const QString& relativeTo = QString());
 
     QString logException(const QScriptValue& exception);
     void timerFired();
@@ -272,6 +286,7 @@ protected:
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
     QHash<QString, EntityItemID> _occupiedScriptURLs;
     QList<DeferredLoadEntity> _deferredEntityLoads;
+    QMutex _requireLock { QMutex::Recursive };
 
     bool _isThreaded { false };
     QScriptEngineDebugger* _debugger { nullptr };
@@ -295,6 +310,10 @@ protected:
     std::recursive_mutex _lock;
 
     std::chrono::microseconds _totalTimerExecution { 0 };
+
+    static const QString _SETTINGS_ENABLE_EXTENDED_MODULE_COMPAT;
+    Setting::Handle<bool> _enableExtendedModuleCompatbility { _SETTINGS_ENABLE_EXTENDED_MODULE_COMPAT, false };
+    void _applyUserOptions(QScriptValue& module, QScriptValue& options);
 };
 
 #endif // hifi_ScriptEngine_h
