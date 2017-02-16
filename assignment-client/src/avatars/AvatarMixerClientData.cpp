@@ -41,7 +41,7 @@ int AvatarMixerClientData::processPackets() {
     _packetQueue.node.clear();
 
     while (!_packetQueue.empty()) {
-        auto& packet = _packetQueue.back();
+        auto& packet = _packetQueue.front();
 
         packetsProcessed++;
 

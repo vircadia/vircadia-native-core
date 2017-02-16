@@ -34,6 +34,7 @@
 #include <tbb/concurrent_unordered_map.h>
 
 #include <DependencyManager.h>
+#include <SharedUtil.h>
 
 #include "DomainHandler.h"
 #include "Node.h"

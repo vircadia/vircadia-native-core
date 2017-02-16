@@ -514,11 +514,10 @@ void AvatarMixer::sendStatsPacket() {
         slaveObject["packetsProcessed"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
         slaveObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT(stats.processIncomingPacketsElapsedTime);
         slaveObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT(stats.ignoreCalculationElapsedTime);
-        slaveObject["timing_3_avatarDataPacking"] = TIGHT_LOOP_STAT(stats.avatarDataPackingElapsedTime);
-        slaveObject["timing_4_packetSending"] = TIGHT_LOOP_STAT(stats.packetSendingElapsedTime);
-        slaveObject["timing_5_jobElapsedTime"] = TIGHT_LOOP_STAT(stats.jobElapsedTime);
-
-        
+        slaveObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT(stats.toByteArrayElapsedTime);
+        slaveObject["timing_4_avatarDataPacking"] = TIGHT_LOOP_STAT(stats.avatarDataPackingElapsedTime);
+        slaveObject["timing_5_packetSending"] = TIGHT_LOOP_STAT(stats.packetSendingElapsedTime);
+        slaveObject["timing_6_jobElapsedTime"] = TIGHT_LOOP_STAT(stats.jobElapsedTime);
 
         slavesObject[QString::number(slaveNumber)] = slaveObject;
         slaveNumber++;
@@ -532,9 +531,10 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["aggregate_packetsProcessed"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
     statsObject["timing_aggregate_1_processIncomingPackets"] = TIGHT_LOOP_STAT(aggregateStats.processIncomingPacketsElapsedTime);
     statsObject["timing_aggregate_2_ignoreCalculation"] = TIGHT_LOOP_STAT(aggregateStats.ignoreCalculationElapsedTime);
-    statsObject["timing_aggregate_3_avatarDataPacking"] = TIGHT_LOOP_STAT(aggregateStats.avatarDataPackingElapsedTime);
-    statsObject["timing_aggregate_4_packetSending"] = TIGHT_LOOP_STAT(aggregateStats.packetSendingElapsedTime);
-    statsObject["timing_aggregate_4_jobElapsedTime"] = TIGHT_LOOP_STAT(aggregateStats.jobElapsedTime);
+    statsObject["timing_aggregate_3_toByteArray"] = TIGHT_LOOP_STAT(aggregateStats.toByteArrayElapsedTime);
+    statsObject["timing_aggregate_4_avatarDataPacking"] = TIGHT_LOOP_STAT(aggregateStats.avatarDataPackingElapsedTime);
+    statsObject["timing_aggregate_5_packetSending"] = TIGHT_LOOP_STAT(aggregateStats.packetSendingElapsedTime);
+    statsObject["timing_aggregate_6_jobElapsedTime"] = TIGHT_LOOP_STAT(aggregateStats.jobElapsedTime);
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarDataPacketElapsedTime = 0;

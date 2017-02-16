@@ -355,13 +355,20 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
                                 nodeData->incrementAvatarInView();
                             }
 
-                            numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-                            auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
-                            QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
-                            bool distanceAdjust = true;
-                            glm::vec3 viewerPosition = myPosition;
-                            QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-                            numAvatarDataBytes += avatarPacketList->write(bytes);
+                            {
+                                numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
+                                auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
+                                QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+                                bool distanceAdjust = true;
+                                glm::vec3 viewerPosition = myPosition;
+
+                                quint64 start = usecTimestampNow();
+                                QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+                                quint64 end = usecTimestampNow();
+                                _stats.toByteArrayElapsedTime += (end - start);
+
+                                numAvatarDataBytes += avatarPacketList->write(bytes);
+                            }
 
                             avatarPacketList->endSegment();
 
