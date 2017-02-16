@@ -427,7 +427,22 @@ namespace ktx {
         // Define a KTX object manually to write it somewhere (in a file on disk?)
         // This path allocate the Storage where to store header, keyvalues and copy mips
         // Then COPY all the data
-        static std::unique_ptr<KTX> create(const Header& header, const KeyValues& keyValues, const Images& images);
+        static std::unique_ptr<KTX> create(const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+
+        // Instead of creating a full Copy of the src data in a KTX object, the write serialization can be performed with the
+        // following two functions
+        //   size_t sizeNeeded = KTX::evalStorageSize(header, images);
+        //   
+        //   //allocate a buffer of size "sizeNeeded" or map a file with enough capacity
+        //   Byte* destBytes = new Byte[sizeNeeded];
+        //
+        //   // THen perform the writing of the src data to the destinnation buffer
+        //   write(destBytes, sizeNeeded, header, images);
+        //
+        // This is exactly what is done in the create function
+        static size_t evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static size_t write(Byte* destBytes, size_t destByteSize, const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
 
         // Parse a block of memory and create a KTX object from it
         static std::unique_ptr<KTX> create(const Storage& src);

@@ -16,12 +16,12 @@
 namespace ktx {
     class ReaderException: public std::exception {
     public:
-        ReaderException(std::string explanation) : _explanation(explanation) {}
+        ReaderException(const std::string& explanation) : _explanation("KTX deserialization error: " + explanation) {}
         const char* what() const override {
-            return ("KTX deserialization error: " + _explanation).c_str();
+            return _explanation.c_str();
         }
     private:
-        std::string _explanation;
+        const std::string _explanation;
     };
 
     bool checkEndianness(uint32_t endianness, bool& matching) {
