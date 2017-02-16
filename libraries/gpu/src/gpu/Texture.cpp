@@ -1006,3 +1006,28 @@ Texture::ExternalUpdates Texture::getUpdates() const {
     }
     return result;
 }
+
+#include <ktx/KTX.h>
+
+ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
+    
+    ktx::Header header;
+    header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
+    header.pixelWidth = texture.getWidth();
+    header.pixelHeight = texture.getHeight();
+    header.numberOfMipmapLevels = texture.mipLevels();
+
+    ktx::Images images;
+    for (int level = 0; level < header.numberOfMipmapLevels; level++) {
+        auto mip = texture.accessStoredMipFace(level);
+        if (mip) {
+            images.emplace_back(ktx::Image(mip->getSize(), 0, mip->readData()));
+        }
+    }
+
+    auto ktxBuffer = ktx::KTX::create(header, ktx::KeyValues(), images);
+    return ktxBuffer;
+}
+TexturePointer Texture::unserialize(const ktx::KTXUniquePointer& srcData) {
+    return nullptr;
+}

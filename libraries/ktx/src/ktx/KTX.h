@@ -68,9 +68,8 @@ end
 namespace ktx {
     const uint32_t PACKING_SIZE { sizeof(uint32_t) };
     using Byte = uint8_t;
-    uint32_t evalPadding(size_t byteSize);
 
-    enum GLType : uint32_t {
+    enum class GLType : uint32_t {
         COMPRESSED_TYPE                 = 0,
 
         // GL 4.4 Table 8.2
@@ -102,7 +101,7 @@ namespace ktx {
         NUM_GLTYPES = 25,
     };
 
-    enum GLFormat : uint32_t {
+    enum class GLFormat : uint32_t {
         COMPRESSED_FORMAT               = 0,
 
         // GL 4.4 Table 8.3
@@ -131,7 +130,7 @@ namespace ktx {
         NUM_GLFORMATS = 20,
     };
 
-    enum GLInternalFormat_Uncompressed : uint32_t {
+    enum class GLInternalFormat_Uncompressed : uint32_t {
         // GL 4.4 Table 8.12
         R8                              = 0x8229,
         R8_SNORM                        = 0x8F94,
@@ -233,7 +232,7 @@ namespace ktx {
         NUM_UNCOMPRESSED_GLINTERNALFORMATS = 74,
     };
 
-    enum GLInternalFormat_Compressed : uint32_t {
+    enum class GLInternalFormat_Compressed : uint32_t {
         // GL 4.4 Table 8.14
         COMPRESSED_RED = 0x8225,
         COMPRESSED_RG = 0x8226,
@@ -268,15 +267,15 @@ namespace ktx {
          NUM_COMPRESSED_GLINTERNALFORMATS = 24,
     };
  
-    enum GLBaseInternalFormat : uint32_t {
+    enum class GLBaseInternalFormat : uint32_t {
         // GL 4.4 Table 8.11
-        BIF_DEPTH_COMPONENT = 0x1902,
-        BIF_DEPTH_STENCIL = 0x84F9,
-        BIF_RED = 0x1903,
-        BIF_RG = 0x8227,
-        BIF_RGB = 0x1907,
-        BIF_RGBA = 0x1908,
-        BIF_STENCIL_INDEX = 0x1901,
+        DEPTH_COMPONENT = 0x1902,
+        DEPTH_STENCIL = 0x84F9,
+        RED = 0x1903,
+        RG = 0x8227,
+        RGB = 0x1907,
+        RGBA = 0x1908,
+        STENCIL_INDEX = 0x1901,
 
         NUM_GLBASEINTERNALFORMATS = 7,
     };
@@ -341,22 +340,33 @@ namespace ktx {
         static const uint32_t ENDIAN_TEST = 0x04030201;
         static const uint32_t REVERSE_ENDIAN_TEST = 0x01020304;
 
+        static uint32_t evalPadding(size_t byteSize);
+
         Header();
 
         Byte identifier[IDENTIFIER_LENGTH];
         uint32_t endianness { ENDIAN_TEST };
+
         uint32_t glType;
-        uint32_t glTypeSize;
+        uint32_t glTypeSize { 0 };
         uint32_t glFormat;
         uint32_t glInternalFormat;
         uint32_t glBaseInternalFormat;
-        uint32_t pixelWidth;
-        uint32_t pixelHeight;
-        uint32_t pixelDepth;
-        uint32_t numberOfArrayElements;
-        uint32_t numberOfFaces;
-        uint32_t numberOfMipmapLevels;
-        uint32_t bytesOfKeyValueData;
+
+        uint32_t pixelWidth { 0 };
+        uint32_t pixelHeight { 0 };
+        uint32_t pixelDepth { 0 };
+        uint32_t numberOfArrayElements { 0 };
+        uint32_t numberOfFaces { 1 };
+        uint32_t numberOfMipmapLevels { 1 };
+
+        uint32_t bytesOfKeyValueData { 0 };
+
+        uint32_t getPixelWidth() const { return (pixelWidth ? pixelWidth : 1); }
+        uint32_t getPixelHeight() const { return (pixelHeight ? pixelHeight : 1); }
+        uint32_t getPixelDepth() const { return (pixelDepth ? pixelDepth : 1); }
+        uint32_t getNumberOfSlices() const { return (numberOfArrayElements ? numberOfArrayElements : 1); }
+        uint32_t getNumberOfLevels() const { return (numberOfMipmapLevels ? numberOfMipmapLevels : 1); }
 
         uint32_t evalMaxDimension() const;
         uint32_t evalMaxLevel() const;
@@ -369,6 +379,20 @@ namespace ktx {
         size_t evalFaceSize(uint32_t level) const;
         size_t evalImageSize(uint32_t level) const;
 
+        void setUncompressed(GLType type, uint32_t typeSize, GLFormat format, GLInternalFormat_Uncompressed internalFormat, GLBaseInternalFormat baseInternalFormat) {
+            glType = (uint32_t) type;
+            glTypeSize = 0;
+            glFormat = (uint32_t) format;
+            glInternalFormat = (uint32_t) internalFormat;
+            glBaseInternalFormat = (uint32_t) baseInternalFormat;
+        }
+        void setCompressed(GLInternalFormat_Compressed internalFormat, GLBaseInternalFormat baseInternalFormat) {
+            glType = (uint32_t) GLType::COMPRESSED_TYPE;
+            glTypeSize = 1;
+            glFormat = (uint32_t) GLFormat::COMPRESSED_FORMAT;
+            glInternalFormat = (uint32_t) internalFormat;
+            glBaseInternalFormat = (uint32_t) baseInternalFormat;
+        }
     };
 
     // Key Values
@@ -392,6 +416,9 @@ namespace ktx {
     class KTX {
         void resetStorage(Storage* src);
 
+        void resetHeader(const Header& header);
+        void resetImages(const Images& images);
+
         KTX();
     public:
 
@@ -412,10 +439,10 @@ namespace ktx {
         const Header* getHeader() const;
         const Byte* getKeyValueData() const;
         const Byte* getTexelsData() const;
+        Byte* getTexelsData();
 
         size_t getKeyValueDataSize() const;
         size_t getTexelsDataSize() const;
-
 
         std::unique_ptr<Storage> _storage;
         KeyValues _keyValues;

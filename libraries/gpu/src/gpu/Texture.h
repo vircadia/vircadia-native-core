@@ -20,6 +20,11 @@
 #include "Forward.h"
 #include "Resource.h"
 
+namespace ktx {
+    class KTX;
+    using KTXUniquePointer = std::unique_ptr<KTX>;
+}
+
 namespace gpu {
 
 // THe spherical harmonics is a nice tool for cubemap, so if required, the irradiance SH can be automatically generated
@@ -481,6 +486,9 @@ public:
     const GPUObjectPointer gpuObject {};
 
     ExternalUpdates getUpdates() const;
+
+    static ktx::KTXUniquePointer serialize(const Texture& texture);
+    static TexturePointer unserialize(const ktx::KTXUniquePointer& srcData);
 
 protected:
     const TextureUsageType _usageType;
