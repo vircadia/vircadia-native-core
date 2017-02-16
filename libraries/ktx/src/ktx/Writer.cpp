@@ -25,17 +25,60 @@ namespace ktx {
 
     std::unique_ptr<Storage> generateStorage(const Header& header, const KeyValues& keyValues, const Images& images) {
         size_t storageSize = sizeof(Header);
-        auto numMips = header.numberOfMipmapLevels + 1;
+        auto numMips = header.getNumberOfLevels();
 
         for (uint32_t l = 0; l < numMips; l++) {
             if (images.size() > l) {
-
+                storageSize += sizeof(uint32_t);
                 storageSize += images[l]._imageSize;
-                storageSize += images[l]._imageSize;
+                storageSize += Header::evalPadding(images[l]._imageSize);
             }
-           
         }
 
+        std::unique_ptr<Storage> storage(new Storage(storageSize));
+        return storage;
+    }
+
+
+    void KTX::resetHeader(const Header& header) {
+         if (!_storage) {
+            return;
+        }
+        memcpy(_storage->_bytes, &header, sizeof(Header));
+    }
+    void KTX::resetImages(const Images& srcImages) {
+        auto imagesDataPtr = getTexelsData();
+        if (!imagesDataPtr) {
+            return;
+        }
+        auto allocatedImagesDataSize = getTexelsDataSize();
+        size_t currentDataSize = 0;
+        auto currentPtr = imagesDataPtr;
+
+        _images.clear();
+
+
+        for (uint32_t l = 0; l < srcImages.size(); l++) {
+            if (currentDataSize + sizeof(uint32_t) < allocatedImagesDataSize) {
+                size_t imageSize = srcImages[l]._imageSize;
+                *(reinterpret_cast<uint32_t*> (currentPtr)) = imageSize;
+                currentPtr += sizeof(uint32_t);
+                currentDataSize += sizeof(uint32_t);
+
+                // If enough data ahead then capture the copy source pointer
+                if (currentDataSize + imageSize <= (allocatedImagesDataSize)) {
+
+                    auto copied = memcpy(currentPtr, srcImages[l]._bytes, imageSize);
+
+                    auto padding = Header::evalPadding(imageSize);
+
+                    _images.emplace_back(Image(imageSize, padding, currentPtr));
+
+                    currentPtr += imageSize + padding;
+                    currentDataSize += imageSize + padding;
+                }
+            }
+        }
     }
 
     std::unique_ptr<KTX> KTX::create(const Header& header, const KeyValues& keyValues, const Images& images) {
@@ -43,11 +86,13 @@ namespace ktx {
         std::unique_ptr<KTX> result(new KTX());
         result->resetStorage(generateStorage(header, keyValues, images).release());
 
+        result->resetHeader(header);
+
         // read metadata
         result->_keyValues = keyValues;
 
         // populate image table
-        result->_images = images;
+        result->resetImages(images);
 
         return result;
     }

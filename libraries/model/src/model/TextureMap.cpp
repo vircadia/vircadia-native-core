@@ -10,6 +10,8 @@
 //
 #include "TextureMap.h"
 
+#include <ktx/KTX.h>
+
 #include <QImage>
 #include <QPainter>
 #include <QDebug>
@@ -264,7 +266,22 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         if (generateMips) {
             ::generateMips(theTexture, image, formatMip, false);
         }
+        auto theKTX = Texture::serialize(*theTexture);
+        if (theKTX) {
+            // save that!
+            std::string filename("C://temp//ktxCache//texmex");
+                filename += std::to_string((size_t) theTexture);
+                filename += ".ktx";
+
+            FILE* file = fopen (filename.c_str(),"wb");
+            if (file != nullptr) {
+                fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
+                fclose (file);
+            }
+
+        }
     }
+
 
     return theTexture;
 }

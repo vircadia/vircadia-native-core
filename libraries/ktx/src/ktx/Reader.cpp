@@ -84,18 +84,18 @@ namespace ktx {
     Images getImagesTable(const Header& header, size_t mipsDataSize, const Byte* mipsData) {
         Images images;
         auto currentPtr = mipsData;
-        auto numMips = header.numberOfMipmapLevels + 1;
+        auto numMips = header.getNumberOfLevels();
 
         // Keep identifying new mip as long as we can at list query the next imageSize
         while ((currentPtr - mipsData) + sizeof(uint32_t) <= (mipsDataSize)) {
 
             // Grab the imageSize coming up
-            auto imageSize = *reinterpret_cast<const uint32_t*>(currentPtr);
+            size_t imageSize = *reinterpret_cast<const uint32_t*>(currentPtr);
             currentPtr += sizeof(uint32_t);
 
             // If enough data ahead then capture the pointer
             if ((currentPtr - mipsData) + imageSize <= (mipsDataSize)) {
-                auto padding = evalPadding(imageSize);
+                auto padding = Header::evalPadding(imageSize);
 
                 images.emplace_back(Image(imageSize, padding, currentPtr));
 
