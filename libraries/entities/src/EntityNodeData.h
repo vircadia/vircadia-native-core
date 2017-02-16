@@ -1,6 +1,6 @@
 //
 //  EntityNodeData.h
-//  assignment-client/src/entities
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 4/29/14
 //  Copyright 2014 High Fidelity, Inc.
@@ -16,6 +16,13 @@
 
 #include <OctreeQueryNode.h>
 
+namespace EntityJSONQueryProperties {
+    static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
+    static const QString FLAGS_PROPERTY = "flags";
+    static const QString INCLUDE_ANCESTORS_PROPERTY = "includeAncestors";
+    static const QString INCLUDE_DESCENDANTS_PROPERTY = "includeDescendants";
+}
+
 class EntityNodeData : public OctreeQueryNode {
 public:
     virtual PacketType getMyPacketType() const override { return PacketType::EntityData; }
@@ -24,13 +31,20 @@ public:
     void setLastDeletedEntitiesSentAt(quint64 sentAt) { _lastDeletedEntitiesSentAt = sentAt; }
     
     // these can only be called from the OctreeSendThread for the given Node
-    void insertEntitySentLastFrame(const QUuid& entityID) { _entitiesSentLastFrame.insert(entityID); }
-    void removeEntitySentLastFrame(const QUuid& entityID) { _entitiesSentLastFrame.remove(entityID); }
-    bool sentEntityLastFrame(const QUuid& entityID) { return _entitiesSentLastFrame.contains(entityID); }
+    void insertSentFilteredEntity(const QUuid& entityID) { _sentFilteredEntities.insert(entityID); }
+    void removeSentFilteredEntity(const QUuid& entityID) { _sentFilteredEntities.remove(entityID); }
+    bool sentFilteredEntity(const QUuid& entityID) { return _sentFilteredEntities.contains(entityID); }
+    QSet<QUuid> getSentFilteredEntities() { return _sentFilteredEntities; }
+
+    // these can only be called from the OctreeSendThread for the given Node
+    void insertFlaggedExtraEntity(const QUuid& filteredEntityID, const QUuid& extraEntityID)
+        { _flaggedExtraEntities[filteredEntityID].insert(extraEntityID); }
+    bool isEntityFlaggedAsExtra(const QUuid& entityID) const;
 
 private:
     quint64 _lastDeletedEntitiesSentAt { usecTimestampNow() };
-    QSet<QUuid> _entitiesSentLastFrame;
+    QSet<QUuid> _sentFilteredEntities;
+    QHash<QUuid, QSet<QUuid>> _flaggedExtraEntities;
 };
 
 #endif // hifi_EntityNodeData_h

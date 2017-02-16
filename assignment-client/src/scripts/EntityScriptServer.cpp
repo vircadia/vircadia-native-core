@@ -16,6 +16,7 @@
 #include <AudioConstants.h>
 #include <AudioInjectorManager.h>
 #include <ClientServerUtils.h>
+#include <EntityNodeData.h>
 #include <EntityScriptingInterface.h>
 #include <LogHandler.h>
 #include <MessagesClient.h>
@@ -264,16 +265,14 @@ void EntityScriptServer::run() {
     
     // setup the JSON filter that asks for entities with a non-default serverScripts property
     QJsonObject queryJSONParameters;
-    static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
-    queryJSONParameters[SERVER_SCRIPTS_PROPERTY] = EntityQueryFilterSymbol::NonDefault;
+    queryJSONParameters[EntityJSONQueryProperties::SERVER_SCRIPTS_PROPERTY] = EntityQueryFilterSymbol::NonDefault;
 
     QJsonObject queryFlags;
-    static const QString INCLUDE_DESCENDANTS_PROPERTY = "includeDescendants";
-    static const QString INCLUDE_PARENTS_PROPERTY = "includeParents";
-    queryFlags[INCLUDE_DESCENDANTS_PROPERTY] = true;
-    queryFlags[INCLUDE_PARENTS_PROPERTY] = true;
 
-    queryJSONParameters["flags"] = queryFlags;
+    queryFlags[EntityJSONQueryProperties::INCLUDE_ANCESTORS_PROPERTY] = true;
+    queryFlags[EntityJSONQueryProperties::INCLUDE_DESCENDANTS_PROPERTY] = true;
+
+    queryJSONParameters[EntityJSONQueryProperties::FLAGS_PROPERTY] = queryFlags;
     
     // setup the JSON parameters so that OctreeQuery does not use a frustum and uses our JSON filter
     _entityViewer.getOctreeQuery().setUsesFrustum(false);

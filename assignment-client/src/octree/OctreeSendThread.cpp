@@ -309,6 +309,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
         return 0;
     }
 
+    // give our pre-distribution processing a chance to do what it needs
+    preDistributionProcessing();
+
     // calculate max number of packets that can be sent during this interval
     int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxQueryPacketsPerSecond() / INTERVALS_PER_SECOND));
     int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
