@@ -1,4 +1,6 @@
 (function() {
+  Script.include("/~/system/libraries/utils.js");
+
   var ROLE = "fly";
   var ANIMATION_URL = "C:/Users/Clement/hifi/build/interface/RelWithDebInfo/resources/avatar/animations/sitting_idle.fbx";
   var ANIMATION_FPS = 30;
@@ -25,10 +27,13 @@
     }
   }
   this.keyPressed = function(event) {
+    if (isInEditMode()) {
+      return;
+    }
+
     if (RELEASE_KEYS.indexOf(event.text) !== -1) {
       var that = this;
       this.timers[event.text] = Script.setTimeout(function() {
-        print("Timeout");
         that.sitUp();
       }, RELEASE_TIME);
     }
@@ -44,6 +49,15 @@
   }
 
   this.sitDown = function() {
+    var avatarIdentifiers = AvatarList.getAvatarIdentifiers();
+    for (var i in avatarIdentifiers) {
+      var avatar = AvatarList.getAvatar(avatarIdentifiers[i]);
+      if (avatar && avatar.getParentID() === this.entityID) {
+        print("Someone is already sitting in that chair.");
+        return;
+      }
+    }
+
     MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
     MyAvatar.setParentID(this.entityID);
     MyAvatar.characterControllerEnabled = false;
