@@ -419,6 +419,7 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
 
     connect(newEngine.data(), &ScriptEngine::update, this, [this] {
         _entityViewer.queryOctree();
+        _entityViewer.getTree()->update();
     });
 
 
