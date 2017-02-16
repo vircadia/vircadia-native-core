@@ -129,17 +129,14 @@ void AvatarMixer::start() {
         // this is where we need to put the real work...
         {
             // for now, call the single threaded version
-            broadcastAvatarData();
+            //broadcastAvatarData();
 
-
-            /*
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
-                _slavePool.processIncomingPackets(cbegin, cend);
+                _slavePool.anotherJob(cbegin, cend);
             });
             auto end = usecTimestampNow();
-            _processQueuedAvatarDataPacketsElapsedTime += (end - start);
-            */
+            _broadcastAvatarDataElapsedTime += (end - start);
         }
 
 
@@ -194,7 +191,7 @@ void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
     }
 }
 
-void avatarLoops();
+static void avatarLoops();
 
 // only send extra avatar data (avatars out of view, ignored) every Nth AvatarData frame
 // Extra avatar data will be sent (AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND/EXTRA_AVATAR_DATA_FRAME_RATIO) times
@@ -291,16 +288,16 @@ void AvatarMixer::broadcastAvatarData() {
     _broadcastAvatarDataElapsedTime += (endBroadcastAvatarData - startBroadcastAvatarData);
 }
 
-void avatarLoopsInner(NodeList::const_iterator cbegin, NodeList::const_iterator cend);
+static void avatarLoopsInner(NodeList::const_iterator cbegin, NodeList::const_iterator cend);
 
-void avatarLoops() {
+static void avatarLoops() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
         avatarLoopsInner(cbegin, cend);
     });
 }
 
-void avatarLoopsInner(NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+static void avatarLoopsInner(NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // setup for distributed random floating point values
@@ -789,7 +786,6 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_average_b_ignoreCalculation"] = (float)_ignoreCalculationElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_c_avatarDataPacking"] = (float)_avatarDataPackingElapsedTime / (float)_numStatFrames;
     statsObject["timing_average_d_packetSending"] = (float)_packetSendingElapsedTime / (float)_numStatFrames;
-    statsObject["timing_average_e_total_broadcastAvatarData"] = (float)_broadcastAvatarDataElapsedTime / (float)_numStatFrames;
 
     // this things all occur on the frequency of the tight loop
     int tightLoopFrames = _numTightLoopFrames;
@@ -799,6 +795,7 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_average_y_processEvents"] = TIGHT_LOOP_STAT(_processEventsElapsedTime);
     statsObject["timing_average_y_queueIncomingPacket"] = TIGHT_LOOP_STAT(_queueIncomingPacketElapsedTime);
 
+    statsObject["timing_average_z_broadcastAvatarData"] = TIGHT_LOOP_STAT(_broadcastAvatarDataElapsedTime);
     statsObject["timing_average_z_displayNameManagement"] = TIGHT_LOOP_STAT(_displayNameManagementElapsedTime);
     statsObject["timing_average_z_handleAvatarDataPacket"] = TIGHT_LOOP_STAT(_handleAvatarDataPacketElapsedTime);
     statsObject["timing_average_z_handleAvatarIdentityPacket"] = TIGHT_LOOP_STAT(_handleAvatarIdentityPacketElapsedTime);

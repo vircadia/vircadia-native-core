@@ -69,13 +69,13 @@ static AvatarMixerSlave slave;
 
 void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end) {
     _function = &AvatarMixerSlave::processIncomingPackets;
-    _configure = [](AvatarMixerSlave& slave) {};
+    _configure = [&](AvatarMixerSlave& slave) { slave.configure(begin, end); };
     run(begin, end);
 }
 
 void AvatarMixerSlavePool::anotherJob(ConstIter begin, ConstIter end) {
     _function = &AvatarMixerSlave::anotherJob;
-    _configure = [](AvatarMixerSlave& slave) {};
+    _configure = [&](AvatarMixerSlave& slave) { slave.configure(begin, end); };
     run(begin, end);
 }
 

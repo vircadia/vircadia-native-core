@@ -86,9 +86,9 @@ public:
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 
-    glm::vec3 getPosition() { return _avatar ? _avatar->getPosition() : glm::vec3(0); }
-    glm::vec3 getGlobalBoundingBoxCorner() { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
-    bool isRadiusIgnoring(const QUuid& other) { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
+    glm::vec3 getPosition() const { return _avatar ? _avatar->getPosition() : glm::vec3(0); }
+    glm::vec3 getGlobalBoundingBoxCorner() const { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
+    bool isRadiusIgnoring(const QUuid& other) const { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
     void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
     void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
