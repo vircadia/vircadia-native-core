@@ -104,7 +104,7 @@ public:
     bool haveJSONParametersChanged();
 
     bool shouldForceFullScene() const { return _shouldForceFullScene; }
-    bool setShouldForceFullScene(bool shouldForceFullScene) { _shouldForceFullScene = shouldForceFullScene; }
+    void setShouldForceFullScene(bool shouldForceFullScene) { _shouldForceFullScene = shouldForceFullScene; }
 
 private:
     OctreeQueryNode(const OctreeQueryNode &);
