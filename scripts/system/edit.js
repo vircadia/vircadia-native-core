@@ -1115,7 +1115,6 @@ function recursiveDelete(entities, childrenList) {
     }
 }
 function unparentSelectedEntities() {
-    print("unparenting2 Selected Entities");
     if (SelectionManager.hasSelection()) {
       var selectedEntities = selectionManager.selections;
       selectedEntities.forEach(function (id, index) {
@@ -1128,7 +1127,6 @@ function unparentSelectedEntities() {
 
 }
 function parentSelectedEntities() {
-    print("parenting selected Entities");
     if (SelectionManager.hasSelection()) {
         var selectedEntities = selectionManager.selections;
         if (selectedEntities.length <= 1) {
@@ -1137,16 +1135,12 @@ function parentSelectedEntities() {
         }
         var lastEntityId = selectedEntities[selectedEntities.length-1];
 
-        print("last " + lastEntityId);
         selectedEntities.forEach(function (id, index) {
             if (lastEntityId !== id) {
-                print("iterating2 " + id);
-
                 // OK time to check why this breaks!
                 Entities.editEntity(id, {parentID: lastEntityId})
             }
         });
-
         Window.notify("Entities Parented");
     } else {
         Window.notifyEditError("You have nothing selected")
@@ -1384,7 +1378,7 @@ Controller.keyReleaseEvent.connect(function (event) {
             grid.setPosition(newPosition);
         }
     } else if (event.text === 'p' && event.isControl ) {
-        if (event.isShifted) {
+        if (event.isAlt) {
             unparentSelectedEntities();
         } else {
             parentSelectedEntities();
