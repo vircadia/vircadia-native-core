@@ -76,7 +76,6 @@ void EntityTreeSendThread::preDistributionProcessing() {
                     nodeData->setShouldForceFullScene(requiresFullScene);
                 }
             }
-
         }
     }
 }
@@ -112,7 +111,6 @@ bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& fil
 
     // enumerate the immediate children of this entity
     foreach (SpatiallyNestablePointer child, entityItem.getChildren()) {
-
 
         if (child && child->getNestableType() == NestableType::Entity) {
             // this is a child that is an entity
