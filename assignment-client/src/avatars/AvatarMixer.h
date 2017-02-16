@@ -55,7 +55,7 @@ private slots:
 
 private:
     AvatarMixerClientData* getOrCreateClientData(SharedNodePointer node);
-    std::chrono::microseconds AvatarMixer::timeFrame(p_high_resolution_clock::time_point& timestamp);
+    std::chrono::microseconds timeFrame(p_high_resolution_clock::time_point& timestamp);
 
 
     void broadcastAvatarData();
