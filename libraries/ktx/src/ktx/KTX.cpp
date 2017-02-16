@@ -49,8 +49,8 @@ size_t Header::evalRowSize(uint32_t level) const {
     auto pixelWidth = evalPixelWidth(level);
     auto pixSize = evalPixelSize();
     auto netSize = pixelWidth * pixSize;
-    auto packing = netSize % 4;
-    return netSize + (packing ? 4 - packing : 0);
+    auto packing = netSize % PACKING_SIZE;
+    return netSize + (packing ? PACKING_SIZE - packing : 0);
 }
 size_t Header::evalFaceSize(uint32_t level) const {
     auto pixelHeight = evalPixelHeight(level);
@@ -83,9 +83,34 @@ const Header* KTX::getHeader() const {
     }
 }
 
+
+size_t KTX::getKeyValueDataSize() const {
+    if (_storage) {
+        return getHeader()->bytesOfKeyValueData;
+    } else {
+        return 0;
+    }
+}
+
+size_t KTX::getTexelsDataSize() const {
+    if (_storage) {
+        return  _storage->size() - sizeof(Header) + getKeyValueDataSize();
+    } else {
+        return 0;
+    }
+}
+
 const Byte* KTX::getKeyValueData() const {
     if (_storage) {
         return (_storage->_bytes + sizeof(Header));
+    } else {
+        return nullptr;
+    }
+}
+
+const Byte* KTX::getTexelsData() const {
+    if (_storage) {
+        return (_storage->_bytes + sizeof(Header) + getKeyValueDataSize());
     } else {
         return nullptr;
     }

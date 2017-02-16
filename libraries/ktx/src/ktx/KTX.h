@@ -66,6 +66,7 @@ end
 
 
 namespace ktx {
+    const uint32_t PACKING_SIZE { sizeof(uint32_t) };
 
     enum GLType : uint32_t {
         COMPRESSED_TYPE                 = 0,
@@ -317,6 +318,17 @@ namespace ktx {
         {
             if (_size && _bytes) { _bytes = bytes; }
         }
+        Storage(size_t size, const Byte* bytes) :
+            Storage(size)
+        {
+            if (_size && _bytes && bytes) {
+                memcpy(_bytes, bytes, size);
+            }
+        }
+        Storage(const Storage& src) :
+            Storage(src.size(), src.data())
+        {}
+
     };
 
     // Header
@@ -364,8 +376,14 @@ namespace ktx {
      
 
     struct Mip {
-        uint32_t imageSize;
+        uint32_t _imageSize;
+        uint32_t _padding;
         const Byte* _bytes;
+
+        Mip(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
+            _imageSize(imageSize),
+            _padding(padding),
+            _bytes(bytes) {}
     };
     using Mips = std::vector<Mip>;
 
@@ -375,21 +393,26 @@ namespace ktx {
     public:
 
         KTX();
+        ~KTX();
 
-        bool read(const Storage* src); 
-        bool read(Storage* src);
-
-        std::unique_ptr<Storage> _storage;
-
-        const Header* getHeader() const;
-        const Byte* getKeyValueData() const;
-
-        KeyValues _keyValues;
-
-        Mips _mips;
+        // parse a block of memory and create a KTX object from it
+        static std::unique_ptr<KTX> create(const Storage& src);
+        static std::unique_ptr<KTX> create(std::unique_ptr<Storage>& src);
 
         static bool checkStorageHeader(const Storage& storage);
-        static KTX* create(const Storage* src);
+
+        // Access raw pointers to the main sections of the KTX
+        const Header* getHeader() const;
+        const Byte* getKeyValueData() const;
+        const Byte* getTexelsData() const;
+
+        size_t getKeyValueDataSize() const;
+        size_t getTexelsDataSize() const;
+
+
+        std::unique_ptr<Storage> _storage;
+        KeyValues _keyValues;
+        Mips _mips;
     };
 
 }

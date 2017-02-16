@@ -73,7 +73,7 @@ namespace ktx {
                 std::move(std::string(reinterpret_cast<const char*>(src + keyLength), keyValueByteSize - keyLength)));
 
             // advance offset/src
-            uint32_t keyValuePadding = 3 - ((keyValueByteSize + 3) % 4);
+            uint32_t keyValuePadding = 3 - ((keyValueByteSize + 3) % PACKING_SIZE);
             offset += keyValueByteSize + keyValuePadding;
             src += keyValueByteSize + keyValuePadding;
         }
@@ -81,16 +81,39 @@ namespace ktx {
         return keyValues;
     }
 
-    bool KTX::read(Storage* src) {
-        resetStorage(src);
+    Mips getMipsTable(const Header& header, size_t mipsDataSize, const Byte* mipsData) {
+        Mips mips;
+        auto currentPtr = mipsData;
+        auto numMips = header.numberOfMipmapLevels + 1;
 
-        return true;
+        // Keep identifying new mip as long as we can at list query the next imageSize
+        while ((currentPtr - mipsData) + sizeof(uint32_t) <= (mipsDataSize)) {
+
+            // Grab the imageSize coming up
+            auto imageSize = *reinterpret_cast<const uint32_t*>(currentPtr);
+            currentPtr += sizeof(uint32_t);
+
+            // If enough data ahead then capture the pointer
+            if ((currentPtr - mipsData) + imageSize <= (mipsDataSize)) {
+                auto padding = imageSize % PACKING_SIZE;
+                padding = (padding ? 4 - padding : 0);
+
+                mips.emplace_back(Mip(imageSize, padding, currentPtr));
+
+                currentPtr += imageSize + padding;
+            } else {
+                break;
+            }
+        }
+
+        return mips;
     }
+
 
     bool KTX::checkStorageHeader(const Storage& src) {
         try {
-            size_t srcSize = src.size();
-            const uint8_t* srcBytes = src.data();
+            auto srcSize = src.size();
+            auto srcBytes = src.data();
 
             // validation
             if (srcSize < sizeof(Header)) {
@@ -121,16 +144,6 @@ namespace ktx {
                 throw Exception("length is too short for data");
             }
 
-
-            // read metadata
-            KeyValues keyValues = getKeyValues(header->bytesOfKeyValueData, srcBytes + sizeof(Header));
-
-            // prepare gpu::Texture using header & key-values
-            // TODO
-
-            // read data
-            // TODO
-
             return true;
         } catch (Exception& e) {
             qWarning(e.what());
@@ -138,20 +151,34 @@ namespace ktx {
         }
     }
 
-    KTX* KTX::create(const Storage* data) {
+    std::unique_ptr<KTX> KTX::create(const Storage& src) {
+        auto srcCopy = std::make_unique<Storage>(src);
+
+        return create(srcCopy);
+    }
+
+    std::unique_ptr<KTX> KTX::create(std::unique_ptr<Storage>& src) {
+        if (!src) {
+            return nullptr;
+        }
+
         try {
-            if (!checkStorageHeader(*data)) {
-                
+            if (!checkStorageHeader(*src)) {
+
             }
 
-            auto result = new KTX();
-            result->resetStorage(const_cast<Storage*>(data));
+            std::unique_ptr<KTX> result(new KTX());
+            result->resetStorage(src.release());
 
             // read metadata
-            KeyValues keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
+            result->_keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
 
-            return nullptr;
-        } catch (Exception& e) {
+            // populate mip table
+            result->_mips = getMipsTable(*result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
+
+            return result;
+        }
+        catch (Exception& e) {
             qWarning(e.what());
             return nullptr;
         }
