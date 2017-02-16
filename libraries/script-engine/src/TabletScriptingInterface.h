@@ -47,6 +47,8 @@ public:
      */
     Q_INVOKABLE QObject* getTablet(const QString& tabletId);
 
+    void setToolbarMode(bool toolbarMode);
+
     void setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
     void processEvent(const QKeyEvent* event);
@@ -63,6 +65,7 @@ protected:
     std::mutex _mutex;
     std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
     QObject* _toolbarScriptingInterface { nullptr };
+    bool _toolbarMode { false };
 };
 
 /**jsdoc

@@ -54,7 +54,18 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
         // allocate a new tablet, add it to the map then return it.
         auto tabletProxy = QSharedPointer<TabletProxy>(new TabletProxy(tabletId));
         _tabletProxies[tabletId] = tabletProxy;
+        tabletProxy->setToolbarMode(_toolbarMode);
         return tabletProxy.data();
+    }
+}
+
+void TabletScriptingInterface::setToolbarMode(bool toolbarMode) {
+    std::lock_guard<std::mutex> guard(_mutex);
+
+    _toolbarMode = toolbarMode;
+
+    for (auto& iter : _tabletProxies) {
+        iter.second->setToolbarMode(toolbarMode);
     }
 }
 

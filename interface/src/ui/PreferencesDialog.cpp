@@ -92,6 +92,16 @@ void setupPreferences() {
         preference->setMax(500);
         preferences->addPreference(preference);
     }
+    {
+        auto getter = []()->bool { return qApp->getDesktopTabletBecomesToolbarSetting(); };
+        auto setter = [](bool value) { qApp->setDesktopTabletBecomesToolbarSetting(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Desktop Tablet Becomes Toolbar", getter, setter));
+    }
+    {
+        auto getter = []()->bool { return qApp->getHmdTabletBecomesToolbarSetting(); };
+        auto setter = [](bool value) { qApp->setHmdTabletBecomesToolbarSetting(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "HMD Tablet Becomes Toolbar", getter, setter));
+    }
 
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
