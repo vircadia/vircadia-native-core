@@ -125,9 +125,6 @@ Window {
     }
 
     function addButton(properties) {
-
-        visible = true;
-
         properties = properties || {}
 
         // If a name is specified, then check if there's an existing button with that name

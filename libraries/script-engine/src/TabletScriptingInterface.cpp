@@ -14,6 +14,7 @@
 #include "DependencyManager.h"
 #include <PathUtils.h>
 #include <QmlWindowClass.h>
+#include <QQmlProperty>
 #include <RegisteredMetaTypes.h>
 #include "ScriptEngineLogging.h"
 #include <OffscreenUi.h>
@@ -543,6 +544,9 @@ void TabletProxy::addButtonsToToolbar() {
             qCWarning(scriptengine) << "ToolbarProxy addButton has no result";
         }
     }
+
+    // make the toolbar visible
+    QMetaObject::invokeMethod(toolbarProxy, "writeProperty", Qt::AutoConnection, Q_ARG(QString, "visible"), Q_ARG(QVariant, QVariant(true)));
 }
 
 void TabletProxy::removeButtonsFromToolbar() {

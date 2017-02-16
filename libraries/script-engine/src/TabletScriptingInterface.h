@@ -173,7 +173,7 @@ signals:
     void fromQml(QVariant msg);
 
     /**jsdoc
-     * Signales when this tablet screen changes.
+     * Signaled when this tablet screen changes.
      * @function TabletProxy#screenChanged
      * @param type {string} - "Home", "Web", "Menu", "QML", "Closed"
      * @param url {string} - only valid for Web and QML.
