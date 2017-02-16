@@ -83,11 +83,17 @@ private:
     p_high_resolution_clock::time_point _lastDebugMessage;
     QHash<QString, QPair<int, int>> _sessionDisplayNames;
 
-    quint64 _broadcastAvatarDataElapsedTime { 0 }; // total time spent in broadcastAvatarData since last stats window
     quint64 _displayNameManagementElapsedTime { 0 }; // total time spent in broadcastAvatarData/display name management... since last stats window
     quint64 _ignoreCalculationElapsedTime { 0 };
     quint64 _avatarDataPackingElapsedTime { 0 };
     quint64 _packetSendingElapsedTime { 0 };
+
+    quint64 _broadcastAvatarDataElapsedTime { 0 }; // total time spent in broadcastAvatarData since last stats window
+    quint64 _broadcastAvatarDataInner { 0 };
+    quint64 _broadcastAvatarDataLockWait { 0 };
+    quint64 _broadcastAvatarDataNodeTransform { 0 };
+    quint64 _broadcastAvatarDataNodeFunctor { 0 };
+
 
 
     quint64 _handleViewFrustumPacketElapsedTime { 0 };

@@ -134,17 +134,22 @@ void AvatarMixer::start() {
         // calculates last frame duration and sleeps for the remainder of the target amount
         auto frameDuration = timeFrame(frameTimestamp);
 
+        int lockWait, nodeTransform, functor;
+
         // Allow nodes to process any pending/queued packets across our worker threads
         {
             auto start = usecTimestampNow();
+
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 auto end = usecTimestampNow();
                 _processQueuedAvatarDataPacketsLockWaitElapsedTime += (end - start);
 
                 _slavePool.processIncomingPackets(cbegin, cend);
-            });
+            }, &lockWait, &nodeTransform, &functor);
             auto end = usecTimestampNow();
             _processQueuedAvatarDataPacketsElapsedTime += (end - start);
+
+            //qDebug() << "PROCESS PACKETS...  " << "lockWait:" << lockWait << "nodeTransform:" << nodeTransform << "functor:" << functor;
         }
 
         // process pending display names... this doesn't currently run on multiple threads, because it
@@ -155,9 +160,11 @@ void AvatarMixer::start() {
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
                     manageDisplayName(node);
                 });
-            });
+            }, &lockWait, &nodeTransform, &functor);
             auto end = usecTimestampNow();
             _displayNameManagementElapsedTime += (end - start);
+
+            //qDebug() << "PROCESS PACKETS...  " << "lockWait:" << lockWait << "nodeTransform:" << nodeTransform << "functor:" << functor;
         }
 
         // this is where we need to put the real work...
@@ -167,10 +174,17 @@ void AvatarMixer::start() {
 
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                auto start = usecTimestampNow();
                 _slavePool.anotherJob(cbegin, cend);
-            });
+                auto end = usecTimestampNow();
+                _broadcastAvatarDataInner += (end - start);
+            }, &lockWait, &nodeTransform, &functor);
             auto end = usecTimestampNow();
             _broadcastAvatarDataElapsedTime += (end - start);
+
+            _broadcastAvatarDataLockWait += lockWait;
+            _broadcastAvatarDataNodeTransform += nodeTransform;
+            _broadcastAvatarDataNodeFunctor += functor;
         }
 
 
@@ -239,9 +253,6 @@ static const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16;
 // this "throttle" logic is the old approach. need to consider some
 // reasonable throttle approach in new multi-core design
 void AvatarMixer::broadcastAvatarData() {
-    quint64 startBroadcastAvatarData = usecTimestampNow();
-    _broadcastRate.increment();
-
     int idleTime = AVATAR_DATA_SEND_INTERVAL_MSECS;
 
     if (_lastFrameTimestamp.time_since_epoch().count() > 0) {
@@ -317,9 +328,6 @@ void AvatarMixer::broadcastAvatarData() {
         _lastDebugMessage = p_high_resolution_clock::now();
     }
 #endif
-
-    quint64 endBroadcastAvatarData = usecTimestampNow();
-    _broadcastAvatarDataElapsedTime += (endBroadcastAvatarData - startBroadcastAvatarData);
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -473,7 +481,12 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_average_y_processEvents"] = TIGHT_LOOP_STAT(_processEventsElapsedTime);
     statsObject["timing_average_y_queueIncomingPacket"] = TIGHT_LOOP_STAT(_queueIncomingPacketElapsedTime);
 
-    statsObject["timing_average_z_broadcastAvatarData"] = TIGHT_LOOP_STAT(_broadcastAvatarDataElapsedTime);
+    statsObject["timing_average_a1_broadcastAvatarData"] = TIGHT_LOOP_STAT(_broadcastAvatarDataElapsedTime);
+    statsObject["timing_average_a2_innnerBroadcastAvatarData"] = TIGHT_LOOP_STAT(_broadcastAvatarDataInner);
+    statsObject["timing_average_a3_broadcastAvatarDataLockWait"] = TIGHT_LOOP_STAT(_broadcastAvatarDataLockWait);
+    statsObject["timing_average_a4_broadcastAvatarDataNodeTransform"] = TIGHT_LOOP_STAT(_broadcastAvatarDataNodeTransform);
+    statsObject["timing_average_a5_broadcastAvatarDataNodeFunctor"] = TIGHT_LOOP_STAT(_broadcastAvatarDataNodeFunctor);
+
     statsObject["timing_average_z_displayNameManagement"] = TIGHT_LOOP_STAT(_displayNameManagementElapsedTime);
     statsObject["timing_average_z_handleAvatarDataPacket"] = TIGHT_LOOP_STAT(_handleAvatarDataPacketElapsedTime);
     statsObject["timing_average_z_handleAvatarIdentityPacket"] = TIGHT_LOOP_STAT(_handleAvatarIdentityPacketElapsedTime);
@@ -499,10 +512,13 @@ void AvatarMixer::sendStatsPacket() {
         slave.harvestStats(stats);
         slaveObject["nodesProcessed"] = TIGHT_LOOP_STAT(stats.nodesProcessed);
         slaveObject["packetsProcessed"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
-        slaveObject["processIncomingPackets"] = TIGHT_LOOP_STAT(stats.processIncomingPacketsElapsedTime);
-        slaveObject["ignoreCalculation"] = TIGHT_LOOP_STAT(stats.ignoreCalculationElapsedTime);
-        slaveObject["avatarDataPacking"] = TIGHT_LOOP_STAT(stats.avatarDataPackingElapsedTime);
-        slaveObject["packetSending"] = TIGHT_LOOP_STAT(stats.packetSendingElapsedTime);
+        slaveObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT(stats.processIncomingPacketsElapsedTime);
+        slaveObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT(stats.ignoreCalculationElapsedTime);
+        slaveObject["timing_3_avatarDataPacking"] = TIGHT_LOOP_STAT(stats.avatarDataPackingElapsedTime);
+        slaveObject["timing_4_packetSending"] = TIGHT_LOOP_STAT(stats.packetSendingElapsedTime);
+        slaveObject["timing_5_jobElapsedTime"] = TIGHT_LOOP_STAT(stats.jobElapsedTime);
+
+        
 
         slavesObject[QString::number(slaveNumber)] = slaveObject;
         slaveNumber++;
@@ -512,12 +528,13 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_slaves"] = slavesObject;
 
     // broadcastAvatarDataElapsed timing details...
-    statsObject["timing_aggregate_nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
-    statsObject["timing_aggregate_packetsProcessed"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
-    statsObject["timing_aggregate_processIncomingPackets"] = TIGHT_LOOP_STAT(aggregateStats.processIncomingPacketsElapsedTime);
-    statsObject["timing_aggregate_ignoreCalculation"] = TIGHT_LOOP_STAT(aggregateStats.ignoreCalculationElapsedTime);
-    statsObject["timing_aggregate_avatarDataPacking"] = TIGHT_LOOP_STAT(aggregateStats.avatarDataPackingElapsedTime);
-    statsObject["timing_aggregate_packetSending"] = TIGHT_LOOP_STAT(aggregateStats.packetSendingElapsedTime);
+    statsObject["aggregate_nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
+    statsObject["aggregate_packetsProcessed"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
+    statsObject["timing_aggregate_1_processIncomingPackets"] = TIGHT_LOOP_STAT(aggregateStats.processIncomingPacketsElapsedTime);
+    statsObject["timing_aggregate_2_ignoreCalculation"] = TIGHT_LOOP_STAT(aggregateStats.ignoreCalculationElapsedTime);
+    statsObject["timing_aggregate_3_avatarDataPacking"] = TIGHT_LOOP_STAT(aggregateStats.avatarDataPackingElapsedTime);
+    statsObject["timing_aggregate_4_packetSending"] = TIGHT_LOOP_STAT(aggregateStats.packetSendingElapsedTime);
+    statsObject["timing_aggregate_4_jobElapsedTime"] = TIGHT_LOOP_STAT(aggregateStats.jobElapsedTime);
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarDataPacketElapsedTime = 0;
@@ -571,6 +588,11 @@ void AvatarMixer::sendStatsPacket() {
     _numTightLoopFrames = 0;
 
     _broadcastAvatarDataElapsedTime = 0;
+    _broadcastAvatarDataInner = 0;
+    _broadcastAvatarDataLockWait = 0;
+    _broadcastAvatarDataNodeTransform = 0;
+    _broadcastAvatarDataNodeFunctor = 0;
+
     _displayNameManagementElapsedTime = 0;
     _ignoreCalculationElapsedTime = 0;
     _avatarDataPackingElapsedTime = 0;

@@ -30,6 +30,7 @@ public:
     quint64 ignoreCalculationElapsedTime { 0 };
     quint64 avatarDataPackingElapsedTime { 0 };
     quint64 packetSendingElapsedTime { 0 };
+    quint64 jobElapsedTime { 0 };
 
     void reset() {
         nodesProcessed = 0;
@@ -38,6 +39,7 @@ public:
         ignoreCalculationElapsedTime = 0;
         avatarDataPackingElapsedTime = 0;
         packetSendingElapsedTime = 0;
+        jobElapsedTime = 0;
     }
 
     AvatarMixerSlaveStats& operator+=(const AvatarMixerSlaveStats& rhs) {
@@ -47,6 +49,7 @@ public:
         ignoreCalculationElapsedTime += rhs.ignoreCalculationElapsedTime;
         avatarDataPackingElapsedTime += rhs.avatarDataPackingElapsedTime;
         packetSendingElapsedTime += rhs.packetSendingElapsedTime;
+        jobElapsedTime += rhs.jobElapsedTime;
         return *this;
     }
 

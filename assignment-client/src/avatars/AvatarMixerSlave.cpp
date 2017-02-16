@@ -70,6 +70,8 @@ static const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16;
 const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f; // FIXME... this is wrong for 45hz
 
 void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
+    quint64 start = usecTimestampNow();
+
     //qDebug() << __FUNCTION__ << "node:" << node;
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -81,13 +83,13 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
 
     if (node->getLinkedData() && (node->getType() == NodeType::Agent) && node->getActiveSocket()) {
         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-        MutexTryLocker lock(nodeData->getMutex());
+        //MutexTryLocker lock(nodeData->getMutex());
 
         // FIXME????
-        if (!lock.isLocked()) {
+        //if (!lock.isLocked()) {
             //qDebug() << __FUNCTION__ << "unable to lock... node:" << node << " would BAIL???... line:" << __LINE__;
             //return;
-        }
+        //}
 
         // FIXME -- mixer data
         // ++_sumListeners;
@@ -244,13 +246,13 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
                 ++numOtherAvatars;
 
                 AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                MutexTryLocker lock(otherNodeData->getMutex());
+                //MutexTryLocker lock(otherNodeData->getMutex());
 
                 // FIXME -- might want to track this lock failed...
-                if (!lock.isLocked()) {
+                //if (!lock.isLocked()) {
                     //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << " failed to lock... would BAIL??... line:" << __LINE__;
                     //return;
-                }
+                //}
 
                 // make sure we send out identity packets to and from new arrivals.
                 bool forceSend = !otherNodeData->checkAndSetHasReceivedFirstPacketsFrom(node->getUUID());
@@ -289,7 +291,7 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
 
                     quint64 endAvatarDataPacking = usecTimestampNow();
                     _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                    qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
+                    //qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
                     shouldConsider = false;
                 }
 
@@ -309,7 +311,7 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
 
                         quint64 endAvatarDataPacking = usecTimestampNow();
                         _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                        qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
+                        //qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
                         shouldConsider = false;
                     } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                         // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
@@ -335,7 +337,7 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
                             quint64 endAvatarDataPacking = usecTimestampNow();
 
                             _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                            qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
+                            //qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
                             shouldConsider = false;
                         }
 
@@ -397,5 +399,8 @@ void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
         quint64 endPacketSending = usecTimestampNow();
         _stats.packetSendingElapsedTime += (endPacketSending - startPacketSending);
     }
+
+    quint64 end = usecTimestampNow();
+    _stats.jobElapsedTime += (end - start);
 }
 
