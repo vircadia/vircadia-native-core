@@ -35,6 +35,7 @@
 #include "ArrayBufferClass.h"
 #include "AssetScriptingInterface.h"
 #include "AudioScriptingInterface.h"
+#include "BaseScriptEngine.h"
 #include "Quat.h"
 #include "Mat4.h"
 #include "ScriptCache.h"
@@ -54,6 +55,13 @@ public:
     QUrl definingSandboxURL;
 };
 
+class DeferredLoadEntity {
+public:
+    EntityItemID entityID;
+    QString entityScript;
+    //bool forceRedownload;
+};
+
 typedef QList<CallbackData> CallbackList;
 typedef QHash<QString, CallbackList> RegisteredEventHandlers;
 
@@ -67,15 +75,7 @@ public:
     QString scriptText { "" };
     QScriptValue scriptObject { QScriptValue() };
     int64_t lastModified { 0 };
-    QUrl definingSandboxURL { QUrl() };
-};
-
-// common base class with just QScriptEngine-dependent helper methods
-class BaseScriptEngine : public QScriptEngine {
-public:
-    static const QString SCRIPT_EXCEPTION_FORMAT;
-    QString lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
-    QString formatUncaughtException(const QString& overrideFileName = QString());
+    QUrl definingSandboxURL { QUrl("about:EntityScript") };
 };
 
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
@@ -91,14 +91,13 @@ public:
     };
 
     static int processLevelMaxRetries;
-    ScriptEngine(Context context, const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString(""));
+    ScriptEngine(Context context, const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString("about:ScriptEngine"));
     ~ScriptEngine();
 
     /// run the script in a dedicated thread. This will have the side effect of evalulating
     /// the current script contents and calling run(). Callers will likely want to register the script with external
     /// services before calling this.
     void runInThread();
-    Q_INVOKABLE void executeOnScriptThread(std::function<void()> function, bool blocking = false);
 
     void runDebuggable();
 
@@ -162,16 +161,17 @@ public:
     Q_INVOKABLE QObject* setTimeout(const QScriptValue& function, int timeoutMS);
     Q_INVOKABLE void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+
     Q_INVOKABLE void print(const QString& message);
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
     Q_INVOKABLE QUrl resourcesPath() const;
 
     // Entity Script Related methods
-    Q_INVOKABLE QString getEntityScriptStatus(const EntityItemID& entityID);
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {
         return _entityScripts.contains(entityID) && _entityScripts[entityID].status == EntityScriptStatus::RUNNING;
     }
-    static void loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
+    Q_INVOKABLE void deferLoadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
+    Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName,
@@ -212,7 +212,6 @@ public:
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
 
 public slots:
-    int evaluatePending() const { return _evaluatesPending; }
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
     void updateMemoryCost(const qint64&);
 
@@ -228,7 +227,6 @@ signals:
     void warningMessage(const QString& message);
     void infoMessage(const QString& message);
     void runningStateChanged();
-    void evaluationFinished(QScriptValue result, bool isException);
     void loadScript(const QString& scriptName, bool isUserLoaded);
     void reloadScript(const QString& scriptName, bool isUserLoaded);
     void doneRunning();
@@ -239,8 +237,9 @@ signals:
 
 protected:
     void init();
+    Q_INVOKABLE void executeOnScriptThread(std::function<void()> function, const Qt::ConnectionType& type = Qt::QueuedConnection );
 
-    QString reportUncaughtException(const QString& overrideFileName = QString());
+    QString logException(const QScriptValue& exception);
     void timerFired();
     void stopAllTimers();
     void stopAllTimersForEntityScript(const EntityItemID& entityID);
@@ -262,17 +261,18 @@ protected:
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
     Context _context;
-
     QString _scriptContents;
     QString _parentURL;
     std::atomic<bool> _isFinished { false };
     std::atomic<bool> _isRunning { false };
     std::atomic<bool> _isStopping { false };
-    int _evaluatesPending { 0 };
     bool _isInitialized { false };
     QHash<QTimer*, CallbackData> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
+    std::map<QString, QMutex> _lockPerUniqueScriptURL;
+    QList<DeferredLoadEntity> _pendingLoadEntities;
+
     bool _isThreaded { false };
     QScriptEngineDebugger* _debugger { nullptr };
     bool _debuggable { false };
