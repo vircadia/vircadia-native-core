@@ -2,7 +2,7 @@
   Script.include("/~/system/libraries/utils.js");
 
   var ROLE = "fly";
-  var ANIMATION_URL = "C:/Users/Clement/hifi/build/interface/RelWithDebInfo/resources/avatar/animations/sitting_idle.fbx";
+  var ANIMATION_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
   var ANIMATION_FPS = 30;
   var ANIMATION_FIRST_FRAME = 1;
   var ANIMATION_LAST_FRAME = 10;
