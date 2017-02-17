@@ -14,15 +14,21 @@
     var PHOTOBOOTH_WINDOW_HTML_URL = Script.resolvePath("./html/photobooth.html");
     var PHOTOBOOTH_SETUP_JSON_URL = Script.resolvePath("./photoboothSetup.json");
     var MODEL_BOUNDING_BOX_DIMENSIONS = {x: 1.0174,y: 1.1925,z: 1.0165};
+    var PhotoBooth = {};
+    var photoboothCreated = false;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/snap-i.svg",
-        text: "PHOTOBOOTH"
+        text: "TOP MODEL"
     });
 
     function onClicked() {
         tablet.gotoWebScreen(PHOTOBOOTH_WINDOW_HTML_URL);
-        PhotoBooth.init();
+        // Initialise the photobooth if it wasn't created already
+        if (!photoboothCreated) {
+            PhotoBooth.init();
+            photoboothCreated = true;
+        }
     }
     button.clicked.connect(onClicked);
     tablet.webEventReceived.connect(onWebEventReceived);
@@ -38,24 +44,23 @@
                 print("clicked picture button");
                 // // hide HUD tool bar
                 // toolbar.writeProperty("visible", false);
-                // hide tablet
-                HMD.closeTablet();
                 // hide Overlays (such as Running Scripts or other Dialog UI)
                 Menu.setIsOptionChecked("Overlays", false);
                 // hide mouse cursor
                 Reticle.visible = false;
+                // hide tablet
+                HMD.closeTablet();
                 // // giving a delay here before snapshotting so that there is time to hide other UIs
                 // void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio)
                 Script.setTimeout(function () {
                     Window.takeSnapshot(false, false, 1.91);
                     // show hidden items after snapshot is taken
                     // issue: currently there's no way to show tablet via a script command. user will have to manually open tablet again
-                    // toolbar.writeProperty("visible", true);
-                    Menu.setIsOptionChecked("Overlays", true);
                     // issue: somehow we don't need to reset cursor to visible in script and the mouse still returns after snapshot
                     // Reticle.visible = true;
+                    // toolbar.writeProperty("visible", true);
+                    Menu.setIsOptionChecked("Overlays", true);
                 }, SNAPSHOT_DELAY);
-
             } else if (event.type === "onClickReloadModelButton") {
                 print("clicked reload model button " + event.data.value);
                 PhotoBooth.changeModel(event.data.value);
@@ -75,7 +80,6 @@
         }
     }
 
-    var PhotoBooth = {};
     PhotoBooth.init = function () {
         var success = Clipboard.importEntities(PHOTOBOOTH_SETUP_JSON_URL);
         var frontFactor = 10;
@@ -163,6 +167,7 @@
             Entities.deleteEntity(id);
         });
         Entities.deleteEntity(this.modelEntityID);
+        photoboothCreated = false;
     };
     
     function cleanup() {
