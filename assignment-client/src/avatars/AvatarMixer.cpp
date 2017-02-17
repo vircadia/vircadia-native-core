@@ -464,44 +464,63 @@ void AvatarMixer::sendStatsPacket() {
 
 
     QJsonObject statsObject;
-    statsObject["threads"] = _slavePool.numThreads();
 
     //statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
     //statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
 
-    statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
-    statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
     statsObject["broadcast_loop_rate"] = _loopRate.rate();
+
+    statsObject["threads"] = _slavePool.numThreads();
+    statsObject["throttling_1_trailing_sleep_percentage"] = _trailingSleepRatio * 100;
+    statsObject["throttling_2_performance_ratio"] = _performanceThrottlingRatio;
 
     // this things all occur on the frequency of the tight loop
     int tightLoopFrames = _numTightLoopFrames;
     int tenTimesPerFrame = tightLoopFrames * 10;
     #define TIGHT_LOOP_STAT(x) (x > tenTimesPerFrame) ? x / tightLoopFrames : ((float)x / (float)tightLoopFrames);
 
-    statsObject["timing_average_y_processEvents"] = TIGHT_LOOP_STAT(_processEventsElapsedTime);
-    statsObject["timing_average_y_queueIncomingPacket"] = TIGHT_LOOP_STAT(_queueIncomingPacketElapsedTime);
+    QJsonObject singleCoreTasks;
+    singleCoreTasks["processEvents"] = TIGHT_LOOP_STAT(_processEventsElapsedTime);
+    singleCoreTasks["queueIncomingPacket"] = TIGHT_LOOP_STAT(_queueIncomingPacketElapsedTime);
 
-    statsObject["timing_average_a1_broadcastAvatarData"] = TIGHT_LOOP_STAT(_broadcastAvatarDataElapsedTime);
-    statsObject["timing_average_a2_innnerBroadcastAvatarData"] = TIGHT_LOOP_STAT(_broadcastAvatarDataInner);
-    statsObject["timing_average_a3_broadcastAvatarDataLockWait"] = TIGHT_LOOP_STAT(_broadcastAvatarDataLockWait);
-    statsObject["timing_average_a4_broadcastAvatarDataNodeTransform"] = TIGHT_LOOP_STAT(_broadcastAvatarDataNodeTransform);
-    statsObject["timing_average_a5_broadcastAvatarDataNodeFunctor"] = TIGHT_LOOP_STAT(_broadcastAvatarDataNodeFunctor);
+    QJsonObject incomingPacketStats;
+    incomingPacketStats["handleAvatarIdentityPacket"] = TIGHT_LOOP_STAT(_handleAvatarIdentityPacketElapsedTime);
+    incomingPacketStats["handleKillAvatarPacket"] = TIGHT_LOOP_STAT(_handleKillAvatarPacketElapsedTime);
+    incomingPacketStats["handleNodeIgnoreRequestPacket"] = TIGHT_LOOP_STAT(_handleNodeIgnoreRequestPacketElapsedTime);
+    incomingPacketStats["handleRadiusIgnoreRequestPacket"] = TIGHT_LOOP_STAT(_handleRadiusIgnoreRequestPacketElapsedTime);
+    incomingPacketStats["handleRequestsDomainListDataPacket"] = TIGHT_LOOP_STAT(_handleRequestsDomainListDataPacketElapsedTime);
+    incomingPacketStats["handleViewFrustumPacket"] = TIGHT_LOOP_STAT(_handleViewFrustumPacketElapsedTime);
 
-    statsObject["timing_average_z_displayNameManagement"] = TIGHT_LOOP_STAT(_displayNameManagementElapsedTime);
-    statsObject["timing_average_z_handleAvatarIdentityPacket"] = TIGHT_LOOP_STAT(_handleAvatarIdentityPacketElapsedTime);
-    statsObject["timing_average_z_handleKillAvatarPacket"] = TIGHT_LOOP_STAT(_handleKillAvatarPacketElapsedTime);
-    statsObject["timing_average_z_handleNodeIgnoreRequestPacket"] = TIGHT_LOOP_STAT(_handleNodeIgnoreRequestPacketElapsedTime);
-    statsObject["timing_average_z_handleRadiusIgnoreRequestPacket"] = TIGHT_LOOP_STAT(_handleRadiusIgnoreRequestPacketElapsedTime);
-    statsObject["timing_average_z_handleRequestsDomainListDataPacket"] = TIGHT_LOOP_STAT(_handleRequestsDomainListDataPacketElapsedTime);
-    statsObject["timing_average_z_handleViewFrustumPacket"] = TIGHT_LOOP_STAT(_handleViewFrustumPacketElapsedTime);
-    statsObject["timing_average_z_processQueuedAvatarDataPackets"] = TIGHT_LOOP_STAT(_processQueuedAvatarDataPacketsElapsedTime);
-    statsObject["timing_average_z_processQueuedAvatarDataPacketsLockWait"] = TIGHT_LOOP_STAT(_processQueuedAvatarDataPacketsLockWaitElapsedTime);
+    singleCoreTasks["incoming_packets"] = incomingPacketStats;
+    singleCoreTasks["sendStats"] = (float)_sendStatsElapsedTime;
 
-    statsObject["timing_sendStats"] = (float)_sendStatsElapsedTime;
+    statsObject["singleCoreTasks"] = singleCoreTasks;
+
+    QJsonObject parallelTasks;
+
+    QJsonObject processQueuedAvatarDataPacketsStats;
+    processQueuedAvatarDataPacketsStats["1_total"] = TIGHT_LOOP_STAT(_processQueuedAvatarDataPacketsElapsedTime);
+    processQueuedAvatarDataPacketsStats["2_lockWait"] = TIGHT_LOOP_STAT(_processQueuedAvatarDataPacketsLockWaitElapsedTime);
+    parallelTasks["processQueuedAvatarDataPackets"] = processQueuedAvatarDataPacketsStats;
+
+    QJsonObject broadcastAvatarDataStats;
+
+    broadcastAvatarDataStats["1_total"] = TIGHT_LOOP_STAT(_broadcastAvatarDataElapsedTime);
+    broadcastAvatarDataStats["2_innner"] = TIGHT_LOOP_STAT(_broadcastAvatarDataInner);
+    broadcastAvatarDataStats["3_lockWait"] = TIGHT_LOOP_STAT(_broadcastAvatarDataLockWait);
+    broadcastAvatarDataStats["4_NodeTransform"] = TIGHT_LOOP_STAT(_broadcastAvatarDataNodeTransform);
+    broadcastAvatarDataStats["5_Functor"] = TIGHT_LOOP_STAT(_broadcastAvatarDataNodeFunctor);
+
+    parallelTasks["broadcastAvatarData"] = broadcastAvatarDataStats;
+
+    QJsonObject displayNameManagementStats;
+    displayNameManagementStats["1_total"] = TIGHT_LOOP_STAT(_displayNameManagementElapsedTime);
+    parallelTasks["displayNameManagement"] = displayNameManagementStats;
+
+    statsObject["parallelTasks"] = parallelTasks;
 
 
     AvatarMixerSlaveStats aggregateStats;
-
     QJsonObject slavesObject;
     // gather stats
     int slaveNumber = 1;
@@ -511,7 +530,7 @@ void AvatarMixer::sendStatsPacket() {
         slave.harvestStats(stats);
         slaveObject["nodesProcessed"] = TIGHT_LOOP_STAT(stats.nodesProcessed);
         slaveObject["numPacketsReceived"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
-        statsObject["numPacketsSent"] = TIGHT_LOOP_STAT(stats.numPacketsSent);
+        slaveObject["numPacketsSent"] = TIGHT_LOOP_STAT(stats.numPacketsSent);
 
         slaveObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT(stats.processIncomingPacketsElapsedTime);
         slaveObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT(stats.ignoreCalculationElapsedTime);
@@ -525,20 +544,22 @@ void AvatarMixer::sendStatsPacket() {
 
         aggregateStats += stats;
     });
-    statsObject["timing_slaves"] = slavesObject;
 
-    // broadcastAvatarDataElapsed timing details...
-    statsObject["aggregate_nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
-    statsObject["aggregate_numPacketsReceived"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
-    statsObject["aggregate_numPacketsSent"] = TIGHT_LOOP_STAT(aggregateStats.numPacketsSent);
-    
+    QJsonObject slavesAggregatObject;
 
-    statsObject["timing_aggregate_1_processIncomingPackets"] = TIGHT_LOOP_STAT(aggregateStats.processIncomingPacketsElapsedTime);
-    statsObject["timing_aggregate_2_ignoreCalculation"] = TIGHT_LOOP_STAT(aggregateStats.ignoreCalculationElapsedTime);
-    statsObject["timing_aggregate_3_toByteArray"] = TIGHT_LOOP_STAT(aggregateStats.toByteArrayElapsedTime);
-    statsObject["timing_aggregate_4_avatarDataPacking"] = TIGHT_LOOP_STAT(aggregateStats.avatarDataPackingElapsedTime);
-    statsObject["timing_aggregate_5_packetSending"] = TIGHT_LOOP_STAT(aggregateStats.packetSendingElapsedTime);
-    statsObject["timing_aggregate_6_jobElapsedTime"] = TIGHT_LOOP_STAT(aggregateStats.jobElapsedTime);
+    slavesAggregatObject["nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
+    slavesAggregatObject["numPacketsReceived"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
+    slavesAggregatObject["numPacketsSent"] = TIGHT_LOOP_STAT(aggregateStats.numPacketsSent);
+
+    slavesAggregatObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT(aggregateStats.processIncomingPacketsElapsedTime);
+    slavesAggregatObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT(aggregateStats.ignoreCalculationElapsedTime);
+    slavesAggregatObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT(aggregateStats.toByteArrayElapsedTime);
+    slavesAggregatObject["timing_4_avatarDataPacking"] = TIGHT_LOOP_STAT(aggregateStats.avatarDataPackingElapsedTime);
+    slavesAggregatObject["timing_5_packetSending"] = TIGHT_LOOP_STAT(aggregateStats.packetSendingElapsedTime);
+    slavesAggregatObject["timing_6_jobElapsedTime"] = TIGHT_LOOP_STAT(aggregateStats.jobElapsedTime);
+
+    statsObject["slaves_aggregate"] = slavesAggregatObject;
+    statsObject["slaves_individual"] = slavesObject;
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarIdentityPacketElapsedTime = 0;
