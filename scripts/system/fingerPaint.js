@@ -122,8 +122,6 @@
             var entities,
                 entitiesLength,
                 properties,
-                entityID,
-                entityDistance,
                 i,
                 pointsLength,
                 j,
@@ -186,12 +184,12 @@
             TRIGGER_SMOOTH_RATIO = 0.1,
             TRIGGER_OFF = 0.05,
             TRIGGER_ON = 0.1,
-            TRIGGER_START_WIDTH = 0.15,
-            TRIGGER_FINISH_WIDTH = 1.0,
-            TRIGGER_RANGE_WIDTH = TRIGGER_FINISH_WIDTH - TRIGGER_START_WIDTH,
-            START_LINE_WIDTH = 0.005,
-            FINISH_LINE_WIDTH = 0.010,
-            RANGE_LINE_WIDTH = FINISH_LINE_WIDTH - START_LINE_WIDTH,
+            TRIGGER_START_WIDTH_RAMP = 0.15,
+            TRIGGER_FINISH_WIDTH_RAMP = 1.0,
+            TRIGGER_RAMP_WIDTH = TRIGGER_FINISH_WIDTH_RAMP - TRIGGER_START_WIDTH_RAMP,
+            MIN_LINE_WIDTH = 0.005,
+            MAX_LINE_WIDTH = 0.03,
+            RAMP_LINE_WIDTH = MAX_LINE_WIDTH - MIN_LINE_WIDTH,
 
             gripValue = 0.0,
             isGripPressed = false,
@@ -223,11 +221,11 @@
 
             if (wasTriggerPressed || isTriggerPressed) {
                 fingerTipPosition = MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex4" : "RightHandIndex4");
-                if (triggerValue < TRIGGER_START_WIDTH) {
-                    lineWidth = START_LINE_WIDTH;
+                if (triggerValue < TRIGGER_START_WIDTH_RAMP) {
+                    lineWidth = MIN_LINE_WIDTH;
                 } else {
-                    lineWidth = START_LINE_WIDTH
-                        + (triggerValue - TRIGGER_START_WIDTH) / TRIGGER_RANGE_WIDTH * RANGE_LINE_WIDTH;
+                    lineWidth = MIN_LINE_WIDTH
+                        + (triggerValue - TRIGGER_START_WIDTH_RAMP) / TRIGGER_RAMP_WIDTH * RAMP_LINE_WIDTH;
                 }
 
                 if (!wasTriggerPressed && isTriggerPressed) {
@@ -361,6 +359,9 @@
         if (!tablet) {
             return;
         }
+
+        isFingerPainting = false;
+        updateHandFunctions();
 
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
