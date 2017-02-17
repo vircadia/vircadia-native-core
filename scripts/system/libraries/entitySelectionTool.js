@@ -2189,8 +2189,8 @@ SelectionDisplay = (function() {
                 offset = Vec3.multiplyQbyV(properties.rotation, offset);
                 var boxPosition = Vec3.sum(properties.position, offset);
 
-                var color = {red: 255, green: 153, blue: 0};
-                if (i >= selectionManager.selections.length - 1) color = {red: 255, green: 255, blue: 0};
+                var color = {red: 255, green: 128, blue: 0};
+                if (i >= selectionManager.selections.length - 1) color = {red: 255, green: 255, blue: 64};
 
                 Overlays.editOverlay(selectionBoxes[i], {
                     position: boxPosition,

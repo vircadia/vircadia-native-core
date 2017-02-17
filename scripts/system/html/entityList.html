@@ -16,6 +16,7 @@
         <script type="text/javascript" src="js/spinButtons.js"></script>
         <script type="text/javascript" src="js/keyboardControl.js"></script>
         <script type="text/javascript" src="js/entityList.js"></script>
+        <script type="text/javascript" src="js/parentingHotkey.js"></script>
     </head>
     <body onload='loaded();'>
         <div id="entity-list-header">
@@ -89,6 +90,8 @@
                         </tr>
                     </tfoot>
                 </table>
+
+                <input type="button" class="green" id="parent" value="Parent" />
                 <div id="no-entities">
                     No entities found <span id="no-entities-in-view">in view</span> within a <span id="no-entities-radius">100</span> meter radius. Try moving to a different location and refreshing.
                 </div>

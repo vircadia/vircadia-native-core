@@ -859,7 +859,6 @@ function setupModelMenus() {
         menuItemName: "Unparent Entity",
         afterItem: "Entity List...",
         shortcutKey: "CTRL+SHIFT+P",
-        afterItem: "Entity List...",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -1003,6 +1002,9 @@ Script.scriptEnding.connect(function () {
 
     Overlays.deleteOverlay(importingSVOImageOverlay);
     Overlays.deleteOverlay(importingSVOTextOverlay);
+
+    Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
+    Controller.keyPressEvent.disconnect(keyPressEvent);
 });
 
 var lastOrientation = null;
@@ -1121,10 +1123,8 @@ function unparentSelectedEntities() {
         Entities.editEntity(id, {parentID: null})
         return true;
       });
-
       Window.notify("Entities Unparented");
     }
-
 }
 function parentSelectedEntities() {
     if (SelectionManager.hasSelection()) {
@@ -1335,13 +1335,12 @@ Window.svoImportRequested.connect(importSVO);
 
 Menu.menuItemEvent.connect(handeMenuEvent);
 
-Controller.keyPressEvent.connect(function (event) {
+var keyPressEvent = function (event) {
     if (isActive) {
         cameraManager.keyPressEvent(event);
     }
-});
-
-Controller.keyReleaseEvent.connect(function (event) {
+};
+var keyReleaseEvent = function (event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
@@ -1375,14 +1374,16 @@ Controller.keyReleaseEvent.connect(function (event) {
             });
             grid.setPosition(newPosition);
         }
-    } else if (event.text === 'p' && event.isControl ) {
+    } else if (event.text === 'p' && event.isControl && !event.isAutoRepeat ) {
         if (event.isShifted) {
             unparentSelectedEntities();
         } else {
             parentSelectedEntities();
         }
     }
-});
+};
+Controller.keyReleaseEvent.connect(keyReleaseEvent);
+Controller.keyPressEvent.connect(keyPressEvent);
 
 function recursiveAdd(newParentID, parentData) {
     var children = parentData.children;
@@ -1632,6 +1633,10 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
+        } else if(data.type === 'parent') {
+            parentSelectedEntities();
+        } else if(data.type === 'unparent') {
+            unparentSelectedEntities();
         } else if(data.type === 'saveUserData'){
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
@@ -1889,6 +1894,9 @@ var PopupMenu = function () {
         for (var i = 0; i < overlays.length; i++) {
             Overlays.deleteOverlay(overlays[i]);
         }
+        Controller.mousePressEvent.disconnect(self.mousePressEvent);
+        Controller.mouseMoveEvent.disconnect(self.mouseMoveEvent);
+        Controller.mouseReleaseEvent.disconnect(self.mouseReleaseEvent);
     }
 
     Controller.mousePressEvent.connect(self.mousePressEvent);
