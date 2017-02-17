@@ -19,7 +19,10 @@ FocusScope {
     height: 720
 
     property var rootMenu: Menu { objectName:"rootMenu" }
-    property var point: Qt.point(50, 50)
+    property var point: Qt.point(50, 50);
+    property var eventBridge;
+    signal sendToScript(var message);
+    TabletMenuStack { id: menuPopperUpper }
     property string subMenu: ""
     property var eventBridge;
     signal sendToScript(var message);

@@ -82,9 +82,7 @@ Item {
         }
 
         function popMenu() {
-            console.log("the depth of the stack " + d.depth);
             if (d.depth) {
-                console.log("trying to pop page from stack");
                 d.pop();
             }
             if (d.depth) {
