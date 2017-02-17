@@ -214,6 +214,11 @@ public:
     float getDesktopTabletScale() { return _desktopTabletScale.get(); }
     void setDesktopTabletScale(float desktopTabletScale);
 
+    bool getDesktopTabletBecomesToolbarSetting() { return _desktopTabletBecomesToolbarSetting.get(); }
+    void setDesktopTabletBecomesToolbarSetting(bool value);
+    bool getHmdTabletBecomesToolbarSetting() { return _hmdTabletBecomesToolbarSetting.get(); }
+    void setHmdTabletBecomesToolbarSetting(bool value);
+
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
@@ -313,6 +318,7 @@ public slots:
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url);
     void updateThreadPoolCount() const;
+    void updateSystemTabletMode();
 
     static void setLowVelocityFilter(bool lowVelocityFilter);
     Q_INVOKABLE void loadDialog();
@@ -553,6 +559,8 @@ private:
     Setting::Handle<float> _fieldOfView;
     Setting::Handle<float> _hmdTabletScale;
     Setting::Handle<float> _desktopTabletScale;
+    Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
+    Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
 
     float _scaleMirror;
