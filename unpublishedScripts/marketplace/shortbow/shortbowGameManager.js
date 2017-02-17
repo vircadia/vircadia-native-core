@@ -100,7 +100,7 @@ var baseEnemyProperties = {
         "y": -15,
         "z": 0
     },
-    lifetime: 180,
+    lifetime: 60,
     "id": "{ed8f7339-8bbd-4750-968e-c3ceb9d64721}",
     "modelURL": Script.resolvePath("models/Amber.fbx"),
     "name": "SB.Enemy",
