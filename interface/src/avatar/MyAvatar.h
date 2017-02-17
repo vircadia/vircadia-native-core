@@ -219,6 +219,8 @@ public:
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
     Q_INVOKABLE bool clearPinOnJoint(int index);
 
+    Q_INVOKABLE float getIKErrorOnLastSolve() const;
+
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
     Q_INVOKABLE QUrl getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
     Q_INVOKABLE QString getFullAvatarModelName() const { return _fullAvatarModelName; }

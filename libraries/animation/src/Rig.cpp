@@ -337,6 +337,21 @@ float Rig::getMaxHipsOffsetLength() const {
     return _maxHipsOffsetLength;
 }
 
+float Rig::getIKErrorOnLastSolve() const {
+    float result = 0.0f;
+
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                result = ikNode->getMaxErrorOnLastSolve();
+            }
+            return true;
+        });
+    }
+    return result;
+}
+
 int Rig::getJointParentIndex(int childIndex) const {
     if (_animSkeleton && isIndexValid(childIndex)) {
         return _animSkeleton->getParentIndex(childIndex);

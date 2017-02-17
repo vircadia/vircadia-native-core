@@ -107,6 +107,8 @@ public:
     void setMaxHipsOffsetLength(float maxLength);
     float getMaxHipsOffsetLength() const;
 
+    float getIKErrorOnLastSolve() const;
+
     int getJointParentIndex(int childIndex) const;
 
     // geometry space
@@ -321,6 +323,7 @@ protected:
 
     mutable uint32_t _jointNameWarningCount { 0 };
     float _maxHipsOffsetLength { 1.0f };
+    float _maxErrorOnLastSolve { 0.0f };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

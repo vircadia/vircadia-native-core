@@ -41,6 +41,8 @@ public:
 
     void setMaxHipsOffsetLength(float maxLength);
 
+    float getMaxErrorOnLastSolve() { return _maxErrorOnLastSolve; }
+
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
@@ -93,6 +95,8 @@ protected:
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm
     int _maxTargetIndex { 0 };
+
+    float _maxErrorOnLastSolve { FLT_MAX };
 };
 
 #endif // hifi_AnimInverseKinematics_h

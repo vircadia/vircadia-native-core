@@ -189,6 +189,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             }
         }
     }
+    _maxErrorOnLastSolve = maxError;
 
     // finally set the relative rotation of each tip to agree with absolute target rotation
     for (auto& target: targets) {

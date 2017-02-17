@@ -9,6 +9,7 @@
   var RELEASE_KEYS = ['w', 'a', 's', 'd', 'UP', 'LEFT', 'DOWN', 'RIGHT'];
   var RELEASE_TIME = 500; // ms
   var RELEASE_DISTANCE = 0.2; // meters
+  var MAX_IK_ERROR = 15;
 
   this.entityID = null;
   this.timers = {};
@@ -21,7 +22,10 @@
   this.update = function(dt) {
     if (MyAvatar.getParentID() === this.entityID) {
       var properties = Entities.getEntityProperties(this.entityID, ["position"]);
-      if (Vec3.distance(MyAvatar.position, properties.position) > RELEASE_DISTANCE) {
+      var avatarDistance = Vec3.distance(MyAvatar.position, properties.position);
+      var ikError = MyAvatar.getIKErrorOnLastSolve();
+      print("IK error: " + ikError);
+      if (avatarDistance > RELEASE_DISTANCE || ikError > MAX_IK_ERROR) {
         this.sitUp(this.entityID);
       }
     }

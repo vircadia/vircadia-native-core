@@ -2517,6 +2517,10 @@ bool MyAvatar::clearPinOnJoint(int index) {
     return false;
 }
 
+float MyAvatar::getIKErrorOnLastSolve() const {
+    return _rig->getIKErrorOnLastSolve();
+}
+
 // thread-safe
 void MyAvatar::addHoldAction(AvatarActionHold* holdAction) {
     std::lock_guard<std::mutex> guard(_holdActionsMutex);
