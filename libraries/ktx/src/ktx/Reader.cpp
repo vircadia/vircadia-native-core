@@ -38,12 +38,17 @@ namespace ktx {
             }
             break;
         default:
+            throw ReaderException("endianness field has invalid value");
             return false;
         }
     }
 
     bool checkIdentifier(const Byte* identifier) {
-        return memcmp(identifier, Header::IDENTIFIER.data(), Header::IDENTIFIER_LENGTH);
+        if (!(0 == memcmp(identifier, Header::IDENTIFIER.data(), Header::IDENTIFIER_LENGTH))) {
+            throw ReaderException("identifier field invalid");
+            return false;
+        }
+        return true;
     }
 
     KeyValues getKeyValues(size_t length, const Byte* src) {
@@ -81,53 +86,18 @@ namespace ktx {
         return keyValues;
     }
 
-    Images getImagesTable(const Header& header, size_t mipsDataSize, const Byte* mipsData) {
-        Images images;
-        auto currentPtr = mipsData;
-        auto numMips = header.getNumberOfLevels();
-
-        // Keep identifying new mip as long as we can at list query the next imageSize
-        while ((currentPtr - mipsData) + sizeof(uint32_t) <= (mipsDataSize)) {
-
-            // Grab the imageSize coming up
-            size_t imageSize = *reinterpret_cast<const uint32_t*>(currentPtr);
-            currentPtr += sizeof(uint32_t);
-
-            // If enough data ahead then capture the pointer
-            if ((currentPtr - mipsData) + imageSize <= (mipsDataSize)) {
-                auto padding = Header::evalPadding(imageSize);
-
-                images.emplace_back(Image(imageSize, padding, currentPtr));
-
-                currentPtr += imageSize + padding;
-            } else {
-                break;
-            }
-        }
-
-        return images;
-    }
-
-
-    bool KTX::checkHeaderFromStorage(const Storage& src) {
+    bool KTX::checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes) {
         try {
-            auto srcSize = src.size();
-            auto srcBytes = src.data();
-
             // validation
             if (srcSize < sizeof(Header)) {
                 throw ReaderException("length is too short for header");
             }
             const Header* header = reinterpret_cast<const Header*>(srcBytes);
 
-            if (!checkIdentifier(header->identifier)) {
-                throw ReaderException("identifier field invalid");
-            }
+            checkIdentifier(header->identifier);
 
             bool endianMatch { true };
-            if (!checkEndianness(header->endianness, endianMatch)) {
-                throw ReaderException("endianness field has invalid value");
-            }
+            checkEndianness(header->endianness, endianMatch);
 
             // TODO: endian conversion if !endianMatch - for now, this is for local use and is unnecessary
 
@@ -151,10 +121,31 @@ namespace ktx {
         }
     }
 
-    std::unique_ptr<KTX> KTX::create(const Storage& src) {
-        auto srcCopy = std::make_unique<Storage>(src);
+    Images KTX::parseImages(const Header& header, size_t srcSize, const Byte* srcBytes) {
+        Images images;
+        auto currentPtr = srcBytes;
+        auto numMips = header.getNumberOfLevels();
 
-        return create(srcCopy);
+        // Keep identifying new mip as long as we can at list query the next imageSize
+        while ((currentPtr - srcBytes) + sizeof(uint32_t) <= (srcSize)) {
+
+            // Grab the imageSize coming up
+            size_t imageSize = *reinterpret_cast<const uint32_t*>(currentPtr);
+            currentPtr += sizeof(uint32_t);
+
+            // If enough data ahead then capture the pointer
+            if ((currentPtr - srcBytes) + imageSize <= (srcSize)) {
+                auto padding = Header::evalPadding(imageSize);
+
+                images.emplace_back(Image(imageSize, padding, currentPtr));
+
+                currentPtr += imageSize + padding;
+            } else {
+                break;
+            }
+        }
+
+        return images;
     }
 
     std::unique_ptr<KTX> KTX::create(std::unique_ptr<Storage>& src) {
@@ -162,25 +153,19 @@ namespace ktx {
             return nullptr;
         }
 
-        try {
-            if (!checkHeaderFromStorage(*src)) {
-
-            }
-
-            std::unique_ptr<KTX> result(new KTX());
-            result->resetStorage(src.release());
-
-            // read metadata
-            result->_keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
-
-            // populate image table
-            result->_images = getImagesTable(*result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
-
-            return result;
-        }
-        catch (ReaderException& e) {
-            qWarning(e.what());
+        if (!checkHeaderFromStorage(src->size(), src->data())) {
             return nullptr;
         }
+
+        std::unique_ptr<KTX> result(new KTX());
+        result->resetStorage(src.release());
+
+        // read metadata
+       // result->_keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
+
+        // populate image table
+        result->_images = parseImages(*result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
+
+        return result;
     }
 }
