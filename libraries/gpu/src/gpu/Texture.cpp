@@ -127,7 +127,9 @@ Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
 }
 
 Texture::Pixels::~Pixels() {
-    Texture::updateTextureCPUMemoryUsage(_storage->size(), 0);
+    if (_storage) {
+        Texture::updateTextureCPUMemoryUsage(_storage->size(), 0);
+    }
 }
 
 void Texture::Storage::assignTexture(Texture* texture) {
