@@ -286,12 +286,36 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
                 filename += std::to_string((size_t) theTexture);
                 filename += ".ktx";
 
-            FILE* file = fopen (filename.c_str(),"wb");
-            if (file != nullptr) {
-                fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
-                fclose (file);
+            {
+                FILE* file = fopen (filename.c_str(),"wb");
+                if (file != nullptr) {
+                    fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
+                    fclose (file);
+                }
             }
 
+            {
+                FILE* file = fopen (filename.c_str(),"rb");
+                if (file != nullptr) {
+                    // obtain file size:
+                    fseek (file , 0 , SEEK_END);
+                    auto size = ftell(file);
+                    rewind(file);
+
+                    std::unique_ptr<ktx::Storage> storage(new ktx::Storage(size));
+                    fread(storage->_bytes, 1, storage->_size, file);
+                    fclose (file);
+
+                    //then create a new texture out of the ktx
+                    auto theNewTexure = Texture::unserialize(ktx::KTX::create(storage));
+
+                    if (theNewTexure) {
+                        auto srcTexture = theTexture;
+                        theTexture = theNewTexure;
+                        delete srcTexture;
+                    }
+                }
+            }
         }
     }
 

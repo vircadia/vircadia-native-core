@@ -481,7 +481,7 @@ public:
     ExternalUpdates getUpdates() const;
 
     static ktx::KTXUniquePointer serialize(const Texture& texture);
-    static TexturePointer unserialize(const ktx::KTXUniquePointer& srcData);
+    static Texture* unserialize(const ktx::KTXUniquePointer& srcData);
 
 protected:
     // Should only be accessed internally or by the backend sync function
