@@ -295,17 +295,14 @@ function populateUserList(selectData) {
             userName: '',
             sessionId: id || '',
             audioLevel: 0.0,
-            admin: false
+            admin: false,
+            personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
+            ignore: !!id && Users.getIgnoreStatus(id) // ditto
         };
-        // Request the username, fingerprint, and admin status from the given UUID
-        // Username and fingerprint returns default constructor output if the requesting user isn't an admin
-        Users.requestUsernameFromID(id);
-        // Request personal mute status and ignore status
-        // from NodeList (as long as we're not requesting it for our own ID)
         if (id) {
-            avatarPalDatum['personalMute'] = Users.getPersonalMuteStatus(id);
-            avatarPalDatum['ignore'] = Users.getIgnoreStatus(id);
             addAvatarNode(id); // No overlay for ourselves
+            // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
+            Users.requestUsernameFromID(id);
         }
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
@@ -319,20 +316,13 @@ function populateUserList(selectData) {
 
 // The function that handles the reply from the server
 function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
-    var data;
-    // If the ID we've received is our ID...
-    if (MyAvatar.sessionUUID === id) {
-        // Set the data to contain specific strings.
-        data = ['', username, isAdmin];
-    } else if (Users.canKick) {
-        // Set the data to contain the ID and the username (if we have one)
-        // or fingerprint (if we don't have a username) string.
-        data = [id, username || machineFingerprint, isAdmin];
-    } else {
-        // Set the data to contain specific strings.
-        data = [id, '', isAdmin];
-    }
-    print('Username Data:', JSON.stringify(data));
+    var data = [
+        (MyAvatar.sessionUUID === id) ? '' : id, // Pal.qml recognizes empty id specially.
+        // If we get username (e.g., if in future we receive it when we're friends), use it.
+        // Otherwise, use valid machineFingerprint (which is not valid when not an admin).
+        username || (Users.canKick && machineFingerprint) || '',
+        isAdmin
+    ];
     // Ship the data off to QML
     sendToQml({ method: 'updateUsername', params: data });
 }
@@ -344,13 +334,15 @@ function updateOverlays() {
         if (!id) {
             return; // don't update ourself
         }
-
+        var avatar = AvatarList.getAvatar(id);
+        if (!avatar) {
+            return; // will be deleted below if there had been an overlay.
+        }
         var overlay = ExtendedOverlay.get(id);
         if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
             print('Adding non-PAL avatar node', id);
             overlay = addAvatarNode(id);
         }
-        var avatar = AvatarList.getAvatar(id);
         var target = avatar.position;
         var distance = Vec3.distance(target, eye);
         var offset = 0.2;

@@ -43,6 +43,7 @@ private:
     bool try_pop(SharedNodePointer& node);
 
     AudioMixerSlavePool& _pool;
+    void (AudioMixerSlave::*_function)(const SharedNodePointer& node) { nullptr };
     bool _stop { false };
 };
 
@@ -60,6 +61,9 @@ public:
     AudioMixerSlavePool(int numThreads = QThread::idealThreadCount()) { setNumThreads(numThreads); }
     ~AudioMixerSlavePool() { resize(0); }
 
+    // process packets on slave threads
+    void processPackets(ConstIter begin, ConstIter end);
+
     // mix on slave threads
     void mix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio);
 
@@ -70,6 +74,7 @@ public:
     int numThreads() { return _numThreads; }
 
 private:
+    void run(ConstIter begin, ConstIter end);
     void resize(int numThreads);
 
     std::vector<std::unique_ptr<AudioMixerSlaveThread>> _slaves;
@@ -82,6 +87,8 @@ private:
     Mutex _mutex;
     ConditionVariable _slaveCondition;
     ConditionVariable _poolCondition;
+    void (AudioMixerSlave::*_function)(const SharedNodePointer& node);
+    std::function<void(AudioMixerSlave&)> _configure;
     int _numThreads { 0 };
     int _numStarted { 0 }; // guarded by _mutex
     int _numFinished { 0 }; // guarded by _mutex

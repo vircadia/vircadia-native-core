@@ -35,7 +35,7 @@
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
-        icon: "icons/tablet-icons/people-i.svg",
+        icon: "icons/tablet-icons/users-i.svg",
         text: "USERS",
         sortOrder: 11
     });

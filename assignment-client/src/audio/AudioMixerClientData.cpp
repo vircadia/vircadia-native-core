@@ -19,6 +19,7 @@
 
 #include "InjectedAudioStream.h"
 
+#include "AudioHelpers.h"
 #include "AudioMixer.h"
 #include "AudioMixerClientData.h"
 
@@ -47,6 +48,92 @@ AudioMixerClientData::~AudioMixerClientData() {
     }
 }
 
+void AudioMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
+    if (!_packetQueue.node) {
+        _packetQueue.node = node;
+    }
+    _packetQueue.push(message);
+}
+
+void AudioMixerClientData::processPackets() {
+    SharedNodePointer node = _packetQueue.node;
+    assert(_packetQueue.empty() || node);
+    _packetQueue.node.clear();
+
+    while (!_packetQueue.empty()) {
+        auto& packet = _packetQueue.back();
+
+        switch (packet->getType()) {
+            case PacketType::MicrophoneAudioNoEcho:
+            case PacketType::MicrophoneAudioWithEcho:
+            case PacketType::InjectAudio:
+            case PacketType::AudioStreamStats:
+            case PacketType::SilentAudioFrame: {
+                QMutexLocker lock(&getMutex());
+                parseData(*packet);
+                break;
+            }
+            case PacketType::NegotiateAudioFormat:
+                negotiateAudioFormat(*packet, node);
+                break;
+            case PacketType::RequestsDomainListData:
+                parseRequestsDomainListData(*packet);
+                break;
+            case PacketType::PerAvatarGainSet:
+                parsePerAvatarGainSet(*packet, node);
+                break;
+            case PacketType::NodeIgnoreRequest:
+                parseNodeIgnoreRequest(packet, node);
+                break;
+            case PacketType::RadiusIgnoreRequest:
+                parseRadiusIgnoreRequest(packet, node);
+                break;
+            default:
+                Q_UNREACHABLE();
+        }
+
+        _packetQueue.pop();
+    }
+    assert(_packetQueue.empty());
+}
+
+void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node) {
+    quint8 numberOfCodecs;
+    message.readPrimitive(&numberOfCodecs);
+    std::vector<QString> codecs;
+    for (auto i = 0; i < numberOfCodecs; i++) {
+        codecs.push_back(message.readString());
+    }
+    const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec(codecs);
+
+    setupCodec(codec.second, codec.first);
+    sendSelectAudioFormat(node, codec.first);
+}
+
+void AudioMixerClientData::parseRequestsDomainListData(ReceivedMessage& message) {
+    bool isRequesting;
+    message.readPrimitive(&isRequesting);
+    setRequestsDomainListData(isRequesting);
+}
+
+void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node) {
+    QUuid uuid = node->getUUID();
+    // parse the UUID from the packet
+    QUuid avatarUuid = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    uint8_t packedGain;
+    message.readPrimitive(&packedGain);
+    float gain = unpackFloatGainFromByte(packedGain);
+    hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
+    qDebug() << "Setting gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
+}
+
+void AudioMixerClientData::parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
+    node->parseIgnoreRequestMessage(message);
+}
+
+void AudioMixerClientData::parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
+    node->parseIgnoreRadiusRequestMessage(message);
+}
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     QReadLocker readLocker { &_streamsLock };
@@ -461,9 +548,6 @@ AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsi
             _zone = box;
             unsigned int oldFrame = _frame.exchange(frame, std::memory_order_release);
             Q_UNUSED(oldFrame);
-
-            // check the precondition
-            assert(oldFrame == 0 || frame == (oldFrame + 1));
         }
     }
 
