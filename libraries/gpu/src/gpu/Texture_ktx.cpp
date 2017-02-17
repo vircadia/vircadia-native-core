@@ -80,7 +80,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData) {
+Texture* Texture::unserialize(TextureUsageType usageType, const ktx::KTXUniquePointer& srcData) {
     if (!srcData) {
         return nullptr;
     }
@@ -105,7 +105,8 @@ Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData) {
         type = TEX_3D;
     }
 
-    auto tex = Texture::create( type,
+    auto tex = Texture::create( usageType,
+                                type,
                                 texelFormat,
                                 header.getPixelWidth(),
                                 header.getPixelHeight(),
