@@ -125,11 +125,12 @@ void AvatarMixer::start() {
         //
         // DONE --- 1) only sleep for remainder
         // DONE --- 2) clean up stats, add slave stats
-        // 3) delete dead code from mixer (now that it's in slave)
-        // 4) audit the locking and side-effects to node, otherNode, and nodeData
+        // 3a) out of view??? is it broken?
+        // 3) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
+        // 4) fix two different versions of toByteArray()
         // 5) throttling??
-        // 6) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
-        // 7) fix two different versions of toByteArray()
+        // 6) audit the locking and side-effects to node, otherNode, and nodeData
+        // 7) delete dead code from mixer (now that it's in slave)
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

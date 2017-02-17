@@ -367,7 +367,11 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                                 quint64 end = usecTimestampNow();
                                 _stats.toByteArrayElapsedTime += (end - start);
 
-                                numAvatarDataBytes += avatarPacketList->write(bytes);
+                                if (bytes.size() > 1400) {
+                                    qDebug() << "WARNING: otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size();
+                                } else {
+                                    numAvatarDataBytes += avatarPacketList->write(bytes);
+                                }
                             }
 
                             avatarPacketList->endSegment();
