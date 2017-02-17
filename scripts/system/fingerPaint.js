@@ -179,6 +179,7 @@
             triggerReleasedCallback,
             gripPressedCallback,
 
+            rawTriggerValue = 0.0,
             triggerValue = 0.0,
             isTriggerPressed = false,
             TRIGGER_SMOOTH_RATIO = 0.1,
@@ -191,6 +192,7 @@
             MAX_LINE_WIDTH = 0.03,
             RAMP_LINE_WIDTH = MAX_LINE_WIDTH - MIN_LINE_WIDTH,
 
+            rawGripValue = 0.0,
             gripValue = 0.0,
             isGripPressed = false,
             GRIP_SMOOTH_RATIO = 0.1,
@@ -202,6 +204,11 @@
         }
 
         function onTriggerPress(value) {
+            // Controller values are only updated when they change so store latest for use in update.
+            rawTriggerValue = value;
+        }
+
+        function updateTriggerPress(value) {
             var wasTriggerPressed,
                 fingerTipPosition,
                 lineWidth;
@@ -210,7 +217,7 @@
                 return;
             }
 
-            triggerValue = triggerValue * TRIGGER_SMOOTH_RATIO + value * (1.0 - TRIGGER_SMOOTH_RATIO);
+            triggerValue = triggerValue * TRIGGER_SMOOTH_RATIO + rawTriggerValue * (1.0 - TRIGGER_SMOOTH_RATIO);
 
             wasTriggerPressed = isTriggerPressed;
             if (isTriggerPressed) {
@@ -239,13 +246,18 @@
         }
 
         function onGripPress(value) {
+            // Controller values are only updated when they change so store latest for use in update.
+            rawGripValue = value;
+        }
+
+        function updateGripPress() {
             var fingerTipPosition;
 
             if (!isEnabled) {
                 return;
             }
 
-            gripValue = gripValue * GRIP_SMOOTH_RATIO + value * (1.0 - GRIP_SMOOTH_RATIO);
+            gripValue = gripValue * GRIP_SMOOTH_RATIO + rawGripValue * (1.0 - GRIP_SMOOTH_RATIO);
 
             if (isGripPressed) {
                 isGripPressed = gripValue > GRIP_OFF;
@@ -256,6 +268,11 @@
                     gripPressedCallback(fingerTipPosition);
                 }
             }
+        }
+
+        function onUpdate() {
+            updateTriggerPress();
+            updateGripPress();
         }
 
         function setUp(onTriggerPressed, onTriggerPressing, onTriggerReleased, onGripPressed) {
@@ -273,6 +290,7 @@
             setEnabled: setEnabled,
             onTriggerPress: onTriggerPress,
             onGripPress: onGripPress,
+            onUpdate: onUpdate,
             setUp: setUp,
             tearDown: tearDown
         };
@@ -343,6 +361,8 @@
         controllerMapping.from(Controller.Standard.RT).to(rightHand.onTriggerPress);
         controllerMapping.from(Controller.Standard.RightGrip).to(rightHand.onGripPress);
         Controller.enableMapping(CONTROLLER_MAPPING_NAME);
+        Script.update.connect(leftHand.onUpdate);
+        Script.update.connect(rightHand.onUpdate);
 
         // Connect handController outputs to paintBrush objects.
         leftBrush = paintBrush("left");
@@ -359,6 +379,9 @@
         if (!tablet) {
             return;
         }
+
+        Script.update.disconnect(leftHand.onUpdate);
+        Script.update.disconnect(rightHand.onUpdate);
 
         isFingerPainting = false;
         updateHandFunctions();
