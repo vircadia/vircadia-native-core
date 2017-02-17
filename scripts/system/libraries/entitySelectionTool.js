@@ -3866,6 +3866,12 @@ SelectionDisplay = (function() {
         var somethingClicked = false;
         var pickRay = generalComputePickRay(event.x, event.y);
 
+        var result = Overlays.findRayIntersection(pickRay, true, [HMD.tabletScreenID]);
+        if (result.intersects) {
+            // mouse clicks on the tablet should override the edit affordances
+            return false;
+        }
+
         // before we do a ray test for grabbers, disable the ray intersection for our selection box
         Overlays.editOverlay(selectionBox, {
             ignoreRayIntersection: true
@@ -3879,10 +3885,9 @@ SelectionDisplay = (function() {
         Overlays.editOverlay(rollHandle, {
             ignoreRayIntersection: true
         });
-        var result = Overlays.findRayIntersection(pickRay);
 
+        result = Overlays.findRayIntersection(pickRay);
         if (result.intersects) {
-
             
             if (wantDebug) {
                 print("something intersects... ");

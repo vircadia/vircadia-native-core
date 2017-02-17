@@ -32,6 +32,7 @@
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonEntity;
+        HMD.tabletScreenID = UIWebTablet.webOverlayID;
     }
 
     function hideTabletUI() {
@@ -48,6 +49,7 @@
             UIWebTablet = null;
             HMD.tabletID = null;
             HMD.homeButtonID = null;
+            HMD.tabletScreenID = null;
         }
     }
 
