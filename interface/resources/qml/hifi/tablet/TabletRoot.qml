@@ -81,6 +81,7 @@ Item {
                 loader.item.subMenu = option;
             }
             loader.item.forceActiveFocus();
+            tabletRoot.findStackableChild();
         }
     }
 
