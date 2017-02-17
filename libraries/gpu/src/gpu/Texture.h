@@ -359,7 +359,12 @@ public:
 
     uint32 getNumTexels() const { return _width * _height * _depth * getNumFaces(); }
 
-    uint16 getNumSlices() const { return _numSlices; }
+    // The texture is an array if the _numSlices is not 0.
+    // otherwise, if _numSLices is 0, then the texture is NOT an array
+    // The number of slices returned is 1 at the minimum (if not an array) or the actual _numSlices.
+    bool isArray() const { return _numSlices > 0; }
+    uint16 getNumSlices() const { return (isArray() ? _numSlices : 1); }
+
     uint16 getNumSamples() const { return _numSamples; }
 
 
@@ -511,12 +516,12 @@ protected:
     uint32 _size = 0;
     Element _texelFormat;
 
-    uint16 _width = 1;
-    uint16 _height = 1;
-    uint16 _depth = 1;
+    uint16 _width { 1 };
+    uint16 _height { 1 };
+    uint16 _depth { 1 };
 
-    uint16 _numSamples = 1;
-    uint16 _numSlices = 1;
+    uint16 _numSamples { 1 };
+    uint16 _numSlices { 0 }; // if _numSlices is 0, the texture is not an "Array", the getNumSlices reported is 1
 
     uint16 _maxMip { 0 };
     uint16 _minMip { 0 };

@@ -85,6 +85,61 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     return srcImage;
 }
 
+gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = true) {
+    if (!srcTexture) {
+        return nullptr;
+    }
+    gpu::Texture* returnedTexture = srcTexture;
+
+    auto theKTX = Texture::serialize(*srcTexture);
+    if (theKTX) {
+        // Prepare cache directory
+        QString path("hifi_ktx/");
+        QFileInfo originalFileInfo(path);
+        QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        path = docsLocation + "/" + path;
+        QFileInfo info(path);
+        if (!info.absoluteDir().exists()) {
+            QString originalRelativePath = originalFileInfo.path();
+            QDir(docsLocation).mkpath(originalRelativePath);
+        }
+        std::string filename(path.toStdString());
+            filename += name;
+            filename += ".ktx";
+
+        if (write) {
+            FILE* file = fopen (filename.c_str(),"wb");
+            if (file != nullptr) {
+                fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
+                fclose (file);
+            }
+        }
+
+        if (read) {
+            FILE* file = fopen (filename.c_str(),"rb");
+            if (file != nullptr) {
+                // obtain file size:
+                fseek (file , 0 , SEEK_END);
+                auto size = ftell(file);
+                rewind(file);
+
+                std::unique_ptr<ktx::Storage> storage(new ktx::Storage(size));
+                fread(storage->_bytes, 1, storage->_size, file);
+                fclose (file);
+
+                //then create a new texture out of the ktx
+                auto theNewTexure = Texture::unserialize(ktx::KTX::create(storage));
+
+                if (theNewTexure) {
+                    returnedTexture = theNewTexure;
+                    delete srcTexture;
+                }
+            }
+        }
+    }
+    return returnedTexture;
+}
+
 void TextureMap::setTextureSource(TextureSourcePointer& textureSource) {
     _textureSource = textureSource;
 }
@@ -273,56 +328,9 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         if (generateMips) {
             ::generateMips(theTexture, image, formatMip, false);
         }
-        auto theKTX = Texture::serialize(*theTexture);
-        if (theKTX) {
-            // save that!
-            QString path("hifi_ktx/");
-            QFileInfo originalFileInfo(path);
-            QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-            path = docsLocation + "/" + path;
-            QFileInfo info(path);
-            if (!info.absoluteDir().exists()) {
-                QString originalRelativePath = originalFileInfo.path();
-                QDir(docsLocation).mkpath(originalRelativePath);
-            }
 
-            std::string filename(path.toStdString());
-                filename += std::to_string((size_t) theTexture);
-                filename += ".ktx";
-
-            {
-                FILE* file = fopen (filename.c_str(),"wb");
-                if (file != nullptr) {
-                    fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
-                    fclose (file);
-                }
-            }
-
-            {
-                FILE* file = fopen (filename.c_str(),"rb");
-                if (file != nullptr) {
-                    // obtain file size:
-                    fseek (file , 0 , SEEK_END);
-                    auto size = ftell(file);
-                    rewind(file);
-
-                    std::unique_ptr<ktx::Storage> storage(new ktx::Storage(size));
-                    fread(storage->_bytes, 1, storage->_size, file);
-                    fclose (file);
-
-                    //then create a new texture out of the ktx
-                    auto theNewTexure = Texture::unserialize(ktx::KTX::create(storage));
-
-                    if (theNewTexure) {
-                        auto srcTexture = theTexture;
-                        theTexture = theNewTexure;
-                        delete srcTexture;
-                    }
-                }
-            }
-        }
+        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
     }
-
 
     return theTexture;
 }
@@ -367,6 +375,8 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
         theTexture->setSource(srcImageName);
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         generateMips(theTexture, image, formatMip, true);
+
+        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
     }
 
     return theTexture;
@@ -453,6 +463,8 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         theTexture->setSource(srcImageName);
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         generateMips(theTexture, image, formatMip, true);
+
+        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
     }
 
     return theTexture;
@@ -486,8 +498,8 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
         theTexture->setSource(srcImageName);
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         generateMips(theTexture, image, formatMip, true);
-
-        // FIXME queue for transfer to GPU and block on completion
+        
+        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
     }
 
     return theTexture;
@@ -525,8 +537,8 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
         theTexture->setSource(srcImageName);
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         generateMips(theTexture, image, formatMip, true);
-        
-        // FIXME queue for transfer to GPU and block on completion
+
+        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
     }
     
     return theTexture;
@@ -562,7 +574,7 @@ gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImag
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         generateMips(theTexture, image, formatMip, true);
 
-        // FIXME queue for transfer to GPU and block on completion
+        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
     }
 
     return theTexture;
@@ -893,6 +905,8 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
                 PROFILE_RANGE(resource_parse, "generateIrradiance");
                 theTexture->generateIrradiance();
             }
+
+            theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
         }
     }
 

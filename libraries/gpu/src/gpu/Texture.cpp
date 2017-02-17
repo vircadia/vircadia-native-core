@@ -263,27 +263,27 @@ Texture* Texture::createExternal(const ExternalRecycler& recycler, const Sampler
 }
 
 Texture* Texture::createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
-    return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
+    return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, 0, sampler);
 }
 
 Texture* Texture::create1D(const Element& texelFormat, uint16 width, const Sampler& sampler) { 
-    return create(TextureUsageType::RESOURCE, TEX_1D, texelFormat, width, 1, 1, 1, 1, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_1D, texelFormat, width, 1, 1, 1, 0, sampler);
 }
 
 Texture* Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
-    return create(TextureUsageType::RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 0, sampler);
 }
 
 Texture* Texture::createStrict(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
-    return create(TextureUsageType::STRICT_RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
+    return create(TextureUsageType::STRICT_RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 0, sampler);
 }
 
 Texture* Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler) {
-    return create(TextureUsageType::RESOURCE, TEX_3D, texelFormat, width, height, depth, 1, 1, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_3D, texelFormat, width, height, depth, 1, 0, sampler);
 }
 
 Texture* Texture::createCube(const Element& texelFormat, uint16 width, const Sampler& sampler) {
-    return create(TextureUsageType::RESOURCE, TEX_CUBE, texelFormat, width, width, 1, 1, 1, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_CUBE, texelFormat, width, width, 1, 1, 0, sampler);
 }
 
 Texture* Texture::create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler)
@@ -326,7 +326,7 @@ Texture::~Texture() {
 }
 
 Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices) {
-    if (width && height && depth && numSamples && numSlices) {
+    if (width && height && depth && numSamples) {
         bool changed = false;
 
         if ( _type != type) {
@@ -387,20 +387,20 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
 }
 
 Texture::Size Texture::resize1D(uint16 width, uint16 numSamples) {
-    return resize(TEX_1D, getTexelFormat(), width, 1, 1, numSamples, 1);
+    return resize(TEX_1D, getTexelFormat(), width, 1, 1, numSamples, 0);
 }
 Texture::Size Texture::resize2D(uint16 width, uint16 height, uint16 numSamples) {
-    return resize(TEX_2D, getTexelFormat(), width, height, 1, numSamples, 1);
+    return resize(TEX_2D, getTexelFormat(), width, height, 1, numSamples, 0);
 }
 Texture::Size Texture::resize3D(uint16 width, uint16 height, uint16 depth, uint16 numSamples) {
-    return resize(TEX_3D, getTexelFormat(), width, height, depth, numSamples, 1);
+    return resize(TEX_3D, getTexelFormat(), width, height, depth, numSamples, 0);
 }
 Texture::Size Texture::resizeCube(uint16 width, uint16 numSamples) {
-    return resize(TEX_CUBE, getTexelFormat(), width, 1, 1, numSamples, 1);
+    return resize(TEX_CUBE, getTexelFormat(), width, 1, 1, numSamples, 0);
 }
 
 Texture::Size Texture::reformat(const Element& texelFormat) {
-    return resize(_type, texelFormat, getWidth(), getHeight(), getDepth(), getNumSamples(), getNumSlices());
+    return resize(_type, texelFormat, getWidth(), getHeight(), getDepth(), getNumSamples(), _numSlices);
 }
 
 bool Texture::isColorRenderTarget() const {
