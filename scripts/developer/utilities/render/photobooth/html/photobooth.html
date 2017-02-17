@@ -69,38 +69,15 @@
             "data": eventData
         };
         EventBridge.emitWebEvent(JSON.stringify(eventObject));
-      };
-
-      function loaded () {
-        openEventBridge(function () {
-          emit("onLoad", {value: "faye"});
-          
-          var elModelURL = document.getElementById("model-url");
-          var elReloadModelButton = document.getElementById("reload-model-button");
-          var elCamera = document.getElementById("property-camera");
-          //var elLightingPreset = document.getElementById("property-lighting-preset");
-          var elPictureButton = document.getElementById("picture-button");
-
-          elReloadModelButton.addEventListener('click', function() {
-              emit("onClickReloadModelButton", {value: elModelURL.value});
-          });
-          elCamera.addEventListener('change', function() {
-              emit("onSelectCamera", {value: this.value});
-          });
-          // elLightingPreset.addEventListener('change', function() {
-          //     emit("onSelectLightingPreset", {value: "faye"});
-          // });
-          elPictureButton.addEventListener('click', function() {
-              emit("onClickPictureButton", {value: "faye"});
-          });
-        });
       }
+
       $(document).ready(function() {
         // Send a ready event to hifi
         emit("ready", null);
+        // Send an event when camera selection changes
         $("#property-camera").on('change', function() {
-          console.log("ok");
-          emit("onSelectCamera", {value: this.val()});
+          console.log($("#property-camera").val());
+          emit("onSelectCamera", {value: $("#property-camera").val()});
         });
         // Send an event to hifi to trigger snapshot
         $("#picture-button").click(function() {
