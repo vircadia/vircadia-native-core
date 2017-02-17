@@ -93,10 +93,11 @@ var TELEPORTER_STATES = {
 }
 
 var TARGET = {
-    NONE: 'none',       // Not currently targetting anything
-    INVALID: 'invalid', // The current target is invalid (wall, ceiling, etc.)
-    SURFACE: 'surface', // The current target is a valid surface
-    SEAT: 'seat',       // The current target is a seat
+    NONE: 'none',            // Not currently targetting anything
+    INVISIBLE: 'invisible',  // The current target is an invvsible surface
+    INVALID: 'invalid',      // The current target is invalid (wall, ceiling, etc.)
+    SURFACE: 'surface',      // The current target is a valid surface
+    SEAT: 'seat',            // The current target is a seat
 }
 
 function Teleporter() {
@@ -229,10 +230,22 @@ function Teleporter() {
             direction: Quat.getUp(handRotation),
         };
 
-        var intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity], true, true);
+        // We do up to 2 ray picks to find a teleport location.
+        // There are 2 types of teleport locations we are interested in:
+        //   1. A visible floor. This can be any entity surface that points within some degree of "up"
+        //   2. A seat. The seat can be visible or invisible.
+        //
+        //  * In the first pass we pick against visible and invisible entities so that we can find invisible seats.
+        //    We might hit an invisible entity that is not a seat, so we need to do a second pass.
+        //  * In the second pass we pick against visible entities only.
+        //
+        var intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity], false, true);
 
         var teleportLocationType = getTeleportTargetType(intersection);
-        //print("Teleport location type: ", teleportLocationType);
+        if (teleportLocationType === TARGET.INVISIBLE) {
+            intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity], true, true);
+            teleportLocationType = getTeleportTargetType(intersection);
+        }
 
         if (teleportLocationType === TARGET.NONE) {
             this.hideTargetOverlay();
@@ -241,7 +254,7 @@ function Teleporter() {
 
             var farPosition = Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 50));
             this.updateLineOverlay(_this.activeHand, pickRay.origin, farPosition, COLORS_TELEPORT_CANNOT_TELEPORT);
-        } else if (teleportLocationType === TARGET.INVALID) {
+        } else if (teleportLocationType === TARGET.INVALID || teleportLocationType === TARGET.INVISIBLE) {
             this.hideTargetOverlay();
             this.hideSeatOverlay();
 
@@ -424,17 +437,19 @@ function getTeleportTargetType(intersection) {
         return TARGET.NONE;
     }
 
-    var userData = Entities.getEntityProperties(intersection.entityID, 'userData').userData;
-    var data = parseJSON(userData);
+    var props = Entities.getEntityProperties(intersection.entityID, ['userData', 'visible']);
+    var data = parseJSON(props.userData);
     if (data !== undefined && data.seat !== undefined) {
         return TARGET.SEAT;
+    }
+
+    if (!props.visible) {
+        return TARGET.INVISIBLE;
     }
 
     var surfaceNormal = intersection.surfaceNormal;
     var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
     var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
-
-    //print("distacne is: ", Vec3.distance(MyAvatar.position, intersection.intersection));
 
     if (angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
             angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
