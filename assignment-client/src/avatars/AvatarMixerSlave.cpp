@@ -333,7 +333,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         bool isInView = nodeData->otherAvatarInView(otherNodeBox);
 
                         // this throttles the extra data to only be sent every Nth message
-                        if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
+                        if (!isInView && !getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
                             quint64 endAvatarDataPacking = usecTimestampNow();
 
                             _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);

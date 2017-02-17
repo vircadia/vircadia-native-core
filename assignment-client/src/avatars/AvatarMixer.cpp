@@ -314,8 +314,6 @@ void AvatarMixer::broadcastAvatarData() {
         ++framesSinceCutoffEvent;
     }
 
-    //avatarLoops();
-
     _lastFrameTimestamp = p_high_resolution_clock::now();
 
 #ifdef WANT_DEBUG
@@ -403,6 +401,7 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
             bool isRequesting;
             message->readPrimitive(&isRequesting);
             nodeData->setRequestsDomainListData(isRequesting);
+            qDebug() << "node" << nodeData->getNodeID() << "requestsDomainListData" << isRequesting;
         }
     }
     auto end = usecTimestampNow();
