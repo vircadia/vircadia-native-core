@@ -128,8 +128,7 @@ namespace render {
 Q_DECLARE_METATYPE(OverlayID);
 Q_DECLARE_METATYPE(QVector<OverlayID>);
 QScriptValue OverlayIDtoScriptValue(QScriptEngine* engine, const OverlayID& id);
-void OverlayIDfromScriptValue(const QScriptValue &object, OverlayID& id);
+void OverlayIDfromScriptValue(const QScriptValue& object, OverlayID& id);
 QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array);
-
 
 #endif // hifi_Overlay_h

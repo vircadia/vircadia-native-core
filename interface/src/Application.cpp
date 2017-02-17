@@ -6861,3 +6861,13 @@ void Application::toggleMuteAudio() {
     auto menu = Menu::getInstance();
     menu->setIsOptionChecked(MenuOption::MuteAudio, !menu->isOptionChecked(MenuOption::MuteAudio));
 }
+
+OverlayID Application::getTabletScreenID() {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+	return HMD->getCurrentTabletScreenID();
+}
+
+OverlayID Application::getTabletHomeButtonID() {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+	return HMD->getCurrentHomeButtonUUID();
+}
