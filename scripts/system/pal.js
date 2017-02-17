@@ -1,6 +1,6 @@
 "use strict";
 /* jslint vars: true, plusplus: true, forin: true*/
-/* globals Tablet, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, OverlayWindow, Toolbars, Vec3, Quat, Controller, print, getControllerWorldLocation */
+/* globals Tablet, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, Controller, print, getControllerWorldLocation */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // pal.js
@@ -197,16 +197,6 @@ HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
     });
 };
 
-//
-// The qml window and communications.
-//
-var pal = new OverlayWindow({
-    title: 'People Action List',
-    source: 'hifi/Pal.qml',
-    width: 580,
-    height: 640,
-    visible: false
-});
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
     var data;
     switch (message.method) {
@@ -266,11 +256,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 }
 
 function sendToQml(message) {
-    if (currentUIMode === "toolbar") {
-        pal.sendToQml(message);
-    } else if (currentUIMode === "tablet") {
-        tablet.sendToQml(message);
-    }
+    tablet.sendToQml(message);
 }
 
 //
@@ -490,9 +476,6 @@ triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Cont
 var button;
 var buttonName = "PEOPLE";
 var tablet = null;
-var toolBar = null;
-
-var currentUIMode;
 
 function onTabletScreenChanged(type, url) {
     if (type !== "QML" || url !== "../Pal.qml") {
@@ -500,33 +483,16 @@ function onTabletScreenChanged(type, url) {
     }
 }
 
-// @param mode {string} "tablet" or "toolbar"
-function startup(mode) {
-    if (mode === "toolbar") {
-        toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-        button = toolBar.addButton({
-            objectName: buttonName,
-            imageURL: Script.resolvePath("assets/images/tools/people.svg"),
-            visible: true,
-            alpha: 0.9
-        });
-        pal.fromQml.connect(fromQml);
-        button.clicked.connect(onToolbarButtonClicked);
-        pal.visibleChanged.connect(onVisibleChanged);
-        pal.closed.connect(off);
-    } else if (mode === "tablet") {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        button = tablet.addButton({
-            text: buttonName,
-            icon: "icons/tablet-icons/people-i.svg",
-            sortOrder: 7
-        });
-        tablet.fromQml.connect(fromQml);
-        button.clicked.connect(onTabletButtonClicked);
-        tablet.screenChanged.connect(onTabletScreenChanged);
-    } else {
-        print("ERROR: pal.js: bad ui mode");
-    }
+function startup() {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        text: buttonName,
+        icon: "icons/tablet-icons/people-i.svg",
+        sortOrder: 7
+    });
+    tablet.fromQml.connect(fromQml);
+    button.clicked.connect(onTabletButtonClicked);
+    tablet.screenChanged.connect(onTabletScreenChanged);
 
     Users.usernameFromIDReply.connect(usernameFromIDReply);
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
@@ -534,12 +500,9 @@ function startup(mode) {
     Messages.subscribe(CHANNEL);
     Messages.messageReceived.connect(receiveMessage);
     Users.avatarDisconnected.connect(avatarDisconnected);
-
-    currentUIMode = mode;
 }
 
-// var mode = Settings.getValue("HUDUIEnabled");
-startup("tablet");
+startup();
 
 var isWired = false;
 var audioTimer;
@@ -559,24 +522,6 @@ function off() {
     triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
-}
-
-function onToolbarButtonClicked() {
-    if (!pal.visible) {
-        Users.requestsDomainListData = true;
-        populateUserList();
-        pal.raise();
-        isWired = true;
-        Script.update.connect(updateOverlays);
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-        audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
-    } else {
-        off();
-    }
-    pal.setVisible(!pal.visible);
 }
 
 function onTabletButtonClicked() {
@@ -604,9 +549,6 @@ function receiveMessage(channel, messageString, senderID) {
     var message = JSON.parse(messageString);
     switch (message.method) {
     case 'select':
-        if (currentUIMode === "toolbar" && !pal.visible) {
-            onToolbarButtonClicked();
-        }
         sendToQml(message); // Accepts objects, not just strings.
         break;
     default:
@@ -671,31 +613,14 @@ function avatarDisconnected(nodeID) {
     sendToQml({method: 'avatarDisconnected', params: [nodeID]});
 }
 
-//
-// Button state.
-//
-function onVisibleChanged() {
-    button.editProperties({isActive: pal.visible});
-}
-
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
-    if (currentUIMode === "toolbar" && pal.visible) {
-        onToolbarButtonClicked(); // Close the PAL
-    }
 }
 
 function shutdown() {
-    if (currentUIMode === "toolbar") {
-        button.clicked.disconnect(onToolbarButtonClicked);
-        toolBar.removeButton(buttonName);
-        pal.visibleChanged.disconnect(onVisibleChanged);
-        pal.closed.disconnect(off);
-    } else if (currentUIMode === "tablet") {
-        button.clicked.disconnect(onTabletButtonClicked);
-        tablet.removeButton(button);
-        tablet.screenChanged.disconnect(onTabletScreenChanged);
-    }
+    button.clicked.disconnect(onTabletButtonClicked);
+    tablet.removeButton(button);
+    tablet.screenChanged.disconnect(onTabletScreenChanged);
 
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
