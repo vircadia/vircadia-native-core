@@ -24,27 +24,104 @@
 
     function paintBrush(name) {
         // Paints in 3D.
-
         var brushName = name,
-            BRUSH_COLOR = { red: 250, green: 0, blue: 0 },
-            ERASE_SEARCH_DISTANCE = 0.1;  // m
+            STROKE_COLOR = { red: 250, green: 0, blue: 0 },
+            ERASE_SEARCH_DISTANCE = 0.1,  // m
+            isDrawingLine = false,
+            entityID,
+            basePosition,
+            strokePoints,
+            strokeNormals,
+            strokeWidths,
+            MIN_STROKE_LENGTH = 0.02,
+            MAX_POINTS_PER_LINE = 100;
+
+        function strokeNormal() {
+            return Vec3.multiplyQbyV(Camera.getOrientation(), Vec3.UNIT_NEG_Z);
+        }
 
         function startLine(position, width) {
+            // Start drawing a polyline.
+
+            if (isDrawingLine) {
+                print("ERROR: startLine() called when already drawing line");
+                // Nevertheless, continue on and start a new line.
+            }
+
+            basePosition = position;
+
+            strokePoints = [Vec3.ZERO];
+            strokeNormals = [strokeNormal()];
+            strokeWidths = [width];
+
+            entityID = Entities.addEntity({
+                type: "PolyLine",
+                name: "fingerPainting",
+                color: STROKE_COLOR,
+                position: position,
+                linePoints: strokePoints,
+                normals: strokeNormals,
+                strokeWidths: strokeWidths,
+                dimensions: { x: 10, y: 10, z: 10 }
+            });
+
+            isDrawingLine = true;
         }
 
         function drawLine(position, width) {
+            // Add a stroke to the polyline if stroke is a sufficient length.
+            var localPosition;
+
+            if (!isDrawingLine) {
+                print("ERROR: drawLine() called when not drawing line");
+                return;
+            }
+
+            localPosition = Vec3.subtract(position, basePosition);
+
+            if (Vec3.distance(localPosition, strokePoints[strokePoints.length - 1]) >= MIN_STROKE_LENGTH
+                    && strokePoints.length < MAX_POINTS_PER_LINE) {
+                strokePoints.push(localPosition);
+                strokeNormals.push(strokeNormal());
+                strokeWidths.push(width);
+
+                Entities.editEntity(entityID, {
+                    linePoints: strokePoints,
+                    normals: strokeNormals,
+                    strokeWidths: strokeWidths
+                });
+            }
         }
 
         function finishLine(position, width) {
+            // Finish drawing polyline; delete if it has only 1 point.
+
+            if (!isDrawingLine) {
+                print("ERROR: finishLine() called when not drawing line");
+                return;
+            }
+
+            if (strokePoints.length === 1) {
+                // Delete "empty" line.
+                Entities.deleteEntity(entityID);
+            }
+
+            isDrawingLine = false;
         }
 
         function cancelLine() {
+            // Cancel any line being drawn.
+            if (isDrawingLine) {
+                Entities.deleteEntity(entityID);
+                isDrawingLine = false;
+            }
         }
 
         function eraseClosestLine(position) {
         }
 
         function tearDown() {
+            cancelLine();
         }
 
         return {
@@ -108,7 +185,7 @@
             }
 
             if (wasTriggerPressed || isTriggerPressed) {
-                fingerTipPosition = MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex3" : "RightHandIndex3");
+                fingerTipPosition = MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex4" : "RightHandIndex4");
                 if (triggerValue < TRIGGER_START_WIDTH) {
                     lineWidth = START_LINE_WIDTH;
                 } else {
@@ -140,7 +217,7 @@
             } else {
                 isGripPressed = gripValue > GRIP_ON;
                 if (isGripPressed) {
-                    fingerTipPosition = MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex3" : "RightHandIndex3");
+                    fingerTipPosition = MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex4" : "RightHandIndex4");
                     gripPressedCallback(fingerTipPosition);
                 }
             }
