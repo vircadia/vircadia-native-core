@@ -39,9 +39,6 @@
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
-Overlays::Overlays() :
-    _nextOverlayID(1) {}
-
 void Overlays::cleanupAllOverlays() {
     {
         QWriteLocker lock(&_lock);
@@ -188,14 +185,13 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
         thisOverlay->setProperties(properties.toMap());
         return addOverlay(thisOverlay);
     }
-    return 0;
+    return UNKNOWN_OVERLAY_ID;
 }
 
 OverlayID Overlays::addOverlay(Overlay::Pointer overlay) {
     QWriteLocker lock(&_lock);
-    OverlayID thisID = _nextOverlayID;
+    OverlayID thisID = OverlayID(QUuid::createUuid());
     overlay->setOverlayID(thisID);
-    ++_nextOverlayID;
     if (overlay->is3D()) {
         _overlaysWorld[thisID] = overlay;
 
@@ -220,9 +216,9 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
             attachable->getParentPanel()->addChild(cloneId);
         }
         return cloneId;
-    } 
-    
-    return 0;  // Not found
+    }
+
+    return UNKNOWN_OVERLAY_ID;  // Not found
 }
 
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
@@ -242,13 +238,7 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
     bool success = true;
     QWriteLocker lock(&_lock);
     for (const auto& key : map.keys()) {
-        bool convertSuccess;
-        OverlayID id = key.toUInt(&convertSuccess);
-        if (!convertSuccess) {
-            success = false;
-            continue;
-        }
-
+        OverlayID id = OverlayID(key);
         Overlay::Pointer thisOverlay = getOverlay(id);
         if (!thisOverlay) {
             success = false;
@@ -310,7 +300,7 @@ OverlayID Overlays::getParentPanel(OverlayID childId) const {
     } else if (_panels.contains(childId)) {
         return _panels.key(getPanel(childId)->getParentPanel());
     }
-    return 0;
+    return UNKNOWN_OVERLAY_ID;
 }
 
 void Overlays::setParentPanel(OverlayID childId, OverlayID panelId) {
@@ -347,7 +337,7 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
     QReadLocker lock(&_lock);
     if (!_enabled) {
-        return 0;
+        return UNKNOWN_OVERLAY_ID;
     }
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysHUD);
     i.toBack();
@@ -378,7 +368,7 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
         }
     }
 
-    return 0; // not found
+    return UNKNOWN_OVERLAY_ID; // not found
 }
 
 OverlayPropertyResult Overlays::getProperty(OverlayID id, const QString& property) {
@@ -447,14 +437,14 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray,
     return result;
 }
 
-RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() : 
-    intersects(false), 
-    overlayID(-1),
+RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() :
+    intersects(false),
+    overlayID(UNKNOWN_OVERLAY_ID),
     distance(0),
     face(),
     intersection(),
     extraInfo()
-{ 
+{
 }
 
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
@@ -463,7 +453,7 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
 	obj.setProperty("overlayID", OverlayIDtoScriptValue(engine, value.overlayID));
     obj.setProperty("distance", value.distance);
 
-    QString faceName = "";    
+    QString faceName = "";
     // handle BoxFace
     switch (value.face) {
         case MIN_X_FACE:
@@ -499,7 +489,7 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
 void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar, RayToOverlayIntersectionResult& value) {
     QVariantMap object = objectVar.toVariant().toMap();
     value.intersects = object["intersects"].toBool();
-    value.overlayID = object["overlayID"].toInt();
+    value.overlayID = OverlayID(QUuid(object["overlayID"].toString()));
     value.distance = object["distance"].toFloat();
 
     QString faceName = object["face"].toString();
@@ -556,8 +546,7 @@ QSizeF Overlays::textSize(OverlayID id, const QString& text) const {
 OverlayID Overlays::addPanel(OverlayPanel::Pointer panel) {
     QWriteLocker lock(&_lock);
 
-    OverlayID thisID = _nextOverlayID;
-    ++_nextOverlayID;
+    OverlayID thisID = QUuid::createUuid();
     _panels[thisID] = panel;
 
     return thisID;

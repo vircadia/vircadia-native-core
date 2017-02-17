@@ -529,7 +529,7 @@ bool setupEssentials(int& argc, char** argv) {
 // to take care of highlighting keyboard focused items, rather than
 // continuing to overburden Application.cpp
 std::shared_ptr<Cube3DOverlay> _keyboardFocusHighlight{ nullptr };
-OverlayID _keyboardFocusHighlightID{ -1 };
+OverlayID _keyboardFocusHighlightID{ UNKNOWN_OVERLAY_ID };
 
 
 // FIXME hack access to the internal share context for the Chromium helper
@@ -1683,9 +1683,9 @@ void Application::cleanupBeforeQuit() {
     _applicationStateDevice.reset();
 
     {
-        if (_keyboardFocusHighlightID) {
+        if (_keyboardFocusHighlightID != UNKNOWN_OVERLAY_ID) {
             getOverlays().deleteOverlay(_keyboardFocusHighlightID);
-			_keyboardFocusHighlightID = UNKNOWN_OVERLAY_ID;
+            _keyboardFocusHighlightID = UNKNOWN_OVERLAY_ID;
         }
         _keyboardFocusHighlight = nullptr;
     }
@@ -3072,7 +3072,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         buttons, event->modifiers());
 
     if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
-        getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
+        getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y())) != UNKNOWN_OVERLAY_ID) {
         getOverlays().mouseMoveEvent(&mappedEvent);
         getEntities()->mouseMoveEvent(&mappedEvent);
     }
@@ -4091,7 +4091,7 @@ void Application::rotationModeChanged() const {
 
 void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions) {
     // Create focus
-	if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+    if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
         _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
         _keyboardFocusHighlight->setAlpha(1.0f);
         _keyboardFocusHighlight->setBorderSize(1.0f);

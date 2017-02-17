@@ -89,7 +89,7 @@ QVariant OverlayPanel::getProperty(const QString &property) {
     if (property == "children") {
         QVariantList array;
         for (int i = 0; i < _children.length(); i++) {
-            array.append(OverlayIDtoScriptValue(nullptr, _children[i]));
+            array.append(OverlayIDtoScriptValue(nullptr, _children[i]).toVariant());
         }
         return array;
     }

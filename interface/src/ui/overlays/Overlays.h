@@ -77,7 +77,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * @namespace Overlays
  */
 
-const OverlayID UNKNOWN_OVERLAY_ID = 0;
+const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
 
 class Overlays : public QObject {
     Q_OBJECT
@@ -85,7 +85,7 @@ class Overlays : public QObject {
     Q_PROPERTY(OverlayID keyboardFocusOverlay READ getKeyboardFocusOverlay WRITE setKeyboardFocusOverlay)
 
 public:
-    Overlays();
+    Overlays() {};
 
     void init();
     void update(float deltatime);
@@ -305,7 +305,6 @@ private:
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
     QMap<OverlayID, OverlayPanel::Pointer> _panels;
     QList<Overlay::Pointer> _overlaysToDelete;
-    OverlayID _nextOverlayID;
 
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;

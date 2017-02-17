@@ -189,7 +189,7 @@ float Overlay::updatePulse() {
         _pulseDirection *= -1.0f;
     }
     _pulse += pulseDelta;
-    
+
     return _pulse;
 }
 
@@ -205,11 +205,11 @@ void Overlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::
 }
 
 QScriptValue OverlayIDtoScriptValue(QScriptEngine* engine, const OverlayID& id) {
-    return QScriptValue(id.id);
+    return quuidToScriptValue(engine, id);
 }
 
 void OverlayIDfromScriptValue(const QScriptValue &object, OverlayID& id) {
-    id = object.toUInt32();
+    quuidFromScriptValue(object, id);
 }
 
 QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array) {
@@ -220,9 +220,7 @@ QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array) {
     int length = array.property("length").toInteger();
     newVector.reserve(length);
     for (int i = 0; i < length; i++) {
-        OverlayID id;
-        OverlayIDfromScriptValue(array.property(i), id);
-        newVector << id;
+        newVector << OverlayID(array.property(i).toString());
     }
     return newVector;
 }

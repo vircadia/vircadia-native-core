@@ -15,22 +15,11 @@
 #include <SharedUtil.h> // for xColor
 #include <render/Scene.h>
 
-class OverlayID {
+class OverlayID : public QUuid {
 public:
-    OverlayID() {}
-    OverlayID(int value) { id = value; }
-
-    OverlayID& operator=(const OverlayID& other) { id = other.id; return *this; }
-    OverlayID& operator++() { id++; return *this; }
-
-    // OverlayID& operator=(unsigned int value) { id = value; return *this; }
-    bool operator==(const OverlayID& other) const { return id == other.id; }
-    bool operator!=(const OverlayID& other) const { return id != other.id; }
-    // bool operator<(const OverlayID& other) const { return id < other.id; }
-    // bool operator>(const OverlayID& other) const { return id > other.id; }
-    operator bool() const { return id != 0; }
-
-    unsigned int id;
+    OverlayID() : QUuid() {}
+    OverlayID(QString v) : QUuid(v) {}
+    OverlayID(QUuid v) : QUuid(v) {}
 };
 
 class Overlay : public QObject {
@@ -50,8 +39,8 @@ public:
     Overlay(const Overlay* overlay);
     ~Overlay();
 
-    OverlayID getOverlayID() { return _overlayID; }
-    void setOverlayID(OverlayID overlayID) { _overlayID = overlayID; }
+    virtual OverlayID getOverlayID() const { return _overlayID; }
+    virtual void setOverlayID(OverlayID overlayID) { _overlayID = overlayID; }
 
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
@@ -107,8 +96,6 @@ protected:
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
 
-    OverlayID _overlayID; // what Overlays.cpp knows this instance as
-
     bool _isLoaded;
     float _alpha;
 
@@ -125,10 +112,13 @@ protected:
     xColor _color;
     bool _visible; // should the overlay be drawn at all
     Anchor _anchor;
+
+private:
+    OverlayID _overlayID; // only used for non-3d overlays
 };
 
 namespace render {
-   template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay); 
+   template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay);
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
    template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
@@ -141,5 +131,5 @@ QScriptValue OverlayIDtoScriptValue(QScriptEngine* engine, const OverlayID& id);
 void OverlayIDfromScriptValue(const QScriptValue &object, OverlayID& id);
 QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array);
 
- 
+
 #endif // hifi_Overlay_h
