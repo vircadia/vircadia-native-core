@@ -2509,7 +2509,7 @@ bool MyAvatar::clearPinOnJoint(int index) {
 
         auto hipsIndex = getJointIndex("Hips");
         if (index == hipsIndex) {
-            _rig->setMaxHipsOffsetLength(1.0f);
+            _rig->setMaxHipsOffsetLength(FLT_MAX);
         }
 
         return true;
