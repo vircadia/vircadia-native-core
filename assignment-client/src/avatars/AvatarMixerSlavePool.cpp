@@ -73,8 +73,8 @@ void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end
     run(begin, end);
 }
 
-void AvatarMixerSlavePool::anotherJob(ConstIter begin, ConstIter end) {
-    _function = &AvatarMixerSlave::anotherJob;
+void AvatarMixerSlavePool::broadcastAvatarData(ConstIter begin, ConstIter end) {
+    _function = &AvatarMixerSlave::broadcastAvatarData;
     _configure = [&](AvatarMixerSlave& slave) { slave.configure(begin, end); };
     run(begin, end);
 }

@@ -12,15 +12,6 @@
 #ifndef hifi_AvatarMixerSlave_h
 #define hifi_AvatarMixerSlave_h
 
-/*
-#include <AABox.h>
-#include <AudioHRTF.h>
-#include <AudioRingBuffer.h>
-#include <ThreadedAssignment.h>
-#include <UUIDHasher.h>
-#include <NodeList.h>
-*/
-
 class AvatarMixerSlaveStats {
 public:
     int nodesProcessed { 0 };
@@ -73,7 +64,7 @@ public:
     void configure(ConstIter begin, ConstIter end);
 
     void processIncomingPackets(const SharedNodePointer& node);
-    void anotherJob(const SharedNodePointer& node);
+    void broadcastAvatarData(const SharedNodePointer& node);
 
     void harvestStats(AvatarMixerSlaveStats& stats);
 

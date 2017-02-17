@@ -15,8 +15,6 @@
 #ifndef hifi_AvatarMixer_h
 #define hifi_AvatarMixer_h
 
-#include <QThread>
-
 #include <shared/RateCounter.h>
 #include <PortableHighResolutionClock.h>
 
@@ -42,7 +40,6 @@ public slots:
 private slots:
     void queueIncomingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
     void handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    //void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
@@ -71,7 +68,7 @@ private:
 
     int _sumListeners { 0 };
     int _numStatFrames { 0 };
-    std::atomic<int> _numTightLoopFrames;
+    int _numTightLoopFrames { 0 };
     int _sumIdentityPackets { 0 };
 
     float _maxKbpsPerNode = 0.0f;
@@ -94,10 +91,7 @@ private:
     quint64 _broadcastAvatarDataNodeTransform { 0 };
     quint64 _broadcastAvatarDataNodeFunctor { 0 };
 
-
-
     quint64 _handleViewFrustumPacketElapsedTime { 0 };
-    quint64 _handleAvatarDataPacketElapsedTime { 0 };
     quint64 _handleAvatarIdentityPacketElapsedTime { 0 };
     quint64 _handleKillAvatarPacketElapsedTime { 0 };
     quint64 _handleNodeIgnoreRequestPacketElapsedTime { 0 };

@@ -69,7 +69,7 @@ static const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16;
 // assuming 60 htz update rate.
 const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f; // FIXME... this is wrong for 45hz
 
-void AvatarMixerSlave::anotherJob(const SharedNodePointer& node) {
+void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     quint64 start = usecTimestampNow();
 
     //qDebug() << __FUNCTION__ << "node:" << node;

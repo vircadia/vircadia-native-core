@@ -65,7 +65,7 @@ public:
 
     // Jobs the slave pool can do...
     void processIncomingPackets(ConstIter begin, ConstIter end);
-    void anotherJob(ConstIter begin, ConstIter end);
+    void broadcastAvatarData(ConstIter begin, ConstIter end);
 
     // iterate over all slaves
     void each(std::function<void(AvatarMixerSlave& slave)> functor);

@@ -25,15 +25,6 @@ void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message,
     _packetQueue.push(message);
 }
 
-//
-// packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
-// packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
-// packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
-// packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
-// packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
-// packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
-// packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
-
 int AvatarMixerClientData::processPackets() {
     int packetsProcessed = 0;
     SharedNodePointer node = _packetQueue.node;

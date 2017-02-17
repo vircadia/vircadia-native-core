@@ -124,10 +124,12 @@ void AvatarMixer::start() {
         // DO THIS FIRST!!!!!!!!
         //
         // DONE --- 1) only sleep for remainder
-        // 2) clean up stats, add slave stats
+        // DONE --- 2) clean up stats, add slave stats
         // 3) delete dead code from mixer (now that it's in slave)
         // 4) audit the locking and side-effects to node, otherNode, and nodeData
         // 5) throttling??
+        // 6) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
+        // 7) fix two different versions of toByteArray()
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -175,7 +177,7 @@ void AvatarMixer::start() {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 auto start = usecTimestampNow();
-                _slavePool.anotherJob(cbegin, cend);
+                _slavePool.broadcastAvatarData(cbegin, cend);
                 auto end = usecTimestampNow();
                 _broadcastAvatarDataInner += (end - start);
             }, &lockWait, &nodeTransform, &functor);
@@ -259,8 +261,6 @@ void AvatarMixer::broadcastAvatarData() {
         auto idleDuration = p_high_resolution_clock::now() - _lastFrameTimestamp;
         idleTime = std::chrono::duration_cast<std::chrono::microseconds>(idleDuration).count();
     }
-
-    ++_numStatFrames;
 
     const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
     const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
@@ -466,8 +466,8 @@ void AvatarMixer::sendStatsPacket() {
     QJsonObject statsObject;
     statsObject["threads"] = _slavePool.numThreads();
 
-    statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
-    statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
+    //statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
+    //statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
 
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
@@ -488,7 +488,6 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_average_a5_broadcastAvatarDataNodeFunctor"] = TIGHT_LOOP_STAT(_broadcastAvatarDataNodeFunctor);
 
     statsObject["timing_average_z_displayNameManagement"] = TIGHT_LOOP_STAT(_displayNameManagementElapsedTime);
-    statsObject["timing_average_z_handleAvatarDataPacket"] = TIGHT_LOOP_STAT(_handleAvatarDataPacketElapsedTime);
     statsObject["timing_average_z_handleAvatarIdentityPacket"] = TIGHT_LOOP_STAT(_handleAvatarIdentityPacketElapsedTime);
     statsObject["timing_average_z_handleKillAvatarPacket"] = TIGHT_LOOP_STAT(_handleKillAvatarPacketElapsedTime);
     statsObject["timing_average_z_handleNodeIgnoreRequestPacket"] = TIGHT_LOOP_STAT(_handleNodeIgnoreRequestPacketElapsedTime);
@@ -542,7 +541,6 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["timing_aggregate_6_jobElapsedTime"] = TIGHT_LOOP_STAT(aggregateStats.jobElapsedTime);
 
     _handleViewFrustumPacketElapsedTime = 0;
-    _handleAvatarDataPacketElapsedTime = 0;
     _handleAvatarIdentityPacketElapsedTime = 0;
     _handleKillAvatarPacketElapsedTime = 0;
     _handleNodeIgnoreRequestPacketElapsedTime = 0;
@@ -589,7 +587,6 @@ void AvatarMixer::sendStatsPacket() {
 
     _sumListeners = 0;
     _sumIdentityPackets = 0;
-    _numStatFrames = 0;
     _numTightLoopFrames = 0;
 
     _broadcastAvatarDataElapsedTime = 0;
