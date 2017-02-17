@@ -31,6 +31,7 @@ Item {
     property real displayNameTextPixelSize: 18
     property int usernameTextHeight: 12
     property real audioLevel: 0.0
+    property real avgAudioLevel: 0.0
     property bool isMyCard: false
     property bool selected: false
     property bool isAdmin: false
@@ -335,7 +336,7 @@ Item {
             }
         }
 
-        // Per-Avatar Gain Slider 
+        // Per-Avatar Gain Slider
         Slider {
             id: gainSlider
             // Size
@@ -369,7 +370,7 @@ Item {
                     mouse.accepted = false
                 }
                 onReleased: {
-                    // the above mouse.accepted seems to make this 
+                    // the above mouse.accepted seems to make this
                     // never get called, nonetheless...
                     mouse.accepted = false
                 }

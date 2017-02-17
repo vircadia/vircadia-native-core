@@ -13,7 +13,7 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-// hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed 
+// hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed
 // something, will revisit as this is sorta horrible.
 const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
                              "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
@@ -87,7 +87,7 @@ ExtendedOverlay.prototype.hover = function (hovering) {
         } else {
             lastHoveringId = 0;
         }
-    } 
+    }
     this.editOverlay({color: color(this.selected, hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(this.selected, hovering)});
@@ -104,7 +104,7 @@ ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
-    
+
     UserActivityLogger.palAction(selected ? "avatar_selected" : "avatar_deselected", this.key);
 
     this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
@@ -273,7 +273,7 @@ function sendToQml(message) {
 //
 function addAvatarNode(id) {
     var selected = ExtendedOverlay.isSelected(id);
-    return new ExtendedOverlay(id, "sphere", { 
+    return new ExtendedOverlay(id, "sphere", {
         drawInFront: true,
         solid: true,
         alpha: 0.8,
@@ -290,6 +290,7 @@ function populateUserList(selectData) {
             userName: '',
             sessionId: id || '',
             audioLevel: 0.0,
+            avgAudioLevel: 0.0,
             admin: false,
             personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
             ignore: !!id && Users.getIgnoreStatus(id) // ditto
@@ -341,7 +342,7 @@ function updateOverlays() {
         var target = avatar.position;
         var distance = Vec3.distance(target, eye);
         var offset = 0.2;
-        
+
         // base offset on 1/2 distance from hips to head if we can
         var headIndex = avatar.getJointIndex("Head");
         if (headIndex > 0) {
@@ -350,7 +351,7 @@ function updateOverlays() {
 
         // get diff between target and eye (a vector pointing to the eye from avatar position)
         var diff = Vec3.subtract(target, eye);
-        
+
         // move a bit in front, towards the camera
         target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(diff), offset));
 
@@ -361,12 +362,12 @@ function updateOverlays() {
         overlay.editOverlay({
             color: color(ExtendedOverlay.isSelected(id), overlay.hovering, overlay.audioLevel),
             position: target,
-            dimensions: 0.032 * distance 
+            dimensions: 0.032 * distance
         });
         if (overlay.model) {
             overlay.model.ping = pingPong;
             overlay.model.editOverlay({
-                position: target, 
+                position: target,
                 scale: 0.2 * distance, // constant apparent size
                 rotation: Camera.orientation
             });
@@ -433,7 +434,7 @@ function handleMouseMoveEvent(event) { // find out which overlay (if any) is ove
     handleMouseMove(pickRay);
 }
 function handleTriggerPressed(hand, value) {
-    // The idea is if you press one trigger, it is the one 
+    // The idea is if you press one trigger, it is the one
     // we will consider the mouse.  Even if the other is pressed,
     // we ignore it until this one is no longer pressed.
     isPressed = value > TRIGGER_PRESS_THRESHOLD;
@@ -441,10 +442,10 @@ function handleTriggerPressed(hand, value) {
         currentHandPressed = isPressed ? hand : 0;
         return;
     }
-    if (currentHandPressed == hand) { 
+    if (currentHandPressed == hand) {
         currentHandPressed = isPressed ? hand : 0;
         return;
-    } 
+    }
     // otherwise, the other hand is still triggered
     // so do nothing.
 }
@@ -574,41 +575,48 @@ function receiveMessage(channel, messageString, senderID) {
 Messages.subscribe(CHANNEL);
 Messages.messageReceived.connect(receiveMessage);
 
-
 var AVERAGING_RATIO = 0.05;
+var LONG_AVERAGING_RATIO = 0.75;
 var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
 var myData = {}; // we're not includied in ExtendedOverlay.get.
 
+function scaleAudio(val) {
+    var audioLevel = 0.0;
+    if (val <= LOUDNESS_FLOOR) {
+        audioLevel = val / LOUDNESS_FLOOR * LOUDNESS_SCALE;
+    } else {
+        audioLevel = (val -(LOUDNESS_FLOOR -1 )) * LOUDNESS_SCALE;
+    }
+    if (audioLevel > 1.0) {
+        audioLevel = 1;
+    }
+    return audioLevel;
+}
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
     // But of course it gets the data at a different rate, so we tweak the averaging ratio and frequency
     // of updating (the latter for efficiency too).
     var avatar = AvatarList.getAvatar(id);
     var audioLevel = 0.0;
+    var avgAudioLevel = 0.0;
     var data = id ? ExtendedOverlay.get(id) : myData;
-    if (!data) {
-        return audioLevel;
-    }
+    if (data) {
 
-    // we will do exponential moving average by taking some the last loudness and averaging
-    data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+        // we will do exponential moving average by taking some the last loudness and averaging
+        data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+        data.longAccumulatedLevel = LONG_AVERAGING_RATIO * (data.longAccumulatedLevel || 0) + (1 - LONG_AVERAGING_RATIO) * (avatar.audioLoudness);
 
-    // add 1 to insure we don't go log() and hit -infinity.  Math.log is
-    // natural log, so to get log base 2, just divide by ln(2).
-    var logLevel = Math.log(data.accumulatedLevel + 1) / LOG2;
+        // add 1 to insure we don't go log() and hit -infinity.  Math.log is
+        // natural log, so to get log base 2, just divide by ln(2).
+        audioLevel = scaleAudio(Math.log(data.accumulatedLevel + 1) / LOG2);
+        avgAudioLevel = scaleAudio(Math.log(data.longAccumulatedLevel + 1) / LOG2);
 
-    if (logLevel <= LOUDNESS_FLOOR) {
-        audioLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
-    } else {
-        audioLevel = (logLevel - (LOUDNESS_FLOOR - 1.0)) * LOUDNESS_SCALE;
+        data.audioLevel = audioLevel;
+        data.averageAudioLevel = avgAudioLevel;
     }
-    if (audioLevel > 1.0) {
-        audioLevel = 1;
-    }
-    data.audioLevel = audioLevel;
-    return audioLevel;
+    return [audioLevel, avgAudioLevel];
 }
 
 function createAudioInterval(interval) {
