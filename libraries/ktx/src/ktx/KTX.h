@@ -353,7 +353,7 @@ namespace ktx {
         uint32_t glInternalFormat;
         uint32_t glBaseInternalFormat;
 
-        uint32_t pixelWidth { 0 };
+        uint32_t pixelWidth { 1 };
         uint32_t pixelHeight { 0 };
         uint32_t pixelDepth { 0 };
         uint32_t numberOfArrayElements { 0 };
@@ -393,6 +393,23 @@ namespace ktx {
             glInternalFormat = (uint32_t) internalFormat;
             glBaseInternalFormat = (uint32_t) baseInternalFormat;
         }
+
+        void setDimensions(uint32_t width, uint32_t height = 0, uint32_t depth = 0, uint32_t numSlices = 0, uint32_t numFaces = 1) {
+            pixelWidth = (width > 0 ? width : 1);
+            pixelHeight = height;
+            pixelDepth = depth;
+            numberOfArrayElements = numSlices;
+            numberOfFaces = ((numFaces == 1) || (numFaces == NUM_CUBEMAPFACES) ? numFaces : 1);
+        }
+        void set1D(uint32_t width) { setDimensions(width); }
+        void set1DArray(uint32_t width, uint32_t numSlices) { setDimensions(width, 0, 0, (numSlices > 0 ? numSlices : 1)); }
+        void set2D(uint32_t width, uint32_t height) { setDimensions(width, height); }
+        void set2DArray(uint32_t width, uint32_t height, uint32_t numSlices) { setDimensions(width, height, 0, (numSlices > 0 ? numSlices : 1)); }
+        void set3D(uint32_t width, uint32_t height, uint32_t depth) { setDimensions(width, height, depth); }
+        void set3DArray(uint32_t width, uint32_t height, uint32_t depth, uint32_t numSlices) { setDimensions(width, height, depth, (numSlices > 0 ? numSlices : 1)); }
+        void setCube(uint32_t width, uint32_t height) { setDimensions(width, height, 0, 0, NUM_CUBEMAPFACES); }
+        void setCubeArray(uint32_t width, uint32_t height, uint32_t numSlices) { setDimensions(width, height, 0, (numSlices > 0 ? numSlices : 1), NUM_CUBEMAPFACES); }
+
     };
 
     // Key Values
