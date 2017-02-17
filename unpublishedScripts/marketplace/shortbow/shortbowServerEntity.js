@@ -18,14 +18,7 @@
     this.preload = function(entityID) {
         this.entityID = entityID;
 
-        var props = Entities.getEntityProperties(entityID, ['position', 'userData']);
-        var data = utils.parseJSON(props.userData);
-        if (data === undefined) {
-            print("Error parsing shortbow entity userData, returning");
-            return;
-        }
-
-        var rootPosition = props.position;
+        var rootPosition = Entities.getEntityProperties(entityID, 'position').position;
 
         var bowPositions = [];
         var spawnPositions = [];

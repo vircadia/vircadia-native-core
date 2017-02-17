@@ -99,7 +99,6 @@ function createLocalGame() {
     buttonID = spawnTemplate("SB.StartButton", {
         parentID: scoreboardID,
         script: Script.resolvePath("startGameButtonClientEntity.js"),
-        serverScripts: Script.resolvePath("startGameButtonServerEntity.js"),
         userData: JSON.stringify({
             grabbableKey: {
                 wantsTrigger: true
@@ -114,7 +113,6 @@ function createLocalGame() {
         userData: JSON.stringify({
             displayType: "wave"
         }),
-        serverScripts: Script.resolvePath("displayServerEntity.js")
     });
     entityIDs.push(waveDisplayID);
 
@@ -123,7 +121,6 @@ function createLocalGame() {
         userData: JSON.stringify({
             displayType: "score"
         }),
-        serverScripts: Script.resolvePath("displayServerEntity.js")
     });
     entityIDs.push(scoreDisplayID);
 
@@ -132,7 +129,6 @@ function createLocalGame() {
         userData: JSON.stringify({
             displayType: "lives"
         }),
-        serverScripts: Script.resolvePath("displayServerEntity.js")
     });
     entityIDs.push(livesDisplayID);
 
@@ -141,7 +137,6 @@ function createLocalGame() {
         userData: JSON.stringify({
             displayType: "highscore"
         }),
-        serverScripts: Script.resolvePath("displayServerEntity.js")
     });
     entityIDs.push(highScoreDisplayID);
 
@@ -157,14 +152,6 @@ function createLocalGame() {
     entityIDs.push(platformID);
 
     Entities.editEntity(scoreboardID, {
-        userData: JSON.stringify({
-            platformID: platformID,
-            buttonID: buttonID,
-            waveDisplayID: waveDisplayID,
-            scoreDisplayID: scoreDisplayID,
-            livesDisplayID: livesDisplayID,
-            highScoreDisplayID: highScoreDisplayID,
-        }),
         serverScripts: Script.resolvePath('shortbowServerEntity.js')
     });
 

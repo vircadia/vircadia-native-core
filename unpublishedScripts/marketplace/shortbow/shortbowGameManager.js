@@ -45,7 +45,7 @@ function encodeURLParams(params) {
     return paramPairs.join("&");
 }
 
-function sendAndUpdateHighScore(highScoreChannel, entityID, score, wave, numPlayers) {
+function sendAndUpdateHighScore(entityID, score, wave, numPlayers, onResposeReceived) {
     const URL = 'https://script.google.com/macros/s/AKfycbwbjCm9mGd1d5BzfAHmVT_XKmWyUYRkjCEqDOKm1368oM8nqWni/exec';
     print("Sending high score");
 
@@ -63,7 +63,7 @@ function sendAndUpdateHighScore(highScoreChannel, entityID, score, wave, numPlay
             print("Got response for high score: ", req.response);
             var response = JSON.parse(req.responseText);
             if (response.highScore !== undefined) {
-                Messages.sendMessage(highScoreChannel, response.highScore);
+                onResposeReceived(response.highScore);
             }
         }
     };
@@ -128,15 +128,80 @@ var baseEnemyProperties = {
     serverScripts: Script.resolvePath('enemyServerEntity.js')
 };
 
+function searchForChildren(parentID, names, callback, timeoutMs) {
+    // Map from name to entity ID for the children that have been found
+    var foundEntities = {};
+    for (var i = 0; i < names.length; ++i) {
+        foundEntities[names[i]] = null;
+    }
+
+    const CHECK_EVERY_MS = 500;
+    const maxChecks = Math.ceil(timeoutMs / CHECK_EVERY_MS);
+
+    var check = 0;
+    var intervalID = Script.setInterval(function() {
+        check++;
+
+        var childrenIDs = Entities.getChildrenIDs(parentID);
+        print("\tNumber of children:", childrenIDs.length);
+
+        for (var i = 0; i < childrenIDs.length; ++i) {
+            print("\t\t" + i + ".", Entities.getEntityProperties(childrenIDs[i]).name);
+            var id = childrenIDs[i];
+            var name = Entities.getEntityProperties(id, 'name').name;
+            var idx = names.indexOf(name);
+            if (idx > -1) {
+                foundEntities[name] = id;
+                print(name, id);
+                names.splice(idx, 1);
+            }
+        }
+
+        if (names.length == 0 || check >= maxChecks) {
+            Script.clearInterval(intervalID);
+            callback(foundEntities);
+        }
+    }, 500);
+}
 
 ShortbowGameManager = function(rootEntityID, bowPositions, spawnPositions) {
     print("Starting game manager");
+    var self = this;
+
     this.gameState = GAME_STATES.IDLE;
 
     this.rootEntityID = rootEntityID;
     this.bowPositions = bowPositions;
     this.rootPosition = null;
     this.spawnPositions = spawnPositions;
+
+    this.loadedChildren = false;
+
+    const START_BUTTON_NAME = 'SB.StartButton';
+    const WAVE_DISPLAY_NAME = 'SB.DisplayWave';
+    const SCORE_DISPLAY_NAME = 'SB.DisplayScore';
+    const LIVES_DISPLAY_NAME = 'SB.DisplayLives';
+    const HIGH_SCORE_DISPLAY_NAME = 'SB.DisplayHighScore';
+
+    searchForChildren(rootEntityID, [
+        START_BUTTON_NAME,
+        WAVE_DISPLAY_NAME,
+        SCORE_DISPLAY_NAME,
+        LIVES_DISPLAY_NAME,
+        HIGH_SCORE_DISPLAY_NAME
+    ], function(children) {
+        print("ENTITES FOUND");
+        self.loadedChildren = true;
+        self.startButtonID = children[START_BUTTON_NAME];
+        self.waveDisplayID = children[WAVE_DISPLAY_NAME];
+        self.scoreDisplayID = children[SCORE_DISPLAY_NAME];
+        self.livesDisplayID = children[LIVES_DISPLAY_NAME];
+        self.highScoreDisplayID = children[HIGH_SCORE_DISPLAY_NAME];
+
+        sendAndUpdateHighScore(self.rootEntityID, self.score, self.waveNumber, 1, self.setHighScore.bind(self));
+
+        self.reset();
+    }, 5000);
 
     // Gameplay state
     this.waveNumber = 0;
@@ -147,7 +212,6 @@ ShortbowGameManager = function(rootEntityID, bowPositions, spawnPositions) {
     this.remainingEnemies = [];
     this.bowIDs = [];
 
-    this.highscoreChannelName = "highscore-" + this.rootEntityID;
     this.startButtonChannelName = 'button-' + this.rootEntityID;
 
     // Entity client and server scripts will send messages to this channel
@@ -155,13 +219,11 @@ ShortbowGameManager = function(rootEntityID, bowPositions, spawnPositions) {
     Messages.subscribe(this.commChannelName);
     Messages.messageReceived.connect(this, this.onReceivedMessage);
     print("Listening on: ", this.commChannelName);
-
-    this.reset();
-    sendAndUpdateHighScore(this.highscoreChannelName, this.rootEntityID, this.score, this.waveNumber, 1);
+    Messages.sendMessage(this.commChannelName, 'hi');
 }
 ShortbowGameManager.prototype = {
     reset: function() {
-        Messages.sendMessage(this.startButtonChannelName, 'show');
+        Entities.editEntity(this.startButtonID, { visible: true });
     },
     cleanup: function() {
         Messages.unsubscribe(this.commChannelName);
@@ -189,11 +251,16 @@ ShortbowGameManager.prototype = {
             return;
         }
 
+        if (this.loadedChildren === false) {
+            print('shortbowGameManager.js | Children have not loaded, not allowing game to start');
+            return;
+        }
+
         print("Game started!!");
 
         this.rootPosition = Entities.getEntityProperties(this.rootEntityID, 'position').position;
 
-        Messages.sendMessage(this.startButtonChannelName, 'hide');
+        Entities.editEntity(this.startButtonID, { visible: false });
 
         // Spawn bows
         for (var i = 0; i < this.bowPositions.length; ++i) {
@@ -257,12 +324,6 @@ ShortbowGameManager.prototype = {
 
         var self = this;
     },
-    // Set the display text of one of the numbers on the scoreboard.
-    //   Types: highscore, score, wave, lives
-    setDisplayText: function(type, value) {
-        var channel = type + '-' + this.rootEntityID;
-        Messages.sendMessage(channel, value);
-    },
     startNextWave: function() {
         if (this.gameState !== GAME_STATES.BETWEEN_WAVES) {
             return;
@@ -275,7 +336,7 @@ ShortbowGameManager.prototype = {
         this.spawnQueue = [];
         this.spawnStartTime = Date.now();
 
-        this.setDisplayText('wave', this.waveNumber);
+        Entities.editEntity(this.waveDisplayID, { text: this.waveNumber});
 
         var numberOfEnemiesLeftToSpawn = this.waveNumber * 2;
         var delayBetweenSpawns = 2000 / Math.max(1, Math.log(this.waveNumber));
@@ -316,14 +377,18 @@ ShortbowGameManager.prototype = {
             }, 1500);
         }
     },
+    setHighScore: function(highScore) {
+        print("Setting high score to:", this.highScoreDisplayID, highScore);
+        Entities.editEntity(this.highScoreDisplayID, { text: highScore });
+    },
     setLivesLeft: function(lives) {
         lives = Math.max(0, lives);
         this.livesLeft = lives;
-        this.setDisplayText('lives', this.livesLeft);
+        Entities.editEntity(this.livesDisplayID, { text: this.livesLeft });
     },
     setScore: function(score) {
         this.score = score;
-        this.setDisplayText('score', this.score);
+        Entities.editEntity(this.scoreDisplayID, { text: this.score });
     },
     checkEnemies: function() {
         if (this.gameState !== GAME_STATES.PLAYING) {
@@ -399,7 +464,7 @@ ShortbowGameManager.prototype = {
         print("GAME OVER");
 
         // Update high score
-        sendAndUpdateHighScore(this.highscoreChannelName, this.rootEntityID, this.score, this.waveNumber, 1);
+        sendAndUpdateHighScore(this.rootEntityID, this.score, this.waveNumber, 1, this.setHighScore.bind(this));
 
         // Cleanup
         Script.clearTimeout(this.nextWaveTimer);
@@ -426,7 +491,7 @@ ShortbowGameManager.prototype = {
         }
 
         Script.setTimeout(function() {
-            Messages.sendMessage(this.startButtonChannelName, 'show');
+            Entities.editEntity(this.startButtonID, { visible: true });
             this.gameState = GAME_STATES.IDLE;
         }.bind(this), 3000);
 
@@ -436,7 +501,7 @@ ShortbowGameManager.prototype = {
         this.remainingEnemies = [];
     },
     onReceivedMessage: function(channel, messageJSON, senderID) {
-        print("shortbowGameManager.js | Recieved: " + messageJSON + " from " + senderID, channel, this.commChannelName);
+        //print("shortbowGameManager.js | Recieved: " + messageJSON + " from " + senderID, channel, this.commChannelName);
 
         if (channel === this.commChannelName) {
             var message = utils.parseJSON(messageJSON);
