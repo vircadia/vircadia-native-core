@@ -169,16 +169,5 @@ function createLocalGame() {
     }
 }
 
-if (Script.isClientScript()) {
-    createLocalGame();
-    //var gameManager = new ShortbowGameManager(scoreboardID, bowPositions, spawnPositions);
-
-    function cleanup() {
-        for (var i = 0; i < entityIDs.length; ++i) {
-            Entities.deleteEntity(entityIDs[i]);
-        }
-        gameManager.cleanup();
-    }
-
-    Script.scriptEnding.connect(cleanup);
-}
+createLocalGame();
+Script.stop();
