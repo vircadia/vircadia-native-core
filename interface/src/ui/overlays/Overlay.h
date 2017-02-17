@@ -15,6 +15,24 @@
 #include <SharedUtil.h> // for xColor
 #include <render/Scene.h>
 
+class OverlayID {
+public:
+    OverlayID() {}
+    OverlayID(int value) { id = value; }
+
+    OverlayID& operator=(const OverlayID& other) { id = other.id; return *this; }
+    OverlayID& operator++() { id++; return *this; }
+
+    // OverlayID& operator=(unsigned int value) { id = value; return *this; }
+    bool operator==(const OverlayID& other) const { return id == other.id; }
+    bool operator!=(const OverlayID& other) const { return id != other.id; }
+    // bool operator<(const OverlayID& other) const { return id < other.id; }
+    // bool operator>(const OverlayID& other) const { return id > other.id; }
+    operator bool() const { return id != 0; }
+
+    unsigned int id;
+};
+
 class Overlay : public QObject {
     Q_OBJECT
 
@@ -32,8 +50,8 @@ public:
     Overlay(const Overlay* overlay);
     ~Overlay();
 
-    unsigned int getOverlayID() { return _overlayID; }
-    void setOverlayID(unsigned int overlayID) { _overlayID = overlayID; }
+    OverlayID getOverlayID() { return _overlayID; }
+    void setOverlayID(OverlayID overlayID) { _overlayID = overlayID; }
 
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
@@ -89,7 +107,7 @@ protected:
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
 
-    unsigned int _overlayID; // what Overlays.cpp knows this instance as
+    OverlayID _overlayID; // what Overlays.cpp knows this instance as
 
     bool _isLoaded;
     float _alpha;
@@ -116,6 +134,12 @@ namespace render {
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
 }
+
+Q_DECLARE_METATYPE(OverlayID);
+Q_DECLARE_METATYPE(QVector<OverlayID>);
+QScriptValue OverlayIDtoScriptValue(QScriptEngine* engine, const OverlayID& id);
+void OverlayIDfromScriptValue(const QScriptValue &object, OverlayID& id);
+QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array);
 
  
 #endif // hifi_Overlay_h
