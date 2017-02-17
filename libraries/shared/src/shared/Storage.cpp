@@ -12,8 +12,16 @@
 
 using namespace storage;
 
+ViewStoragePointer Storage::createView(size_t viewSize, size_t offset) const {
+    auto selfSize = size();
+    if ((viewSize + offset) > selfSize) {
+        throw std::runtime_error("Unable to map file");
+    }
+    return ViewStoragePointer(new ViewStorage(viewSize, data() + offset));
+}
+
 MemoryStoragePointer Storage::toMemoryStorage() const {
-    return std::make_unique<MemoryStorage>(size(), data());
+    return MemoryStoragePointer(new MemoryStorage(size(), data()));
 }
 
 FileStoragePointer Storage::toFileStorage(const QString& filename) const {
@@ -23,14 +31,6 @@ FileStoragePointer Storage::toFileStorage(const QString& filename) const {
 MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) {
     _data.resize(size);
     memcpy(_data.data(), data, size);
-}
-
-const uint8_t* MemoryStorage::data() const {
-    return _data.data();
-}
-
-size_t MemoryStorage::size() const {
-    return _data.size();
 }
 
 FileStoragePointer FileStorage::create(const QString& filename, size_t size, const uint8_t* data) {
@@ -52,7 +52,7 @@ FileStoragePointer FileStorage::create(const QString& filename, size_t size, con
         }
     }
     file.close();
-    return std::make_unique<FileStorage>(filename);
+    return FileStoragePointer(new FileStorage(filename));
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
@@ -74,13 +74,4 @@ FileStorage::~FileStorage() {
     if (_file.isOpen()) {
         _file.close();
     }
-}
-
-
-const uint8_t* FileStorage::data() const {
-    return _mapped;
-}
-
-size_t FileStorage::size() const {
-    return _file.size();
 }

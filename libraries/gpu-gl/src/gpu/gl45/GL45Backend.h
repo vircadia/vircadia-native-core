@@ -108,16 +108,10 @@ public:
             using VoidLambdaQueue = std::queue<VoidLambda>;
             using ThreadPointer = std::shared_ptr<std::thread>;
             const GL45VariableAllocationTexture& _parent;
-            const uint16_t _sourceMip;
-            const uint16_t _targetMip;
-            const uint8_t _face;
-            const uint32_t _lines;
-            const uint32_t _lineOffset;
             // Holds the contents to transfer to the GPU in CPU memory
             std::vector<uint8_t> _buffer;
             // Indicates if a transfer from backing storage to interal storage has started
             bool _bufferingStarted { false };
-            bool _transferOnly { false };
             bool _bufferingCompleted { false };
             VoidLambda _transferLambda;
             VoidLambda _bufferingLambda;
@@ -128,6 +122,7 @@ public:
             static void bufferLoop();
 
         public:
+            TransferJob(const TransferJob& other) = delete;
             TransferJob(const GL45VariableAllocationTexture& parent, std::function<void()> transferLambda);
             TransferJob(const GL45VariableAllocationTexture& parent, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines = 0, uint32_t lineOffset = 0);
             bool tryTransfer();
@@ -139,7 +134,7 @@ public:
             void transfer();
         };
 
-        using TransferQueue = std::queue<TransferJob>;
+        using TransferQueue = std::queue<std::unique_ptr<TransferJob>>;
         static MemoryPressureState _memoryPressureState;
     protected:
         static std::atomic<bool> _memoryPressureStateStale;

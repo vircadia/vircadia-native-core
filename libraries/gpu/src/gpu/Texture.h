@@ -17,6 +17,8 @@
 #include <QMetaType>
 #include <QUrl>
 
+#include <shared/Storage.h>
+
 #include "Forward.h"
 #include "Resource.h"
 
@@ -224,26 +226,26 @@ public:
         bool operator!=(const Usage& usage) { return (_flags != usage._flags); }
     };
 
+
     class Pixels {
     public:
+        using StoragePointer = storage::StoragePointer;
+
         Pixels() {}
         Pixels(const Pixels& pixels) = default;
         Pixels(const Element& format, Size size, const Byte* bytes);
+        Pixels(const Element& format, StoragePointer& storage) : _format(format), _storage(storage.release()) {}
         ~Pixels();
 
-        const Byte* readData() const { return _sysmem.readData(); }
-        Size getSize() const { return _sysmem.getSize(); }
-        Size resize(Size pSize);
-        Size setData(const Element& format, Size size, const Byte* bytes );
+        const Byte* readData() const { return _storage->data(); }
+        Size getSize() const { return _storage->size(); }
         
         const Element& getFormat() const { return _format; }
-        
-        void notifyGPULoaded();
-        
+
+
     protected:
         Element _format;
-        Sysmem _sysmem;
-        bool _isGPULoaded;
+        StoragePointer _storage;
         
         friend class Texture;
     };
@@ -296,10 +298,6 @@ public:
         const Texture* getTexture() const { return _texture; }
  
         friend class Texture;
-        
-        // THis should be only called by the Texture from the Backend to notify the storage that the specified mip face pixels
-        //  have been uploaded to the GPU memory. IT is possible for the storage to free the system memory then
-        virtual void notifyMipFaceGPULoaded(uint16 level, uint8 face) const;
     };
 
  
@@ -480,9 +478,6 @@ public:
     void setSampler(const Sampler& sampler);
     const Sampler& getSampler() const { return _sampler; }
     Stamp getSamplerStamp() const { return _samplerStamp; }
-
-    // Only callable by the Backend
-    void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
 
     void setExternalTexture(uint32 externalId, void* externalFence);
     void setExternalRecycler(const ExternalRecycler& recycler);

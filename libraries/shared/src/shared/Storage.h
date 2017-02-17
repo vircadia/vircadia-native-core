@@ -23,13 +23,15 @@ namespace storage {
     using MemoryStoragePointer = std::unique_ptr<MemoryStorage>;
     class FileStorage;
     using FileStoragePointer = std::unique_ptr<FileStorage>;
+    class ViewStorage;
+    using ViewStoragePointer = std::unique_ptr<ViewStorage>;
 
     class Storage {
     public:
         virtual ~Storage() {}
         virtual const uint8_t* data() const = 0;
         virtual size_t size() const = 0;
-
+        ViewStoragePointer createView(size_t size, size_t offset = 0) const;
         FileStoragePointer toFileStorage(const QString& filename) const;
         MemoryStoragePointer toMemoryStorage() const;
     };
@@ -37,8 +39,8 @@ namespace storage {
     class MemoryStorage : public Storage {
     public:
         MemoryStorage(size_t size, const uint8_t* data);
-        const uint8_t* data() const override;
-        size_t size() const override;
+        const uint8_t* data() const override { return _data.data(); }
+        size_t size() const override { return _data.size(); }
     private:
         std::vector<uint8_t> _data;
     };
@@ -52,13 +54,22 @@ namespace storage {
         FileStorage(const FileStorage& other) = delete;
         FileStorage& operator=(const FileStorage& other) = delete;
 
-        const uint8_t* data() const override;
-        size_t size() const override;
+        const uint8_t* data() const override { return _mapped; }
+        size_t size() const override { return _file.size(); }
     private:
         QFile _file;
         uint8_t* _mapped { nullptr };
     };
 
+    class ViewStorage : public Storage {
+    public:
+        ViewStorage(size_t size, const uint8_t* data) : _size(size), _data(data) {}
+        const uint8_t* data() const override { return _data; }
+        size_t size() const override { return _size; }
+    private:
+        const size_t _size;
+        const uint8_t* _data;
+    };
 
 }
 
