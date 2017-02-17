@@ -412,13 +412,19 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray,
         i.previous();
         OverlayID thisID = i.key();
         auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+
+        if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
+            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID))) {
+            continue;
+        }
+
         if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
             glm::vec3 thisSurfaceNormal;
             QString thisExtraInfo;
-            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, 
-                                                            thisFace, thisSurfaceNormal, thisExtraInfo)) {
+            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
+                                                          thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
                 if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
                     bestIsFront = isDrawInFront;
