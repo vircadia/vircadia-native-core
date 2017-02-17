@@ -61,7 +61,7 @@ void AudioMixerClientData::processPackets() {
     _packetQueue.node.clear();
 
     while (!_packetQueue.empty()) {
-        auto& packet = _packetQueue.back();
+        auto& packet = _packetQueue.front();
 
         switch (packet->getType()) {
             case PacketType::MicrophoneAudioNoEcho:
