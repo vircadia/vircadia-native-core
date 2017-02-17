@@ -38,20 +38,23 @@
                 print("clicked picture button");
                 // // hide HUD tool bar
                 // toolbar.writeProperty("visible", false);
-                // // hide Overlays (such as Running Scripts or other Dialog UI)
-                // Menu.setIsOptionChecked("Overlays", false);
-                // // hide mouse cursor
-                // Reticle.visible = false;
-                // // giving a delay here before snapshotting so that there is time to hide toolbar and other UIs
-                // // void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio)
-                // Script.setTimeout(function () {
-                //     Window.takeSnapshot(false, false, 1.91);
-                //     // show hidden items after snapshot is taken
-                //     toolbar.writeProperty("visible", true);
-                //     Menu.setIsOptionChecked("Overlays", true);
-                //     // unknown issue: somehow we don't need to reset cursor to visible in script and the mouse still returns after snapshot
-                //     // Reticle.visible = true;
-                // }, SNAPSHOT_DELAY);
+                // hide tablet
+                HMD.closeTablet();
+                // hide Overlays (such as Running Scripts or other Dialog UI)
+                Menu.setIsOptionChecked("Overlays", false);
+                // hide mouse cursor
+                Reticle.visible = false;
+                // // giving a delay here before snapshotting so that there is time to hide other UIs
+                // void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio)
+                Script.setTimeout(function () {
+                    Window.takeSnapshot(false, false, 1.91);
+                    // show hidden items after snapshot is taken
+                    // issue: currently there's no way to show tablet via a script command. user will have to manually open tablet again
+                    // toolbar.writeProperty("visible", true);
+                    Menu.setIsOptionChecked("Overlays", true);
+                    // issue: somehow we don't need to reset cursor to visible in script and the mouse still returns after snapshot
+                    // Reticle.visible = true;
+                }, SNAPSHOT_DELAY);
 
             } else if (event.type === "onClickReloadModelButton") {
                 print("clicked reload model button " + event.data.value);
@@ -161,26 +164,6 @@
         });
         Entities.deleteEntity(this.modelEntityID);
     };
-
-    var main = function () {
-
-        var photoboothWindowListener = {};
-
-        photoboothWindowListener.onSelectCamera = function (event) {
-            print("selected camera " + event.value);
-            if (!event.hasOwnProperty("value")){
-                return;
-            }
-            if (event.value === "First Person Camera") {
-                Camera.mode = "first person";
-            } else {
-                Camera.mode = "entity";
-                var cameraID = PhotoBooth.cameraEntities[event.value];
-                Camera.setCameraEntity(cameraID);
-            }
-        };
-    };
-    main();
     
     function cleanup() {
         tablet.removeButton(button);
