@@ -72,7 +72,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
         auto mip = texture.accessStoredMipFace(level);
         if (mip) {
-            images.emplace_back(ktx::Image(mip->getSize(), 0, mip->readData()));
+            images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
         }
     }
 

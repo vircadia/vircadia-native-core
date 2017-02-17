@@ -122,36 +122,12 @@ uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = { 1, 1, 1, 6 };
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _format(format),
-    _sysmem(size, bytes),
-    _isGPULoaded(false) {
-    Texture::updateTextureCPUMemoryUsage(0, _sysmem.getSize());
+    _storage(new storage::MemoryStorage(size, bytes)) {
+    Texture::updateTextureCPUMemoryUsage(0, _storage->size());
 }
 
 Texture::Pixels::~Pixels() {
-    Texture::updateTextureCPUMemoryUsage(_sysmem.getSize(), 0);
-}
-
-Texture::Size Texture::Pixels::resize(Size pSize) {
-    auto prevSize = _sysmem.getSize();
-    auto newSize = _sysmem.resize(pSize);
-    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
-    return newSize;
-}
-
-Texture::Size Texture::Pixels::setData(const Element& format, Size size, const Byte* bytes ) {
-    _format = format;
-    auto prevSize = _sysmem.getSize();
-    auto newSize = _sysmem.setData(size, bytes);
-    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
-    _isGPULoaded = false;
-    return newSize;
-}
-
-void Texture::Pixels::notifyGPULoaded() {
-    _isGPULoaded = true;
-    auto prevSize = _sysmem.getSize();
-    auto newSize = _sysmem.resize(0);
-    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
+    Texture::updateTextureCPUMemoryUsage(_storage->size(), 0);
 }
 
 void Texture::Storage::assignTexture(Texture* texture) {
@@ -181,14 +157,6 @@ const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 fa
         return _mips[level][face];
     }
     return PixelsPointer();
-}
-
-void Texture::Storage::notifyMipFaceGPULoaded(uint16 level, uint8 face) const {
-    PixelsPointer mipFace = getMipFace(level, face);
-    // Free the mips
-    if (mipFace) {
-        mipFace->notifyGPULoaded();
-    }
 }
 
 bool Texture::Storage::isMipAvailable(uint16 level, uint8 face) const {
@@ -229,7 +197,8 @@ bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size s
     auto faceBytes = bytes;
     Size allocated = 0;
     for (auto& face : mip) {
-        allocated += face->setData(format, sizePerFace, faceBytes);
+        face.reset(new Pixels(format, size, bytes));
+        allocated += size;
         faceBytes += sizePerFace;
     }
 
@@ -242,11 +211,11 @@ bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size s
 bool Texture::Storage::assignMipFaceData(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face) {
 
     allocateMip(level);
-    auto mip = _mips[level];
+    auto& mip = _mips[level];
     Size allocated = 0;
     if (face < mip.size()) { 
-        auto mipFace = mip[face];
-        allocated += mipFace->setData(format, size, bytes);
+        mip[face].reset(new Pixels(format, size, bytes));
+        allocated += size;
         bumpStamp();
     }
 
