@@ -1532,7 +1532,7 @@ QScriptValue ScriptEngine::fetchModuleSource(const QString& modulePath, const bo
         qCDebug(scriptengine_module) << "require.requestScript -- clearing cache for" << modulePath;
         scriptCache->deleteScript(modulePath);
     }
-    BatchLoader* loader = new BatchLoader({ modulePath });
+    BatchLoader* loader = new BatchLoader(QList<QUrl>({ modulePath }));
     connect(loader, &BatchLoader::finished, this, onload);
     connect(this, &QObject::destroyed, loader, &QObject::deleteLater);
     // fail faster? (since require() blocks the engine thread while resolving dependencies)
