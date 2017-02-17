@@ -1806,7 +1806,7 @@ SelectionDisplay = (function() {
 
         if (selectionManager.selections.length == 1) {
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
-            if (properties.type == "Light" && properties.isSpotlight === true) {
+            if (properties.type == "Light" && properties.isSpotlight) {
                 stretchHandlesVisible = false;
                 extendedStretchHandlesVisible = false;
 
@@ -1901,7 +1901,7 @@ SelectionDisplay = (function() {
                 Overlays.editOverlay(grabberPointLightN, {
                     visible: false
                 });
-            } else if (properties.type == "Light" && properties.isSpotlight === false) {
+            } else if (properties.type == "Light" && !properties.isSpotlight) {
                 stretchHandlesVisible = false;
                 extendedStretchHandlesVisible = false;
                 Overlays.editOverlay(grabberPointLightT, {
