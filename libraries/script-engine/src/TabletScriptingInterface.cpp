@@ -170,7 +170,6 @@ QObject* TabletScriptingInterface::getFlags()
 static const char* TABLET_SOURCE_URL = "Tablet.qml";
 static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
 static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
-static int s_windowNameCounter = 1;
 
 class TabletRootWindow : public QmlWindowClass {
     virtual QString qmlSource() const { return "hifi/tablet/WindowRoot.qml"; }
@@ -193,7 +192,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
         // create new desktop window
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->executeOnUiThread([=, this] {
+        offscreenUi->executeOnUiThread([=] {
             auto tabletRootWindow = new TabletRootWindow();
             tabletRootWindow->initQml(QVariantMap());
             auto quickItem = tabletRootWindow->asQuickItem();
