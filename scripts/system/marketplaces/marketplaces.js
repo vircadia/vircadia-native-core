@@ -59,7 +59,7 @@ function showMarketplace() {
     tablet.webEventReceived.connect(function (message) {
 
         if (message === GOTO_DIRECTORY) {
-            tablet.gotoWebScreen(MARKETPLACES_URL);
+            tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
         }
 
         if (message === QUERY_CAN_WRITE_ASSETS) {
