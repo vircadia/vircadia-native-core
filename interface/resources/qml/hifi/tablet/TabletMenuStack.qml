@@ -17,16 +17,6 @@ Item {
     id: root
     anchors.fill: parent
     objectName: "tabletMenuHandlerItem"
-
-    MouseArea {
-        id: menuRoot;
-        objectName: "tabletMenuHandlerMouseArea"
-        anchors.fill: parent
-        enabled: d.topMenu !== null
-        onClicked: {
-            d.clearMenus();
-        }
-    }
     
     StackView {
         anchors.fill: parent
@@ -61,9 +51,11 @@ Item {
             d.push(Qt.resolvedUrl(path));
             d.currentItem.eventBridge = tabletMenu.eventBridge
             d.currentItem.sendToScript.connect(tabletMenu.sendToScript);
+            breadcrumbText.text = d.currentItem.objectName;
         }
 
         function popSource() {
+            console.log("trying to pop page");
             d.pop();
         }
 
@@ -90,7 +82,9 @@ Item {
         }
 
         function popMenu() {
+            console.log("the depth of the stack " + d.depth);
             if (d.depth) {
+                console.log("trying to pop page from stack");
                 d.pop();
             }
             if (d.depth) {

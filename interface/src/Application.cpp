@@ -1940,6 +1940,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
     rootContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
     rootContext->setContextProperty("Rates", new RatesScriptingInterface(this));
+    rootContext->setContextProperty("pathToFonts", "../../");
 
     rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
     rootContext->setContextProperty("Quat", new Quat());
@@ -5743,14 +5744,8 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
 }
 
 void Application::toggleRunningScriptsWidget() const {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    static const QUrl url("hifi/dialogs/RunningScripts.qml");
-    if (true) {
-        auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-        tablet->pushOntoStack("../..//hifi/dialogs/RunningScripts.qml");
-    } else {
-        DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
-    }
+    DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
+        
     //if (_runningScriptsWidget->isVisible()) {
     //    if (_runningScriptsWidget->hasFocus()) {
     //        _runningScriptsWidget->hide();
