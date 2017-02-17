@@ -26,7 +26,7 @@
         // Paints in 3D.
         var brushName = name,
             STROKE_COLOR = { red: 250, green: 0, blue: 0 },
-            ERASE_SEARCH_DISTANCE = 0.1,  // m
+            ERASE_SEARCH_RADIUS = 0.1,  // m
             isDrawingLine = false,
             entityID,
             basePosition,
@@ -118,6 +118,43 @@
         }
 
         function eraseClosestLine(position) {
+            // Erase closest line that is within search radius of finger tip.
+            var entities,
+                entitiesLength,
+                properties,
+                entityID,
+                entityDistance,
+                i,
+                pointsLength,
+                j,
+                distance,
+                found = false,
+                foundID,
+                foundDistance = ERASE_SEARCH_RADIUS;
+
+            // Find entities with bounding box within search radius.
+            entities = Entities.findEntities(position, ERASE_SEARCH_RADIUS);
+
+            // Fine polyline entity with closest point within search radius.
+            for (i = 0, entitiesLength = entities.length; i < entitiesLength; i += 1) {
+                properties = Entities.getEntityProperties(entities[i], ["type", "position", "linePoints"]);
+                if (properties.type === "PolyLine") {
+                    basePosition = properties.position;
+                    for (j = 0, pointsLength = properties.linePoints.length; j < pointsLength; j += 1) {
+                        distance = Vec3.distance(position, Vec3.sum(basePosition, properties.linePoints[j]));
+                        if (distance <= foundDistance) {
+                            found = true;
+                            foundID = entities[i];
+                            foundDistance = distance;
+                        }
+                    }
+                }
+            }
+
+            // Delete found entity.
+            if (found) {
+                Entities.deleteEntity(foundID);
+            }
         }
 
         function tearDown() {
