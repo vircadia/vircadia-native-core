@@ -1361,28 +1361,22 @@ void ScriptEngine::print(const QString& message) {
 QString ScriptEngine::_requireResolve(const QString& moduleId, const QString& relativeTo) {
     QUrl defaultScriptsLoc = defaultScriptsLocation();
     QUrl url(moduleId);
+    ExceptionEmitter tryCatcher(this, __FUNCTION__);
 
-    // helper to generate an exception and return a null string
-    auto resolverException = [=](const QString& detail, const QString& type = "Error") -> QString {
-        auto displayId = moduleId;
-        if (displayId.length() > MAX_DEBUG_VALUE_LENGTH) {
-            displayId = displayId.mid(0, MAX_DEBUG_VALUE_LENGTH) + "...";
-        }
-        currentContext()->throwValue(makeError(
-            QString("Cannot find module '%1' (%2)")
-                .arg(displayId)
-                .arg(detail), type));
-        return QString();
-    };
+    auto displayId = moduleId;
+    if (displayId.length() > MAX_DEBUG_VALUE_LENGTH) {
+        displayId = displayId.mid(0, MAX_DEBUG_VALUE_LENGTH) + "...";
+    }
+    auto message = QString("Cannot find module '%1' (%2)").arg(displayId);
+    auto ctx = currentContext();
 
     // de-fuzz the input a little by restricting to rational sizes
     auto idLength = url.toString().length();
     if (idLength < 1 || idLength > MAX_MODULE_ID_LENTGH) {
-        return resolverException(
-            QString("rejecting invalid module id size (%1 chars [1,%2])")
-               .arg(idLength).arg(MAX_MODULE_ID_LENTGH),
-            "RangeError"
-        );
+        auto details = QString("rejecting invalid module id size (%1 chars [1,%2])")
+            .arg(idLength).arg(MAX_MODULE_ID_LENTGH);
+        ctx->throwValue(makeError(message.arg(details), "RangeError"));
+        return nullptr;
     }
 
     // this regex matches: absolute, dotted or path-like URLs
@@ -1402,12 +1396,14 @@ QString ScriptEngine::_requireResolve(const QString& moduleId, const QString& re
         url = defaultScriptsLoc;
         url.setPath(systemModulePath);
         if (!QFileInfo(url.toLocalFile()).isFile()) {
-            return resolverException("system module not found");
+            ctx->throwValue(makeError(message.arg("system module not found")));
+            return nullptr;
         }
     }
 
     if (url.isRelative()) {
-        return resolverException("could not resolve module id");
+        ctx->throwValue(makeError(message.arg("could not resolve module id")));
+        return nullptr;
     }
 
     // if it looks like a local file, verify that it's an allowed path and really a file
@@ -1420,18 +1416,21 @@ QString ScriptEngine::_requireResolve(const QString& moduleId, const QString& re
 
         bool disallowOutsideFiles = !defaultScriptsLocation().isParentOf(canonical) && !currentSandboxURL.isLocalFile();
         if (disallowOutsideFiles && !PathUtils::isDescendantOf(canonical, currentSandboxURL)) {
-            return resolverException(
+            ctx->throwValue(makeError(message.arg(
                 QString("path '%1' outside of origin script '%2' '%3'")
                     .arg(PathUtils::stripFilename(url))
                     .arg(PathUtils::stripFilename(currentSandboxURL))
                     .arg(canonical.toString())
-            );
+            )));
+            return nullptr;
         }
         if (!file.exists()) {
-            return resolverException("path does not exist: " + url.toLocalFile());
+            ctx->throwValue(makeError(message.arg("path does not exist: " + url.toLocalFile())));
+            return nullptr;
         }
         if (!file.isFile()) {
-            return resolverException("path is not a file: " + url.toLocalFile());
+            ctx->throwValue(makeError(message.arg("path is not a file: " + url.toLocalFile())));
+            return nullptr;
         }
     }
 
@@ -1611,6 +1610,7 @@ QScriptValue ScriptEngine::require(const QString& moduleId) {
     // serialize require calls so the ordering/caching works correctly across multiple Entities
     // note: this is a Recursive mutex so nested require's should not affected
     QMutexLocker locker(&_requireLock);
+    ExceptionEmitter tryCatcher(this, __FUNCTION__);
     // _requireDepth++;
     // QObject autoDecrement;connect(&autoDecrement, &QObject::destroyed, this, [this](){ _requireDepth--; });
 
@@ -1632,7 +1632,7 @@ QScriptValue ScriptEngine::require(const QString& moduleId) {
 
     // start by resolving the moduleId into a fully-qualified path/URL
     QString modulePath = _requireResolve(moduleId);
-    if (hasUncaughtException()) {
+    if (modulePath.isNull() || tryCatcher.hasPending()) {
         // the resolver already threw an exception -- bail early
         return nullValue();
     }
