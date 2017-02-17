@@ -25,7 +25,7 @@ Window {
     property real buttonSize: 50;
     property var buttons: []
     property var container: horizontal ? row : column
-            
+
     Settings {
         category: "toolbar/" + window.objectName
         property alias x: window.x
@@ -49,6 +49,7 @@ Window {
         id: content
         implicitHeight: horizontal ? row.height : column.height
         implicitWidth: horizontal ? row.width : column.width
+        property bool wasVisibleBeforeBeingPinned: false
 
         Row {
             id: row
@@ -65,19 +66,11 @@ Window {
         Connections {
             target: desktop
             onPinnedChanged: {
-                if (!window.pinned) {
-                    return;
-                }
-                var newPinned = desktop.pinned;
-                for (var i in buttons) {
-                    var child = buttons[i];
-                    if (desktop.pinned) {
-                        if (!child.pinned) {
-                            child.visible = false;
-                        }
-                    } else {
-                        child.visible = true;
-                    }
+                if (desktop.pinned) {
+                    content.wasVisibleBeforeBeingPinned = window.visible;
+                    window.visible = false;
+                } else {
+                    window.visible = content.wasVisibleBeforeBeingPinned;
                 }
             }
         }
