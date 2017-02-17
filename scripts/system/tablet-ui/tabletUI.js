@@ -52,6 +52,15 @@
     }
 
     function updateShowTablet() {
+
+        // close the WebTablet if it we go into toolbar mode.
+        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        if (tabletShown && toolbarMode) {
+            hideTabletUI();
+            HMD.closeTablet();
+            return;
+        }
+
         if (tabletShown) {
             var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
             var currentMicEnabled = !Menu.isOptionChecked(MUTE_MICROPHONE_MENU_ITEM);
@@ -67,7 +76,7 @@
             // other reason, close the tablet.
             hideTabletUI();
             HMD.closeTablet();
-        } else if (HMD.showTablet && !tabletShown) {
+        } else if (HMD.showTablet && !tabletShown && !toolbarMode) {
             UserActivityLogger.openedTablet();
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
