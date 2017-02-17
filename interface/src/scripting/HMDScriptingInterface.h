@@ -30,7 +30,7 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(bool mounted READ isMounted)
     Q_PROPERTY(bool showTablet READ getShouldShowTablet)
     Q_PROPERTY(QUuid tabletID READ getCurrentTableUIID WRITE setCurrentTabletUIID)
-    Q_PROPERTY(unsigned int homeButtonID READ getCurrentHomeButtonUUID WRITE setCurrentHomeButtonUUID)
+    Q_PROPERTY(QUuid homeButtonID READ getCurrentHomeButtonUUID WRITE setCurrentHomeButtonUUID)
     
 
 public:
@@ -93,13 +93,13 @@ public:
     void setCurrentTabletUIID(QUuid tabletID) { _tabletUIID = tabletID; }
     QUuid getCurrentTableUIID() const { return _tabletUIID; }
 
-    void setCurrentHomeButtonUUID(unsigned int homeButtonID) { _homeButtonID = homeButtonID; }
-    unsigned int getCurrentHomeButtonUUID() const { return _homeButtonID; }
+    void setCurrentHomeButtonUUID(QUuid homeButtonID) { _homeButtonID = homeButtonID; }
+    QUuid getCurrentHomeButtonUUID() const { return _homeButtonID; }
 
 private:
     bool _showTablet { false };
     QUuid _tabletUIID; // this is the entityID of the WebEntity which is part of (a child of) the tablet-ui.
-    unsigned int _homeButtonID;
+    QUuid _homeButtonID;
     QUuid _tabletEntityID;
 
     // Get the position of the HMD
