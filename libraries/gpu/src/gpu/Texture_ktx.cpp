@@ -34,9 +34,21 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     auto ktxBuffer = ktx::KTX::create(header, images);
     return ktxBuffer;
 }
-TexturePointer Texture::unserialize(const ktx::KTXUniquePointer& srcData) {
+Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData) {
+    if (!srcData) {
+        return nullptr;
+    }
 
     const auto& header = *srcData->getHeader();
 
-    return nullptr;
+    Format pixelFormat = Format::COLOR_RGBA_32;
+
+    auto tex = Texture::create2D(pixelFormat, header.getPixelWidth(),  header.getPixelHeight());
+    uint16_t level = 0;
+    for (auto& image : srcData->_images) {
+        tex->assignStoredMip(level, pixelFormat, image._imageSize, image._bytes);
+        level++;
+    }
+
+    return tex;
 }
