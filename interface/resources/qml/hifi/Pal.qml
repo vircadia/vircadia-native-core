@@ -248,7 +248,7 @@ Rectangle {
             }
             Text {
                 id: avgAudioVolume
-                text: model ? model.avgAudioLevel : 0.0
+                text: model ? (10 * model.avgAudioLevel).toFixed(0) : 0.0
                 visible: isText
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
