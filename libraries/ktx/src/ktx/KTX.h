@@ -445,10 +445,10 @@ namespace ktx {
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
 
         // Parse a block of memory and create a KTX object from it
-        static std::unique_ptr<KTX> create(const Storage& src);
         static std::unique_ptr<KTX> create(std::unique_ptr<Storage>& src);
 
-        static bool checkHeaderFromStorage(const Storage& storage);
+        static bool checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes);
+        static Images parseImages(const Header& header, size_t srcSize, const Byte* srcBytes);
 
         // Access raw pointers to the main sections of the KTX
         const Header* getHeader() const;

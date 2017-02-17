@@ -24,7 +24,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     header.numberOfMipmapLevels = texture.mipLevels();
 
     ktx::Images images;
-    for (int level = 0; level < header.numberOfMipmapLevels; level++) {
+    for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
         auto mip = texture.accessStoredMipFace(level);
         if (mip) {
             images.emplace_back(ktx::Image(mip->getSize(), 0, mip->readData()));
@@ -41,12 +41,13 @@ Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData) {
 
     const auto& header = *srcData->getHeader();
 
-    Format pixelFormat = Format::COLOR_RGBA_32;
+    Format mipFormat = Format::COLOR_SBGRA_32;
+    Format pixelFormat = Format::COLOR_SRGBA_32;
 
     auto tex = Texture::create2D(pixelFormat, header.getPixelWidth(),  header.getPixelHeight());
     uint16_t level = 0;
     for (auto& image : srcData->_images) {
-        tex->assignStoredMip(level, pixelFormat, image._imageSize, image._bytes);
+        tex->assignStoredMip(level, mipFormat, image._imageSize, image._bytes);
         level++;
     }
 
