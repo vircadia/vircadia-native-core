@@ -5,9 +5,6 @@
 #include <AudioInjector.h>
 
 SoundEffect::~SoundEffect() {
-    if (_sound) {
-        _sound->deleteLater();
-    }
     if (_injector) {
          // stop will cause the AudioInjector to delete itself.
         _injector->stop();
