@@ -128,7 +128,7 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
                 fclose (file);
 
                 //then create a new texture out of the ktx
-                auto theNewTexure = Texture::unserialize(gpu::TextureUsageType::RESOURCE, ktx::KTX::create(storage));
+                auto theNewTexure = Texture::unserialize(srcTexture->getUsageType(), ktx::KTX::create(storage));
 
                 if (theNewTexure) {
                     returnedTexture = theNewTexure;
