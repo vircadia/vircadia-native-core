@@ -410,7 +410,7 @@ void AvatarMixer::broadcastAvatarData() {
                     bool isInView = nodeData->otherAvatarInView(otherNodeBox);
 
                     // this throttles the extra data to only be sent every Nth message
-                    if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
+                    if (!isInView && !getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
                         return;
                     }
 
@@ -572,6 +572,7 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
             bool isRequesting;
             message->readPrimitive(&isRequesting);
             nodeData->setRequestsDomainListData(isRequesting);
+            qDebug() << "node" << nodeData->getNodeID() << "requestsDomainListData" << isRequesting;
         }
     }
 }
