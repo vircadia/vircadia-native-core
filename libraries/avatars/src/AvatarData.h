@@ -356,7 +356,7 @@ public:
 
     // FIXME
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-        bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) const;
+        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) const;
 
     virtual void doneEncoding(bool cullSmallChanges);
 

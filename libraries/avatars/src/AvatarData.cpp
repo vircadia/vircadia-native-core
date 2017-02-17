@@ -169,7 +169,7 @@ float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPositio
 
 
 QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                        bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
+                                    bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
 
     // if no timestamp was included, then assume the avatarData is single instance 
     // and is tracking its own last encoding time.
@@ -575,7 +575,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 }
 
 QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-    bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) const {
+    AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) const {
 
     bool cullSmallChanges = (dataDetail == CullSmallData);
     bool sendAll = (dataDetail == SendAllData);
@@ -625,7 +625,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         tranlationChangedSince(lastSentTime) ||
         parentInfoChangedSince(lastSentTime));
 
-    bool hasFaceTrackerInfo = hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
+    bool hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
     bool hasJointData = sendAll || !sendMinimum;
 
     // Leading flags, to indicate how much data is actually included in the packet...

@@ -361,9 +361,12 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                                 QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
                                 bool distanceAdjust = true;
                                 glm::vec3 viewerPosition = myPosition;
+                                AvatarDataPacket::HasFlags hasFlagsOut; // the result of the toByteArray
+                                bool dropFaceTracking = true; // this is a hack for now... always drop face tracking
 
                                 quint64 start = usecTimestampNow();
-                                QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+                                QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, 
+                                                                hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
                                 quint64 end = usecTimestampNow();
                                 _stats.toByteArrayElapsedTime += (end - start);
 
