@@ -25,6 +25,7 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
 
+class EntityEditFilters;
 class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
@@ -271,9 +272,6 @@ public:
 
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
 
-    void initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions);
-    void setHasEntityFilter(bool hasFilter) { _hasEntityEditFilter = hasFilter; }
-
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
 public slots:
@@ -362,13 +360,8 @@ protected:
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 
-    bool filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
+    bool filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
     bool _hasEntityEditFilter{ false };
-    QScriptEngine* _entityEditFilterEngine{};
-    QScriptValue _entityEditFilterFunction{};
-    QScriptValue _nullObjectForFilter{};
-    std::function<bool()> _entityEditFilterHadUncaughtExceptions;
-
     QStringList _entityScriptSourceWhitelist;
 };
 

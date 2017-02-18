@@ -61,7 +61,7 @@ void AudioMixerClientData::processPackets() {
     _packetQueue.node.clear();
 
     while (!_packetQueue.empty()) {
-        auto& packet = _packetQueue.back();
+        auto& packet = _packetQueue.front();
 
         switch (packet->getType()) {
             case PacketType::MicrophoneAudioNoEcho:
@@ -548,9 +548,6 @@ AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsi
             _zone = box;
             unsigned int oldFrame = _frame.exchange(frame, std::memory_order_release);
             Q_UNUSED(oldFrame);
-
-            // check the precondition
-            assert(oldFrame == 0 || frame == (oldFrame + 1));
         }
     }
 

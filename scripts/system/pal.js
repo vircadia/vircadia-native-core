@@ -1,6 +1,7 @@
 "use strict";
-/*jslint vars: true, plusplus: true, forin: true*/
-/*globals Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, OverlayWindow, Toolbars, Vec3, Quat, Controller, print, getControllerWorldLocation */
+/* jslint vars: true, plusplus: true, forin: true*/
+/* globals Tablet, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, Controller, print, getControllerWorldLocation */
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // pal.js
 //
@@ -13,21 +14,24 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-// hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed 
+// hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed
 // something, will revisit as this is sorta horrible.
-const UNSELECTED_TEXTURES = {"idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
-                             "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
+var UNSELECTED_TEXTURES = {
+    "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
+    "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
 };
-const SELECTED_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
-                            "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
+var SELECTED_TEXTURES = {
+    "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
+    "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
 };
-const HOVER_TEXTURES = { "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png"),
-                         "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png")
+var HOVER_TEXTURES = {
+    "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png"),
+    "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png")
 };
 
-const UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
-const SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
-const HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
+var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
+var SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
+var HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
 
 var conserveResources = true;
 
@@ -87,24 +91,24 @@ ExtendedOverlay.prototype.hover = function (hovering) {
         } else {
             lastHoveringId = 0;
         }
-    } 
+    }
     this.editOverlay({color: color(this.selected, hovering, this.audioLevel)});
     if (this.model) {
         this.model.editOverlay({textures: textures(this.selected, hovering)});
     }
     if (hovering) {
         // un-hover the last hovering overlay
-        if (lastHoveringId && lastHoveringId != this.key) {
+        if (lastHoveringId && lastHoveringId !== this.key) {
             ExtendedOverlay.get(lastHoveringId).hover(false);
         }
         lastHoveringId = this.key;
     }
-}
+};
 ExtendedOverlay.prototype.select = function (selected) {
     if (this.selected === selected) {
         return;
     }
-    
+
     UserActivityLogger.palAction(selected ? "avatar_selected" : "avatar_deselected", this.key);
 
     this.editOverlay({color: color(selected, this.hovering, this.audioLevel)});
@@ -193,17 +197,8 @@ HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
     });
 };
 
-//
-// The qml window and communications.
-//
-var pal = new OverlayWindow({
-    title: 'People Action List',
-    source: 'hifi/Pal.qml',
-    width: 580,
-    height: 640,
-    visible: false
-});
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
+    var data;
     switch (message.method) {
     case 'selected':
         selectedIds = message.params;
@@ -250,7 +245,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         }
         break;
     case 'displayNameUpdate':
-        if (MyAvatar.displayName != message.params) {
+        if (MyAvatar.displayName !== message.params) {
             MyAvatar.displayName = message.params;
             UserActivityLogger.palAction("display_name_change", "");
         }
@@ -261,11 +256,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 }
 
 function sendToQml(message) {
-    if (Settings.getValue("HUDUIEnabled")) {
-        pal.sendToQml(message);
-    } else {
-        tablet.sendToQml(message);
-    }
+    tablet.sendToQml(message);
 }
 
 //
@@ -273,7 +264,7 @@ function sendToQml(message) {
 //
 function addAvatarNode(id) {
     var selected = ExtendedOverlay.isSelected(id);
-    return new ExtendedOverlay(id, "sphere", { 
+    return new ExtendedOverlay(id, "sphere", {
         drawInFront: true,
         solid: true,
         alpha: 0.8,
@@ -290,17 +281,14 @@ function populateUserList(selectData) {
             userName: '',
             sessionId: id || '',
             audioLevel: 0.0,
-            admin: false
+            admin: false,
+            personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
+            ignore: !!id && Users.getIgnoreStatus(id) // ditto
         };
-        // Request the username, fingerprint, and admin status from the given UUID
-        // Username and fingerprint returns default constructor output if the requesting user isn't an admin
-        Users.requestUsernameFromID(id);
-        // Request personal mute status and ignore status
-        // from NodeList (as long as we're not requesting it for our own ID)
         if (id) {
-            avatarPalDatum['personalMute'] = Users.getPersonalMuteStatus(id);
-            avatarPalDatum['ignore'] = Users.getIgnoreStatus(id);
             addAvatarNode(id); // No overlay for ourselves
+            // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
+            Users.requestUsernameFromID(id);
         }
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
@@ -314,20 +302,13 @@ function populateUserList(selectData) {
 
 // The function that handles the reply from the server
 function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
-    var data;
-    // If the ID we've received is our ID...
-    if (MyAvatar.sessionUUID === id) {
-        // Set the data to contain specific strings.
-        data = ['', username, isAdmin];
-    } else if (Users.canKick) {
-        // Set the data to contain the ID and the username (if we have one)
-        // or fingerprint (if we don't have a username) string.
-        data = [id, username || machineFingerprint, isAdmin];
-    } else {
-        // Set the data to contain specific strings.
-        data = [id, '', isAdmin];
-    }
-    print('Username Data:', JSON.stringify(data));
+    var data = [
+        (MyAvatar.sessionUUID === id) ? '' : id, // Pal.qml recognizes empty id specially.
+        // If we get username (e.g., if in future we receive it when we're friends), use it.
+        // Otherwise, use valid machineFingerprint (which is not valid when not an admin).
+        username || (Users.canKick && machineFingerprint) || '',
+        isAdmin
+    ];
     // Ship the data off to QML
     sendToQml({ method: 'updateUsername', params: data });
 }
@@ -339,17 +320,19 @@ function updateOverlays() {
         if (!id) {
             return; // don't update ourself
         }
-        
+        var avatar = AvatarList.getAvatar(id);
+        if (!avatar) {
+            return; // will be deleted below if there had been an overlay.
+        }
         var overlay = ExtendedOverlay.get(id);
         if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
             print('Adding non-PAL avatar node', id);
             overlay = addAvatarNode(id);
         }
-        var avatar = AvatarList.getAvatar(id);
         var target = avatar.position;
         var distance = Vec3.distance(target, eye);
         var offset = 0.2;
-        
+
         // base offset on 1/2 distance from hips to head if we can
         var headIndex = avatar.getJointIndex("Head");
         if (headIndex > 0) {
@@ -358,7 +341,7 @@ function updateOverlays() {
 
         // get diff between target and eye (a vector pointing to the eye from avatar position)
         var diff = Vec3.subtract(target, eye);
-        
+
         // move a bit in front, towards the camera
         target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(diff), offset));
 
@@ -369,12 +352,12 @@ function updateOverlays() {
         overlay.editOverlay({
             color: color(ExtendedOverlay.isSelected(id), overlay.hovering, overlay.audioLevel),
             position: target,
-            dimensions: 0.032 * distance 
+            dimensions: 0.032 * distance
         });
         if (overlay.model) {
             overlay.model.ping = pingPong;
             overlay.model.editOverlay({
-                position: target, 
+                position: target,
                 scale: 0.2 * distance, // constant apparent size
                 rotation: Camera.orientation
             });
@@ -393,7 +376,9 @@ function removeOverlays() {
     selectedIds = [];
     lastHoveringId = 0;
     HighlightedEntity.clearOverlays();
-    ExtendedOverlay.some(function (overlay) { overlay.deleteOverlay(); });
+    ExtendedOverlay.some(function (overlay) {
+        overlay.deleteOverlay();
+    });
 }
 
 //
@@ -423,12 +408,13 @@ function handleMouseMove(pickRay) { // given the pickRay, just do the hover logi
 
 // handy global to keep track of which hand is the mouse (if any)
 var currentHandPressed = 0;
-const TRIGGER_CLICK_THRESHOLD = 0.85;
-const TRIGGER_PRESS_THRESHOLD = 0.05;
+var TRIGGER_CLICK_THRESHOLD = 0.85;
+var TRIGGER_PRESS_THRESHOLD = 0.05;
 
 function handleMouseMoveEvent(event) { // find out which overlay (if any) is over the mouse position
+    var pickRay;
     if (HMD.active) {
-        if (currentHandPressed != 0) {
+        if (currentHandPressed !== 0) {
             pickRay = controllerComputePickRay(currentHandPressed);
         } else {
             // nothing should hover, so
@@ -441,18 +427,18 @@ function handleMouseMoveEvent(event) { // find out which overlay (if any) is ove
     handleMouseMove(pickRay);
 }
 function handleTriggerPressed(hand, value) {
-    // The idea is if you press one trigger, it is the one 
+    // The idea is if you press one trigger, it is the one
     // we will consider the mouse.  Even if the other is pressed,
     // we ignore it until this one is no longer pressed.
-    isPressed = value > TRIGGER_PRESS_THRESHOLD;
-    if (currentHandPressed == 0) {
+    var isPressed = value > TRIGGER_PRESS_THRESHOLD;
+    if (currentHandPressed === 0) {
         currentHandPressed = isPressed ? hand : 0;
         return;
     }
-    if (currentHandPressed == hand) { 
+    if (currentHandPressed === hand) {
         currentHandPressed = isPressed ? hand : 0;
         return;
-    } 
+    }
     // otherwise, the other hand is still triggered
     // so do nothing.
 }
@@ -478,7 +464,7 @@ function makeClickHandler(hand) {
 function makePressHandler(hand) {
     return function (value) {
         handleTriggerPressed(hand, value);
-    }
+    };
 }
 triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
 triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
@@ -490,17 +476,14 @@ triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Cont
 var button;
 var buttonName = "PEOPLE";
 var tablet = null;
-var toolBar = null;
-if (Settings.getValue("HUDUIEnabled")) {
-    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-    button = toolBar.addButton({
-        objectName: buttonName,
-        imageURL: Script.resolvePath("assets/images/tools/people.svg"),
-        visible: true,
-        alpha: 0.9
-    });
-    pal.fromQml.connect(fromQml);
-} else {
+
+function onTabletScreenChanged(type, url) {
+    if (type !== "QML" || url !== "../Pal.qml") {
+        off();
+    }
+}
+
+function startup() {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         text: buttonName,
@@ -508,7 +491,18 @@ if (Settings.getValue("HUDUIEnabled")) {
         sortOrder: 7
     });
     tablet.fromQml.connect(fromQml);
+    button.clicked.connect(onTabletButtonClicked);
+    tablet.screenChanged.connect(onTabletScreenChanged);
+
+    Users.usernameFromIDReply.connect(usernameFromIDReply);
+    Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
+    Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
+    Messages.subscribe(CHANNEL);
+    Messages.messageReceived.connect(receiveMessage);
+    Users.avatarDisconnected.connect(avatarDisconnected);
 }
+
+startup();
 
 var isWired = false;
 var audioTimer;
@@ -521,41 +515,26 @@ function off() {
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         isWired = false;
     }
-    if (audioTimer) { Script.clearInterval(audioTimer); }
+    if (audioTimer) {
+        Script.clearInterval(audioTimer);
+    }
     triggerMapping.disable(); // It's ok if we disable twice.
     triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
 }
-function onClicked() {
-    if (Settings.getValue("HUDUIEnabled")) {
-        if (!pal.visible) {
-            Users.requestsDomainListData = true;
-            populateUserList();
-            pal.raise();
-            isWired = true;
-            Script.update.connect(updateOverlays);
-            Controller.mousePressEvent.connect(handleMouseEvent);
-            Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-            triggerMapping.enable();
-            triggerPressMapping.enable();
-            audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
-        } else {
-            off();
-        }
-        pal.setVisible(!pal.visible);
-    } else {
-        tablet.loadQMLSource("../Pal.qml");
-        Users.requestsDomainListData = true;
-        populateUserList();
-        isWired = true;
-        Script.update.connect(updateOverlays);
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-        audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
-    }
+
+function onTabletButtonClicked() {
+    tablet.loadQMLSource("../Pal.qml");
+    Users.requestsDomainListData = true;
+    populateUserList();
+    isWired = true;
+    Script.update.connect(updateOverlays);
+    Controller.mousePressEvent.connect(handleMouseEvent);
+    Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+    triggerMapping.enable();
+    triggerPressMapping.enable();
+    audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 }
 
 //
@@ -570,17 +549,12 @@ function receiveMessage(channel, messageString, senderID) {
     var message = JSON.parse(messageString);
     switch (message.method) {
     case 'select':
-        if (!pal.visible) {
-            onClicked();
-        }
         sendToQml(message); // Accepts objects, not just strings.
         break;
     default:
         print('Unrecognized PAL message', messageString);
     }
 }
-Messages.subscribe(CHANNEL);
-Messages.messageReceived.connect(receiveMessage);
 
 
 var AVERAGING_RATIO = 0.05;
@@ -638,57 +612,29 @@ function avatarDisconnected(nodeID) {
     // remove from the pal list
     sendToQml({method: 'avatarDisconnected', params: [nodeID]});
 }
-//
-// Button state.
-//
-function onVisibleChanged() {
-    button.editProperties({isActive: pal.visible});
-}
-button.clicked.connect(onClicked);
-pal.visibleChanged.connect(onVisibleChanged);
-pal.closed.connect(off);
-
-if (!Settings.getValue("HUDUIEnabled")) {
-    tablet.screenChanged.connect(function (type, url) {
-        if (type !== "QML" || url !== "../Pal.qml") {
-            off();
-        }
-    });
-}
-
-Users.usernameFromIDReply.connect(usernameFromIDReply);
-Users.avatarDisconnected.connect(avatarDisconnected);
 
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
-    if (pal.visible) {
-        onClicked(); // Close the PAL
-    }
 }
-Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
-Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
+
+function shutdown() {
+    button.clicked.disconnect(onTabletButtonClicked);
+    tablet.removeButton(button);
+    tablet.screenChanged.disconnect(onTabletScreenChanged);
+
+    Users.usernameFromIDReply.disconnect(usernameFromIDReply);
+    Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
+    Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
+    Messages.subscribe(CHANNEL);
+    Messages.messageReceived.disconnect(receiveMessage);
+    Users.avatarDisconnected.disconnect(avatarDisconnected);
+
+    off();
+}
 
 //
 // Cleanup.
 //
-Script.scriptEnding.connect(function () {
-    button.clicked.disconnect(onClicked);
-    if (tablet) {
-        tablet.removeButton(button);
-    }
-    if (toolBar) {
-        toolBar.removeButton(buttonName);
-    }
-    pal.visibleChanged.disconnect(onVisibleChanged);
-    pal.closed.disconnect(off);
-    Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-    Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
-    Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
-    Messages.unsubscribe(CHANNEL);
-    Messages.messageReceived.disconnect(receiveMessage);
-    Users.avatarDisconnected.disconnect(avatarDisconnected);
-    off();
-});
-
+Script.scriptEnding.connect(shutdown);
 
 }()); // END LOCAL_SCOPE

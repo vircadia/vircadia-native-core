@@ -29,6 +29,7 @@ Item {
         id: image
         y: -parent.yOffset;
         width: parent.width
+        source: "../../../icons/tablet-icons/empty-toolbar-button.svg"
     }
 }
 

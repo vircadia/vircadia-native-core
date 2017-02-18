@@ -74,6 +74,8 @@ public:
     void setFlyingAllowed(bool value) { _flyingAllowed = value; }
     bool getGhostingAllowed() const { return _ghostingAllowed; }
     void setGhostingAllowed(bool value) { _ghostingAllowed = value; }
+    QString getFilterURL() const { return _filterURL; }
+    void setFilterURL(const QString url); 
 
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -87,6 +89,7 @@ public:
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     static const bool DEFAULT_FLYING_ALLOWED;
     static const bool DEFAULT_GHOSTING_ALLOWED;
+    static const QString DEFAULT_FILTER_URL;
 
 protected:
     KeyLightPropertyGroup _keyLightProperties;
@@ -101,6 +104,7 @@ protected:
 
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
+    QString _filterURL { DEFAULT_FILTER_URL };
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;
