@@ -6701,6 +6701,12 @@ void Application::updateDisplayMode() {
     }
 
     emit activeDisplayPluginChanged();
+    
+    if (_displayPlugin->isHmd()) {
+        qCDebug(interfaceapp) << "Entering into HMD Mode";
+    } else {
+        qCDebug(interfaceapp) << "Entering into Desktop Mode";
+    }
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
