@@ -9,7 +9,7 @@
     var RELEASE_KEYS = ['w', 'a', 's', 'd', 'UP', 'LEFT', 'DOWN', 'RIGHT'];
     var RELEASE_TIME = 500; // ms
     var RELEASE_DISTANCE = 0.2; // meters
-    var MAX_IK_ERROR = 15;
+    var MAX_IK_ERROR = 20;
     var DESKTOP_UI_CHECK_INTERVAL = 250;
     var DESKTOP_MAX_DISTANCE = 5;
 
@@ -140,8 +140,8 @@
             var properties = Entities.getEntityProperties(this.entityID, ["position"]);
             var avatarDistance = Vec3.distance(MyAvatar.position, properties.position);
             var ikError = MyAvatar.getIKErrorOnLastSolve();
-            print("IK error: " + ikError);
             if (avatarDistance > RELEASE_DISTANCE || ikError > MAX_IK_ERROR) {
+                print("IK error: " + ikError + ", distance from chair: " + avatarDistance);
                 this.sitUp(this.entityID);
             }
         }
