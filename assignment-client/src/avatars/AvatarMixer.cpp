@@ -23,6 +23,7 @@
 #include <QtCore/QThread>
 
 #include <AABox.h>
+#include <AvatarLogging.h>
 #include <LogHandler.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -219,7 +220,7 @@ void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
         nodeData->flagIdentityChange();
         nodeData->setAvatarSessionDisplayNameMustChange(false);
         sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name. Others will find out below.
-        qDebug() << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
+        qCDebug(avatars) << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
     }
 }
 
@@ -345,7 +346,7 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
             bool isRequesting;
             message->readPrimitive(&isRequesting);
             nodeData->setRequestsDomainListData(isRequesting);
-            qDebug() << "node" << nodeData->getNodeID() << "requestsDomainListData" << isRequesting;
+            qCDebug(avatars) << "node" << nodeData->getNodeID() << "requestsDomainListData" << isRequesting;
         }
     }
     auto end = usecTimestampNow();
@@ -596,7 +597,7 @@ void AvatarMixer::sendStatsPacket() {
 }
 
 void AvatarMixer::run() {
-    qDebug() << "Waiting for connection to domain to request settings from domain-server.";
+    qCDebug(avatars) << "Waiting for connection to domain to request settings from domain-server.";
     
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
@@ -656,11 +657,11 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const float DEFAULT_NODE_SEND_BANDWIDTH = 5.0f;
     QJsonValue nodeBandwidthValue = avatarMixerGroupObject[NODE_SEND_BANDWIDTH_KEY];
     if (!nodeBandwidthValue.isDouble()) {
-        qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
+        qCDebug(avatars) << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
     }
 
     _maxKbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH) * KILO_PER_MEGA;
-    qDebug() << "The maximum send bandwidth per node is" << _maxKbpsPerNode << "kbps.";
+    qCDebug(avatars) << "The maximum send bandwidth per node is" << _maxKbpsPerNode << "kbps.";
 
     const QString AUTO_THREADS = "auto_threads";
     bool autoThreads = avatarMixerGroupObject[AUTO_THREADS].toBool();
@@ -669,13 +670,13 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
         const QString NUM_THREADS = "num_threads";
         int numThreads = avatarMixerGroupObject[NUM_THREADS].toString().toInt(&ok);
         if (!ok) {
-            qWarning() << "Avatar mixer: Error reading thread count. Using 1 thread.";
+            qCWarning(avatars) << "Avatar mixer: Error reading thread count. Using 1 thread.";
             numThreads = 1;
         }
-        qDebug() << "Avatar mixer will use specified number of threads:" << numThreads;
+        qCDebug(avatars) << "Avatar mixer will use specified number of threads:" << numThreads;
         _slavePool.setNumThreads(numThreads);
     } else {
-        qDebug() << "Avatar mixer will automatically determine number of threads to use. Using:" << _slavePool.numThreads() << "threads.";
+        qCDebug(avatars) << "Avatar mixer will automatically determine number of threads to use. Using:" << _slavePool.numThreads() << "threads.";
     }
     
     const QString AVATARS_SETTINGS_KEY = "avatars";
@@ -693,7 +694,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
         std::swap(_domainMinimumScale, _domainMaximumScale);
     }
 
-    qDebug() << "This domain requires a minimum avatar scale of" << _domainMinimumScale
-        << "and a maximum avatar scale of" << _domainMaximumScale;
+    qCDebug(avatars) << "This domain requires a minimum avatar scale of" << _domainMinimumScale
+                     << "and a maximum avatar scale of" << _domainMaximumScale;
 
 }

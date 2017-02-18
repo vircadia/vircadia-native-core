@@ -16,6 +16,7 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <AvatarLogging.h>
 #include <LogHandler.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -25,6 +26,7 @@
 #include <SharedUtil.h>
 #include <StDev.h>
 #include <UUID.h>
+
 
 #include "AvatarMixer.h"
 #include "AvatarMixerClientData.h"
@@ -357,20 +359,20 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
                                 static const int MAX_ALLOWED_AVATAR_DATA = (1400 - NUM_BYTES_RFC4122_UUID);
                                 if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                                    qDebug() << "WARNING: otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size() << "... attempt to drop facial data";
+                                    qCWarning(avatars) << "otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size() << "... attempt to drop facial data";
 
                                     dropFaceTracking = true; // first try dropping the facial data
                                     bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
                                         hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
 
                                     if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                                        qDebug() << "WARNING: otherAvatar.toByteArray() without facial data resulted in very large buffer:" << bytes.size() << "... reduce to MinimumData";
+                                        qCWarning(avatars) << "otherAvatar.toByteArray() without facial data resulted in very large buffer:" << bytes.size() << "... reduce to MinimumData";
                                         bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
                                             hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
                                     }
 
                                     if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                                        qDebug() << "WARNING: otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
+                                        qCWarning(avatars) << "otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
                                         includeThisAvatar = false;
                                     }
                                 }
@@ -409,7 +411,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         _stats.numBytesSent += numAvatarDataBytes;
 
         // send the avatar data PacketList
-        //qDebug() << "about to call nodeList->sendPacketList() for node:" << node;
         nodeList->sendPacketList(std::move(avatarPacketList), *node);
 
         // record the bytes sent for other avatar data in the AvatarMixerClientData

@@ -48,9 +48,6 @@ public:
         packetSendingElapsedTime = 0;
         toByteArrayElapsedTime = 0;
         jobElapsedTime = 0;
-
-        //qDebug() << "reset!!! " << "_stats.numBytesSent:" << numBytesSent << "_stats.nodesBroadcastedTo:" << nodesBroadcastedTo;
-
     }
 
     AvatarMixerSlaveStats& operator+=(const AvatarMixerSlaveStats& rhs) {
