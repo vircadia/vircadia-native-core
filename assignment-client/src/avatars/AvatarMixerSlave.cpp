@@ -84,9 +84,15 @@ static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 // to determine whether the extra data should be sent.
 static const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16;
 
-// An 80% chance of sending a identity packet within a 5 second interval.
-// assuming 60 htz update rate.
-const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f; // FIXME... this is wrong for 45hz
+// FIXME - There is some old logic (unchanged as of 2/17/17) that randomly decides to send an identity
+// packet. That logic had the following comment about the constants it uses...
+//
+//         An 80% chance of sending a identity packet within a 5 second interval.
+//         assuming 60 htz update rate.
+//
+// Assuming the calculation of the constant is in fact correct for 80% and 60hz and 5 seconds (an assumption
+// that I have not verified) then the constant is definitely wrong now, since we send at 45hz.
+const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
 
 void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     quint64 start = usecTimestampNow();
