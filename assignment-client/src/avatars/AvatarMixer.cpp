@@ -70,9 +70,6 @@ void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, S
 AvatarMixer::~AvatarMixer() {
 }
 
-// An 80% chance of sending a identity packet within a 5 second interval.
-// assuming 60 htz update rate.
-
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
     QByteArray individualData = nodeData->getAvatar().identityByteArray();
 
