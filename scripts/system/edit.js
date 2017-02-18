@@ -849,7 +849,6 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Parent Entity to Last",
-        shortcutKey: "CTRL+P",
         afterItem: "Entity List...",
         grouping: "Advanced"
     });
@@ -858,7 +857,6 @@ function setupModelMenus() {
         menuName: "Edit",
         menuItemName: "Unparent Entity",
         afterItem: "Entity List...",
-        shortcutKey: "CTRL+SHIFT+P",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -1373,6 +1371,12 @@ var keyReleaseEvent = function (event) {
                 z: 0
             });
             grid.setPosition(newPosition);
+        }
+    } else if (event.text === 'p' && event.isControl && !event.isAutoRepeat ) {
+        if (event.isShifted) {
+            unparentSelectedEntities();
+        } else {
+            parentSelectedEntities();
         }
     }
 };
