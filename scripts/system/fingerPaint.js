@@ -70,7 +70,9 @@
 
         function drawLine(position, width) {
             // Add a stroke to the polyline if stroke is a sufficient length.
-            var localPosition;
+            var localPosition,
+                distanceToPrevious,
+                MAX_DISTANCE_TO_PREVIOUS = 1.0;
 
             if (!isDrawingLine) {
                 print("ERROR: drawLine() called when not drawing line");
@@ -78,8 +80,14 @@
             }
 
             localPosition = Vec3.subtract(position, basePosition);
+            distanceToPrevious = Vec3.distance(localPosition, strokePoints[strokePoints.length - 1]);
 
-            if (Vec3.distance(localPosition, strokePoints[strokePoints.length - 1]) >= MIN_STROKE_LENGTH
+            if (distanceToPrevious > MAX_DISTANCE_TO_PREVIOUS) {
+                // Ignore occasional spurious finger tip positions.
+                return;
+            }
+
+            if (distanceToPrevious >= MIN_STROKE_LENGTH
                     && strokePoints.length < MAX_POINTS_PER_LINE) {
                 strokePoints.push(localPosition);
                 strokeNormals.push(strokeNormal());
