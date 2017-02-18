@@ -35,6 +35,15 @@ void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _end = end;
 }
 
+void AvatarMixerSlave::configureBroadcast(ConstIter begin, ConstIter end, 
+                                p_high_resolution_clock::time_point lastFrameTimestamp,
+                                float maxKbpsPerNode) {
+    _begin = begin;
+    _end = end;
+    _lastFrameTimestamp = lastFrameTimestamp;
+    _maxKbpsPerNode = maxKbpsPerNode;
+}
+
 void AvatarMixerSlave::harvestStats(AvatarMixerSlaveStats& stats) {
     stats = _stats;
     _stats.reset();
@@ -71,8 +80,6 @@ const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f; // FIXME... this is wrong
 void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     quint64 start = usecTimestampNow();
 
-    //qDebug() << __FUNCTION__ << "node:" << node;
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     // setup for distributed random floating point values
@@ -82,13 +89,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
     if (node->getLinkedData() && (node->getType() == NodeType::Agent) && node->getActiveSocket()) {
         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-        //MutexTryLocker lock(nodeData->getMutex());
-
-        // FIXME????
-        //if (!lock.isLocked()) {
-            //qDebug() << __FUNCTION__ << "unable to lock... node:" << node << " would BAIL???... line:" << __LINE__;
-            //return;
-        //}
 
         // FIXME -- mixer data
         // ++_sumListeners;
@@ -143,8 +143,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             // get the current full rate distance so we can work with it
             float currentFullRateDistance = nodeData->getFullRateDistance();
 
-            // FIXME -- mixer data
-            float _maxKbpsPerNode = 5000.0f;
             if (avatarDataRateLastSecond > _maxKbpsPerNode) {
 
                 // is the FRD greater than the farthest avatar?
@@ -176,7 +174,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // this is an AGENT we have received head data from
         // send back a packet with other active node data to this node
         std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
-            //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode;
 
             bool shouldConsider = false;
             quint64 startIgnoreCalculation = usecTimestampNow();
@@ -236,9 +233,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 _stats.ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
             }
 
-            //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << "shouldConsider:" << shouldConsider;
-
-
             if (shouldConsider) {
                 quint64 startAvatarDataPacking = usecTimestampNow();
 
@@ -247,24 +241,19 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
                 // make sure we send out identity packets to and from new arrivals.
-                // FIXME this is where our crash was on friday!!
-                // this is getting called on multiple threads... needs mutex of better solution
                 bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID());
 
+                // FIXME - this clause seems suspicious "... || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp ..."
                 if (otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
                     && (forceSend
-                    //|| otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp  // FIXME - mixer data
+                    || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                     || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
-
-                    // FIXME --- used to be.../ mixer data dependency
-                    //sendIdentityPacket(otherNodeData, node);
 
                     QByteArray individualData = otherNodeData->getConstAvatarData()->identityByteArray();
                     auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
                     individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNodeData->getNodeID().toRfc4122());
                     identityPacket->write(individualData);
                     DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *node);
-                    //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << " sending itentity packet for otherNode to node...";
                 }
 
                 const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
@@ -285,7 +274,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
                     quint64 endAvatarDataPacking = usecTimestampNow();
                     _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                    //qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
                     shouldConsider = false;
                 }
 
@@ -308,7 +296,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
                         quint64 endAvatarDataPacking = usecTimestampNow();
                         _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                        //qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
                         shouldConsider = false;
                     } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                         // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
@@ -334,7 +321,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                             quint64 endAvatarDataPacking = usecTimestampNow();
 
                             _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                            //qDebug() << __FUNCTION__ << "inner loop, node:" << node->getUUID() << "otherNode:" << otherNode->getUUID() << " BAILING... line:" << __LINE__;
                             shouldConsider = false;
                         }
 

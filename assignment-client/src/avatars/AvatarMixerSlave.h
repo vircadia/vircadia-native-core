@@ -62,6 +62,7 @@ public:
     using ConstIter = NodeList::const_iterator;
 
     void configure(ConstIter begin, ConstIter end);
+    void configureBroadcast(ConstIter begin, ConstIter end, p_high_resolution_clock::time_point lastFrameTimestamp, float maxKbpsPerNode);
 
     void processIncomingPackets(const SharedNodePointer& node);
     void broadcastAvatarData(const SharedNodePointer& node);
@@ -72,6 +73,9 @@ private:
     // frame state
     ConstIter _begin;
     ConstIter _end;
+
+    p_high_resolution_clock::time_point _lastFrameTimestamp;
+    float _maxKbpsPerNode { 0.0f };
 
     AvatarMixerSlaveStats _stats;
 };

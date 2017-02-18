@@ -65,7 +65,8 @@ public:
 
     // Jobs the slave pool can do...
     void processIncomingPackets(ConstIter begin, ConstIter end);
-    void broadcastAvatarData(ConstIter begin, ConstIter end);
+    void broadcastAvatarData(ConstIter begin, ConstIter end, 
+                p_high_resolution_clock::time_point lastFrameTimestamp, float maxKbpsPerNode);
 
     // iterate over all slaves
     void each(std::function<void(AvatarMixerSlave& slave)> functor);

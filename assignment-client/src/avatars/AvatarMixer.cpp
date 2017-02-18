@@ -120,20 +120,25 @@ void AvatarMixer::start() {
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // DO THIS FIRST!!!!!!!!
+        // WORK ITEMS...
         //
         // DONE --- 1) only sleep for remainder
         // DONE --- 2) clean up stats, add slave stats
         // DONE --- 3) out of view??? is it broken? - verified - it's working
-        // 4) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
         // DONE --- 4a) hack to not send face data mostly seems to work...
+        // DONE --- 5) fix two different versions of toByteArray()
+        // DONE --- 7) audit the locking and side-effects to node, otherNode, and nodeData
+        // DONE --- 8) delete dead code from mixer (now that it's in slave)
+        // DONE --- 10) FIXME on sending identity packets
+        // DONE --- 12) FIXME _maxKbpsPerNode
+        // DONE --- 11) FIXME ++_sumListeners;
+        //
+        // 4) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
         // 4b) some kind of a better approach to handling otherAvatar.toByteArray() for content that is larger than MTU
-        // 5) fix two different versions of toByteArray()
-        // 6) throttling??
-        // 7) audit the locking and side-effects to node, otherNode, and nodeData
-        // 8) delete dead code from mixer (now that it's in slave)
+        // 6) CPU throttling??
         // 9) better stats in the nodes:
         //    how many avatars are actually "in view" for the avtar in question (even if they are over bandwidth budget)
+        // 13) FIXME -- otherNodeData->incrementNumOutOfOrderSends();
         //    
         //
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,8 +162,6 @@ void AvatarMixer::start() {
             }, &lockWait, &nodeTransform, &functor);
             auto end = usecTimestampNow();
             _processQueuedAvatarDataPacketsElapsedTime += (end - start);
-
-            //qDebug() << "PROCESS PACKETS...  " << "lockWait:" << lockWait << "nodeTransform:" << nodeTransform << "functor:" << functor;
         }
 
         // process pending display names... this doesn't currently run on multiple threads, because it
@@ -168,23 +171,19 @@ void AvatarMixer::start() {
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
                     manageDisplayName(node);
+                    ++_sumListeners;
                 });
             }, &lockWait, &nodeTransform, &functor);
             auto end = usecTimestampNow();
             _displayNameManagementElapsedTime += (end - start);
-
-            //qDebug() << "PROCESS PACKETS...  " << "lockWait:" << lockWait << "nodeTransform:" << nodeTransform << "functor:" << functor;
         }
 
         // this is where we need to put the real work...
         {
-            // for now, call the single threaded version
-            //broadcastAvatarData();
-
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 auto start = usecTimestampNow();
-                _slavePool.broadcastAvatarData(cbegin, cend);
+                _slavePool.broadcastAvatarData(cbegin, cend, _lastFrameTimestamp, _maxKbpsPerNode);
                 auto end = usecTimestampNow();
                 _broadcastAvatarDataInner += (end - start);
             }, &lockWait, &nodeTransform, &functor);
@@ -210,6 +209,9 @@ void AvatarMixer::start() {
             auto end = usecTimestampNow();
             _processEventsElapsedTime += (end - start);
         }
+
+        _lastFrameTimestamp = frameTimestamp;
+
     }
 }
 
@@ -461,7 +463,6 @@ void AvatarMixer::sendStatsPacket() {
 
     QJsonObject statsObject;
 
-    //statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
     //statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
 
     statsObject["broadcast_loop_rate"] = _loopRate.rate();
@@ -475,6 +476,8 @@ void AvatarMixer::sendStatsPacket() {
     int tenTimesPerFrame = tightLoopFrames * 10;
     #define TIGHT_LOOP_STAT(x) (x > tenTimesPerFrame) ? x / tightLoopFrames : ((float)x / (float)tightLoopFrames);
     #define TIGHT_LOOP_STAT_UINT64(x) (x > (quint64)tenTimesPerFrame) ? x / tightLoopFrames : ((float)x / (float)tightLoopFrames);
+
+    statsObject["average_listeners_last_second"] = TIGHT_LOOP_STAT(_sumListeners);
 
     QJsonObject singleCoreTasks;
     singleCoreTasks["processEvents"] = TIGHT_LOOP_STAT_UINT64(_processEventsElapsedTime);
