@@ -125,12 +125,18 @@ void AvatarMixer::start() {
         //
         // DONE --- 1) only sleep for remainder
         // DONE --- 2) clean up stats, add slave stats
-        // 3a) out of view??? is it broken?
-        // 3) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
-        // 4) fix two different versions of toByteArray()
-        // 5) throttling??
-        // 6) audit the locking and side-effects to node, otherNode, and nodeData
-        // 7) delete dead code from mixer (now that it's in slave)
+        // DONE --- 3) out of view??? is it broken? - verified - it's working
+        // 4) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
+        // DONE --- 4a) hack to not send face data mostly seems to work...
+        // 4b) some kind of a better approach to handling otherAvatar.toByteArray() for content that is larger than MTU
+        // 5) fix two different versions of toByteArray()
+        // 6) throttling??
+        // 7) audit the locking and side-effects to node, otherNode, and nodeData
+        // 8) delete dead code from mixer (now that it's in slave)
+        // 9) better stats in the nodes:
+        //    how many avatars are actually "in view" for the avtar in question (even if they are over bandwidth budget)
+        //    
+        //
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

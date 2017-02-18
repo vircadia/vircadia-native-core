@@ -546,7 +546,7 @@ void Agent::processAgentAvatar() {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
         AvatarData::AvatarDataDetail dataDetail = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? AvatarData::SendAllData : AvatarData::CullSmallData;
-        QByteArray avatarByteArray = scriptedAvatar->toByteArray(dataDetail, 0, scriptedAvatar->getLastSentJointData());
+        QByteArray avatarByteArray = scriptedAvatar->toByteArray(dataDetail);
         scriptedAvatar->doneEncoding(true);
 
         static AvatarDataSequenceNumber sequenceNumber = 0;

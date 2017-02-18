@@ -245,17 +245,12 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
                 ++numOtherAvatars;
 
-                AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                //MutexTryLocker lock(otherNodeData->getMutex());
-
-                // FIXME -- might want to track this lock failed...
-                //if (!lock.isLocked()) {
-                    //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << " failed to lock... would BAIL??... line:" << __LINE__;
-                    //return;
-                //}
+                const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
                 // make sure we send out identity packets to and from new arrivals.
-                bool forceSend = !otherNodeData->checkAndSetHasReceivedFirstPacketsFrom(node->getUUID());
+                // FIXME this is where our crash was on friday!!
+                // this is getting called on multiple threads... needs mutex of better solution
+                bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID());
 
                 if (otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
                     && (forceSend
@@ -265,7 +260,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     // FIXME --- used to be.../ mixer data dependency
                     //sendIdentityPacket(otherNodeData, node);
 
-                    QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
+                    QByteArray individualData = otherNodeData->getConstAvatarData()->identityByteArray();
                     auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
                     individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNodeData->getNodeID().toRfc4122());
                     identityPacket->write(individualData);
@@ -273,12 +268,12 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     //qDebug() << __FUNCTION__ << "inner loop, node:" << node << "otherNode:" << otherNode << " sending itentity packet for otherNode to node...";
                 }
 
-                const AvatarData& otherAvatar = otherNodeData->getAvatar();
+                const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
                 //  Decide whether to send this avatar's data based on it's distance from us
 
                 //  The full rate distance is the distance at which EVERY update will be sent for this avatar
                 //  at twice the full rate distance, there will be a 50% chance of sending this avatar's update
-                glm::vec3 otherPosition = otherAvatar.getClientGlobalPosition();
+                glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
                 float distanceToAvatar = glm::length(myPosition - otherPosition);
 
                 // potentially update the max full rate distance for this frame
@@ -299,10 +294,13 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
+                    /***
+                    // FIXME this does not belong here... it should be in the packet processing
                     if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
                         // we got out out of order packets from the sender, track it
                         otherNodeData->incrementNumOutOfOrderSends();
                     }
+                    ***/
 
                     // make sure we haven't already sent this data from this sender to this receiver
                     // or that somehow we haven't sent
@@ -365,7 +363,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                                 bool dropFaceTracking = true; // this is a hack for now... always drop face tracking
 
                                 quint64 start = usecTimestampNow();
-                                QByteArray bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, 
+                                QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, 
                                                                 hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
                                 quint64 end = usecTimestampNow();
                                 _stats.toByteArrayElapsedTime += (end - start);

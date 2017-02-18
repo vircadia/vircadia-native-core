@@ -288,6 +288,23 @@ class AttachmentData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
 
+class AvatarDataRate {
+public:
+    RateCounter<> globalPositionRate;
+    RateCounter<> localPositionRate;
+    RateCounter<> avatarBoundingBoxRate;
+    RateCounter<> avatarOrientationRate;
+    RateCounter<> avatarScaleRate;
+    RateCounter<> lookAtPositionRate;
+    RateCounter<> audioLoudnessRate;
+    RateCounter<> sensorToWorldRate;
+    RateCounter<> additionalFlagsRate;
+    RateCounter<> parentInfoRate;
+    RateCounter<> faceTrackerRate;
+    RateCounter<> jointDataRate;
+};
+
+
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
@@ -351,12 +368,12 @@ public:
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                        bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr);
+    virtual QByteArray toByteArray(AvatarDataDetail dataDetail);
 
     // FIXME
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) const;
+        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition, 
+        QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut = nullptr) const;
 
     virtual void doneEncoding(bool cullSmallChanges);
 
@@ -497,7 +514,7 @@ public:
     // displayNameChanged returns true if displayName has changed, false otherwise.
     void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
 
-    QByteArray identityByteArray();
+    QByteArray identityByteArray() const;
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
@@ -626,7 +643,7 @@ protected:
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
-    const QUrl& cannonicalSkeletonModelURL(const QUrl& empty);
+    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
@@ -697,18 +714,7 @@ protected:
     RateCounter<> _jointDataUpdateRate;
 
     // Some rate data for outgoing data
-    RateCounter<> _globalPositionRateOutbound;
-    RateCounter<> _localPositionRateOutbound;
-    RateCounter<> _avatarBoundingBoxRateOutbound;
-    RateCounter<> _avatarOrientationRateOutbound;
-    RateCounter<> _avatarScaleRateOutbound;
-    RateCounter<> _lookAtPositionRateOutbound;
-    RateCounter<> _audioLoudnessRateOutbound;
-    RateCounter<> _sensorToWorldRateOutbound;
-    RateCounter<> _additionalFlagsRateOutbound;
-    RateCounter<> _parentInfoRateOutbound;
-    RateCounter<> _faceTrackerRateOutbound;
-    RateCounter<> _jointDataRateOutbound;
+    AvatarDataRate _outboundDataRate;
 
     glm::vec3 _globalBoundingBoxDimensions;
     glm::vec3 _globalBoundingBoxOffset;
