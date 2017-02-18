@@ -53,9 +53,8 @@ private slots:
 private:
     AvatarMixerClientData* getOrCreateClientData(SharedNodePointer node);
     std::chrono::microseconds timeFrame(p_high_resolution_clock::time_point& timestamp);
+    void throttle(std::chrono::microseconds duration, int frame);
 
-
-    void broadcastAvatarData();
     void parseDomainServerSettings(const QJsonObject& domainSettings);
     void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
@@ -63,8 +62,10 @@ private:
 
     p_high_resolution_clock::time_point _lastFrameTimestamp;
 
-    float _trailingSleepRatio { 1.0f };
-    float _performanceThrottlingRatio { 0.0f };
+    // FIXME - new throttling - use these values somehow
+    float _trailingMixRatio { 0.0f };
+    float _throttlingRatio { 0.0f };
+
 
     int _sumListeners { 0 };
     int _numStatFrames { 0 };

@@ -111,43 +111,43 @@ void AvatarMixer::start() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
+    unsigned int frame = 1;
     auto frameTimestamp = p_high_resolution_clock::now();
 
     while (!_isFinished) {
-        _numTightLoopFrames++;
-        _loopRate.increment();
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // WORK ITEMS...
         //
-        // DONE --- 1) only sleep for remainder
-        // DONE --- 2) clean up stats, add slave stats
-        // DONE --- 3) out of view??? is it broken? - verified - it's working
-        // DONE --- 4a) hack to not send face data mostly seems to work...
-        // DONE --- 5) fix two different versions of toByteArray()
-        // DONE --- 7) audit the locking and side-effects to node, otherNode, and nodeData
-        // DONE --- 8) delete dead code from mixer (now that it's in slave)
-        // DONE --- 10) FIXME on sending identity packets
-        // DONE --- 12) FIXME _maxKbpsPerNode
-        // DONE --- 11) FIXME ++_sumListeners;
-        // DONE --- 14) fix toByteArray() virtual hiding!!! 
+        // DONE --- only sleep for remainder
+        // DONE --- clean up stats, add slave stats
+        // DONE --- out of view??? is it broken? - verified - it's working
+        // DONE --- hack to not send face data mostly seems to work...
+        // DONE --- fix two different versions of toByteArray()
+        // DONE --- audit the locking and side-effects to node, otherNode, and nodeData
+        // DONE --- delete dead code from mixer (now that it's in slave)
+        // DONE --- FIXME on sending identity packets
+        // DONE --- FIXME _maxKbpsPerNode
+        // DONE --- FIXME ++_sumListeners;
+        // DONE --- fix toByteArray() virtual hiding!!! 
         //
-        // 4) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
-        // 4b) some kind of a better approach to handling otherAvatar.toByteArray() for content that is larger than MTU
-        // 6) CPU throttling??
-        // 9) better stats in the nodes:
+        // 1) CPU throttling - now we're calculating it (like audio mixer, how to use it???)
+        //
+        // 2) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
+        // 2b) some kind of a better approach to handling otherAvatar.toByteArray() for content that is larger than MTU
+        // 3) better stats in the nodes:
         //    how many avatars are actually "in view" for the avtar in question (even if they are over bandwidth budget)
-        // 13) FIXME -- otherNodeData->incrementNumOutOfOrderSends();
-        //    
+        // 4) FIXME -- otherNodeData->incrementNumOutOfOrderSends();
+        // 5) average_identity_packets_per_frame???
         //
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // calculates last frame duration and sleeps for the remainder of the target amount
         auto frameDuration = timeFrame(frameTimestamp);
-        Q_UNUSED(frameDuration);
+        throttle(frameDuration, frame);
 
         int lockWait, nodeTransform, functor;
 
@@ -196,6 +196,9 @@ void AvatarMixer::start() {
             _broadcastAvatarDataNodeFunctor += functor;
         }
 
+        ++frame;
+        ++_numTightLoopFrames;
+        _loopRate.increment();
 
         // play nice with qt event-looping
         {
@@ -251,81 +254,52 @@ void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
     }
 }
 
-// FIXME -- this is dead code... it needs to be removed... 
-// this "throttle" logic is the old approach. need to consider some
-// reasonable throttle approach in new multi-core design
-void AvatarMixer::broadcastAvatarData() {
-    int idleTime = AVATAR_DATA_SEND_INTERVAL_MSECS;
+void AvatarMixer::throttle(std::chrono::microseconds duration, int frame) {
+    // throttle using a modified proportional-integral controller
+    const float FRAME_TIME = USECS_PER_SECOND / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
+    float mixRatio = duration.count() / FRAME_TIME;
 
-    if (_lastFrameTimestamp.time_since_epoch().count() > 0) {
-        auto idleDuration = p_high_resolution_clock::now() - _lastFrameTimestamp;
-        idleTime = std::chrono::duration_cast<std::chrono::microseconds>(idleDuration).count();
-    }
+    // constants are determined based on a "regular" 16-CPU EC2 server
 
-    const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
-    const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+    // target different mix and backoff ratios (they also have different backoff rates)
+    // this is to prevent oscillation, and encourage throttling to find a steady state
+    const float TARGET = 0.9f;
+    // on a "regular" machine with 100 avatars, this is the largest value where
+    // - overthrottling can be recovered
+    // - oscillations will not occur after the recovery
+    const float BACKOFF_TARGET = 0.44f;
 
-    const float RATIO_BACK_OFF = 0.02f;
+    // the mixer is known to struggle at about 80 on a "regular" machine
+    // so throttle 2/80 the streams to ensure smooth audio (throttling is linear)
+    const float THROTTLE_RATE = 2 / 80.0f;
+    const float BACKOFF_RATE = THROTTLE_RATE / 4;
 
-    const int TRAILING_AVERAGE_FRAMES = 100;
-    int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
+    // recovery should be bounded so that large changes in user count is a tolerable experience
+    // throttling is linear, so most cases will not need a full recovery
+    const int RECOVERY_TIME = 180;
 
-    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    // weight more recent frames to determine if throttling is necessary,
+    const int TRAILING_FRAMES = (int)(100 * RECOVERY_TIME * BACKOFF_RATE);
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    _trailingMixRatio = PREVIOUS_FRAMES_RATIO * _trailingMixRatio + CURRENT_FRAME_RATIO * mixRatio;
 
-    // NOTE: The following code calculates the _performanceThrottlingRatio based on how much the avatar-mixer was
-    // able to sleep. This will eventually be used to ask for an additional avatar-mixer to help out. Currently the value
-    // is unused as it is assumed this should not be hit before the avatar-mixer hits the desired bandwidth limit per client.
-    // It is reported in the domain-server stats for the avatar-mixer.
-
-    _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-        + (idleTime * CURRENT_FRAME_RATIO / (float) AVATAR_DATA_SEND_INTERVAL_MSECS);
-
-    float lastCutoffRatio = _performanceThrottlingRatio;
-    bool hasRatioChanged = false;
-
-    if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-        if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-            // we're struggling - change our performance throttling ratio
-            _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
-
-            qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-            hasRatioChanged = true;
-        } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-            // we've recovered and can back off the performance throttling
-            _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
-
-            if (_performanceThrottlingRatio < 0) {
-                _performanceThrottlingRatio = 0;
-            }
-
-            qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-            hasRatioChanged = true;
+    if (frame % TRAILING_FRAMES == 0) {
+        if (_trailingMixRatio > TARGET) {
+            int proportionalTerm = 1 + (_trailingMixRatio - TARGET) / 0.1f;
+            _throttlingRatio += THROTTLE_RATE * proportionalTerm;
+            _throttlingRatio = std::min(_throttlingRatio, 1.0f);
+            qDebug("avatar-mixer is struggling (%f mix/sleep) - throttling %f of streams",
+                (double)_trailingMixRatio, (double)_throttlingRatio);
         }
-
-        if (hasRatioChanged) {
-            framesSinceCutoffEvent = 0;
+        else if (_throttlingRatio > 0.0f && _trailingMixRatio <= BACKOFF_TARGET) {
+            int proportionalTerm = 1 + (TARGET - _trailingMixRatio) / 0.2f;
+            _throttlingRatio -= BACKOFF_RATE * proportionalTerm;
+            _throttlingRatio = std::max(_throttlingRatio, 0.0f);
+            qDebug("avatar-mixer is recovering (%f mix/sleep) - throttling %f of streams",
+                (double)_trailingMixRatio, (double)_throttlingRatio);
         }
     }
-
-    if (!hasRatioChanged) {
-        ++framesSinceCutoffEvent;
-    }
-
-    _lastFrameTimestamp = p_high_resolution_clock::now();
-
-#ifdef WANT_DEBUG
-    auto sinceLastDebug = p_high_resolution_clock::now() - _lastDebugMessage;
-    auto sinceLastDebugUsecs = std::chrono::duration_cast<std::chrono::microseconds>(sinceLastDebug).count();
-    quint64 DEBUG_INTERVAL = USECS_PER_SECOND * 5;
-
-    if (sinceLastDebugUsecs > DEBUG_INTERVAL) {
-        qDebug() << "broadcast rate:" << _broadcastRate.rate() << "hz";
-        _lastDebugMessage = p_high_resolution_clock::now();
-    }
-#endif
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -469,8 +443,8 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["broadcast_loop_rate"] = _loopRate.rate();
 
     statsObject["threads"] = _slavePool.numThreads();
-    statsObject["throttling_1_trailing_sleep_percentage"] = _trailingSleepRatio * 100;
-    statsObject["throttling_2_performance_ratio"] = _performanceThrottlingRatio;
+    statsObject["trailing_mix_ratio"] = _trailingMixRatio;
+    statsObject["throttling_ratio"] = _throttlingRatio;
 
     // this things all occur on the frequency of the tight loop
     int tightLoopFrames = _numTightLoopFrames;
