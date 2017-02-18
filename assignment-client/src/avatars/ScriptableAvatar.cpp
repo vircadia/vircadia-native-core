@@ -14,9 +14,9 @@
 #include <GLMHelpers.h>
 #include "ScriptableAvatar.h"
 
-QByteArray ScriptableAvatar::toByteArray(AvatarDataDetail dataDetail) {
+QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
     _globalPosition = getPosition();
-    return AvatarData::toByteArray(dataDetail);
+    return AvatarData::toByteArrayStateful(dataDetail);
 }
 
 

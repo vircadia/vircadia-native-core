@@ -132,6 +132,7 @@ void AvatarMixer::start() {
         // DONE --- 10) FIXME on sending identity packets
         // DONE --- 12) FIXME _maxKbpsPerNode
         // DONE --- 11) FIXME ++_sumListeners;
+        // DONE --- 14) fix toByteArray() virtual hiding!!! 
         //
         // 4) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
         // 4b) some kind of a better approach to handling otherAvatar.toByteArray() for content that is larger than MTU
