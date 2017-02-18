@@ -1680,6 +1680,7 @@ function MyController(hand) {
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
                 if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
                     this.grabbedEntity = entity;
+                    this.grabbedDistance = rayPickInfo.distance;
                     this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     return;
                 } else {
@@ -2006,7 +2007,7 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.currentCameraOrientation = Camera.orientation;
 
-        this.grabRadius = Vec3.distance(this.currentObjectPosition, worldControllerPosition);
+        this.grabRadius = this.grabbedDistance;
         this.grabRadialVelocity = 0.0;
 
         // offset between controller vector at the grab radius and the entity position
