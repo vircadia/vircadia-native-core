@@ -20,7 +20,8 @@
         CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint",
         isTabletDisplayed = false,
         HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index",
-        HIFI_GRAB_DISABLE_MESSAGE_CHANNEL = "Hifi-Grab-Disable";
+        HIFI_GRAB_DISABLE_MESSAGE_CHANNEL = "Hifi-Grab-Disable",
+        HIFI_POINTER_DISABLE_MESSAGE_CHANNEL = "Hifi-Pointer-Disable";
 
     function paintBrush(name) {
         // Paints in 3D.
@@ -318,6 +319,9 @@
             nearGrabEnabled: enabled,
             farGrabEnabled: enabled
         }));
+        Messages.sendMessage(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL, JSON.stringify({
+            pointerEnabled: enabled
+        }));
         Messages.sendMessage(HIFI_POINT_INDEX_MESSAGE_CHANNEL, JSON.stringify({
             pointIndex: !enabled
         }));
@@ -386,6 +390,7 @@
         // Messages channels for enabling/disabling other scripts' functions.
         Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
         Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+        Messages.subscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
     }
 
     function tearDown() {
@@ -418,6 +423,7 @@
 
         Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
         Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+        Messages.unssubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
     }
 
     setUp();
