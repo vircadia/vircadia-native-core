@@ -33,8 +33,10 @@
             strokePoints,
             strokeNormals,
             strokeWidths,
-            MIN_STROKE_LENGTH = 0.02,
-            MAX_POINTS_PER_LINE = 100;
+            timeOfLastPoint,
+            MIN_STROKE_LENGTH = 0.005,  // m
+            MIN_STROKE_INTERVAL = 66,  // ms
+            MAX_POINTS_PER_LINE = 70;  // Hard-coded limit in PolyLineEntityItem.h.
 
         function strokeNormal() {
             return Vec3.multiplyQbyV(Camera.getOrientation(), Vec3.UNIT_NEG_Z);
@@ -53,6 +55,7 @@
             strokePoints = [Vec3.ZERO];
             strokeNormals = [strokeNormal()];
             strokeWidths = [width];
+            timeOfLastPoint = Date.now();
 
             entityID = Entities.addEntity({
                 type: "PolyLine",
@@ -88,10 +91,12 @@
             }
 
             if (distanceToPrevious >= MIN_STROKE_LENGTH
+                    && (Date.now() - timeOfLastPoint) >= MIN_STROKE_INTERVAL
                     && strokePoints.length < MAX_POINTS_PER_LINE) {
                 strokePoints.push(localPosition);
                 strokeNormals.push(strokeNormal());
                 strokeWidths.push(width);
+                timeOfLastPoint = Date.now();
 
                 Entities.editEntity(entityID, {
                     linePoints: strokePoints,
