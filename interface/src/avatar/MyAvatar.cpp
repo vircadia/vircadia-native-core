@@ -2481,21 +2481,21 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
         qWarning() << "Pinning is only supported for the hips joint at the moment.";
         return false;
     }
+    qApp->getActiveDisplayPlugin()->resetSensors();
 
     auto jointTranslation = getAbsoluteJointTranslationInObjectFrame(index);
     auto jointRotation = getAbsoluteJointRotationInObjectFrame(index);
 
-    Transform final(orientation, Vectors::ONE, position);
-    Transform joint(jointRotation, Vectors::ONE, jointTranslation);
+    auto targetOrientation = orientation * glm::conjugate(glm::normalize(jointRotation));
+    auto targetPosition = position - orientation * jointTranslation;
 
-    Transform avatarTransform(final.getMatrix() * joint.getInverseMatrix());
-    setPosition(avatarTransform.getTranslation());
-    setOrientation(avatarTransform.getRotation());
+    setPosition(targetPosition);
+    setOrientation(targetOrientation);
 
     _rig->setMaxHipsOffsetLength(0.0f);
 
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
-    if (it != _pinnedJoints.end()) {
+    if (it == _pinnedJoints.end()) {
         _pinnedJoints.push_back(index);
     }
 
