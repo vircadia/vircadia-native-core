@@ -26,9 +26,9 @@ var TARGET_MODEL_DIMENSIONS = {
 };
 
 var COLORS_TELEPORT_SEAT = {
-    red: 0,
+    red: 255,
     green: 0,
-    blue: 255
+    blue: 170
 }
 
 var COLORS_TELEPORT_CAN_TELEPORT = {
