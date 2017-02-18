@@ -104,6 +104,7 @@ private:
     quint64 _processEventsElapsedTime { 0 };
     quint64 _sendStatsElapsedTime { 0 };
     quint64 _queueIncomingPacketElapsedTime { 0 };
+    quint64 _lastStatsTime { usecTimestampNow() };
 
     RateCounter<> _loopRate; // this is the rate that the main thread tight loop runs
 

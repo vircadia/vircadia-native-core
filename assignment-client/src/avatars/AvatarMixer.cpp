@@ -9,6 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// WORK ITEMS...
+//
+// 1) FIXME in AvatarMixerSlave.cpp -- otherNodeData->incrementNumOutOfOrderSends();
+//    This code appears to be determining if a node sent out of order packets, that logic should not be in
+//    the broadcast method, but would make more sense in the incoming packet processing section
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <cfloat>
 #include <random>
 #include <memory>
@@ -116,38 +125,8 @@ void AvatarMixer::start() {
 
     while (!_isFinished) {
 
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // WORK ITEMS...
-        //
-        // DONE --- only sleep for remainder
-        // DONE --- clean up stats, add slave stats
-        // DONE --- out of view??? is it broken? - verified - it's working
-        // DONE --- hack to not send face data mostly seems to work...
-        // DONE --- fix two different versions of toByteArray()
-        // DONE --- audit the locking and side-effects to node, otherNode, and nodeData
-        // DONE --- delete dead code from mixer (now that it's in slave)
-        // DONE --- FIXME on sending identity packets
-        // DONE --- FIXME _maxKbpsPerNode
-        // DONE --- FIXME ++_sumListeners;
-        // DONE --- fix toByteArray() virtual hiding!!! 
-        //
-        // 1) CPU throttling - now we're calculating it (like audio mixer, how to use it???)
-        //
-        // 2) Error in PacketList::writeData - attempted to write a segment to an unordered packet that is larger than the payload size.
-        // 2b) some kind of a better approach to handling otherAvatar.toByteArray() for content that is larger than MTU
-        // 3) better stats in the nodes:
-        //    how many avatars are actually "in view" for the avtar in question (even if they are over bandwidth budget)
-        // 4) FIXME -- otherNodeData->incrementNumOutOfOrderSends();
-        // 5) average_identity_packets_per_frame???
-        //
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        // calculates last frame duration and sleeps for the remainder of the target amount
-        auto frameDuration = timeFrame(frameTimestamp);
-        throttle(frameDuration, frame);
+        auto frameDuration = timeFrame(frameTimestamp); // calculates last frame duration and sleeps remainder of target amount
+        throttle(frameDuration, frame); // determines _throttlingRatio for upcoming mix frame
 
         int lockWait, nodeTransform, functor;
 
@@ -184,7 +163,7 @@ void AvatarMixer::start() {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 auto start = usecTimestampNow();
-                _slavePool.broadcastAvatarData(cbegin, cend, _lastFrameTimestamp, _maxKbpsPerNode);
+                _slavePool.broadcastAvatarData(cbegin, cend, _lastFrameTimestamp, _maxKbpsPerNode, _throttlingRatio);
                 auto end = usecTimestampNow();
                 _broadcastAvatarDataInner += (end - start);
             }, &lockWait, &nodeTransform, &functor);
@@ -497,15 +476,28 @@ void AvatarMixer::sendStatsPacket() {
 
     AvatarMixerSlaveStats aggregateStats;
     QJsonObject slavesObject;
+
+    float secondsSinceLastStats = (float)(start - _lastStatsTime) / (float)USECS_PER_SECOND;
     // gather stats
     int slaveNumber = 1;
     _slavePool.each([&](AvatarMixerSlave& slave) {
         QJsonObject slaveObject;
         AvatarMixerSlaveStats stats;
         slave.harvestStats(stats);
-        slaveObject["nodesProcessed"] = TIGHT_LOOP_STAT(stats.nodesProcessed);
-        slaveObject["numPacketsReceived"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
-        slaveObject["numPacketsSent"] = TIGHT_LOOP_STAT(stats.numPacketsSent);
+        slaveObject["recevied_1_nodesProcessed"] = TIGHT_LOOP_STAT(stats.nodesProcessed);
+        slaveObject["received_2_numPacketsReceived"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
+
+        slaveObject["sent_1_nodesBroadcastedTo"] = TIGHT_LOOP_STAT(stats.nodesBroadcastedTo);
+        slaveObject["sent_2_numBytesSent"] = TIGHT_LOOP_STAT(stats.numBytesSent);
+        slaveObject["sent_3_numPacketsSent"] = TIGHT_LOOP_STAT(stats.numPacketsSent);
+        slaveObject["sent_4_numIdentityPackets"] = TIGHT_LOOP_STAT(stats.numIdentityPackets);
+
+        float averageNodes = ((float)stats.nodesBroadcastedTo / (float)tightLoopFrames);
+        float averageOutboundAvatarKbps = averageNodes ? ((stats.numBytesSent / secondsSinceLastStats) / BYTES_PER_KILOBIT) / averageNodes : 0.0f;
+        slaveObject["sent_5_averageOutboundAvatarKbps"] = averageOutboundAvatarKbps;
+
+        float averageOthersIncluded = averageNodes ? stats.numOthersIncluded / averageNodes : 0.0f;
+        slaveObject["sent_6_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
 
         slaveObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(stats.processIncomingPacketsElapsedTime);
         slaveObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(stats.ignoreCalculationElapsedTime);
@@ -522,10 +514,21 @@ void AvatarMixer::sendStatsPacket() {
 
     QJsonObject slavesAggregatObject;
 
-    slavesAggregatObject["nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
-    slavesAggregatObject["numPacketsReceived"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
-    slavesAggregatObject["numPacketsSent"] = TIGHT_LOOP_STAT(aggregateStats.numPacketsSent);
+    slavesAggregatObject["recevied_1_nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
+    slavesAggregatObject["received_2_numPacketsReceived"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
 
+    slavesAggregatObject["sent_1_nodesBroadcastedTo"] = TIGHT_LOOP_STAT(aggregateStats.nodesBroadcastedTo);
+    slavesAggregatObject["sent_2_numBytesSent"] = TIGHT_LOOP_STAT(aggregateStats.numBytesSent);
+    slavesAggregatObject["sent_3_numPacketsSent"] = TIGHT_LOOP_STAT(aggregateStats.numPacketsSent);
+    slavesAggregatObject["sent_4_numIdentityPackets"] = TIGHT_LOOP_STAT(aggregateStats.numIdentityPackets);
+
+    float averageNodes = ((float)aggregateStats.nodesBroadcastedTo / (float)tightLoopFrames);
+    float averageOutboundAvatarKbps = averageNodes ? ((aggregateStats.numBytesSent / secondsSinceLastStats) / BYTES_PER_KILOBIT) / averageNodes : 0.0f;
+    slavesAggregatObject["sent_5_averageOutboundAvatarKbps"] = averageOutboundAvatarKbps;
+
+    float averageOthersIncluded = averageNodes ? aggregateStats.numOthersIncluded / averageNodes : 0.0f;
+    slavesAggregatObject["sent_6_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
+    
     slavesAggregatObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.processIncomingPacketsElapsedTime);
     slavesAggregatObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.ignoreCalculationElapsedTime);
     slavesAggregatObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.toByteArrayElapsedTime);
@@ -599,6 +602,8 @@ void AvatarMixer::sendStatsPacket() {
 
     auto end = usecTimestampNow();
     _sendStatsElapsedTime = (end - start);
+
+    _lastStatsTime = start;
 
 }
 

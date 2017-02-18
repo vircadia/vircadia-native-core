@@ -10,6 +10,7 @@
 //
 
 #include <algorithm>
+#include <random>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -37,11 +38,12 @@ void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
 
 void AvatarMixerSlave::configureBroadcast(ConstIter begin, ConstIter end, 
                                 p_high_resolution_clock::time_point lastFrameTimestamp,
-                                float maxKbpsPerNode) {
+                                float maxKbpsPerNode, float throttlingRatio) {
     _begin = begin;
     _end = end;
     _lastFrameTimestamp = lastFrameTimestamp;
     _maxKbpsPerNode = maxKbpsPerNode;
+    _throttlingRatio = throttlingRatio;
 }
 
 void AvatarMixerSlave::harvestStats(AvatarMixerSlaveStats& stats) {
@@ -61,8 +63,15 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     _stats.processIncomingPacketsElapsedTime += (end - start);
 }
 
-#include <random>
-#include <TryLocker.h>
+
+void AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
+    QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
+    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
+    individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
+    identityPacket->write(individualData);
+    DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *destinationNode);
+    _stats.numIdentityPackets++;
+}
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 
@@ -88,10 +97,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     std::uniform_real_distribution<float> distribution;
 
     if (node->getLinkedData() && (node->getType() == NodeType::Agent) && node->getActiveSocket()) {
-        AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+        _stats.nodesBroadcastedTo++;
 
-        // FIXME -- mixer data
-        // ++_sumListeners;
+        AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
 
         nodeData->resetInViewStats();
 
@@ -249,11 +257,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                     || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
 
-                    QByteArray individualData = otherNodeData->getConstAvatarData()->identityByteArray();
-                    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
-                    individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNodeData->getNodeID().toRfc4122());
-                    identityPacket->write(individualData);
-                    DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *node);
+                    sendIdentityPacket(otherNodeData, node);
                 }
 
                 const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
@@ -339,13 +343,13 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                             }
 
                             {
-                                numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
+                                bool includeThisAvatar = true;
                                 auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
                                 QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
                                 bool distanceAdjust = true;
                                 glm::vec3 viewerPosition = myPosition;
                                 AvatarDataPacket::HasFlags hasFlagsOut; // the result of the toByteArray
-                                bool dropFaceTracking = true; // this is a hack for now... always drop face tracking
+                                bool dropFaceTracking = false;
 
                                 quint64 start = usecTimestampNow();
                                 QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, 
@@ -353,10 +357,30 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                                 quint64 end = usecTimestampNow();
                                 _stats.toByteArrayElapsedTime += (end - start);
 
-                                if (bytes.size() > 1400) {
-                                    qDebug() << "WARNING: otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size();
-                                } else {
+                                static const int MAX_ALLOWED_AVATAR_DATA = (1400 - NUM_BYTES_RFC4122_UUID);
+                                if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
+                                    qDebug() << "WARNING: otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size() << "... attempt to drop facial data";
+
+                                    dropFaceTracking = true; // first try dropping the facial data
+                                    bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
+                                        hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+
+                                    if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
+                                        qDebug() << "WARNING: otherAvatar.toByteArray() without facial data resulted in very large buffer:" << bytes.size() << "... reduce to MinimumData";
+                                        bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
+                                            hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+                                    }
+
+                                    if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
+                                        qDebug() << "WARNING: otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
+                                        includeThisAvatar = false;
+                                    }
+                                }
+
+                                if (includeThisAvatar) {
+                                    numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                                     numAvatarDataBytes += avatarPacketList->write(bytes);
+                                    _stats.numOthersIncluded++;
                                 }
                             }
 
@@ -376,6 +400,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         avatarPacketList->closeCurrentPacket(true);
 
         _stats.numPacketsSent += (int)avatarPacketList->getNumPackets();
+        _stats.numBytesSent += numAvatarDataBytes;
 
         // send the avatar data PacketList
         //qDebug() << "about to call nodeList->sendPacketList() for node:" << node;

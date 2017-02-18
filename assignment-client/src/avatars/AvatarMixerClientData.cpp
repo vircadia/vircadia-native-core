@@ -58,7 +58,6 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
 
-// FIXME -- this needs a mutex in new model.
 bool AvatarMixerClientData::checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid) {
     if (_hasReceivedFirstPacketsFrom.find(uuid) == _hasReceivedFirstPacketsFrom.end()) {
         _hasReceivedFirstPacketsFrom.insert(uuid);
