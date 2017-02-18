@@ -51,9 +51,17 @@ int AvatarMixerClientData::processPackets() {
 }
 
 int AvatarMixerClientData::parseData(ReceivedMessage& message) {
+
     // pull the sequence number from the data first
-    message.readPrimitive(&_lastReceivedSequenceNumber);
+    uint16_t sequenceNumber;
+
+    message.readPrimitive(&sequenceNumber);
     
+    if (sequenceNumber < _lastReceivedSequenceNumber && _lastReceivedSequenceNumber != UINT16_MAX) {
+        incrementNumOutOfOrderSends();
+    }
+    _lastReceivedSequenceNumber = sequenceNumber;
+
     // compute the offset to the data payload
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }

@@ -198,7 +198,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
             } else {
                 const AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                //AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+
+                shouldConsider = true; // assume we will consider...
+
                 // Check to see if the space bubble is enabled
                 if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
                     // Define the minimum bubble size
@@ -235,8 +237,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     nodeData->removeFromRadiusIgnoringSet(node, otherNode->getUUID());
                 }
 
-                shouldConsider = true;
-
                 quint64 endIgnoreCalculation = usecTimestampNow();
                 _stats.ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
             }
@@ -271,7 +271,11 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 // potentially update the max full rate distance for this frame
                 maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
 
-                // FIXME-- understand this code... WHAT IS IT DOING!!!
+                // This code handles the random dropping of avatar data based on the ratio of
+                // "getFullRateDistance" to actual distance.
+                //
+                // NOTE: If the recieving node is in "PAL mode" then it's asked to get things even that
+                //       are out of view, this also appears to disable this random distribution.
                 if (distanceToAvatar != 0.0f
                     && !getsOutOfView
                     && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
@@ -285,14 +289,14 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
-                    /***
-                    // FIXME this does not belong here... it should be in the packet processing
-                    if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
-                        // we got out out of order packets from the sender, track it
-                        otherNodeData->incrementNumOutOfOrderSends();
-                    }
-                    ***/
-
+                    // FIXME - This code does appear to be working. But it seems brittle.
+                    //         It supports determining if the frame of data for this "other"
+                    //         avatar has already been sent to the reciever. This has been
+                    //         verified to work on a desktop display that renders at 60hz and
+                    //         therefore sends to mixer at 30hz. Each second you'd expect to
+                    //         have 15 (45hz-30hz) duplicate frames. In this case, the stat
+                    //         avg_other_av_skips_per_second does report 15.
+                    //
                     // make sure we haven't already sent this data from this sender to this receiver
                     // or that somehow we haven't sent
                     if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
@@ -308,12 +312,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
                     // we're going to send this avatar
                     if (shouldConsider) {
-                        // increment the number of avatars sent to this reciever
-                        nodeData->incrementNumAvatarsSentLastFrame(); // FIXME - this seems weird...
-
-                        // set the last sent sequence number for this sender on the receiver
-                        nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                            otherNodeData->getLastReceivedSequenceNumber());
 
                         // determine if avatar is in view, to determine how much data to include...
                         glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
@@ -381,6 +379,14 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                                     numAvatarDataBytes += avatarPacketList->write(bytes);
                                     _stats.numOthersIncluded++;
+
+                                    // increment the number of avatars sent to this reciever
+                                    nodeData->incrementNumAvatarsSentLastFrame();
+
+                                    // set the last sent sequence number for this sender on the receiver
+                                    nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
+                                        otherNodeData->getLastReceivedSequenceNumber());
+
                                 }
                             }
 

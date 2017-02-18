@@ -9,18 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// WORK ITEMS...
-//
-// 1) FIXME in AvatarMixerSlave.cpp -- otherNodeData->incrementNumOutOfOrderSends();
-//    This code appears to be determining if a node sent out of order packets, that logic should not be in
-//    the broadcast method, but would make more sense in the incoming packet processing section
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 #include <cfloat>
-#include <random>
+#include <chrono>
 #include <memory>
+#include <random>
+#include <thread>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
@@ -92,9 +85,6 @@ void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const Shar
 
     ++_sumIdentityPackets;
 }
-
-#include <chrono>
-#include <thread>
 
 std::chrono::microseconds AvatarMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {
     // advance the next frame
@@ -199,7 +189,7 @@ void AvatarMixer::start() {
 }
 
 
-// NOTE: nodeData->getAvatar() might be side effected, most be called when access to node/nodeData
+// NOTE: nodeData->getAvatar() might be side effected, must be called when access to node/nodeData
 // is guarenteed to not be accessed by other thread
 void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
@@ -248,9 +238,10 @@ void AvatarMixer::throttle(std::chrono::microseconds duration, int frame) {
     // - oscillations will not occur after the recovery
     const float BACKOFF_TARGET = 0.44f;
 
-    // the mixer is known to struggle at about 80 on a "regular" machine
-    // so throttle 2/80 the streams to ensure smooth audio (throttling is linear)
-    const float THROTTLE_RATE = 2 / 80.0f;
+    // the mixer is known to struggle at about 150 on a "regular" machine
+    // so throttle 2/150 the streams to ensure smooth mixing (throttling is linear)
+    const float STRUGGLES_AT = 150.0f;
+    const float THROTTLE_RATE = 2 / STRUGGLES_AT;
     const float BACKOFF_RATE = THROTTLE_RATE / 4;
 
     // recovery should be bounded so that large changes in user count is a tolerable experience
@@ -417,10 +408,7 @@ void AvatarMixer::sendStatsPacket() {
 
     QJsonObject statsObject;
 
-    //statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
-
     statsObject["broadcast_loop_rate"] = _loopRate.rate();
-
     statsObject["threads"] = _slavePool.numThreads();
     statsObject["trailing_mix_ratio"] = _trailingMixRatio;
     statsObject["throttling_ratio"] = _throttlingRatio;
