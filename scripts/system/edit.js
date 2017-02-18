@@ -1372,7 +1372,7 @@ var keyReleaseEvent = function (event) {
             });
             grid.setPosition(newPosition);
         }
-    } else if (event.text === 'p' && event.isControl && !event.isAutoRepeat ) {
+    } else if (event.key === 80 && event.isControl && !event.isAutoRepeat ) {
         if (event.isShifted) {
             unparentSelectedEntities();
         } else {
