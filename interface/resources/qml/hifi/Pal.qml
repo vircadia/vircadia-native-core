@@ -360,7 +360,7 @@ Rectangle {
     TextMetrics {
         id: displayNameHeaderMetrics
         text: displayNameHeader.title
-        font: displayNameHeader.font
+        // font: displayNameHeader.font // was this always undefined? giving error now...
     }
     // This Rectangle refers to the [?] popup button next to "NAMES"
     Rectangle {
@@ -426,7 +426,6 @@ Rectangle {
             onExited: adminHelpText.color = hifi.colors.redHighlight
         }
     }
-    }
 
     HifiControls.Keyboard {
         id: keyboard
@@ -437,6 +436,7 @@ Rectangle {
             left: parent.left
             right: parent.right
         }
+    }
     }
 
     // Timer used when selecting table rows that aren't yet present in the model

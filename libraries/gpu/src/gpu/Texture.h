@@ -17,6 +17,8 @@
 #include <QMetaType>
 #include <QUrl>
 
+#include <shared/Storage.h>
+
 #include "Forward.h"
 #include "Resource.h"
 
@@ -144,6 +146,13 @@ protected:
     Desc _desc;
 };
 
+enum class TextureUsageType {
+    RENDERBUFFER,       // Used as attachments to a framebuffer
+    RESOURCE,           // Resource textures, like materials... subject to memory manipulation
+    STRICT_RESOURCE,    // Resource textures not subject to manipulation, like the normal fitting texture
+    EXTERNAL,
+};
+
 class Texture : public Resource {
     static std::atomic<uint32_t> _textureCPUCount;
     static std::atomic<Size> _textureCPUMemoryUsage;
@@ -178,9 +187,9 @@ public:
             NORMAL,      // Texture is a normal map
             ALPHA,      // Texture has an alpha channel
             ALPHA_MASK,       // Texture alpha channel is a Mask 0/1
-            EXTERNAL,
             NUM_FLAGS,  
         };
+
         typedef std::bitset<NUM_FLAGS> Flags;
 
         // The key is the Flags
@@ -204,7 +213,6 @@ public:
             Builder& withNormal() { _flags.set(NORMAL); return (*this); }
             Builder& withAlpha() { _flags.set(ALPHA); return (*this); }
             Builder& withAlphaMask() { _flags.set(ALPHA_MASK); return (*this); }
-            Builder& withExternal() { _flags.set(EXTERNAL); return (*this); }
         };
         Usage(const Builder& builder) : Usage(builder._flags) {}
 
@@ -213,33 +221,31 @@ public:
 
         bool isAlpha() const { return _flags[ALPHA]; }
         bool isAlphaMask() const { return _flags[ALPHA_MASK]; }
-        bool isExternal() const { return _flags[EXTERNAL]; }
-
 
         bool operator==(const Usage& usage) { return (_flags == usage._flags); }
         bool operator!=(const Usage& usage) { return (_flags != usage._flags); }
     };
 
+
     class Pixels {
     public:
+        using StoragePointer = storage::StoragePointer;
+
         Pixels() {}
         Pixels(const Pixels& pixels) = default;
         Pixels(const Element& format, Size size, const Byte* bytes);
+        Pixels(const Element& format, StoragePointer& storage) : _format(format), _storage(storage.release()) {}
         ~Pixels();
 
-        const Byte* readData() const { return _sysmem.readData(); }
-        Size getSize() const { return _sysmem.getSize(); }
-        Size resize(Size pSize);
-        Size setData(const Element& format, Size size, const Byte* bytes );
+        const Byte* readData() const { return _storage->data(); }
+        Size getSize() const { return _storage->size(); }
         
         const Element& getFormat() const { return _format; }
-        
-        void notifyGPULoaded();
-        
+
+
     protected:
         Element _format;
-        Sysmem _sysmem;
-        bool _isGPULoaded;
+        StoragePointer _storage;
         
         friend class Texture;
     };
@@ -292,10 +298,6 @@ public:
         const Texture* getTexture() const { return _texture; }
  
         friend class Texture;
-        
-        // THis should be only called by the Texture from the Backend to notify the storage that the specified mip face pixels
-        //  have been uploaded to the GPU memory. IT is possible for the storage to free the system memory then
-        virtual void notifyMipFaceGPULoaded(uint16 level, uint8 face) const;
     };
 
  
@@ -303,9 +305,11 @@ public:
     static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
     static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler = Sampler());
     static Texture* createCube(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
-    static Texture* createExternal2D(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
+    static Texture* createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
+    static Texture* createStrict(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
+    static Texture* createExternal(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
 
-    Texture();
+    Texture(TextureUsageType usageType);
     Texture(const Texture& buf); // deep copy of the sysmem texture
     Texture& operator=(const Texture& buf); // deep copy of the sysmem texture
     ~Texture();
@@ -330,6 +334,7 @@ public:
 
     // Size and format
     Type getType() const { return _type; }
+    TextureUsageType getUsageType() const { return _usageType; }
 
     bool isColorRenderTarget() const;
     bool isDepthStencilRenderTarget() const;
@@ -474,9 +479,6 @@ public:
     const Sampler& getSampler() const { return _sampler; }
     Stamp getSamplerStamp() const { return _samplerStamp; }
 
-    // Only callable by the Backend
-    void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
-
     void setExternalTexture(uint32 externalId, void* externalFence);
     void setExternalRecycler(const ExternalRecycler& recycler);
     ExternalRecycler getExternalRecycler() const;
@@ -486,9 +488,11 @@ public:
     ExternalUpdates getUpdates() const;
 
     static ktx::KTXUniquePointer serialize(const Texture& texture);
-    static Texture* unserialize(const ktx::KTXUniquePointer& srcData);
+    static Texture* unserialize(TextureUsageType usageType, const ktx::KTXUniquePointer& srcData);
 
 protected:
+    const TextureUsageType _usageType;
+
     // Should only be accessed internally or by the backend sync function
     mutable Mutex _externalMutex;
     mutable std::list<ExternalIdAndFence> _externalUpdates;
@@ -526,7 +530,7 @@ protected:
     bool _isIrradianceValid = false;
     bool _defined = false;
    
-    static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
+    static Texture* create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
 };

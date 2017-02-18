@@ -122,36 +122,12 @@ uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = { 1, 1, 1, 6 };
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _format(format),
-    _sysmem(size, bytes),
-    _isGPULoaded(false) {
-    Texture::updateTextureCPUMemoryUsage(0, _sysmem.getSize());
+    _storage(new storage::MemoryStorage(size, bytes)) {
+    Texture::updateTextureCPUMemoryUsage(0, _storage->size());
 }
 
 Texture::Pixels::~Pixels() {
-    Texture::updateTextureCPUMemoryUsage(_sysmem.getSize(), 0);
-}
-
-Texture::Size Texture::Pixels::resize(Size pSize) {
-    auto prevSize = _sysmem.getSize();
-    auto newSize = _sysmem.resize(pSize);
-    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
-    return newSize;
-}
-
-Texture::Size Texture::Pixels::setData(const Element& format, Size size, const Byte* bytes ) {
-    _format = format;
-    auto prevSize = _sysmem.getSize();
-    auto newSize = _sysmem.setData(size, bytes);
-    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
-    _isGPULoaded = false;
-    return newSize;
-}
-
-void Texture::Pixels::notifyGPULoaded() {
-    _isGPULoaded = true;
-    auto prevSize = _sysmem.getSize();
-    auto newSize = _sysmem.resize(0);
-    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
+    Texture::updateTextureCPUMemoryUsage(_storage->size(), 0);
 }
 
 void Texture::Storage::assignTexture(Texture* texture) {
@@ -181,14 +157,6 @@ const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 fa
         return _mips[level][face];
     }
     return PixelsPointer();
-}
-
-void Texture::Storage::notifyMipFaceGPULoaded(uint16 level, uint8 face) const {
-    PixelsPointer mipFace = getMipFace(level, face);
-    // Free the mips
-    if (mipFace) {
-        mipFace->notifyGPULoaded();
-    }
 }
 
 bool Texture::Storage::isMipAvailable(uint16 level, uint8 face) const {
@@ -229,7 +197,8 @@ bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size s
     auto faceBytes = bytes;
     Size allocated = 0;
     for (auto& face : mip) {
-        allocated += face->setData(format, sizePerFace, faceBytes);
+        face.reset(new Pixels(format, size, bytes));
+        allocated += size;
         faceBytes += sizePerFace;
     }
 
@@ -242,46 +211,53 @@ bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size s
 bool Texture::Storage::assignMipFaceData(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face) {
 
     allocateMip(level);
-    auto mip = _mips[level];
+    auto& mip = _mips[level];
     Size allocated = 0;
     if (face < mip.size()) { 
-        auto mipFace = mip[face];
-        allocated += mipFace->setData(format, size, bytes);
+        mip[face].reset(new Pixels(format, size, bytes));
+        allocated += size;
         bumpStamp();
     }
 
     return allocated == size;
 }
 
-Texture* Texture::createExternal2D(const ExternalRecycler& recycler, const Sampler& sampler) {
-    Texture* tex = new Texture();
+Texture* Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
+    Texture* tex = new Texture(TextureUsageType::EXTERNAL);
     tex->_type = TEX_2D;
     tex->_maxMip = 0;
     tex->_sampler = sampler;
-    tex->setUsage(Usage::Builder().withExternal().withColor());
     tex->setExternalRecycler(recycler);
     return tex;
 }
 
+Texture* Texture::createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
+    return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, 0, sampler);
+}
+
 Texture* Texture::create1D(const Element& texelFormat, uint16 width, const Sampler& sampler) { 
-    return create(TEX_1D, texelFormat, width, 1, 1, 1, 0, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_1D, texelFormat, width, 1, 1, 1, 0, sampler);
 }
 
 Texture* Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
-    return create(TEX_2D, texelFormat, width, height, 1, 1, 0, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 0, sampler);
+}
+
+Texture* Texture::createStrict(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
+    return create(TextureUsageType::STRICT_RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 0, sampler);
 }
 
 Texture* Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler) {
-    return create(TEX_3D, texelFormat, width, height, depth, 1, 0, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_3D, texelFormat, width, height, depth, 1, 0, sampler);
 }
 
 Texture* Texture::createCube(const Element& texelFormat, uint16 width, const Sampler& sampler) {
-    return create(TEX_CUBE, texelFormat, width, width, 1, 1, 0, sampler);
+    return create(TextureUsageType::RESOURCE, TEX_CUBE, texelFormat, width, width, 1, 1, 0, sampler);
 }
 
-Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler)
+Texture* Texture::create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler)
 {
-    Texture* tex = new Texture();
+    Texture* tex = new Texture(usageType);
     tex->_storage.reset(new Storage());
     tex->_type = type;
     tex->_storage->assignTexture(tex);
@@ -293,16 +269,14 @@ Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, ui
     return tex;
 }
 
-Texture::Texture():
-    Resource()
-{
+Texture::Texture(TextureUsageType usageType) :
+    Resource(), _usageType(usageType) {
     _textureCPUCount++;
 }
 
-Texture::~Texture()
-{
+Texture::~Texture() {
     _textureCPUCount--;
-    if (getUsage().isExternal()) {
+    if (_usageType == TextureUsageType::EXTERNAL) {
         Texture::ExternalUpdates externalUpdates;
         {
             Lock lock(_externalMutex);

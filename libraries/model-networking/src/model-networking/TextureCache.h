@@ -43,6 +43,7 @@ class NetworkTexture : public Resource, public Texture {
 public:
      enum Type {
         DEFAULT_TEXTURE,
+        STRICT_TEXTURE,
         ALBEDO_TEXTURE,
         NORMAL_TEXTURE,
         BUMP_TEXTURE,

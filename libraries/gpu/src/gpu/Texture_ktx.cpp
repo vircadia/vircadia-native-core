@@ -72,7 +72,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
         auto mip = texture.accessStoredMipFace(level);
         if (mip) {
-            images.emplace_back(ktx::Image(mip->getSize(), 0, mip->readData()));
+            images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
         }
     }
 
@@ -80,7 +80,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData) {
+Texture* Texture::unserialize(TextureUsageType usageType, const ktx::KTXUniquePointer& srcData) {
     if (!srcData) {
         return nullptr;
     }
@@ -105,7 +105,8 @@ Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData) {
         type = TEX_3D;
     }
 
-    auto tex = Texture::create( type,
+    auto tex = Texture::create( usageType,
+                                type,
                                 texelFormat,
                                 header.getPixelWidth(),
                                 header.getPixelHeight(),
