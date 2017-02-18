@@ -84,7 +84,7 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
     GLenum format;
     GLenum type;
     auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), mipData->getFormat());
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), _parent._gpuObject.getStoredMipFormat());
     format = texelFormat.format;
     type = texelFormat.type;
 
