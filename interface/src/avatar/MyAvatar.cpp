@@ -227,7 +227,7 @@ void MyAvatar::simulateAttachments(float deltaTime) {
     // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
 }
 
-QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail) {
+QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
     CameraMode mode = qApp->getCamera()->getMode();
     _globalPosition = getPosition();
     _globalBoundingBoxDimensions.x = _characterController.getCapsuleRadius();
@@ -238,12 +238,12 @@ QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getPosition();
         setPosition(getSkeletonPosition());
-        QByteArray array = AvatarData::toByteArray(dataDetail);
+        QByteArray array = AvatarData::toByteArrayStateful(dataDetail);
         // copy the correct position back
         setPosition(oldPosition);
         return array;
     }
-    return AvatarData::toByteArray(dataDetail);
+    return AvatarData::toByteArrayStateful(dataDetail);
 }
 
 void MyAvatar::centerBody() {

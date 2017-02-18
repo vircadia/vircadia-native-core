@@ -368,7 +368,7 @@ public:
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail);
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail);
 
     // FIXME
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,

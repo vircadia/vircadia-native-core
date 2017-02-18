@@ -338,7 +338,7 @@ private:
     glm::quat getWorldBodyOrientation() const;
 
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail) override;
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);

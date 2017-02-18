@@ -169,7 +169,7 @@ float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPositio
 
 
 // we want to track outbound data in this case...
-QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail) {
+QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail) {
     AvatarDataPacket::HasFlags hasFlagsOut;
     auto lastSentTime = _lastToByteArray;
     _lastToByteArray = usecTimestampNow();
@@ -1637,7 +1637,7 @@ void AvatarData::sendAvatarDataPacket() {
 
     bool cullSmallData = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
     auto dataDetail = cullSmallData ? SendAllData : CullSmallData;
-    QByteArray avatarByteArray = toByteArray(dataDetail);
+    QByteArray avatarByteArray = toByteArrayStateful(dataDetail);
     doneEncoding(cullSmallData);
 
     static AvatarDataSequenceNumber sequenceNumber = 0;
