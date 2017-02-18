@@ -13,10 +13,10 @@
         button,
         BUTTON_NAME = "PAINT",
         isFingerPainting = false,
-        leftHand,
-        rightHand,
-        leftBrush,
-        rightBrush,
+        leftHand = null,
+        rightHand = null,
+        leftBrush = null,
+        rightBrush = null,
         CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint",
         isTabletDisplayed = false,
         HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index",
@@ -186,7 +186,6 @@
     function handController(name) {
         // Translates controller data into application events.
         var handName = name,
-            isEnabled = false,
 
             triggerPressedCallback,
             triggerPressingCallback,
@@ -213,10 +212,6 @@
             GRIP_OFF = 0.05,
             GRIP_ON = 0.1;
 
-        function setEnabled(enabled) {
-            isEnabled = enabled;
-        }
-
         function onTriggerPress(value) {
             // Controller values are only updated when they change so store latest for use in update.
             rawTriggerValue = value;
@@ -226,10 +221,6 @@
             var wasTriggerPressed,
                 fingerTipPosition,
                 lineWidth;
-
-            if (!isEnabled) {
-                return;
-            }
 
             triggerValue = triggerValue * TRIGGER_SMOOTH_RATIO + rawTriggerValue * (1.0 - TRIGGER_SMOOTH_RATIO);
 
@@ -267,10 +258,6 @@
         function updateGripPress() {
             var fingerTipPosition;
 
-            if (!isEnabled) {
-                return;
-            }
-
             gripValue = gripValue * GRIP_SMOOTH_RATIO + rawGripValue * (1.0 - GRIP_SMOOTH_RATIO);
 
             if (isGripPressed) {
@@ -301,7 +288,6 @@
         }
 
         return {
-            setEnabled: setEnabled,
             onTriggerPress: onTriggerPress,
             onGripPress: onGripPress,
             onUpdate: onUpdate,
@@ -327,21 +313,76 @@
         }), true);
     }
 
+    function enableProcessing() {
+        // Connect controller API to handController objects.
+        leftHand = handController("left");
+        rightHand = handController("right");
+        var controllerMapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
+        controllerMapping.from(Controller.Standard.LT).to(leftHand.onTriggerPress);
+        controllerMapping.from(Controller.Standard.LeftGrip).to(leftHand.onGripPress);
+        controllerMapping.from(Controller.Standard.RT).to(rightHand.onTriggerPress);
+        controllerMapping.from(Controller.Standard.RightGrip).to(rightHand.onGripPress);
+        Controller.enableMapping(CONTROLLER_MAPPING_NAME);
+
+        // Connect handController outputs to paintBrush objects.
+        leftBrush = paintBrush("left");
+        leftHand.setUp(leftBrush.startLine, leftBrush.drawLine, leftBrush.finishLine, leftBrush.eraseClosestLine);
+        rightBrush = paintBrush("right");
+        rightHand.setUp(rightBrush.startLine, rightBrush.drawLine, rightBrush.finishLine, rightBrush.eraseClosestLine);
+
+        // Messages channels for enabling/disabling other scripts' functions.
+        Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+        Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+        Messages.subscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
+
+        // Update hand controls.
+        Script.update.connect(leftHand.onUpdate);
+        Script.update.connect(rightHand.onUpdate);
+    }
+
+    function disableProcessing() {
+        Script.update.disconnect(leftHand.onUpdate);
+        Script.update.disconnect(rightHand.onUpdate);
+
+        Controller.disableMapping(CONTROLLER_MAPPING_NAME);
+
+        leftBrush.tearDown();
+        leftBrush = null;
+        leftHand.tearDown();
+        leftHand = null;
+
+        rightBrush.tearDown();
+        rightBrush = null;
+        rightHand.tearDown();
+        rightHand = null;
+
+        Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+        Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+        Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
+    }
+
     function onButtonClicked() {
         var wasFingerPainting = isFingerPainting;
 
         isFingerPainting = !isFingerPainting;
         button.editProperties({ isActive: isFingerPainting });
 
-        leftHand.setEnabled(isFingerPainting);
-        rightHand.setEnabled(isFingerPainting);
+        print("Finger painting: " + isFingerPainting ? "on" : "off");
 
         if (wasFingerPainting) {
             leftBrush.cancelLine();
             rightBrush.cancelLine();
         }
 
+        if (isFingerPainting) {
+            enableProcessing();
+        }
+
         updateHandFunctions();
+
+        if (!isFingerPainting) {
+            disableProcessing();
+        }
     }
 
     function onTabletScreenChanged(type, url) {
@@ -368,29 +409,6 @@
 
         // Track whether tablet is displayed or not.
         tablet.screenChanged.connect(onTabletScreenChanged);
-
-        // Connect controller API to handController objects.
-        leftHand = handController("left");
-        rightHand = handController("right");
-        var controllerMapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-        controllerMapping.from(Controller.Standard.LT).to(leftHand.onTriggerPress);
-        controllerMapping.from(Controller.Standard.LeftGrip).to(leftHand.onGripPress);
-        controllerMapping.from(Controller.Standard.RT).to(rightHand.onTriggerPress);
-        controllerMapping.from(Controller.Standard.RightGrip).to(rightHand.onGripPress);
-        Controller.enableMapping(CONTROLLER_MAPPING_NAME);
-        Script.update.connect(leftHand.onUpdate);
-        Script.update.connect(rightHand.onUpdate);
-
-        // Connect handController outputs to paintBrush objects.
-        leftBrush = paintBrush("left");
-        leftHand.setUp(leftBrush.startLine, leftBrush.drawLine, leftBrush.finishLine, leftBrush.eraseClosestLine);
-        rightBrush = paintBrush("right");
-        rightHand.setUp(rightBrush.startLine, rightBrush.drawLine, rightBrush.finishLine, rightBrush.eraseClosestLine);
-
-        // Messages channels for enabling/disabling other scripts' functions.
-        Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
-        Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
-        Messages.subscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
     }
 
     function tearDown() {
@@ -398,32 +416,16 @@
             return;
         }
 
-        Script.update.disconnect(leftHand.onUpdate);
-        Script.update.disconnect(rightHand.onUpdate);
-
-        isFingerPainting = false;
-        updateHandFunctions();
-
-        button.clicked.disconnect(onButtonClicked);
-        tablet.removeButton(button);
+        if (isFingerPainting) {
+            isFingerPainting = false;
+            updateHandFunctions();
+            disableProcessing();
+        }
 
         tablet.screenChanged.disconnect(onTabletScreenChanged);
 
-        Controller.disableMapping(CONTROLLER_MAPPING_NAME);
-
-        leftBrush.tearDown();
-        leftBrush = null;
-        leftHand.tearDown();
-        leftHand = null;
-
-        rightBrush.tearDown();
-        rightBrush = null;
-        rightHand.tearDown();
-        rightHand = null;
-
-        Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
-        Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
-        Messages.unssubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
+        button.clicked.disconnect(onButtonClicked);
+        tablet.removeButton(button);
     }
 
     setUp();
