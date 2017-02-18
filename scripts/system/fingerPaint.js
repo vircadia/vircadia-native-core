@@ -318,13 +318,13 @@
             holdEnabled: enabled,
             nearGrabEnabled: enabled,
             farGrabEnabled: enabled
-        }));
+        }), true);
         Messages.sendMessage(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL, JSON.stringify({
             pointerEnabled: enabled
-        }));
+        }), true);
         Messages.sendMessage(HIFI_POINT_INDEX_MESSAGE_CHANNEL, JSON.stringify({
             pointIndex: !enabled
-        }));
+        }), true);
     }
 
     function onButtonClicked() {
