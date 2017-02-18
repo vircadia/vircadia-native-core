@@ -56,7 +56,6 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
 #include <TryLocker.h>
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
-static const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float)AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
 // only send extra avatar data (avatars out of view, ignored) every Nth AvatarData frame
 // Extra avatar data will be sent (AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND/EXTRA_AVATAR_DATA_FRAME_RATIO) times
