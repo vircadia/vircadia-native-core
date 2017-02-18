@@ -1374,12 +1374,6 @@ var keyReleaseEvent = function (event) {
             });
             grid.setPosition(newPosition);
         }
-    } else if (event.text === 'p' && event.isControl && !event.isAutoRepeat ) {
-        if (event.isShifted) {
-            unparentSelectedEntities();
-        } else {
-            parentSelectedEntities();
-        }
     }
 };
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
@@ -1586,6 +1580,7 @@ var PropertiesTool = function (opts) {
             print('Edit.js received web event that was not valid json.')
             return;
         }
+        print(JSON.stringify(data))
         var i, properties, dY, diff, newPosition;
         if (data.type === "print") {
             if (data.message) {
@@ -1924,7 +1919,11 @@ var particleExplorerTool = new ParticleExplorerTool();
 var selectedParticleEntity = 0;
 entityListTool.webView.webEventReceived.connect(function (data) {
     data = JSON.parse(data);
-    if (data.type === "selectionUpdate") {
+    if(data.type === 'parent') {
+        parentSelectedEntities();
+    } else if(data.type === 'unparent') {
+        unparentSelectedEntities();
+    } else if (data.type === "selectionUpdate") {
         var ids = data.entityIds;
         if (ids.length === 1) {
             if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {

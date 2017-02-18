@@ -131,10 +131,17 @@ function loaded() {
 
         EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
     });
-
+    document.addEventListener("keydown", function (keyDown) {
+      if (keyDown.keyCode === 80 && keyDown.ctrlKey) {
+          if (keyDown.shiftKey) {
+              EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+          } else {
+              EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+          }
+      }
+    })
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function (event) {
         event.preventDefault();
     }, false);
 }
-

@@ -273,7 +273,7 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
             propertyValue += subPropertyString + ',';
         }
     } else {
-        // We've unchecked, so remove 
+        // We've unchecked, so remove
         propertyValue = propertyValue.replace(subPropertyString + ",", "");
     }
 
@@ -780,7 +780,7 @@ function loaded() {
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
-                        //the event bridge and json parsing handle our avatar id string differently.  
+                        //the event bridge and json parsing handle our avatar id string differently.
 
                         lastEntityID = '"' + properties.id + '"';
                         elID.innerHTML = properties.id;
@@ -1390,7 +1390,7 @@ function loaded() {
         elZoneFlyingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('flyingAllowed'));
         elZoneGhostingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ghostingAllowed'));
         elZoneFilterURL.addEventListener('change', createEmitTextPropertyUpdateFunction('filterURL'));
-            
+
         var voxelVolumeSizeChangeFunction = createEmitVec3PropertyUpdateFunction(
             'voxelVolumeSize', elVoxelVolumeSizeX, elVoxelVolumeSizeY, elVoxelVolumeSizeZ);
         elVoxelVolumeSizeX.addEventListener('change', voxelVolumeSizeChangeFunction);
@@ -1441,7 +1441,15 @@ function loaded() {
             }));
         });
 
-
+        document.addEventListener("keydown", function (keyDown) {
+          if (keyDown.keyCode === 80 && keyDown.ctrlKey) {
+              if (keyDown.shiftKey) {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+              } else {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+              }
+          }
+        });
         window.onblur = function() {
             // Fake a change event
             var ev = document.createEvent("HTMLEvents");
