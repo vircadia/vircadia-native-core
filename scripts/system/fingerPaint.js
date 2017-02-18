@@ -355,8 +355,8 @@
 
         // Tablet button.
         button = tablet.addButton({
-            icon: "icons/tablet-icons/bubble-i.svg",
-            activeIcon: "icons/tablet-icons/bubble-a.svg",
+            icon: "icons/tablet-icons/finger-paint-i.svg",
+            activeIcon: "icons/tablet-icons/finger-paint-a.svg",
             text: BUTTON_NAME,
             isActive: isFingerPainting
         });
