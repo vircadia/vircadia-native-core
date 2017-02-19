@@ -273,7 +273,7 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
             propertyValue += subPropertyString + ',';
         }
     } else {
-        // We've unchecked, so remove 
+        // We've unchecked, so remove
         propertyValue = propertyValue.replace(subPropertyString + ",", "");
     }
 
@@ -584,6 +584,7 @@ function loaded() {
         var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
 
         var elGrabbable = document.getElementById("property-grabbable");
+        var elCloneable = document.getElementById("property-cloneable");
         var elWantsTrigger = document.getElementById("property-wants-trigger");
         var elIgnoreIK = document.getElementById("property-ignore-ik");
 
@@ -780,7 +781,7 @@ function loaded() {
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
-                        //the event bridge and json parsing handle our avatar id string differently.  
+                        //the event bridge and json parsing handle our avatar id string differently.
 
                         lastEntityID = '"' + properties.id + '"';
                         elID.innerHTML = properties.id;
@@ -1156,6 +1157,12 @@ function loaded() {
         elGrabbable.addEventListener('change', function() {
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
         });
+        elCloneable.addEventListener('change', function () {
+            userDataChanger("grabbableKey", "cloneable", elCloneable, elUserData, false);
+            if (elCloneable.checked) {
+                
+            }
+        });
         elWantsTrigger.addEventListener('change', function() {
             userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
         });
@@ -1390,7 +1397,7 @@ function loaded() {
         elZoneFlyingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('flyingAllowed'));
         elZoneGhostingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ghostingAllowed'));
         elZoneFilterURL.addEventListener('change', createEmitTextPropertyUpdateFunction('filterURL'));
-            
+
         var voxelVolumeSizeChangeFunction = createEmitVec3PropertyUpdateFunction(
             'voxelVolumeSize', elVoxelVolumeSizeX, elVoxelVolumeSizeY, elVoxelVolumeSizeZ);
         elVoxelVolumeSizeX.addEventListener('change', voxelVolumeSizeChangeFunction);
