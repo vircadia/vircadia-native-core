@@ -20,17 +20,22 @@ const QString InfoView::NAME{ "InfoView" };
 
 Setting::Handle<QString> infoVersion("info-version", QString());
 
-InfoView::InfoView(QQuickItem* parent) : QQuickItem(parent) {
+static bool registered{ false };
 
+InfoView::InfoView(QQuickItem* parent) : QQuickItem(parent) {
+    registerType();
 }
 
-void InfoView::registerType() { 
-    qmlRegisterType<InfoView>("Hifi", 1, 0, NAME.toLocal8Bit().constData());
-} 
+void InfoView::registerType() {
+    if (!registered) {
+        qmlRegisterType<InfoView>("Hifi", 1, 0, NAME.toLocal8Bit().constData());
+        registered = true;
+    }
+}
 
 QString fetchVersion(const QUrl& url) {
     QXmlQuery query;
-    query.bindVariable("file", QVariant(url)); 
+    query.bindVariable("file", QVariant(url));
     query.setQuery("string((doc($file)//input[@id='version'])[1]/@value)");
     QString r;
     query.evaluateTo(&r);
@@ -38,14 +43,10 @@ QString fetchVersion(const QUrl& url) {
 }
 
 void InfoView::show(const QString& path, bool firstOrChangedOnly, QString urlQuery) {
-    static bool registered{ false };
-    if (!registered) {
-        registerType();
-        registered = true;
-    }
+    registerType();
     QUrl url;
     if (QDir(path).isRelative()) {
-        url = QUrl::fromLocalFile(PathUtils::resourcesPath() + path); 
+        url = QUrl::fromLocalFile(PathUtils::resourcesPath() + path);
     } else {
         url = QUrl::fromLocalFile(path);
     }
@@ -56,7 +57,7 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly, QString urlQue
         const QString version = fetchVersion(url);
         // If we have version information stored
         if (lastVersion != QString::null) {
-            // Check to see the document version.  If it's valid and matches 
+            // Check to see the document version.  If it's valid and matches
             // the stored version, we're done, so exit
             if (version == QString::null || version == lastVersion) {
                 return;
@@ -87,4 +88,3 @@ void InfoView::setUrl(const QUrl& url) {
         emit urlChanged();
     }
 }
-
