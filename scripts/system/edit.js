@@ -1116,30 +1116,64 @@ function recursiveDelete(entities, childrenList) {
 }
 function unparentSelectedEntities() {
     if (SelectionManager.hasSelection()) {
-      var selectedEntities = selectionManager.selections;
-      selectedEntities.forEach(function (id, index) {
-        Entities.editEntity(id, {parentID: null})
-        return true;
-      });
-      Window.notify("Entities Unparented");
+        var selectedEntities = selectionManager.selections;
+        var parentCheck = false;
+
+        if (selectedEntities.length < 1) {
+            Window.notifyEditError("You must have an entity selected inorder to unparent it.");
+            return;
+        }
+        selectedEntities.forEach(function (id, index) {
+            var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
+            if (parentId !== null && parentId.length > 0 && parentId !== "{00000000-0000-0000-0000-000000000000}") {
+                parentCheck = true;
+            }
+            Entities.editEntity(id, {parentID: null})
+            return true;
+        });
+        if (parentCheck) {
+            if (selectedEntities.length > 1) {
+                Window.notify("Entities unparented");
+            } else {
+                Window.notify("Entity unparented");
+            }
+        } else {
+            if (selectedEntities.length > 1) {
+                Window.notify("Selected Entities have no parents");
+            } else {
+                Window.notify("Selected Entity does not have a parent");
+            }
+        }
+    } else {
+        Window.notifyEditError("You have nothing selected to unparent");
     }
 }
 function parentSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         var selectedEntities = selectionManager.selections;
         if (selectedEntities.length <= 1) {
-          Window.notifyEditError("You must have multiple objects selected in order to parent them");
-          return;
+            Window.notifyEditError("You must have multiple entities selected in order to parent them");
+            return;
         }
+        var parentCheck = false;
         var lastEntityId = selectedEntities[selectedEntities.length-1];
         selectedEntities.forEach(function (id, index) {
             if (lastEntityId !== id) {
+                var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
+                if (parentId !== lastEntityId) {
+                    parentCheck = true;
+                }
                 Entities.editEntity(id, {parentID: lastEntityId})
             }
         });
-        Window.notify("Entities Parented");
+
+        if(parentCheck) {
+            Window.notify("Entities parented");
+        }else {
+            Window.notify("Entities are already parented to last");
+        }
     } else {
-        Window.notifyEditError("You have nothing selected")
+        Window.notifyEditError("You have nothing selected to parent");
     }
 }
 function deleteSelectedEntities() {
