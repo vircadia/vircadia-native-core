@@ -856,14 +856,14 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Unparent Entity",
-        afterItem: "Entity List...",
+        afterItem: "Parent Entity to Last",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Large Models",
         shortcutKey: "CTRL+META+L",
-        afterItem: "Entity List...",
+        afterItem: "Unparent Entity",
         isCheckable: true,
         isChecked: true,
         grouping: "Advanced"
