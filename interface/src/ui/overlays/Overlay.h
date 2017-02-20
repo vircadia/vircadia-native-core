@@ -91,6 +91,9 @@ public:
     render::ItemID getRenderItemID() const { return _renderItemID; }
     void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }
 
+    unsigned int getStackOrder() const { return _stackOrder; }
+    void setStackOrder(unsigned int stackOrder) { _stackOrder = stackOrder; }
+
 protected:
     float updatePulse();
 
@@ -112,6 +115,8 @@ protected:
     xColor _color;
     bool _visible; // should the overlay be drawn at all
     Anchor _anchor;
+
+    unsigned int _stackOrder { 0 };
 
 private:
     OverlayID _overlayID; // only used for non-3d overlays
