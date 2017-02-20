@@ -192,6 +192,7 @@ OverlayID Overlays::addOverlay(Overlay::Pointer overlay) {
     QWriteLocker lock(&_lock);
     OverlayID thisID = OverlayID(QUuid::createUuid());
     overlay->setOverlayID(thisID);
+    overlay->setStackOrder(_stackOrder++);
     if (overlay->is3D()) {
         _overlaysWorld[thisID] = overlay;
 
@@ -348,6 +349,8 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
     BoxFace thisFace;
     glm::vec3 thisSurfaceNormal;
     float distance;
+    unsigned int bestStackOrder = 0;
+    OverlayID bestOverlayID = UNKNOWN_OVERLAY_ID;
 
     while (i.hasPrevious()) {
         i.previous();
@@ -363,12 +366,15 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
             auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
             if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
                 thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
-                return thisID;
+                if (thisOverlay->getStackOrder() > bestStackOrder) {
+                    bestOverlayID = thisID;
+                    bestStackOrder = thisOverlay->getStackOrder();
+                }
             }
         }
     }
 
-    return UNKNOWN_OVERLAY_ID; // not found
+    return bestOverlayID;
 }
 
 OverlayPropertyResult Overlays::getProperty(OverlayID id, const QString& property) {

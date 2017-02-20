@@ -305,6 +305,7 @@ private:
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
     QMap<OverlayID, OverlayPanel::Pointer> _panels;
     QList<Overlay::Pointer> _overlaysToDelete;
+    unsigned int _stackOrder { 1 };
 
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
