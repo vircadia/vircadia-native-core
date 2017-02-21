@@ -7,7 +7,8 @@
 // Distributed under the Apache License, Version 2.0
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* globals Tablet, Toolbars, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar */
+/* globals Tablet, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar */
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -17,29 +18,15 @@ var resetOverlays;
 var reticleVisible;
 var clearOverlayWhenMoving;
 
-var button;
 var buttonName = "SNAP";
-var tablet = null;
-var toolBar = null;
-
 var buttonConnected = false;
 
-if (Settings.getValue("HUDUIEnabled")) {
-    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-    button = toolBar.addButton({
-        objectName: buttonName,
-        imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
-        visible: true,
-        alpha: 0.9,
-    });
-} else {
-    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    button = tablet.addButton({
-        icon: "icons/tablet-icons/snap-i.svg",
-        text: buttonName,
-        sortOrder: 5
-    });
-}
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var button = tablet.addButton({
+    icon: "icons/tablet-icons/snap-i.svg",
+    text: buttonName,
+    sortOrder: 5
+});
 
 function shouldOpenFeedAfterShare() {
     var persisted = Settings.getValue('openFeedAfterShare', true); // might answer true, false, "true", or "false"
@@ -63,42 +50,42 @@ function confirmShare(data) {
         var isLoggedIn;
         var needsLogin = false;
         switch (message) {
-            case 'ready':
-                dialog.emitScriptEvent(data); // Send it.
-                outstanding = 0;
-                break;
-            case 'openSettings':
-                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
-                break;
-            case 'setOpenFeedFalse':
-                Settings.setValue('openFeedAfterShare', false);
-                break;
-            case 'setOpenFeedTrue':
-                Settings.setValue('openFeedAfterShare', true);
-                break;
-            default:
-                dialog.webEventReceived.disconnect(onMessage);
-                dialog.close();
-                isLoggedIn = Account.isLoggedIn();
-                message.forEach(function (submessage) {
-                    if (submessage.share && !isLoggedIn) {
-                        needsLogin = true;
-                        submessage.share = false;
-                    }
-                    if (submessage.share) {
-                        print('sharing', submessage.localPath);
-                        outstanding++;
-                        Window.shareSnapshot(submessage.localPath, submessage.href);
-                    } else {
-                        print('not sharing', submessage.localPath);
-                    }
-                });
-                if (!outstanding && shouldOpenFeedAfterShare()) {
-                    showFeedWindow();
+        case 'ready':
+            dialog.emitScriptEvent(data); // Send it.
+            outstanding = 0;
+            break;
+        case 'openSettings':
+            Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
+            break;
+        case 'setOpenFeedFalse':
+            Settings.setValue('openFeedAfterShare', false);
+            break;
+        case 'setOpenFeedTrue':
+            Settings.setValue('openFeedAfterShare', true);
+            break;
+        default:
+            dialog.webEventReceived.disconnect(onMessage);
+            dialog.close();
+            isLoggedIn = Account.isLoggedIn();
+            message.forEach(function (submessage) {
+                if (submessage.share && !isLoggedIn) {
+                    needsLogin = true;
+                    submessage.share = false;
                 }
-                if (needsLogin) { // after the possible feed, so that the login is on top
-                    Account.checkAndSignalForAccessToken();
+                if (submessage.share) {
+                    print('sharing', submessage.localPath);
+                    outstanding++;
+                    Window.shareSnapshot(submessage.localPath, submessage.href);
+                } else {
+                    print('not sharing', submessage.localPath);
                 }
+            });
+            if (!outstanding && shouldOpenFeedAfterShare()) {
+                showFeedWindow();
+            }
+            if (needsLogin) { // after the possible feed, so that the login is on top
+                Account.checkAndSignalForAccessToken();
+            }
         }
     }
     dialog.webEventReceived.connect(onMessage);
@@ -159,7 +146,7 @@ function isDomainOpen(id) {
     var url = location.metaverseServerUrl + "/api/v1/user_stories?" + options.join('&');
     request.open("GET", url, false);
     request.send();
-    if (request.status != 200) {
+    if (request.status !== 200) {
         return false;
     }
     var response = JSON.parse(request.response); // Not parsed for us.
@@ -228,9 +215,6 @@ Script.scriptEnding.connect(function () {
     buttonConnected = false;
     if (tablet) {
         tablet.removeButton(button);
-    }
-    if (toolBar) {
-        toolBar.removeButton(buttonName);
     }
     Window.snapshotShared.disconnect(snapshotShared);
     Window.processingGif.disconnect(processingGif);

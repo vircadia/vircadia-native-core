@@ -85,6 +85,10 @@ Fadable {
 
     function setDefaultFocus() {}  // Default function; can be overridden by dialogs.
 
+    function setShown(value) {
+        window.shown = value;
+    }
+
     property var rectifier: Timer {
         property bool executing: false;
         interval: 100
