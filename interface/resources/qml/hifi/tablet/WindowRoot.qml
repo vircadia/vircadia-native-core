@@ -1,7 +1,20 @@
+//
+//  WindowRoot.qml
+//
+//  Created by Anthony Thibault on 14 Feb 2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+//  This qml is used when tablet content is shown on the 2d overlay ui
+//  TODO: FIXME: this is practically identical to TabletRoot.qml
+
+import "../../windows" as Windows
 import QtQuick 2.0
 import Hifi 1.0
 
-Item {
+Windows.ScrollingWindow {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
@@ -10,11 +23,10 @@ Item {
     property var rootMenu;
     property string subMenu: ""
 
-    signal showDesktop();
+    shown: false
+    resizable: false
 
-    function setOption(value) {
-        option = value;
-    }
+    signal showDesktop();
 
     function setMenuProperties(rootMenu, subMenu) {
         tabletRoot.rootMenu = rootMenu;
@@ -68,8 +80,10 @@ Item {
         objectName: "loader"
         asynchronous: false
 
-        width: parent.width
-        height: parent.height
+        height: pane.scrollHeight
+        width: pane.contentWidth
+        anchors.left: parent.left
+        anchors.top: parent.top
 
         onLoaded: {
             if (loader.item.hasOwnProperty("eventBridge")) {
@@ -92,8 +106,6 @@ Item {
         }
     }
 
-    width: 480
-    height: 706
-
-    function setShown(value) {}
+    implicitWidth: 480
+    implicitHeight: 706
 }

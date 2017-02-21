@@ -10,11 +10,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global Toolbars, Script, Users, Overlays, AvatarList, Controller, Camera, getControllerWorldLocation */
-
+/* global Script, Users, Overlays, AvatarList, Controller, Camera, getControllerWorldLocation */
 
 (function () { // BEGIN LOCAL_SCOPE
-
     var button;
     // Used for animating and disappearing the bubble
     var bubbleOverlayTimestamp;
@@ -23,7 +21,7 @@
     // Used for flashing the HUD button upon activation
     var bubbleButtonTimestamp;
     // Affects bubble height
-    const BUBBLE_HEIGHT_SCALE = 0.15;
+    var BUBBLE_HEIGHT_SCALE = 0.15;
     // The bubble model itself
     var bubbleOverlay = Overlays.addOverlay("model", {
         url: Script.resolvePath("assets/models/Bubble-v14.fbx"), // If you'd like to change the model, modify this line (and the dimensions below)
@@ -39,16 +37,8 @@
     // Is the update() function connected?
     var updateConnected = false;
 
-    const BUBBLE_VISIBLE_DURATION_MS = 3000;
-    const BUBBLE_RAISE_ANIMATION_DURATION_MS = 750;
-    const BUBBLE_HUD_ICON_FLASH_INTERVAL_MS = 500;
-
-    var ASSETS_PATH = Script.resolvePath("assets");
-    var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
-
-    function buttonImageURL() {
-        return TOOLS_PATH + 'bubble.svg';
-    }
+    var BUBBLE_VISIBLE_DURATION_MS = 3000;
+    var BUBBLE_RAISE_ANIMATION_DURATION_MS = 750;
 
     // Hides the bubble model overlay and resets the button flash state
     function hideOverlays() {
@@ -94,7 +84,7 @@
     }
 
     // The bubble script's update function
-    update = function () {
+    function update() {
         var timestamp = Date.now();
         var delay = (timestamp - bubbleOverlayTimestamp);
         var overlayAlpha = 1.0 - (delay / BUBBLE_VISIBLE_DURATION_MS);
@@ -146,7 +136,7 @@
             var bubbleActive = Users.getIgnoreRadiusEnabled();
             writeButtonProperties(bubbleActive);
         }
-    };
+    }
 
     // When the space bubble is toggled...
     function onBubbleToggled() {
@@ -165,37 +155,25 @@
 
     // Setup the bubble button
     var buttonName = "BUBBLE";
-    if (Settings.getValue("HUDUIEnabled")) {
-        var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-        button = toolbar.addButton({
-            objectName: 'bubble',
-            imageURL: buttonImageURL(),
-            visible: true,
-            alpha: 0.9
-        });
-    } else {
-        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        button = tablet.addButton({
-            icon: "icons/tablet-icons/bubble-i.svg",
-            activeIcon: "icons/tablet-icons/bubble-a.svg",
-            text: buttonName,
-            sortOrder: 4
-        });
-    }
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        icon: "icons/tablet-icons/bubble-i.svg",
+        activeIcon: "icons/tablet-icons/bubble-a.svg",
+        text: buttonName,
+        sortOrder: 4
+    });
+
     onBubbleToggled();
 
     button.clicked.connect(Users.toggleIgnoreRadius);
     Users.ignoreRadiusEnabledChanged.connect(onBubbleToggled);
     Users.enteredIgnoreRadius.connect(enteredIgnoreRadius);
 
-    // Cleanup the toolbar button and overlays when script is stopped
+    // Cleanup the tablet button and overlays when script is stopped
     Script.scriptEnding.connect(function () {
         button.clicked.disconnect(Users.toggleIgnoreRadius);
         if (tablet) {
             tablet.removeButton(button);
-        }
-        if (toolbar) {
-            toolbar.removeButton('bubble');
         }
         Users.ignoreRadiusEnabledChanged.disconnect(onBubbleToggled);
         Users.enteredIgnoreRadius.disconnect(enteredIgnoreRadius);
