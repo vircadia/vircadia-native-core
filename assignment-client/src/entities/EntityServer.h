@@ -67,6 +67,7 @@ public slots:
 
 protected:
     virtual OctreePointer createTree() override;
+    virtual UniqueSendThread newSendThread(const SharedNodePointer& node) override;
 
 private slots:
     void handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
