@@ -148,16 +148,6 @@ float AvatarManager::getAvatarSimulationRate(const QUuid& sessionID, const QStri
 }
 
 
-
-class AvatarPriority {
-public:
-    AvatarPriority(AvatarSharedPointer a, float p) : avatar(a), priority(p) {}
-    AvatarSharedPointer avatar;
-    float priority;
-    // NOTE: we invert the less-than operator to sort high priorities to front
-    bool operator<(const AvatarPriority& other) const { return priority > other.priority; }
-};
-
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
@@ -173,57 +163,31 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     QList<AvatarSharedPointer> avatarList = avatarMap.values();
     ViewFrustum cameraView;
     qApp->copyDisplayViewFrustum(cameraView);
-    glm::vec3 frustumCenter = cameraView.getPosition();
 
-    const float OUT_OF_VIEW_PENALTY = -10.0;
+    std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
+        avatarList, cameraView,
 
-    std::priority_queue<AvatarPriority> sortedAvatars;
-    {
-        PROFILE_RANGE(simulation, "sort");
-        for (int32_t i = 0; i < avatarList.size(); ++i) {
-            const auto& avatar = std::static_pointer_cast<Avatar>(avatarList.at(i));
-            if (avatar == _myAvatar || !avatar->isInitialized()) {
+        [](AvatarSharedPointer avatar)->uint64_t{
+            return std::static_pointer_cast<Avatar>(avatar)->getLastRenderUpdateTime();
+        },
+
+        [this](AvatarSharedPointer avatar)->bool{
+            const auto& castedAvatar = std::static_pointer_cast<Avatar>(avatar);
+            if (castedAvatar == _myAvatar || !castedAvatar->isInitialized()) {
                 // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
                 // DO NOT update or fade out uninitialized Avatars
-                continue;
+                return true; // ignore it
             }
             if (avatar->shouldDie()) {
                 removeAvatar(avatar->getID());
-                continue;
+                return true; // ignore it
             }
             if (avatar->isDead()) {
-                continue;
+                return true; // ignore it
             }
 
-            // priority = weighted linear combination of:
-            //   (a) apparentSize
-            //   (b) proximity to center of view
-            //   (c) time since last update
-            //   (d) TIME_PENALTY to help recently updated entries sort toward back
-            glm::vec3 avatarPosition = avatar->getPosition();
-            glm::vec3 offset = avatarPosition - frustumCenter;
-            float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-            float radius = avatar->getBoundingRadius();
-            const glm::vec3& forward = cameraView.getDirection();
-            float apparentSize = radius / distance;
-            float cosineAngle = glm::length(offset - glm::dot(offset, forward) * forward) / distance;
-            const float TIME_PENALTY = 0.080f; // seconds
-            float age = (float)(startTime - avatar->getLastRenderUpdateTime()) / (float)(USECS_PER_SECOND) - TIME_PENALTY;
-            // NOTE: we are adding values of different units to get a single measure of "priority".
-            // Thus we multiply each component by a conversion "weight" that scales its units
-            // relative to the others.  These weights are pure magic tuning and are hard coded in the
-            // relation below: (hint: unitary weights are not explicityly shown)
-            float priority = apparentSize + 0.25f * cosineAngle + age;
-
-            // decrement priority of avatars outside keyhole
-            if (distance > cameraView.getCenterRadius()) {
-                if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
-                    priority += OUT_OF_VIEW_PENALTY;
-                }
-            }
-            sortedAvatars.push(AvatarPriority(avatar, priority));
-        }
-    }
+            return false;
+        });
 
     render::PendingChanges pendingChanges;
     const uint64_t RENDER_UPDATE_BUDGET = 1500; // usec
@@ -256,7 +220,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         uint64_t now = usecTimestampNow();
         if (now < renderExpiry) {
             // we're within budget
-            const float OUT_OF_VIEW_THRESHOLD = 0.5f * OUT_OF_VIEW_PENALTY;
+            const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
             bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(pendingChanges);

@@ -178,7 +178,6 @@ public:
     uint64_t getLastRenderUpdateTime() const { return _lastRenderUpdateTime; }
     void setLastRenderUpdateTime(uint64_t time) { _lastRenderUpdateTime = time; }
 
-    bool shouldDie() const;
     void animateScaleChanges(float deltaTime);
     void setTargetScale(float targetScale) override;
 

@@ -14,6 +14,8 @@
 
 #include <string>
 #include <memory>
+#include <queue>
+
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
 typedef signed char  int8_t;
@@ -57,6 +59,7 @@ typedef unsigned long long quint64;
 #include <ThreadSafeValueCache.h>
 #include <SharedUtil.h>
 #include <shared/RateCounter.h>
+#include <ViewFrustum.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -304,6 +307,14 @@ public:
     RateCounter<> jointDataRate;
 };
 
+class AvatarPriority {
+public:
+    AvatarPriority(AvatarSharedPointer a, float p) : avatar(a), priority(p) {}
+    AvatarSharedPointer avatar;
+    float priority;
+    // NOTE: we invert the less-than operator to sort high priorities to front
+    bool operator<(const AvatarPriority& other) const { return priority < other.priority; }
+};
 
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
@@ -539,7 +550,7 @@ public:
 
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
-    const AABox& getLocalAABox() const { return _localAABox; }
+    //const AABox& getLocalAABox() const { return _localAABox; }
 
     int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
@@ -576,6 +587,20 @@ public:
         _lastSentJointData.resize(_jointData.size());
         return _lastSentJointData;
     }
+
+
+    bool shouldDie() const {
+        const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
+        return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS;
+    }
+
+    static const float OUT_OF_VIEW_PENALTY;
+
+    static std::priority_queue<AvatarPriority> sortAvatars(
+        QList<AvatarSharedPointer> avatarList,
+        const ViewFrustum& cameraView,
+        std::function<uint64_t(AvatarSharedPointer)> lastUpdated,
+        std::function<bool(AvatarSharedPointer)> shouldIgnore);
 
 
 public slots:

@@ -74,14 +74,22 @@ bool AvatarMixerClientData::checkAndSetHasReceivedFirstPacketsFrom(const QUuid& 
     return true;
 }
 
+uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) const {
+    // return the matching PacketSequenceNumber, or the default if we don't have it
+    auto nodeMatch = _lastBroadcastTimes.find(nodeUUID);
+    if (nodeMatch != _lastBroadcastTimes.end()) {
+        return nodeMatch->second;
+    }
+    return 0;
+}
+
 uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
     auto nodeMatch = _lastBroadcastSequenceNumbers.find(nodeUUID);
     if (nodeMatch != _lastBroadcastSequenceNumbers.end()) {
         return nodeMatch->second;
-    } else {
-        return 0;
     }
+    return 0;
 }
 
 void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {

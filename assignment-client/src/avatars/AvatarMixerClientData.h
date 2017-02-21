@@ -43,6 +43,7 @@ public:
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
     const AvatarData* getConstAvatarData() const { return _avatar.get(); }
+    AvatarSharedPointer getAvatarSharedPointer() const { return _avatar; }
 
     bool checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid);
 
@@ -50,6 +51,12 @@ public:
     void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, uint16_t sequenceNumber)
         { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
     Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
+
+    uint64_t getLastBroadcastTime(const QUuid& nodeUUID) const;
+    void setLastBroadcastTime(const QUuid& nodeUUID, uint64_t broadcastTime) {
+        _lastBroadcastTimes[nodeUUID] = broadcastTime;
+    }
+    Q_INVOKABLE void removeLastBroadcastTime(const QUuid& nodeUUID) { _lastBroadcastTimes.erase(nodeUUID); }
 
     uint16_t getLastReceivedSequenceNumber() const { return _lastReceivedSequenceNumber; }
 
@@ -106,6 +113,9 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
+    ViewFrustum getViewFrustom() const { return _currentViewFrustum; }
+
+
     quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
         quint64 result = 0;
         if (_lastOtherAvatarEncodeTime.find(otherAvatar) != _lastOtherAvatarEncodeTime.end()) {
@@ -134,6 +144,7 @@ private:
     uint16_t _lastReceivedSequenceNumber { 0 };
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
+    std::unordered_map<QUuid, uint64_t> _lastBroadcastTimes;
 
     // this is a map of the last time we encoded an "other" avatar for
     // sending to "this" node

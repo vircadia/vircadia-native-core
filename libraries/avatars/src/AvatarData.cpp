@@ -36,6 +36,7 @@
 #include <shared/JSONHelpers.h>
 #include <ShapeInfo.h>
 #include <AudioHelpers.h>
+#include <Profile.h>
 
 #include "AvatarLogging.h"
 
@@ -2308,4 +2309,66 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
+}
+
+const float AvatarData::OUT_OF_VIEW_PENALTY = -10.0f;
+
+std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
+    QList<AvatarSharedPointer> avatarList,
+    const ViewFrustum& cameraView,
+    std::function<uint64_t(AvatarSharedPointer)> lastUpdated,
+    std::function<bool(AvatarSharedPointer)> shouldIgnore) {
+
+    uint64_t startTime = usecTimestampNow();
+
+    glm::vec3 frustumCenter = cameraView.getPosition();
+
+    std::priority_queue<AvatarPriority> sortedAvatars;
+    {
+        PROFILE_RANGE(simulation, "sort");
+        for (int32_t i = 0; i < avatarList.size(); ++i) {
+            const auto& avatar = avatarList.at(i);
+
+            // FIXME - probably some lambda that allows the caller to reject some avatars
+
+            if (shouldIgnore(avatar)) {
+                continue;
+            }
+
+            // priority = weighted linear combination of:
+            //   (a) apparentSize
+            //   (b) proximity to center of view
+            //   (c) time since last update
+            //   (d) TIME_PENALTY to help recently updated entries sort toward back
+            glm::vec3 avatarPosition = avatar->getPosition();
+            glm::vec3 offset = avatarPosition - frustumCenter;
+            float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
+
+            // FIXME - AvatarData has something equivolent to this
+            float radius = 1.0f; // avatar->getBoundingRadius();
+
+            const glm::vec3& forward = cameraView.getDirection();
+            float apparentSize = radius / distance;
+            float cosineAngle = glm::length(glm::dot(offset, forward) * forward) / distance;
+
+            // FIXME - probably some lambda that allows the caller to specify the "updated since"
+            uint64_t lastUpdatedTime = lastUpdated(avatar); // avatar->getLastRenderUpdateTime()
+            float age = (float)(startTime - lastUpdatedTime) / (float)(USECS_PER_SECOND);
+
+            // NOTE: we are adding values of different units to get a single measure of "priority".
+            // Thus we multiply each component by a conversion "weight" that scales its units
+            // relative to the others.  These weights are pure magic tuning and are hard coded in the
+            // relation below: (hint: unitary weights are not explicityly shown)
+            float priority = apparentSize + 0.25f * cosineAngle + age;
+
+            // decrement priority of avatars outside keyhole
+            if (distance > cameraView.getCenterRadius()) {
+                if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
+                    priority += OUT_OF_VIEW_PENALTY;
+                }
+            }
+            sortedAvatars.push(AvatarPriority(avatar, priority));
+        }
+    }
+    return sortedAvatars;
 }

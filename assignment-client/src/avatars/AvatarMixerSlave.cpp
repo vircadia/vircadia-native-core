@@ -187,9 +187,75 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // setup a PacketList for the avatarPackets
         auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
+
+        QList<AvatarSharedPointer> avatarList;
+        std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
+
+        //qDebug() << "------------------------------";
+        int listItem = 0;
+        std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
+            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
+            if (otherNodeData) {
+                listItem++;
+                AvatarSharedPointer otherAvatar = otherNodeData->getAvatarSharedPointer();
+                avatarList << otherAvatar;
+                avatarDataToNodes[otherAvatar] = otherNode;
+                /*
+                qDebug() << "listItem [" << listItem << "] " 
+                        << "otherNode:" << otherNode.data()
+                        << "otherNode->getUUID():" << otherNode->getUUID() 
+                        << "otherNodeData:" << otherNodeData
+                        << "otherAvatar:" << otherAvatar.get();
+
+                qDebug() << "avatarDataToNodes[" << otherAvatar.get() << "]=" << otherNode.data();
+                */
+            }
+
+        });
+        /*
+        qDebug() << "------------------------------";
+        qDebug() << "avatarList.size:" << avatarList.size();
+        qDebug() << "avatarDataToNodes.size:" << avatarDataToNodes.size();
+        */
+
+        ViewFrustum cameraView = nodeData->getViewFrustom();
+        std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
+                avatarList, cameraView,
+
+                [&](AvatarSharedPointer avatar)->uint64_t{
+                    auto avatarNode = avatarDataToNodes[avatar];
+                    if (avatarNode) {
+                        return nodeData->getLastBroadcastTime(avatarNode->getUUID());
+                    }
+                    return 0; // ???
+                },
+
+                [this](AvatarSharedPointer avatar)->bool{
+                    // FIXME -- when to ignore this node
+                    return false;
+                });
+
+
         // this is an AGENT we have received head data from
         // send back a packet with other active node data to this node
-        std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
+        //std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
+
+        int avatarRank = 0;
+        while (!sortedAvatars.empty()) {
+            AvatarPriority sortData = sortedAvatars.top();
+            sortedAvatars.pop();
+            const auto& avatarData = sortData.avatar;
+            avatarRank++;
+
+            auto otherNode = avatarDataToNodes[avatarData];
+
+            //qDebug() << "otherNode (" << otherNode.data() << ")= avatarDataToNodes[" << avatarData.get() << "]";
+
+            if (!otherNode) {
+                //qDebug() << "For viewer:" << node->getUUID() << "... process other avatar [" << avatarRank << ":" << avatarData.get() << "... otherNode unknown!!";
+                continue;
+            }
+            //qDebug() << "For viewer:" << node->getUUID() << "... process other avatar [" << avatarRank << "] avatarData: " << avatarData.get() << " otherNode:" << otherNode->getUUID() << " ... ";
 
             bool shouldConsider = false;
             quint64 startIgnoreCalculation = usecTimestampNow();
@@ -286,7 +352,8 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 //       are out of view, this also appears to disable this random distribution.
                 if (distanceToAvatar != 0.0f
                     && !getsOutOfView
-                    && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
+                    //  -- && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar) /// FIX ME... no longer doing random
+                ) {
 
                     quint64 endAvatarDataPacking = usecTimestampNow();
                     _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
@@ -395,6 +462,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                                     nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
                                         otherNodeData->getLastReceivedSequenceNumber());
 
+                                    // remember the last time we sent details about this other node to the receiver
+                                    nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
+
                                 }
                             }
 
@@ -406,7 +476,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     }
                 }
             }
-        });
+        };
 
         quint64 startPacketSending = usecTimestampNow();
 
