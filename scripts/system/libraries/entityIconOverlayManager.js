@@ -19,9 +19,16 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
         for (var id in entityIDs) {
             var entityID = entityIDs[id];
             var properties = Entities.getEntityProperties(entityID);
-            Overlays.editOverlay(entityOverlays[entityID], {
+            var overlayProperties = {
                 position: properties.position
-            });
+            };
+            if (getOverlayPropertiesFunc) {
+                var customProperties = getOverlayPropertiesFunc(entityID, properties);
+                for (var key in customProperties) {
+                    overlayProperties[key] = customProperties[key];
+                }
+            }
+            Overlays.editOverlay(entityOverlays[entityID], overlayProperties);
         }
     };
 
