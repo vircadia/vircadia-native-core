@@ -308,6 +308,7 @@ Rectangle {
     }
     // Refresh button
     Rectangle {
+        id: reload
         // Size
         width: hifi.dimensions.tableHeaderHeight-1
         height: hifi.dimensions.tableHeaderHeight-1
@@ -338,13 +339,38 @@ Rectangle {
             // So use onPressed instead of onClicked
             onPressed: {
                 reloadButton.color = hifi.colors.lightGrayText
-                pal.sendToScript({method: 'refresh'})
+                pal.sendToScript({method: 'refresh', params: {filter: false}}) // fixme re filter
             }
             onReleased: reloadButton.color = (containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray)
             onEntered: reloadButton.color = hifi.colors.baseGrayHighlight
             onExited: reloadButton.color = (pressed ?  hifi.colors.lightGrayText: hifi.colors.darkGray)
         }
     }
+    HiFiGlyphs {
+        id: filter
+        width: hifi.dimensions.tableHeaderHeight - 1
+        height: filter.width
+        text: "\ue007"
+        size: filter.width
+        color: hifi.colors.darkGray
+        anchors {
+            left: reload.right
+            leftMargin: 4
+            top: reload.top
+        }
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            onPressed: {
+                filter.color = hifi.colors.lightGrayText
+                pal.sendToScript({method: 'refresh', params: {filter: {distance: 30}}})
+            }
+            onReleased: filter.color = (containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray)
+            onEntered: filter.color = hifi.colors.baseGrayHighlight
+            onExited: filter.color = (pressed ? hifi.colors.lightGrayText : hifi.colors.darkGray)
+        }
+    }
+
     // Separator between user and admin functions
     Rectangle {
         // Size
@@ -501,7 +527,7 @@ Rectangle {
                 if (alreadyRefreshed === true) {
                     letterbox('', '', 'The last editor of this object is either you or not among this list of users.');
                 } else {
-                    pal.sendToScript({method: 'refresh', params: message.params});
+                    pal.sendToScript({method: 'refresh', params: {selected: message.params}});
                 }
             } else {
                 // If we've already refreshed the PAL and found the avatar in the model

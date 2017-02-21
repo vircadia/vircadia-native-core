@@ -33,6 +33,15 @@ var conserveResources = true;
 
 Script.include("/~/system/libraries/controllers.js");
 
+function projectVectorOntoPlane(normalizedVector, planeNormal) {
+    return Vec3.cross(planeNormal, Vec3.cross(normalizedVector, planeNormal));
+}
+function angleBetweenVectorsInPlane(from, to, normal) {
+    var projectedFrom = projectVectorOntoPlane(from, normal);
+    var projectedTo = projectVectorOntoPlane(to, normal);
+    return Vec3.orientedAngle(projectedFrom, projectedTo, normal);
+}
+
 //
 // Overlays.
 //
@@ -234,7 +243,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'refresh':
         removeOverlays();
-        populateUserList(message.params);
+        populateUserList(message.params.selected, message.params.filter);
         UserActivityLogger.palAction("refresh", "");
         break;
     case 'updateGain':
@@ -280,13 +289,48 @@ function addAvatarNode(id) {
         color: color(selected, false, 0.0),
         ignoreRayIntersection: false}, selected, !conserveResources);
 }
-function populateUserList(selectData) {
+var filter = false;
+// Each open/refresh will capture a stable set of avatarsOfInterest, within the specified filter.
+var avatarsOfInterest = {};
+function populateUserList(selectData, filterRequest) {
+    if (filterRequest !== undefined) {
+        filter = filterRequest;
+    }
     var data = [], avatars = AvatarList.getAvatarIdentifiers();
-    conserveResources = avatars.length > 20;
+    avatarsOfInterest = {};
+    var myPosition = filter && Camera.position,
+        frustum = filter && Camera.frustum,
+        verticalHalfAngle = filter && (frustum.fieldOfView / 2),
+        horizontalHalfAngle = filter && (verticalHalfAngle * frustum.aspectRatio),
+        orientation = filter && Camera.orientation,
+        front = filter && Quat.getFront(orientation),
+        verticalAngleNormal = filter && Quat.getRight(orientation),
+        horizontalAngleNormal = filter && Quat.getUp(orientation);
+    print('fixme h/v...myPosition', horizontalHalfAngle, verticalHalfAngle, JSON.stringify(horizontalAngleNormal), JSON.stringify(verticalAngleNormal), JSON.stringify(myPosition));
     avatars.forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
+        var name = avatar.sessionDisplayName;
+        if (!name) {
+            // Either we got a data packet but no identity yet, or something is really messed up. In any case,
+            // we won't be able to do anything with this user, so don't include them.
+            // In normal circumstances, a refresh will bring in the new user, but if we're very heavily loaded,
+            // we could be losing and gaining people randomly.
+            print('No avatar identity data for', id);
+            return;
+        }
+        if (id && myPosition && (Vec3.distance(avatar.position, myPosition) > filter.distance)) {
+            return;
+        }
+        var normal = id && filter && Vec3.normalize(Vec3.subtract(avatar.position, myPosition));
+        var horizontal = normal && angleBetweenVectorsInPlane(normal, front, horizontalAngleNormal);
+        var vertical = normal && angleBetweenVectorsInPlane(normal, front, verticalAngleNormal);
+        print('fixme id/h/v/pos/norm', id, horizontal, vertical, JSON.stringify(avatar.position), JSON.stringify(normal));
+        if (id && filter && ((Math.abs(horizontal) > horizontalHalfAngle) || (Math.abs(vertical) > verticalHalfAngle))) {
+            print('fixme skip out of angle');
+            return;
+        }
         var avatarPalDatum = {
-            displayName: avatar.sessionDisplayName,
+            displayName: name,
             userName: '',
             sessionId: id || '',
             audioLevel: 0.0,
@@ -298,10 +342,13 @@ function populateUserList(selectData) {
             addAvatarNode(id); // No overlay for ourselves
             // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
             Users.requestUsernameFromID(id);
+            avatarsOfInterest[id] = true;
         }
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
+    print('fixme avatarsOfInterest', JSON.stringify(avatarsOfInterest));
+    conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'users', params: data });
     if (selectData) {
         selectData[2] = true;
@@ -326,11 +373,13 @@ var pingPong = true;
 function updateOverlays() {
     var eye = Camera.position;
     AvatarList.getAvatarIdentifiers().forEach(function (id) {
-        if (!id) {
-            return; // don't update ourself
+        if (!id || !avatarsOfInterest[id]) {
+            if (id) print('fixme not updating', id, Object.keys(avatarsOfInterest).length);
+            return; // don't update ourself, or avatars we're not interested in
         }
         var avatar = AvatarList.getAvatar(id);
         if (!avatar) {
+            print('fixme not updating missing avatar', id);
             return; // will be deleted below if there had been an overlay.
         }
         var overlay = ExtendedOverlay.get(id);
@@ -517,6 +566,7 @@ function off() {
     triggerMapping.disable(); // It's ok if we disable twice.
     triggerPressMapping.disable(); // see above
     removeOverlays();
+    print('fixme clear requestsDomainListData');
     Users.requestsDomainListData = false;
 }
 function onClicked() {
@@ -538,6 +588,7 @@ function onClicked() {
         pal.setVisible(!pal.visible);
     } else {
         tablet.loadQMLSource("../Pal.qml");
+        print('fixme setting requestsDomainListData');
         Users.requestsDomainListData = true;
         populateUserList();
         isWired = true;

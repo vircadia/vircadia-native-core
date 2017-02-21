@@ -182,7 +182,7 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
 
 void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     qCDebug(avatars) << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
-        << "from AvatarHashMap";
+        << "from AvatarHashMap" << removalReason;
     emit avatarRemovedEvent(removedAvatar->getSessionUUID());
 }
 

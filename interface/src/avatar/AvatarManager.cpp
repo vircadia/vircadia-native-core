@@ -85,7 +85,7 @@ AvatarManager::AvatarManager(QObject* parent) :
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
     connect(nodeList.data(), &NodeList::ignoredNode, this, [=](const QUuid& nodeID, bool enabled) {
         if (enabled) {
-            removeAvatar(nodeID);
+            removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
         }
     });
 }
