@@ -52,6 +52,9 @@ Rectangle {
         letterboxMessage.visible = true
         letterboxMessage.popupRadius = 0
     }
+    function refreshWithFilter() {
+        pal.sendToScript({method: 'refresh', params: {filter: filter.checked && {distance: 30}}})
+    }
 
     // This is the container for the PAL
     Rectangle {
@@ -93,7 +96,26 @@ Rectangle {
             // Anchors
             anchors.left: parent.left
         }
-    }
+        Row {
+            HifiControls.CheckBox {
+                id: filter
+                text: "in view"
+                boxSize: reload.height
+                onCheckedChanged: refreshWithFilter()
+            }
+            HifiControls.GlyphButton {
+                id: reload
+                glyph: hifi.glyphs.reload
+                width: reload.height
+                onClicked: refreshWithFilter()
+            }
+            spacing: 40
+            anchors {
+                right: parent.right
+                top: parent.top
+                topMargin: 10
+            }
+        }
     // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
     Rectangle {
         color: pal.color
@@ -304,70 +326,6 @@ Rectangle {
                                    : hifi.buttons.disabledTextColor[actionButton.colorScheme]
                 }
             }
-        }
-    }
-    // Refresh button
-    Rectangle {
-        id: reload
-        // Size
-        width: hifi.dimensions.tableHeaderHeight-1
-        height: hifi.dimensions.tableHeaderHeight-1
-        // Anchors
-        anchors.left: table.left
-        anchors.leftMargin: 4
-        anchors.top: table.top
-        // Style
-        color: hifi.colors.tableBackgroundLight
-        // Actual refresh icon
-        HiFiGlyphs {
-            id: reloadButton
-            text: hifi.glyphs.reloadSmall
-            // Size
-            size: parent.width*1.5
-            // Anchors
-            anchors.fill: parent
-            // Style
-            horizontalAlignment: Text.AlignHCenter
-            color: hifi.colors.darkGray
-        }
-        MouseArea {
-            id: reloadButtonArea
-            // Anchors
-            anchors.fill: parent
-            hoverEnabled: true
-            // Everyone likes a responsive refresh button!
-            // So use onPressed instead of onClicked
-            onPressed: {
-                reloadButton.color = hifi.colors.lightGrayText
-                pal.sendToScript({method: 'refresh', params: {filter: false}}) // fixme re filter
-            }
-            onReleased: reloadButton.color = (containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray)
-            onEntered: reloadButton.color = hifi.colors.baseGrayHighlight
-            onExited: reloadButton.color = (pressed ?  hifi.colors.lightGrayText: hifi.colors.darkGray)
-        }
-    }
-    HiFiGlyphs {
-        id: filter
-        width: hifi.dimensions.tableHeaderHeight - 1
-        height: filter.width
-        text: "\ue007"
-        size: filter.width
-        color: hifi.colors.darkGray
-        anchors {
-            left: reload.right
-            leftMargin: 4
-            top: reload.top
-        }
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            onPressed: {
-                filter.color = hifi.colors.lightGrayText
-                pal.sendToScript({method: 'refresh', params: {filter: {distance: 30}}})
-            }
-            onReleased: filter.color = (containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray)
-            onEntered: filter.color = hifi.colors.baseGrayHighlight
-            onExited: filter.color = (pressed ? hifi.colors.lightGrayText : hifi.colors.darkGray)
         }
     }
 
