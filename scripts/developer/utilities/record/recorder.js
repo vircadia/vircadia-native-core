@@ -1,4 +1,3 @@
-debugger;
 //
 //  Recorder.js
 //  examples
