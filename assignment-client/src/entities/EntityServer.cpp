@@ -17,10 +17,11 @@
 #include <ScriptCache.h>
 #include <EntityEditFilters.h>
 
+#include "AssignmentParentFinder.h"
+#include "EntityNodeData.h"
 #include "EntityServer.h"
 #include "EntityServerConsts.h"
-#include "EntityNodeData.h"
-#include "AssignmentParentFinder.h"
+#include "EntityTreeSendThread.h"
 
 const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
@@ -75,6 +76,10 @@ OctreePointer EntityServer::createTree() {
     DependencyManager::set<EntityEditFilters>(std::static_pointer_cast<EntityTree>(tree));
 
     return tree;
+}
+
+OctreeServer::UniqueSendThread EntityServer::newSendThread(const SharedNodePointer& node) {
+    return std::unique_ptr<EntityTreeSendThread>(new EntityTreeSendThread(this, node));
 }
 
 void EntityServer::beforeRun() {

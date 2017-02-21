@@ -207,7 +207,8 @@ const PacketVersion VERSION_ENTITIES_PHYSICS_PACKET = 67;
 const PacketVersion VERSION_ENTITIES_ZONE_FILTERS = 68;
 
 enum class EntityQueryPacketVersion: PacketVersion {
-    JsonFilter = 18
+    JSONFilter = 18,
+    JSONFilterWithFamilyTree = 19
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
