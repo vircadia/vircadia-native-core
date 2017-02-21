@@ -17,9 +17,7 @@ namespace ktx {
     class ReaderException: public std::exception {
     public:
         ReaderException(const std::string& explanation) : _explanation("KTX deserialization error: " + explanation) {}
-        const char* what() const override {
-            return _explanation.c_str();
-        }
+        const char* what() const noexcept override { return _explanation.c_str(); }
     private:
         const std::string _explanation;
     };
