@@ -129,10 +129,11 @@ Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx
     tex->setUsage(usage);
 
     // Assing the mips availables
+    tex->setStoredMipFormat(mipFormat);
     uint16_t level = 0;
     for (auto& image : srcData->_images) {
         for (uint32_t face = 0; face < image._numFaces; face++) {
-            tex->assignStoredMipFace(level, mipFormat, image._faceSize, image._faceBytes[face], face);
+            tex->assignStoredMipFace(level, face, image._faceSize, image._faceBytes[face]);
         }
         level++;
     }
