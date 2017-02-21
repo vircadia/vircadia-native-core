@@ -33,13 +33,27 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "particle_explorer/particleExplorerTool.js",
-    "libraries/lightOverlayManager.js"
+    "libraries/entityIconOverlayManager.js"
 ]);
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
 
-var lightOverlayManager = new LightOverlayManager();
+const PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
+const POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
+const SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
+var lightOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
+    var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
+    if (properties.type === 'Light') {
+        return {
+            url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
+        }
+    } else {
+        return {
+            url: PARTICLE_SYSTEM_URL,
+        }
+    }
+});
 
 var cameraManager = new CameraManager();
 

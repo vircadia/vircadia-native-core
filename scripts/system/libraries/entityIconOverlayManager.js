@@ -1,7 +1,4 @@
-var POINT_LIGHT_URL = "http://s3.amazonaws.com/hifi-public/images/tools/point-light.svg";
-var SPOT_LIGHT_URL = "http://s3.amazonaws.com/hifi-public/images/tools/spot-light.svg";
-
-LightOverlayManager = function() {
+EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
     var self = this;
 
     var visible = false;
@@ -79,24 +76,33 @@ LightOverlayManager = function() {
     }
 
     function addEntity(entityID) {
-        var properties = Entities.getEntityProperties(entityID);
-        if (properties.type == "Light" && !(entityID in entityOverlays)) {
+        var properties = Entities.getEntityProperties(entityID, ['position', 'type']);
+        if (entityTypes.indexOf(properties.type) > -1 && !(entityID in entityOverlays)) {
             var overlay = getOverlay();
             entityOverlays[entityID] = overlay;
             entityIDs[entityID] = entityID;
-            Overlays.editOverlay(overlay, {
+            var overlayProperties = {
                 position: properties.position,
-                url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
                 rotation: Quat.fromPitchYawRollDegrees(0, 0, 270),
                 visible: visible,
                 alpha: 0.9,
                 scale: 0.5,
+                drawInFront: true,
+                isFacingAvatar: true,
                 color: {
                     red: 255,
                     green: 255,
                     blue: 255
                 }
-            });
+            };
+            if (getOverlayPropertiesFunc) {
+                var customProperties = getOverlayPropertiesFunc(entityID, properties);
+                for (var key in customProperties) {
+                    overlayProperties[key] = customProperties[key];
+                }
+            }
+            print("overlay:", properties.type, JSON.stringify(overlayProperties));
+            Overlays.editOverlay(overlay, overlayProperties);
         }
     }
 
