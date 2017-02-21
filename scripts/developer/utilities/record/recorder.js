@@ -1,3 +1,4 @@
+debugger;
 //
 //  Recorder.js
 //  examples
@@ -12,14 +13,14 @@
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 Script.include("/~/system/libraries/toolBars.js");
 
-var recordingFile = "recording.rec";
+var recordingFile = "recording.hfr";
 
 function setPlayerOptions() {
     Recording.setPlayFromCurrentLocation(true);
     Recording.setPlayerUseDisplayName(false);
     Recording.setPlayerUseAttachments(false);
     Recording.setPlayerUseHeadModel(false);
-    Recording.setPlayerUseSkeletonModel(false);
+    Recording.setPlayerUseSkeletonModel(true);
 }
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -142,7 +143,6 @@ function setupTimer() {
         backgroundAlpha: 1.0,
         visible: true
     });
-
 }
 
 function updateTimer() {
@@ -272,7 +272,7 @@ function mousePressEvent(event) {
         }
     } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
         if (!Recording.isRecording() && !Recording.isPlaying()) {
-            recordingFile = Window.browse("Load recorcding from file", ".", "Recordings (*.hfr *.rec *.HFR *.REC)");
+            recordingFile = Window.browse("Load recording from file", ".", "Recordings (*.hfr *.rec *.HFR *.REC)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
                 Recording.loadRecording(recordingFile);
             }
@@ -345,5 +345,3 @@ Script.scriptEnding.connect(scriptEnding);
 
 // Should be called last to put everything into position
 moveUI();
-
-

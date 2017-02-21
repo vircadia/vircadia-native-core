@@ -39,13 +39,10 @@
 #include <plugins/CodecPlugin.h>
 #include <plugins/PluginManager.h>
 #include <udt/PacketHeaders.h>
-#include <PositionalAudioStream.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
-#include <UUID.h>
 #include <Transform.h>
 
-#include "PositionalAudioStream.h"
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 
@@ -151,17 +148,17 @@ static inline float convertToFloat(int16_t sample) {
 AudioClient::AudioClient() :
     AbstractAudioInterface(),
     _gate(this),
-    _audioInput(NULL),
+    _audioInput(nullptr),
     _desiredInputFormat(),
     _inputFormat(),
     _numInputCallbackBytes(0),
-    _audioOutput(NULL),
+    _audioOutput(nullptr),
     _desiredOutputFormat(),
     _outputFormat(),
     _outputFrameSize(0),
     _numOutputCallbackBytes(0),
-    _loopbackAudioOutput(NULL),
-    _loopbackOutputDevice(NULL),
+    _loopbackAudioOutput(nullptr),
+    _loopbackOutputDevice(nullptr),
     _inputRingBuffer(0),
     _localInjectorsStream(0),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
@@ -179,9 +176,9 @@ AudioClient::AudioClient() :
     _isNoiseGateEnabled(true),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
-    _inputToNetworkResampler(NULL),
-    _networkToOutputResampler(NULL),
-    _localToOutputResampler(NULL),
+    _inputToNetworkResampler(nullptr),
+    _networkToOutputResampler(nullptr),
+    _localToOutputResampler(nullptr),
     _localAudioThread(this),
     _audioLimiter(AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT),
     _outgoingAvatarAudioSequenceNumber(0),
@@ -294,12 +291,12 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
     IPropertyStore* pPropertyStore;
     pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
     pEndpoint->Release();
-    pEndpoint = NULL;
+    pEndpoint = nullptr;
     PROPVARIANT pv;
     PropVariantInit(&pv);
     HRESULT hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
     pPropertyStore->Release();
-    pPropertyStore = NULL;
+    pPropertyStore = nullptr;
     deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
     if (!IsWindows8OrGreater()) {
         // Windows 7 provides only the 31 first characters of the device name.
@@ -313,9 +310,9 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
 QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
     QString deviceName;
     HRESULT hr = S_OK;
-    CoInitialize(NULL);
-    IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
-    CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+    CoInitialize(nullptr);
+    IMMDeviceEnumerator* pMMDeviceEnumerator = nullptr;
+    CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
     IMMDevice* pEndpoint;
     hr = pMMDeviceEnumerator->GetDevice(guid, &pEndpoint);
     if (hr == E_NOTFOUND) {
@@ -325,7 +322,7 @@ QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
         deviceName = ::friendlyNameForAudioDevice(pEndpoint);
     }
     pMMDeviceEnumerator->Release();
-    pMMDeviceEnumerator = NULL;
+    pMMDeviceEnumerator = nullptr;
     CoUninitialize();
     return deviceName;
 }
@@ -396,9 +393,9 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         }
     } else {
         HRESULT hr = S_OK;
-        CoInitialize(NULL);
-        IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
-        CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+        CoInitialize(nullptr);
+        IMMDeviceEnumerator* pMMDeviceEnumerator = nullptr;
+        CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
         IMMDevice* pEndpoint;
         hr = pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
         if (hr == E_NOTFOUND) {
@@ -408,7 +405,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             deviceName = friendlyNameForAudioDevice(pEndpoint);
         }
         pMMDeviceEnumerator->Release();
-        pMMDeviceEnumerator = NULL;
+        pMMDeviceEnumerator = nullptr;
         CoUninitialize();
     }
 
@@ -968,8 +965,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
-
-    if (!_inputDevice) {
+    if (!_inputDevice || _playingBackRecording) {
         return;
     }
 
@@ -1358,10 +1354,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         // That in turn causes it to be disconnected (see for example
         // http://stackoverflow.com/questions/9264750/qt-signals-and-slots-object-disconnect).
         _audioInput->stop();
-        _inputDevice = NULL;
+        _inputDevice = nullptr;
 
         delete _audioInput;
-        _audioInput = NULL;
+        _audioInput = nullptr;
         _numInputCallbackBytes = 0;
 
         _inputAudioDeviceName = "";
@@ -1370,7 +1366,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
     if (_inputToNetworkResampler) {
         // if we were using an input to network resampler, delete it here
         delete _inputToNetworkResampler;
-        _inputToNetworkResampler = NULL;
+        _inputToNetworkResampler = nullptr;
     }
 
     if (!inputDeviceInfo.isNull()) {
@@ -1465,29 +1461,29 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
         _audioOutput->stop();
 
         delete _audioOutput;
-        _audioOutput = NULL;
+        _audioOutput = nullptr;
 
-        _loopbackOutputDevice = NULL;
+        _loopbackOutputDevice = nullptr;
         delete _loopbackAudioOutput;
-        _loopbackAudioOutput = NULL;
+        _loopbackAudioOutput = nullptr;
 
         delete[] _outputMixBuffer;
-        _outputMixBuffer = NULL;
+        _outputMixBuffer = nullptr;
 
         delete[] _outputScratchBuffer;
-        _outputScratchBuffer = NULL;
+        _outputScratchBuffer = nullptr;
 
         delete[] _localOutputMixBuffer;
-        _localOutputMixBuffer = NULL;
+        _localOutputMixBuffer = nullptr;
     }
 
     if (_networkToOutputResampler) {
         // if we were using an input to network resampler, delete it here
         delete _networkToOutputResampler;
-        _networkToOutputResampler = NULL;
+        _networkToOutputResampler = nullptr;
 
         delete _localToOutputResampler;
-        _localToOutputResampler = NULL;
+        _localToOutputResampler = nullptr;
     }
 
     if (!outputDeviceInfo.isNull()) {
