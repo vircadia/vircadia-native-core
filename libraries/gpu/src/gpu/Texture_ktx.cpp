@@ -28,6 +28,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
 
     // Set Dimensions
+    uint32_t numFaces = 1;
     switch (texture.getType()) {
     case TEX_1D: {
             if (texture.isArray()) {
@@ -59,6 +60,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             } else {
                 header.setCube(texture.getWidth(), texture.getHeight());
             }
+            numFaces = 6;
             break;
         }
     default:
@@ -72,7 +74,16 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
         auto mip = texture.accessStoredMipFace(level);
         if (mip) {
-            images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
+            if (numFaces == 1) {
+                images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
+            } else {
+                ktx::Image::FaceBytes cubeFaces(6);
+                cubeFaces[0] = mip->readData();
+                for (int face = 1; face < 6; face++) {
+                    cubeFaces[face] = texture.accessStoredMipFace(level, face)->readData();
+                }
+                images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, cubeFaces));
+            }
         }
     }
 
@@ -80,7 +91,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(TextureUsageType usageType, const ktx::KTXUniquePointer& srcData) {
+Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx::KTXUniquePointer& srcData, const Sampler& sampler) {
     if (!srcData) {
         return nullptr;
     }
@@ -113,12 +124,16 @@ Texture* Texture::unserialize(TextureUsageType usageType, const ktx::KTXUniquePo
                                 header.getPixelDepth(),
                                 1, // num Samples
                                 header.getNumberOfSlices(),
-                                Sampler());
+                                sampler);
+
+    tex->setUsage(usage);
 
     // Assing the mips availables
     uint16_t level = 0;
     for (auto& image : srcData->_images) {
-        tex->assignStoredMip(level, mipFormat, image._imageSize, image._bytes);
+        for (uint32_t face = 0; face < image._numFaces; face++) {
+            tex->assignStoredMipFace(level, mipFormat, image._faceSize, image._faceBytes[face], face);
+        }
         level++;
     }
 

@@ -450,6 +450,7 @@ bool Texture::assignStoredMipFace(uint16 level, const Element& format, Size size
     Size expectedSize = evalStoredMipFaceSize(level, format);
     if (size == expectedSize) {
         _storage->assignMipFaceData(level, format, size, bytes, face);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     } else if (size > expectedSize) {
@@ -458,6 +459,7 @@ bool Texture::assignStoredMipFace(uint16 level, const Element& format, Size size
         // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
         // it seems to work...
         _storage->assignMipFaceData(level, format, size, bytes, face);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     }

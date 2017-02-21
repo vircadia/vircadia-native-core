@@ -85,7 +85,7 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     return srcImage;
 }
 
-gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = false) {
+gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = true) {
     if (!srcTexture) {
         return nullptr;
     }
@@ -113,10 +113,15 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
             filename += ".ktx";
 
         if (write) {
-            FILE* file = fopen (filename.c_str(),"wb");
+         /*   FILE *file = fopen(name.c_str(), "r");
             if (file != nullptr) {
-                fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
-                fclose (file);
+                fclose(file);
+            } else*/ {
+                FILE *file = fopen (filename.c_str(),"wb");
+                if (file != nullptr) {
+                    fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
+                    fclose (file);
+                }
             }
         }
 
@@ -133,7 +138,7 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
                 fclose (file);
 
                 //then create a new texture out of the ktx
-                auto theNewTexure = Texture::unserialize(srcTexture->getUsageType(), ktx::KTX::create(storage));
+                auto theNewTexure = Texture::unserialize(srcTexture->getUsage(), srcTexture->getUsageType(), ktx::KTX::create(storage), srcTexture->getSampler());
 
                 if (theNewTexure) {
                     returnedTexture = theNewTexure;
