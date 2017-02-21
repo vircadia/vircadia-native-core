@@ -142,7 +142,7 @@ void GL45Texture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip,
     }
     auto size = _gpuObject.evalMipDimensions(sourceMip);
     auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
-    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mipData->getFormat());
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
     copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.type, mipData->readData());
 }
 

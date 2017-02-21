@@ -302,7 +302,8 @@ void HmdDisplayPlugin::internalPresent() {
                 gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
             _previewTexture->setSource("HMD Preview Texture");
             _previewTexture->setUsage(gpu::Texture::Usage::Builder().withColor().build());
-            _previewTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), image.byteCount(), image.constBits());
+            _previewTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+            _previewTexture->assignStoredMip(0, image.byteCount(), image.constBits());
             _previewTexture->autoGenerateMips(-1);
         }
         

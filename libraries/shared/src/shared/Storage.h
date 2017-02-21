@@ -18,22 +18,27 @@
 
 namespace storage {
     class Storage;
-    using StoragePointer = std::unique_ptr<Storage>;
+    using StoragePointer = std::shared_ptr<const Storage>;
     class MemoryStorage;
-    using MemoryStoragePointer = std::unique_ptr<MemoryStorage>;
+    using MemoryStoragePointer = std::shared_ptr<const MemoryStorage>;
     class FileStorage;
-    using FileStoragePointer = std::unique_ptr<FileStorage>;
+    using FileStoragePointer = std::shared_ptr<const FileStorage>;
     class ViewStorage;
-    using ViewStoragePointer = std::unique_ptr<ViewStorage>;
+    using ViewStoragePointer = std::shared_ptr<const ViewStorage>;
 
-    class Storage {
+    class Storage : public std::enable_shared_from_this<Storage> {
     public:
         virtual ~Storage() {}
         virtual const uint8_t* data() const = 0;
         virtual size_t size() const = 0;
-        ViewStoragePointer createView(size_t size, size_t offset = 0) const;
+
+        ViewStoragePointer createView(size_t size = 0, size_t offset = 0) const;
         FileStoragePointer toFileStorage(const QString& filename) const;
         MemoryStoragePointer toMemoryStorage() const;
+
+        // Aliases to prevent having to re-write a ton of code
+        inline size_t getSize() const { return size(); }
+        inline const uint8_t* readData() const { return data(); }
     };
 
     class MemoryStorage : public Storage {
@@ -63,10 +68,11 @@ namespace storage {
 
     class ViewStorage : public Storage {
     public:
-        ViewStorage(size_t size, const uint8_t* data) : _size(size), _data(data) {}
+        ViewStorage(const storage::StoragePointer& owner, size_t size, const uint8_t* data) : _owner(owner), _size(size), _data(data) {}
         const uint8_t* data() const override { return _data; }
         size_t size() const override { return _size; }
     private:
+        const storage::StoragePointer _owner;
         const size_t _size;
         const uint8_t* _data;
     };

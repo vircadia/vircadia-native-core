@@ -71,7 +71,7 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
     : GLTexture(backend, texture, allocate()), _storageStamp { texture.getStamp() }, _size(texture.evalTotalSize()) {
     incrementTextureGPUCount();
     withPreservedTexture([&] {
-        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
+        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
         const Sampler& sampler = _gpuObject.getSampler();
         auto numMips = _gpuObject.evalNumMips();
         for (uint16_t mipLevel = 0; mipLevel < numMips; ++mipLevel) {
@@ -83,7 +83,6 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
                 if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
                     auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
                     mipData = mip->readData();
-                    texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
                 }
                 glTexImage2D(target, mipLevel, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, mipData);
                 (void)CHECK_GL_ERROR();

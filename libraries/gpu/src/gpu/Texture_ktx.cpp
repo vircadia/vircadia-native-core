@@ -116,9 +116,10 @@ Texture* Texture::unserialize(TextureUsageType usageType, const ktx::KTXUniquePo
                                 Sampler());
 
     // Assing the mips availables
+    tex->setStoredMipFormat(mipFormat);
     uint16_t level = 0;
     for (auto& image : srcData->_images) {
-        tex->assignStoredMip(level, mipFormat, image._imageSize, image._bytes);
+        tex->assignStoredMip(level, image._imageSize, image._bytes);
         level++;
     }
 
