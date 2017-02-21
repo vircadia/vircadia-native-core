@@ -159,7 +159,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
-        if (_this.homeButtonEntity === parseInt(senderID)) {
+        if (_this.homeButtonEntity == senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
             if (onHomeScreen) {
@@ -219,7 +219,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
-    print(this.homeButtonEntity);
     Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
 };
 
@@ -385,14 +384,10 @@ WebTablet.prototype.register = function() {
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
     children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, jointIndex));
-    print("cleanup " + children);
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
         if (props.name === "WebTablet Tablet") {
-            print("cleaning up " + props.name);
             Entities.deleteEntity(childID);
-        } else {
-            print("not cleaning up " + props.name);
         }
     });
 };
