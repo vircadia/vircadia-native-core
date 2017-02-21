@@ -112,7 +112,8 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
 
     _transferLambda = [=] {
         _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, format, type, _buffer.data());
-        _buffer.swap(std::vector<uint8_t>());
+        std::vector<uint8_t> emptyVector;
+        _buffer.swap(emptyVector);
     };
 }
 
