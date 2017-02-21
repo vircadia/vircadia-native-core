@@ -12,54 +12,27 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
-    var gotoQmlSource = "TabletAddressDialog.qml"; 
-    var button;
+    var gotoQmlSource = "TabletAddressDialog.qml";
     var buttonName = "GOTO";
-    var toolBar = null;
-    var tablet = null;
-    function onAddressBarShown(visible) {
-        if (toolBar) { 
-            button.editProperties({isActive: visible});
-        }
-    }
 
     function onClicked(){
-        if (toolBar) {
-            DialogsManager.toggleAddressBar();
-        } else {
-            tablet.loadQMLSource(gotoQmlSource);
-        }
+        tablet.loadQMLSource(gotoQmlSource);
     }
-    if (Settings.getValue("HUDUIEnabled")) {
-        toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-        button = toolBar.addButton({
-            objectName: buttonName,
-            imageURL: Script.resolvePath("assets/images/tools/directory.svg"),
-            visible: true,
-            alpha: 0.9
-        });
-    } else {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        button = tablet.addButton({
-            icon: "icons/tablet-icons/goto-i.svg",
-            activeIcon: "icons/tablet-icons/goto-a.svg",
-            text: buttonName,
-            sortOrder: 8
-        });
-    }
-    
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var button = tablet.addButton({
+        icon: "icons/tablet-icons/goto-i.svg",
+        activeIcon: "icons/tablet-icons/goto-a.svg",
+        text: buttonName,
+        sortOrder: 8
+    });
+
     button.clicked.connect(onClicked);
-    DialogsManager.addressBarShown.connect(onAddressBarShown);
-    
+
     Script.scriptEnding.connect(function () {
         button.clicked.disconnect(onClicked);
         if (tablet) {
             tablet.removeButton(button);
         }
-        if (toolBar) {
-            toolBar.removeButton(buttonName);
-        }
-        DialogsManager.addressBarShown.disconnect(onAddressBarShown);
     });
-    
+
 }()); // END LOCAL_SCOPE

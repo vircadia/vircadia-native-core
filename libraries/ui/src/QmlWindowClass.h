@@ -31,6 +31,9 @@ public:
     QmlWindowClass();
     ~QmlWindowClass();
 
+    virtual void initQml(QVariantMap properties);
+    QQuickItem* asQuickItem() const;
+
 public slots:
     bool isVisible() const;
     void setVisible(bool visible);
@@ -80,9 +83,6 @@ protected:
         std::function<QmlWindowClass*(QVariantMap)> function);
 
     virtual QString qmlSource() const { return "QmlWindow.qml"; }
-
-    virtual void initQml(QVariantMap properties);
-    QQuickItem* asQuickItem() const;
 
     // FIXME needs to be initialized in the ctor once we have support
     // for tool window panes in QML
