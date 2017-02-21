@@ -172,7 +172,7 @@ static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
 static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
 
 class TabletRootWindow : public QmlWindowClass {
-    virtual QString qmlSource() const { return "hifi/tablet/WindowRoot.qml"; }
+    virtual QString qmlSource() const override { return "hifi/tablet/WindowRoot.qml"; }
 };
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
