@@ -116,6 +116,7 @@ Rectangle {
                 topMargin: 10
             }
         }
+    }
     // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
     Rectangle {
         color: pal.color

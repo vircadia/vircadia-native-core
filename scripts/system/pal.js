@@ -297,7 +297,6 @@ function populateUserList(selectData, filterRequest) {
         front = filter && Quat.getFront(orientation),
         verticalAngleNormal = filter && Quat.getRight(orientation),
         horizontalAngleNormal = filter && Quat.getUp(orientation);
-    print('fixme h/v...myPosition', horizontalHalfAngle, verticalHalfAngle, JSON.stringify(horizontalAngleNormal), JSON.stringify(verticalAngleNormal), JSON.stringify(myPosition));
     avatars.forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
         var name = avatar.sessionDisplayName;
@@ -315,9 +314,7 @@ function populateUserList(selectData, filterRequest) {
         var normal = id && filter && Vec3.normalize(Vec3.subtract(avatar.position, myPosition));
         var horizontal = normal && angleBetweenVectorsInPlane(normal, front, horizontalAngleNormal);
         var vertical = normal && angleBetweenVectorsInPlane(normal, front, verticalAngleNormal);
-        print('fixme id/h/v/pos/norm', id, horizontal, vertical, JSON.stringify(avatar.position), JSON.stringify(normal));
         if (id && filter && ((Math.abs(horizontal) > horizontalHalfAngle) || (Math.abs(vertical) > verticalHalfAngle))) {
-            print('fixme skip out of angle');
             return;
         }
         var avatarPalDatum = {
@@ -338,7 +335,6 @@ function populateUserList(selectData, filterRequest) {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    print('fixme avatarsOfInterest', JSON.stringify(avatarsOfInterest));
     conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'users', params: data });
     if (selectData) {
@@ -365,12 +361,10 @@ function updateOverlays() {
     var eye = Camera.position;
     AvatarList.getAvatarIdentifiers().forEach(function (id) {
         if (!id || !avatarsOfInterest[id]) {
-            if (id) print('fixme not updating', id, Object.keys(avatarsOfInterest).length);
             return; // don't update ourself, or avatars we're not interested in
         }
         var avatar = AvatarList.getAvatar(id);
         if (!avatar) {
-            print('fixme not updating missing avatar', id);
             return; // will be deleted below if there had been an overlay.
         }
         var overlay = ExtendedOverlay.get(id);
@@ -570,7 +564,6 @@ function off() {
     triggerMapping.disable(); // It's ok if we disable twice.
     triggerPressMapping.disable(); // see above
     removeOverlays();
-    print('fixme clear requestsDomainListData');
     Users.requestsDomainListData = false;
 }
 function onTabletButtonClicked() {
