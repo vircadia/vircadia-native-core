@@ -101,7 +101,6 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
                     overlayProperties[key] = customProperties[key];
                 }
             }
-            print("overlay:", properties.type, JSON.stringify(overlayProperties));
             Overlays.editOverlay(overlay, overlayProperties);
         }
     }
